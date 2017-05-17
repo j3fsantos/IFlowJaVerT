@@ -1,0 +1,27 @@
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+----------------------------------
+----------------------------------
+Symbolic execution of i__getFields
+----------------------------------
+--0--
+TIME: 0.019216
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: xret := getFields (l)
+----------------------------------

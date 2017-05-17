@@ -1,0 +1,108 @@
+import javert_internal_functions, javert_logic_macros, javert_js_predicates;
+
+spec foo0 (x__scope, x__this)
+	[[ emp ]]
+	[[ emp ]]
+	normal
+proc foo0 (x__scope, x__this) {
+			x__er := new();
+			[x__er, "@er"] := $$t;
+			x_sc_1 := (x__er :: x__scope);
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x_23_v := "i__getValue"("cook") with elab;
+			goto pre_rlab;
+			x_24 := $$empty;
+	pre_rlab:	xret := PHI(x_23_v, x_24);
+			deleteObject (x__te);
+			deleteObject (x__se);
+	rlab:		skip;
+	pre_elab:	xerr := x_23_v;
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+
+spec main ()
+	[[ emp ]]
+	[[ emp ]]
+	normal
+proc main () {
+			x_0 := "setupInitialHeap"();
+			x_sc_0 := {{ $lg }};
+			x__this := $lg;
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x_f_0 := "create_function_object"(x_sc_0, "foo0", "foo0", $$nil);
+			x_er_0 := l-nth(x_sc_0, 0.);
+			[x_er_0, "foo"] := {{ "d", x_f_0, $$t, $$t, $$f }};
+			x_1 := x__this;
+			[* GPVFold(x_1, #x19, #x18, #x17, #x16, #x15) *]
+			x_1_v := "i__getValue"(x_1) with elab
+			[+ GPVUnfold(x_1) +];
+			x_2 := l-nth(x_sc_0, 0.);
+			x_3 := {{ "v", x_2, "foo" }};
+			[* GPVFold(x_3, #x4, #x3, #x2, #x1, #x0) *]
+			x_3_v := "i__getValue"(x_3) with elab
+			[+ GPVUnfold(x_3) +];
+			goto [(not (typeOf(x_3_v) = $$object_type))] elab next_0;
+	next_0:		x_4 := "i__isCallable"(x_3_v);
+			goto [x_4] lab_0 elab;
+	lab_0:		goto [((typeOf(x_3) = $$list_type) and (l-nth(x_3, 0.) = "o"))] then_0 else_0;
+	then_0:		x_this_0 := l-nth(x_3, 1.);
+			goto fi_0;
+	else_0:		x_this_1 := $$undefined;
+	fi_0:		x_this_2 := PHI(x_this_0, x_this_1);
+			x_body_0 := [x_3_v, "@call"];
+			x_fscope_0 := [x_3_v, "@scope"];
+			x_5 := x_body_0(x_fscope_0, x_this_2) with elab;
+			goto [(x_5 = $$empty)] next_1 next_2;
+	next_1:		x_6 := $$undefined;
+	next_2:		x_7 := PHI(x_5, x_6);
+			[* GPVFold(x_7, #x9, #x8, #x7, #x6, #x5) *]
+			x_7_v := "i__getValue"(x_7) with elab
+			[+ GPVUnfold(x_7) +];
+			x_8_v := "i__getValue"("ie") with elab;
+			x_7_p := "i__toPrimitive"(x_7_v) with elab;
+			x_9_p := "i__toPrimitive"(x_8_v) with elab;
+			goto [((typeOf(x_7_p) = $$string_type) or (typeOf(x_9_p) = $$string_type))] then_1 else_1;
+	then_1:		x_7_s := "i__toString"(x_7_p) with elab;
+			x_10_s := "i__toString"(x_9_p) with elab;
+			x_11 := (x_7_s ++ x_10_s);
+			goto fi_1;
+	else_1:		x_7_n := "i__toNumber"(x_7_p) with elab;
+			x_12_n := "i__toNumber"(x_9_p) with elab;
+			x_13 := (x_7_n + x_12_n);
+	fi_1:		x_14 := PHI(x_11, x_13);
+			[* GPVFold(x_14, #x14, #x13, #x12, #x11, #x10) *]
+			x_14_v := "i__getValue"(x_14) with elab
+			[+ GPVUnfold(x_14) +];
+			x_15 := "i__checkObjectCoercible"(x_1_v) with elab;
+			x_14_s := "i__toString"(x_14_v) with elab;
+			x_16 := {{ "o", x_1_v, x_14_s }};
+			x_17 := "hasProperty"($lg, "malicious_cookie") with elab;
+			goto [x_17] then_2 else_2;
+	then_2:		x_18 := {{ "v", $lg, "malicious_cookie" }};
+			goto end_0;
+	else_2:		x_19 := {{ "v", $$undefined, "malicious_cookie" }};
+	end_0:		x_20 := PHI(x_18, x_19);
+			[* GPVFold(x_20, #x24, #x23, #x22, #x21, #x20) *]
+			x_20_v := "i__getValue"(x_20) with elab
+			[+ GPVUnfold(x_20) +];
+			x_21 := "i__checkAssignmentErrors"(x_16) with elab;
+			[* GPVFold(x_16, #x29, #x28, #x27, #x26, #x25) *]
+			x_22 := "i__putValue"(x_16, x_20_v) with elab
+			[+ GPVUnfold(x_16) +];
+			skip;
+			xret := x_20;
+			deleteObject (x__te);
+			deleteObject (x__se);
+	rlab:		skip;
+	elab:		xerr := PHI(x_1_v, x_3_v, x__te, x__te, x_5, x_7_v, x_8_v, x_7_p, x_9_p, x_7_s, x_10_s, x_7_n, x_12_n, x_14_v, x_15, x_14_s, x_17, x_20_v, x_21, x_22, x_20)
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+

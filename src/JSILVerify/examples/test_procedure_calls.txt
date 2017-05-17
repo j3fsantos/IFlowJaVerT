@@ -1,0 +1,140 @@
+SPECS: 
+test0
+----------
+[[ types() ]]
+[[ ((_$l_x, "cenoura") -> "maria") * ((_$l_x, "@proto") -> $$null) * (x == _$l_x) * types(x : $$object_type) ]]
+Normal
+
+aux0
+----------
+[[ types() ]]
+[[ ((_$l_x, "cenoura") -> "maria") * ((_$l_x, "@proto") -> $$null) * (x == _$l_x) * types(x : $$object_type) ]]
+Normal
+
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.039583
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: x := "aux0"() 
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.039901
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"cenoura\": \"maria\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test0
+----------------------------------
+----------------------------------
+Symbolic execution of aux0
+----------------------------------
+--0--
+TIME: 0.040152
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: x := new()
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.040208
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+CMD: [x, "cenoura"] := "maria"
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.040260
+STATE:
+Heap: 
+	_$l_1 |-> [(\"cenoura\": \"maria\"), (\"@proto\": $$null), (default: None)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+	(! (_$l_1 == $lg))
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc aux0
+
+Verified: 2.		Prunings: 0.
+
+RESULTS
+Proc test0  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_x |-> [(\"@proto\": $$null), (\"cenoura\": \"maria\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc aux0  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_x |-> [(\"@proto\": $$null), (\"cenoura\": \"maria\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.054244

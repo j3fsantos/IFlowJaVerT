@@ -1,0 +1,2003 @@
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+----------------------------------
+----------------------------------
+Symbolic execution of test6
+----------------------------------
+--0--
+TIME: 0.028175
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: x := [y, "foo"]
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.028254
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _$l_0)
+	(x: _lvar_1)
+Pure Formulae: 	
+	(! (_lvar_1 == None))
+Gamma: 	
+	(y: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+	(! (_lvar_1 == None))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [y, "bar"] := (not x)
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"bar". v:(not _lvar_1)----------------------------------
+--2--
+TIME: 0.028308
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"bar\": (not _lvar_1)), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _$l_0)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(_lvar_1: $$boolean_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"bar\": _lvar_2), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+	(! (_lvar_1 == None))
+Gamma: 	
+	(_lvar_1: $$boolean_type)
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_0 |-> [(\"bar\": (not _lvar_1)), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _$l_0)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(_lvar_1: $$boolean_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"bar\": (not _lvar_1)), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _$l_0)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(_lvar_1: $$boolean_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"bar\": _lvar_2), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+	(! (_lvar_1 == None))
+Gamma: 	
+	(_lvar_1: $$boolean_type)
+Preds: 
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"bar\": (not _lvar_1)), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _$l_0)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$object_type)
+	(_lvar_1: $$boolean_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"bar\": _lvar_2), (\"foo\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(y: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+	(! (_lvar_1 == None))
+Gamma: 	
+	(_lvar_1: $$boolean_type)
+Preds: 
+
+Spec Var: #s_0
+Spec Var: #s_1
+Spec Var: #s_2
+Spec Var: #s_1
+----------------------------------
+----------------------------------
+Symbolic execution of test2
+----------------------------------
+--0--
+TIME: 0.028613
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "date"] := "1832"
+----------------------------------
+Updtate-abs-heap. loc: _$l_1. field:"date". v:"1832"----------------------------------
+--1--
+TIME: 0.028656
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"date\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(x: _lvar_3)
+Pure Formulae: 	
+	(_$l_1 == _lvar_3)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_1 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_1 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"date\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(x: _lvar_3)
+Pure Formulae: 	
+	(_$l_1 == _lvar_3)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_1 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"date\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(x: _lvar_3)
+Pure Formulae: 	
+	(_$l_1 == _lvar_3)
+Gamma: 	
+Preds: 
+
+Spec Var: #s_3
+Spec Var: #s_4
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.028909
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "date"] := "1832"
+----------------------------------
+Updtate-abs-heap. loc: _$l_2. field:"date". v:"1832"----------------------------------
+--1--
+TIME: 0.028949
+ ---- STATE: ---- 
+Heap: 
+	_$l_2 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_2 |-> [(\"date\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(x: _lvar_6)
+Pure Formulae: 	
+	(_$l_2 == _lvar_6)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_2 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_2 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(x: _lvar_6)
+Pure Formulae: 	
+	(_$l_2 == _lvar_6)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_2 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_2 |-> [(\"date\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(x: _lvar_6)
+Pure Formulae: 	
+	(_$l_2 == _lvar_6)
+Gamma: 	
+Preds: 
+
+Spec Var: #s_5
+Spec Var: #s_6
+----------------------------------
+----------------------------------
+Symbolic execution of test1
+----------------------------------
+--0--
+TIME: 0.029217
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "date"] := "1832"
+----------------------------------
+Updtate-abs-heap. loc: _$l_3. field:"date". v:"1832"----------------------------------
+--1--
+TIME: 0.029255
+ ---- STATE: ---- 
+Heap: 
+	_$l_3 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_3 |-> [(\"date\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(x: _lvar_9)
+Pure Formulae: 	
+	(_$l_3 == _lvar_9)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_3 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_3 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"date\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(x: _lvar_9)
+Pure Formulae: 	
+	(_$l_3 == _lvar_9)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_3 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_3 |-> [(\"date\": _lvar_11), (default: $$unknown)]
+Store: 	
+	(x: _lvar_9)
+Pure Formulae: 	
+	(_$l_3 == _lvar_9)
+Gamma: 	
+Preds: 
+
+Spec Var: #s_7
+Spec Var: #s_8
+----------------------------------
+----------------------------------
+Symbolic execution of test3
+----------------------------------
+--0--
+TIME: 0.029504
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "date"] := "1832"
+----------------------------------
+Updtate-abs-heap. loc: _$l_4. field:"date". v:"1832"----------------------------------
+--1--
+TIME: 0.029548
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"date\": _lvar_14), (default: $$unknown)]
+Store: 	
+	(x: _lvar_12)
+Pure Formulae: 	
+	(_$l_4 == _lvar_12)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+SHasField: got a boolean!
+----------------------------------
+--2--
+TIME: 0.029584
+ ---- STATE: ---- 
+Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(x: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_4 |-> [(\"date\": _lvar_14), (default: $$unknown)]
+Store: 	
+	(x: _lvar_12)
+Pure Formulae: 	
+	(_$l_4 == _lvar_12)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(x: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(x: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"date\": _lvar_14), (default: $$unknown)]
+Store: 	
+	(x: _lvar_12)
+Pure Formulae: 	
+	(_$l_4 == _lvar_12)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(x: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_4 |-> [(\"date\": _lvar_14), (default: $$unknown)]
+Store: 	
+	(x: _lvar_12)
+Pure Formulae: 	
+	(_$l_4 == _lvar_12)
+Gamma: 	
+Preds: 
+
+Spec Var: #s_10
+Spec Var: #s_9
+----------------------------------
+----------------------------------
+Symbolic execution of test7
+----------------------------------
+--0--
+TIME: 0.031716
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := [x, "bar"]
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.031763
+ ---- STATE: ---- 
+Heap: 
+	_$l_5 |-> [(\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(y: _lvar_16)
+	(x: _$l_5)
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_5 |-> [(\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := [x, "buc"]
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.031802
+ ---- STATE: ---- 
+Heap: 
+	_$l_5 |-> [(\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: _lvar_16)
+	(x: _$l_5)
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_5 |-> [(\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: r := (y :: z)
+----------------------------------
+LVAR LHS: _lvar_16 
+LVAR LHS: _lvar_16 
+----------------------------------
+--3--
+TIME: 0.031879
+ ---- STATE: ---- 
+Heap: 
+	_$l_5 |-> [(\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: _lvar_16)
+	(x: _$l_5)
+	(r: (_lvar_16 :: _lvar_17))
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+Gamma: 	
+	(_lvar_17: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_5 |-> [(\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+Gamma: 	
+	(_lvar_17: $$list_type)
+Preds: 
+ -------- 
+ CMD: y := l-nth(r, 3.)
+----------------------------------
+LVAR LHS: _lvar_16 
+I found the model: 
+
+(define-fun _lvar_16 () Extended_JSIL_Literal
+  (Set (_ as-array k!5)))
+(define-fun _lvar_17 () Extended_JSIL_Literal
+  (Elem (List Nil)))
+(define-fun k!5 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+----------------------------------
+--4--
+TIME: 0.046476
+ ---- STATE: ---- 
+Heap: 
+	_$l_5 |-> [(\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: l-nth(_lvar_17, 2.))
+	(x: _$l_5)
+	(r: (_lvar_16 :: _lvar_17))
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len _lvar_17)))
+Gamma: 	
+	(_lvar_17: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_5 |-> [(\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+	(! (3. <# 0.))
+	(3. <# (l-len (_lvar_16 :: _lvar_17)))
+Gamma: 	
+	(_lvar_17: $$list_type)
+Preds: 
+ -------- 
+ CMD: [x, "foo"] := (y + 2.)
+----------------------------------
+LVAR LHS: l-nth(_lvar_17, 2.) 
+LVAR LHS: _lvar_18 
+Updtate-abs-heap. loc: _$l_5. field:"foo". v:(_lvar_18 + 2.)----------------------------------
+--5--
+TIME: 0.046562
+ ---- STATE: ---- 
+Heap: 
+	_$l_5 |-> [(\"foo\": (l-nth(_lvar_17, 2.) + 2.)), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: l-nth(_lvar_17, 2.))
+	(x: _$l_5)
+	(r: (_lvar_16 :: _lvar_17))
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len _lvar_17)))
+Gamma: 	
+	(z: $$list_type)
+	(_lvar_17: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_5 |-> [(\"foo\": _lvar_19), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+	(! (3. <# 0.))
+	(3. <# (l-len (_lvar_16 :: _lvar_17)))
+	(_lvar_18 == l-nth(_lvar_17, 2.))
+Gamma: 	
+	(_lvar_18: $$number_type)
+	(_lvar_17: $$list_type)
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_5 |-> [(\"foo\": (l-nth(_lvar_17, 2.) + 2.)), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: l-nth(_lvar_17, 2.))
+	(x: _$l_5)
+	(r: (_lvar_16 :: _lvar_17))
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len _lvar_17)))
+Gamma: 	
+	(z: $$list_type)
+	(_lvar_17: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_5 |-> [(\"foo\": (l-nth(_lvar_17, 2.) + 2.)), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: l-nth(_lvar_17, 2.))
+	(x: _$l_5)
+	(r: (_lvar_16 :: _lvar_17))
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len _lvar_17)))
+Gamma: 	
+	(z: $$list_type)
+	(_lvar_17: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_5 |-> [(\"foo\": _lvar_19), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+	(! (3. <# 0.))
+	(3. <# (l-len (_lvar_16 :: _lvar_17)))
+	(_lvar_18 == l-nth(_lvar_17, 2.))
+Gamma: 	
+	(_lvar_18: $$number_type)
+	(_lvar_17: $$list_type)
+Preds: 
+
+Symb_state: Heap: 
+	_$l_5 |-> [(\"foo\": (l-nth(_lvar_17, 2.) + 2.)), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(z: _lvar_17)
+	(y: l-nth(_lvar_17, 2.))
+	(x: _$l_5)
+	(r: (_lvar_16 :: _lvar_17))
+Pure Formulae: 	
+	(! (_lvar_16 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len _lvar_17)))
+Gamma: 	
+	(z: $$list_type)
+	(_lvar_17: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_5 |-> [(\"foo\": _lvar_19), (\"buc\": _lvar_17), (\"bar\": _lvar_16), (default: $$unknown)]
+Store: 	
+	(x: _lvar_15)
+Pure Formulae: 	
+	(_$l_5 == _lvar_15)
+	(! (_lvar_16 == None))
+	(! (_lvar_17 == None))
+	(! (3. <# 0.))
+	(3. <# (l-len (_lvar_16 :: _lvar_17)))
+	(_lvar_18 == l-nth(_lvar_17, 2.))
+Gamma: 	
+	(_lvar_18: $$number_type)
+	(_lvar_17: $$list_type)
+Preds: 
+
+Spec Var: #s_11
+Spec Var: #s_12
+Spec Var: #s_13
+Spec Var: #s_14
+Spec Var: #s_15
+Spec Var: #s_12
+Spec Var: #s_13
+----------------------------------
+----------------------------------
+Symbolic execution of test4
+----------------------------------
+--0--
+TIME: 0.057848
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.057885
+ ---- STATE: ---- 
+Heap: 
+	_$l_6 |-> [(\"date\": _lvar_21), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_21 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_6 |-> [(\"date\": _lvar_21), (default: $$unknown)]
+Store: 	
+	(x: _lvar_20)
+Pure Formulae: 	
+	(_$l_6 == _lvar_20)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "date"] := "1832"
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.057911
+ ---- STATE: ---- 
+Heap: 
+	_$l_6 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_21 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_6 |-> [(\"date\": _lvar_21), (default: $$unknown)]
+Store: 	
+	(x: _lvar_20)
+Pure Formulae: 	
+	(_$l_6 == _lvar_20)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "exists"] := z
+----------------------------------
+LVAR LHS: _lvar_21 
+Updtate-abs-heap. loc: _$l_6. field:"exists". v:(not (_lvar_21 = None))----------------------------------
+--3--
+TIME: 0.058314
+ ---- STATE: ---- 
+Heap: 
+	_$l_6 |-> [(\"exists\": (not (_lvar_21 = None))), (\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_21 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_6 |-> [(\"exists\": _lvar_22), (\"date\": _lvar_21), (default: $$unknown)]
+Store: 	
+	(x: _lvar_20)
+Pure Formulae: 	
+	(_$l_6 == _lvar_20)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_6 |-> [(\"exists\": (not (_lvar_21 = None))), (\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_21 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_6 |-> [(\"exists\": (not (_lvar_21 = None))), (\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_21 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_6 |-> [(\"exists\": _lvar_22), (\"date\": _lvar_21), (default: $$unknown)]
+Store: 	
+	(x: _lvar_20)
+Pure Formulae: 	
+	(_$l_6 == _lvar_20)
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	_$l_6 |-> [(\"exists\": (not (_lvar_21 = None))), (\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (_lvar_21 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_6 |-> [(\"exists\": _lvar_22), (\"date\": _lvar_21), (default: $$unknown)]
+Store: 	
+	(x: _lvar_20)
+Pure Formulae: 	
+	(_$l_6 == _lvar_20)
+Gamma: 	
+Preds: 
+
+Spec Var: #s_16
+Spec Var: #s_17
+Spec Var: #s_18
+Spec Var: #s_17
+----------------------------------
+----------------------------------
+Symbolic execution of test5
+----------------------------------
+--0--
+TIME: 0.058541
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "foo"] := l-nth(y, 3.)
+----------------------------------
+I found the model: 
+
+(define-fun _lvar_24 () Extended_JSIL_Literal
+  (Elem (List Nil)))
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+Updtate-abs-heap. loc: _$l_7. field:"foo". v:l-nth(_lvar_24, 3.)----------------------------------
+--1--
+TIME: 0.070072
+ ---- STATE: ---- 
+Heap: 
+	_$l_7 |-> [(\"foo\": l-nth(_lvar_24, 3.)), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _$l_7)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+Gamma: 	
+	(_lvar_24: $$list_type)
+	(y: $$list_type)
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_7 |-> [(\"foo\": _lvar_26), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _lvar_23)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+	(_$l_7 == _lvar_23)
+Gamma: 	
+	(_lvar_24: $$list_type)
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_7 |-> [(\"foo\": l-nth(_lvar_24, 3.)), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _$l_7)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+Gamma: 	
+	(_lvar_24: $$list_type)
+	(y: $$list_type)
+	(x: $$object_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_7 |-> [(\"foo\": l-nth(_lvar_24, 3.)), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _$l_7)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+Gamma: 	
+	(_lvar_24: $$list_type)
+	(y: $$list_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_7 |-> [(\"foo\": _lvar_26), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _lvar_23)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+	(_$l_7 == _lvar_23)
+Gamma: 	
+	(_lvar_24: $$list_type)
+Preds: 
+
+Symb_state: Heap: 
+	_$l_7 |-> [(\"foo\": l-nth(_lvar_24, 3.)), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _$l_7)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+Gamma: 	
+	(_lvar_24: $$list_type)
+	(y: $$list_type)
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_7 |-> [(\"foo\": _lvar_26), (default: $$unknown)]
+Store: 	
+	(y: _lvar_24)
+	(x: _lvar_23)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len _lvar_24))
+	(_$l_7 == _lvar_23)
+Gamma: 	
+	(_lvar_24: $$list_type)
+Preds: 
+
+Spec Var: #s_19
+Spec Var: #s_20
+Spec Var: #s_21
+Spec Var: #s_20
+
+********** Finished bi-abduction symbolic execution. **********
+
+
+**********    Starting normal symbolic execution.    **********
+
+----------------------------------
+----------------------------------
+Symbolic execution of test6
+----------------------------------
+--0--
+TIME: 0.085543
+STATE:
+Heap: 
+	_$l_0 |-> [(\"bar\": #s_2), (\"foo\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_1: $$boolean_type)
+	(#s_0: $$object_type)
+Preds: 
+CMD: x := [y, "foo"]
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.085634
+STATE:
+Heap: 
+	_$l_0 |-> [(\"bar\": #s_2), (\"foo\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_0)
+	(x: #s_1)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_1: $$boolean_type)
+	(#s_0: $$object_type)
+	(x: $$boolean_type)
+Preds: 
+CMD: [y, "bar"] := (not x)
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.085715
+STATE:
+Heap: 
+	_$l_0 |-> [(\"bar\": (not #s_1)), (\"foo\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_0)
+	(x: #s_1)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_1: $$boolean_type)
+	(#s_0: $$object_type)
+	(x: $$boolean_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test6
+----------------------------------
+----------------------------------
+Symbolic execution of test2
+----------------------------------
+--0--
+TIME: 0.086017
+STATE:
+Heap: 
+	_$l_1 |-> [(\"date\": #s_4), (default: $$unknown)]
+Store: 	
+	(x: #s_3)
+Pure Formulae: 	
+	(#s_3 == _$l_1)
+Gamma: 	
+	(#s_3: $$object_type)
+Preds: 
+CMD: [x, "date"] := "1832"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.086091
+STATE:
+Heap: 
+	_$l_1 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: #s_3)
+Pure Formulae: 	
+	(#s_3 == _$l_1)
+Gamma: 	
+	(#s_3: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test2
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.092904
+STATE:
+Heap: 
+	_$l_2 |-> [(\"date\": #s_6), (default: $$unknown)]
+Store: 	
+	(x: #s_5)
+Pure Formulae: 	
+	(#s_5 == _$l_2)
+Gamma: 	
+	(#s_5: $$object_type)
+Preds: 
+CMD: [x, "date"] := "1832"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.092979
+STATE:
+Heap: 
+	_$l_2 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: #s_5)
+Pure Formulae: 	
+	(#s_5 == _$l_2)
+Gamma: 	
+	(#s_5: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test0
+----------------------------------
+----------------------------------
+Symbolic execution of test1
+----------------------------------
+--0--
+TIME: 0.093274
+STATE:
+Heap: 
+	_$l_3 |-> [(\"date\": #s_7), (default: $$unknown)]
+Store: 	
+	(x: #s_8)
+Pure Formulae: 	
+	(#s_8 == _$l_3)
+Gamma: 	
+	(#s_8: $$object_type)
+Preds: 
+CMD: [x, "date"] := "1832"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.093354
+STATE:
+Heap: 
+	_$l_3 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: #s_8)
+Pure Formulae: 	
+	(#s_8 == _$l_3)
+Gamma: 	
+	(#s_8: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test1
+----------------------------------
+----------------------------------
+Symbolic execution of test3
+----------------------------------
+--0--
+TIME: 0.093921
+STATE:
+Heap: 
+	_$l_4 |-> [(\"date\": #s_10), (default: $$unknown)]
+Store: 	
+	(x: #s_9)
+Pure Formulae: 	
+	(#s_9 == _$l_4)
+Gamma: 	
+	(#s_9: $$object_type)
+Preds: 
+CMD: [x, "date"] := "1832"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.094108
+STATE:
+Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: #s_9)
+Pure Formulae: 	
+	(#s_9 == _$l_4)
+Gamma: 	
+	(#s_9: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.094234
+STATE:
+Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(x: #s_9)
+Pure Formulae: 	
+	(#s_9 == _$l_4)
+Gamma: 	
+	(z: $$boolean_type)
+	(#s_9: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test3
+----------------------------------
+----------------------------------
+Symbolic execution of test7
+----------------------------------
+--0--
+TIME: 0.094650
+STATE:
+Heap: 
+	_$l_5 |-> [(\"foo\": #s_15), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(x: #s_11)
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_14 == l-nth(#s_13, 2.))
+	(#s_11 == _$l_5)
+Gamma: 	
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(#s_13: $$list_type)
+Preds: 
+CMD: y := [x, "bar"]
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.094759
+STATE:
+Heap: 
+	_$l_5 |-> [(\"foo\": #s_15), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(y: #s_12)
+	(x: #s_11)
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_14 == l-nth(#s_13, 2.))
+	(#s_11 == _$l_5)
+Gamma: 	
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(#s_13: $$list_type)
+Preds: 
+CMD: z := [x, "buc"]
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.094866
+STATE:
+Heap: 
+	_$l_5 |-> [(\"foo\": #s_15), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(z: #s_13)
+	(y: #s_12)
+	(x: #s_11)
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_14 == l-nth(#s_13, 2.))
+	(#s_11 == _$l_5)
+Gamma: 	
+	(z: $$list_type)
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(#s_13: $$list_type)
+Preds: 
+CMD: r := (y :: z)
+----------------------------------
+LVAR LHS: #s_12 
+----------------------------------
+--3--
+TIME: 0.094980
+STATE:
+Heap: 
+	_$l_5 |-> [(\"foo\": #s_15), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(z: #s_13)
+	(y: #s_12)
+	(x: #s_11)
+	(r: (#s_12 :: #s_13))
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_14 == l-nth(#s_13, 2.))
+	(#s_11 == _$l_5)
+Gamma: 	
+	(z: $$list_type)
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(r: $$list_type)
+	(#s_13: $$list_type)
+Preds: 
+CMD: y := l-nth(r, 3.)
+----------------------------------
+LVAR LHS: #s_12 
+----------------------------------
+--4--
+TIME: 0.107518
+STATE:
+Heap: 
+	_$l_5 |-> [(\"foo\": #s_15), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(z: #s_13)
+	(y: l-nth(#s_13, 2.))
+	(x: #s_11)
+	(r: (#s_12 :: #s_13))
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_14 == l-nth(#s_13, 2.))
+	(#s_11 == _$l_5)
+Gamma: 	
+	(z: $$list_type)
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(r: $$list_type)
+	(#s_13: $$list_type)
+Preds: 
+CMD: [x, "foo"] := (y + 2.)
+----------------------------------
+LVAR LHS: #s_14 
+----------------------------------
+--5--
+TIME: 0.107649
+STATE:
+Heap: 
+	_$l_5 |-> [(\"foo\": (l-nth(#s_13, 2.) + 2.)), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(z: #s_13)
+	(y: l-nth(#s_13, 2.))
+	(x: #s_11)
+	(r: (#s_12 :: #s_13))
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_14 == l-nth(#s_13, 2.))
+	(#s_11 == _$l_5)
+Gamma: 	
+	(z: $$list_type)
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(r: $$list_type)
+	(#s_13: $$list_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test7
+----------------------------------
+----------------------------------
+Symbolic execution of test4
+----------------------------------
+--0--
+TIME: 0.108035
+STATE:
+Heap: 
+	_$l_6 |-> [(\"exists\": #s_18), (\"date\": #s_17), (default: $$unknown)]
+Store: 	
+	(x: #s_16)
+Pure Formulae: 	
+	(#s_16 == _$l_6)
+Gamma: 	
+	(#s_16: $$object_type)
+Preds: 
+CMD: z := hasField(x,"date")
+----------------------------------
+I found the model: 
+
+(define-fun |#s_17| () Extended_JSIL_Literal
+  (Set (_ as-array k!22)))
+(define-fun k!22 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+I found the model: 
+
+(define-fun |#s_17| () Extended_JSIL_Literal
+  (Elem None))
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+----------------------------------
+--1--
+TIME: 0.133705
+STATE:
+Heap: 
+	_$l_6 |-> [(\"exists\": #s_18), (\"date\": #s_17), (default: $$unknown)]
+Store: 	
+	(z: (not (#s_17 = None)))
+	(x: #s_16)
+Pure Formulae: 	
+	(#s_16 == _$l_6)
+Gamma: 	
+	(z: $$boolean_type)
+	(#s_16: $$object_type)
+Preds: 
+CMD: [x, "date"] := "1832"
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.133785
+STATE:
+Heap: 
+	_$l_6 |-> [(\"date\": \"1832\"), (\"exists\": #s_18), (default: $$unknown)]
+Store: 	
+	(z: (not (#s_17 = None)))
+	(x: #s_16)
+Pure Formulae: 	
+	(#s_16 == _$l_6)
+Gamma: 	
+	(z: $$boolean_type)
+	(#s_16: $$object_type)
+Preds: 
+CMD: [x, "exists"] := z
+----------------------------------
+LVAR LHS: #s_17 
+----------------------------------
+--3--
+TIME: 0.133858
+STATE:
+Heap: 
+	_$l_6 |-> [(\"exists\": (not (#s_17 = None))), (\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (#s_17 = None)))
+	(x: #s_16)
+Pure Formulae: 	
+	(#s_16 == _$l_6)
+Gamma: 	
+	(z: $$boolean_type)
+	(#s_16: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test4
+----------------------------------
+----------------------------------
+Symbolic execution of test5
+----------------------------------
+--0--
+TIME: 0.138224
+STATE:
+Heap: 
+	_$l_7 |-> [(\"foo\": #s_21), (default: $$unknown)]
+Store: 	
+	(y: #s_20)
+	(x: #s_19)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len #s_20))
+	(#s_19 == _$l_7)
+Gamma: 	
+	(#s_19: $$object_type)
+	(#s_20: $$list_type)
+Preds: 
+CMD: [x, "foo"] := l-nth(y, 3.)
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.149973
+STATE:
+Heap: 
+	_$l_7 |-> [(\"foo\": l-nth(#s_20, 3.)), (default: $$unknown)]
+Store: 	
+	(y: #s_20)
+	(x: #s_19)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len #s_20))
+	(#s_19 == _$l_7)
+Gamma: 	
+	(#s_19: $$object_type)
+	(#s_20: $$list_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test5
+
+Verified: 8.		Prunings: 0.
+
+RESULTS
+Proc test6  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_0 |-> [(\"bar\": #s_2), (\"foo\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_1: $$boolean_type)
+	(#s_0: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"bar\": (not #s_1)), (\"foo\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: _$l_0)
+	(x: #s_1)
+Pure Formulae: 	
+Gamma: 	
+	(#s_1: $$boolean_type)
+	(y: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test2  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_1 |-> [(\"date\": #s_4), (default: $$unknown)]
+Store: 	
+	(x: #s_3)
+Pure Formulae: 	
+	(#s_3 == _$l_1)
+Gamma: 	
+	(#s_3: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_1 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test0  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_2 |-> [(\"date\": #s_6), (default: $$unknown)]
+Store: 	
+	(x: #s_5)
+Pure Formulae: 	
+	(#s_5 == _$l_2)
+Gamma: 	
+	(#s_5: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_2 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test1  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_3 |-> [(\"date\": #s_7), (default: $$unknown)]
+Store: 	
+	(x: #s_8)
+Pure Formulae: 	
+	(#s_8 == _$l_3)
+Gamma: 	
+	(#s_8: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_3 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_3)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test3  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_4 |-> [(\"date\": #s_10), (default: $$unknown)]
+Store: 	
+	(x: #s_9)
+Pure Formulae: 	
+	(#s_9 == _$l_4)
+Gamma: 	
+	(#s_9: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_4 |-> [(\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: $$t)
+	(x: _$l_4)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test7  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_5 |-> [(\"foo\": #s_15), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(x: #s_11)
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+	(#s_11 == _$l_5)
+	(#s_14 == l-nth(#s_13, 2.))
+Gamma: 	
+	(#s_14: $$number_type)
+	(#s_11: $$object_type)
+	(#s_13: $$list_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_5 |-> [(\"foo\": (l-nth(#s_13, 2.) + 2.)), (\"buc\": #s_13), (\"bar\": #s_12), (default: $$unknown)]
+Store: 	
+	(z: #s_13)
+	(y: l-nth(#s_13, 2.))
+	(x: _$l_5)
+	(r: (#s_12 :: #s_13))
+Pure Formulae: 	
+	(! (#s_12 == None))
+	(! (3. <# 0.))
+	(3. <# (1. + (l-len #s_13)))
+Gamma: 	
+	(z: $$list_type)
+	(x: $$object_type)
+	(r: $$list_type)
+	(#s_13: $$list_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test4  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_6 |-> [(\"exists\": #s_18), (\"date\": #s_17), (default: $$unknown)]
+Store: 	
+	(x: #s_16)
+Pure Formulae: 	
+	(#s_16 == _$l_6)
+Gamma: 	
+	(#s_16: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_6 |-> [(\"exists\": (not (#s_17 = None))), (\"date\": \"1832\"), (default: $$unknown)]
+Store: 	
+	(z: (not (#s_17 = None)))
+	(x: _$l_6)
+Pure Formulae: 	
+Gamma: 	
+	(z: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test5  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_7 |-> [(\"foo\": #s_21), (default: $$unknown)]
+Store: 	
+	(y: #s_20)
+	(x: #s_19)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len #s_20))
+	(#s_19 == _$l_7)
+Gamma: 	
+	(#s_19: $$object_type)
+	(#s_20: $$list_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_7 |-> [(\"foo\": l-nth(#s_20, 3.)), (default: $$unknown)]
+Store: 	
+	(y: #s_20)
+	(x: _$l_7)
+Pure Formulae: 	
+	(! (3. <# 0.))
+	(3. <# (l-len #s_20))
+Gamma: 	
+	(#s_20: $$list_type)
+	(y: $$list_type)
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.150367
+
+**********     Ending normal symbolic execution.     **********
+
+BI-ABDUCTIVE RESULTS: 
+
+Procedures we generated and verified specs for: 
+
+test7
+[[ ((_$l_5, "bar") -> #s_12) * ((_$l_5, "buc") -> #s_13) * ((_$l_5, "foo") -> #s_15) * (x == #s_11) * (! (#s_12 == None)) * (! (3. <# 0.)) * (3. <# (1. + (l-len #s_13))) * (#s_11 == _$l_5) * (#s_14 == l-nth(#s_13, 2.)) * types(#s_13 : $$list_type, #s_11 : $$object_type, #s_14 : $$number_type) ]]
+[[ ((_$l_5, "bar") -> #s_12) * ((_$l_5, "buc") -> #s_13) * ((_$l_5, "foo") -> (l-nth(#s_13, 2.) + 2.)) * (r == (#s_12 :: #s_13)) * (x == _$l_5) * (y == l-nth(#s_13, 2.)) * (z == #s_13) * (! (#s_12 == None)) * (! (3. <# 0.)) * (3. <# (1. + (l-len #s_13))) * types(#s_13 : $$list_type, r : $$list_type, x : $$object_type, z : $$list_type) ]]
+Normal
+
+test6
+[[ ((_$l_0, "foo") -> #s_1) * ((_$l_0, "bar") -> #s_2) * (y == #s_0) * (#s_0 == _$l_0) * types(#s_0 : $$object_type, #s_1 : $$boolean_type) ]]
+[[ ((_$l_0, "foo") -> #s_1) * ((_$l_0, "bar") -> (not #s_1)) * (x == #s_1) * (y == _$l_0) * types(y : $$object_type, #s_1 : $$boolean_type) ]]
+Normal
+
+test5
+[[ ((_$l_7, "foo") -> #s_21) * (x == #s_19) * (y == #s_20) * (! (3. <# 0.)) * (3. <# (l-len #s_20)) * (#s_19 == _$l_7) * types(#s_20 : $$list_type, #s_19 : $$object_type) ]]
+[[ ((_$l_7, "foo") -> l-nth(#s_20, 3.)) * (x == _$l_7) * (y == #s_20) * (! (3. <# 0.)) * (3. <# (l-len #s_20)) * types(x : $$object_type, y : $$list_type, #s_20 : $$list_type) ]]
+Normal
+
+test4
+[[ ((_$l_6, "date") -> #s_17) * ((_$l_6, "exists") -> #s_18) * (x == #s_16) * (#s_16 == _$l_6) * types(#s_16 : $$object_type) ]]
+[[ ((_$l_6, "date") -> "1832") * ((_$l_6, "exists") -> (not (#s_17 = None))) * (x == _$l_6) * (z == (not (#s_17 = None))) * types(x : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test3
+[[ ((_$l_4, "date") -> #s_10) * (x == #s_9) * (#s_9 == _$l_4) * types(#s_9 : $$object_type) ]]
+[[ ((_$l_4, "date") -> "1832") * (x == _$l_4) * (z == $$t) * types(x : $$object_type, z : $$boolean_type) ]]
+Normal
+
+test2
+[[ ((_$l_1, "date") -> #s_4) * (x == #s_3) * (#s_3 == _$l_1) * types(#s_3 : $$object_type) ]]
+[[ ((_$l_1, "date") -> "1832") * (x == _$l_1) * types(x : $$object_type) ]]
+Normal
+
+test1
+[[ ((_$l_3, "date") -> #s_7) * (x == #s_8) * (#s_8 == _$l_3) * types(#s_8 : $$object_type) ]]
+[[ ((_$l_3, "date") -> "1832") * (x == _$l_3) * types(x : $$object_type) ]]
+Normal
+
+test0
+[[ ((_$l_2, "date") -> #s_6) * (x == #s_5) * (#s_5 == _$l_2) * types(#s_5 : $$object_type) ]]
+[[ ((_$l_2, "date") -> "1832") * (x == _$l_2) * types(x : $$object_type) ]]
+Normal
+

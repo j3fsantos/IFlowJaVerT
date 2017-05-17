@@ -1,0 +1,968 @@
+ERROR: Recusive call mutual_recurse_2
+ERROR: Recusive call mutual_recurse_1
+ERROR: Recusive call recurse_1
+ERROR: Recusive call recurse_2
+ERROR: Recusive call mutual_recurse_3
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+----------------------------------
+----------------------------------
+Symbolic execution of call_4
+----------------------------------
+--0--
+TIME: 0.016178
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := 1.
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.016235
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+----------------------------------
+----------------------------------
+Symbolic execution of call_5
+----------------------------------
+--0--
+TIME: 0.034465
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := 1.
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.034499
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+----------------------------------
+----------------------------------
+Symbolic execution of call_3
+----------------------------------
+--0--
+TIME: 0.034737
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "call_4"(x) 
+----------------------------------
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+----------------------------------
+--1--
+TIME: 0.035025
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "call_5"(x) 
+----------------------------------
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+----------------------------------
+--2--
+TIME: 0.035266
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+	(x: _lvar_0)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Spec Var: #s_0
+Spec Var: #s_0
+----------------------------------
+----------------------------------
+Symbolic execution of call_1
+----------------------------------
+--0--
+TIME: 0.035575
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "call_3"(x) 
+----------------------------------
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+----------------------------------
+--1--
+TIME: 0.035805
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+	(x: _lvar_1)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Spec Var: #s_1
+Spec Var: #s_1
+----------------------------------
+----------------------------------
+Symbolic execution of call_2
+----------------------------------
+--0--
+TIME: 0.036100
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "call_3"(x) 
+----------------------------------
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+----------------------------------
+--1--
+TIME: 0.036330
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+Pfs to add to the antiframe after unify stores: 
+Pfs to add to the antiframe after step 0: 
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Symb_state: Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+
+anti_frame: Heap: 
+	
+Store: 	
+	(x: _lvar_2)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Spec Var: #s_2
+Spec Var: #s_2
+----------------------------------
+----------------------------------
+Symbolic execution of non_existant_call_3
+----------------------------------
+--0--
+TIME: 0.036638
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "this_procedure_does_not_exist"(x) 
+----------------------------------
+ !!!!( ERROR: The evaluation of this proc gave an error: 0 No spec found for proc this_procedure_does_not_exist )!!!!
+----------------------------------
+----------------------------------
+Symbolic execution of non_existant_call_1
+----------------------------------
+--0--
+TIME: 0.036699
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "non_existant_call_3"(x) 
+----------------------------------
+ !!!!( ERROR: The evaluation of this proc gave an error: 0 No spec found for proc non_existant_call_3 )!!!!
+----------------------------------
+----------------------------------
+Symbolic execution of non_existant_call_2
+----------------------------------
+--0--
+TIME: 0.036747
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: y := "non_existant_call_3"(x) 
+----------------------------------
+ !!!!( ERROR: The evaluation of this proc gave an error: 0 No spec found for proc non_existant_call_3 )!!!!
+
+********** Finished bi-abduction symbolic execution. **********
+
+
+**********    Starting normal symbolic execution.    **********
+
+----------------------------------
+----------------------------------
+Symbolic execution of call_4
+----------------------------------
+--0--
+TIME: 0.036916
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: y := 1.
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.036980
+STATE:
+Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc call_4
+----------------------------------
+----------------------------------
+Symbolic execution of call_5
+----------------------------------
+--0--
+TIME: 0.037229
+STATE:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: y := 1.
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.037289
+STATE:
+Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc call_5
+----------------------------------
+----------------------------------
+Symbolic execution of call_3
+----------------------------------
+--0--
+TIME: 0.037525
+STATE:
+Heap: 
+	
+Store: 	
+	(x: #s_0)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: y := "call_4"(x) 
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.037776
+STATE:
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+CMD: y := "call_5"(x) 
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.039796
+STATE:
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc call_3
+----------------------------------
+----------------------------------
+Symbolic execution of call_1
+----------------------------------
+--0--
+TIME: 0.040041
+STATE:
+Heap: 
+	
+Store: 	
+	(x: #s_1)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: y := "call_3"(x) 
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.040236
+STATE:
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc call_1
+----------------------------------
+----------------------------------
+Symbolic execution of call_2
+----------------------------------
+--0--
+TIME: 0.040428
+STATE:
+Heap: 
+	
+Store: 	
+	(x: #s_2)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+CMD: y := "call_3"(x) 
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.040621
+STATE:
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_2)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc call_2
+
+Verified: 5.		Prunings: 0.
+
+RESULTS
+Proc call_4  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc call_5  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc call_3  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+	(x: #s_0)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_0)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc call_1  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+	(x: #s_1)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_1)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc call_2  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+	(x: #s_2)
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+	(y: 1.)
+	(x: #s_2)
+Pure Formulae: 	
+Gamma: 	
+	(y: $$number_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.040815
+
+**********     Ending normal symbolic execution.     **********
+
+RESULT SPECS 
+Generated specifications: 
+ 
+call_1
+----------
+[[ (x == #s_1) * types() ]]
+[[ (x == #s_1) * (y == 1.) * types(y : $$number_type) ]]
+Normal
+
+call_2
+----------
+[[ (x == #s_2) * types() ]]
+[[ (x == #s_2) * (y == 1.) * types(y : $$number_type) ]]
+Normal
+
+call_4
+----------
+[[ types() ]]
+[[ (y == 1.) * types(y : $$number_type) ]]
+Normal
+
+call_3
+----------
+[[ (x == #s_0) * types() ]]
+[[ (x == #s_0) * (y == 1.) * types(y : $$number_type) ]]
+Normal
+
+call_5
+----------
+[[ types() ]]
+[[ (y == 1.) * types(y : $$number_type) ]]
+Normal
+
+FAILED to generate specifications for: 
+
+non_existant_call_2
+----------
+ No spec found for proc non_existant_call_3
+
+
+non_existant_call_1
+----------
+ No spec found for proc non_existant_call_3
+
+
+non_existant_call_3
+----------
+ No spec found for proc this_procedure_does_not_exist
+

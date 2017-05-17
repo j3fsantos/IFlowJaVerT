@@ -1,0 +1,65 @@
+proc mutual_recurse_1 (x) {
+  		   y := "mutual_recurse_2" (x); 
+   rlab:   skip
+} with { ret: y, rlab; }; 
+
+proc mutual_recurse_2 (x) {
+  		   y := "mutual_recurse_3" (x); 
+   rlab:   skip
+} with { ret: y, rlab; }; 
+
+proc mutual_recurse_3 (x) {
+  		   y := "mutual_recurse_2" (x); 
+   rlab:   skip
+} with { ret: y, rlab; }; 
+
+proc recurse_1 (x) {
+  		   y := "recurse_2" (x); 
+   rlab:   skip
+} with { ret: y, rlab; }; 
+
+proc recurse_2 (x) {
+  		   y := "recurse_2" (x); 
+   rlab:   skip
+} with { ret: y, rlab; }; 
+
+proc non_existant_call_1 (x) {
+  		   y := "non_existant_call_3" (x); 
+   rlab:   skip
+} with { ret: y, rlab; }; 
+
+proc non_existant_call_2 (x) {
+  		   y := "non_existant_call_3" (x); 
+   rlab:   skip
+} with { ret: y, rlab; };
+
+proc non_existant_call_3 (x) {
+  		   y := "this_procedure_does_not_exist" (x); 
+   rlab:   skip
+} with { ret: y, rlab; };
+
+proc call_1 (x) {
+  		   y := "call_3" (x); 
+   rlab:   skip
+} with { ret: y, rlab; };
+
+proc call_2 (x) {
+  		   y := "call_3" (x); 
+   rlab:   skip
+} with { ret: y, rlab; };
+
+proc call_3 (x) {
+  		   y := "call_4" (x);
+  		   y := "call_5" (x);  
+   rlab:   skip
+} with { ret: y, rlab; };
+
+proc call_4 (x) {
+  		   y := 1;
+   rlab:   skip
+} with { ret: y, rlab; };
+
+proc call_5 (x) {
+  		   y := 1;
+   rlab:   skip
+} with { ret: y, rlab; };

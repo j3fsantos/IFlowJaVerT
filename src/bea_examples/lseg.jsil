@@ -1,0 +1,39 @@
+(** Totals: 0 fails and 0 passes **)
+
+pred lseg (x, y) : 
+    (x == y), 
+    ( (x, "value") -> #v) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) * lseg(#z, y) * types(#v: $$int_type);
+(** Was in: (! (x == y)) **)
+
+(** Expected result: YES                             **)          
+spec lseg_cons (x, v)
+   [[ lseg(x, y) * types(v: $$int_type) * (!(#z == y))]]
+   [[ lseg(x, y) ]]
+   normal
+proc lseg_cons (x, v) {
+           z := new ();
+           [z, "value"] := v; 
+           [z, "next"] := x;
+           x := z; 
+           [* fold(lseg(x,y)) *]
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Expected result: YES                             **)          
+spec lseg_count (x)
+   [[ lseg(x, y) * types(v: $$int_type) ]]
+   [[ lseg(x, y)  ]]
+   normal
+proc lseg_count (x) {
+           [* unfold(lseg(x,y)) *] 
+           goto [ x = y ] then1 else1;
+           (** Probably the part that isn't working **)
+   then1:  count := 0;
+           goto rlab;
+   else1:  next := [x,"next"];
+           count := "lseg_count"(next);
+           count := count + 1;
+           [* fold(lseg(x,y)) *]
+   rlab:   skip
+} with { ret: x, rlab; };

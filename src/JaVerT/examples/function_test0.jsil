@@ -1,0 +1,201 @@
+import javert_internal_functions, javert_logic_macros, javert_js_predicates;
+
+spec g (x__scope, x__this, z)
+ 	[[ (y == #y) * (z == #z) * types(#y : $$number_type, #z : $$number_type) ]]
+	[[ emp ]]
+	normal
+
+proc g (x__scope, x__this, z) {
+			x__er := new();
+			[x__er, "@er"] := $$t;
+			[x__er, "z"] := z;
+			x_sc_1 := (x__er :: x__scope);
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x_33 := l-nth(x_sc_1, 0.);
+			x_34 := {{ "v", x_33, "z" }};
+			[* GPVFold(x_34, #x49, #x48, #x47, #x46, #x45) *]
+			x_34_v := "i__getValue"(x_34) with elab
+			[+ GPVUnfold(x_34) +];
+			x_35 := l-nth(x_sc_1, 1.);
+			x_36 := {{ "v", x_35, "y" }};
+			[* GPVFold(x_36, #x44, #x43, #x42, #x41, #x40) *]
+			x_36_v := "i__getValue"(x_36) with elab
+			[+ GPVUnfold(x_36) +];
+			x_34_p := "i__toPrimitive"(x_34_v) with elab;
+			x_36_p := "i__toPrimitive"(x_36_v) with elab;
+			goto [((typeOf(x_34_p) = $$string_type) or (typeOf(x_36_p) = $$string_type))] then_2 else_2;
+	then_2:		x_34_s := "i__toString"(x_34_p) with elab;
+			x_36_s := "i__toString"(x_36_p) with elab;
+			x_37 := (x_34_s ++ x_36_s);
+			goto fi_2;
+	else_2:		x_34_n := "i__toNumber"(x_34_p) with elab;
+			x_36_n := "i__toNumber"(x_36_p) with elab;
+			x_38 := (x_34_n + x_36_n);
+	fi_2:		x_39 := PHI(x_37, x_38);
+			[* GPVFold(x_39, #x54, #x53, #x52, #x51, #x50) *]
+			x_39_v := "i__getValue"(x_39) with elab
+			[+ GPVUnfold(x_39) +];
+			goto pre_rlab;
+			x_40 := $$empty;
+	pre_rlab:	xret := PHI(x_39_v, x_40);
+			deleteObject (x__te);
+			deleteObject (x__se);
+	rlab:		skip;
+	pre_elab:	xerr := PHI(x_34_v, x_36_v, x_34_p, x_36_p, x_34_s, x_36_s, x_34_n, x_36_n, x_39_v);
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+spec f (x__scope, x__this, u)
+ 	[[ emp ]]
+	[[ emp ]]
+	normal
+
+proc f (x__scope, x__this, u) {
+			x__er := new();
+			[x__er, "@er"] := $$t;
+			[x__er, "u"] := u;
+			x_sc_2 := (x__er :: x__scope);
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x_41 := l-nth(x_sc_2, 0.);
+			x_42 := {{ "v", x_41, "u" }};
+			[* GPVFold(x_42, #x59, #x58, #x57, #x56, #x55) *]
+			x_42_v := "i__getValue"(x_42) with elab
+			[+ GPVUnfold(x_42) +];
+			x_43_v := "i__getValue"(1.) with elab;
+			x_42_p := "i__toPrimitive"(x_42_v) with elab;
+			x_44_p := "i__toPrimitive"(x_43_v) with elab;
+			goto [((typeOf(x_42_p) = $$string_type) or (typeOf(x_44_p) = $$string_type))] then_3 else_3;
+	then_3:		x_42_s := "i__toString"(x_42_p) with elab;
+			x_45_s := "i__toString"(x_44_p) with elab;
+			x_46 := (x_42_s ++ x_45_s);
+			goto fi_3;
+	else_3:		x_42_n := "i__toNumber"(x_42_p) with elab;
+			x_47_n := "i__toNumber"(x_44_p) with elab;
+			x_48 := (x_42_n + x_47_n);
+	fi_3:		x_49 := PHI(x_46, x_48);
+			[* GPVFold(x_49, #x64, #x63, #x62, #x61, #x60) *]
+			x_49_v := "i__getValue"(x_49) with elab
+			[+ GPVUnfold(x_49) +];
+			goto pre_rlab;
+			x_50 := $$empty;
+	pre_rlab:	xret := PHI(x_49_v, x_50);
+			deleteObject (x__te);
+			deleteObject (x__se);
+	rlab:		skip;
+	pre_elab:	xerr := PHI(x_42_v, x_43_v, x_42_p, x_44_p, x_42_s, x_45_s, x_42_n, x_47_n, x_49_v);
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+
+spec main ()
+ 	[[ emp ]]
+	[[ emp ]]
+	normal
+
+proc main () {
+			x_0 := "setupInitialHeap"();
+			x_sc_0 := {{ $lg }};
+			x__this := $lg;
+			[$lg, "y"] := {{ "d", $$undefined, $$t, $$t, $$f }};
+			[$lg, "g"] := {{ "d", $$undefined, $$t, $$t, $$f }};
+			[$lg, "w"] := {{ "d", $$undefined, $$t, $$t, $$f }};
+			x__te := "TypeError"();
+			x__se := "SyntaxError"();
+			x_f_0 := "create_function_object"(x_sc_0, "f", "f", {{ "u" }});
+			x_er_0 := l-nth(x_sc_0, 0.);
+			[x_er_0, "f"] := {{ "d", x_f_0, $$t, $$t, $$f }};
+			x_1_v := "i__getValue"(3.) with elab;
+			x_2 := l-nth(x_sc_0, 0.);
+			x_3 := {{ "v", x_2, "y" }};
+			x_4 := "i__checkAssignmentErrors"(x_3) with elab;
+			[* GPVFold(x_3, #x4, #x3, #x2, #x1, #x0) *]
+			x_5 := "i__putValue"(x_3, x_1_v) with elab
+			[+ GPVUnfold(x_3) +];
+			x_6 := $$empty;
+			x_f_1 := "create_function_object"(x_sc_0, "g", "g", {{ "z" }});
+			[* GPVFold(x_f_1, #x9, #x8, #x7, #x6, #x5) *]
+			x_f_1_v := "i__getValue"(x_f_1) with elab
+			[+ GPVUnfold(x_f_1) +];
+			x_7 := l-nth(x_sc_0, 0.);
+			x_8 := {{ "v", x_7, "g" }};
+			x_9 := "i__checkAssignmentErrors"(x_8) with elab;
+			[* GPVFold(x_8, #x14, #x13, #x12, #x11, #x10) *]
+			x_10 := "i__putValue"(x_8, x_f_1_v) with elab
+			[+ GPVUnfold(x_8) +];
+			x_11 := $$empty;
+			goto [(x_11 = $$empty)] next_0 next_1;
+	next_0:		skip;
+	next_1:		x_12 := PHI(x_11, x_6);
+			x_13 := l-nth(x_sc_0, 0.);
+			x_14 := {{ "v", x_13, "f" }};
+			[* GPVFold(x_14, #x29, #x28, #x27, #x26, #x25) *]
+			x_14_v := "i__getValue"(x_14) with elab
+			[+ GPVUnfold(x_14) +];
+			x_15 := l-nth(x_sc_0, 0.);
+			x_16 := {{ "v", x_15, "g" }};
+			[* GPVFold(x_16, #x19, #x18, #x17, #x16, #x15) *]
+			x_16_v := "i__getValue"(x_16) with elab
+			[+ GPVUnfold(x_16) +];
+			x_17_v := "i__getValue"(3.) with elab;
+			goto [(not (typeOf(x_16_v) = $$object_type))] elab next_2;
+	next_2:		x_18 := "i__isCallable"(x_16_v);
+			goto [x_18] lab_0 elab;
+	lab_0:		goto [((typeOf(x_16) = $$list_type) and (l-nth(x_16, 0.) = "o"))] then_0 else_0;
+	then_0:		x_this_0 := l-nth(x_16, 1.);
+			goto fi_0;
+	else_0:		x_this_1 := $$undefined;
+	fi_0:		x_this_2 := PHI(x_this_0, x_this_1);
+			x_body_0 := [x_16_v, "@call"];
+			x_fscope_0 := [x_16_v, "@scope"];
+			x_19 := x_body_0(x_fscope_0, x_this_2, x_17_v) with elab;
+			goto [(x_19 = $$empty)] next_3 next_4;
+	next_3:		x_20 := $$undefined;
+	next_4:		x_21 := PHI(x_19, x_20);
+			[* GPVFold(x_21, #x24, #x23, #x22, #x21, #x20) *]
+			x_21_v := "i__getValue"(x_21) with elab
+			[+ GPVUnfold(x_21) +];
+			goto [(not (typeOf(x_14_v) = $$object_type))] elab next_5;
+	next_5:		x_22 := "i__isCallable"(x_14_v);
+			goto [x_22] lab_1 elab;
+	lab_1:		goto [((typeOf(x_14) = $$list_type) and (l-nth(x_14, 0.) = "o"))] then_1 else_1;
+	then_1:		x_this_3 := l-nth(x_14, 1.);
+			goto fi_1;
+	else_1:		x_this_4 := $$undefined;
+	fi_1:		x_this_5 := PHI(x_this_3, x_this_4);
+			x_body_1 := [x_14_v, "@call"];
+			x_fscope_1 := [x_14_v, "@scope"];
+			x_23 := x_body_1(x_fscope_1, x_this_5, x_21_v) with elab;
+			goto [(x_23 = $$empty)] next_6 next_7;
+	next_6:		x_24 := $$undefined;
+	next_7:		x_25 := PHI(x_23, x_24);
+			[* GPVFold(x_25, #x34, #x33, #x32, #x31, #x30) *]
+			x_25_v := "i__getValue"(x_25) with elab
+			[+ GPVUnfold(x_25) +];
+			x_26 := l-nth(x_sc_0, 0.);
+			x_27 := {{ "v", x_26, "w" }};
+			x_28 := "i__checkAssignmentErrors"(x_27) with elab;
+			[* GPVFold(x_27, #x39, #x38, #x37, #x36, #x35) *]
+			x_29 := "i__putValue"(x_27, x_25_v) with elab
+			[+ GPVUnfold(x_27) +];
+			x_30 := $$empty;
+			x_31 := $$empty;
+			goto [(x_30 = $$empty)] next_8 next_9;
+	next_8:		skip;
+	next_9:		x_32 := PHI(x_30, x_31);
+			xret := x_32;
+			deleteObject (x__te);
+			deleteObject (x__se);
+	rlab:		skip;
+	elab:		xerr := PHI(x_1_v, x_4, x_5, x_f_1_v, x_9, x_10, x_14_v, x_16_v, x_17_v, x__te, x__te, x_19, x_21_v, x__te, x__te, x_23, x_25_v, x_28, x_29)
+} with {
+	ret: xret, rlab;
+	err: xerr, elab;
+};

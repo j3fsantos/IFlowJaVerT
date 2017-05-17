@@ -1,0 +1,184 @@
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+----------------------------------
+--0--
+TIME: 0.011902
+STATE:
+Heap: 
+	
+Store: 	
+	(y: _lvar_y)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_y: $$boolean_type)
+	(y: $$boolean_type)
+Preds: 
+CMD: test := "cenoura"
+----------------------------------
+----------------------------------
+--1--
+TIME: 0.011953
+STATE:
+Heap: 
+	
+Store: 	
+	(test: \"cenoura\")
+	(y: _lvar_y)
+Pure Formulae: 	
+Gamma: 	
+	(test: $$string_type)
+	(_lvar_y: $$boolean_type)
+	(y: $$boolean_type)
+Preds: 
+CMD: x := new()
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.012010
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(test: \"cenoura\")
+	(y: _lvar_y)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(test: $$string_type)
+	(_lvar_y: $$boolean_type)
+	(y: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+CMD: goto [y] 3 5
+----------------------------------
+Could NOT determine the branch.
+----------------------------------
+--3--
+TIME: 0.048807
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(test: \"cenoura\")
+	(y: $$t)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(test: $$string_type)
+	(y: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+CMD: [x, test] := "maria"
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.048873
+STATE:
+Heap: 
+	_$l_0 |-> [(\"cenoura\": \"maria\"), (\"@proto\": $$null), (default: None)]
+Store: 	
+	(test: \"cenoura\")
+	(y: $$t)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(test: $$string_type)
+	(y: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+CMD: goto 6
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.048925
+STATE:
+Heap: 
+	_$l_0 |-> [(\"cenoura\": \"maria\"), (\"@proto\": $$null), (default: None)]
+Store: 	
+	(test: \"cenoura\")
+	(y: $$t)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(test: $$string_type)
+	(y: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test0
+----------------------------------
+--5--
+TIME: 0.061973
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (default: None)]
+Store: 	
+	(test: \"cenoura\")
+	(y: $$f)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(test: $$string_type)
+	(y: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+CMD: [x, test] := "jose"
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.062074
+STATE:
+Heap: 
+	_$l_0 |-> [(\"cenoura\": \"jose\"), (\"@proto\": $$null), (default: None)]
+Store: 	
+	(test: \"cenoura\")
+	(y: $$f)
+	(x: _$l_0)
+Pure Formulae: 	
+	(! (_$l_0 == $lg))
+Gamma: 	
+	(test: $$string_type)
+	(y: $$boolean_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+Verified one spec of proc test0
+
+Verified: 1.		Prunings: 0.
+
+RESULTS
+Proc test0  - Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+	(y: _lvar_y)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_y: $$boolean_type)
+	(y: $$boolean_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_x |-> [(\"@proto\": $$null), (\"cenoura\": #y), (default: $$unknown)]
+Store: 	
+	(x: _$l_x)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.062351

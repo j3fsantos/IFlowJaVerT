@@ -1,0 +1,2380 @@
+
+*** Prelude: Stage 1: Parsing program. ***
+
+The procedures that we will be verifying are: aux1, test0
+
+
+*** Prelude: Stage 1: Parsing successfully completed. ***
+
+*** Prelude: Stage 2: Transforming the program.
+
+Entering resolve_imports.
+
+Predicates Program:
+
+Procedures Program:
+
+	test0
+
+	aux1
+
+Exiting resolve_imports.
+
+Going to desugar procedure test0 baby!!!
+
+spec test0 (x, y)
+ 	[[ emp ]]
+	[[ emp ]]
+	normal
+
+proc test0 (x, y) {
+		x := "aux1"(x, y) 
+		skip
+} with {
+	ret: x, 1;
+};
+
+after succ and pred tables!!!
+
+after which pred computation!!!
+
+Going to desugar procedure aux1 baby!!!
+
+spec aux1 (x, y)
+ 	[[ emp ]]
+	[[ emp ]]
+	normal
+
+proc aux1 (x, y) {
+		[x, "cenoura"] := "jose"
+		[x, "tutifruti"] := y
+		skip
+} with {
+	ret: x, 2;
+};
+
+after succ and pred tables!!!
+
+after which pred computation!!!
+
+
+*** Prelude: Stage 2: Done transforming the program.
+
+
+*** Prelude: Stage 3: Normalising predicates.
+
+
+*** Prelude: Stage 3: Normalisation of predicates completed successfully.
+
+
+
+*** Prelude: Stage 4: Building the spec table.
+
+
+*************************
+* Normalising the spec: *
+*************************
+
+test0 ( x y )
+
+[[ emp ]]
+[[ emp ]]
+Normal
+
+
+Going to process the SPECS of test0. The time now is: 0.013858
+
+  normalise_single_spec: Time: 0.013881
+Precondition  : emp
+Postcondition : emp
+NSS: Entry
+NSS: Pre-normalise
+
+Pres: 
+emp
+Posts: 
+emp
+Normalising assertion:
+	emp
+NPA: Pure formulae: 	
+Substitution: 
+	
+
+simplify_symb_state: Time: 0.013924
+I am going to check whether the following precondition makes sense:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+heap constraints:
+
+simplify_symb_state: Time: 0.013957
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Not found in cache. Cache length 2.
+SAT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+The solver returned: SAT
+Adding emp to cache. Cache length 3.
+The precondition makes sense.
+POST: Checking a postcondition.
+
+emp
+POST: Gamma from the pre: 	
+Post Existentially Quantified Vars: 
+Post spec vars: 
+Normalising assertion:
+	emp
+NPA: Pure formulae: 	
+Substitution: 
+	
+
+simplify_symb_state: Time: 0.028231
+Subst: Substitution: 
+	
+
+New subst: Substitution: 
+	
+
+POST: Gamma from the post: 	
+For the postcondition to make sense the following must be satisfiable:
+	
+
+simplify_symb_state: Time: 0.028259
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+simplify_symb_state: Time: 0.028277
+simplify_symb_state: Time: 0.028286
+
+*************************
+* Normalising the spec: *
+*************************
+
+aux1 ( x y )
+
+[[ emp ]]
+[[ emp ]]
+Normal
+
+
+Going to process the SPECS of aux1. The time now is: 0.028304
+
+  normalise_single_spec: Time: 0.028306
+Precondition  : emp
+Postcondition : emp
+NSS: Entry
+NSS: Pre-normalise
+
+Pres: 
+emp
+Posts: 
+emp
+Normalising assertion:
+	emp
+NPA: Pure formulae: 	
+Substitution: 
+	
+
+simplify_symb_state: Time: 0.028329
+I am going to check whether the following precondition makes sense:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+heap constraints:
+
+simplify_symb_state: Time: 0.028349
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+The precondition makes sense.
+POST: Checking a postcondition.
+
+emp
+POST: Gamma from the pre: 	
+Post Existentially Quantified Vars: 
+Post spec vars: 
+Normalising assertion:
+	emp
+NPA: Pure formulae: 	
+Substitution: 
+	
+
+simplify_symb_state: Time: 0.028415
+Subst: Substitution: 
+	
+
+New subst: Substitution: 
+	
+
+POST: Gamma from the post: 	
+For the postcondition to make sense the following must be satisfiable:
+	
+
+simplify_symb_state: Time: 0.028435
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+simplify_symb_state: Time: 0.028448
+simplify_symb_state: Time: 0.028459
+-----------------------------
+-----------------------------
+Spec Table:
+Specs for test0 (x, y): 
+Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+;
+----------
+Specs for aux1 (x, y): 
+Single Spec - normal
+
+Precondition
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+;
+
+*** Prelude: Stage 4: Finished building the spec table
+
+*** Prelude: Stage 5: Add phantom procedures for only-specs.
+
+*** Prelude: Stage 5: Finished adding phantom procedures for only-specs
+
+
+*********** Starting bi-abduction symbolic execution. ***********
+
+Normalising predicate definitions.
+
+----------------------------------
+----------------------------------
+Symbolic execution of aux1
+Initial symbolic state:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+AF in symb_evaluate_proc :
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.028545
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.028561
+----------------------------------
+--0--
+TIME: 0.028572
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "cenoura"] := "jose"
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"cenoura". v:"jose"simplify_symb_state: Time: 0.028597
+simplify_symb_state: Time: 0.028621
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"cenoura\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(x: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.028642
+----------------------------------
+--1--
+TIME: 0.028656
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"cenoura\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(x: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: [x, "tutifruti"] := y
+----------------------------------
+Updtate-abs-heap. loc: _$l_0. field:"tutifruti". v:_lvar_3simplify_symb_state: Time: 0.028668
+simplify_symb_state: Time: 0.028677
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_4), (\"cenoura\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.028698
+----------------------------------
+--2--
+TIME: 0.028714
+ ---- STATE: ---- 
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_3), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_4), (\"cenoura\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+simplify_symb_state: Time: 0.028723
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_3), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(y: _lvar_3)
+	(x: _$l_0) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_0 |-> [("tutifruti": _lvar_3), ("cenoura": "jose"), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+with gamma: 	
+	(x: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_0 |-> [("tutifruti": _lvar_3), ("cenoura": "jose"), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_0 |-> [("tutifruti": _lvar_3), ("cenoura": "jose"), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(x: $$object_type))
+check_entailment: Time: 0.028821
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+	(x: $$object_type)
+
+simplify_symb_state: Time: 0.028829
+simplify_symb_state: Time: 0.028842
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.028862
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(x: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+ with existentials
+
+and gamma 	
+	(x: $$object_type)
+check_entailment: Time: 0.028898
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+	(x: $$object_type)
+
+simplify_symb_state: Time: 0.028906
+simplify_symb_state: Time: 0.028914
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.028925
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_3), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_4), (\"cenoura\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+Gamma: 	
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_0 |-> [("tutifruti": _lvar_3), ("cenoura": "jose"), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+
+gamma: 	
+	(x: $$object_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_0 |-> [("tutifruti": _lvar_4), ("cenoura": _lvar_2), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_$l_0 == _lvar_0)
+
+gamma: 	
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_3), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_0 |-> [(\"tutifruti\": _lvar_4), (\"cenoura\": _lvar_2), (default: $$unknown)]
+Store: 	
+	(y: _lvar_3)
+	(x: _lvar_0)
+Pure Formulae: 	
+	(_$l_0 == _lvar_0)
+Gamma: 	
+Preds: 
+
+simplify_symb_state: Time: 0.029015
+simplify_symb_state: Time: 0.029024
+----------------------------------
+----------------------------------
+----------------------------------
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_0 |-> [("tutifruti": _lvar_4), ("cenoura": _lvar_2), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_lvar_0 == _$l_0)
+
+gamma: 	
+	(_lvar_0: $$object_type)
+
+Finished merging heaps.
+simplify_symb_state: Time: 0.029078
+The obtained simplification_subst was: Substitution: 
+	_lvar_0: _$l_0
+
+Spec Var: #s_0
+Spec Var: #s_1
+Spec Var: #s_2
+Spec Var: #s_3
+Spec Var: #s_2
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+Initial symbolic state:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+AF in symb_evaluate_proc :
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.029165
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+
+
+simplify_symb_state: Time: 0.029179
+----------------------------------
+--0--
+TIME: 0.029189
+ ---- STATE: ---- 
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	
+Store: 	
+Pure Formulae: 	
+Gamma: 	
+Preds: 
+ -------- 
+ CMD: x := "aux1"(x, y) 
+----------------------------------
+Entering BI_find_and_apply_spec: aux1.
+------------------------------------------
+Entering BI-find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_3), (\"cenoura\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(y: _lvar_6)
+	(x: _lvar_5) 
+Pat_store: 	
+	(y: #s_2)
+	(x: _$l_0)
+So, in unify_stores: Aloc _$l_0, Lvar _lvar_5
+
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: (_lvar_5 == _$l_1)
+Unify heaps 
+	_$l_0 |-> [("tutifruti": #s_3), ("cenoura": #s_1), (default: $$unknown)] 
+and 
+	 
+with substitution: Substitution: 
+	_$l_0: _$l_1;
+	 #s_2: _lvar_6
+
+with pure formulae: 	
+with gamma: 	
+PatHeapDomain: _$l_0
+pick_pat_loc
+
+Location: _$l_0
+Substitution: Substitution: 
+	_$l_0: _$l_1;
+	 #s_2: _lvar_6
+
+Location _$l_1 in pattern has not been matched
+I could NOT unify an fv-pair. pat_val: #s_1. def_val: $$unknown
+I could NOT unify an fv-pair. pat_val: #s_3. def_val: $$unknown
+Adding sth to QH and AF.
+QH:
+	_$l_1 |-> [(default: $$unknown)]
+AFH:
+	_$l_0 |-> [("tutifruti": #s_3), ("cenoura": #s_1), (default: $$unknown)]
+Heap again 
+	
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	)
+check_entailment: Time: 0.029321
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+
+simplify_symb_state: Time: 0.029329
+simplify_symb_state: Time: 0.029338
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.029349
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Return value: true
+
+Pfs to add to the antiframe after step 0: (_lvar_5 == _$l_1)
+I am about to bi-unify two gammas
+
+pat_gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type).
+gamma: 	
+	(_lvar_7: $$object_type).
+subst: Substitution: 
+	#s_3: _lvar_9;
+	 _$l_0: _$l_1;
+	 #s_1: _lvar_8;
+	 #s_2: _lvar_6;
+	 #s_0: _lvar_7
+
+
+pat_var: (#s_0 : $$object_type) 
+pat_var: (x : $$object_type) 
+found value: _$l_1
+unify_gamma. pat gamma var: x. le: _$l_1. v_type: $$object_type. le_type: $$object_type
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+ with existentials
+ _lvar_7 _lvar_8 _lvar_9
+and gamma 	
+	(_lvar_7: $$object_type)
+check_entailment: Time: 0.029404
+Preparing entailment check:
+Existentials:
+_lvar_7, _lvar_8, _lvar_9
+Left:
+	
+Right:
+	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+Gamma:
+	
+	(_lvar_7: $$object_type)
+
+simplify_symb_state: Time: 0.029415
+simplify_symb_state: Time: 0.029424
+Finished existential simplification:
+
+Existentials:
+_lvar_8, _lvar_9
+Left:
+	
+Right:
+	
+	(_lvar_5 == _$l_1)
+
+Gamma:
+	
+	(_lvar_7: $$object_type)
+
+
+ENT ENCODED: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0))
+Length of existentials: 2
+ENT: About to check the following:
+(forall ((x Real)) (>= (s-len x) 0.0)),
+(forall ((x JSIL_Literal_List)) (>= (l-len x) 0.0)),
+(not (= _lvar_5 _$l_1))
+The solver returned: SAT
+I found the model: 
+
+(define-fun _$l_1 () Extended_JSIL_Literal
+  (Set (_ as-array k!5)))
+(define-fun _lvar_5 () Extended_JSIL_Literal
+  (Set (_ as-array k!4)))
+(define-fun k!5 ((x!0 JSIL_Literal)) Bool
+  false)
+(define-fun l-len ((x!0 JSIL_Literal_List)) Real
+  0.0)
+(define-fun k!4 ((x!0 JSIL_Literal)) Bool
+  true)
+(define-fun s-len ((x!0 Real)) Real
+  0.0)
+entailment_check: false
+I found a match requering an AF
+anti_frame heap: 
+	_$l_0 |-> [("tutifruti": #s_3), ("cenoura": #s_1), (default: $$unknown)]
+Entering apply_correct_specs.
+This was a PARTIAL MATCH with AF!!!!
+Entering compatible_pfs.
+pfs: 
+	
+pat_pfs: 
+	
+	(#s_0 == _$l_0)
+gamma: 
+	
+Substitution: 
+	#s_3: _lvar_9;
+	 _$l_0: _$l_1;
+	 #s_1: _lvar_8;
+	 #s_2: _lvar_6;
+	 #s_0: _lvar_7
+
+About to check sat of:
+	
+	(_lvar_7 == _$l_1)
+given
+	
+	(_lvar_7: $$object_type)
+simplify_symb_state: Time: 0.044151
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Satisfiable: true
+Entering transform_symb_state.
+
+One postcondition found.
+Entering merge_symb_state_with_single_post.
+Entering compatible_pfs.
+pfs: 
+	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+pat_pfs: 
+	
+gamma: 
+	
+	(_lvar_7: $$object_type)
+Substitution: 
+	#s_3: _lvar_9;
+	 _$l_0: _$l_1;
+	 #s_1: _lvar_8;
+	 #s_2: _lvar_6;
+	 #s_0: _lvar_7
+
+About to check sat of:
+	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+given
+	
+	(_lvar_7: $$object_type)
+simplify_symb_state: Time: 0.044211
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Satisfiable: true
+The post makes sense.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	
+
+pat_heap: 
+	_$l_1 |-> [("tutifruti": _lvar_6), ("cenoura": "jose"), (default: $$unknown)]
+
+p_formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+
+gamma: 	
+	(_lvar_7: $$object_type)
+
+Object: _$l_1
+Finished merging heaps.
+Finished merge_symb_states
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	
+
+pat_heap: 
+	_$l_1 |-> [("tutifruti": _lvar_9), ("cenoura": _lvar_8), (default: $$unknown)]
+
+p_formulae: 	
+	(_lvar_7 == _$l_1)
+
+gamma: 	
+	(_lvar_7: $$object_type)
+
+Object: _$l_1
+Finished merging heaps.
+simplify_symb_state: Time: 0.044324
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+simplify_symb_state: Time: 0.044349
+simplify_symb_state: Time: 0.044386
+AF in symb_evaluate_next_cmd_cont:
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_9), (\"cenoura\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+Gamma: 	
+	(_lvar_7: $$object_type)
+Preds: 
+
+
+simplify_symb_state: Time: 0.044421
+----------------------------------
+--1--
+TIME: 0.044448
+ ---- STATE: ---- 
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_6), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+ -------- 
+ ---- ANTI_FRAME: ----
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_9), (\"cenoura\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+Gamma: 	
+	(_lvar_7: $$object_type)
+Preds: 
+ -------- 
+ CMD: skip
+----------------------------------
+simplify_symb_state: Time: 0.044456
+About to bi-unify the current symb state against the posts. Here it is: Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_6), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+LVARS: 
+Unifying stores:
+Store: 	
+	(y: _lvar_6)
+	(x: _$l_1) 
+Pat_store: 	
+Discharges: 0
+
+Pfs to add to the antiframe after unify stores: 
+Unify heaps 
+	 
+and 
+	_$l_1 |-> [("tutifruti": _lvar_6), ("cenoura": "jose"), (default: $$unknown)] 
+with substitution: Substitution: 
+	
+
+with pure formulae: 	
+with gamma: 	
+	(x: $$object_type)
+PatHeapDomain: 
+Heap again 
+	_$l_1 |-> [("tutifruti": _lvar_6), ("cenoura": "jose"), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	_$l_1 |-> [("tutifruti": _lvar_6), ("cenoura": "jose"), (default: $$unknown)]
+Heaps unified successfully.
+
+Entering unify_pred_arrays.
+Check if 
+ (	) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(x: $$object_type))
+check_entailment: Time: 0.044545
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+	(x: $$object_type)
+
+simplify_symb_state: Time: 0.044553
+simplify_symb_state: Time: 0.044562
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.044573
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Return value: true
+
+Pfs to add to the antiframe after step 0: 
+I am about to bi-unify two gammas
+
+pat_gamma: 	.
+gamma: 	
+	(x: $$object_type).
+subst: Substitution: 
+	
+
+
+
+EXITING unify_gamma: res: true
+
+
+Checking if 	
+ entails 	
+ with existentials
+
+and gamma 	
+	(x: $$object_type)
+check_entailment: Time: 0.044636
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+Right:
+	
+Gamma:
+	
+	(x: $$object_type)
+
+simplify_symb_state: Time: 0.044644
+simplify_symb_state: Time: 0.044652
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.044662
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+entailment_check: true
+I AM in the case - fully unified with possible antiframe, MARICA!!!!
+The substitution: Substitution: 
+	
+
+Symb_state: Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_6), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_9), (\"cenoura\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+Gamma: 	
+	(_lvar_7: $$object_type)
+Preds: 
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_1 |-> [("tutifruti": _lvar_6), ("cenoura": "jose"), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+
+gamma: 	
+	(x: $$object_type)
+
+Finished merging heaps.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_1 |-> [("tutifruti": _lvar_9), ("cenoura": _lvar_8), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+
+gamma: 	
+	(_lvar_7: $$object_type)
+
+Finished merging heaps.
+Symb_state: Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_6), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+anti_frame: Heap: 
+	_$l_1 |-> [(\"tutifruti\": _lvar_9), (\"cenoura\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(y: _lvar_6)
+	(x: _lvar_5)
+Pure Formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+Gamma: 	
+	(_lvar_7: $$object_type)
+Preds: 
+
+simplify_symb_state: Time: 0.044767
+simplify_symb_state: Time: 0.044786
+----------------------------------
+----------------------------------
+----------------------------------
+
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	_$l_1 |-> [("tutifruti": _lvar_9), ("cenoura": _lvar_8), (default: $$unknown)]
+
+pat_heap: 
+	
+
+p_formulae: 	
+	(_lvar_7 == _$l_1)
+	(_lvar_5 == _$l_1)
+
+gamma: 	
+	(_lvar_7: $$object_type)
+	(_lvar_5: $$object_type)
+
+Finished merging heaps.
+simplify_symb_state: Time: 0.044839
+The obtained simplification_subst was: Substitution: 
+	_lvar_7: _$l_1;
+	 _lvar_5: _$l_1
+
+Spec Var: #s_4
+Spec Var: #s_5
+Spec Var: #s_6
+Spec Var: #s_7
+Spec Var: #s_8
+Spec Var: #s_5
+
+********** Finished bi-abduction symbolic execution. **********
+
+
+**********    Starting normal symbolic execution.    **********
+
+Normalising predicate definitions.
+
+----------------------------------
+----------------------------------
+Symbolic execution of aux1
+Initial symbolic state:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_3), (\"cenoura\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): #s_0, #s_1, #s_2, #s_3
+simplify_symb_state: Time: 0.044982
+Spec vars (symb_evaluate_next_cmd_cont, loop): #s_0, #s_1, #s_2, #s_3
+simplify_symb_state: Time: 0.045020
+----------------------------------
+--0--
+TIME: 0.045052
+STATE:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_3), (\"cenoura\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: [x, "cenoura"] := "jose"
+----------------------------------
+simplify_symb_state: Time: 0.045070
+Spec vars (symb_evaluate_next_cmd_cont): #s_0, #s_1, #s_2, #s_3
+simplify_symb_state: Time: 0.045098
+Spec vars (symb_evaluate_next_cmd_cont, loop): #s_0, #s_1, #s_2, #s_3
+simplify_symb_state: Time: 0.045133
+----------------------------------
+--1--
+TIME: 0.045164
+STATE:
+Heap: 
+	_$l_0 |-> [(\"cenoura\": \"jose\"), (\"tutifruti\": #s_3), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: [x, "tutifruti"] := y
+----------------------------------
+simplify_symb_state: Time: 0.045171
+Spec vars (symb_evaluate_next_cmd_cont): #s_0, #s_1, #s_2, #s_3
+simplify_symb_state: Time: 0.045199
+Spec vars (symb_evaluate_next_cmd_cont, loop): #s_0, #s_1, #s_2, #s_3
+simplify_symb_state: Time: 0.045230
+----------------------------------
+--2--
+TIME: 0.045261
+STATE:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+simplify_symb_state: Time: 0.045267
+Fully_unify_symb_state.
+Symb_state:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+.
+PAT symb_state:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+unify_symb_stfates with the following specvars: #s_0, #s_1, #s_2, #s_3
+Current substitution: Substitution: 
+	#s_3: #s_3;
+	 #s_1: #s_1;
+	 #s_2: #s_2;
+	 #s_0: #s_0
+
+Unifying stores:
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pat_store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Discharges: 1
+
+	#s_2 : #s_2
+
+Unify heaps 
+	_$l_0 |-> [("tutifruti": #s_2), ("cenoura": "jose"), (default: $$unknown)] 
+and 
+	_$l_0 |-> [("tutifruti": #s_2), ("cenoura": "jose"), (default: $$unknown)] 
+with substitution: Substitution: 
+	#s_3: #s_3;
+	 _$l_0: _$l_0;
+	 #s_1: #s_1;
+	 #s_2: #s_2;
+	 #s_0: #s_0
+
+with pure formulae: 	
+	(#s_0 == _$l_0)
+with gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+PatHeapDomain: _$l_0
+pick_pat_loc
+
+Location: _$l_0
+Substitution: _$l_0
+Adding sth to QH.
+QH: 
+	_$l_0 |-> [(default: $$unknown)]
+Heap again 
+	_$l_0 |-> [("tutifruti": #s_2), ("cenoura": "jose"), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(#s_0 == _$l_0)) 
+ entails 
+ (	(#s_3 == #s_3)
+	(#s_2 == #s_2)
+	(#s_1 == #s_1)
+	(#s_0 == #s_0)) 
+ with gamma 
+ (	
+	(#s_0: $$object_type)
+	(x: $$object_type))
+check_entailment: Time: 0.045410
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(#s_0 == _$l_0)
+Right:
+	
+	(#s_3 == #s_3)
+	(#s_2 == #s_2)
+	(#s_1 == #s_1)
+	(#s_0 == #s_0)
+Gamma:
+	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+
+simplify_symb_state: Time: 0.045425
+simplify_symb_state: Time: 0.045435
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.045448
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Return value: true
+
+Current substitution again: Substitution: 
+	#s_3: #s_3;
+	 _$l_0: _$l_0;
+	 #s_1: #s_1;
+	 #s_2: #s_2;
+	 #s_0: #s_0
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(x: $$object_type).
+gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type).
+subst: Substitution: 
+	#s_3: #s_3;
+	 _$l_0: _$l_0;
+	 #s_1: #s_1;
+	 #s_2: #s_2;
+	 #s_0: #s_0
+
+
+pat_var: (x : $$object_type) 
+Found value: _$l_0
+unify_gamma. pat gamma var: x. le: _$l_0. v_type: $$object_type. le_type: $$object_type
+Checking if 	
+	(#s_0 == _$l_0)
+ entails 	
+	(#s_2 == #s_2)
+ with existentials
+
+and gamma 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+check_entailment: Time: 0.045501
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(#s_0 == _$l_0)
+Right:
+	
+	(#s_2 == #s_2)
+Gamma:
+	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+
+simplify_symb_state: Time: 0.045512
+simplify_symb_state: Time: 0.045524
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.045535
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+entailment_check: true
+Verified one spec of proc aux1
+----------------------------------
+----------------------------------
+----------------------------------
+
+----------------------------------
+----------------------------------
+Symbolic execution of test0
+Initial symbolic state:
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_8), (\"cenoura\": #s_7), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+	(#s_4 == _$l_1)
+	(#s_6 == _$l_1)
+Gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+Preds: 
+
+Spec vars (symb_evaluate_next_cmd_cont): #s_4, #s_5, #s_6, #s_7, #s_8
+simplify_symb_state: Time: 0.045618
+Spec vars (symb_evaluate_next_cmd_cont, loop): #s_4, #s_5, #s_6, #s_7, #s_8
+simplify_symb_state: Time: 0.045661
+----------------------------------
+--0--
+TIME: 0.045700
+STATE:
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_8), (\"cenoura\": #s_7), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+Preds: 
+CMD: x := "aux1"(x, y) 
+----------------------------------
+Entering find_and_apply_spec: aux1.
+------------------------------------------
+Entering find_correct_specs with the spec:
+------------------------------------------
+Pre:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_3), (\"cenoura\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+Posts:
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+
+unify_symb_stfates with the following specvars: 
+Current substitution: Substitution: 
+	
+
+Unifying stores:
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pat_store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Discharges: 0
+
+Unify heaps 
+	_$l_0 |-> [("tutifruti": #s_3), ("cenoura": #s_1), (default: $$unknown)] 
+and 
+	_$l_1 |-> [("tutifruti": #s_8), ("cenoura": #s_7), (default: $$unknown)] 
+with substitution: Substitution: 
+	_$l_0: _$l_1;
+	 #s_2: #s_5
+
+with pure formulae: 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+with gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+PatHeapDomain: _$l_0
+pick_pat_loc
+
+Location: _$l_0
+Substitution: _$l_1
+Adding sth to QH.
+QH: 
+	_$l_1 |-> [(default: $$unknown)]
+Heap again 
+	_$l_1 |-> [("tutifruti": #s_8), ("cenoura": #s_7), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)) 
+ entails 
+ (	) 
+ with gamma 
+ (	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type))
+check_entailment: Time: 0.045823
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Right:
+	
+Gamma:
+	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+
+simplify_symb_state: Time: 0.045834
+simplify_symb_state: Time: 0.045848
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.045862
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Return value: true
+
+Current substitution again: Substitution: 
+	#s_3: #s_8;
+	 _$l_0: _$l_1;
+	 #s_1: #s_7;
+	 #s_2: #s_5
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type).
+gamma: 	
+	(_lvar_10: $$object_type)
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type).
+subst: Substitution: 
+	#s_3: #s_8;
+	 _$l_0: _$l_1;
+	 #s_1: #s_7;
+	 #s_2: #s_5;
+	 #s_0: _lvar_10
+
+
+pat_var: (#s_0 : $$object_type) 
+pat_var: (x : $$object_type) 
+Found value: _$l_1
+unify_gamma. pat gamma var: x. le: _$l_1. v_type: $$object_type. le_type: $$object_type
+Checking if 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+ entails 	
+	(_lvar_10 == _$l_1)
+ with existentials
+ _lvar_10
+and gamma 	
+	(_lvar_10: $$object_type)
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+check_entailment: Time: 0.045923
+Preparing entailment check:
+Existentials:
+_lvar_10
+Left:
+	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Right:
+	
+	(_lvar_10 == _$l_1)
+Gamma:
+	
+	(_lvar_10: $$object_type)
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+
+simplify_symb_state: Time: 0.045935
+simplify_symb_state: Time: 0.045952
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+	(_lvar_10: $$object_type)
+
+
+simplify_symb_state: Time: 0.045966
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+entailment_check: true
+I found a COMPLETE match
+The pre of the spec that completely matches me is:
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_3), (\"cenoura\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+The number of posts is: 1
+Entering apply_correct_specs.
+This was a TOTAL MATCH!!!!
+Substitution: Substitution: 
+	#s_3: #s_8;
+	 _$l_0: _$l_1;
+	 #s_1: #s_7;
+	 #s_2: #s_5;
+	 #s_0: _lvar_10
+
+
+Entering transform_symb_state.
+
+One postcondition found.
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+Entering merge_symb_state_with_single_post.
+Entering compatible_pfs.
+pfs: 
+	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+	(_lvar_10 == _$l_1)
+pat_pfs: 
+	
+gamma: 
+	
+	(_lvar_10: $$object_type)
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+Substitution: 
+	#s_3: #s_8;
+	 _$l_0: _$l_1;
+	 #s_1: #s_7;
+	 #s_2: #s_5;
+	 #s_0: _lvar_10
+
+About to check sat of:
+	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+	(_lvar_10 == _$l_1)
+given
+	
+	(_lvar_10: $$object_type)
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+simplify_symb_state: Time: 0.046035
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Satisfiable: true
+The post makes sense.
+-------------------------------------------------------------------
+
+-------------INSIDE MERGE HEAPS------------------------------------
+
+-------------------------------------------------------------------
+
+heap: 
+	
+
+pat_heap: 
+	_$l_1 |-> [("tutifruti": #s_5), ("cenoura": "jose"), (default: $$unknown)]
+
+p_formulae: 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+	(_lvar_10 == _$l_1)
+
+gamma: 	
+	(_lvar_10: $$object_type)
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+
+Object: _$l_1
+Finished merging heaps.
+Finished merge_symb_states
+simplify_symb_state: Time: 0.046118
+simplify_symb_state: Time: 0.046157
+Spec vars (symb_evaluate_next_cmd_cont): #s_4, #s_5, #s_6, #s_7, #s_8
+simplify_symb_state: Time: 0.046192
+Spec vars (symb_evaluate_next_cmd_cont, loop): #s_4, #s_5, #s_6, #s_7, #s_8
+simplify_symb_state: Time: 0.046231
+----------------------------------
+--1--
+TIME: 0.046269
+STATE:
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_5), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+Preds: 
+CMD: skip
+----------------------------------
+simplify_symb_state: Time: 0.046274
+Fully_unify_symb_state.
+Symb_state:
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_5), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+Preds: 
+.
+PAT symb_state:
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_5), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+
+unify_symb_stfates with the following specvars: #s_4, #s_5, #s_6, #s_7, #s_8
+Current substitution: Substitution: 
+	#s_5: #s_5;
+	 #s_6: #s_6;
+	 #s_7: #s_7;
+	 #s_8: #s_8;
+	 #s_4: #s_4
+
+Unifying stores:
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pat_store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Discharges: 1
+
+	#s_5 : #s_5
+
+Unify heaps 
+	_$l_1 |-> [("tutifruti": #s_5), ("cenoura": "jose"), (default: $$unknown)] 
+and 
+	_$l_1 |-> [("tutifruti": #s_5), ("cenoura": "jose"), (default: $$unknown)] 
+with substitution: Substitution: 
+	_$l_1: _$l_1;
+	 #s_5: #s_5;
+	 #s_6: #s_6;
+	 #s_7: #s_7;
+	 #s_8: #s_8;
+	 #s_4: #s_4
+
+with pure formulae: 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+with gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+PatHeapDomain: _$l_1
+pick_pat_loc
+
+Location: _$l_1
+Substitution: _$l_1
+Adding sth to QH.
+QH: 
+	_$l_1 |-> [(default: $$unknown)]
+Heap again 
+	_$l_1 |-> [("tutifruti": #s_5), ("cenoura": "jose"), (default: $$unknown)]
+End of unify_symb_heaps: do enjoy the quotient_heap: 
+	
+Heaps unified successfully. Unifying predicates.
+
+Entering unify_pred_arrays.
+Check if 
+ (	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)) 
+ entails 
+ (	(#s_8 == #s_8)
+	(#s_7 == #s_7)
+	(#s_6 == #s_6)
+	(#s_5 == #s_5)
+	(#s_4 == #s_4)) 
+ with gamma 
+ (	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type))
+check_entailment: Time: 0.046422
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Right:
+	
+	(#s_8 == #s_8)
+	(#s_7 == #s_7)
+	(#s_6 == #s_6)
+	(#s_5 == #s_5)
+	(#s_4 == #s_4)
+Gamma:
+	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+
+simplify_symb_state: Time: 0.046436
+simplify_symb_state: Time: 0.046452
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.046463
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+Return value: true
+
+Current substitution again: Substitution: 
+	_$l_1: _$l_1;
+	 #s_5: #s_5;
+	 #s_6: #s_6;
+	 #s_7: #s_7;
+	 #s_8: #s_8;
+	 #s_4: #s_4
+
+I am about to unify two gammas
+
+pat_gamma: 	
+	(x: $$object_type).
+gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type).
+subst: Substitution: 
+	_$l_1: _$l_1;
+	 #s_5: #s_5;
+	 #s_6: #s_6;
+	 #s_7: #s_7;
+	 #s_8: #s_8;
+	 #s_4: #s_4
+
+
+pat_var: (x : $$object_type) 
+Found value: _$l_1
+unify_gamma. pat gamma var: x. le: _$l_1. v_type: $$object_type. le_type: $$object_type
+Checking if 	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+ entails 	
+	(#s_5 == #s_5)
+ with existentials
+
+and gamma 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+check_entailment: Time: 0.046529
+Preparing entailment check:
+Existentials:
+
+Left:
+	
+	(#s_6 == _$l_1)
+	(#s_4 == _$l_1)
+Right:
+	
+	(#s_5 == #s_5)
+Gamma:
+	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+
+simplify_symb_state: Time: 0.046539
+simplify_symb_state: Time: 0.046552
+Finished existential simplification:
+
+Existentials:
+
+Left:
+	
+Right:
+	
+
+Gamma:
+	
+
+
+simplify_symb_state: Time: 0.046564
+About to check sat of:
+Pure formulae:
+	
+Gamma:
+	
+
+
+Found in cache. Cache length 3.
+entailment_check: true
+Verified one spec of proc test0
+----------------------------------
+----------------------------------
+----------------------------------
+
+
+Verified: 2.		Prunings: 0.
+
+RESULTS
+Proc aux1  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_3), (\"cenoura\": #s_1), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#s_0 == _$l_0)
+Gamma: 	
+	(#s_0: $$object_type)
+	(x: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_0 |-> [(\"tutifruti\": #s_2), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_2)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+Proc test0  - Single Spec - normal
+
+Precondition
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_8), (\"cenoura\": #s_7), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+	(#s_4 == _$l_1)
+	(#s_6 == _$l_1)
+Gamma: 	
+	(x: $$object_type)
+	(#s_6: $$object_type)
+	(#s_4: $$object_type)
+Preds: 
+
+Postconditions
+Post 0: 
+Heap: 
+	_$l_1 |-> [(\"tutifruti\": #s_5), (\"cenoura\": \"jose\"), (default: $$unknown)]
+Store: 	
+	(y: #s_5)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+Preds: 
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.046648
+
+**********     Ending normal symbolic execution.     **********
+
+BI-ABDUCTIVE RESULTS: 
+
+
+--------------
+SUCCESSFUL SPEC GENERATION AND VERIFICATION 
+--------------
+
+test0
+----------
+[[ ((_$l_1, "cenoura") -> #s_7) * ((_$l_1, "tutifruti") -> #s_8) * (x == _$l_1) * (y == #s_5) * (#s_4 == _$l_1) * (#s_6 == _$l_1) * types(#s_4 : $$object_type, #s_6 : $$object_type, x : $$object_type) ]]
+[[ ((_$l_1, "cenoura") -> "jose") * ((_$l_1, "tutifruti") -> #s_5) * (x == _$l_1) * (y == #s_5) * types(x : $$object_type) ]]
+normal
+
+aux1
+----------
+[[ ((_$l_0, "cenoura") -> #s_1) * ((_$l_0, "tutifruti") -> #s_3) * (x == _$l_0) * (y == #s_2) * (#s_0 == _$l_0) * types(x : $$object_type, #s_0 : $$object_type) ]]
+[[ ((_$l_0, "cenoura") -> "jose") * ((_$l_0, "tutifruti") -> #s_2) * (x == _$l_0) * (y == #s_2) * types(x : $$object_type) ]]
+normal
+

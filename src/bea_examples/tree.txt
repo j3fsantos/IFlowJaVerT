@@ -1,0 +1,692 @@
+----------------------------------
+----------------------------------
+Symbolic execution of tree_count_values
+Unfold. Time: 0.012033
+----------------------------------
+--0--
+TIME: 0.012293
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_2), tree(_lvar_1)
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the ELSE branch
+----------------------------------
+--3--
+TIME: 0.012344
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_2), tree(_lvar_1)
+CMD: right := [x, "right"]
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.012382
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(right: _lvar_2)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_2), tree(_lvar_1)
+CMD: right_count := "tree_count_values"(right) 
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.012558
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(right: _lvar_2)
+	(right_count: _lvar_3)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(right_count: $$int_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_1), tree(_lvar_2)
+CMD: left := [x, "left"]
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.012594
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(right: _lvar_2)
+	(right_count: _lvar_3)
+	(left: _lvar_1)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(right_count: $$int_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_1), tree(_lvar_2)
+CMD: left_count := "tree_count_values"(left) 
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.012768
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(right: _lvar_2)
+	(right_count: _lvar_3)
+	(left_count: _lvar_4)
+	(left: _lvar_1)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(right_count: $$int_type)
+	(left_count: $$int_type)
+	(_lvar_4: $$int_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_2), tree(_lvar_1)
+CMD: value := [x, "value"]
+----------------------------------
+----------------------------------
+--8--
+TIME: 0.012813
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"left\": _lvar_1), (\"right\": _lvar_2), (\"value\": _lvar_0), (default: $$unknown)]
+Store: 	
+	(right: _lvar_2)
+	(value: _lvar_0)
+	(right_count: _lvar_3)
+	(left_count: _lvar_4)
+	(left: _lvar_1)
+	(x: _$l_0)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(right_count: $$int_type)
+	(left_count: $$int_type)
+	(_lvar_4: $$int_type)
+	(x: $$object_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_lvar_2), tree(_lvar_1)
+CMD: count := ((right_count + left_count) + value)
+----------------------------------
+Fold. Time: 0.012821
+----------------------------------
+--9--
+TIME: 0.013106
+STATE:
+Heap: 
+	
+Store: 	
+	(right: _lvar_2)
+	(value: _lvar_0)
+	(right_count: _lvar_3)
+	(left_count: _lvar_4)
+	(left: _lvar_1)
+	(x: _$l_0)
+	(count: ((_lvar_3 + _lvar_4) + _lvar_0))
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_3: $$int_type)
+	(right_count: $$int_type)
+	(left_count: $$int_type)
+	(_lvar_4: $$int_type)
+	(x: $$object_type)
+	(count: $$int_type)
+	(_lvar_0: $$int_type)
+Preds: tree(_$l_0)
+CMD: skip
+----------------------------------
+Verified one spec of proc tree_count_values
+----------------------------------
+--0--
+TIME: 0.013238
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+Preds: 
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.013290
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+Preds: 
+CMD: count := 0
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.013309
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: 
+CMD: goto 9
+----------------------------------
+Fold. Time: 0.013315
+----------------------------------
+--9--
+TIME: 0.013431
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: tree($$null)
+CMD: skip
+----------------------------------
+Verified one spec of proc tree_count_values
+----------------------------------
+----------------------------------
+Symbolic execution of tree_add
+Unfold. Time: 0.013639
+----------------------------------
+--0--
+TIME: 0.013897
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (\"left\": _lvar_6), (\"right\": _lvar_7), (\"value\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(v: _lvar_v)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_5: $$int_type)
+	(_lvar_v: $$int_type)
+	(v: $$int_type)
+	(x: $$object_type)
+Preds: tree(_lvar_7), tree(_lvar_6)
+CMD: goto [(x = $$null)] 1 2
+----------------------------------
+in the ELSE branch
+----------------------------------
+--2--
+TIME: 0.013954
+STATE:
+Heap: 
+	_$l_1 |-> [(\"@proto\": $$null), (\"left\": _lvar_6), (\"right\": _lvar_7), (\"value\": _lvar_5), (default: $$unknown)]
+Store: 	
+	(v: _lvar_v)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_5: $$int_type)
+	(_lvar_v: $$int_type)
+	(v: $$int_type)
+	(x: $$object_type)
+Preds: tree(_lvar_7), tree(_lvar_6)
+CMD: [x, "value"] := v
+----------------------------------
+Fold. Time: 0.013971
+----------------------------------
+--3--
+TIME: 0.014237
+STATE:
+Heap: 
+	
+Store: 	
+	(v: _lvar_v)
+	(x: _$l_1)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_5: $$int_type)
+	(_lvar_v: $$int_type)
+	(v: $$int_type)
+	(x: $$object_type)
+Preds: tree(_$l_1)
+CMD: skip
+----------------------------------
+Verified one spec of proc tree_add
+----------------------------------
+--0--
+TIME: 0.014343
+STATE:
+Heap: 
+	
+Store: 	
+	(v: _lvar_v)
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_v: $$int_type)
+	(v: $$int_type)
+	(x: $$null_type)
+Preds: 
+CMD: goto [(x = $$null)] 1 2
+----------------------------------
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.014388
+STATE:
+Heap: 
+	
+Store: 	
+	(v: _lvar_v)
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_v: $$int_type)
+	(v: $$int_type)
+	(x: $$null_type)
+Preds: 
+CMD: goto 3
+----------------------------------
+Fold. Time: 0.014392
+----------------------------------
+--3--
+TIME: 0.014772
+STATE:
+Heap: 
+	
+Store: 	
+	(v: _lvar_v)
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_v: $$int_type)
+	(v: $$int_type)
+	(x: $$null_type)
+Preds: tree($$null)
+CMD: skip
+----------------------------------
+Verified one spec of proc tree_add
+----------------------------------
+----------------------------------
+Symbolic execution of tree_count
+Unfold. Time: 0.014882
+----------------------------------
+--0--
+TIME: 0.015089
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"left\": _lvar_9), (\"right\": _lvar_10), (\"value\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(x: $$object_type)
+Preds: tree(_lvar_10), tree(_lvar_9)
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the ELSE branch
+----------------------------------
+--3--
+TIME: 0.015122
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"left\": _lvar_9), (\"right\": _lvar_10), (\"value\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(x: $$object_type)
+Preds: tree(_lvar_10), tree(_lvar_9)
+CMD: right := [x, "right"]
+----------------------------------
+----------------------------------
+--4--
+TIME: 0.015148
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"left\": _lvar_9), (\"right\": _lvar_10), (\"value\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(right: _lvar_10)
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(x: $$object_type)
+Preds: tree(_lvar_10), tree(_lvar_9)
+CMD: right_count := "tree_count"(right) 
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.015283
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"left\": _lvar_9), (\"right\": _lvar_10), (\"value\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(right: _lvar_10)
+	(right_count: _lvar_11)
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(right_count: $$int_type)
+	(x: $$object_type)
+	(_lvar_11: $$int_type)
+Preds: tree(_lvar_9), tree(_lvar_10)
+CMD: left := [x, "left"]
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.015309
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"left\": _lvar_9), (\"right\": _lvar_10), (\"value\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(right: _lvar_10)
+	(right_count: _lvar_11)
+	(left: _lvar_9)
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(right_count: $$int_type)
+	(x: $$object_type)
+	(_lvar_11: $$int_type)
+Preds: tree(_lvar_9), tree(_lvar_10)
+CMD: left_count := "tree_count"(left) 
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.015463
+STATE:
+Heap: 
+	_$l_2 |-> [(\"@proto\": $$null), (\"left\": _lvar_9), (\"right\": _lvar_10), (\"value\": _lvar_8), (default: $$unknown)]
+Store: 	
+	(right: _lvar_10)
+	(right_count: _lvar_11)
+	(left_count: _lvar_12)
+	(left: _lvar_9)
+	(x: _$l_2)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(right_count: $$int_type)
+	(left_count: $$int_type)
+	(_lvar_12: $$int_type)
+	(x: $$object_type)
+	(_lvar_11: $$int_type)
+Preds: tree(_lvar_10), tree(_lvar_9)
+CMD: count := ((right_count + left_count) + 1)
+----------------------------------
+Fold. Time: 0.015475
+----------------------------------
+--8--
+TIME: 0.015687
+STATE:
+Heap: 
+	
+Store: 	
+	(right: _lvar_10)
+	(right_count: _lvar_11)
+	(left_count: _lvar_12)
+	(left: _lvar_9)
+	(x: _$l_2)
+	(count: ((_lvar_11 + _lvar_12) + 1))
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_8: $$int_type)
+	(right_count: $$int_type)
+	(left_count: $$int_type)
+	(_lvar_12: $$int_type)
+	(x: $$object_type)
+	(count: $$int_type)
+	(_lvar_11: $$int_type)
+Preds: tree(_$l_2)
+CMD: skip
+----------------------------------
+Verified one spec of proc tree_count
+----------------------------------
+--0--
+TIME: 0.015783
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+Preds: 
+CMD: goto [(x = $$null)] 1 3
+----------------------------------
+in the THEN branch
+----------------------------------
+--1--
+TIME: 0.015822
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+Preds: 
+CMD: count := 0
+----------------------------------
+----------------------------------
+--2--
+TIME: 0.015838
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: 
+CMD: goto 8
+----------------------------------
+Fold. Time: 0.015841
+----------------------------------
+--8--
+TIME: 0.015935
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+Gamma: 	
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: tree($$null)
+CMD: skip
+----------------------------------
+Verified one spec of proc tree_count
+
+Verified: 3.		Prunings: 0.
+
+RESULTS
+Proc tree_count_values  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+Preds: tree(_lvar_x)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+	(count: _lvar_count)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_count: $$int_type)
+	(count: $$int_type)
+Preds: tree(_lvar_x)
+;
+ -- VERIFIED
+
+Proc tree_add  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(v: _lvar_v)
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+	(v: $$int_type)
+	(_lvar_v: $$int_type)
+Preds: tree(_lvar_x)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+Preds: tree(_lvar_x)
+;
+ -- VERIFIED
+
+Proc tree_count  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+Preds: tree(_lvar_x)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+	(count: _lvar_count)
+Pure Formulae: 	
+Gamma: 	
+	(_lvar_count: $$int_type)
+	(count: $$int_type)
+Preds: tree(_lvar_x)
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.016089
+
+ STATISTICS 
+ ========== 
+
+Check sat cache: 2
+
+	is_different
+
+Tot: 0.000004	Cll: 12
+Min: 0.000000	Max: 0.000001
+Avg: 0.000000	Std: 0.000000
+
+	unify_symb_heaps
+
+Tot: 0.000519	Cll: 19
+Min: 0.000019	Max: 0.000071
+Avg: 0.000027	Std: 0.000015
+
+	unify_stores
+
+Tot: 0.000074	Cll: 25
+Min: 0.000001	Max: 0.000013
+Avg: 0.000003	Std: 0.000002
+
+	sat_cache
+
+Tot: 0.000000	Cll: 43
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	check_sat
+
+Tot: 0.000487	Cll: 43
+Min: 0.000003	Max: 0.000042
+Avg: 0.000011	Std: 0.000007
+
+	USS: Step 0
+
+Tot: 0.000435	Cll: 10
+Min: 0.000036	Max: 0.000053
+Avg: 0.000043	Std: 0.000006
+
+	unify_lexprs
+
+Tot: 0.000103	Cll: 49
+Min: 0.000001	Max: 0.000004
+Avg: 0.000002	Std: 0.000001
+
+	unify_symb_states
+
+Tot: 0.000743	Cll: 10
+Min: 0.000060	Max: 0.000100
+Avg: 0.000074	Std: 0.000013
+
+	USS: Step 1
+
+Tot: 0.000280	Cll: 10
+Min: 0.000019	Max: 0.000043
+Avg: 0.000028	Std: 0.000007
+
+	is_equal
+
+Tot: 0.000038	Cll: 58
+Min: 0.000000	Max: 0.000002
+Avg: 0.000001	Std: 0.000001
+
+	normalise_lexpr
+
+Tot: 0.000010	Cll: 26
+Min: 0.000000	Max: 0.000002
+Avg: 0.000000	Std: 0.000001
+
+	unify_gamma
+
+Tot: 0.000049	Cll: 19
+Min: 0.000000	Max: 0.000007
+Avg: 0.000003	Std: 0.000002
+

@@ -1,0 +1,339 @@
+----------------------------------
+----------------------------------
+Symbolic execution of list_count
+----------------------------------
+--0--
+TIME: 0.009176
+STATE:
+Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+	(#alpha: $$list_type)
+Preds: my_list(_lvar_x, #alpha)
+CMD: skip
+----------------------------------
+Unfold. Time: 0.009187
+----------------------------------
+--1--
+TIME: 0.009523
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_3), (\"value\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(x: _$l_0)
+Pure Formulae: 	
+	(#alpha == (_lvar_1 :: _lvar_0))
+Gamma: 	
+	(#alpha: $$list_type)
+	(_lvar_2: $$list_type)
+	(x: $$object_type)
+	(_lvar_1: $$int_type)
+	(_lvar_0: $$list_type)
+Preds: my_list(_lvar_3, _lvar_0)
+CMD: goto [(x = $$null)] 2 4
+----------------------------------
+in the ELSE branch
+----------------------------------
+--4--
+TIME: 0.009613
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_3), (\"value\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(x: _$l_0)
+Pure Formulae: 	
+	(#alpha == (_lvar_1 :: _lvar_0))
+Gamma: 	
+	(#alpha: $$list_type)
+	(_lvar_2: $$list_type)
+	(x: $$object_type)
+	(_lvar_1: $$int_type)
+	(_lvar_0: $$list_type)
+Preds: my_list(_lvar_3, _lvar_0)
+CMD: z := [x, "next"]
+----------------------------------
+----------------------------------
+--5--
+TIME: 0.009649
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_3), (\"value\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(z: _lvar_3)
+	(x: _$l_0)
+Pure Formulae: 	
+	(#alpha == (_lvar_1 :: _lvar_0))
+Gamma: 	
+	(#alpha: $$list_type)
+	(_lvar_2: $$list_type)
+	(x: $$object_type)
+	(_lvar_1: $$int_type)
+	(_lvar_0: $$list_type)
+Preds: my_list(_lvar_3, _lvar_0)
+CMD: count := "list_count"(z) 
+----------------------------------
+----------------------------------
+--6--
+TIME: 0.009861
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_3), (\"value\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(z: _lvar_3)
+	(x: _$l_0)
+	(count: (l-len _lvar_0))
+Pure Formulae: 	
+	(#alpha == (_lvar_1 :: _lvar_0))
+Gamma: 	
+	(#alpha: $$list_type)
+	(_lvar_2: $$list_type)
+	(x: $$object_type)
+	(count: $$int_type)
+	(_lvar_1: $$int_type)
+	(_lvar_0: $$list_type)
+Preds: my_list(_lvar_3, _lvar_0)
+CMD: count := (count + 1)
+----------------------------------
+----------------------------------
+--7--
+TIME: 0.009897
+STATE:
+Heap: 
+	_$l_0 |-> [(\"@proto\": $$null), (\"next\": _lvar_3), (\"value\": _lvar_1), (default: $$unknown)]
+Store: 	
+	(z: _lvar_3)
+	(x: _$l_0)
+	(count: ((l-len _lvar_0) + 1))
+Pure Formulae: 	
+	(#alpha == (_lvar_1 :: _lvar_0))
+Gamma: 	
+	(#alpha: $$list_type)
+	(_lvar_2: $$list_type)
+	(x: $$object_type)
+	(count: $$int_type)
+	(_lvar_1: $$int_type)
+	(_lvar_0: $$list_type)
+Preds: my_list(_lvar_3, _lvar_0)
+CMD: goto 8
+----------------------------------
+Fold. Time: 0.009904
+----------------------------------
+--8--
+TIME: 0.010223
+STATE:
+Heap: 
+	
+Store: 	
+	(z: _lvar_3)
+	(x: _$l_0)
+	(count: ((l-len _lvar_0) + 1))
+Pure Formulae: 	
+	(#alpha == (_lvar_1 :: _lvar_0))
+Gamma: 	
+	(#alpha: $$list_type)
+	(_lvar_2: $$list_type)
+	(_lvar_4: $$list_type)
+	(x: $$object_type)
+	(count: $$int_type)
+	(_lvar_1: $$int_type)
+	(_lvar_0: $$list_type)
+Preds: my_list(_$l_0, #alpha)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_count
+----------------------------------
+--1--
+TIME: 0.030226
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+	(#alpha == $$nil)
+Gamma: 	
+	(#alpha: $$list_type)
+	(x: $$null_type)
+Preds: 
+CMD: goto [(x = $$null)] 2 4
+----------------------------------
+in the THEN branch
+----------------------------------
+--2--
+TIME: 0.030333
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+Pure Formulae: 	
+	(#alpha == $$nil)
+Gamma: 	
+	(#alpha: $$list_type)
+	(x: $$null_type)
+Preds: 
+CMD: count := 0
+----------------------------------
+----------------------------------
+--3--
+TIME: 0.030393
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+	(#alpha == $$nil)
+Gamma: 	
+	(#alpha: $$list_type)
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: 
+CMD: goto 8
+----------------------------------
+Fold. Time: 0.030426
+----------------------------------
+--8--
+TIME: 0.030639
+STATE:
+Heap: 
+	
+Store: 	
+	(x: $$null)
+	(count: 0)
+Pure Formulae: 	
+	(#alpha == $$nil)
+Gamma: 	
+	(#alpha: $$list_type)
+	(x: $$null_type)
+	(count: $$int_type)
+Preds: my_list($$null, $$nil)
+CMD: skip
+----------------------------------
+Verified one spec of proc list_count
+
+Verified: 1.		Prunings: 0.
+
+RESULTS
+Proc list_count  - Single Spec - normal
+Pre Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+Pure Formulae: 	
+Gamma: 	
+	(#alpha: $$list_type)
+Preds: my_list(_lvar_x, #alpha)
+Post Post 0: Heap: 
+	
+Store: 	
+	(x: _lvar_x)
+	(count: (l-len #alpha))
+Pure Formulae: 	
+Gamma: 	
+	(#alpha: $$list_type)
+Preds: my_list(_lvar_x, #alpha)
+;
+ -- VERIFIED
+
+ALL Succeeded in 0.030875
+
+ STATISTICS 
+ ========== 
+
+Check sat cache: 3
+
+	solver_call
+
+Tot: 0.000000	Cll: 1
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	is_different
+
+Tot: 0.000000	Cll: 1
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	unify_symb_heaps
+
+Tot: 0.000115	Cll: 5
+Min: 0.000016	Max: 0.000047
+Avg: 0.000023	Std: 0.000012
+
+	unify_stores
+
+Tot: 0.000098	Cll: 8
+Min: 0.000002	Max: 0.000037
+Avg: 0.000012	Std: 0.000014
+
+	encode_lexpr
+
+Tot: 0.000046	Cll: 9
+Min: 0.000001	Max: 0.000014
+Avg: 0.000005	Std: 0.000004
+
+	sat_cache
+
+Tot: 0.000000	Cll: 16
+Min: 0.000000	Max: 0.000000
+Avg: 0.000000	Std: 0.000000
+
+	check_sat
+
+Tot: 0.020029	Cll: 17
+Min: 0.000004	Max: 0.019804
+Avg: 0.001178	Std: 0.004656
+
+	USS: Step 0
+
+Tot: 0.000138	Cll: 3
+Min: 0.000042	Max: 0.000048
+Avg: 0.000046	Std: 0.000003
+
+	unify_lexprs
+
+Tot: 0.000025	Cll: 15
+Min: 0.000000	Max: 0.000004
+Avg: 0.000002	Std: 0.000001
+
+	unify_symb_states
+
+Tot: 0.020125	Cll: 3
+Min: 0.000099	Max: 0.019922
+Avg: 0.006708	Std: 0.009343
+
+	encode_assertion_top_level
+
+Tot: 0.000045	Cll: 1
+Min: 0.000045	Max: 0.000045
+Avg: 0.000045	Std: 0.000000
+
+	USS: Step 1
+
+Tot: 0.019974	Cll: 3
+Min: 0.000048	Max: 0.019870
+Avg: 0.006658	Std: 0.009342
+
+	is_equal
+
+Tot: 0.000007	Cll: 12
+Min: 0.000000	Max: 0.000002
+Avg: 0.000001	Std: 0.000001
+
+	normalise_lexpr
+
+Tot: 0.000017	Cll: 25
+Min: 0.000000	Max: 0.000006
+Avg: 0.000001	Std: 0.000001
+
+	unify_gamma
+
+Tot: 0.000040	Cll: 5
+Min: 0.000002	Max: 0.000026
+Avg: 0.000008	Std: 0.000009
+
