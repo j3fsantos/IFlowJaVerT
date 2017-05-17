@@ -611,7 +611,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 	let f = translate_expr tr_ctx in
 
-	let cur_var_tbl = get_scope_table tr_ctx.tr_er_fid tr_ctx.tr_cc_tbl in
+	let cur_var_tbl = get_scope_table tr_ctx.tr_cc_tbl tr_ctx.tr_er_fid in
 	let find_var_er_index v = 
 		(try 
 			print_debug (Printf.sprintf "Trying to find variable %s given the vislist %s in the var table %s \n" 
@@ -2585,7 +2585,7 @@ and translate_statement tr_ctx e  =
 		let new_tr_ctx = update_tr_ctx ~loop_list:loop_list ~previous:previous ~lab:lab tr_ctx in 
 		translate_statement new_tr_ctx e in 
 		
-	let cur_var_tbl = get_scope_table tr_ctx.tr_er_fid tr_ctx.tr_cc_tbl in 
+	let cur_var_tbl = get_scope_table tr_ctx.tr_cc_tbl tr_ctx.tr_er_fid in 
 	let find_var_er_index v = 
 		(try 
 			let fid_v = Hashtbl.find cur_var_tbl v in 
@@ -4545,11 +4545,11 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let new_fun_tbl = Hashtbl.create 101 in
 	
 	let new_fid = fresh_anonymous_eval () in
-	let e : Parser_syntax.exp = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval [] e in
-	Js_pre_processing.update_cc_tbl cc_tbl f_parent_id new_fid [var_scope; var_this] e;
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in
+	update_cc_tbl cc_tbl f_parent_id new_fid (Js_pre_processing.get_all_vars_f e []);
 	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], Some e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) [] e;
+	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _, _) ->
@@ -4586,12 +4586,12 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 		| _, _ -> raise (Failure "FC: Wrong call to function constructor. Whatever.")) in
 
 	let new_fun_tbl = Hashtbl.create 1 in
-	let e : Parser_syntax.exp = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous [] e in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in
 	let new_fid = Js_pre_processing.get_codename e in
-	Js_pre_processing.update_cc_tbl cc_tbl "main" (* f_parent_id *) new_fid params e;
+	update_cc_tbl cc_tbl "main" new_fid (Js_pre_processing.get_all_vars_f e params);
 	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, Some e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid [] e;
+	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, (_, _, _)) ->
@@ -4632,11 +4632,13 @@ let js2jsil e offset_converter for_verification =
 	(* JS2JSIL *)
 	
 	let main = "main" in
+	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	let e, _ = Js_pre_processing.ground_fun_annotations [] e in
+	
 	print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	let e = Js_pre_processing.expand_flashes e in
-	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
-	let e, _ = Js_pre_processing.ground_fold_annotations [] e in
-	print_debug (Printf.sprintf "AST after grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+
+	print_debug (Printf.sprintf "AST after expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	
 	let onlyspecs = Hashtbl.create 511 in
 	Hashtbl.iter
@@ -4651,17 +4653,17 @@ let js2jsil e offset_converter for_verification =
 		Hashtbl.replace onlyspecs js_spec_name spec;
 		Hashtbl.replace cc_tbl      js_spec_name (Hashtbl.create 1);
 		Hashtbl.replace old_fun_tbl js_spec_name (js_spec_name, js_spec_params, None, ([], [ js_spec_name; "main" ], Hashtbl.create 1));
-		Hashtbl.replace fun_tbl     js_spec_name (js_spec_name, js_spec_params, None, false, Some spec);
+		Hashtbl.replace fun_tbl     js_spec_name (js_spec_name, js_spec_params, None, Some spec);
 	)
 	JS_Logic_Syntax.js_only_spec_table;
 	
-	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous [] e in
-	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] [] in
+	let e : Parser_syntax.exp = Js_pre_processing.add_codenames main fresh_anonymous fresh_named fresh_catch_anonymous e in
+	let predicates = Js_pre_processing.closure_clarification_top_level cc_tbl fun_tbl old_fun_tbl vis_tbl main e [ main ] in
 	
 	let procedures = Hashtbl.create medium_tbl_size in
 	let proc_names = 
 		Hashtbl.fold 
-			(fun f_id (_, f_params, f_body, f_rec, spec) ac ->
+			(fun f_id (_, f_params, f_body, spec) ac ->
 				(match f_body with
 				| Some f_body -> 
 					(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)

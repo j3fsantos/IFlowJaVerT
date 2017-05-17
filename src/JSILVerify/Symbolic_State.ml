@@ -268,6 +268,19 @@ let store_substitution_in_place store gamma subst =
 				| None -> ()))
 		store
 
+let selective_store_substitution_in_place store gamma subst =
+	Hashtbl.iter
+		(fun pvar le ->
+			let s_le = JSIL_Logic_Utils.lexpr_substitution le subst true in
+			(match s_le with
+			| ALoc loc -> Hashtbl.replace store pvar s_le;
+					let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
+					(match s_le_type with
+						| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+						| None -> ())
+			| _ -> ()))
+		store
+
 let store_vars catch_pvars store =
 	Hashtbl.fold (fun _ e ac -> 
 		let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
@@ -593,7 +606,7 @@ let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subs
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
 		pf_substitution_in_place pf subst;
-		(* store_substitution_in_place store gamma subst; *)
+		selective_store_substitution_in_place store gamma subst;
 		preds_substitution_in_place preds subst;
 		selective_heap_substitution_in_place heap subst
 
