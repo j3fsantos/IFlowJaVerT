@@ -256,11 +256,12 @@ let fresh_err_label : (unit -> string) = fresh_sth "err_"
 let fresh_ret_label : (unit -> string) = fresh_sth "ret_"
 
 
-type loop_list_type = (string option * string * string option * bool) list
-type fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp option * bool * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
-type pre_fun_tbl_type = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp option * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
-type cc_tbl_type = (string, (string, string) Hashtbl.t) Hashtbl.t
-type vis_tbl_type = (string, (string list)) Hashtbl.t
+type loop_list_type      = (string option * string * string option * bool) list
+type fun_tbl_type        = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp option * (JSIL_Syntax.jsil_spec option)) Hashtbl.t
+type pre_fun_tbl_type    = (string, string * JSIL_Syntax.jsil_var list * Parser_syntax.exp option * (Parser_syntax.annotation list * string list * ((string, string) Hashtbl.t))) Hashtbl.t
+type var_to_fid_tbl_type = (string, string) Hashtbl.t
+type cc_tbl_type         = (string, var_to_fid_tbl_type) Hashtbl.t
+type vis_tbl_type        = (string, (string list)) Hashtbl.t
 
 type translation_context = {
 	tr_offset_converter:   int -> int;
@@ -353,7 +354,7 @@ let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_
 	}
 
 
-let get_scope_table fid cc_tbl = 
+let get_scope_table (cc_tbl : cc_tbl_type) (fid : string) = 
 	try Hashtbl.find cc_tbl fid
 		with _ ->
 			let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
@@ -370,6 +371,11 @@ let get_vis_list_index vis_list fid =
 				else loop (cur + 1) rest in 
 	loop 0 vis_list 
 			
+let get_vis_list (vis_tbl : vis_tbl_type) (fid : string) = 
+	try Hashtbl.find vis_tbl fid
+		with _ ->
+			let msg = Printf.sprintf "vis-list of function %s is not in vis-table" fid in
+			raise (Failure msg) 
 
 
 let string_of_js_error heap err_val = 
@@ -412,6 +418,72 @@ let string_of_var_tbl var_tbl =
 			var_tbl
 			"" in 
 	"[ " ^ var_tbl_str ^ "]"
+
+
+
+let rec string_of_cc_tbl cc_tbl =
+	let string_of_fun_tbl fun_tbl =
+		Hashtbl.fold
+			(fun v fun_v ac ->
+				let v_fun_v_str = "(" ^ v ^ ", " ^ fun_v ^ ")" in
+				if (ac = "")
+					then v_fun_v_str
+					else ac ^ ", " ^ v_fun_v_str)
+			fun_tbl
+			"" in
+	Hashtbl.fold
+		(fun f_id f_tbl ac ->
+			let f_tbl_str : string = string_of_fun_tbl f_tbl in
+			let f_str = f_id ^ ": " ^ f_tbl_str ^ "\n" in
+			ac ^ f_str)
+		cc_tbl
+		""
+
+let update_fun_tbl 
+	(fun_tbl        : pre_fun_tbl_type) 
+	(f_id           : string) 
+	(f_args         : string list) 
+	(f_body         : Parser_syntax.exp option) 
+	(annotations    : Parser_syntax.annotation list) 
+	(var_to_fid_tbl : var_to_fid_tbl_type) 
+	(vis_list       : string list) =
+	(* let fun_spec, f_rec = process_js_logic_annotations f_id f_args annotations Requires Ensures EnsuresErr var_to_fid_tbl vis_list in *)
+	Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl))
+
+
+let update_cc_tbl cc_tbl f_parent_id f_id f_vars =
+	let f_parent_var_table = get_scope_table cc_tbl f_parent_id in 
+	let new_f_tbl = Hashtbl.create 101 in
+	Hashtbl.iter
+		(fun x x_f_id -> Hashtbl.add new_f_tbl x x_f_id)
+		f_parent_var_table;
+	List.iter
+		(fun v -> Hashtbl.replace new_f_tbl v f_id)
+		f_vars;
+	Hashtbl.add cc_tbl f_id new_f_tbl;
+	new_f_tbl
+
+
+let update_cc_tbl_single_var_er cc_tbl f_parent_id f_id  x =
+	let f_parent_var_table =
+		try Hashtbl.find cc_tbl f_parent_id
+		with _ ->
+			let msg = Printf.sprintf "the parent function of %s -- %s -- was not found in the cc table" f_id f_parent_id in
+			raise (Failure msg) in
+	let new_f_tbl = Hashtbl.create 101 in
+	Hashtbl.iter
+		(fun x x_f_id -> Hashtbl.add new_f_tbl x x_f_id)
+		f_parent_var_table;
+	Hashtbl.replace new_f_tbl x f_id;
+	Hashtbl.add cc_tbl f_id new_f_tbl;
+	new_f_tbl
+
+
+let get_vis_tbl (vis_tbl : vis_tbl_type) (f_id : string) = 
+	try Hashtbl.find vis_tbl f_id
+		with _ ->
+			let msg = Printf.sprintf "vis_tbl does not include %s" f_id in
+			raise (Failure msg) 
 
 
 let macro_GPVF_name = "GPVFold"
