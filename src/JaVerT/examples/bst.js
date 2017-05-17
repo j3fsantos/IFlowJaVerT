@@ -19,6 +19,10 @@
 */
 
 /**
+	@lemma BST($$null, #x) --> (#x == -{ }-)
+*/
+
+/**
 	@id makeNode
 	
 	@pre 
@@ -125,8 +129,7 @@ function find_min(t)
 	var result;
 	
 	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) 
-	 	@flash BST(#il, #KL)
-	*/
+	 	@flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else

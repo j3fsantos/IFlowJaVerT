@@ -535,11 +535,11 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let rec apply_correct_specs (quotients : (bool * jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) list) =
 		print_debug_petar (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
-		| [ ] -> [ ]
+		| [ ] -> true, [ ]
 		| [ (total, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ] when (total = true) -> 
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
 			print_debug (Printf.sprintf "Substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst)); 
-			transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
+			true, transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ -> 
 			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
 			let new_symb_states =
@@ -550,7 +550,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 							else [])
 					quotients in
 			let new_symb_states = List.concat new_symb_states in
-			new_symb_states in
+			false, new_symb_states in
 
 	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
 	apply_correct_specs quotients
@@ -870,7 +870,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 		Printf.printf "The arguments to the callspec are the following:\n%s\n"
 			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args)); 
 		let le_args = List.map (fun le -> Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) subst le) l_args in
-		let new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
+		let _, new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
 			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." spec_name)));
@@ -1004,7 +1004,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 		(* symbolically evaluate the args *)
 		let le_args = List.map (fun e -> symb_evaluate_expr (get_store symb_state) (get_gamma symb_state) (get_pf symb_state) e) e_args in
-		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
+		let _, new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
 			then raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)));
