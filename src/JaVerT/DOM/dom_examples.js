@@ -103,7 +103,7 @@ document.createElement("one");
 
 /** 
 -------------------------------------------------------------------------------
-		cell encoding
+		cell encoding -- new_DOM.js
 -------------------------------------------------------------------------------
 **/
 
@@ -124,8 +124,7 @@ document.createElement("one");
 */
 function groveParent(s) {
 	var t = document.createTextNode(s);
-	/* @unfold GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
-	/* @fold   GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
+	/* @flash GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
 	var r = t.parentNode();
 	return r;
 }
@@ -216,7 +215,7 @@ function sanitiseImg(img, cat){
 
 /** 
 -------------------------------------------------------------------------------
-		preallocated cell encoding
+		preallocated cell encoding -- prealloc_DOM.js
 -------------------------------------------------------------------------------
 **/
 
