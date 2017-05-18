@@ -484,29 +484,59 @@
 		outcome: normal
 */
 
+/** sanitiseImg specifics */
 /**
-	@id createNewAttribute
-	@rec false
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
+
+/**
+	@id sanitise
 
 	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
-		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
 	)
 	@post (
-		InitialDOMHeap() * (ret == $$t) * 
-		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
-		(#cList_post == (#cList1 @ {{ {{ "hole", #beta }} }})) *
-		ECell(#beta, "test", #n_id, #n_l_aList, #n_aList, #n_l_cList, #n_cList)
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
+		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
+		TCell(#gamma2, #r, #s2) *
+		isB(#s1) *
+		Grove(#grove, #tf1)
 	)
-*/
-function createNewAttribute(element){
-	var d = element.ownerDocument();
-	var e = d.createElement("test");
-	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
-	/* @fold complete(#cList2) */
-	var n = element.appendChild(e);
-	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
-	return (n === e);
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
 }
