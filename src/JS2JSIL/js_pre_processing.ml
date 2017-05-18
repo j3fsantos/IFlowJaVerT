@@ -2,114 +2,11 @@ open Parser_syntax
 open Utils
 open Batteries
 open Js2jsil_constants
+open JS_Utils
 
 exception CannotHappen
 exception No_Codename
 exception EarlyError of string
-
-
-
-
-(********************************************)
-(********************************************)
-(***       JS AST transformers            ***)
-(********************************************)
-(********************************************)
-
-let flat_map f l = List.flatten (List.map f l)
-
-let rec js_accumulator_top_down f_ac expr = 
-  let f = js_accumulator_top_down f_ac in 
-  let f_ac = f_ac expr in 
-  let fo e = match e with | Some e -> f e | None -> [] in 
-  let analyse_cases cases = 
-    flat_map  
-      (fun (e_case, s_case) -> 
-          let f_e_case = 
-            (match e_case with 
-            | Case e -> f e 
-            | DefaultCase -> []) in 
-          let f_s_case = f s_case in 
-          f_e_case @ f_s_case) cases in 
-  let e_stx = expr.exp_stx in 
-  match e_stx with 
-  (* expressions *)
-  | Num _ | String _  | Null  | Bool _  | Var _ | This      -> f_ac [ ]
-  | Delete e | Unary_op (_, e) | Access (e, _)              -> f_ac (f e)    
-  | Comma (e1, e2) | BinOp (e1, _, e2) | Assign (e1, e2) 
-  | AssignOp(e1, _, e2) | CAccess (e1, e2)                  -> f_ac ((f e1) @ (f e2)) 
-  | ConditionalOp (e1, e2, e3)                              -> f_ac ((f e1) @ (f e2) @ (f e3)) 
-  | Call (e, es) | New (e, es)                              -> f_ac (flat_map f (e :: es))    
-  | FunctionExp (_, _, _, s)                                -> f_ac (f s)
-  | Obj pes                                                 -> f_ac (flat_map (fun (_, _, e) -> f e) pes)
-  | Array es                                                -> f_ac (flat_map fo es)
-  (* statement *) 
-  | Label (_, s)                              -> f_ac (f s)  
-  | If (e, s1, s2)                            -> f_ac ((f e) @ (f s1) @ (fo s2))
-  | While (e, s)                              -> f_ac ((f e) @ (f s))
-  | DoWhile (s, e)                            -> f_ac ((f s) @ (f e)) 
-  | Skip | Break _ |  Continue _ | Debugger   -> f_ac [] 
-  | Throw e                                   -> f_ac (f e)
-  | Return e                                  -> f_ac (fo e) 
-  | Script (_, ss) | Block ss                 -> f_ac (flat_map f ss)
-  | VarDec ves                                -> f_ac (flat_map (fun ve -> match ve with (v, None) -> [] | (v, Some e)  -> f e) ves)
-  | For(e1, e2, e3, s)                        -> f_ac ((fo e1) @ (fo e2) @ (fo e3) @ (f s)) 
-  | ForIn (e1, e2, s)                         -> f_ac ((f e1) @ (f e2) @ (f s)) 
-  | Try (s1, Some (_, s2), s3)                -> f_ac ((f s1) @ (f s2) @ (fo s3)) 
-  | Try (s1, None, s2)                        -> f_ac ((f s1) @ (fo s2))
-  | Switch (e, cases)                         -> f_ac ((f e) @ (analyse_cases cases))
-  | Function (_, _, _, s)                     -> f_ac (f s)
-  (* Non-supported constructs *)
-  | RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported") 
-
-
-
-let rec js_mapper f_m expr = 
-  let f = js_mapper f_m in 
-  let fo = Option.map f in 
-  let f_switch = fun (sc, e2) -> (match sc with | Case e1 -> Case (f e1)| DefaultCase -> DefaultCase), f e2 in 
-
-  let e_stx = expr.exp_stx in 
-  let new_e_stx = 
-    match e_stx with 
-    (* expressions *)
-    | Num _ | String _  | Null  | Bool _  | Var _ | This      -> e_stx
-    | Delete e                    -> Delete (f e)
-    | Unary_op (op, e)            -> Unary_op (op, f e)
-    | Access (e, x)               -> Access (f e, x) 
-    | Comma (e1, e2)              -> Comma (f e1, f e2)
-    | BinOp (e1, op, e2)          -> BinOp (f e1, op, f e2) 
-    | Assign (e1, e2)             -> Assign (f e1, f e2)
-    | AssignOp(e1, op, e2)        -> AssignOp(f e1, op, f e2)
-    | CAccess (e1, e2)            -> CAccess (f e1, f e2)   
-    | ConditionalOp (e1, e2, e3)  -> ConditionalOp (f e1, f e2, f e3)                           
-    | Call (e, es)                -> Call (f e, List.map f es)    
-    | New (e, es)                 -> New (f e, List.map f es)                       
-    | FunctionExp (x, n, vs, e)   -> FunctionExp (x, n, vs, f e)
-    | Obj lppe                    -> Obj (List.map (fun (pp, pt, e) -> (pp, pt, f e)) lppe)
-    | Array leo                   -> Array (List.map fo leo)     
-    (* statement *) 
-    | Label (lab, s)              -> Label (lab, f s)  
-    | If (e, s1, s2)              -> If (e, f s1, fo s2)
-    | While (e, s)                -> While (e, f s)
-    | DoWhile (s, e)              -> DoWhile (e, f s) 
-    | Skip | Break _ |  Continue _ | Debugger   -> e_stx
-    | Throw e                     -> Throw (f e)
-    | Return eo                   -> Return (fo eo) 
-    | Script (b, le)              -> Script (b, List.map f le) 
-    | Block le                    -> Block (List.map f le)
-    | VarDec lveo                 -> VarDec (List.map (fun (v, eo) -> (v, fo eo)) lveo)
-    | For (eo1, eo2, eo3, e)      -> For (fo eo1, fo eo2, fo eo3, f e) 
-    | ForIn (e1, e2, e3)          -> ForIn (f e1, f e2, f e3) 
-    | Try (e, seo1, eo2)          -> Try (f e, Option.map (fun (s, e) -> (s, f e)) seo1, fo eo2) 
-    | Switch (e, les)             -> Switch (f e, List.map f_switch les)
-    | Function (b, os, lv, s)     -> Function (b, os, lv, f s)
-    (* Non-supported constructs *)
-    | RegExp _ | With (_, _)      -> raise (Failure "JS Construct Not Supported") in 
-
-  let new_e = { expr with exp_stx = new_e_stx } in 
-  f_m new_e  
-
 
 
 (********************************************)
@@ -237,185 +134,11 @@ let create_js_logic_annotations
     old_fun_tbl
 
 
-
-(********************************************)
-(********************************************)
-(***         JavaScript Utils             ***)
-(********************************************)
-(********************************************)
-
-
-let test_func_decl_in_block exp =
-  let rec f in_block exp =
-    let fo f e = match e with None -> false | Some e -> f e in
-    match exp.exp_stx with
-    | Script (_, es) -> List.exists (f false) es
-    (* Expressions *)
-    | This | Var _ | Num _ | String _ | Null | Bool _ | RegExp _ | Obj _
-    | Array _ | Unary_op _ | BinOp _  | Delete _ | Assign _ | AssignOp _
-    | Comma _ | Access _ | CAccess _ | ConditionalOp _ | Call _ | New _
-    (* Statements *)
-    | VarDec _ | Skip | Continue _ | Break _ | Return _ | Throw _ | Debugger -> false
-
-    (* with is a syntax error in strict mode *)
-    (* TODO: Move to a more appropriate pre-processing mapper function so we can get better errors *)
-    | With _ -> true
-
-    (* Statements with sub-Statements *)
-    | Block es -> List.exists (f true) es
-    | If (_, s, so) -> f true s || fo (f true) so
-    | While (_, s) | DoWhile (s, _) | For (_, _, _, s)
-    | ForIn (_, _, s) | Label (_, s) -> f true s
-    | Switch (_, cs) -> List.exists (fun (_, s) -> f true s) cs
-    | Try (s, sc, so) -> f true s || fo (fun (_, s) -> f true s) sc || fo (f true) so
-
-    (* TODO: Ideally now the parser identifies these correctly, this test can be amended *)
-    | FunctionExp _ | Function _ -> in_block
-  in f true exp
-
-
-let get_all_assigned_declared_identifiers exp =
-  let rec fo is_lhs e = match e with None -> [] | Some e -> f is_lhs e
-  and f is_lhs exp =
-    match exp.exp_stx with
-    (* Special Cases *)
-    | Var v -> if is_lhs then [v] else []
-    | VarDec vars -> flat_map (fun ve -> match ve with (v, None) -> [v] | (v, Some e)  -> v :: (f false e)) vars
-    | Unary_op (op, e) -> (match op with Pre_Decr | Post_Decr | Pre_Incr | Post_Incr -> f true e | _ -> [])
-    | Delete e -> (f true e)
-    | Assign (e1, e2)
-    | AssignOp (e1, _, e2) -> (f true e1) @ (f false e2)
-    | Try (e1, eo2, eo3) -> (f false e1) @
-                            BatOption.map_default (fun (id, e) -> id :: (f false e)) [] eo2 @
-                            (fo false eo3)
-    | ForIn (e1, e2, e3) -> (f true e1) @ (f false e2) @ (f false e3)
-    | FunctionExp (_, n, vs, e) -> (Option.map_default (List.singleton) [] n) @ vs @ (f false e)
-    | Function (_, n, vs, e) -> (Option.map_default (List.singleton) [] n) @ vs @ (f false e)
-
-    (* Boring Cases *)
-    | Num _ | String _ | Null | Bool _ | RegExp _ | This
-    | Skip  | Break _  | Continue _ | Debugger -> []
-    | Throw e | Access (e, _) | Label (_, e) -> f false e
-    | Return eo -> fo false eo
-    | While (e1, e2) | DoWhile (e1, e2) | BinOp (e1, _, e2)
-    | CAccess (e1, e2) | Comma (e1, e2)
-    | With (e1, e2)              -> (f false e1) @ (f false e2)
-    | ConditionalOp (e1, e2, e3) -> (f false e1) @ (f false e2) @ (f false e3)
-    | If (e1, e2, eo3)           -> (f false e1) @ (f false e2) @ (fo false eo3)
-    | For (eo1, eo2, eo3, e4)    -> (fo false eo1) @ (fo false eo2) @ (fo false eo3) @ (f false e4)
-    | Call (e1, e2s)
-    | New (e1, e2s)              -> (f false e1) @ (flat_map (fun e2 -> f false e2) e2s)
-    | Obj xs                     -> flat_map (fun (_,_,e) -> f false e) xs
-    | Array es                   -> flat_map (fo false) es
-
-    | Switch (e1, e2s) -> (f false e1) @ (flat_map
-        (fun (e2, e3) -> (match e2 with | Case e2 -> f false e2 | DefaultCase -> []) @ (f false e3))
-      e2s)
-
-    | Block es
-    | Script (_, es) -> flat_map (f is_lhs) es
-
-  in f false exp
-
-
-let rec var_decls_inner exp =
-  let f_ac exp ac = 
-    match exp.exp_stx with 
-    | VarDec vars -> (List.map (fun (v, _) -> v) vars) @ ac 
-    | _ -> ac in 
-  js_accumulator_top_down f_ac exp
-
-
-let var_decls exp = (List.unique (var_decls_inner exp))
-                  (* List.append (List.unique (var_decls_inner exp)) [ "arguments" ] *)
-
-let rec get_fun_decls exp =
-  let f_ac exp ac = 
-    match exp.exp_stx with 
-    | Function (_, _, _, _) -> exp :: ac 
-    | _ -> ac in 
-  js_accumulator_top_down f_ac exp
-
-
-let rec get_fun_exprs_expr exp =
-  let f_ac exp ac = 
-    match exp.exp_stx with 
-    | Function _  | FunctionExp _ -> exp :: ac 
-    | _ -> ac in 
-  js_accumulator_top_down f_ac exp
-
-
-let func_decls_in_elem exp : exp list =
-    match exp.exp_stx with
-      | Function (s, name, args, body) -> [exp]
-      | _ ->  []
-
-let rec func_decls_in_exp exp : exp list =
-  match exp.exp_stx with
-    | Script (_, es)
-    | Block (es) -> List.flatten (List.map (func_decls_in_elem) es)
-    | _ -> func_decls_in_elem exp
-
-
-let get_all_vars_f f_body f_args =
-  let f_decls = func_decls_in_exp f_body in
-  let fnames = List.map (fun f ->
-    match f.exp_stx with
-      | Function (s, Some name, args, body) -> name
-      | _ -> raise (Failure ("Must be function declaration " ^ (Pretty_print.string_of_exp true f)))
-  ) f_decls in
-  let vars = List.concat [ f_args; (var_decls f_body); fnames] in
-  vars
-
 let rec get_predicate_definitions exp =
-  let f_ac exp ac = 
+  let f_ac exp state prev_state ac = 
     let new_pred_defs : JS_Logic_Syntax.js_logic_predicate list = (get_predicate_defs_from_annots exp.Parser_syntax.exp_annot) in 
      new_pred_defs @ ac in 
-  js_accumulator_top_down f_ac exp
-
-
-
-let rec returns_empty_exp (e : Parser_syntax.exp) =
-  let get_some e =
-    (match e with
-    | None -> false
-    | Some e -> returns_empty_exp e) in
-  let rec returns_empty_exp_list (el : Parser_syntax.exp list) =
-    (match el with
-    | [] -> true
-    | e :: el ->
-      let reeel = returns_empty_exp_list el in
-      if (returns_empty_exp e) then true else reeel) in
-
-  match e.exp_stx with
-  | Null | Num _ | String _ | Bool _ | Var _ | Delete _ | Unary_op _ | BinOp _ | Access _ 
-    | New _ | CAccess _ | Assign _ | AssignOp _ | Comma _ | ConditionalOp _ | Obj _ | Array _ 
-    | RegExp _ | FunctionExp _ | Function _ | Call _ | This | Throw _ | Return _ | Debugger -> false
-
-  | Label (_, e) | DoWhile (e, _) -> returns_empty_exp e
-
-  | If (e, et, ee) ->
-      let reeet = returns_empty_exp et in
-      let reeee = get_some ee in
-      if reeet then true else reeee
-
-  | Try (et, ec, ef) ->
-      let reeet = returns_empty_exp et in
-      let reeec =
-        match ec with
-        | None -> false
-        | Some (_, ec) -> returns_empty_exp ec in
-      let reeef = get_some ef in
-      if reeet then true else
-        if reeec then true else
-          reeef
-
-  | Block el | Script (_, el) -> returns_empty_exp_list el
-  | Switch (_, ese) -> let (_, el) = List.split ese in returns_empty_exp_list el
-
-  | For _ | ForIn _ | While _ | VarDec _ | Break _ | Continue _ | Skip -> true
-  | _ -> raise (Failure "unsupported construct by Petar M.")
-
+  js_accumulator_top_down f_ac (fun x y -> y) true exp
 
 
 
@@ -475,137 +198,63 @@ let rec add_codenames (main                  : string)
 (********************************************)
 
 
-let rec closure_clarification_expr cc_tbl (fun_tbl : Js2jsil_constants.pre_fun_tbl_type) vis_tbl f_id visited_funs e =
+let closure_clarification 
+    (cc_tbl       : Js2jsil_constants.cc_tbl_type) 
+    (fun_tbl      : Js2jsil_constants.pre_fun_tbl_type) 
+    (vis_tbl      : vis_tbl_type) 
+    (f_id         : string) 
+    (visited_funs : string list) 
+    (exp          : Parser_syntax.exp) =  
+  
+  let rec f_state e state = 
+    match state with 
+    | None -> None 
+    | Some (f_id, visited_funs) -> (
+      let cur_annot = e.Parser_syntax.exp_annot in
+      match e.exp_stx with
+      | FunctionExp (_, f_name, args, fb) -> 
+        (match f_name with
+        | None ->
+          let new_f_id = get_codename e in
+          let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id (get_all_vars_f fb args) in
+          update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
+          Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs); 
+          Some (new_f_id, (new_f_id :: visited_funs))
+        | Some f_name ->
+          let new_f_id = get_codename e in
+          let new_f_id_outer = new_f_id ^ "_outer" in
+          let _ = update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name in
+          let new_f_tbl = update_cc_tbl cc_tbl new_f_id_outer new_f_id (get_all_vars_f fb args) in
+          update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs);
+          Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs);
+          Some (new_f_id, (new_f_id :: new_f_id_outer :: visited_funs)))
+      | Function (_, f_name, args, fb) ->
+        let new_f_id = get_codename e in
+        let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id (get_all_vars_f fb args) in
+        update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
+        Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs);
+        Some (new_f_id, (new_f_id :: visited_funs))
+      | Try (_, Some (_, _), _)  -> None 
+      | _     -> state) in 
 
-  let cur_annot = e.Parser_syntax.exp_annot in
+  let rec f_ac e state prev_state ac = 
+    match prev_state with 
+    | None -> ac 
+    | Some (f_id, visited_funs) -> 
+      match e.exp_stx with
+      | Try (e1, Some (x, e2), e3) ->
+        let f = js_accumulator_top_down f_ac f_state in 
+        let _ = f prev_state e1 in 
+        let _ = Option.map (f prev_state) e3 in 
+        let new_f_id = get_codename e in
+        update_cc_tbl_single_var_er cc_tbl f_id new_f_id x;
+        f (Some (new_f_id, (new_f_id :: visited_funs))) e2
+      | _ -> [] in 
+  js_accumulator_top_down f_ac f_state (Some (f_id, visited_funs)) exp 
 
-  let f = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in
-  let fo e = 
-    (match e with
-    | None   -> ()
-    | Some e -> f e) in
 
-  (* Printf.printf "Traversing the js code inside closure_clarification_expr. current annotation: %s\n"
-    (Pretty_print.string_of_annots e.exp_annot); *)
 
-  match e.exp_stx with
-  (* Literals *)
-  | Null | Bool _ | String _ | Num _
-  (* Expressions *)
-  | This | Var _ -> ()
-  | Obj xs -> List.iter (fun (_, _, e) -> f e) xs
-  | Access (e, v)                  -> f e
-  | CAccess (e1, e2)               -> (f e1); (f e2)
-  | New (e1, e2s) | Call (e1, e2s) -> f e1; (List.iter f e2s)
-  | FunctionExp (_, f_name, args, fb)
-  | Function (_, f_name, args, fb) ->
-    begin match f_name with
-    | None ->
-      let new_f_id = get_codename e in
-      let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id (get_all_vars_f fb args) in
-      update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
-      Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs);
-      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
-    | Some f_name ->
-      let new_f_id = get_codename e in
-      let new_f_id_outer = new_f_id ^ "_outer" in
-      let _ = update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name in
-      let new_f_tbl = update_cc_tbl cc_tbl new_f_id_outer new_f_id (get_all_vars_f fb args) in
-      update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs);
-      Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs);
-      closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs) fb
-    end
-  | Unary_op (_, e)   | Delete e -> f e
-  | BinOp (e1, _, e2) | Assign (e1, e2) -> f e1; f e2
-  | Array es -> List.iter fo es
-  | ConditionalOp (e1, e2, e3) -> f e1; f e2; f e3
-  | AssignOp (e1, _, e2) | Comma (e1, e2) -> f e1; f e2
-  | VarDec vars -> List.iter (fun (_, e) -> fo e) vars
-  | RegExp _  -> ()
-  (*Statements*)
-  | Script (_, _) | Block _  | Skip _  | If (_, _, _) | While (_,_)
-  | DoWhile (_, _) | Return _ | Try (_, _, _) | Throw _ | Continue _ 
-  | Break _ | Label (_, _) | For (_, _, _, _) | Switch (_, _) 
-  | ForIn (_, _, _) | With (_, _) | Debugger -> 
-    raise (Failure "statement in expression context - closure clarification")
-and
-closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs e =
-  let cur_annot = e.Parser_syntax.exp_annot in
 
-  let f = closure_clarification_stmt cc_tbl fun_tbl vis_tbl f_id visited_funs in
-  let fe = closure_clarification_expr cc_tbl fun_tbl vis_tbl f_id visited_funs in
-  let fo e = (match e with
-  | None -> ()
-  | Some e -> f e) in
-  let feo e = (match e with
-  | None -> ()
-  | Some e -> fe e) in
-
-  (* Printf.printf "Traversing the js code inside closure_clarification_expr. current annotation: %s\n"
-    (Pretty_print.string_of_annots e.exp_annot); *)
-
-  match e.exp_stx with
-  (* Literals *)
-  | Null
-  | Bool _
-  | String _
-  | Num _
-  (* Expressions *)
-  | This
-  | Var _
-  | Obj _
-  | Access (_, _)
-  | CAccess (_, _)
-  | New (_, _)
-  | Call (_, _)
-  | FunctionExp _
-  | Unary_op (_, _)
-  | Delete _
-  | BinOp (_, _, _)
-  | Assign (_, _)
-  | Array _
-  | ConditionalOp (_, _, _)
-  | AssignOp (_, _, _)
-  | Comma (_, _)
-  | RegExp _ -> fe e
-  (*Statements*)
-  | Function (_, f_name, args, fb) ->
-    let new_f_id = get_codename e in
-    let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id (get_all_vars_f fb args) in
-    update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
-    Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs);
-    closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) fb
-  | Script (_, es) -> List.iter f es
-  | Block es -> List.iter f es
-  | VarDec vars -> List.iter (fun (_, e) -> feo e) vars
-  | Skip -> ()
-  | If (e1, e2, e3) -> fe e1; f e2; fo e3
-  | While (e1, e2) -> fe e1; f e2
-  | DoWhile (e1, e2) -> f e1; fe e2
-  | Return e -> feo e
-  | Try (e1, Some (x, e2), e3) ->
-    f e1; fo e3;
-    let new_f_id = get_codename e in
-    update_cc_tbl_single_var_er cc_tbl f_id new_f_id x;
-    closure_clarification_stmt cc_tbl fun_tbl vis_tbl new_f_id (new_f_id :: visited_funs) e2
-  | Try (e1, None, e3) -> f e1; fo e3
-  | Throw e -> fe e
-  | Continue _
-  | Break _ -> ()
-  | Label (_, e) -> f e
-  | For (e1, e2, e3, e4) -> feo e1; feo e2; feo e3; f e4
-  | Switch (e1, sces) ->
-    fe e1;
-    List.iter
-      (fun (sc, ec2) ->
-        (match sc with
-        | DefaultCase -> ()
-        | Case ec1 -> fe ec1);
-        f ec2)
-      sces
-  | ForIn (e1, e2, e3) -> fe e1; fe e2; f e3
-  | With (e1, e2) -> f e1; f e2
-  | Debugger -> ()
 
 
 let closure_clarification_top_level 
@@ -625,7 +274,7 @@ let closure_clarification_top_level
   Hashtbl.add cc_tbl proc_id proc_tbl;
   Hashtbl.add old_fun_tbl proc_id (proc_id, [], Some e, ([], [ proc_id ], proc_tbl));
   Hashtbl.add vis_tbl proc_id vis_fid;
-  closure_clarification_stmt cc_tbl old_fun_tbl vis_tbl proc_id vis_fid e;
+  closure_clarification cc_tbl old_fun_tbl vis_tbl proc_id vis_fid e;
   create_js_logic_annotations cc_tbl vis_tbl old_fun_tbl fun_tbl;
   let js_predicate_definitions : JS_Logic_Syntax.js_logic_predicate list = get_predicate_definitions e in  
   let jsil_predicate_definitions = 
@@ -1064,8 +713,6 @@ let memoized_offsetchar_to_offsetline str =
 					Hashtbl.add ht c_offset l_offset;
 					l_offset
 				end
-
-
 
 
 
