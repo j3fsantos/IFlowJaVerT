@@ -649,3 +649,30 @@ function sanitiseImg(img, cat){
 		}
 	}
 }
+
+/**
+	@id createNewAttribute
+	@rec false
+
+	@pre (
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
+	)
+	@post (
+		InitialDOMHeap() * (ret == $$t) * 
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
+		(#cList_post == (#cList1 @ {{ {{ "hole", #beta }} }})) *
+		ECell(#beta, "test", #n_id, #n_l_aList, #n_aList, #n_l_cList, #n_cList)
+	)
+*/
+function createNewAttribute(element){
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	/* @fold complete(#cList2) */
+	var n = element.appendChild(e);
+	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
+	return (n === e);
+}
