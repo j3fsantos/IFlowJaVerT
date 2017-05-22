@@ -342,12 +342,12 @@
 
 */ /*
 	@onlyspec parentNode()
-		pre:  [[ Grove(#alpha, #nodes) * (#nodes == a1 @ ({{ "elem", #name, this, #attrs, #children }} :: a2)) ]]
-		post: [[ Grove(#alpha, #nodes) * (#nodes == a1 @ ({{ "elem", #name, this, #attrs, #children }} :: a2)) * (ret == $$null) ]]
+		pre:  [[ Grove(#alpha, #nodes) * (#nodes == #a1 @ ({{ "elem", #name, this, #attrs, #children }} :: #a2)) ]]
+		post: [[ Grove(#alpha, #nodes) * (#nodes == #a1 @ ({{ "elem", #name, this, #attrs, #children }} :: #a2)) * (ret == $$null) ]]
 		outcome: normal;
 
-		pre:  [[ Grove(#alpha, #nodes) * (#nodes == a1 @ ({{ "text", this, #text }} :: a2)) ]]
-		post: [[ Grove(#alpha, #nodes) * (#nodes == a1 @ ({{ "text", this, #text }} :: a2)) * (ret == $$null) ]]
+		pre:  [[ Grove(#alpha, #nodes) * (#nodes == #a1 @ ({{ "text", this, #text }} :: #a2)) ]]
+		post: [[ Grove(#alpha, #nodes) * (#nodes == #a1 @ ({{ "text", this, #text }} :: #a2)) * (ret == $$null) ]]
 		outcome: normal
 
 	@onlyspec getAttribute(s)
@@ -446,7 +446,8 @@
 */
 function groveParent(s) {
 	var t = document.createTextNode(s);
-	/* @flash GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
+	/* @unfold GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
+	/* @fold GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
 	var r = t.parentNode();
 	return r;
 }
