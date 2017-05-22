@@ -1523,7 +1523,8 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		| e -> (match e with 
 			| SymbExecFailure failure -> 
 				print_debug (Symbolic_State_Print.print_failure failure);
-				None)
+				None
+			| _ -> raise e)
 
 
 let unify_symb_state_against_invariant symb_state inv_symb_state lvars existentials = 

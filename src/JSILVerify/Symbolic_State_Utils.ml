@@ -303,20 +303,34 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 	print_debug_petar (Printf.sprintf "Entering predicate_assertion_equality.\n");
 
 	let subst = JSIL_Logic_Utils.init_substitution [] in
+	let extss = SS.of_list existentials in
 
 	let rec unify_pred_args les pat_les =
 		(match les, pat_les with
 		| [], [] -> Some subst
 		| le :: rest_les, pat_le :: rest_pat_les ->
 			print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false));
-			(match pat_le with
-			| LVar l2 when (List.mem l2 existentials) ->
-				JSIL_Logic_Utils.extend_subst subst l2 le;
-				unify_pred_args rest_les rest_pat_les
-			| _ ->
-				if (Pure_Entailment.is_equal le pat_le pfs gamma)
-					then unify_pred_args rest_les rest_pat_les
-					else None)) in
+			let _, sbt = Simplifications.simplify_pfs_with_subst (DynArray.of_list [ LEq (pat_le, le) ]) gamma in
+			(match sbt with
+			| Some sbt ->
+					(Hashtbl.iter (fun v le -> (match le with
+					| LVar v' when ((SS.mem v' extss) && not (SS.mem v extss)) -> 
+							Hashtbl.remove sbt v; Hashtbl.add sbt v' (LVar v)
+					| _ -> ())) sbt); 
+					print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
+					print_debug_petar (Symbolic_State_Print.string_of_substitution sbt); 
+					Hashtbl.filter_map_inplace (fun v le -> if ((SS.mem v extss && not (Hashtbl.mem subst v))) then Some le else None) sbt;
+					Hashtbl.iter (fun v le -> Hashtbl.add subst v le) sbt;
+					print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
+					print_debug_petar (Symbolic_State_Print.string_of_substitution sbt);
+					let s_pfs = pf_substitution pfs subst true in
+					let s_le  = lexpr_substitution le subst true in
+					let s_pat_le = lexpr_substitution pat_le subst true in
+					print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression s_le false) (JSIL_Print.string_of_logic_expression s_pat_le false));
+					if (Pure_Entailment.is_equal s_le s_pat_le s_pfs gamma) 
+						then unify_pred_args rest_les rest_pat_les
+						else None
+			| None -> None)) in
 
 	match pred, pat_pred with
 	| (name, les), (pat_name, pat_les) ->
