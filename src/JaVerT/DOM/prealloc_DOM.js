@@ -260,42 +260,44 @@
 		(l == (#head :: #next)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * complete(#next),
 		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #a, #l_c, #c) * complete(#next) * complete(#c);
 
-
 	@onlyspec allocF(l, i)
-		pre:  [[ (l == #l) * (i == #i) * types(#f : $$list_type, #f1 : $$list_type, #f2 : $$list_type) * 
-				 Forest(#l, #f) * (#f == #f1 @ ( {{"elem", #name, #id, #aList, #cList}} :: #f2)) * (l-len(#f1) == #i)]]
-		post: [[ Forest(#l, (#f1 @ ({{ "hole", #alpha }} :: #f3))) * 
-				 ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) * (ret == #alpha) * types(#alpha : $$object_type)]]
+		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
+				 Forest(#l, #g) * (#g == #g1 @ ( {{"elem", #name, #id, #aList, #cList}} :: #g2)) * (l-len(#g1) == #i) * types(#id : $$object_type) ]]
+		post: [[ Forest(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
+				 ECell(#alpha, #name, #new_id, #l_attr, #aList, #l_children, #cList) * (ret == #alpha) * 
+				 (#new_id == #id) * types(#alpha : $$object_type)]]
 		outcome: normal;
 
-		pre:  [[ (l == #l) * (i == #i) * types(#f : $$list_type, #f1 : $$list_type, #f2 : $$list_type) * 
-				 Forest(#l, #f) * (#f == #f1 @ ( {{"text", #id, #text}} :: #f2)) * (l-len(#f1) == #i)]]
-		post: [[ Forest(#l, (#f1 @ ({{ "hole", #alpha }} :: #f3))) * 
+		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
+				 Forest(#l, #g) * (#g == #g1 @ ( {{"text", #id, #text}} :: #g2)) * (l-len(#g1) == #i) ]]
+		post: [[ Forest(#l, #g_post) * (#g_post == (#g1 @ ({{ "hole", #alpha }} :: #g2))) *
 				 TCell(#alpha, #id, #text) * (ret == #alpha) * types(#alpha : $$object_type)]]
-		outcome: normal
+		outcome: normal;
 
+		pre:  [[ (l == #l) * (i == -1) * Forest(#l, #g) ]]
+		post: [[ Forest(#l, #g_post) * (#g_post == ({{ "hole", #alpha }} :: #g)) * Forest(#alpha, {{ }}) * (ret == #alpha)]]
+		outcome: normal
 
 	@onlyspec deallocF(l, alpha)
-		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f2 : $$list_type, #f3 : $$list_type) * 
-				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f3)) * Forest(#alpha, #f2) ]]
-		post: [[ Forest(l, (#f1 @ (#f2 @ #f3))) * (ret == $$empty) ]]
+		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
+				 Forest(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * Forest(#alpha, #g2) ]]
+		post: [[ Forest(l, #g_post) * (#g_post == (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
+		outcome: normal; 
+
+		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g3 : $$list_type) * 
+				 Forest(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g3)) * EmptyCell(#alpha) ]]
+		post: [[ Forest(l, #g_post) * (#g_post == (#g1 @ #g3)) * (ret == $$empty) ]]
+		outcome: normal; 
+
+		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
+				 Forest(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
+		post: [[ Forest(l, #g_post) * (#g_post == (#g1 @ ({{"elem", #name, #id, #aList, #cList}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal;
 
-		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f3 : $$list_type) * 
-				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f3)) * EmptyCell(#alpha) ]]
-		post: [[ Forest(l, (#f1 @ #f3)) * (ret == $$empty) ]]
-		outcome: normal;
-
-		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f2 : $$list_type) * 
-				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f2)) * ECell(#alpha, #name, #id, #l_attr, #aList, #l_children, #cList) ]]
-		post: [[ Forest(l, (#f1 @ ({{"elem", #name, #id, #aList, #cList}} :: #f2))) * (ret == $$empty) ]]
-		outcome: normal;
-
-		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #f : $$list_type, #f1 : $$list_type, #f2 : $$list_type) * 
-				 Forest(l, #f) * (#f == #f1 @ ({{ "hole", #alpha }} :: #f2)) * TCell(#alpha, #id, #text) ]]
-		post: [[ Forest(l, (#f1 @ ({{"text", #id, #text}} :: #f2))) * (ret == $$empty) ]]
+		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
+				 Forest(l, #g) * (#g == #g1 @ ({{ "hole", #alpha }} :: #g2)) * TCell(#alpha, #id, #text) ]]
+		post: [[ Forest(l, #g_post) * (#g_post == (#g1 @ ({{"text", #id, #text}} :: #g2))) * (ret == $$empty) ]]
 		outcome: normal
-
 
 
 	@onlyspec allocG(l, i)
@@ -352,6 +354,21 @@
 	----General Axioms----
 */ /*
 	
+	@onlyspec nodeName()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+	
+	@onlyspec nodeValue()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec nodeType()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
 	@onlyspec parentNode()
 		pre:  [[ DocumentNode(#dn, #l_element, #element, #l_g, #grove) * (#element == {{ {{ "hole", #alpha }} }}) * 
 				 ECell(#alpha, #name, this, #l_attr, #attr, #l_children, #children) ]]
@@ -397,31 +414,30 @@
 				 TCell(#alpha, this, #t) * (ret == $$null) ]]
 		outcome: normal
 
-
-	@onlyspec getAttribute(s)
-		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
-				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s, #m, #l_t, #t) * val(#t, #s1) * types(#s1 : $$string_type) ]]
-		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * ACell(#gamma, #s, #m, #l_t, #t) * (ret == #s1) ]]
-		outcome: normal;
-		
-		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * out(#aList, #s) ]]
-		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (ret == "")     ]]
+	@onlyspec childNodes()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
 		outcome: normal
 
-
-	@onlyspec setAttribute(s, v)
-		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (s == #s1) * (v == #s2) * 
-				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s1, #m, #l_t, #t) * Grove(#beta, {{}}) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * (#aList_post == #a1 @ ({{ "hole", #gamma }} :: #a2)) * 
-				 ACell(#gamma, #s1, #m, #l_t, {{ {{ "hole", #gamma2 }} }}) * TCell(#gamma2, #r, #s2) * Grove(#beta, #t) * (ret == $$null) ]]
-		outcome: normal;
-
-		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * 
-				 (s == #s1) * (v == #s2) * out(#aList, #s1) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * (#aList_post == {{ "hole", #gamma }} :: #aList) * 
-				 ACell(#gamma, #s1, #m, #l_t, {{ {{ "hole", #gamma2 }} }}) * TCell(#gamma2, #r, #s2) * (ret == $$null) ]]
+	@onlyspec firstChild()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
 		outcome: normal
 
+	@onlyspec lastChild()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec previousSibling()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec nextSibling()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
 
 	@onlyspec ownerDocument()
 		pre:  [[ DocumentNode(this, #l_element, #element, #l_g, #grove) ]]
@@ -440,6 +456,20 @@
 		post: [[ ACell(#alpha, #name, this, #l_children, #cList) * (ret == $l_document) ]]
 		outcome: normal
 
+	@onlyspec insertBefore()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec replaceChild()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec removeChild()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
 
 	@onlyspec appendChild(n)
 		pre:  [[ (n == #n) * ECell(#xeta, #name, this, #l_attr, #aList, #l_children, #cList) *
@@ -467,9 +497,19 @@
 				 ECell(#alpha2, #name, #n, #l_attr, #aList, #l_children, #cList) * EmptyCell(#alpha) * (ret == #n) ]]
 		outcome: normal
 
+	@onlyspec hasChildNodes()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
 */ /*
 	----Document Node Axioms----
 */ /*
+
+	@onlyspec documentElement()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
 
 	@onlyspec createElement(s)
 		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
@@ -482,7 +522,133 @@
 		post: [[ (ret == #tn) * DocumentNode(this, #l_element, #element, #l_g, #g_post) * (#g_post == ({{ "hole", #alpha }} :: #g)) * 
 				 TCell(#alpha, #tn, #text) * types(#tn : $$object_type) ]]
 		outcome: normal
+
+	@onlyspec createAttribute(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec getElementsByTagName(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+*/ /*
+	----Element Node Axioms----
+*/ /*
+
+	@onlyspec tagName()
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec getAttribute(s)
+		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) *
+				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s, #m, #l_t, #t) * val(#t, #s1) * types(#s1 : $$string_type) ]]
+		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * ACell(#gamma, #s, #m, #l_t, #t) * (ret == #s1) ]]
+		outcome: normal;
+		
+		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * out(#aList, #s) ]]
+		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (ret == "")     ]]
+		outcome: normal
+
+
+	@onlyspec setAttribute(s, v)
+		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (s == #s1) * (v == #s2) * 
+				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s1, #m, #l_t, #t) * Grove(#beta, {{}}) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * (#aList_post == #a1 @ ({{ "hole", #gamma }} :: #a2)) * 
+				 ACell(#gamma, #s1, #m, #l_t, {{ {{ "hole", #gamma2 }} }}) * TCell(#gamma2, #r, #s2) * Grove(#beta, #t) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * 
+				 (s == #s1) * (v == #s2) * out(#aList, #s1) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList) * (#aList_post == {{ "hole", #gamma }} :: #aList) * 
+				 ACell(#gamma, #s1, #m, #l_t, {{ {{ "hole", #gamma2 }} }}) * TCell(#gamma2, #r, #s2) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec removeAttribute(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec getAttributeNode(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec setAttributeNode(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec removeAttributeNode(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
+	@onlyspec getElementsByTagName(s)
+		pre:  [[ emp ]]
+		post: [[ emp ]]
+		outcome: normal
+
 */
+
+/** sanitiseImg specifics */
+/**
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
+
+/**
+	@id sanitise
+
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
+		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
+		TCell(#gamma2, #r, #s2) *
+		isB(#s1) *
+		Grove(#grove, #tf1)
+	)
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
+}
 
 /**
 	@id createNewAttribute

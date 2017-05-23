@@ -4642,13 +4642,14 @@ let js2jsil e offset_converter for_verification =
 	(* JS2JSIL *)
 	
 	let main = "main" in
-	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
-	let e, _ = JS2JSIL_Preprocessing.propagate_annotations e in
-	
+
 	print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	let e = JS2JSIL_Preprocessing.expand_flashes e in
 
-	print_debug (Printf.sprintf "AST after expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	let e, _ = JS2JSIL_Preprocessing.propagate_annotations e in
+
+	print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	
 	let onlyspecs = Hashtbl.create 511 in
 	Hashtbl.iter

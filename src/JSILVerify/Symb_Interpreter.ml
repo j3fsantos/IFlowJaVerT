@@ -1228,7 +1228,8 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 		with 
 		| e -> let msg = (match e with
 			| SymbExecFailure failure -> Symbolic_State_Print.print_failure failure
-			| Failure msg -> msg) in
+			| Failure msg -> msg
+			| _ -> raise e) in
 			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
 			Symbolic_Traces.create_info_node_from_error search_info msg;
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
