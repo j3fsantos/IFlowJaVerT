@@ -246,9 +246,9 @@
 	@pred EmptyCell(alpha) :
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, $$null);
 
-
-
-
+*/ /*
+	----Derived DOM Assertions----
+*/ /*
 
 	@pred val(t, s) :
 		isNil(t) * (s == ""),
@@ -268,6 +268,15 @@
 		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c, #fSet) * complete(#next) * complete(#l_c),
 		(l == (#head :: #next)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * complete(#next),
 		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #a, #l_c, #c, #fSet) * complete(#next) * complete(#c);
+
+	@pred tids(t, l) :
+		isNil(t) * isNil(l),
+		(t == (#head :: #next)) * isText(#head, #id, #s1) * tids(#next, #l2) * (l == #id :: #l2),
+		(t == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c, #fSet) * tids(#next, #l2) * (l == #id :: #l2);
+
+*/ /*
+	----Abstraction Alloc/Dealloc----
+*/ /*
 
 	@onlyspec allocF(l, i)
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
@@ -605,10 +614,10 @@
 	----NodeList Axioms----
 */ /*
 	@onlyspec length()
-		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) * (this == #f) *
+		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) * tids(#cList, #l) * (this == #f) *
 				 NodeList(#f) * (#f --e-- #fSet) ]]
 		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) *
-				 NodeList(#f) * (#f --e-- #fSet) * (ret == 0) ]]
+				 NodeList(#f) * (#f --e-- #fSet) * (ret == l-len(#l)) ]]
 		outcome: normal
 */
 
@@ -618,15 +627,16 @@
 
 	@pre (
 		InitialDOMHeap() * (element == #en) *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set)
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set) * (#cList == {{ {{ "text", #tid, #t }}, {{ "text", #tid2, #t2}} }})
 	)
 	@post (
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set2) * (ret == 0)
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set2) * (ret == 2)
 	)
 */
 function nodeListSimple(element){
 	var f = element.childNodes();
+	/* @fold tids(#cList, #l) */
 	var r = f.length();
 	return r
 }
