@@ -3,6 +3,7 @@ open Lexing
 open JSIL_Syntax
 open Js2jsil_constants
 open JS_Logic_Syntax
+open JS_Utils
 
 let cc_tbl      : cc_tbl_type      = Hashtbl.create medium_tbl_size 
 let fun_tbl     : fun_tbl_type     = Hashtbl.create medium_tbl_size
@@ -3105,7 +3106,7 @@ and translate_statement tr_ctx e  =
 
 			| [ e ] ->
 				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
-				(match (Js_pre_processing.returns_empty_exp e), bprevious with
+				(match (returns_empty_exp e), bprevious with
 				| true, Some x_previous ->
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in
 					let new_cmds = annotate_cmds new_cmds in
@@ -3115,7 +3116,7 @@ and translate_statement tr_ctx e  =
 
 			| e :: rest_es ->
 				let cmds_e, x_e, errs_e, rets_e, breaks_e, conts_e = f_previous new_loop_list bprevious None e in
-				(match (Js_pre_processing.returns_empty_exp e), bprevious with
+				(match (returns_empty_exp e), bprevious with
 				| true, Some x_previous ->
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in
 					let new_cmds = annotate_cmds new_cmds in
@@ -4264,7 +4265,7 @@ let make_final_cmd vars final_lab final_var =
 
 
 let translate_fun_decls (top_level : bool) sc_var e =
-	let f_decls = Js_pre_processing.get_fun_decls e in
+	let f_decls = get_fun_decls e in
 	let hoisted_fdecls =
 		List.fold_left (fun ac f_decl ->
 			let f_name, f_params =
@@ -4305,7 +4306,7 @@ let generate_main offset_converter e main cc_table spec =
 				(annotate_cmd
 					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]))))
 					None))
-			(Js_pre_processing.var_decls e) in
+			(var_decls e) in
 
 	(* x__te := TypeError () *)
 	let cmd_ass_te = make_var_ass_te () in
@@ -4369,7 +4370,7 @@ let generate_proc_eval new_fid e cc_table vis_fid =
   let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_er, Literal (String erFlagPropName), Literal (Bool true)))) None in
 
 	(* [x_er, decl_var_i] := undefined *)
-	let new_fid_vars = Js_pre_processing.var_decls e in
+	let new_fid_vars = var_decls e in
 	let cmds_decls =
 		List.map (fun decl_var ->
 			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
@@ -4459,7 +4460,7 @@ let generate_proc offset_converter e fid params cc_table vis_fid spec =
 		List.map (fun decl_var ->
 			let cmd = SLBasic (SMutation (Var var_er, Literal (String decl_var), Literal Undefined)) in
 			(annotate_cmd cmd None))
-		(Js_pre_processing.var_decls e) in
+		(var_decls e) in
 
 	(**
       CREATING THE ARGUMENTS OBJECT:
@@ -4546,10 +4547,10 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	
 	let new_fid = fresh_anonymous_eval () in
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames new_fid fresh_anonymous_eval fresh_named_eval fresh_catch_anonymous_eval e in
-	update_cc_tbl cc_tbl f_parent_id new_fid (Js_pre_processing.get_all_vars_f e []);
+	update_cc_tbl cc_tbl f_parent_id new_fid (get_all_vars_f e []);
 	Hashtbl.add temp_new_fun_tbl new_fid (new_fid, [var_scope; var_this], Some e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.add vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
+	Js_pre_processing.closure_clarification cc_tbl temp_new_fun_tbl vis_tbl new_fid (new_fid :: vis_fid) e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _, _) ->
@@ -4588,10 +4589,10 @@ let js2jsil_eval prog which_pred cc_tbl vis_tbl f_parent_id e =
 	let new_fun_tbl = Hashtbl.create 1 in
 	let e : Parser_syntax.exp = Js_pre_processing.add_codenames "main" fresh_anonymous fresh_named fresh_catch_anonymous e in
 	let new_fid = Js_pre_processing.get_codename e in
-	update_cc_tbl cc_tbl "main" new_fid (Js_pre_processing.get_all_vars_f e params);
+	update_cc_tbl cc_tbl "main" new_fid (get_all_vars_f e params);
 	Hashtbl.replace new_fun_tbl new_fid (new_fid, params, Some e, ([], [ new_fid ],  Hashtbl.create Js2jsil_constants.small_tbl_size));
 	Hashtbl.replace vis_tbl new_fid (new_fid :: vis_fid);
-	Js_pre_processing.closure_clarification_stmt cc_tbl new_fun_tbl vis_tbl new_fid vis_fid e;
+	Js_pre_processing.closure_clarification cc_tbl new_fun_tbl vis_tbl new_fid vis_fid e;
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, (_, _, _)) ->
@@ -4632,11 +4633,13 @@ let js2jsil e offset_converter for_verification =
 	(* JS2JSIL *)
 	
 	let main = "main" in
-	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
-	let e, _ = Js_pre_processing.ground_fun_annotations [] e in
 	
 	print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	let e = Js_pre_processing.expand_flashes e in
+	
+	print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+	let e, _ = Js_pre_processing.ground_fun_annotations [] e in
+
 
 	print_debug (Printf.sprintf "AST after expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
 	

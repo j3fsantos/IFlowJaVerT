@@ -103,9 +103,45 @@ document.createElement("one");
 
 /** 
 -------------------------------------------------------------------------------
-		cell encoding
+		cell encoding -- new_DOM.js
 -------------------------------------------------------------------------------
 **/
+
+/** 
+	@id groveParent
+
+	@pre (
+		InitialDOMHeap() * scope(document : $l_document) *
+		(s == #text) * types(#text: $$string_type) *
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g)
+	)
+	@post (
+		InitialDOMHeap() * scope(document : $l_document) *
+		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
+		(#d_g_post == {{ "text", #tid, #text }} :: #d_g) *
+		(ret == $$null)
+	)
+*/
+function groveParent(s) {
+	var t = document.createTextNode(s);
+	/* @flash GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
+	var r = t.parentNode();
+	return r;
+}
+
+/** sanitiseImg specifics */
+/**
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
 
 /**
 	@id createNewAttribute
@@ -136,19 +172,6 @@ function createNewAttribute(element){
 	return (n === e);
 }
 
-/** sanitiseImg specifics */
-/**
-	@pred isB(s) : (s == #s) * isB(s);
-	@pred nisB(s) : (s == #s) * nisB(s);
-
-	@onlyspec isBlackListed(s)
-		pre:  [[ (s == #s) * isB(#s) ]]
-		post: [[ isB(#s) * (ret == 1) ]]
-		outcome: normal;
-		pre:  [[ (s == #s) * (nisB(#s)) ]]
-		post: [[ (ret == 0) * (nisB(#s)) ]]
-		outcome: normal
-*/
 /**
 	@id sanitise
 
@@ -158,7 +181,7 @@ function createNewAttribute(element){
 		InitialDOMHeap() *
 		(img == #n) * (cat == #s2) * 
 		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == {{ {{ "hole", #alpha1 }}, {{ "attr", "src", #a, #tf1 }}, {{ "hole", #alpha2 }} }}) *
+		(#attr == a1 @ ({{ "attr", "src", #a, #tf1 }} :: a2)) *
 		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
 		Grove(#grove, {{}})
 	)
@@ -167,7 +190,7 @@ function createNewAttribute(element){
 		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
 		InitialDOMHeap() *
 		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
-		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "attr", "src", #a, #tf2 }}, {{ "hole", #alpha2 }} }}) *
+		(#new_attr == a1 @ ({{ "attr", "src", #a, #tf2 }} :: a2)) *
 		(#tf2 == {{ {{ "text", #r, #s2 }} }}) *
 		isB(#s1) *
 		Grove(#grove, #tf1)
@@ -192,7 +215,7 @@ function sanitiseImg(img, cat){
 
 /** 
 -------------------------------------------------------------------------------
-		preallocated cell encoding
+		preallocated cell encoding -- prealloc_DOM.js
 -------------------------------------------------------------------------------
 **/
 
