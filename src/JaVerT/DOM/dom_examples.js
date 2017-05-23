@@ -8,51 +8,6 @@ function isSquare(element) {
 	return w === y;
 }
 
-/**
-	@id createNewAttribute
-	@rec false
-
-	@pre (
-		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
-		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() * (element == #en) * (grove == #d_g) * types(#en : $$object_type) *
-		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) *
-		(#e_chld == {{ {{ "hole", #alpha }} }}) *
-		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
-		(#d_g == {{ {{ "hole", #beta }} }})
-	)
-	@post (
-		scope(allocG   : #allocG)   * fun_obj(allocG,   #allocG,   #allocG_proto) *
-		scope(deallocG : #deallocG) * fun_obj(deallocG, #deallocG, #deallocG_proto) *
-		InitialDOMHeap() * (ret == $$t) * 
-		ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld_post) *
-		(#e_chld_post == {{ {{ "hole", #alpha }}, {{ "elem", #e_n_new, #e_new, #e_attr_new, #e_chld_new }} }}) *
-		DocumentNode($l_document, #d_l_elem, #d_elem, #d_l_g, #d_g) *
-		(#d_g == {{ {{ "hole", #beta }} }}) * (ret == $$t)
-	)
-*/
-function createNewAttribute(grove, element){
-	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	var d = element.ownerDocument();
-	var e = d.createElement("test");
-	var a = allocG(grove, 0, 1);
-	/* @invariant scope(a : #zeta) * scope(e : #e) * Grove(#zeta, #g) * (#g == {{ {{ "elem", #name2, #e, #e_attr2, #e_chld2 }} }}) */
-	/* @fold complete(#e_chld2) */
-	/* @unfold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	/* @fold ElementNode(#name, #en, #e_l_attr, #e_attr, #e_l_chld, #e_chld) */
-	var n = element.appendChild(e);
-	deallocG(a);
-	return (n === e);
-}
-/* Still too much expansion from a basic function */
-function createNewAttribute(element){
-	var d = element.ownerDocument();
-	var e = d.createElement("test");
-	var n = element.appendChild(e);
-	return (n === e);
-}
-
 function childToParent(element) {
 	var c = element.firstChild();
 	var p = c.parentNode();
@@ -291,7 +246,7 @@ function createNewAttribute(element){
 		InitialDOMHeap() *
 		(img == #n) * (cat == #s2) * 
 		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
 		ACell(#gamma, "src", #a, #l_tf, #tf1) *
 		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
 		Grove(#grove, {{}})
@@ -300,8 +255,8 @@ function createNewAttribute(element){
 		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
 		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
-		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
 		ACell(#gamma, "src", #a, #l_tf, #tf2) *
 		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
 		TCell(#gamma2, #r, #s2) *
