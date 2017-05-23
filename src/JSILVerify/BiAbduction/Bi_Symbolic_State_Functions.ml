@@ -207,33 +207,43 @@ let create_new_spec () : jsil_n_single_spec =
 		n_subst      = Hashtbl.create small_tbl_size
 	}
 
+exception Command_unsupported of unit
+exception Recursive_call_graph of unit
+exception Procedure_does_not_exist of unit
 
 let get_call_hash_tbl program =
 	let procs_tbl = Hashtbl.create small_tbl_size in
 	Hashtbl.iter (fun proc_name proc -> 
-						let procs_called = (Array.fold_left (fun ac (_, cmd) -> 
-												(match cmd with 
-												| SCall (x, e, e_args, j) -> 
-													(match e with 
-													| (Literal (String name)) -> 
-														name :: ac
-													| _ -> print_debug "Call Graph: While creating the call graph found a non-string procedure expression"; 
-														   ac)
-												| _ -> ac)
-											) [] proc.proc_body) in
-						Hashtbl.add procs_tbl proc_name procs_called
+						try 
+							let procs_called = (
+								Array.fold_left (
+									fun ac (_, cmd) -> 
+										(match cmd with 
+										| SCall (x, e, e_args, j) -> 
+											(match e with 
+											| (Literal (String name)) -> 
+												name :: ac
+											| _ -> print_debug "Call Graph: While creating the call graph found a non-string procedure expression"; 
+												   ac)
+										| SBasic bcmd -> 
+											(match bcmd with 
+											| SGetFields (_, _) ->
+												raise (Command_unsupported ())
+											| SArguments var -> 
+												raise (Command_unsupported ())
+											| _ -> ac)
+										| _ -> ac)
+									) [] proc.proc_body) in
+							Hashtbl.add procs_tbl proc_name procs_called
+						with Command_unsupported () -> ()
 				 ) program;
 	procs_tbl
-
-exception Recursive_call_graph of unit
-exception Procedure_does_not_exist of unit
 
 let create_call_graph procs_tbl =
 	(* Could check for main *)
 
 	(* Contains the procedures not called from any other procedures *)
 	let roots = Hashtbl.create small_tbl_size in
-	let partial = Hashtbl.create small_tbl_size in
 	(* Spec which we should include and not infer as they 
 	   include functions that don't have a given spec for example defaultValue *)
 	let include_specs =  DynArray.create () in
@@ -241,39 +251,33 @@ let create_call_graph procs_tbl =
 	let recursive_functions =  DynArray.create () in
 
 	let rec detect_cycles (proc_name : string) (visited : SS.t ) : (string list) =
-		if SS.mem proc_name visited then raise (Recursive_call_graph ());
+		if SS.mem proc_name visited then 
+			[] (*raise (Recursive_call_graph ());*)
+		else 
+			(let procs_called = 
+				(try
+					Hashtbl.find procs_tbl proc_name
+				with Not_found -> 
+					raise (Procedure_does_not_exist ())) in
 
-		Hashtbl.remove roots proc_name;
-
-		try Hashtbl.find partial proc_name
-		with Not_found ->
-			(let visited = SS.add proc_name visited in
-			try 
-				let procs_called = Hashtbl.find procs_tbl proc_name in
-				
-				let ordered_procs = List.fold_left (fun ac cproc_name -> 
-														try 
-															let cproc_list = detect_cycles cproc_name visited in
-															cproc_list @ ac
-														with Procedure_does_not_exist () ->
-															DynArray.add include_specs proc_name; 
-															ac
-													) [proc_name] procs_called in
-				Hashtbl.add partial proc_name ordered_procs;
-				ordered_procs
-			with Not_found -> 
-				raise (Procedure_does_not_exist ());
-			) in
+			let visited = SS.add proc_name visited in
+			List.fold_left 
+				(fun ac cproc_name -> 
+					try 
+						let cproc_list = detect_cycles cproc_name visited in
+						cproc_list @ ac
+					with Procedure_does_not_exist () -> 
+						DynArray.add include_specs proc_name;
+						[]
+				) [proc_name] procs_called)
+	in
 
 	Hashtbl.iter (fun proc_name _ -> 
-						try Hashtbl.find partial proc_name; () 
-						with Not_found ->
 							(try 
 								let ordered_procs = detect_cycles proc_name SS.empty in
-								Hashtbl.add partial proc_name ordered_procs;
 								Hashtbl.add roots proc_name ordered_procs;
-							with Recursive_call_graph () -> 
-								DynArray.add recursive_functions proc_name)
+							with _ -> 
+								(*DynArray.add recursive_functions proc_name*) ())
 				 ) procs_tbl;
 	(roots, include_specs, recursive_functions)
 
@@ -294,51 +298,32 @@ let construct_call_graph program =
 let internal_functions_preprocessing program spec_tbl =
 	let (procs_to_verify,recursive_functions) = construct_call_graph program in
 	let new_spec_tbl = Hashtbl.create small_tbl_size in
-	(* Simply removes specs so I don't have to, shouldn't happen 
-	   with non-internal functions as it will remove partial specs *)
-	Hashtbl.iter (fun spec_name spec ->	
-						if (not (List.mem spec_name procs_to_verify)) then 
-							Hashtbl.add new_spec_tbl spec_name spec
-				 ) spec_tbl; 	
-	(procs_to_verify, new_spec_tbl, recursive_functions)
+	(procs_to_verify, spec_tbl, recursive_functions)
 
 
-let process_bi_results new_spec_tbl bi_res norm_res rec_funcs verbose = 
-	(*let specs_str = Symbolic_State_Utils.string_of_n_spec_table_assertions new_spec_tbl procs_to_verify in 
-	let results_str = Symbolic_State_Print.string_of_bi_symb_exe_results bi_res in
-	let results_str = "Generated specifications: \n " ^ specs_str ^ "\n" ^ results_str in *)
-	let generated_spec_set = SS.empty in
-
+let process_bi_results procs_to_verify procs_list new_spec_tbl bi_res norm_res rec_funcs verbose = 
 	let results_str = "BI-ABDUCTIVE RESULTS: \n\n" in
 
-	(* Recursive Functions *)
-	let rec_funcs_str =	DynArray.fold_left (
-							fun rec_func ac -> 
-								rec_func ^ "\n" ^ ac
-						) "" rec_funcs in
-
-	let rec_funcs_str = 
-		(if (not ((String.length rec_funcs_str) = 0)) then 
-			"\n--------------\nRECURSIVE PROCEDURES:  \n--------------\n" ^ rec_funcs_str
-		else 
-			"") in
-
 	(* Failed to generate specification string *)
-	let bi_fail_str, generated_spec_set = 	
+	let bi_fail_str, gen_fail_num, procs_to_verify_num = 	
 		List.fold_left (
-	 		fun (ac,generated_spec_set) (proc_name, _, _, success, msg, _) -> 
-	 			if (not success) then
-	 				(if (verbose) then
-						let failed_msg_str = (match msg with
-						| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
-						| Some msg -> "\n" ^ proc_name ^ "\n----------\n " ^ msg ^ "\n\n") in 
-						(failed_msg_str ^ ac, generated_spec_set)
-					else 
-						(proc_name ^ "\n" ^ ac, generated_spec_set))
+	 		fun (ac,count, suc_count) (proc_name, i, _, success, msg, _) -> 
+	 			let ver_spec = List.mem proc_name procs_to_verify in
+	 			(if ver_spec then
+	 				(if (not success) then
+		 				(let proc_str = Printf.sprintf "%s %d" proc_name i in
+		 				if (verbose) then
+							(let failed_msg_str = (match msg with
+							| None ->  "\n" ^ proc_str ^ "\n----------\n Failed without a message. \n\n"
+							| Some msg -> "\n" ^ proc_str ^ "\n----------\n " ^ msg ^ "\n\n") in 
+							(failed_msg_str ^ ac,count+1,suc_count))
+						else 
+							(proc_str ^ "\n" ^ ac,count+1,suc_count))
+		 			else 
+		 				(ac,count,suc_count+1))
 				else 
-					let generated_spec_set = SS.add proc_name generated_spec_set in
-					(ac,generated_spec_set)
-	 	) ("",generated_spec_set) bi_res in
+					(ac,count,suc_count))
+	 	) ("",0,0) bi_res in
 
 	let bi_fail_str = 
 		(if (not ((String.length bi_fail_str) = 0)) then 
@@ -347,21 +332,29 @@ let process_bi_results new_spec_tbl bi_res norm_res rec_funcs verbose =
 			"") in
 
 	(* Failed to verify specifiaction string *)
-	let norm_fail_str, generated_spec_set = 
+	let norm_fail_str, succ_str, verify_fail_num, verify_succ_num = 
 		List.fold_left (
-	 		fun (ac,generated_spec_set) (proc_name, _, _, success, msg, _) -> 
-	 			(if (not success) then
-	 				(let generated_spec_set = SS.remove proc_name generated_spec_set in
-	 				if (verbose) then
-						(let failed_msg_str = (match msg with
-						| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
-						| Some msg -> "\n" ^ proc_name ^ "\n----------\n" ^ msg ^ "\n\n") in 
-						(failed_msg_str ^ ac,generated_spec_set))
+	 		fun (ac,succ_str, fail_count, suc_count) (proc_name, i, spec, success, msg, _) -> 
+	 			(if (List.mem proc_name procs_to_verify) then 
+		 			(if (not success) then
+		 				(let proc_str = Printf.sprintf "%s %d" proc_name i in
+		 				if (verbose) then
+							(let spec_str = string_of_single_spec_table_assertion spec in
+							let failed_msg_str = (match msg with
+							| None ->  "\n" ^ proc_str ^ "\n----------\n" ^ spec_str ^ " \n Failed without a message. \n\n"
+							| Some msg -> "\n" ^ proc_str ^ "\n----------\n" ^ spec_str ^ "\n" ^ msg ^ "\n\n") in 
+							(failed_msg_str ^ ac,succ_str,fail_count+1, suc_count))
+						else 
+							(proc_str ^ "\n" ^ ac,succ_str, fail_count+1, suc_count))
 					else 
-						(proc_name ^ "\n" ^ ac, generated_spec_set))
-				else 
-					(ac,generated_spec_set))
-	 	) ("",generated_spec_set) norm_res in
+						(if (verbose) then
+							let spec_str = string_of_single_spec_table_assertion spec in
+							(ac,"\n" ^ proc_name ^ "\n----------\n" ^ spec_str ^ succ_str,fail_count, suc_count+1)
+						else
+							(ac,proc_name ^ "\n" ^ succ_str,fail_count, suc_count+1)))
+	 			else
+	 			(ac,succ_str, fail_count, suc_count))
+	 	) ("", "", 0,0) norm_res in
 
 	let norm_fail_str = 
 		(if (not ((String.length norm_fail_str) = 0)) then 
@@ -369,23 +362,12 @@ let process_bi_results new_spec_tbl bi_res norm_res rec_funcs verbose =
 		else 
 			"") in
 
- 	let succ_str = 	SS.fold (
- 						fun proc_name ac -> 
- 							if (verbose) then 
- 								(try 
- 									let spec = Hashtbl.find new_spec_tbl proc_name in
- 									let spec_str = string_of_n_single_spec_assertion spec in
- 									"\n" ^ proc_name ^ "\n----------\n" ^ spec_str ^ ac
- 								with Not_found -> 
- 									"\n" ^ proc_name ^ "\n----------\n Could not find the specification. Very odd." ^ ac)	
- 							else
- 								proc_name ^ "\n" ^ ac
- 					) generated_spec_set "" in 
+	let stats = 
+		Printf.sprintf 
+			"\n PROCEDURES TO VERIFY: %d \n FAILED TO GENERATE %d SPECS\n TOTAL NUMBER OF SPECS GENERATED: %d \n FAILED TO VERIFY SPECS:  %d" 
+			procs_to_verify_num
+			gen_fail_num
+			(verify_succ_num + verify_fail_num)
+			verify_fail_num in
 
- 	let succ_str = 
-		(if (not ((String.length succ_str) = 0)) then 
-			"\n--------------\nSUCCESSFUL SPEC GENERATION AND VERIFICATION \n--------------\n" ^ succ_str
-		else 
-			"") in
-
-	print_endline (results_str ^ rec_funcs_str ^ bi_fail_str ^ norm_fail_str ^ succ_str)
+	print_endline (results_str ^ bi_fail_str ^ norm_fail_str ^ stats)

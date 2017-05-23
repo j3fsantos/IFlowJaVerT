@@ -535,6 +535,7 @@ let find_and_apply_spec
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
 				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
+			try (
 			let unifier = Bi_Structural_Entailment.bi_unify_symb_states SS.empty spec.n_pre symb_state_aux in
 			(match unifier with
 			|	Some (true, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, _, new_gamma) 
@@ -561,7 +562,12 @@ let find_and_apply_spec
 				
 			| None -> (
 				print_debug (Printf.sprintf "I found a NON-match");
-				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af))) in
+				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af))))
+			with | e -> (match e with 
+				| SymbExecFailure failure -> 
+						print_debug (Symbolic_State_Print.print_failure failure);
+						print_debug (Printf.sprintf "I found a NON-match");
+						find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af)) in
 
 
 	let transform_symb_state_partial_match 
@@ -1053,39 +1059,41 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 			| _ ->
 				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Print.string_of_logic_expression le_proc_name false) in
 				raise (Failure msg)) in
-		let proc_specs =
-			(try
-				Hashtbl.find s_prog.spec_tbl proc_name
-			with _ ->
-				let msg = Printf.sprintf "No spec found for proc %s" proc_name in
-				raise (Failure msg)) in
+		if ((proc_name = proc.proc_name)) then
+			[]
+		else
+			(let proc_specs =
+				(try
+					Hashtbl.find s_prog.spec_tbl proc_name
+				with _ ->
+					let msg = Printf.sprintf "No spec found for proc %s. This is probably due to mutual recursion or procedure not found." proc_name in
+					raise (Failure msg)) in
 
-		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
+			List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
 
-		(* symbolically evaluate the args *)
-		let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
-		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
+			(* symbolically evaluate the args *)
+			let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
+			let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
 
-		(if ((List.length new_symb_states) = 0)
-			then (
-				raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)))
-			);
+			(if ((List.length new_symb_states) = 0)
+				then (
+					raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)))
+				);
 
-
-		let list_result_states = List.map
-			(fun (symb_state, anti_frame, ret_flag, ret_le) ->
-				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
-				store_put (get_store symb_state) x ret_le;
-				update_gamma (get_gamma symb_state) x ret_type;
-				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
-				(match ret_flag, j with
-				| Normal, _ ->
-					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i (i+1)
-				| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
-				| Error, Some j ->
-					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i j))
-			new_symb_states in
-		List.concat list_result_states
+			let list_result_states = List.map
+				(fun (symb_state, anti_frame, ret_flag, ret_le) ->
+					let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
+					store_put (get_store symb_state) x ret_le;
+					update_gamma (get_gamma symb_state) x ret_type;
+					let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
+					(match ret_flag, j with
+					| Normal, _ ->
+						symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i (i+1)
+					| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
+					| Error, Some j ->
+						symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i j))
+				new_symb_states in
+			List.concat list_result_states)
 	 	in
 
 	(* symbolically evaluate a phi command *)
@@ -1131,7 +1139,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 	
 	@return symb_states The list of symbolic states resulting from the evaluation
 *)
-and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cur next  : ((symbolic_state * symbolic_state * jsil_return_flag) list) =
+and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cur next : ((symbolic_state * symbolic_state * jsil_return_flag) list) =
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
@@ -1389,10 +1397,9 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	let new_spec_tbl = Hashtbl.create small_tbl_size in
-	if (!js) then
-		Hashtbl.iter (fun spec_name spec ->	if (not (List.mem spec_name procs_to_verify)) then 
-												Hashtbl.add new_spec_tbl spec_name spec
-					 ) spec_table; 	
+	Hashtbl.iter (fun spec_name spec -> if (not (List.mem spec_name procs_to_verify)) then 
+											Hashtbl.add new_spec_tbl spec_name spec
+				 ) spec_table; 	
 	(* Normalise predicate definitions *)
 	let n_pred_defs = Normaliser.normalise_predicate_definitions pred_defs in
 	(* Construct corresponding extended JSIL program *)

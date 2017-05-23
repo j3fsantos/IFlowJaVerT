@@ -355,24 +355,6 @@ let assertions_of_pred_set pred_set =
 			loop rest ((LPred (pred_name, args)) :: assertions) in 
 	loop preds [] 
 
-(*let remove_abs_locs_from_heap heap store pfs =
-	let subst = Hashtbl.create big_tbl_size in 
-	LHeap.iter
-		(fun loc (fv_list, def) ->  
-			try 
-				let e = Hashtbl.find subst loc in
-				LHeap.replace heap e (fv_list, def)
-			with Not_found -> 
-				(if (is_abs_loc_name loc) then 
-					try 
-						let e = store_get store loc in
-						Hashtbl.add subst loc e;
-						store_remove store loc;
-						LHeap.replace heap e (fv_list, def)
-					with _ -> ())
-		) heap; 
-	pf_substitution pfs subst false;*)
-
 let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_assertion = 
 	let heap, store, pfs, gamma, _ = symb_state in
 	let heap_assert = assertion_of_abs_heap heap in
