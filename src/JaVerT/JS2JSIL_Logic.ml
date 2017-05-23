@@ -23,8 +23,8 @@ let js_obj_internal_fields        = [ "@proto"; "@class"; "@extensible" ]
 
 let errors_assertion = 
 	LStar (
-		LPred (type_error_pred_name,   [ (PVar Js2jsil_constants.var_te) ]), 
-		LPred (syntax_error_pred_name, [ (PVar Js2jsil_constants.var_se) ])
+		LPred (type_error_pred_name,   [ (PVar JS2JSIL_Constants.var_te) ]), 
+		LPred (syntax_error_pred_name, [ (PVar JS2JSIL_Constants.var_se) ])
 	)
 
 
@@ -136,7 +136,7 @@ type js_logic_assertion =
 	| JSLPointsTo			of js_logic_expr * js_logic_expr * js_logic_expr
 	| JSLEmp
 	| JSLPred				of string  * (js_logic_expr list)
-	| JSLForAll       of (jsil_var * jsil_type) list * js_logic_assertion
+	| JSLForAll             of (jsil_var * jsil_type) list * js_logic_assertion
 	| JSLTypes  		    of (string * jsil_type) list
 	| JSLScope      		of string  * js_logic_expr
 	| JSLVarSChain          of string * string * js_logic_expr * js_logic_expr
@@ -144,8 +144,8 @@ type js_logic_assertion =
 	| JSFunObj      		of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
 	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
 	| JSEmptyFields			of js_logic_expr * (js_logic_expr list)
-	| JSLSetMem  	    of js_logic_expr * js_logic_expr              
-	| JSLSetSub  	    of js_logic_expr * js_logic_expr       
+	| JSLSetMem  	        of js_logic_expr * js_logic_expr              
+	| JSLSetSub  	        of js_logic_expr * js_logic_expr       
 
 
 type js_logic_predicate = {
@@ -202,7 +202,7 @@ let rec js2jsil_logic_cmds logic_cmds =
 			if (is_lvar_name ret_var)
 			 	then ( 
 			 		let args' = List.map fe rest_les in 
-			 		let args' = (PVar Js2jsil_constants.var_scope) :: ((PVar Js2jsil_constants.var_this) :: args') in 
+			 		let args' = (PVar JS2JSIL_Constants.var_scope) :: ((PVar JS2JSIL_Constants.var_this) :: args') in 
 			 		CallSpec (s, ret_var, args') :: (js2jsil_logic_cmds rest)
 			 	)
 			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
@@ -223,7 +223,7 @@ let make_simple_scope_chain_logic_expression cur_fid vis_list =
 			let past_cur_fid = past_cur_fid || (cur_fid = fid) in 
 			let le_fid = 
 				if (fid = main_fid) 
-					then LLit (Loc Js2jsil_constants.locGlobName) 
+					then LLit (Loc JS2JSIL_Constants.locGlobName) 
 					else 
 						(if past_cur_fid then LVar (fid_to_lvar fid) else LVar (fid_to_lvar_fresh fid)) in 
 			loop rest_vis_list (le_fid :: processed_vis_list) past_cur_fid) in 
@@ -257,7 +257,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			List.map 
 				(fun fid -> 
 					if (fid = main_fid) 
-						then fid, LLit (Loc Js2jsil_constants.locGlobName) 
+						then fid, LLit (Loc JS2JSIL_Constants.locGlobName) 
 						else fid, (try Hashtbl.find fid_vars_tbl fid with Not_found -> LVar (fid_to_lvar_fresh fid)))
 				fid_vis_list in 
 		let _, fid_vis_list_les = List.split fid_vis_list_les_pairs in 
@@ -292,15 +292,15 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			let fid = Hashtbl.find var_to_fid_tbl x in
 			if (fid = main_fid) 
 				then LPointsTo (
-							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (Loc JS2JSIL_Constants.locGlobName), 
 							LLit (String x), 
 							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
 			 	else (if (fid = cur_fid) 
-					then LPointsTo (PVar Js2jsil_constants.var_er, LLit (String x), fe le) 
+					then LPointsTo (PVar JS2JSIL_Constants.var_er, LLit (String x), fe le) 
 					else LPointsTo (LVar (fid_to_lvar fid), LLit (String x), fe le)))
 			else (
 				LPointsTo (
-							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (Loc JS2JSIL_Constants.locGlobName), 
 							LLit (String x), 
 							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
 			)
@@ -366,7 +366,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 					let le' = fe le in 
 					if (fid = main_fid) 
 						then LPointsTo (
-							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (Loc JS2JSIL_Constants.locGlobName), 
 							LLit (String x), 
 							LEList [ LLit (String "d"); le'; LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
 			 			else LPointsTo (le_fid, LLit (String x), le'))
@@ -385,7 +385,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			let fid_x = Hashtbl.find var_to_fid_tbl x in
 			if (fid_x = main_fid) 
 				then LPointsTo (
-							LLit (Loc Js2jsil_constants.locGlobName), 
+							LLit (Loc JS2JSIL_Constants.locGlobName), 
 							LLit (String x), 
 							LEList [ LLit (String "d"); (fe le_x); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
 			 	else (
@@ -395,7 +395,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 			 	)
 			) else (
 				LPointsTo (
-					LLit (Loc Js2jsil_constants.locGlobName), 
+					LLit (Loc JS2JSIL_Constants.locGlobName), 
 					LLit (String x), 
 					LEList [ LLit (String "d"); (fe le_x); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
 			)
@@ -437,14 +437,14 @@ let make_scope_chain_assertion vis_list is_pre =
 	(* x_sc == {{ #id1, ..., #idn, $lg }} *)
 	let le_vis_list = 
 		List.map 
-			(fun x -> if (x = main_fid) then LLit (Loc Js2jsil_constants.locGlobName) else LVar (fid_to_lvar x))
+			(fun x -> if (x = main_fid) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fid_to_lvar x))
 			vis_list in 
 	let le_vis_list = 
 		if is_pre then le_vis_list 
 		else if (cur = main_fid) 
-			then (LLit (Loc Js2jsil_constants.locGlobName)) :: le_vis_list
-			else (PVar Js2jsil_constants.var_er) :: le_vis_list in 
-	let xsc_ass = LEq (PVar Js2jsil_constants.var_scope, LEList le_vis_list) in 
+			then (LLit (Loc JS2JSIL_Constants.locGlobName)) :: le_vis_list
+			else (PVar JS2JSIL_Constants.var_er) :: le_vis_list in 
+	let xsc_ass = LEq (PVar JS2JSIL_Constants.var_scope, LEList le_vis_list) in 
 	
 	(* types(#id1: $$object_type, ..., #idn: $$objtect_type) *)
 	let type_pairs = 
@@ -470,7 +470,7 @@ let make_scope_chain_assertion vis_list is_pre =
 				| LLit _ -> ac 
 				| LVar _  
 				| PVar _ ->
-					let a = LNot (LEq (le, LLit (Loc Js2jsil_constants.locGlobName))) in 
+					let a = LNot (LEq (le, LLit (Loc JS2JSIL_Constants.locGlobName))) in 
 					if (ac = LEmp) then a else LStar (a, ac)
 				| _      -> raise (Failure "DEATH: make_scope_chain_assertion - 3"))
 			LEmp
@@ -479,7 +479,7 @@ let make_scope_chain_assertion vis_list is_pre =
 	JSIL_Logic_Utils.star_asses [ xsc_ass; types_assertion; not_lg_assertions ] 
 
 
-let rec js2jsil_logic_top_level_pre a cc_tbl (vis_tbl : (string, string list) Hashtbl.t) (fun_tbl : Js2jsil_constants.pre_fun_tbl_type) fid =
+let rec js2jsil_logic_top_level_pre a cc_tbl (vis_tbl : JS2JSIL_Constants.vis_tbl_type) (fun_tbl : JS2JSIL_Constants.pre_fun_tbl_type) fid =
 	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
 	let vis_list = try Hashtbl.find vis_tbl fid with _ -> raise (Failure "js2jsil_logic_top_level_pre - fid not found") in 
 	let is_global = (fid = main_fid) in
@@ -489,7 +489,7 @@ let rec js2jsil_logic_top_level_pre a cc_tbl (vis_tbl : (string, string list) Ha
 			then LPred (initial_heap_pre_pred_name, [])
 			else LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic fid (Some cc_tbl) vis_tbl fun_tbl a in
-	let a_this = LEq (PVar Js2jsil_constants.var_this, LVar this_logic_var_name) in  
+	let a_this = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in  
 	
 	print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false)
@@ -501,13 +501,13 @@ let rec js2jsil_logic_top_level_pre a cc_tbl (vis_tbl : (string, string list) Ha
 		
 
 
-let rec js2jsil_logic_top_level_post a cc_tbl (vis_tbl : (string, string list) Hashtbl.t) fun_tbl fid =
+let rec js2jsil_logic_top_level_post a cc_tbl (vis_tbl : JS2JSIL_Constants.vis_tbl_type) fun_tbl fid =
 	let vis_list = try Hashtbl.find vis_tbl fid with _ -> raise (Failure "js2jsil_logic_top_level_pre - fid not found") in 
 	let is_global = (fid = main_fid) in
 	(* let a_scope_chain = make_scope_chain_assertion vis_list false in *)
 	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
 	let a' = js2jsil_logic fid (Some cc_tbl) vis_tbl fun_tbl a in
-	let a_this = LEq (PVar Js2jsil_constants.var_this, LVar this_logic_var_name) in 
+	let a_this = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in 
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) 
 		(JSIL_Print.string_of_logic_assertion a_post_js_heap false));	
@@ -515,5 +515,6 @@ let rec js2jsil_logic_top_level_post a cc_tbl (vis_tbl : (string, string list) H
 		then JSIL_Logic_Utils.star_asses [a'; a_post_js_heap ]
 	 	else JSIL_Logic_Utils.star_asses [ a'; a_post_js_heap; a_this ]
 		
-			
+
+
 

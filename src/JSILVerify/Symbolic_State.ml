@@ -33,7 +33,7 @@ let is_empty_fv_list fv_list js =
 		match fv_list with
 		| [] -> empty_so_far
 		| (f_name, f_val) :: rest ->
-			if ((f_name = (LLit (String Js2jsil_constants.erFlagPropName))) && js) 
+			if ((f_name = (LLit (String JS2JSIL_Constants.erFlagPropName))) && js) 
 				then true 
 				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
 	loop fv_list true

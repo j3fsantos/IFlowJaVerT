@@ -1,7 +1,7 @@
 (* open Core.Std *)
 open JSIL_Syntax
-open Js_pre_processing
-open Js2jsil_compiler
+open JS2JSIL_Preprocessing
+open JS2JSIL_Compiler
 
 let harness_path = "harness.js"
 
@@ -63,7 +63,7 @@ let create_output ext_proc path =
 let process_file path =
   try
 	let e_str = string_of_file path in
-	let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline e_str in
+	let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline e_str in
 	let e = Parser_main.exp_from_string ~force_strict:true e_str in
 
     let ext_prog, _, _ = js2jsil e offset_converter (!for_verification) in
@@ -84,7 +84,7 @@ let process_file path =
 			else ()
   with
   | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
-  | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
+  | JS2JSIL_Preprocessing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
 
 
 let main () =

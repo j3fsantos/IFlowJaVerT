@@ -271,10 +271,10 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 	| SNew x ->
 		let new_loc = fresh_aloc () in
 		Symbolic_State_Utils.update_abs_heap_default heap new_loc LNone;
-		Symbolic_State_Utils.update_abs_heap heap new_loc (LLit (String (Js2jsil_constants.internalProtoFieldName))) (LLit Null) pure_formulae (* solver *) gamma;
+		Symbolic_State_Utils.update_abs_heap heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null) pure_formulae (* solver *) gamma;
 		store_put store x (ALoc new_loc);
 		update_gamma gamma x (Some ObjectType);
-		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc Js2jsil_constants.locGlobName))));
+		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
 		ALoc new_loc
 
   (* Property lookup: x = [e1, e2];

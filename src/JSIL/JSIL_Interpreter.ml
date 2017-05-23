@@ -632,7 +632,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			done;
 			Printf.printf "\n";  *)
 
-			let se = (evaluate_expr (Var (Js2jsil_constants.var_se)) store) in
+			let se = (evaluate_expr (Var (JS2JSIL_Constants.var_se)) store) in
 
 			let error = ref false in
 			let propagate = ref false in
@@ -763,7 +763,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   									| e :: [] ->
   										(match e.Parser_syntax.exp_stx with
   										| Parser_syntax.Function (_, Some "ICANTBELIEVEIHAVETOPUTAFRIGGINGNAMEHERE", params, body) ->
-  												let new_proc = Js2jsil_compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
+  												let new_proc = JS2JSIL_Compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params e in
   												let fun_name = new_proc.proc_name in
   												let vis_tbl = (match vis_tbl with
   												                | Some t -> t
@@ -845,15 +845,15 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
 				(* Printf.printf "\n%s\n" code; *)
 				let x_scope, x_this =
-					(match Utils.try_find store (Js2jsil_constants.var_scope), Utils.try_find store (Js2jsil_constants.var_this)  with
+					(match Utils.try_find store (JS2JSIL_Constants.var_scope), Utils.try_find store (JS2JSIL_Constants.var_this)  with
 					| Some x_scope, Some x_this -> x_scope, x_this
 					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
-					Some (Js2jsil_compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
+					Some (JS2JSIL_Compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
 					with _ -> None) with
 				| Some proc_eval ->
-					(let new_store = init_store [ Js2jsil_constants.var_scope; Js2jsil_constants.var_this ] [ x_scope; x_this ] in
+					(let new_store = init_store [ JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this ] [ x_scope; x_this ] in
 					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
 					| Normal, v ->
 						Hashtbl.replace store x v;
@@ -866,7 +866,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 							Hashtbl.replace store x v;
 							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
 				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
-					(match Utils.try_find store (Js2jsil_constants.var_se), j with
+					(match Utils.try_find store (JS2JSIL_Constants.var_se), j with
 					| Some v, Some j ->
 						Hashtbl.replace store x v;
 						evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
