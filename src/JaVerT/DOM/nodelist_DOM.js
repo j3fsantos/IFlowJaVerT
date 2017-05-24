@@ -616,8 +616,7 @@
 	@onlyspec length()
 		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) * tids(#cList, #l) * (this == #f) *
 				 NodeList(#f) * (#f --e-- #fSet) ]]
-		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) *
-				 NodeList(#f) * (#f --e-- #fSet) * (ret == l-len(#l)) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) * tids(#cList, #l) * NodeList(#f) * (#f --e-- #fSet) * (ret == l-len(#l)) ]]
 		outcome: normal
 */
 
@@ -627,16 +626,15 @@
 
 	@pre (
 		InitialDOMHeap() * (element == #en) *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set) * (#cList == {{ {{ "text", #tid, #t }}, {{ "text", #tid2, #t2}} }})
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set) * tids(#cList, #l) * (l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
 	)
 	@post (
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set2) * (ret == 2)
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set2) * tids(#cList, #l) * (ret == #len)
 	)
 */
 function nodeListSimple(element){
 	var f = element.childNodes();
-	/* @fold tids(#cList, #l) */
 	var r = f.length();
 	return r
 }
