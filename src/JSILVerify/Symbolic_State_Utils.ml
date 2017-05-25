@@ -144,7 +144,7 @@ let abs_heap_delete heap l e p_formulae (* solver *) gamma =
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val)
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
-let merge_heaps heap new_heap p_formulae (* solver *) gamma =
+let merge_heaps heap new_heap p_formulae  gamma =
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");

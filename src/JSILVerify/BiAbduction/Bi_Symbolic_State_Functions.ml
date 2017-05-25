@@ -360,7 +360,7 @@ let string_new_specs program results spec_table procs_to_verify =
 		)
 		program.procedures
 		"" in
-	print_endline (prog_str ^ str)
+	print_endline "" (*(prog_str ^ str)*)
 
 let process_bi_results procs_to_verify procs_list new_spec_tbl bi_res norm_res rec_funcs verbose = 
 	let results_str = "BI-ABDUCTIVE RESULTS: \n\n" in
