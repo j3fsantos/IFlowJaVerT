@@ -2,7 +2,7 @@ open OUnit
 open JSIL_Syntax
 open JSIL_Print
 open JSIL_Interpreter
-open Js2jsil_compiler
+open JS2JSIL_Compiler
 
 let if_some p f d =
 	(match p with
@@ -93,7 +93,7 @@ let test_jsil_template test =
 let test_javascript_template test =
   Parser_main.verbose := false;
 	let str = test.main in 
-	let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline str in 
+	let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline str in 
 	let e = 
     (try 
       Parser_main.exp_from_string str

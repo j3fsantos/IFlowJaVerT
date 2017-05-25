@@ -1,7 +1,8 @@
 %{
 open JSIL_Syntax
 open JSIL_Syntax_Checks
-open JS_Logic_Syntax
+open JS2JSIL_Logic
+
 (* Tables where we collect the predicates and the procedures as we parse them. *)
 let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
 let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 511
@@ -254,9 +255,9 @@ let copy_and_clear_globals () =
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
-%type <JS_Logic_Syntax.js_logic_predicate> js_pred_target
+%type <JS2JSIL_Logic.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
-%type <JS_Logic_Syntax.js_logic_assertion> top_level_js_assertion_target
+%type <JS2JSIL_Logic.js_logic_assertion> top_level_js_assertion_target
 %type <unit> js_only_spec_target
 
 %type<jsil_constant> constant_target

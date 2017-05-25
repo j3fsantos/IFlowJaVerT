@@ -53,7 +53,7 @@ let return_to_exit rettype =
 let string_of_ret_val heap ret_flag v = 
 	match ret_flag with 
 	| Normal -> JSIL_Print.string_of_literal v false
-	| Error -> if (!js) then Js2jsil_constants.string_of_js_error heap v else ""
+	| Error -> if (!js) then JS2JSIL_Constants.string_of_js_error heap v else ""
 	
 let run_jsil_prog prog which_pred cc_tbl vis_tbl =
 	let heap = SHeap.create 1021 in
@@ -75,16 +75,16 @@ let main () =
   		Parser_main.verbose := false;
     	let main = load_file (!file) in
 			let all = if (!test262) then (load_file "harness.js") ^ "\n" ^ main else main in 
-			let offset_converter = Js_pre_processing.memoized_offsetchar_to_offsetline all in
+			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
 			let e = Parser_main.exp_from_string ~force_strict:true all in
-			let (ext_prog, cc_tbl, vis_tbl) = Js2jsil_compiler.js2jsil e offset_converter false in
+			let (ext_prog, cc_tbl, vis_tbl) = JS2JSIL_Compiler.js2jsil e offset_converter false in
    		let prog, which_pred = JSIL_Utils.prog_of_ext_prog !file ext_prog in
       run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
     with 
     		Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
       | Parser.JS_To_XML_parser_failure
       | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1
-      | Js_pre_processing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1)
+      | JS2JSIL_Preprocessing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1)
 	else (
 		let ext_prog = JSIL_Utils.ext_program_of_path !file in
 		Printf.printf "I got the program to run:\n%s\n" (JSIL_Print.string_of_ext_program ext_prog);

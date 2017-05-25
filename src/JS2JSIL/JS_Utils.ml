@@ -11,9 +11,9 @@ open Batteries
 
 let flat_map f l = List.flatten (List.map f l)
 
-let rec js_accumulator_top_down f_ac f_state state expr = 
+let rec js_fold f_ac f_state state expr = 
   let new_state = f_state expr state in 
-  let f         = js_accumulator_top_down f_ac f_state new_state in 
+  let f         = js_fold f_ac f_state new_state in 
   let f_ac      = f_ac expr new_state state in 
   let fo e = match e with | Some e -> f e | None -> [] in
 
@@ -59,9 +59,8 @@ let rec js_accumulator_top_down f_ac f_state state expr =
   | RegExp _ | With (_, _)                    -> raise (Failure "JS Construct Not Supported") 
 
 
-
-let rec js_mapper f_m expr = 
-  let f = js_mapper f_m in 
+let rec js_map f_m expr = 
+  let f = js_map f_m in 
   let fo = Option.map f in 
   let f_switch = fun (sc, e2) -> (match sc with | Case e1 -> Case (f e1)| DefaultCase -> DefaultCase), f e2 in 
 
@@ -106,6 +105,212 @@ let rec js_mapper f_m expr =
   let new_e = { expr with exp_stx = new_e_stx } in 
   f_m new_e  
 
+
+let rec js_map_with_state f_transform f_state init_state state exp = 
+  let f = js_map_with_state f_transform f_state init_state in 
+  let fo state e = 
+    match e with 
+    | None -> None, state 
+    | Some e ->
+      let e', state' = f state e in
+      Some e', state' in  
+
+  let state0 = f_state state exp in 
+
+  let new_exp_stx, next_state =         
+    match exp.exp_stx with
+    (* Literals *)
+    | Null | Bool _ | String _ | Num _ -> exp.exp_stx, state0
+
+    (***************)
+    (* Expressions *)
+    (***************)
+    | This | Var _ -> exp.exp_stx, state0 
+    
+    | Obj xs -> 
+      let xs', state' = 
+        List.fold_left 
+          (fun (xs, state) (x, p, e) -> 
+            let e', state' = f state e in 
+            ((x, p, e') :: xs), state' 
+          ) ([], state0) xs  in 
+      (Obj (List.rev xs')), state'
+    
+    | Access (e, v) -> 
+      let e', state' = f state0 e in 
+      Access (e', v), state' 
+    
+    | CAccess (e1, e2) -> 
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      CAccess (e1', e2'), state2
+    
+    | New (e1, e2s) -> 
+      let e1', state1 = f state0 e1 in
+      let e2s', state2 = List.fold_left
+        (fun (es, state) e -> 
+          let e', state' = f state e in 
+          e' :: es, state') ([], state1) e2s in 
+      let e2s'' = List.rev e2s' in 
+      New (e1', e2s''), state2
+    
+    | Call (e1, e2s) -> 
+      let e1', state1 = f state0 e1 in
+      let e2s', state2 = List.fold_left
+        (fun (es, state) e -> 
+          let e', state' = f state e in 
+          e' :: es, state') ([], state1) e2s in 
+      let e2s'' = List.rev e2s' in 
+      Call (e1', e2s''), state2
+    
+    | FunctionExp (b, f_name, args, fb) -> 
+      (* Printf.printf "I got a ****FUNCTION*** BABY!!!!\n"; *)
+      let fb', state' = f state0 fb in 
+      FunctionExp (b, f_name, args, fb'), state'
+
+    | Function (b, f_name, args, fb) ->
+      let fb', state' = f state0 fb in 
+      Function (b, f_name, args, fb'), state'
+
+    | Unary_op (op, e) -> 
+      let e', state' = f state0 e in
+      Unary_op (op, e'), state'
+
+    | Delete e ->
+      let e', state' = f state0 e in 
+      Delete e', state'
+
+    | BinOp (e1, op, e2) ->
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      BinOp (e1', op, e2'), state2
+
+    | Assign (e1, e2) -> 
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      Assign (e1', e2'), state2
+
+    | Array es -> 
+      let es', state' = List.fold_left
+        (fun (es, state) e -> 
+          let e', state' = fo state e in  
+          e' :: es, state') ([], state0) es in
+      Array (List.rev es'), state'  
+
+    | ConditionalOp (e1, e2, e3) -> 
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      let e3', state3 = f state2 e3 in 
+      ConditionalOp (e1', e2', e3'), state3
+    
+    | AssignOp (e1, op, e2) -> 
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      AssignOp (e1', op, e2'), state2
+
+    | Comma (e1, e2) -> 
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      Comma (e1', e2'), state2
+
+    | VarDec vdecls -> 
+      let vdecls', state' = List.fold_left
+        (fun (vdecls, state) (v, eo) -> 
+          let e', state' = fo state eo in  
+          ((v, e') :: vdecls), state') ([], state0) vdecls in
+      VarDec (List.rev vdecls'), state' 
+
+    | RegExp _  -> raise (Failure "construct not supported yet")
+    
+    (***************)
+    (* statements  *) 
+    (***************)
+    | Script (b, es) -> 
+      let es' = List.map (fun e -> let e', _ = f init_state e in e') es in  
+      Script (b, es'), state0
+
+    | Block es -> 
+      let es' = List.map (fun e -> let e', _ = f init_state e in e') es in  
+      Block es', state0
+
+    | Skip -> Skip, state0
+
+    | If (e, s1, s2) -> 
+      let e', state' = f state0 e in
+      let s1', _     = f init_state s1 in
+      let s2', _     = fo init_state s2 in 
+      (* Printf.printf "s1': %s\n"
+        (Pretty_print.string_of_exp true s1'); *)      
+      If (e', s1', s2'), state' 
+
+    | While (e,s) ->
+      let e', state' = f state0 e in
+      let s', _      = f init_state s in   
+      While (e', s'), state' 
+
+    | DoWhile (s, e) ->
+      let s', _      = f init_state s in   
+      let e', _      = f init_state e in
+      DoWhile (s', e'), state0
+
+    | Return e -> 
+      let e', state' = fo state0 e in 
+      Return e', state' 
+
+    | Try (s1, None, s3) -> 
+      let s1', _ = f init_state s1 in
+      let s3', _ = fo init_state s3 in 
+      Try (s1', None, s3'), state0
+
+    | Try (s1, Some (x, s2), s3) -> 
+      let s1', _ = f init_state s1 in
+      let s2', _ = f init_state s2 in
+      let s3', _ = fo init_state s3 in 
+      Try (s1', Some (x, s2'), s3'), state0
+
+    | Throw e -> 
+      let e', state' = f state0 e in
+      Throw e', state'
+
+    | Continue lab -> Continue lab, state0
+    
+    | Break lab -> Break lab, state0
+
+    | Label (lab, s) -> 
+      let s', _ = f init_state s in
+      Label (lab, s'), state0
+    
+    | For (e1, e2, e3, s) ->
+      let e1', state1 = fo state0 e1 in 
+      let e2', state2 = fo state1 e2 in 
+      let e3', state3 = fo state2 e3 in 
+      let s', _  = f init_state s in 
+      For (e1', e2', e3', s'), state3
+    
+    | Switch (e, s_cases) -> 
+      let e', state' = f state0 e in 
+      let s_cases' = 
+        List.map 
+          (fun (e, s) -> 
+            let e' = 
+              (match e with 
+              | DefaultCase -> DefaultCase 
+              | Case e -> let e', _ = f init_state e in Case e') in 
+            let s', _ = f init_state s in 
+            e', s') s_cases in 
+      Switch (e', s_cases'), state' 
+         
+    | ForIn (e1, e2, s) -> 
+      let e1', state1 = f state0 e1 in 
+      let e2', state2 = f state1 e2 in 
+      let s', _       = f init_state s in 
+      ForIn (e1', e2', s'), state2
+    
+    | With (e, s) -> raise (Failure "construct not supported yet")
+  
+    | Debugger -> Debugger, state0 in 
+  
+  f_transform exp new_exp_stx state next_state   
 
 
 (********************************************)
@@ -193,7 +398,7 @@ let rec var_decls_inner exp =
     match exp.exp_stx with 
     | VarDec vars -> (List.map (fun (v, _) -> v) vars) @ ac 
     | _ -> ac in 
-  js_accumulator_top_down f_ac (fun x y -> y) true exp
+  js_fold f_ac (fun x y -> y) true exp
 
 
 let var_decls exp = (List.unique (var_decls_inner exp))
@@ -204,7 +409,7 @@ let rec get_fun_decls exp =
     match exp.exp_stx with 
     | Function (_, _, _, _) -> exp :: ac 
     | _ -> ac in 
-  js_accumulator_top_down f_ac (fun x y -> y) true exp
+  js_fold f_ac (fun x y -> y) true exp
 
 
 let rec get_fun_exprs_expr exp =
@@ -212,7 +417,7 @@ let rec get_fun_exprs_expr exp =
     match exp.exp_stx with 
     | Function _  | FunctionExp _ -> exp :: ac 
     | _ -> ac in 
-  js_accumulator_top_down f_ac (fun x y -> y) true exp
+  js_fold f_ac (fun x y -> y) true exp
 
 
 let func_decls_in_elem exp : exp list =
@@ -236,7 +441,6 @@ let get_all_vars_f f_body f_args =
   ) f_decls in
   let vars = List.concat [ f_args; (var_decls f_body); fnames] in
   vars
-
 
 
 let rec returns_empty_exp (e : Parser_syntax.exp) =
@@ -279,5 +483,63 @@ let rec returns_empty_exp (e : Parser_syntax.exp) =
 
   | For _ | ForIn _ | While _ | VarDec _ | Break _ | Continue _ | Skip -> true
   | _ -> raise (Failure "unsupported construct by Petar M.")
+
+
+
+let rec is_stmt expr = 
+  match expr.exp_stx with 
+  (* Non-supported constructs *)
+  | RegExp _ | With _ -> raise (Failure "JS Construct Not Supported") 
+  (* statement *) 
+  | Label _  | If _  | While _ | DoWhile _  | Skip | Break _ |  Continue _ | Debugger  
+  | Throw _ | Return _ | Script _ | Block _ | VarDec _ | For _ | ForIn _ | Try _          
+  | Switch _ | Function _  -> true 
+  (* expressions *)
+  | _ -> false
+
+
+(********************************************)
+(********************************************)
+(***     Char offsets to Line offsets     ***)
+(********************************************)
+(********************************************)
+
+
+let generate_offset_lst str =
+  let rec traverse_str ac_offset cur_str offset_lst =
+    let new_line_index =
+      (try String.index cur_str '\n' with
+        | _ -> -1) in
+      if new_line_index == -1 then
+        offset_lst
+      else
+        let len = String.length cur_str in
+        let new_str = (try String.sub cur_str (new_line_index + 1) ((len - new_line_index) - 1) with | _ -> "") in
+        traverse_str (ac_offset + new_line_index + 1) new_str (offset_lst @ [ (ac_offset + new_line_index + 1) ]) in
+    traverse_str 0 str []
+
+let jsoffsetchar_to_jsoffsetline c_offset offset_list =
+  let rec offsetchar_to_offsetline_aux offset_list cur_line =
+    match offset_list with
+    | [] -> cur_line
+    | hd :: rest ->
+      if c_offset < hd
+        then
+          cur_line
+        else
+          offsetchar_to_offsetline_aux rest (cur_line + 1) in
+    offsetchar_to_offsetline_aux offset_list 1
+
+let memoized_offsetchar_to_offsetline str =
+  let offset_list = generate_offset_lst str in
+  let ht = Hashtbl.create (String.length str) in
+    fun c_offset ->
+      try Hashtbl.find ht c_offset
+      with Not_found ->
+        begin
+        let l_offset =  jsoffsetchar_to_jsoffsetline c_offset offset_list in
+          Hashtbl.add ht c_offset l_offset;
+          l_offset
+        end
 
 
