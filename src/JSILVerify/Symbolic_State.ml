@@ -236,6 +236,16 @@ let store_domain store =
 		store
 		[]
 
+let store_get_rev store var =
+	Hashtbl.fold
+		(fun x y ac -> 
+			if (y = var) then
+				Some x
+			else 
+				ac)
+		store
+		None
+
 let store_copy store =
 	let new_store = Hashtbl.copy store in
 	new_store
@@ -588,13 +598,13 @@ let remove_concrete_values_from_the_store symb_state =
 			Some le) (get_store symb_state)
 
 let symb_state_substitution (symb_state : symbolic_state) subst partial =
-	let heap, store, pf, gamma, preds (*, _ *) = symb_state in
+	let heap, store, pf, gamma, preds = symb_state in
 	let s_heap = heap_substitution heap subst partial in
 	let s_store = store_substitution store gamma subst partial in
 	let s_pf = pf_substitution pf subst partial  in
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
-	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
+	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
 let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in

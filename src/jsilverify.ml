@@ -79,10 +79,10 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 		then JSIL_Syntax.process_statistics ();
 	results
 
-let bi_symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  = 
+let bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds  = 
 	(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
 	(* if (!js) then *)
-	let proc_list, spec_tbl, rec_funcs = Bi_Symbolic_State_Functions.internal_functions_preprocessing prog spec_tbl in
+	let proc_list, spec_tbl, rec_funcs = Bi_Symbolic_State_Functions.internal_functions_preprocessing ext_prog.procedure_names prog spec_tbl in
 	print_endline ("\n*********** Starting bi-abduction symbolic execution. ***********\n") ;
 	let new_spec_tbl, proc_list, bi_results = 
 			JSIL_Bi_Symb_Interpreter.sym_run_procs prog proc_list spec_tbl which_pred norm_preds in
@@ -90,7 +90,8 @@ let bi_symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 	print_endline ("\n**********    Starting normal symbolic execution.    **********\n") ;
 	let normal_results = symb_interpreter prog proc_list new_spec_tbl which_pred norm_preds in
 	print_endline ("\n**********     Ending normal symbolic execution.     **********\n") ;
-	Bi_Symbolic_State_Functions.process_bi_results procs_to_verify proc_list new_spec_tbl bi_results normal_results rec_funcs true
+	Bi_Symbolic_State_Functions.process_bi_results ext_prog.procedure_names proc_list new_spec_tbl bi_results normal_results rec_funcs true;
+	Bi_Symbolic_State_Functions.string_new_specs ext_prog normal_results new_spec_tbl proc_list
 	
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
@@ -127,7 +128,7 @@ let process_file path =
 			ext_prog.onlyspecs;
 		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
 		(if (!bi_abduction) then
-			bi_symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds
+			bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds
 		else 
 			let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in ());
 		exit 0

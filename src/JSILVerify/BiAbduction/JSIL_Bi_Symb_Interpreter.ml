@@ -532,9 +532,11 @@ let find_and_apply_spec
 			print_debug (Printf.sprintf "------------------------------------------");
 			print_debug (Printf.sprintf "Entering BI-find_correct_specs with the spec:");
 			print_debug (Printf.sprintf "------------------------------------------");
-			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
+			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s\n"
 				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
+			print_debug (Printf.sprintf "Current State: \n%s"
+				(Symbolic_State_Print.string_of_shallow_symb_state symb_state_aux));
 			try (
 			let unifier = Bi_Structural_Entailment.bi_unify_symb_states SS.empty spec.n_pre symb_state_aux in
 			(match unifier with
@@ -1074,7 +1076,6 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 			(* symbolically evaluate the args *)
 			let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
 			let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
-
 			(if ((List.length new_symb_states) = 0)
 				then (
 					raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)))

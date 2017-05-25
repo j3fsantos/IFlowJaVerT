@@ -18,3 +18,28 @@ proc test0 (x, y) {
   		   x := "aux1" (x, y); 
    rlab:   skip
 } with { ret: x, rlab; }; 
+
+spec proc_with_cond (x)
+   [[ emp ]] 
+   [[ emp ]] 
+   normal
+proc proc_with_cond (x) {
+          goto [x = $$null] l1 l2; 
+   l1:      xret := "Waterloo";
+            goto rlab; 
+   l2:    goto [x = $$undefined] l3 l4; 
+   l3:      xret := "Temple";
+            goto rlab; 
+   l4:    xret := "Bank";
+   rlab:    skip
+} with { ret: xret, rlab; };
+
+spec call_proc_with_cond (x)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc call_proc_with_cond (x) {
+        station := "proc_with_cond" (x); 
+        xret := station ++ "ie";
+   rlab:   skip
+} with { ret: xret, rlab; }; 
