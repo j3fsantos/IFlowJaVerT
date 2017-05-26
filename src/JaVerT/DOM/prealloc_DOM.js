@@ -261,8 +261,6 @@
 		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #a, #l_c, #c) * complete(#next) * complete(#c);
 
 
-	@pred safeName(s) :
-		(s == #c ++ #s2) * types(#c: $$string_type, #s2: $$string_type) * (s-len(#c) == 1) * (! (#c == "#")) * safeName(#s2);
 
 	@onlyspec allocF(l, i)
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
@@ -609,7 +607,7 @@
 		outcome: normal
 
 	@onlyspec substringData(o, c)
-		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2 ++ #s3) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * 
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * (#text == #s1 ++ (#s2 ++ #s3)) *
 				 types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
 		post: [[ TCell(#alpha, this, #text) * (ret == #s2) ]]
 		outcome: normal;
@@ -668,10 +666,12 @@
 	)
 	@post (
 		InitialDOMHeap() * (ret == 9) *
-		TCell(#alpha, #tn, #text_post) * (#text_post == "abcdefghi")
-		)
+		TCell(#alpha, #tn, #text_post) * (#text_post == "abcabcghi")
+	)
 */
 function banana(tnode) {
 	var l = tnode.length();
+	var c = tnode.substringData(3, 3);
+	tnode.replaceData(3, c);
 	return l
 }
