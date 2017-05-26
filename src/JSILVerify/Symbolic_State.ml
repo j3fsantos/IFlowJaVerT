@@ -157,7 +157,7 @@ let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substit
   				| ALoc loc -> loc
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = selective_fv_list_substitution fv_list subst true in
+  		let s_fv_list = fv_list in (* selective_fv_list_substitution fv_list subst true in *)
   		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
   		LHeap.replace heap s_loc (s_fv_list, s_def))
   	heap

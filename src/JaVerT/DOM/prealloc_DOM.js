@@ -639,8 +639,7 @@
 		outcome: normal
 
 	@onlyspec replaceData(o, c, s)
-		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TCell(#alpha, this, (#s1 ++ #s ++ #s2)) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s)) * 
-				 types(#s1 : $$string_type, #s2 : $$string_type, #s : $$string_type, #ns : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TCell(#alpha, this, #text) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s)) * (#text == #s1 ++ #s ++ #s2) ]]
 		post: [[ TCell(#alpha, this, (#s1 ++ #ns ++ #s2)) * (ret == $$null) ]]
 		outcome: normal;
 
@@ -671,7 +670,7 @@
 */
 function banana(tnode) {
 	var l = tnode.length();
-	var c = tnode.substringData(3, 3);
-	tnode.replaceData(3, c);
+	var c = tnode.substringData(0, 3);
+	tnode.replaceData(3, 3, c);
 	return l
 }

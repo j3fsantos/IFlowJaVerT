@@ -529,7 +529,8 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		| SymbExecFailure _ -> 
 				let end_time = Sys.time () in
 				JSIL_Syntax.update_statistics "unify_symb_heaps" (end_time -. start_time);
-				raise e)
+				raise e
+		| _ -> raise e)
 
 (*******************************************************************)
 (*******************************************************************)
@@ -989,7 +990,8 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			| SymbExecFailure failure -> 
 				let end_time = Sys.time () in
 				JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
-				raise e)
+				raise e
+			| _ -> raise e)
 
 
 let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * SS.t * ((string * (jsil_logic_expr list)) list)  =

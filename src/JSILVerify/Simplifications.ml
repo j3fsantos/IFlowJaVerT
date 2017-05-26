@@ -198,6 +198,11 @@ let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 	(match se with
 		| LVar _ -> (se, false)
 		| LLit l -> (LLit (lit_list_to_string l), false)
+		| LCList l -> 
+				(try (
+					let str = String.concat "" (List.map (fun x -> match x with | LLit (Char c) -> String.make 1 c) l) in
+					(LLit (String str), false) 
+				) with | _ -> print_debug "String representation leftovers."; (se, false))
 		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
 		| _ -> (se, true))
 
@@ -1748,7 +1753,7 @@ let simplify_symb_state
 	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
 
 	let heap, store, _, _, preds = !symb_state in
-
+	
 	(* Convert Store, Heap and Preds back, which should only change new additions *)
 	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) store;
 	LHeap.filter_map_inplace (fun loc (fv_list, default) -> 
@@ -1760,10 +1765,10 @@ let simplify_symb_state
 	DynArray.iteri (fun i (pname, pparams) ->
 		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) pparams in
 		DynArray.set preds i (pname, pparams)) preds;
-		
+
 	let others = ref (DynArray.map (assertion_map le_list_to_string) !others) in
 
-	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *)
+	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
