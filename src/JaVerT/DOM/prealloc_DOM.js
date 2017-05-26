@@ -260,6 +260,10 @@
 		(l == (#head :: #next)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * complete(#next),
 		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #a, #l_c, #c) * complete(#next) * complete(#c);
 
+
+	@pred safeName(s) :
+		(s == #c ++ #s2) * types(#c: $$string_type, #s2: $$string_type) * (s-len(#c) == 1) * (! (#c == "#")) * safeName(#s2);
+
 	@onlyspec allocF(l, i)
 		pre:  [[ (l == #l) * (i == #i) * types(#g : $$list_type, #g1 : $$list_type, #g2 : $$list_type) * 
 				 Forest(#l, #g) * (#g == #g1 @ ( {{"elem", #name, #id, #aList, #cList}} :: #g2)) * (l-len(#g1) == #i) * types(#id : $$object_type) ]]
@@ -353,12 +357,12 @@
 */ /*
 	----General Axioms----
 */ /*
-	
+
 	@onlyspec nodeName()
 		pre:  [[ emp ]]
 		post: [[ emp ]]
 		outcome: normal
-	
+
 	@onlyspec nodeValue()
 		pre:  [[ emp ]]
 		post: [[ emp ]]
@@ -547,7 +551,7 @@
 				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s, #m, #l_t, #t) * val(#t, #s1) * types(#s1 : $$string_type) ]]
 		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * ACell(#gamma, #s, #m, #l_t, #t) * (ret == #s1) ]]
 		outcome: normal;
-		
+
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * out(#aList, #s) ]]
 		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList) * (ret == "")     ]]
 		outcome: normal
@@ -591,88 +595,83 @@
 		post: [[ emp ]]
 		outcome: normal
 
-*/
+*/ /*
+	----Text Node Axioms----
+*/ /*
+	@onlyspec data()
+		pre:  [[ TCell(#alpha, this, #text) * types(#text : $$string_type) ]]
+		post: [[ TCell(#alpha, this, #text) * (ret == #text) ]]
+		outcome: normal
 
-/** sanitiseImg specifics */
-/**
-	@pred isB(s) : (s == #s) * isB(s);
-	@pred nisB(s) : (s == #s) * nisB(s);
+	@onlyspec length()
+		pre:  [[ TCell(#alpha, this, #text) ]]
+		post: [[ TCell(#alpha, this, #text) * (ret == s-len(#text)) ]]
+		outcome: normal
 
-	@onlyspec isBlackListed(s)
-		pre:  [[ (s == #s) * isB(#s) ]]
-		post: [[ isB(#s) * (ret == 1) ]]
+	@onlyspec substringData(o, c)
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2 ++ #s3) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * 
+				 types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
+		post: [[ TCell(#alpha, this, #text) * (ret == #s2) ]]
 		outcome: normal;
-		pre:  [[ (s == #s) * (nisB(#s)) ]]
-		post: [[ (ret == 0) * (nisB(#s)) ]]
+
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) * 
+				 types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
+		post: [[ TCell(#alpha, this, #text) * (ret == #s2) ]]
+		outcome: normal
+
+	@onlyspec appendData(s)
+		pre:  [[ (s == #s2) * TCell(#alpha, this, #text) ]]
+		post: [[ TCell(#alpha, this, (#text ++ #s2)) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec insertData(o, s)
+		pre:  [[ (o == #l1) * (s == #s3) * TCell(#alpha, this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) * types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		post: [[ TCell(#alpha, this, (#s1 ++ #s3 ++ #s2)) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec deleteData(o, c)
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, (#s1 ++ #s2 ++ #s3)) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * 
+				 types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		post: [[ TCell(#alpha, this, (#s1 ++ #s2)) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) * 
+				 types(#s1 : $$string_type, #s2 : $$string_type) ]]
+		post: [[ TCell(#alpha, this, #s1) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec replaceData(o, c, s)
+		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TCell(#alpha, this, (#s1 ++ #s ++ #s2)) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s)) * 
+				 types(#s1 : $$string_type, #s2 : $$string_type, #s : $$string_type, #ns : $$string_type) ]]
+		post: [[ TCell(#alpha, this, (#s1 ++ #ns ++ #s2)) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TCell(#alpha, this, (#s1 ++ #s)) * (#l1 == s-len(#s1)) * (s-len(#s) <=# #s) * 
+				 types(#s1 : $$string_type, #s : $$string_type, #ns : $$string_type) ]]
+		post: [[ TCell(#alpha, this, (#s1 ++ #ns)) * (ret == $$null) ]]
+		outcome: normal
+
+	@onlyspec splitText(o)
+		pre:  [[ (o == #l1) * Forest(#f, {{ {{ "hole", #alpha1 }} }}) * TCell(#alpha1, this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) *
+				 types(#s1 : $$string_type, #s2 : $$string_type) ]]
+		post: [[ Forest(#f, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) * 
+				 TCell(#alpha1, this, #s1) * TCell(#alpha2, #n, #s2) * (ret == $$null) ]]
 		outcome: normal
 */
 
-/**
-	@id sanitise
+/*
+	@id banana
 
 	@pre (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
-		InitialDOMHeap() *
-		(img == #n) * (cat == #s2) * 
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
-		ACell(#gamma, "src", #a, #l_tf, #tf1) *
-		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
-		Grove(#grove, {{}})
+		InitialDOMHeap() * (tnode == #tn) *
+		TCell(#alpha, #tn, #text_pre) * (#text_pre == "abcdefghi")
 	)
 	@post (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
-		(#new_attr == {{ {{ "hole", #alpha1 }}, {{ "hole", #gamma }}, {{ "hole", #alpha2 }} }}) *
-		ACell(#gamma, "src", #a, #l_tf, #tf2) *
-		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
-		TCell(#gamma2, #r, #s2) *
-		isB(#s1) *
-		Grove(#grove, #tf1)
-	)
-**/
-function sanitiseImg(img, cat){
-	var url = img.getAttribute("src");
-	if(url !== ""){
-		var isB = cache[url];
-		if(isB) {
-			img.setAttribute("src", cat)
-		} else {
-			isB = isBlackListed(url);
-			if(isB){
-				img.setAttribute("src", cat);
-				cache[url] = 1;
-			}
-		}
-	}
-}
-
-/**
-	@id createNewAttribute
-	@rec false
-
-	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
-		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
-	)
-	@post (
-		InitialDOMHeap() * (ret == $$t) * 
-		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
-		(#cList_post == (#cList1 @ {{ {{ "hole", #beta }} }})) *
-		ECell(#beta, "test", #n_id, #n_l_aList, #n_aList, #n_l_cList, #n_cList)
-	)
+		InitialDOMHeap() * (ret == 9) *
+		TCell(#alpha, #tn, #text_post) * (#text_post == "abcdefghi")
+		)
 */
-function createNewAttribute(element){
-	var d = element.ownerDocument();
-	var e = d.createElement("test");
-	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
-	/* @fold complete(#cList2) */
-	var n = element.appendChild(e);
-	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
-	return (n === e);
+function banana(tnode) {
+	var l = tnode.length();
+	return l
 }
