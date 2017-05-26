@@ -102,16 +102,17 @@
 		((dn, "@grove") -> l_grove) * Grove(l_grove, grove) *
 		empty_fields(dn : "@element", "@grove");
 
-	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList, fSet) :
-		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address", "@flistener") * 
-		ElementNode(name, id, l_attr, aList, l_children, cList, fSet);
+	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList, f) :
+		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * NodeList(f, id) * 
+		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flistener") * 
+		ElementNode(name, id, l_attr, aList, l_children, cList, f);
 
-	@pred ElementNode(name, id, l_attr, aList, l_children, cList, fLstnr) :
+	@pred ElementNode(name, id, l_attr, aList, l_children, cList, f) :
 		((id, "@name") -> name) *
 		((id, "@attributes") -> l_attr) * AttributeSet(l_attr, aList) *
 		((id, "@children") -> l_children) * Forest(l_children, cList) *
-		((id, "@flistener") -> fLstnr) * 
-		types(name: $$string_type, aList: $$list_type, cList: $$list_type, fLstnr: $$set_type); 
+		((id, "@flistener") -> f) *
+		types(name: $$string_type, aList: $$list_type, cList: $$list_type, f: $$object_type); 
 
 	@pred TextNode(id, text) :
 		DOMObject(id, $l_tnp) *
@@ -131,9 +132,8 @@
 		DOMFunctionField($l_nlp, "length") *
 		empty_fields($l_nlp: "length");
 
-	@pred NodeList(id) :
-		DOMObject(id, $l_nlp) * empty_fields(id: );
-
+	@pred NodeList(id, target) :
+		DOMObject(id, $l_nlp) * ((id, "@target") -> target) * empty_fields(id: "@target");
 
 
 
@@ -229,10 +229,10 @@
 
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList, fSet) : 
-		(fSet == #fSet) * ((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * types(#l: $$object_type, #fSet: $$set_type) *
-		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * 
+		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * types(#l: $$object_type) *
+		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * NodeList(fSet, id) *
 		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flistener") * 
-		ElementNode(name, id, l_attr, aList, l_children, cList, #fSet);
+		ElementNode(name, id, l_attr, aList, l_children, cList, fSet);
 
 	@pred TCell(alpha, id, text) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) *
@@ -245,6 +245,9 @@
 
 	@pred EmptyCell(alpha) :
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, $$null);
+*/ /*
+	----NodeList Fold/Unfolds----
+*/ /*
 
 */ /*
 	----Derived DOM Assertions----
@@ -433,9 +436,8 @@
 		outcome: normal
 
 	@onlyspec childNodes()
-		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fSet) * (#fSet --s-- #fSet2) * types(#fSet: $$set_type, #fSet2: $$set_type) ]]
-		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fSet2) * 
-				 NodeList(#f) * (#f --e-- #fSet2) * (ret == #f) ]]
+		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #f) ]]
+		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #f) * (ret == #f) ]]
 		outcome: normal
 
 	@onlyspec firstChild()
@@ -614,9 +616,8 @@
 	----NodeList Axioms----
 */ /*
 	@onlyspec length()
-		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) * tids(#cList, #l) * (this == #f) *
-				 NodeList(#f) * (#f --e-- #fSet) ]]
-		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fSet) * tids(#cList, #l) * NodeList(#f) * (#f --e-- #fSet) * (ret == l-len(#l)) ]]
+		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, this) * tids(#cList, #l) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, this) * tids(#cList, #l) * (ret == l-len(#l)) ]]
 		outcome: normal
 */
 
@@ -626,11 +627,11 @@
 
 	@pre (
 		InitialDOMHeap() * (element == #en) *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set) * tids(#cList, #l) * (l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #f) * tids(#cList, #l) * (l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
 	)
 	@post (
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #set2) * tids(#cList, #l) * (ret == #len)
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #f) * tids(#cList, #l) * (ret == #len)
 	)
 */
 function nodeListSimple(element){

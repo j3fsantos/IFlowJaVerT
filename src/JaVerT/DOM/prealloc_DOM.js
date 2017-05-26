@@ -112,10 +112,13 @@
 		((id, "@children") -> l_children) * Forest(l_children, cList) * 
 		types(name: $$string_type, aList: $$list_type, cList: $$list_type); 
 
+	@pred TNode(alpha, id, text) :
+		DOMObject(id, $l_tnp) * ((id, "@address") -> alpha) * empty_fields(id : "@text", "@address") *
+		TextNode(id, text);
+
 	@pred TextNode(id, text) :
-		DOMObject(id, $l_tnp) *
 		((id, "@text") -> text) *
-		empty_fields(id : "@text");
+		types(text: $$string_type);
 
 	@pred ANode(name, id, l_children, cList) :
 		DOMObject(id, $l_anp) * empty_fields(id : "@name", "@children") *
@@ -169,7 +172,7 @@
 		isNil(childList) * (l == $$null),
 
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * 
-		TextNode(#id, #text) *
+		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text") * TextNode(#id, #text) *
 		ChainCell(l, #next, #id) * ForestRec(#next, #childListNext),
 		
 		(childList == (#head :: #childListNext)) * isElement(#head, #name, #id, #aList, #cList) * 
@@ -188,7 +191,7 @@
 		isNil(childList) * (l == $$null),
 
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * 
-		TextNode(#id, #text) *
+		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text") * TextNode(#id, #text) *
 		ChainCell(l, #next, #id) * TextForestRec(#next, #childListNext),
 		
 		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
@@ -202,8 +205,8 @@
 		isNil(content) * ((l, "@address") -> root),
 
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * 
-		TextNode(#id, #text) * ((l, "@address") -> root) *
-		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
+		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text") * TextNode(#id, #text) * 
+		((l, "@address") -> root) * ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
 		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * 
 		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children") *
@@ -227,7 +230,8 @@
 
 	@pred TCell(alpha, id, text) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) *
-			TextNode(id, text);
+		((id, "@address") -> alpha) * DOMObject(id, $l_tnp) * empty_fields(id : "@text", "@address") * 
+		TextNode(id, text);
 
 	@pred ACell(alpha, name, id, l_children, cList) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * 
@@ -597,7 +601,7 @@
 	----Text Node Axioms----
 */ /*
 	@onlyspec data()
-		pre:  [[ TCell(#alpha, this, #text) * types(#text : $$string_type) ]]
+		pre:  [[ TCell(#alpha, this, #text) ]]
 		post: [[ TCell(#alpha, this, #text) * (ret == #text) ]]
 		outcome: normal
 
@@ -607,13 +611,11 @@
 		outcome: normal
 
 	@onlyspec substringData(o, c)
-		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * (#text == #s1 ++ (#s2 ++ #s3)) *
-				 types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * (#text == #s1 ++ (#s2 ++ #s3)) ]]
 		post: [[ TCell(#alpha, this, #text) * (ret == #s2) ]]
 		outcome: normal;
 
-		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) * 
-				 types(#text : $$string_type, #s1 : $$string_type, #s2 : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) ]]
 		post: [[ TCell(#alpha, this, #text) * (ret == #s2) ]]
 		outcome: normal
 
@@ -623,18 +625,16 @@
 		outcome: normal
 
 	@onlyspec insertData(o, s)
-		pre:  [[ (o == #l1) * (s == #s3) * TCell(#alpha, this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) * types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		pre:  [[ (o == #l1) * (s == #s3) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2) * (#l1 == s-len(#s1)) ]]
 		post: [[ TCell(#alpha, this, (#s1 ++ #s3 ++ #s2)) * (ret == $$null) ]]
 		outcome: normal
 
 	@onlyspec deleteData(o, c)
-		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, (#s1 ++ #s2 ++ #s3)) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) * 
-				 types(#s1 : $$string_type, #s2 : $$string_type, #s3 : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2 ++ #s3) * (#l1 == s-len(#s1)) * (#l2 == s-len(#s2)) ]]
 		post: [[ TCell(#alpha, this, (#s1 ++ #s2)) * (ret == $$null) ]]
 		outcome: normal;
 
-		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) * 
-				 types(#s1 : $$string_type, #s2 : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s2) * (#l1 == s-len(#s1)) * (s-len(#s2) <=# #l2) ]]
 		post: [[ TCell(#alpha, this, #s1) * (ret == $$null) ]]
 		outcome: normal
 
@@ -643,16 +643,13 @@
 		post: [[ TCell(#alpha, this, (#s1 ++ #ns ++ #s2)) * (ret == $$null) ]]
 		outcome: normal;
 
-		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TCell(#alpha, this, (#s1 ++ #s)) * (#l1 == s-len(#s1)) * (s-len(#s) <=# #s) * 
-				 types(#s1 : $$string_type, #s : $$string_type, #ns : $$string_type) ]]
+		pre:  [[ (o == #l1) * (c == #l2) * (s == #ns) * TCell(#alpha, this, #text) * (#text == #s1 ++ #s) * (#l1 == s-len(#s1)) * (s-len(#s) <=# #s) ]]
 		post: [[ TCell(#alpha, this, (#s1 ++ #ns)) * (ret == $$null) ]]
 		outcome: normal
 
 	@onlyspec splitText(o)
-		pre:  [[ (o == #l1) * Forest(#f, {{ {{ "hole", #alpha1 }} }}) * TCell(#alpha1, this, (#s1 ++ #s2)) * (#l1 == s-len(#s1)) *
-				 types(#s1 : $$string_type, #s2 : $$string_type) ]]
-		post: [[ Forest(#f, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) * 
-				 TCell(#alpha1, this, #s1) * TCell(#alpha2, #n, #s2) * (ret == $$null) ]]
+		pre:  [[ (o == #l1) * Forest(#f, {{ {{ "hole", #alpha1 }} }}) * TCell(#alpha1, this, #text) * (#text == #s1 ++ #s2) * (#l1 == s-len(#s1)) ]]
+		post: [[ Forest(#f, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) * TCell(#alpha1, this, #s1) * TCell(#alpha2, #n, #s2) * (ret == #n) ]]
 		outcome: normal
 */
 
@@ -661,16 +658,23 @@
 
 	@pre (
 		InitialDOMHeap() * (tnode == #tn) *
-		TCell(#alpha, #tn, #text_pre) * (#text_pre == "abcdefghi")
+		Forest(#f_loc, {{ {{ "hole", #alpha1 }} }}) *
+		TCell(#alpha1, #tn, #text1_pre) * (#text1_pre == "abcdefghi")
 	)
 	@post (
 		InitialDOMHeap() * (ret == 9) *
-		TCell(#alpha, #tn, #text_post) * (#text_post == "abcabcghi")
+		Forest(#f_loc, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) *
+		TCell(#alpha1, #tn, #text1_post) * (#text1_post == "abcabcabc") *
+		TCell(#alpha2, #tn2, #text2_post) * (#text2_post == "ghia")
 	)
 */
 function banana(tnode) {
 	var l = tnode.length();
 	var c = tnode.substringData(0, 3);
 	tnode.replaceData(3, 3, c);
+	var t2 = tnode.splitText(6);
+	t2.insertData(3, c);
+	t2.deleteData(4, 10);
+	tnode.appendData(c);
 	return l
 }
