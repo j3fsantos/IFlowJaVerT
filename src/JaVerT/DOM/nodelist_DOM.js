@@ -629,8 +629,8 @@
 	----NodeList Axioms----
 */ /*
 	@onlyspec length()
-		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(#f, #id) ]]
-		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(#f, #id) * (ret == l-len(#l)) ]]
+		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(this, #id) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(this, #id) * (ret == l-len(#l)) ]]
 		outcome: normal
 */
 
@@ -645,7 +645,7 @@
 	)
 	@post (
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * 
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin_post, #fout_post) * tids(#cList, #l) * 
 		(ret == #len)
 	)
 */
