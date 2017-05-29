@@ -450,7 +450,7 @@
 	@onlyspec childNodes()
 		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) ]]
 		post: [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin2, #fout) * 
-				 (#fin --s-- #fin2) * (#f --e-- -u-(#fin2, #fout)) * (ret == #f) ]]
+				 (#fin --s-- #fin2) * (#f --e-- -u-(#fin2, #fout)) * (ret == #f) * types(#f : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec firstChild()
