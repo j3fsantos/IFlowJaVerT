@@ -19,7 +19,7 @@ let arguments () =
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
 			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; 
-										JSIL_Bi_Symb_Interpreter.js := true), "js2jsil output"; 
+									   Bi_Symb_Interpreter.js := true), "js2jsil output"; 
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			(* Flag to use symbolic execution file with bi-abduction *)
@@ -82,16 +82,16 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 let bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds  = 
 	(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
 	(* if (!js) then *)
-	let proc_list, spec_tbl, rec_funcs = Bi_Symbolic_State_Functions.internal_functions_preprocessing ext_prog.procedure_names prog spec_tbl in
+	let proc_list, spec_tbl = Bi_Utils.internal_functions_preprocessing ext_prog.procedure_names prog spec_tbl in
 	print_endline ("\n*********** Starting bi-abduction symbolic execution. ***********\n") ;
 	let new_spec_tbl, proc_list, bi_results = 
-			JSIL_Bi_Symb_Interpreter.sym_run_procs prog proc_list spec_tbl which_pred norm_preds in
+			Bi_Symb_Interpreter.sym_run_procs prog proc_list spec_tbl which_pred norm_preds in
 	print_endline ("\n********** Finished bi-abduction symbolic execution. **********\n") ;
 	print_endline ("\n**********    Starting normal symbolic execution.    **********\n") ;
 	let normal_results = symb_interpreter prog proc_list new_spec_tbl which_pred norm_preds in
 	print_endline ("\n**********     Ending normal symbolic execution.     **********\n") ;
-	Bi_Symbolic_State_Functions.process_bi_results ext_prog.procedure_names proc_list new_spec_tbl bi_results normal_results rec_funcs true;
-	Bi_Symbolic_State_Functions.string_new_specs ext_prog normal_results new_spec_tbl proc_list
+	Bi_Utils.process_bi_results ext_prog.procedure_names proc_list new_spec_tbl bi_results normal_results true
+	(*Bi_Utils.string_for_new_jsil_file ext_prog normal_results new_spec_tbl proc_list*)
 	
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";

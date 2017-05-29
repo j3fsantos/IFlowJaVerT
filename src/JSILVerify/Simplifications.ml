@@ -666,6 +666,9 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typin
  						let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
  						weak_update_gamma gamma x le_type
  					)
+ 			| LEq ((LTypeOf (LVar x)), (LLit (Type t))) 
+ 			| LEq ((LLit (Type t)), (LTypeOf (LVar x))) ->
+ 				weak_update_gamma gamma x (Some t)
  			| _ -> () 
  		) p_assertions
 

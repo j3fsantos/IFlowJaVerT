@@ -387,8 +387,8 @@ let remove_abstract_locations heap store pfs : substitution  =
 						| Some l -> 
 							Hashtbl.add subst loc (LVar l)
 						| None -> 
-
-							raise (Failure (Printf.sprintf "Floating abstract location in remove_abstract_locations %s" loc)))
+							let n_lvar = fresh_lvar () in 
+							Hashtbl.add subst loc (LVar n_lvar))
 				)
 			)
 			) heap;

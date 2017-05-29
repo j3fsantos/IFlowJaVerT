@@ -17,7 +17,7 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 					(match pat_lexpr, lexpr with
 
 					| LLit pat_lit, LLit lit ->
-						if (lit = pat_lit)
+						if ((compare lit pat_lit) = 0)
 							then discharges, new_pfs
 							else raise (Failure "Other literals: the stores are not unifiable")
 
@@ -32,7 +32,7 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 					| LVar lvar, _ ->
 						if (Hashtbl.mem pat_subst lvar)
 							then (let current = Hashtbl.find pat_subst lvar in
-								if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) (* solver *) gamma
+								if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) gamma
 									then discharges, new_pfs
 									else raise (Failure "No no no no NO."))
 							else (extend_subst pat_subst lvar lexpr;
@@ -68,8 +68,7 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 						| None ->
 							if (Pure_Entailment.check_entailment SS.empty pfs [ (LEq (LVar lvar, LLit lit)) ] gamma)
 								then discharges, new_pfs
-								else raise (Failure (Printf.sprintf "LLit %s, LVar %s : the pattern store is not normalized." (JSIL_Print.string_of_literal lit false) lvar)))
-
+								else discharges, ((LEq (LVar lvar, LLit lit)) :: new_pfs))
 					| LEList el1, LEList el2 ->
 						(* Printf.printf ("Two lists of lengths: %d %d") (List.length el1) (List.length el2); *)
 						if (List.length el1 = List.length el2) then
@@ -81,10 +80,10 @@ let bi_unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_s
 					
 						else raise (Failure (Printf.sprintf "non unifiable expression lists")) 
 
-				| le_pat, le -> 
-					if (le_pat = le) 
-						then (discharges, new_pfs)
-				        else (((le_pat, le) :: discharges), new_pfs)) in
+					| le_pat, le -> 
+						if ((compare le_pat le) = 0) 
+							then (discharges, new_pfs)
+					        else (((le_pat, le) :: discharges), new_pfs)) in
 
 				spin_me_round pat_lexpr lexpr (discharges, new_pfs))
 			pat_store
@@ -238,12 +237,13 @@ let bi_unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_f
 									loop rest_locs pfs (new_discharges @ discharges))
 								else raise (Failure "LNone in precondition")
 							| Some (frame_fv_list, matched_fv_list, antiframe_fv_list, new_discharges) ->
-								heap_put quotient_heap  loc frame_fv_list     def;
-								heap_put antiframe_heap pat_loc antiframe_fv_list def;
 								print_debug (Printf.sprintf "Adding sth to QH and AF.");
 								print_debug (Printf.sprintf "QH:%s\nAFH:%s" 
 									(Symbolic_State_Print.string_of_shallow_symb_heap quotient_heap false)
 									(Symbolic_State_Print.string_of_shallow_symb_heap antiframe_heap false));
+								heap_put quotient_heap  loc frame_fv_list def;
+								if (not(List.length antiframe_fv_list = 0)) then
+									heap_put antiframe_heap pat_loc antiframe_fv_list def;
 								let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion frame_fv_list matched_fv_list in
 								loop rest_locs (new_pfs @ pfs) (new_discharges @ discharges)
 							| None -> print_debug "fv_lists not unifiable!"; raise (Failure ("fv_lists not unifiable")))))
@@ -323,7 +323,7 @@ let bi_unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) =
 							x 
 							(JSIL_Print.string_of_logic_expression le false) 
 							(JSIL_Print.string_of_type x_type));
-						let res = reverse_type_lexpr_aux gamma new_gamma le x_type in
+						let res = reverse_type_lexpr_aux gamma new_gamma le x_type in 
 						extend_gamma gamma new_gamma;
 						res
 				with _ ->
@@ -344,7 +344,7 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 
 	let start_time = Sys.time () in
 
-	let heap_0, store_0, pf_0, gamma_0, preds_0 = symb_state in
+	let heap_0, store_0, pf_0, gamma_0, preds_0 = copy_symb_state symb_state in
 	let heap_1, store_1, pf_1, gamma_1, preds_1 = copy_symb_state pat_symb_state in
 
 	(* STEP 0 - Unify stores, heaps, and predicate sets                                                                                                  *)
@@ -412,13 +412,12 @@ let bi_unify_symb_states (lvars : SS.t) pat_symb_state (symb_state : symbolic_st
 					extend_gamma gamma_0' gamma_1_existentials;
 					gamma_0')
 				else gamma_0 in
-
 		let new_gamma = (bi_unify_gamma gamma_1 gamma_0' store_1 subst existentials) in
 		let result = (match new_gamma with 
 			| Some gamma_af -> 
 				begin
 					extend_gamma gamma_0' gamma_af;
-					let anti_frame : symbolic_state = symb_state_replace_gamma anti_frame gamma_af in
+					extend_gamma (get_gamma anti_frame) gamma_af;
 					merge_pfs pf_0 (DynArray.of_list new_pfs);
 				  	let pf_1_subst_list = List.map (fun a -> assertion_substitution a subst true) (pfs_to_list pf_1) in
 					let pf_discharges = pf_list_of_discharges discharges subst false in
@@ -488,7 +487,8 @@ let bi_unify_symb_state_against_post
 		(symb_state    : symbolic_state) 
 		(anti_frame    : symbolic_state)
 		(flag          : jsil_return_flag)
-		(symb_exe_info : symbolic_execution_search_info) =
+		(symb_exe_info : symbolic_execution_search_info)
+		js =
 	
 	Printf.printf "About to bi-unify the current symb state against the posts. Here it is: %s\n"
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state); 
@@ -515,12 +515,16 @@ let bi_unify_symb_state_against_post
 		| [] -> 
 			if ((List.length computed_posts) > 0)
 				then computed_posts 
-				else (
-					print_error_to_console "Non_unifiable symbolic states";  
-				raise (Failure "post condition is not unifiable"))
+				else 
+					(print_error_to_console "Non_unifiable symbolic states";  
+					raise (Failure "post condition is not unifiable"))
 		| post :: rest_posts ->
+			try
 			let subst = bi_unify_symb_states spec.n_lvars post symb_state in
-			(match subst with	
+			(match subst with
+			| Some (true, _, af, _, _, _, _) 
+				when (is_empty_symb_state af !js) ->
+				[ (symb_state, anti_frame) ]
 			| Some (true, _, af, _, subst, _, _) ->
 				let heap_af, _, _, _, _ = af in
 				(* complete match with the post *)
@@ -531,8 +535,9 @@ let bi_unify_symb_state_against_post
 				Printf.printf "anti_frame: %s\n"
 					(Symbolic_State_Print.string_of_shallow_symb_state anti_frame);
 				let symb_state = copy_symb_state symb_state in 
-				enrich_symb_state_with_heap symb_state heap_af subst;
-				enrich_symb_state_with_heap anti_frame heap_af subst;  
+				if (not (is_heap_empty heap_af !js)) then 
+					(enrich_symb_state_with_heap symb_state heap_af subst;
+					enrich_symb_state_with_heap anti_frame heap_af subst);
 				Printf.printf "Symb_state: %s\n"
 					(Symbolic_State_Print.string_of_shallow_symb_state symb_state);
 				Printf.printf "anti_frame: %s\n"
@@ -550,7 +555,11 @@ let bi_unify_symb_state_against_post
 				extend_symb_state_with_pfs new_anti_frame pfs_af;
 				loop rest_posts ((new_symb_state, new_anti_frame) :: computed_posts)
 					
-			| _  -> loop rest_posts computed_posts)) in
+			| _  -> loop rest_posts computed_posts)
+			with e -> 
+				print_debug (Printexc.to_string e);
+				loop rest_posts computed_posts
+		) in
 		 	
 	let processed_posts = loop spec.n_post [] in  
 	let processed_posts = 

@@ -555,10 +555,9 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 			| _ -> DynArray.add pfs (LEq (LVar var, le)))
 		subst
 
-
-let is_empty_symb_state symb_state =
+let is_empty_symb_state symb_state js=
 	let heap, store, pfs, gamma, _  = symb_state in
-	(LHeap.length heap = 0) && 
+	(is_heap_empty heap js) && 
 	(Hashtbl.length store = 0) &&
 	(DynArray.empty pfs) &&
 	(Hashtbl.length gamma = 0)
