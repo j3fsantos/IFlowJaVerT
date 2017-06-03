@@ -1950,7 +1950,7 @@ with
  *
  * Unsupported:
  *
- * 22-?? - Getters
+ * 22-23 - Getters
  *)
 
 spec i__getValue (v)

@@ -157,7 +157,7 @@ let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substit
   				| ALoc loc -> loc
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = selective_fv_list_substitution fv_list subst true in
+  		let s_fv_list = fv_list in (* selective_fv_list_substitution fv_list subst true in *)
   		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
   		LHeap.replace heap s_loc (s_fv_list, s_def))
   	heap
@@ -235,6 +235,16 @@ let store_domain store =
 		(fun x _ ac -> x :: ac)
 		store
 		[]
+
+let store_get_rev store var =
+	Hashtbl.fold
+		(fun x y ac -> 
+			if (y = var) then
+				Some x
+			else 
+				ac)
+		store
+		None
 
 let store_copy store =
 	let new_store = Hashtbl.copy store in
@@ -505,10 +515,6 @@ let get_preds symb_state =
 	let _, _, _, _, preds (*, _ *) = symb_state in
 	preds
 
-(* let get_solver symb_state =
-	let _, _, _, _, _, solver = symb_state in
-	solver *)
-
 let get_pf_list symb_state =
 	let pf = get_pf symb_state in
 	pfs_to_list pf
@@ -518,23 +524,20 @@ let symb_state_add_predicate_assertion symb_state pred_assertion =
 	extend_pred_set preds pred_assertion
 
 let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds, solver = symb_state in
-	(heap, new_store, pfs, gamma, preds, solver)
+	let heap, _, pfs, gamma, preds = symb_state in
+	(heap, new_store, pfs, gamma, preds)
 
 let init_symb_state () : symbolic_state =
 	(* Heap, Store, Pure Formula, Gamma, Preds *)
 	(LHeap.create small_tbl_size, Hashtbl.create small_tbl_size, DynArray.create (), Hashtbl.create small_tbl_size, DynArray.create ())
 
 let copy_symb_state symb_state =
-	let heap, store, p_formulae, gamma, preds (*, solver*) = symb_state in
+	let heap, store, p_formulae, gamma, preds = symb_state in
 	let c_heap      = LHeap.copy heap in
 	let c_store     = store_copy store in
 	let c_pformulae = copy_p_formulae p_formulae in
 	let c_gamma     = copy_gamma gamma in
 	let c_preds     = copy_pred_set preds in
-	(* (match !solver with
-	| Some (solver, _) -> Z3.Solver.reset solver
-	| None -> ()); *)
 	(c_heap, c_store, c_pformulae, c_gamma, c_preds (*, ref None *))
 
 let rec extend_symb_state_with_pfs symb_state pfs_to_add =
@@ -552,30 +555,32 @@ let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
 			| _ -> DynArray.add pfs (LEq (LVar var, le)))
 		subst
 
-(* 
-let is_empty_symb_state symb_state =
-	(is_symb_heap_empty (get_heap symb_state)) && (is_preds_empty (get_preds symb_state)) *)
-
+let is_empty_symb_state symb_state js=
+	let heap, store, pfs, gamma, _  = symb_state in
+	(is_heap_empty heap js) && 
+	(Hashtbl.length store = 0) &&
+	(DynArray.empty pfs) &&
+	(Hashtbl.length gamma = 0)
 
 let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds (*, solver *) = symb_state in
-	(heap, new_store, pfs, gamma, preds (*, solver *))
+	let heap, _, pfs, gamma, preds  = symb_state in
+	(heap, new_store, pfs, gamma, preds )
 
 let symb_state_replace_heap symb_state new_heap =
-	let _, store, pfs, gamma, preds (*, solver *) = symb_state in
-	(new_heap, store, pfs, gamma, preds (*, solver *))
+	let _, store, pfs, gamma, preds  = symb_state in
+	(new_heap, store, pfs, gamma, preds )
 
 let symb_state_replace_preds symb_state new_preds =
-	let heap, store, pfs, gamma, _ (*, solver *) = symb_state in
-	(heap, store, pfs, gamma, new_preds (*, solver *))
+	let heap, store, pfs, gamma, _  = symb_state in
+	(heap, store, pfs, gamma, new_preds )
 
 let symb_state_replace_gamma symb_state new_gamma =
-	let heap, store, pfs, _, preds (*, solver *) = symb_state in
-	(heap, store, pfs, new_gamma, preds (*, solver *))
+	let heap, store, pfs, _, preds  = symb_state in
+	(heap, store, pfs, new_gamma, preds )
 
 let symb_state_replace_pfs symb_state new_pfs =
-	let heap, store, _, gamma, preds (*, solver *) = symb_state in
-	(heap, store, new_pfs, gamma, preds (*, solver *))
+	let heap, store, _, gamma, preds  = symb_state in
+	(heap, store, new_pfs, gamma, preds )
 
 let remove_concrete_values_from_the_store symb_state = 
 	Hashtbl.filter_map_inplace (fun x le -> 
@@ -588,13 +593,13 @@ let remove_concrete_values_from_the_store symb_state =
 			Some le) (get_store symb_state)
 
 let symb_state_substitution (symb_state : symbolic_state) subst partial =
-	let heap, store, pf, gamma, preds (*, _ *) = symb_state in
+	let heap, store, pf, gamma, preds = symb_state in
 	let s_heap = heap_substitution heap subst partial in
 	let s_store = store_substitution store gamma subst partial in
 	let s_pf = pf_substitution pf subst partial  in
 	let s_gamma = gamma_substitution gamma subst partial in
 	let s_preds = preds_substitution preds subst partial in
-	(s_heap, s_store, s_pf, s_gamma, s_preds (* ref None *))
+	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
 let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in

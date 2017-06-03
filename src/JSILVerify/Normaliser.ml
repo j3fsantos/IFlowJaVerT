@@ -15,6 +15,8 @@ open Logic_Predicates
 *)
 let rec normalise_lexpr store gamma subst le =
 
+	print_debug (Printf.sprintf "Normalising %s" (JSIL_Print.print_lexpr le));
+
 	let start_time = Sys.time() in
 
 	let f = normalise_lexpr store gamma subst in

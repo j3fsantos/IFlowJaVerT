@@ -561,15 +561,8 @@ let string_of_lbody lbody =
 	done;
 	!str
 
-(** Extended JSIL procedures *)
-let string_of_ext_procedure proc =
-	(* Optional specification block *)
-	(match proc.lspec with
-	| None -> ""
-	| Some spec ->
-		Printf.sprintf "spec %s (%s)\n %s\n" spec.spec_name (String.concat ", " spec.spec_params)
-		  (string_of_specs spec.proc_specs))
-	^
+(** Extended JSIL procedures spec *)
+let string_of_ext_procedure_body proc =
 	(* Procedure definition block *)
 	(Printf.sprintf "proc %s (%s) {\n%s} with {\n%s%s};\n"
   	proc.lproc_name
@@ -583,6 +576,19 @@ let string_of_ext_procedure proc =
 		| None, None -> ""
 		| Some var, Some label -> (Printf.sprintf "\terr: %s, %s;\n" var label)
 		| _, _ -> raise (Failure "Error: variable and error label not both present or both absent!")))
+
+
+(** Extended JSIL procedures *)
+let string_of_ext_procedure proc =
+	(* Optional specification block *)
+	(match proc.lspec with
+	| None -> ""
+	| Some spec ->
+		Printf.sprintf "spec %s (%s)\n %s\n" spec.spec_name (String.concat ", " spec.spec_params)
+		  (string_of_specs spec.proc_specs))
+	^
+	(string_of_ext_procedure_body proc)
+
 
 let string_of_jsil_spec spec = 
 	Printf.sprintf "spec %s (%s)\n %s" spec.spec_name (String.concat ", " spec.spec_params)

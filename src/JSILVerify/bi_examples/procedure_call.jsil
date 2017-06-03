@@ -1,4 +1,3 @@
-(** Totals: 3 fails and 5 passes **)
 
 spec aux1 (x, y)
    [[ emp ]]
@@ -15,6 +14,56 @@ spec test0 (x, y)
    [[ emp ]]
    normal
 proc test0 (x, y) {
-  		   x := "aux1" (x, y); 
+         x := "aux1" (x, y); 
    rlab:   skip
 } with { ret: x, rlab; }; 
+
+spec test1 (x, y)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test1 (x, y) {
+         y := [x, "town"];
+         goto [y] then4 else4; 
+   then4:   [x, "station"] := "Waterloo";
+            goto rlab; 
+   else4:   [x, "date"] := "1832"; 
+   rlab:   skip
+} with { ret: x, rlab; }; 
+
+spec test2 (x, y, z)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test2 (x, y, z) {
+         z := "test1" (x, y);
+         z := [y, "station"];
+   rlab:   skip
+} with { ret: z, rlab; }; 
+
+spec test3 (x, y, z)
+   [[ emp ]]
+   [[ emp ]]
+   normal
+proc test3 (x, y,z) {
+         z := "test2" (x, y, z); 
+   rlab:   skip
+} with { ret: z, rlab; }; 
+
+proc proc_with_cond (x) {
+          goto [x = $$null] l1 l2; 
+   l1:      xret := "Waterloo";
+            goto rlab; 
+   l2:    goto [x = $$undefined] l3 l4; 
+   l3:      xret := "Temple";
+            goto rlab; 
+   l4:    xret := "Bank";
+   rlab:    skip
+} with { ret: xret, rlab; };
+
+
+proc call_proc_with_cond (x) {
+        station := "proc_with_cond" (x); 
+        xret := "Station: " ++ station;
+   rlab:   skip
+} with { ret: xret, rlab; }; 

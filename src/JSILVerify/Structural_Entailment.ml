@@ -67,7 +67,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 				(match pat_lexpr, lexpr with		
 
 				| LLit pat_lit, LLit lit ->
-					if (lit = pat_lit)
+					if ((compare lit pat_lit) = 0)
 						then discharges
 						else raise (SymbExecFailure (US (ValueMismatch (var, pat_lexpr, lexpr))))
 
@@ -137,7 +137,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					end
 					else raise (SymbExecFailure (US (ValueMismatch (var, pat_lexpr, lexpr))))
 
-				| le_pat, le -> if (le_pat = le) then discharges
+				| le_pat, le -> if ((compare le_pat le) = 0) then discharges
 				                                 else ((le_pat, le) :: discharges)) in
 				spin_me_round pat_lexpr lexpr discharges)
 			pat_store
@@ -153,7 +153,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 				raise e)
 
 
-let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (* solver *) (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
+let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
 	let start_time = Sys.time () in
 	(* print_debug_petar (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false)); *)
 	let result = (match le_pat with
@@ -529,7 +529,8 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		| SymbExecFailure _ -> 
 				let end_time = Sys.time () in
 				JSIL_Syntax.update_statistics "unify_symb_heaps" (end_time -. start_time);
-				raise e)
+				raise e
+		| _ -> raise e)
 
 (*******************************************************************)
 (*******************************************************************)
@@ -989,7 +990,8 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			| SymbExecFailure failure -> 
 				let end_time = Sys.time () in
 				JSIL_Syntax.update_statistics "unify_symb_states" (end_time -. start_time);
-				raise e)
+				raise e
+			| _ -> raise e)
 
 
 let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_state : symbolic_state) (symb_state : symbolic_state) : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment * SS.t * ((string * (jsil_logic_expr list)) list)  =

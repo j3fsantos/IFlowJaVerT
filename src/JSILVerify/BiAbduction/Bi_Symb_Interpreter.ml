@@ -70,7 +70,7 @@ let f = symb_evaluate_expr symb_state anti_frame in
 	| UnOp (op, e) ->
 		let nle = f e in
 		(match nle with
- 	  | LLit lit -> 
+ 	 	| LLit lit -> 
 			let l = JSIL_Interpreter.evaluate_unop op lit in
 				LLit l
 		| _ ->
@@ -247,6 +247,7 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 	(* Skip: skip;
 			Always return $$empty *)
 	| SSkip ->
+		print_endline "SKIP ";
 		LLit Empty
 
   (* Assignment: x = e;
@@ -438,7 +439,7 @@ let symb_evaluate_bcmd (bcmd : jsil_basic_cmd) (symb_state : symbolic_state) (an
 			ret_lexpr)
 
 type precondition_total_unifier = (jsil_n_single_spec * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
-type precondition_partial_unifier = (jsil_n_single_spec * symbolic_heap * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment) 
+type precondition_partial_unifier = (jsil_n_single_spec * symbolic_heap * symbolic_state * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment) 
 
 
 
@@ -518,54 +519,72 @@ let find_and_apply_spec
 		symb_states_and_ret_lexprs in
 
 	
-	let enrich_anti_frame anti_frame af_heap subst = 
-		let old_af_heap, store, pfs, gamma, preds = anti_frame in 
-		let new_af_heap = heap_substitution af_heap subst false in
-		Symbolic_State_Utils.merge_heaps old_af_heap new_af_heap pfs gamma in 
+	let enrich_anti_frame anti_frame new_anti_frame subst = 
+		let af_heap, store, pfs, gamma, preds = anti_frame in 
+		let n_af_heap, n_store, n_pfs, n_gamma, n_preds = new_anti_frame in 
+		let n_af_heap = heap_substitution n_af_heap subst false in
+		Symbolic_State_Utils.merge_heaps af_heap n_af_heap pfs gamma;
+		merge_pfs pfs n_pfs;
+		extend_gamma gamma n_gamma in 
 
 	let rec find_correct_specs 
-			spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af)  
-				: ((precondition_total_unifier list) * (precondition_partial_unifier list) * (precondition_partial_unifier list)) =
+			spec_list (ac_qs_complete, ac_qs_partial)  
+				: ((precondition_total_unifier list) * (precondition_partial_unifier list)) =
 		match spec_list with
-		| [] -> (ac_qs_complete, ac_qs_partial, ac_qs_af)
+		| [] -> (ac_qs_complete, ac_qs_partial)
 		| spec :: rest_spec_list ->
 			print_debug (Printf.sprintf "------------------------------------------");
 			print_debug (Printf.sprintf "Entering BI-find_correct_specs with the spec:");
 			print_debug (Printf.sprintf "------------------------------------------");
-			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
+			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s\n"
 				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
+			print_debug (Printf.sprintf "Current State: \n%s"
+				(Symbolic_State_Print.string_of_shallow_symb_state symb_state_aux));
+			try (
 			let unifier = Bi_Structural_Entailment.bi_unify_symb_states SS.empty spec.n_pre symb_state_aux in
 			(match unifier with
-			|	Some (true, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, _, new_gamma) 
-					when (is_heap_empty antiframe_heap !js) ->
+			|	Some (true, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma) 
+					when (is_empty_symb_state anti_frame !js) ->
 				print_debug (Printf.sprintf "I found a COMPLETE match");
+				print_debug (Printf.sprintf "ANTI FRAME: %s\n"
+					(Symbolic_State_Print.string_of_shallow_symb_state anti_frame));
 				print_debug (Printf.sprintf "The pre of the spec that completely matches me is:\n%s"
 					(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
 				print_debug (Printf.sprintf "The number of posts is: %d"
 					(List.length spec.n_post));
-				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ], [], []
+				[ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ], []
 			
-			| Some (false, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma)
-					 when (is_heap_empty antiframe_heap !js) ->
+			| Some (false, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma)
+					 when (is_empty_symb_state anti_frame !js) ->
 				print_debug (Printf.sprintf "I found a PARTIAL match");
-				let new_ac_qs_partial = (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma) :: ac_qs_partial in 
-				find_correct_specs rest_spec_list (ac_qs_complete, new_ac_qs_partial, ac_qs_af)
+				print_debug (Printf.sprintf "ANTI FRAME: %s\n"
+					(Symbolic_State_Print.string_of_shallow_symb_state anti_frame));
+				let new_ac_qs_partial = (spec, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma) :: ac_qs_partial in 
+				find_correct_specs rest_spec_list (ac_qs_complete, new_ac_qs_partial)
 			
-			| Some (_, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma) -> 
-				print_debug (Printf.sprintf "I found a match requering an AF");
-				Printf.printf "anti_frame heap: %s\n"
-					(Symbolic_State_Print.string_of_shallow_symb_heap antiframe_heap false);
-				let new_ac_qs_af = (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma) :: ac_qs_af in 
-				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, new_ac_qs_af)
+			| Some (_, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma) -> 
+				print_debug (Printf.sprintf "I found a PARTIAL match");
+				print_debug (Printf.sprintf "anti frame: %s\n"
+					(Symbolic_State_Print.string_of_shallow_symb_state anti_frame));
+				let new_ac_qs_partial = (spec, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma) :: ac_qs_partial in 
+				find_correct_specs rest_spec_list (ac_qs_complete, new_ac_qs_partial)
 				
 			| None -> (
 				print_debug (Printf.sprintf "I found a NON-match");
-				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial, ac_qs_af))) in
+				find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial))))
+			with | e -> (match e with 
+				| SymbExecFailure failure -> 
+						print_debug (Symbolic_State_Print.print_failure failure);
+						print_debug (Printf.sprintf "I found a NON-match");
+						find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial)
+				| _ -> 	print_debug (Printexc.to_string e);
+						print_debug (Printf.sprintf "I found a NON-match");
+						find_correct_specs rest_spec_list (ac_qs_complete, ac_qs_partial)) in
 
 
 	let transform_symb_state_partial_match 
-		(spec, quotient_heap, af_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma) 
+		(spec, quotient_heap, new_anti_frame, quotient_preds, subst, pf_discharges, new_gamma) 
 			: (symbolic_state * symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 		let symb_state = copy_symb_state symb_state in 
 		let anti_frame = copy_symb_state anti_frame in 
@@ -576,12 +595,11 @@ let find_and_apply_spec
 			List.fold_left
 				(fun ac (symb_state, ret_flag, ret_lexpr) ->
 					let new_symb_state = Bi_Structural_Entailment.enrich_pure_part symb_state spec.n_pre subst in
-					let new_anti_frame = Bi_Structural_Entailment.enrich_pure_part anti_frame spec.n_pre subst in
-					enrich_anti_frame new_anti_frame af_heap subst;
-					extend_symb_state_with_pfs new_symb_state (pfs_of_list pfs_af);
-					extend_symb_state_with_pfs new_anti_frame (pfs_of_list pfs_af);
+					let anti_frame = Bi_Structural_Entailment.enrich_pure_part anti_frame spec.n_pre subst in
+					enrich_anti_frame anti_frame new_anti_frame subst;
+					extend_symb_state_with_pfs new_symb_state (get_pf new_anti_frame);
 					let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) in
-					if is_sat then ((new_symb_state, new_anti_frame, ret_flag, ret_lexpr) :: ac) else ac)
+					if is_sat then ((new_symb_state, anti_frame, ret_flag, ret_lexpr) :: ac) else ac)
 				[] symb_states_and_ret_lexprs in
 
 		let symb_states_and_ret_lexprs =
@@ -599,21 +617,21 @@ let find_and_apply_spec
 		(quotients  : precondition_partial_unifier list) =
 		let new_symb_states = 
 			List.map
-				(fun (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma) ->
+				(fun (spec, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma) ->
 					if (compatible_pfs symb_state spec.n_pre subst)
-						then transform_symb_state_partial_match (spec, quotient_heap, antiframe_heap, quotient_preds, subst, pf_discharges, pfs_af, new_gamma)
+						then transform_symb_state_partial_match (spec, quotient_heap, anti_frame, quotient_preds, subst, pf_discharges, new_gamma)
 						else [])
 				quotients in
 			let new_symb_states = List.concat new_symb_states in
 			new_symb_states in 
 					
 	let rec apply_correct_specs 
-		(quotients : ((precondition_total_unifier list) * (precondition_partial_unifier list) * (precondition_partial_unifier list))) =
+		(quotients : ((precondition_total_unifier list) * (precondition_partial_unifier list))) =
 		print_debug (Printf.sprintf "Entering apply_correct_specs.");
 		match quotients with
-		| ([], [], []) -> [ ]
+		| ([], []) -> [ ]
 		
-		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ], _, _ ->
+		| [ (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ], _ ->
 			print_debug (Printf.sprintf "This was a TOTAL MATCH!!!!");
 			let symb_states_and_ret_lexprs = transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma in 
 			List.map 
@@ -622,16 +640,12 @@ let find_and_apply_spec
 					(symb_state, anti_frame, ret_flag, ret_lexpr))
 				symb_states_and_ret_lexprs 
 				
-		| _, _ :: _, _ ->
-			let _, qs_partial, _ = quotients in 
+		| _, _ :: _ ->
+			let _, qs_partial = quotients in 
 			print_debug (Printf.sprintf "This was a PARTIAL MATCH!!!!");
-			transform_symb_state_partial_match_list symb_state qs_partial 
-		
-		| _, _, qs_af -> 
-			print_debug (Printf.sprintf "This was a PARTIAL MATCH with AF!!!!");
-			transform_symb_state_partial_match_list symb_state qs_af in  
+			transform_symb_state_partial_match_list symb_state qs_partial in
 
-	let quotients = find_correct_specs proc_specs.n_proc_specs ([], [], []) in
+	let quotients = find_correct_specs proc_specs.n_proc_specs ([], []) in
 	apply_correct_specs quotients
 
 let rec fold_predicate pred_name pred_defs symb_state params args spec_vars existentials : (symbolic_state * SS.t) option =
@@ -980,9 +994,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 		let cmd = get_proc_cmd proc i in
 		let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
 		let time = Sys.time() in
-		print_endline (Printf.sprintf
+		print_endline "" in
+		(*print_endline (Printf.sprintf
 			"----------------------------------\n--%i--\nTIME: %f\n ---- STATE: ---- \n%s -------- \n ---- ANTI_FRAME: ----\n%s -------- \n CMD: %s\n----------------------------------"
-			i time symb_state_str anti_frame_str cmd_str) in
+			i time symb_state_str anti_frame_str cmd_str) in*)
 
 
 	(* symbolically evaluate a guarded goto *)
@@ -1019,6 +1034,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 				if (Bi_Symbolic_State_Functions.l_vars_in_spec_check anti_frame spec.n_lvars le) then
 					raise (Failure "Logical Variables of expression not contained within the spec or anti_frame");
 
+				Simplifications.naively_infer_type_information (get_pf symb_state) (get_gamma symb_state);
+				Simplifications.naively_infer_type_information (get_pf anti_frame) (get_gamma anti_frame);
 				(* Then Branch  
 				Printf.printf (
 					String.concat ", "
@@ -1028,16 +1045,25 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 				extend_symb_state_with_pfs then_symb_state (DynArray.of_list a_le_then);
 				extend_symb_state_with_pfs then_anti_frame (DynArray.of_list a_le_then);
 				print_symb_state_and_cmd then_symb_state then_anti_frame;
-				let then_result_states = 
-						symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state then_anti_frame i j in
+				let then_result_states =  
+					(try 
+						symb_evaluate_next_cmd s_prog proc spec then_search_info then_symb_state then_anti_frame i j 
+					with e ->
+						print_endline (Printf.sprintf "Bi-Symbolic Execution of the then branch has failed with message %s. Ending symbolic execution." (Printexc.to_string e));
+						Bi_Utils.update_failures proc.proc_name (Printexc.to_string e);
+						[] ) in
 
 				(* Else Branch *)
 				extend_symb_state_with_pfs else_symb_state (DynArray.of_list a_le_else);
 				extend_symb_state_with_pfs else_anti_frame (DynArray.of_list a_le_else);
 				print_symb_state_and_cmd else_symb_state else_anti_frame;
 				let else_result_states = 
-						symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state else_anti_frame i k in
-
+					(try
+						symb_evaluate_next_cmd s_prog proc spec else_search_info else_symb_state else_anti_frame i k 
+					with e ->
+						print_endline (Printf.sprintf "Bi-Symbolic Execution of the else branch has failed with message %s. Ending symbolic execution." (Printexc.to_string e));
+						Bi_Utils.update_failures proc.proc_name (Printexc.to_string e);
+						[] ) in
 				then_result_states @ else_result_states
 			)
 		) 
@@ -1053,39 +1079,46 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 			| _ ->
 				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Print.string_of_logic_expression le_proc_name false) in
 				raise (Failure msg)) in
-		let proc_specs =
-			(try
-				Hashtbl.find s_prog.spec_tbl proc_name
-			with _ ->
-				let msg = Printf.sprintf "No spec found for proc %s" proc_name in
-				raise (Failure msg)) in
-
-		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
-
-		(* symbolically evaluate the args *)
-		let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
-		let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
-
-		(if ((List.length new_symb_states) = 0)
-			then (
-				raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)))
-			);
-
-
-		let list_result_states = List.map
-			(fun (symb_state, anti_frame, ret_flag, ret_le) ->
-				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
-				store_put (get_store symb_state) x ret_le;
-				update_gamma (get_gamma symb_state) x ret_type;
-				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
-				(match ret_flag, j with
-				| Normal, _ ->
-					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i (i+1)
-				| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
-				| Error, Some j ->
-					symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i j))
-			new_symb_states in
-		List.concat list_result_states
+		if ((proc_name = proc.proc_name)) then
+			(print_endline "Recursive Call, ending symbolic execution."; 
+			[])
+		else
+			let proc_specs = (try
+				Some (Hashtbl.find s_prog.spec_tbl proc_name)
+			with Not_found ->
+				print_endline "No specs were found for this procedure, probably due to mutual recursion or procedure not found. Ending symbolic execution.";
+				None) in
+			match proc_specs with  
+			| None -> []
+			| Some proc_specs -> 
+				(List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
+				(* symbolically evaluate the args *)
+				let le_args = List.map (fun e -> symb_evaluate_expr symb_state anti_frame e) e_args in
+				let new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state anti_frame le_args in
+				if ((List.length new_symb_states) = 0) then 
+					(print_endline (Printf.sprintf "No precondition found for procedure %s. Ending symbolic execution." proc_name);			
+					Bi_Utils.update_failures proc.proc_name "No precondition found for procedure.";
+					[])
+				else 
+					(let list_result_states = List.map
+						(fun (symb_state, anti_frame, ret_flag, ret_le) ->
+							try 
+								(let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
+								store_put (get_store symb_state) x ret_le;
+								update_gamma (get_gamma symb_state) x ret_type;
+								let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
+								(match ret_flag, j with
+								| Normal, _ ->
+									symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i (i+1)
+								| Error, None -> raise (Failure (Printf.sprintf "Procedure %s may return an error, but no error label was provided." proc_name))
+								| Error, Some j ->
+									symb_evaluate_next_cmd s_prog proc spec new_search_info symb_state anti_frame i j))
+							with e -> 
+								print_endline (Printf.sprintf "Symbolic execution of this specification for %s failed with the msg %s. Ending symbolic execution." proc_name (Printexc.to_string e));
+								Bi_Utils.update_failures proc.proc_name (Printexc.to_string e);
+								[])
+						new_symb_states in
+					List.concat list_result_states))
 	 	in
 
 	(* symbolically evaluate a phi command *)
@@ -1103,6 +1136,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 		in 
 
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
+	let anti_frame = Simplifications.simplify_ss anti_frame (Some (Some spec.n_lvars)) in
+
 	print_symb_state_and_cmd symb_state anti_frame;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
@@ -1131,7 +1166,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state anti_frame i p
 	
 	@return symb_states The list of symbolic states resulting from the evaluation
 *)
-and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cur next  : ((symbolic_state * symbolic_state * jsil_return_flag) list) =
+and symb_evaluate_next_cmd s_prog proc spec search_info symb_state anti_frame cur next : ((symbolic_state * symbolic_state * jsil_return_flag) list) =
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
@@ -1183,7 +1218,7 @@ and symb_evaluate_next_cmd_cont
 	let finish ret_flag = 
 		let posts_and_afs = 
 				(Bi_Structural_Entailment.bi_unify_symb_state_against_post 
-					proc.proc_name spec symb_state anti_frame ret_flag search_info) in
+					proc.proc_name spec symb_state anti_frame ret_flag search_info js) in
 		let result_states = 
 				List.fold_left 
 					(fun ac (ac_post, ac_af) -> (ac_post, ac_af, ret_flag) :: ac)
@@ -1211,7 +1246,7 @@ and symb_evaluate_next_cmd_cont
 				(* Get the invariant *)
 				match (metadata.invariant) with
 				(* No invariant, throw an error *)
-				| None -> raise (Failure "back edges need to point to commands annotated with invariants")
+				| None -> print_endline "Already visited current command, recurvsive. Ending symbolic execution."; (true, None, []) (*raise (Failure "back edges need to point to commands annotated with invariants")*)
 				(* Invariant present, check if the current symbolic state entails the invariant *)
 				| Some a ->
 					(* check if the current symbolic state entails the invariant *)
@@ -1329,18 +1364,15 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info
 
 let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl = 
 	(* Create new specification is there is an anti frame *)
-	let suc_result_states = Option.get result_states in
 	let specs = (List.map (fun (post_state, anti_frame, ret_flag) ->
 					(* The new precondition = old precondition * anti frame *)
 					(* The new postconition is the final state after evaluation *)
 					let new_pre = Symbolic_State_Utils.bi_merge_symb_states anti_frame pre_post.n_pre in 
 					let new_pre, simplification_subst = Simplifications.simplify_ss_with_subst new_pre (Some None) in
-					(* Printf.printf "The obtained simplification_subst was: %s\n"
-						(Symbolic_State_Print.string_of_substitution simplification_subst); 
-					let more_pfs = pf_of_substitution simplification_subst in 
+					(*let more_pfs = pf_of_substitution simplification_subst in 
 					extend_symb_state_with_pfs new_pre (pfs_of_list more_pfs); *) 
 					let post_subst = symb_state_substitution post_state simplification_subst true in 
-					remove_concrete_values_from_the_store new_pre;
+					(*remove_concrete_values_from_the_store new_pre;*)
 					let (pre_subst,post_subst) = Symbolic_State_Utils.symb_state_lvars_to_svars new_pre post_subst in
 					Simplifications.naively_infer_type_information_symb_state pre_subst; 
 					let pre_lvars = Symbolic_State_Utils.get_symb_state_lvars pre_subst in
@@ -1354,7 +1386,7 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 						n_post_lvars = [post_lvars];
 						n_subst      = Hashtbl.create small_tbl_size
 					}
-			  	) suc_result_states) in
+			  	) result_states) in
 	let spec = try Some (Hashtbl.find new_spec_tbl proc_name) with Not_found -> None in 
 	(match spec with 
 	| Some spec -> 
@@ -1389,10 +1421,9 @@ let add_new_spec proc_name proc_params pre_post result_states new_spec_tbl =
 *)
 let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 	let new_spec_tbl = Hashtbl.create small_tbl_size in
-	if (!js) then
-		Hashtbl.iter (fun spec_name spec ->	if (not (List.mem spec_name procs_to_verify)) then 
-												Hashtbl.add new_spec_tbl spec_name spec
-					 ) spec_table; 	
+	Hashtbl.iter (fun spec_name spec -> if (not (List.mem spec_name procs_to_verify)) then 
+											Hashtbl.add new_spec_tbl spec_name spec
+				 ) spec_table; 	
 	(* Normalise predicate definitions *)
 	let n_pred_defs = Normaliser.normalise_predicate_definitions pred_defs in
 	(* Construct corresponding extended JSIL program *)
@@ -1413,18 +1444,24 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				(* Get list of pre-post pairs      *)
 				let pre_post_list = spec.n_proc_specs in
 				(* Iterate over the pre-post pairs *)
-				let results =
-					List.mapi
+				let _, results =
+					List.fold_left
 					(* For each pre-post pair *)
-					(fun i pre_post ->
+					(fun (i,ac) pre_post ->
 						(* TODO: we should remove this line - but first we need to make sure we are not updating the spec by mistake during symb execution *)
 						let new_pre_post = Symbolic_State_Utils.copy_single_spec pre_post in
 						(* Symbolically execute the procedure given the pre and post *)
 						let dot_graph, success, failure_msg, result_states = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
 						if (Option.is_some(result_states)) then  
-							add_new_spec proc_name proc.proc_params  pre_post result_states new_spec_tbl;
-						(proc_name, i, pre_post, success, failure_msg, dot_graph))
-					pre_post_list in
+							let suc_result_states = Option.get result_states in
+							if ((List.length suc_result_states) = 0) then
+								(i+1, ac)
+							else 
+								(add_new_spec proc_name proc.proc_params  pre_post suc_result_states new_spec_tbl;
+								(i+1, (proc_name, i, pre_post, success, failure_msg, dot_graph) :: ac))
+						else 
+							(i+1, (proc_name, i, pre_post, success, failure_msg, dot_graph) :: ac))
+					(0, []) pre_post_list in
 				let results_str, dot_graphs =  Symbolic_State_Print.string_of_symb_exe_results results in
 				(* Concatenate symbolic trace *)
 				ac_results @ results
@@ -1432,8 +1469,14 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 				let new_pre_post = Bi_Symbolic_State_Functions.create_new_spec () in
 				let dot_graph, success, failure_msg, result_states = symb_evaluate_proc s_prog proc_name new_pre_post 0 pruning_info in
 				if (Option.is_some(result_states)) then  
-					add_new_spec proc_name proc.proc_params  new_pre_post result_states new_spec_tbl;
-				(proc_name, 0, new_pre_post, success, failure_msg, dot_graph) :: ac_results)
+					(let suc_result_states = Option.get result_states in
+					if ((List.length suc_result_states) = 0) then
+						ac_results
+					else
+						(add_new_spec proc_name proc.proc_params new_pre_post suc_result_states new_spec_tbl;
+						(proc_name, 0, new_pre_post, success, failure_msg, dot_graph) :: ac_results))
+				else
+					(proc_name, 0, new_pre_post, success, failure_msg, dot_graph) :: ac_results)
 		[]
 		procs_to_verify in 
 	(* Return *)

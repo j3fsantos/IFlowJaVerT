@@ -144,7 +144,7 @@ let abs_heap_delete heap l e p_formulae (* solver *) gamma =
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val)
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
-let merge_heaps heap new_heap p_formulae (* solver *) gamma =
+let merge_heaps heap new_heap p_formulae  gamma =
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
@@ -369,35 +369,45 @@ let assertions_of_pred_set pred_set =
 			loop rest ((LPred (pred_name, args)) :: assertions) in 
 	loop preds [] 
 
-(*let remove_abs_locs_from_heap heap store pfs =
-	let subst = Hashtbl.create big_tbl_size in 
-	LHeap.iter
-		(fun loc (fv_list, def) ->  
-			try 
-				let e = Hashtbl.find subst loc in
-				LHeap.replace heap e (fv_list, def)
+let remove_abstract_locations heap store pfs : substitution  =
+	let subst = Hashtbl.create small_tbl_size in
+	LHeap.iter 
+		(fun loc (fv_list, def) -> 
+			(try 
+				Hashtbl.find subst loc; ()
 			with Not_found -> 
-				(if (is_abs_loc_name loc) then 
-					try 
-						let e = store_get store loc in
-						Hashtbl.add subst loc e;
-						store_remove store loc;
-						LHeap.replace heap e (fv_list, def)
-					with _ -> ())
-		) heap; 
-	pf_substitution pfs subst false;*)
+				(if (is_abs_loc_name loc) then
+					let s_loc = store_get_rev store (ALoc loc) in
+					(match s_loc with
+					| Some l ->
+						Hashtbl.add subst loc (PVar l)
+					| None -> 
+						let p_loc = Simplifications.find_me_in_the_pi pfs (ALoc loc) in
+						match p_loc with 
+						| Some l -> 
+							Hashtbl.add subst loc (LVar l)
+						| None -> 
+							let n_lvar = fresh_lvar () in 
+							Hashtbl.add subst loc (LVar n_lvar))
+				)
+			)
+			) heap;
+	subst
 
 let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_assertion = 
-	let heap, store, pfs, gamma, _ = symb_state in
+	let heap, store, pfs, gamma, preds = symb_state in
+	let subst = remove_abstract_locations heap store pfs in
 	let heap_assert = assertion_of_abs_heap heap in
 	let store_assert = assertions_of_abs_store store in
 	let gamma_assert = assertions_of_gamma gamma in
 	let pure_assert = DynArray.to_list pfs in
 	let assertions = heap_assert @ store_assert @ pure_assert @ [gamma_assert] in
-	List.fold_left (fun ac assertion -> 
+	let assertion = List.fold_left (fun ac assertion -> 
 						if (ac = LEmp) then assertion else LStar(ac , assertion)) 
 		LEmp 
-		assertions
+		assertions in
+	assertion_substitution assertion subst true
+
 
 let string_of_single_spec_table_assertion single_spec =
 	let pre = convert_symb_state_to_assertion single_spec.n_pre in

@@ -504,7 +504,8 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				| SymbExecFailure failure -> 
 						print_debug (Symbolic_State_Print.print_failure failure);
 						print_debug (Printf.sprintf "I found a NON-match");
-						find_correct_specs rest_spec_list ac_quotients) in
+						find_correct_specs rest_spec_list ac_quotients
+				| _ -> raise e) in
 
 
 	let transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
