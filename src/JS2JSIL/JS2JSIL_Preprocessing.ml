@@ -138,8 +138,8 @@ let get_top_level_annot e =
   | Script (_, les) ->
     let first_le = List.nth les 0 in
     let annot = first_le.Parser_syntax.exp_annot in
-    Some annot
-  | _ -> None
+    annot
+  | _ -> []
 
 
 
@@ -167,11 +167,7 @@ let get_codename exp =
     | _ -> raise No_Codename
 
 
-let rec add_codenames (main                  : string) 
-                      (fresh_anonymous       : unit -> string) 
-                      (fresh_named           : string -> string) 
-                      (fresh_catch_anonymous : unit -> string) 
-                      exp =  
+let rec add_codenames exp =  
   let f_m e = 
     match e.exp_stx with 
     | FunctionExp _ -> 
@@ -361,9 +357,9 @@ let get_predicate_defs_from_annots annots : JS2JSIL_Logic.js_logic_predicate lis
   pred_defs 
 
 
-let get_only_specs_from_annots annots : unit =
+let get_only_specs_from_annots annots : JS2JSIL_Logic.js_spec list =
   let only_specs_annots = List.filter (fun annot -> annot.annot_type == Parser_syntax.OnlySpec) annots in 
-  List.iter (fun only_spec -> JSIL_Utils.js_only_spec_from_string ("js_only_spec " ^ only_spec.annot_formula)) only_specs_annots 
+  List.map (fun only_spec -> JSIL_Utils.js_only_spec_from_string ("js_only_spec " ^ only_spec.annot_formula)) only_specs_annots 
   
 
 let parse_annots_formulae annots = 
@@ -489,6 +485,24 @@ let rec get_predicate_definitions exp =
   js_fold f_ac (fun x y -> y) true exp
 
 
+let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs = 
+  let only_specs = Hashtbl.create medium_tbl_size in
+  List.iter
+  (fun { JS2JSIL_Logic.js_spec_name; JS2JSIL_Logic.js_spec_params; JS2JSIL_Logic.js_proc_specs } ->
+    Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; main_fid ];
+    let proc_specs = List.map (fun { JS2JSIL_Logic.js_pre; JS2JSIL_Logic.js_post; JS2JSIL_Logic.js_ret_flag } -> 
+      let pre  = JS2JSIL_Logic.js2jsil_logic_top_level_pre  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+      let post = JS2JSIL_Logic.js2jsil_logic_top_level_post js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+        { JSIL_Syntax.pre = pre; JSIL_Syntax.post = post; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
+    let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs } in
+    Hashtbl.replace only_specs  js_spec_name spec;
+    Hashtbl.replace cc_tbl      js_spec_name (Hashtbl.create 1);
+    Hashtbl.replace old_fun_tbl js_spec_name (js_spec_name, js_spec_params, None, ([], [ js_spec_name; "main" ], Hashtbl.create 1));
+    Hashtbl.replace fun_tbl     js_spec_name (js_spec_name, js_spec_params, None, Some spec);
+  ) js_only_specs;
+  only_specs
+
+
 
 (********************************************)
 (********************************************)
@@ -496,37 +510,95 @@ let rec get_predicate_definitions exp =
 (********************************************)
 (********************************************)
 
+let preprocess 
+  (cc_tbl      : cc_tbl_type) 
+  (fun_tbl     : fun_tbl_type) 
+  (vis_tbl     : vis_tbl_type) 
+  (e           : Parser_syntax.exp) =
+  
+  (* 0 - testing early errors                      *)
+  test_early_errors e; 
 
-let closure_clarification_top_level 
-      (cc_tbl      : cc_tbl_type) 
-      (fun_tbl     : fun_tbl_type) 
-      (old_fun_tbl : pre_fun_tbl_type) 
-      (vis_tbl     : vis_tbl_type) 
-      (proc_id     : string) 
-      (e           : Parser_syntax.exp)  
-      (vis_fid     : string list) =
-  let proc_tbl = Hashtbl.create JS2JSIL_Constants.medium_tbl_size in
+  (* 1 - expanding the flashes                     *)
+  JSIL_Syntax.print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
+  let e = expand_flashes e in
 
-  let proc_vars = get_all_vars_f e [] in
-  List.iter
-    (fun v -> Hashtbl.replace proc_tbl v proc_id)
-    proc_vars;
-  Hashtbl.add cc_tbl proc_id proc_tbl;
-  Hashtbl.add old_fun_tbl proc_id (proc_id, [], Some e, ([], [ proc_id ], proc_tbl));
-  Hashtbl.add vis_tbl proc_id vis_fid;
-  closure_clarification cc_tbl old_fun_tbl vis_tbl proc_id vis_fid e;
+  (* 2 - propagating annotations                   *)
+  JSIL_Syntax.print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+  let e, _ = propagate_annotations e in  
+  JSIL_Syntax.print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
+ 
+  (* 3 - obtaining and compiling only-specs        *)
+  let top_annots = get_top_level_annot e in
+  let js_only_specs = get_only_specs_from_annots top_annots in 
+  let old_fun_tbl : pre_fun_tbl_type = Hashtbl.create medium_tbl_size in 
+  let only_specs = translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs in 
+
+  (* 4 - Adding the main to the translation tables *)
+  let main_tbl = Hashtbl.create medium_tbl_size in
+  List.iter (fun v -> Hashtbl.replace main_tbl v main_fid) (get_all_vars_f e []);
+  Hashtbl.add cc_tbl main_fid main_tbl;
+  Hashtbl.add old_fun_tbl main_fid (main_fid, [], Some e, (top_annots, [ main_fid ], main_tbl));
+  Hashtbl.add vis_tbl main_fid [ main_fid ];  
+
+  (* 5 - Add unique ids to function literals       *)
+  let e = add_codenames e in
+ 
+  (* 6 - Closure clarification                     *)
+  closure_clarification cc_tbl old_fun_tbl vis_tbl main_fid [ main_fid ] e;
+  
+  (* 7 - Translate JS Specs                        *)
   translate_specs cc_tbl vis_tbl old_fun_tbl fun_tbl;
+
+  (* 8 - Translate JS Predicate Definitions        *)
   let js_predicate_definitions : JS2JSIL_Logic.js_logic_predicate list = get_predicate_definitions e in  
   let jsil_predicate_definitions = 
     List.map (fun pred_def -> JS2JSIL_Logic.translate_predicate_def pred_def cc_tbl vis_tbl old_fun_tbl) js_predicate_definitions in 
-  let annots = get_top_level_annot e in
-  (match annots with
-  | Some annots ->
-    (*Printf.printf "Going to generate main. Top-level annotations:\n%s\n" (Pretty_print.string_of_annots annots); *)
-    let specs = translate_single_func_specs cc_tbl vis_tbl old_fun_tbl proc_id [] annots TopRequires TopEnsures TopEnsuresErr in
-    Hashtbl.replace fun_tbl proc_id (proc_id, [], Some e, specs);
-  | None -> ()); 
-  let jsil_pred_def_tbl : (string, JSIL_Syntax.jsil_logic_predicate) Hashtbl.t = JSIL_Syntax.pred_def_tbl_from_list jsil_predicate_definitions in 
-  jsil_pred_def_tbl
+  let predicates : (string, JSIL_Syntax.jsil_logic_predicate) Hashtbl.t = JSIL_Syntax.pred_def_tbl_from_list jsil_predicate_definitions in 
   
+  e, only_specs, predicates
+
+
+
+let preprocess_eval 
+  (cc_tbl      : cc_tbl_type) 
+  (vis_tbl     : vis_tbl_type) 
+  (e           : Parser_syntax.exp)
+  (fid_parent  : string) 
+  (params      : string list) =
+
+  let offset_converter x = 0 in  
+  let fid                = 
+    if ((List.length params) > 0)
+      then fresh_anonymous ()
+      else fresh_anonymous_eval () in
+  let pre_fun_tbl        = Hashtbl.create small_tbl_size in
+  let fun_tbl            = Hashtbl.create small_tbl_size in
+
+  let vislist =
+    try fid :: (Hashtbl.find vis_tbl fid_parent) 
+      with _ -> raise (Failure (Printf.sprintf "Function %s not found in visibility table" fid_parent)) in 
+
+  (* 0 - testing early errors                      *)
+  test_early_errors e;
+  
+  (* 1 - Add unique ids to function literals       *)
+  let e : Parser_syntax.exp = add_codenames e in
+  
+  (* 2 - Adding the eval body to the translation tables *)
+  update_cc_tbl cc_tbl fid_parent fid (get_all_vars_f e params);
+  Hashtbl.add pre_fun_tbl fid (fid, [var_scope; var_this], Some e, ([], vislist, Hashtbl.create small_tbl_size));
+  Hashtbl.add vis_tbl fid vislist;
+  
+  (* 3 - Closure clarification                     *)
+  closure_clarification cc_tbl pre_fun_tbl vis_tbl fid vislist e;
+
+  (* 4 - Translate Specs                           *)
+  translate_specs cc_tbl vis_tbl pre_fun_tbl fun_tbl;
+
+  e, fid, vislist, fun_tbl
+  
+
+
+
 

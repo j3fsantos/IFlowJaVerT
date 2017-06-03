@@ -258,7 +258,7 @@ let copy_and_clear_globals () =
 %type <JS2JSIL_Logic.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS2JSIL_Logic.js_logic_assertion> top_level_js_assertion_target
-%type <unit> js_only_spec_target
+%type <JS2JSIL_Logic.js_spec> js_only_spec_target
 
 %type<jsil_constant> constant_target
 
@@ -662,8 +662,7 @@ js_only_spec_target:
 	js_proc_specs = separated_nonempty_list(SCOLON, js_pre_post_target); EOF
 	{
 		let (js_spec_name, js_spec_params) = spec_head in
-		let js_spec = { js_spec_name; js_spec_params; js_proc_specs } in
-		Hashtbl.replace js_only_spec_table js_spec_name js_spec
+		{ js_spec_name; js_spec_params; js_proc_specs } 
 	}
 	
 js_pre_post_target:

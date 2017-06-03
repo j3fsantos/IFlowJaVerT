@@ -177,7 +177,7 @@ let js_logic_pred_def_of_string str : JS2JSIL_Logic.js_logic_predicate =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_pred_target lexbuf
 
-let js_only_spec_from_string str : unit =
+let js_only_spec_from_string str : JS2JSIL_Logic.js_spec =
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_only_spec_target lexbuf

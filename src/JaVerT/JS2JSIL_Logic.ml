@@ -167,8 +167,6 @@ type js_spec = {
 	js_proc_specs   : js_single_spec list
 }
 
-let js_only_spec_table : (string, js_spec) Hashtbl.t = Hashtbl.create 511
-
 let rec js2jsil_lexpr le =
 	let fe = js2jsil_lexpr in
 	match le with
