@@ -55,3 +55,11 @@ output.txt
 
 # Environment
 environment
+
+# LaTeX nonsense
+*.blg
+*.bbl
+*.aux
+*.out
+*.log
+tutorial/main.pdf
