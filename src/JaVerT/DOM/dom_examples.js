@@ -281,6 +281,32 @@ function sanitiseImg(img, cat){
 }
 
 /*
+	@id textAxioms
+
+	@pre (
+		InitialDOMHeap() * (tnode == #tn) *
+		Forest(#f_loc, {{ {{ "hole", #alpha1 }} }}) *
+		TCell(#alpha1, #tn, #text1_pre) * (#text1_pre == "abcdefghi")
+	)
+	@post (
+		InitialDOMHeap() * (ret == 9) *
+		Forest(#f_loc, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) *
+		TCell(#alpha1, #tn, #text1_post) * (#text1_post == "abcabcabc") *
+		TCell(#alpha2, #tn2, #text2_post) * (#text2_post == "ghia")
+	)
+*/
+function textAxioms(tnode) {
+	var l = tnode.length();
+	var c = tnode.substringData(0, 3);
+	tnode.replaceData(3, 3, c);
+	var t2 = tnode.splitText(6);
+	t2.insertData(3, c);
+	t2.deleteData(4, 10);
+	tnode.appendData(c);
+	return l
+}
+
+/*
 -------------------------------------------------------------------------------
 */
 

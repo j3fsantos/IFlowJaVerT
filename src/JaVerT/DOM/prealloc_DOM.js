@@ -757,14 +757,77 @@
 		post: [[ ACell(#alpha, #name, this, #l_children, #cList) * (ret == $l_document) ]]
 		outcome: normal
 
-	@onlyspec insertBefore()
+	@onlyspec insertBefore(m, n)
 		pre:  [[ emp ]]
 		post: [[ emp ]]
 		outcome: normal
 
-	@onlyspec replaceChild()
-		pre:  [[ emp ]]
-		post: [[ emp ]]
+	@onlyspec replaceChild(n, o)
+		pre:  [[ (n == #n) * (o == #o) * DocumentNode(this, #l_element, #element, #l_g, #grove) *
+				 (#cList == #a1 @ ({{ "hole", #beta }} :: #a2)) *
+				 ECell(#beta, #o_name, #o, #o_l_a, #o_a, #o_l_c, #o_c) *
+				 ECell(#zeta, #en_name, #en, #en_l_a, #en_a, #en_l_c, #en_c) * complete(#en_c) *
+				 Grove(#gamma, #g) ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList_post) *
+				 (#cList_post == #a1 @ ({{ "hole", #zeta2 }} :: #a2)) *
+				 ECell(#zeta2, #en_name, #en, #en_l_a, #en_a, #en_l_c, #en_c) *
+				 ECell(#beta, #o_name, #o, #o_l_a, #o_a, #o_l_c, #o_c) *
+				 EmptyCell(#zeta) * Grove(#gamma, #g_post) * (#g_post == {{ "hole", #beta }} :: #g) * (ret == #o) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList) *
+				 (#cList == #a1 @ ({{ "hole", #beta }} :: #a2)) *
+				 ECell(#beta, #o_name, #o, #o_l_a, #o_a, #o_l_c, #o_c) *
+				 TCell(#zeta, #tn, #tn_t) * Grove(#gamma, #g) ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList_post) *
+				 (#cList_post == #a1 @ ({{ "hole", #zeta2 }} :: #a2)) *
+				 TCell(#zeta2, #tn, #tn_t) *
+				 ECell(#beta, #o_name, #o, #o_l_a, #o_a, #o_l_c, #o_c) *
+				 EmptyCell(#zeta) * Grove(#gamma, #g_post) * (#g_post == {{ "hole", #beta }} :: #g) * (ret == #o) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList) *
+				 (#cList == #a1 @ ({{ "hole", #beta }} :: #a2)) *
+				 TCell(#beta, #o, #o_t) *
+				 ECell(#zeta, #en_name, #en, #en_l_a, #en_a, #en_l_c, #en_c) * complete(#en_c) *
+				 Grove(#gamma, #g) ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList_post) *
+				 (#cList_post == #a1 @ ({{ "hole", #zeta2 }} :: #a2)) *
+				 ECell(#zeta2, #en_name, #en, #en_l_a, #en_a, #en_l_c, #en_c) *
+				 TCell(#beta, #o, #o_t) *
+				 EmptyCell(#zeta) * Grove(#gamma, #g_post) * (#g_post == {{ "hole", #beta }} :: #g) * (ret == #o) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList) *
+				 (#cList == #a1 @ ({{ "hole", #beta }} :: #a2)) *
+				 TCell(#beta, #o, #o_t) * TCell(#zeta, #en, #en_t) *
+				 Grove(#gamma, #g) ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_cList, #cList_post) *
+				 (#cList_post == #a1 @ ({{ "hole", #zeta2 }} :: #a2)) *
+				 TCell(#zeta2, #en, #en_t) * TCell(#beta, #o, #o_t) *
+				 EmptyCell(#zeta) * Grove(#gamma, #g_post) * (#g_post == {{ "hole", #beta }} :: #g) * (ret == #o) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * ACell(#alpha, #name, this, #l_aList, #aList) *
+				 (#aList == #a1 @ ({{ "hole", #beta }} :: #a2)) *
+				 TCell(#beta, #o, #o_t) * TCell(#zeta, #en, #en_t) *
+				 Grove(#gamma, #g) ]]
+		post: [[ ACell(#alpha, #name, this, #l_aList, #aList_post) *
+				 (#aList_post == #a1 @ ({{ "hole", #zeta2 }} :: #a2)) *
+				 TCell(#zeta2, #en, #en_t) * TCell(#beta, #o, #o_t) *
+				 EmptyCell(#zeta) * Grove(#gamma, #g_post) * (#g_post == {{ "hole", #beta }} :: #g) * (ret == #o) ]]
+		outcome: normal;
+
+		pre:  [[ (n == #n) * (o == #o) * DocumentNode(this, #l_element, #element, #l_g, #grove) *
+				 (#element == {{ {{ "hole", #beta }} }}) *
+				 ECell(#beta, #o_name, #o, #o_l_a, #o_a, #o_l_c, #o_c) *
+				 ECell(#zeta, #en_name, #en, #en_l_a, #en_a, #en_l_c, #en_c) * complete(#en_c) *
+				 Grove(#gamma, #g) ]]
+		post: [[ DocumentNode(this, #l_element, #element_post, #l_g, #grove) *
+				 (#element_post == {{ {{ "hole", #zeta2 }} }}) *
+				 ECell(#zeta2, #en_name, #en, #en_l_a, #en_a, #en_l_c, #en_c) *
+				 ECell(#beta, #o_name, #o, #o_l_a, #o_a, #o_l_c, #o_c) *
+				 EmptyCell(#zeta) * Grove(#gamma, #g_post) * (#g_post == {{ "hole", #beta }} :: #g) * (ret == #o) ]]
 		outcome: normal
 
 	@onlyspec removeChild()
@@ -948,28 +1011,29 @@
 		outcome: normal
 */
 
-/*
-	@id banana
+/**
+	@id createNewAttribute
+	@rec false
 
 	@pre (
-		InitialDOMHeap() * (tnode == #tn) *
-		Forest(#f_loc, {{ {{ "hole", #alpha1 }} }}) *
-		TCell(#alpha1, #tn, #text1_pre) * (#text1_pre == "abcdefghi")
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
 	@post (
-		InitialDOMHeap() * (ret == 9) *
-		Forest(#f_loc, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) *
-		TCell(#alpha1, #tn, #text1_post) * (#text1_post == "abcabcabc") *
-		TCell(#alpha2, #tn2, #text2_post) * (#text2_post == "ghia")
+		InitialDOMHeap() * (ret == $$t) * 
+		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
+		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
+		(#cList_post == (#cList1 @ {{ {{ "hole", #beta }} }})) *
+		ECell(#beta, "test", #n_id, #n_l_aList, #n_aList, #n_l_cList, #n_cList)
 	)
 */
-function banana(tnode) {
-	var l = tnode.length();
-	var c = tnode.substringData(0, 3);
-	tnode.replaceData(3, 3, c);
-	var t2 = tnode.splitText(6);
-	t2.insertData(3, c);
-	t2.deleteData(4, 10);
-	tnode.appendData(c);
-	return l
+function createNewAttribute(element){
+	var d = element.ownerDocument();
+	var e = d.createElement("test");
+	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
+	/* @fold complete(#cList2) */
+	var n = element.appendChild(e);
+	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
+	return (n === e);
 }
