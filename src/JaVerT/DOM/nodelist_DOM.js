@@ -113,7 +113,7 @@
 		((id, "@children") -> l_children) * Forest(l_children, cList) *
 		((id, "@flisteners") -> fin) * 
 		((id, "@flistenersUnfolded") -> fout) * 
-		types(name: $$string_type, aList: $$list_type, cList: $$list_type, fin: $$list_type, fout: $$list_type); 
+		types(name: $$string_type, aList: $$list_type, cList: $$list_type, fin: $$set_type, fout: $$set_type); 
 
 	@pred TextNode(id, text) :
 		DOMObject(id, $l_tnp) *
