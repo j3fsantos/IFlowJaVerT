@@ -104,16 +104,16 @@
 
 	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList, fin, fout) :
 		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * NodeList(f, id) * 
-		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flistener1", "@flistener2") * 
+		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flisteners", "@flistenersUnfolded") * 
 		ElementNode(name, id, l_attr, aList, l_children, cList, fin, fout);
 
 	@pred ElementNode(name, id, l_attr, aList, l_children, cList, fin, fout) :
 		((id, "@name") -> name) *
 		((id, "@attributes") -> l_attr) * AttributeSet(l_attr, aList) *
 		((id, "@children") -> l_children) * Forest(l_children, cList) *
-		((id, "@flistener1") -> fin) *
-		((id, "@flistener2") -> fout) *
-		types(name: $$string_type, aList: $$list_type, cList: $$list_type, f: $$object_type); 
+		((id, "@flisteners") -> fin) * 
+		((id, "@flistenersUnfolded") -> fout) * 
+		types(name: $$string_type, aList: $$list_type, cList: $$list_type, fin: $$list_type, fout: $$list_type); 
 
 	@pred TextNode(id, text) :
 		DOMObject(id, $l_tnp) *
@@ -230,7 +230,7 @@
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList, fin, fout) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * types(#l: $$object_type) *
 		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) *
-		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flistener1", "@flistener2") * 
+		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flisteners", "@flistenersUnfolded") * 
 		ElementNode(name, id, l_attr, aList, l_children, cList, fin, fout);
 
 	@pred TCell(alpha, id, text) : 
@@ -548,7 +548,7 @@
 	@onlyspec createElement(s)
 		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
 		post: [[ (ret == #en) * DocumentNode(this, #l_element, #element, #l_g, #g_post) * (#g_post == {{ "hole", #alpha }} :: #g) * 
-				 ECell(#alpha, #name, #en, #e_l_a, $$nil, #e_l_c, $$nil, #fin, #fout) * types(#en : $$object_type) ]]
+				 ECell(#alpha, #name, #en, #e_l_a, $$nil, #e_l_c, $$nil, #fin, -{}-) * types(#en : $$object_type) ]]
 		outcome: normal
 
 	@onlyspec createTextNode(s)
