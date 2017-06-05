@@ -7,17 +7,31 @@ open JSIL_Logic_Utils
 (** Unification Algorithm **)
 (***************************)
 
-let must_be_equal le_pat le pi gamma subst =
-	let le_pat = lexpr_substitution le_pat subst true in
-	print_debug_petar (Printf.sprintf "Must be equal: %s = %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
-	let result = 
-	(match le_pat = le with
-	| true when (le_pat <> LUnknown) -> true
-	| true -> false
-	| false -> (match le_pat, le with 
-	  | LLit _, LLit _ -> false
-		| _ -> Pure_Entailment.is_equal le_pat le pi gamma)) in
-	result
+let rec must_be_equal le_pat le pi gamma subst =
+	
+	let the_check le_pat le subst =
+		let le_pat = lexpr_substitution le_pat subst true in
+				print_debug_petar (Printf.sprintf "Must be equal: %s = %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
+				let result = 
+				(match le_pat = le with
+				| true when (le_pat <> LUnknown) -> true
+				| true -> false
+				| false -> (match le_pat, le with 
+				  | LLit _, LLit _ -> false
+					| _ -> Pure_Entailment.is_equal le_pat le pi gamma)) in
+				result in
+	
+	let eq_ass_red = Simplifications.reduce_assertion_no_store gamma pi (LEq (le_pat, le)) in
+	(match eq_ass_red with
+	| LTrue -> true
+	| LFalse -> false
+	| LEq (le_pat, le) ->
+		(match le_pat with
+		| LVar v -> 
+				(match Hashtbl.mem subst v with
+				| false -> extend_subst subst v le; true
+				| true -> the_check le_pat le subst)
+		| _ -> the_check le_pat le subst))
 
 
 let must_be_different le_pat le pi gamma subst =
@@ -256,7 +270,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 			end)			
 	
 	| _ ->
-		let le_pat' = lexpr_substitution le_pat subst false in 
+		let le_pat' = lexpr_substitution le_pat subst true in 
 		 (must_be_equal le_pat' le p_formulae gamma subst), None
 		) in
 	let end_time = Sys.time () in

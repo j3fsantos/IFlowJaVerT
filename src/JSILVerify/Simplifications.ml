@@ -1483,6 +1483,10 @@ let simplify_symb_state
 			(* If we have false in the pfs, everything is false and we stop *)
 			| LFalse -> pfs_ok := false; msg := "Pure formulae flat-out false."
 			
+			(* We are false if we have x < x *)
+			| LLess	(LVar v1, LVar v2) when (v1 = v2) ->
+			  	pfs_ok := false; msg := "Incorrect less-than."
+			
 			(* We can reduce < if both are numbers *)
 			| LLess	(LLit (Num n1), LLit (Num n2)) ->
 			  (match (n1 < n2) with
@@ -2076,7 +2080,8 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 		| LEq (LSetUnion ul, LSetUnion ur) -> 
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
-				print_debug_petar "I have found a union equality.";
+				print_debug_petar "Resolve set existentials: I have found a union equality.";
+				print_debug_petar (JSIL_Print.string_of_logic_assertion a false);
 				
 				(* Trying to cut the union *)
 				let same_parts = SLExpr.inter sul sur in
@@ -2138,7 +2143,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 		| LEq (LSetUnion ul, LSetUnion ur) -> 
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
-				print_debug_petar "I have found a union equality.";
+				print_debug_petar "Find impossible unions: I have found a union equality.";
 				
 				(* Just for the left *)
 				SLExpr.iter (fun s1 ->
@@ -2150,6 +2155,9 @@ let find_impossible_unions lpfs rpfs exists gamma =
 					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
 					if (must_not_intersect = [ true ]) then raise (Failure "Oopsie!");
 				) sul;
+				
+				(* Continue if we survived *)
+				i := !i + 1;
 		
 		| _ -> i := !i + 1;);
 		done;	
