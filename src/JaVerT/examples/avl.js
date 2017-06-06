@@ -13,7 +13,7 @@
 		
 		Node(n, #val, h, #left, #right) * AVL(#left, #KL, #hl) * AVL(#right, #KR, #hr) * 
 		(K == -u- (#KL, -{ #val }-, #KR)) * 
-		(h == #hr + 1) * (#hl - #hr == -1) * 
+		(0 <# h) * (h == #hr + 1) * (#hl - #hr == -1) * 
 		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
 		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
 		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type, #hl : $$number_type, #hr : $$number_type),
@@ -23,7 +23,7 @@
 		(h == #hlr + 1) * 
 		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
 		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
-		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type, #hl : $$number_type, #hr : $$number_type),
+		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type, #hlr : $$number_type),
 
 		Node(n, #val, h, #left, #right) * AVL(#left, #KL, #hl) * AVL(#right, #KR, #hr) * 
 		(K == -u- (#KL, -{ #val }-, #KR)) * 
@@ -54,77 +54,37 @@ function make_node(v)
 }
 
 /**
-	@id findMin
+	@id height
 	
-	@pre
-		(t == #t) * AVL(#t, #K, #h) * types(#t : $$object_type, #h : $$number_type) * 
-		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
-
-	@post 
-		AVL(#t, #K, #h) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) * 
-		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
-		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
-*/
-function find_min(t)
-{
-	/** @unfold AVL(#t, #K, #h) */
-	var result;
-	
-	/** @invariant dataField(#t, "left", #il) * AVL(#il, #KL, #hl) 
-	 	@flash AVL(#il, #KL, #hl) */
-	if (t.left === null)
-		result = t.value;
-	else
-		result = find_min(t.left);
+	@pre  (t == $$null) 
+	@post (ret == 0)
 		
-	/** @fold AVL(#t, #K, #h) */
-	return result;
+	@pre
+		(t == #t) * types(#t : $$object_type) *
+		standardObject(#t) * dataField(#t, "height", #hgt) * types(#hgt : $$number_type)
+	
+	@post
+		standardObject(#t) * dataField(#t, "height", #hgt) * (ret == #hgt)
+*/
+function height(t)
+{
+	var result = t ? t.height : 0;
+	
+	return result
 }
 
 /**
-	@id find
+	@id max
 	
-	@pre
-		(t == #t) * AVL(#t, #K, #h) * (v == #v) * types (#v : $$number_type) * 
-		scope(find : #find) * fun_obj(find, #find, #findProto)
-
-	@post 
-		AVL(#t, #K, #h) * (ret == (#v -e- #K)) * types(#r : $$boolean_type) *
-		scope(find : #find) * fun_obj(find, #find, #findProto)
+	@pre  (a == #a) * (b == #b) * types (#a : $$number_type, #b : $$number_type) * (a <# b)
+	@post (ret == #b)
+		
+	@pre  (a == #a) * (b == #b) * types (#a : $$number_type, #b : $$number_type) * (b <=# a)
+	@post (ret == #a)
 */
-function find (v, t)
-{
-	var result;
-
-	/** @unfold AVL(#t, #K, #h) */	
-	if (t === null)
-		result = false;
-	else if (v === t.value)
-		result = true;
-	else {
-		if (v < t.value)
-		  result = find(v, t.left) 
-		else
-		  result = find(v, t.right);
-	}
-	
-	/** @fold AVL(#t, #K, #h) */
-	return result;
-}
-
 function max(a, b)
 {
   return a > b ? a : b;
-}
-
-function height(t)
-{
-  return t ? t.height : 0;
-}
-
-function update_height(t)
-{
-  t.height = max(height(t.left), height(t.right)) + 1;
 }
 
 // Balancing tree
@@ -137,8 +97,8 @@ function left_rotate(x)
   x.right = y.left;
   y.left = x;
 
-  update_height(x);
-  update_height(y);
+  x.height = max(height(x.left), height(x.right)) + 1;
+  y.height = max(height(y.left), height(y.right)) + 1;
 
   return y;
 }
@@ -151,14 +111,35 @@ function right_rotate(x)
   x.left = y.right;
   y.right = x;
 
-  update_height(x);
-  update_height(y);
+  x.height = max(height(x.left), height(x.right)) + 1;
+  y.height = max(height(y.left), height(y.right)) + 1;
 
   return y;
 }
 
+/**
+	@id balance
+	
+	@pre 
+		(t == #t) * 
+		Node(#t, #val, #h, #left, #right) * AVL(#left, #KL, #hl) * AVL(#right, #KR, #hr) * 
+		(0 <# h) * (#h == #hr + 1) * ((#hl - #hr == -1) \/ (#hl - #hr == -1) \/ (#hl - #hr == 1)) * 
+		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
+		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
+		types(#KL : $$set_type, #KR : $$set_type, #hl : $$number_type, #hr : $$number_type) *
+		scope(height : #height) * fun_obj(height, #height, #heightProto) *
+		scope(max : #max) * fun_obj(max, #max, #maxProto)
+	@post
+		AVL(#t, #K_new, #h) * (#K_new == -u- (#KL, -{ #val }-, #KR)) *
+		scope(height : #height) * fun_obj(height, #height, #heightProto) *
+		scope(max : #max) * fun_obj(max, #max, #maxProto)
+*/
 function balance(t)
 {
+  /** 
+  	@unfold AVL(#left, #KL, #hl)
+  	@unfold AVL(#right, #KR, #hr)
+  */
   if (height(t.left) - height(t.right) === 2) {
     if (height(t.left.left) < height(t.left.right))
       t.left = left_rotate(t.left);
@@ -170,56 +151,13 @@ function balance(t)
     t = left_rotate(t);
   }
 
+  t.height = max(height(t.left), height(t.right)) + 1;
+  /** 
+  	@invariant dataField(#t, "left", #lnew) * dataField(#t, "right", #rnew) 
+  	@fold AVL(#lnew, #KL_new, #hl)
+  	@fold AVL(#rnew, #KR_new, #hr)
+  	@fold AVL(#t, -u- (#KL, -{ #val }-, #KR), #h_new)
+  */
   return t;
 }
 
-
-// Tree operations
-
-
-function insert(v, t)
-{
-  if (t === null)
-    return make_node(v);
-
-  if (v < t.value)
-    t.left = insert(v, t.left);
-  else if (v > t.value)
-    t.right = insert(v, t.right);
-  else
-    return t;
-
-  update_height(t);
-  t = balance(t);
-
-  return t;
-}
-
-function remove(v, t)
-{
-  if (t === null)
-    return null;
-
-  if (v === t.value) {
-    if (t.left === null) {
-      return t.right;
-    }
-    else if (t.right === null) {
-      return t.left;
-    }
-    else {
-      var min = find_min(t.right);
-      t.right = remove(min, t.right);
-      t.value = min;
-    }
-  }
-  else if (v < t.value)
-    t.left = remove(v, t.left);
-  else
-    t.right = remove(v, t.right);
-
-  update_height(t);
-  t = balance(t);
-
-  return t;
-}

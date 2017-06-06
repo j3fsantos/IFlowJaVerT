@@ -1447,7 +1447,7 @@ let simplify_symb_state
 	let pfs = get_pf symb_state in
 
 	(* String translation: Use internal representation as Chars *)
-	let pfs = DynArray.map (assertion_map le_string_to_list) pfs in
+	let pfs = DynArray.map (assertion_map None le_string_to_list) pfs in
 	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs)); *)
 	let symb_state = symb_state_replace_pfs symb_state pfs in 
 	
@@ -1755,7 +1755,7 @@ let simplify_symb_state
 		) subst;
 	
 	(* Convert Pure Formulas back *)
-	let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in
+	let pfs = DynArray.map (assertion_map None le_list_to_string) (get_pf !symb_state) in
 	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
 	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
 
@@ -1773,7 +1773,7 @@ let simplify_symb_state
 		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) pparams in
 		DynArray.set preds i (pname, pparams)) preds;
 
-	let others = ref (DynArray.map (assertion_map le_list_to_string) !others) in
+	let others = ref (DynArray.map (assertion_map None le_list_to_string) !others) in
 
 	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 

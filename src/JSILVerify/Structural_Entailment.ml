@@ -1183,7 +1183,9 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 		  let entailment_check_ret, pf_discharges, pf_1_subst_list, gamma_0', new_existentials = step_2 subst filtered_vars gamma_existentials new_pfs discharges in
 			(match entailment_check_ret with 
 			| true  -> entailment_check_ret, heap_f, preds_f, subst, (pf_1_subst_list @ pf_discharges), gamma_0', new_existentials, unmatched_pat_preds
-			| false -> recovery_step heap_f old_subst filtered_vars gamma_existentials new_pfs discharges)
+			| false -> (match pred_name with
+				| "AVL" -> raise (SymbExecFailure (USF CannotUnifyPredicates))
+				| _ -> recovery_step heap_f old_subst filtered_vars gamma_existentials new_pfs discharges))
 	)
 	with
 		| e -> (match e with 

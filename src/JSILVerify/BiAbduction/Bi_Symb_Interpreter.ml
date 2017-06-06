@@ -861,7 +861,7 @@ and
 lcmd_map f unfold_macros lcmd =
 	(* Map recursively to commands, assertions, and expressions *)
 	let map_l = lcmd_map f unfold_macros in
-	let map_a = assertion_map f in
+	let map_a = assertion_map None f in
 	let map_e = logic_expression_map f in
 	match lcmd with
 	| Fold      a                   -> Fold      (map_a a)

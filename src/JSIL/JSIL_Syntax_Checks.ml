@@ -116,7 +116,7 @@ let replace_spec_keywords spec ret_var err_var =
 						  | _ -> (lexpr, true))
 					  in
 				  { pre = current_spec.pre;
-					  post = JSIL_Logic_Utils.assertion_map subst_ret_err current_spec.post;
+					  post = JSIL_Logic_Utils.assertion_map None subst_ret_err current_spec.post;
 					  ret_flag = current_spec.ret_flag;
 				  }
 			  )

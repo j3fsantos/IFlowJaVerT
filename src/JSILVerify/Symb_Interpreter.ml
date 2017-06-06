@@ -597,7 +597,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 
 	let rec find_correct_pred_def cur_pred_defs : (symbolic_state * SS.t) option =
 		print_time_debug ("find_correct_pred_def:");
-		print_debug_petar (Printf.sprintf "Predicate has %d definitions." (List.length cur_pred_defs));
+		print_debug_petar (Printf.sprintf "Predicate has %d definitions remaining." (List.length cur_pred_defs));
 		(match cur_pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
@@ -773,7 +773,7 @@ and
 lcmd_map f unfold_macros lcmd =
 	(* Map recursively to commands, assertions, and expressions *)
 	let map_l = lcmd_map f unfold_macros in
-	let map_a = assertion_map f in
+	let map_a = assertion_map None f in
 	let map_e = logic_expression_map f in
 	match lcmd with
 	| Fold      a                   -> Fold      (map_a a)
@@ -816,6 +816,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 		(match a with
 		| LPred	(pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
+			print_debug_petar (Printf.sprintf "About to fold the predicate %s, which has %d definitions." pred_name (List.length pred_defs)); 
 			let new_symb_state = fold_predicate pred_name pred_defs symb_state params args spec_vars None in
 			(match new_symb_state with
 			| Some (symb_state, new_spec_vars) ->
