@@ -919,7 +919,20 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 					let candidates = List.filter (fun (_, _, b) -> b) candidates in
 					(match candidates with 
 					| [] -> None, None
-					| (le1, le2, _) :: _ -> Some (le1, le2), Some (le1, le2))
+					| [ (le1, le2, _) ] -> Some (le1, le2), Some (le1, le2)
+					| _ -> 
+						if (!interactive) then (
+							let lcand = List.length candidates in
+							Printf.eprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates);
+							List.iter (fun (le1, le2, _) -> 
+								Printf.eprintf "%s vs. %s\n%!" (print_lexpr le1) (print_lexpr le2)) candidates;
+							Printf.eprintf "Choose: ";
+							let n = read_int() in
+							let le1, le2, _ = DynArray.get (DynArray.of_list candidates) n in
+								Some (le1, le2), Some (le1, le2)) 
+							else
+						 	let le1, le2, _ = List.hd candidates in 
+								Some (le1, le2) , Some (le1, le2))
 			| i :: _ -> Some (i, i), None) in
 			(match intersection with
 			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
