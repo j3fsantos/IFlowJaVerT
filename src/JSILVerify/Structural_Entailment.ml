@@ -7,30 +7,18 @@ open JSIL_Logic_Utils
 (** Unification Algorithm **)
 (***************************)
 
-let rec must_be_equal le_pat le pi gamma subst =
+let must_be_equal le_pat le pi gamma subst =
 	let le_pat = lexpr_substitution le_pat subst true in
 		print_debug_petar (Printf.sprintf "Must be equal: %s = %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
-		let result = 
-			(match le_pat = le with
- 			| true when (le_pat <> LUnknown) -> true
-			| true -> false
-			| false -> (match le_pat, le with 
-				| LLit _, LLit _ -> false
-				| _ -> Pure_Entailment.is_equal le_pat le pi gamma)) in
+		let result = Pure_Entailment.is_equal le_pat le pi gamma in
 		result
-(*
-	let the_check le_pat le subst =
-		let le_pat = lexpr_substitution le_pat subst true in
-				print_debug_petar (Printf.sprintf "Must be equal: %s = %s" (JSIL_Print.string_of_logic_expression le_pat false) (JSIL_Print.string_of_logic_expression le false));
-				let result = 
-				(match le_pat = le with
-				| true when (le_pat <> LUnknown) -> true
-				| true -> false
-				| false -> (match le_pat, le with 
-				  | LLit _, LLit _ -> false
-					| _ -> Pure_Entailment.is_equal le_pat le pi gamma)) in
-				result in
-	
+
+let must_be_different le_pat le pi gamma subst =
+	let le_pat = lexpr_substitution le_pat subst true in
+	let result = Pure_Entailment.is_different le_pat le pi gamma in
+	result
+
+let more_lenient_must_be_equal le_pat le pi gamma subst =	
 	let eq_ass_red = Simplifications.reduce_assertion_no_store gamma pi (LEq (le_pat, le)) in
 	(match eq_ass_red with
 	| LTrue -> true
@@ -40,24 +28,8 @@ let rec must_be_equal le_pat le pi gamma subst =
 		| LVar v -> 
 				(match Hashtbl.mem subst v with
 				| false -> extend_subst subst v le; true
-				| true -> the_check le_pat le subst)
-		| _ -> the_check le_pat le subst))
-*)
-
-let must_be_different le_pat le pi gamma subst =
-	let le_pat = lexpr_substitution le_pat subst true in
-	let result = 
-	(match le_pat = le with
-	| true -> true
-	| false -> 
-		(match le_pat, le with
-		| LLit pat_lit, LLit lit -> not (pat_lit = lit)
-		| LLit pat_lit, _ ->
-			Pure_Entailment.is_different le_pat le pi (* solver *) gamma
-		| LNone, LEList _
-		| LEList _, LNone -> false
-		| _, _ -> false)) in
-	result
+				| true -> must_be_equal le_pat le pi gamma subst)
+		| _ -> must_be_equal le_pat le pi gamma subst))
 
 (* 
  * Substitution must maintain types 
@@ -256,7 +228,6 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 			let le'' = Simplifications.find_me_Im_a_list (Hashtbl.create 1) p_formulae le' in
 			let le''' = (match le'' with
 			| LVar v ->
-					let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy p_formulae), (copy_gamma gamma), DynArray.create ()) in
 					let simpl_pfs, _ = Simplifications.simplify_pfs p_formulae gamma (Some None) in
 					let subst = List.filter (fun pf -> (match pf with
 					| LEq (LVar w, _) -> v = w
@@ -279,11 +250,9 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 				(is_eq, whatever)
 			end)			
 	
-	| _ ->
-		let le_pat' = lexpr_substitution le_pat subst false in 
-	(* 		let le_pat' = lexpr_substitution le_pat subst true in  *)
-		 (must_be_equal le_pat' le p_formulae gamma subst), None
-		) in
+	| _ -> 
+		more_lenient_must_be_equal le_pat le p_formulae gamma subst, None
+	) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
 	result
@@ -303,7 +272,6 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 	@return b1  boolean - the pat_field is for sure equal to one of the fields in fv_list
 	@return b2  boolean - the pat_field is for sure different from all the fields in fv_list
   @return (fv_pair, rest_fv_list) option - the pair in fv_list that matches (pat_field, pat_value) and the rest of fv_list
-		
 *)
 let unify_fv_pair (pat_loc : string)
                   (loc : string)
@@ -316,11 +284,11 @@ let unify_fv_pair (pat_loc : string)
 	
 	let rec loop fv_list traversed_fv_list i_have_not_found_the_field_for_sure =
 		
-		(* Before trying to unify (pat_field, pat_val) with the rest of the    *)
-		(* fv_list, check if the current field and pat_field must be the same. *)
-		(* If they must be the same, the unfication fails immediately, because *)
-		(* the pat_field is equal to the current field but their expressions   *)
-		(* do not coincide.                                                    *)
+		(* Before trying to unify (pat_field, pat_val) with the rest of the     *)
+		(* fv_list, check if the current field and pat_field must be the same.  *)
+		(* If they must be the same, the unification fails immediately, because *)
+		(* the pat_field is equal to the current field but their expressions    *)
+		(* do not coincide.                                                     *)
 		
 		let guarded_loop_next_2 e_field e_value rest = 
 			let new_traversed_field_list = (e_field, e_value) :: traversed_fv_list in 
@@ -331,7 +299,7 @@ let unify_fv_pair (pat_loc : string)
 		let guarded_loop_next_1 e_field e_value rest =
 			if (must_be_equal pat_field e_field p_formulae gamma subst)
 				then raise (SymbExecFailure (UH (FieldValueMismatch (pat_loc, pat_field, pat_value, loc, e_field, e_value))))
-				else guarded_loop_next_2 e_field e_value rest in 	
+				else guarded_loop_next_2 e_field e_value rest in 
 		
 		match fv_list with
 		| [] -> (false, i_have_not_found_the_field_for_sure, None)
