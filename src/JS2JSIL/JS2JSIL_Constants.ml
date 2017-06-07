@@ -393,4 +393,20 @@ type cc_tbl_type         = (string, var_to_fid_tbl_type) Hashtbl.t
 type vis_tbl_type        = (string, (string list)) Hashtbl.t
 
 
+let get_scope_table (cc_tbl : cc_tbl_type) (fid : string) = 
+  try Hashtbl.find cc_tbl fid
+    with _ ->
+      let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
+      raise (Failure msg) 
+
+let get_vis_list (vis_tbl : vis_tbl_type) (fid : string) = 
+  try Hashtbl.find vis_tbl fid
+    with _ ->
+      let msg = Printf.sprintf "vis-list of function %s is not in vis-table" fid in
+      raise (Failure msg) 
+
+
+
+
+
 

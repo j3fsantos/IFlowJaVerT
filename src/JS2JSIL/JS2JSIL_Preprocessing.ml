@@ -49,13 +49,6 @@ let update_fun_tbl
   Hashtbl.replace fun_tbl f_id (f_id, f_args, f_body, (annotations, vis_list, var_to_fid_tbl))
 
 
-let get_scope_table (cc_tbl : cc_tbl_type) (fid : string) = 
-  try Hashtbl.find cc_tbl fid
-    with _ ->
-      let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
-      raise (Failure msg) 
-
-
 let update_cc_tbl (cc_tbl : cc_tbl_type) (f_parent_id : string) (f_id : string) (f_vars : string list) =
   let f_parent_var_table = get_scope_table cc_tbl f_parent_id in 
   let new_f_tbl = Hashtbl.create 101 in
@@ -82,20 +75,6 @@ let update_cc_tbl_single_var_er (cc_tbl : cc_tbl_type) (f_parent_id : string) (f
   Hashtbl.replace new_f_tbl x f_id;
   Hashtbl.add cc_tbl f_id new_f_tbl;
   new_f_tbl
-
-
-let get_vis_tbl (vis_tbl : vis_tbl_type) (f_id : string) = 
-  try Hashtbl.find vis_tbl f_id
-    with _ ->
-      let msg = Printf.sprintf "vis_tbl does not include %s" f_id in
-      raise (Failure msg) 
-
-      
-let get_vis_list (vis_tbl : vis_tbl_type) (fid : string) = 
-  try Hashtbl.find vis_tbl fid
-    with _ ->
-      let msg = Printf.sprintf "vis-list of function %s is not in vis-table" fid in
-      raise (Failure msg) 
 
 
 let get_vis_list_index vis_list fid = 
@@ -370,11 +349,11 @@ let parse_annots_formulae annots =
     annots
 
 
-let translate_lannots_in_exp inside_stmt_compilation e = 
+let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e = 
   let is_e_expr = not (is_stmt e) in 
   if (is_e_expr && inside_stmt_compilation) then ([], []) else (
     let lcmds   = parse_annots_formulae (List.filter is_logic_cmd_annot e.exp_annot) in 
-    let t_lcmds = JS2JSIL_Logic.js2jsil_logic_cmds lcmds in 
+    let t_lcmds = JS2JSIL_Logic.js2jsil_logic_cmds cc_tbl vis_tbl fun_tbl lcmds in 
 
     let rec fold_partition lcmds lcmds_so_far = 
       (match lcmds with 
@@ -412,7 +391,7 @@ let translate_single_func_specs
   (* Printf.printf "Inside process_js_logic_annotations. function: %s.\n\nAnnotations: \n%s\n\n" fid (Pretty_print.string_of_annots annotations); *)
   
   let var_to_fid_tbl : var_to_fid_tbl_type = get_scope_table cc_tbl fid in 
-  let vis_list = get_vis_tbl vis_tbl fid in 
+  let vis_list = get_vis_list vis_tbl fid in 
 
   (* 
   let annot_types_str : string = String.concat ", " (List.map (fun annot -> Pretty_print.string_of_annot_type annot.annot_type) annotations) in 

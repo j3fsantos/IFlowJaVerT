@@ -1178,7 +1178,9 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 
 (* get rid of the js flag here ASAP *) 
 let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
-	print_debug (Printf.sprintf "Fully_unify_symb_state.\nSymb_state:\n%s.\nPAT symb_state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state) (Symbolic_State_Print.string_of_shallow_symb_state pat_symb_state)); 
+	print_debug (Printf.sprintf "Fully_unify_symb_state.\nSymb_state:\n%s.\nPAT symb_state:\n%s" 
+		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) 
+		(Symbolic_State_Print.string_of_shallow_symb_state pat_symb_state)); 
 	
 	try (
 		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states pat_symb_state symb_state lvars in
@@ -1529,18 +1531,18 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 			| _ -> raise e)
 
 
-let unify_symb_state_against_invariant symb_state inv_symb_state lvars existentials = 
-	print_debug (Printf.sprintf "unify_symb_state_against_invariant.\nSymb_state:\n%s.\nINVARIANT symb_state:\n%s" 
+let grab_resources symb_state pat_symb_state lvars existentials = 
+	print_debug (Printf.sprintf "grab_resources.\nSymb_state:\n%s.\nAssert symb_state:\n%s" 
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state) 
-		(Symbolic_State_Print.string_of_shallow_symb_state inv_symb_state)); 	
+		(Symbolic_State_Print.string_of_shallow_symb_state pat_symb_state)); 	
 	try (
-		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states inv_symb_state symb_state lvars in
+		let outcome, quotient_heap, quotient_preds, subst, pf_discharges, _ = unify_symb_states pat_symb_state symb_state lvars in
 		match outcome with
 		| true ->
 				extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
 				let symb_state = symb_state_replace_heap symb_state quotient_heap in
 				let symb_state = symb_state_replace_preds symb_state quotient_preds in
-				let new_symb_state = merge_symb_states symb_state inv_symb_state subst in
+				let new_symb_state = merge_symb_states symb_state pat_symb_state subst in
 				let subst_pfs = assertions_of_substitution subst in 
 				extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs); 
 				let symb_state = Simplifications.simplify_ss symb_state (Some (Some (SS.union lvars existentials))) in

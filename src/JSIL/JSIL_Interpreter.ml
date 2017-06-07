@@ -767,7 +767,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   												let fun_name = new_proc.proc_name in
   												let vis_tbl = (match vis_tbl with
   												                | Some t -> t
-  																				| None -> raise (Failure "No visibility table")) in
+  																| None -> raise (Failure "No visibility table")) in
   												let new_loc = create_anonymous_function_object heap fun_name fun_name params in
   												Hashtbl.replace store x (Loc new_loc);
   					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)

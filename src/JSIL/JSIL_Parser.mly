@@ -604,12 +604,15 @@ logic_cmd_target:
 (* fold x(e1, ..., en) *)
 	| FOLD; assertion = assertion_target
 	  { Fold (assertion) }
+
 (* unfold x(e1, ..., en) *)
 	| UNFOLD; assertion = assertion_target
 	  { Unfold (assertion) }
+
 (* unfold* x *)
 	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
+
 (* callspec spec_name(ret_var, args) *)
 	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE; 
 	  { 
@@ -617,6 +620,7 @@ logic_cmd_target:
 	  	| (LVar ret_var) :: rest_params ->  CallSpec (spec_name, ret_var, rest_params) 
 	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
 	 }
+
 (* if(le) { lcmd* } else { lcmd* } *)
 	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);
@@ -624,13 +628,19 @@ logic_cmd_target:
 			else_lcmds = separated_list(SCOLON, logic_cmd_target);
 			 CLBRACKET;
 	  { LogicIf (le, then_lcmds, else_lcmds)}
+
 (* if(e) { lcmd* } *)
 	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET;
 	  { LogicIf (le, then_lcmds, [])}
+
 	| macro = macro_head_target;
 		{ let (name, params) = macro in Macro (name, params) }
+
+(* assert a *)
+	| ASSERT; a = assertion_target 
+		{ Assert a }
 ;
 
 macro_target: 

@@ -314,6 +314,9 @@ let rec string_of_lcmd lcmd =
 		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
 		name ^ "(" ^ lparams_str ^ ")"
 
+	| Assert a -> "assert " ^ (string_of_logic_assertion a false)
+
+
 (** JSIL logic predicates *)
 let rec string_of_predicate predicate =
 	let sle = fun e -> string_of_logic_expression e false in

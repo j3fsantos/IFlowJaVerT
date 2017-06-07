@@ -1,5 +1,6 @@
 open Set
 open JSIL_Syntax
+open JS2JSIL_Constants
 
 module SS = Set.Make(String)
 
@@ -94,7 +95,6 @@ let fresh_lvar () =
    v
 
 
-
 type js_logic_expr =
 	| JSLLit				of jsil_lit
 	| JSLNone
@@ -105,11 +105,11 @@ type js_logic_expr =
 	| JSLUnOp				of jsil_unop * js_logic_expr
 	| JSLTypeOf			    of js_logic_expr
 	| JSLEList      		of js_logic_expr list
-	| JSLESet           of js_logic_expr list
+	| JSLESet               of js_logic_expr list
 	| JSLLstNth     		of js_logic_expr * js_logic_expr
 	| JSLStrNth     		of js_logic_expr * js_logic_expr
-	| JSLSetUnion       of js_logic_expr list
-	| JSLSetInter       of js_logic_expr list
+	| JSLSetUnion           of js_logic_expr list
+	| JSLSetInter           of js_logic_expr list
 	| JSLUnknown
 	| JSLThis
 
@@ -187,25 +187,6 @@ let rec js2jsil_lexpr le =
 	| JSLUnknown              -> LUnknown
 	| JSLThis                 -> LVar this_logic_var_name
 
-let rec js2jsil_logic_cmds logic_cmds = 
-	let fe = js2jsil_lexpr in
-	match logic_cmds with 
-	| [] -> []
-	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest)
-	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (js2jsil_logic_cmds rest) 
-	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> 
-		match les with 
-		| (JSLVar ret_var) :: rest_les -> 
-			(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
-			if (is_lvar_name ret_var)
-			 	then ( 
-			 		let args' = List.map fe rest_les in 
-			 		let args' = (PVar JS2JSIL_Constants.var_scope) :: ((PVar JS2JSIL_Constants.var_this) :: args') in 
-			 		CallSpec (s, ret_var, args') :: (js2jsil_logic_cmds rest)
-			 	)
-			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
-		| _ ->  raise (Failure "DEATH: js2jsil_logic_cmds")
-	| _ -> raise (Failure "DEATH: No such logic command")
 
 
 let make_simple_scope_chain_logic_expression cur_fid vis_list = 
@@ -214,27 +195,97 @@ let make_simple_scope_chain_logic_expression cur_fid vis_list =
 		| cur :: rest_vis_list -> rest_vis_list 
 		| [] -> raise (Failure "DEATH: make_simple_scope_chain_logic_expression") in 
 	
-	let rec loop vis_list processed_vis_list past_cur_fid = 
+	let rec loop vis_list processed_vis_list past_cur_fid lg_assertions = 
 		(match vis_list with 
-		| [] -> List.rev processed_vis_list 
+		| [] -> (List.rev processed_vis_list), lg_assertions
 		| fid :: rest_vis_list -> 
 			let past_cur_fid = past_cur_fid || (cur_fid = fid) in 
-			let le_fid = 
+			let le_fid, lg_assertions = 
 				if (fid = main_fid) 
-					then LLit (Loc JS2JSIL_Constants.locGlobName) 
-					else 
-						(if past_cur_fid then LVar (fid_to_lvar fid) else LVar (fid_to_lvar_fresh fid)) in 
-			loop rest_vis_list (le_fid :: processed_vis_list) past_cur_fid) in 
+					then LLit (Loc JS2JSIL_Constants.locGlobName), lg_assertions 
+					else (
+						let le_fid = if past_cur_fid then LVar (fid_to_lvar fid) else LVar (fid_to_lvar_fresh fid) in 
+						let new_lg_assertion = LNot (LEq (le_fid, LLit (Loc JS2JSIL_Constants.locGlobName))) in 
+						let lg_assertions = 
+							if (lg_assertions = LEmp)
+								then new_lg_assertion
+								else LStar (lg_assertions, new_lg_assertion) in  
+						le_fid, lg_assertions
+					) in 
+			loop rest_vis_list (le_fid :: processed_vis_list) past_cur_fid lg_assertions) in 
 	
-	let le_vis_list = loop vis_list [] false in 
+	let le_vis_list, lg_assertions = loop vis_list [] false LEmp in 
 	let types_list = List.map (fun x -> (x, ObjectType)) (List.filter (fun x -> match x with | LLit (Loc _) -> false | _ -> true) le_vis_list) in
-	LEList le_vis_list, LTypes types_list
+	LEList le_vis_list, LStar (LTypes types_list, lg_assertions) 
 
 
 
-let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion =
+
+
+let make_scope_chain_assertion (vis_list : string list) =
+	print_debug (Printf.sprintf "Inside make_scope_chain_assertion with\n\tvis_list:%s" (String.concat ", " vis_list));
+	
+	let cur, vis_list = 
+		match vis_list with 
+		| cur :: rest_vis_list -> cur, rest_vis_list 
+		| [] -> raise (Failure "DEATH: make_scope_chain_assertion - 1") in 
+	
+	(* x_sc == {{ #id1, ..., #idn, $lg }} *)
+	let le_vis_list = 
+		List.map 
+			(fun x -> if (x = main_fid) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fid_to_lvar x))
+			vis_list in 
+
+	let xsc_ass = LEq (PVar JS2JSIL_Constants.var_scope, LEList le_vis_list) in 
+	
+	(* types(#id1: $$object_type, ..., #idn: $$objtect_type) *)
+	let type_pairs = 
+		List.fold_left 
+			(fun ac le -> 
+				match le with 
+				| LLit _ -> ac 
+				| LVar _ 
+				| PVar _ -> (le, ObjectType) :: ac
+				| _      -> raise (Failure "DEATH: make_scope_chain_assertion - 2"))
+			[]
+			le_vis_list in 
+	let types_assertion = 
+		if (List.length type_pairs > 0) 
+			then LTypes type_pairs 
+			else LEmp in 
+	
+	(* !(#id1 == $lg) * ... * !(#idn == $lg) *) 
+	let not_lg_assertions = 
+		List.fold_left 
+			(fun ac le -> 
+				match le with 
+				| LLit _ -> ac 
+				| LVar _  
+				| PVar _ ->
+					let a = LNot (LEq (le, LLit (Loc JS2JSIL_Constants.locGlobName))) in 
+					if (ac = LEmp) then a else LStar (a, ac)
+				| _      -> raise (Failure "DEATH: make_scope_chain_assertion - 3"))
+			LEmp
+			le_vis_list in 			
+	
+	JSIL_Logic_Utils.star_asses [ xsc_ass; types_assertion; not_lg_assertions ] 
+
+
+let rec js2jsil_logic 	
+		(cur_fid    : string option) 
+		(cc_tbl     : cc_tbl_type)
+		(vis_tbl    : vis_tbl_type) 
+		(fun_tbl    : pre_fun_tbl_type) 
+		(a          : js_logic_assertion) : JSIL_Syntax.jsil_logic_assertion = 
+
 	let f = js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl in
 	let fe = js2jsil_lexpr in
+	let get_fid fid = 
+		match fid with 
+		| Some fid -> fid 
+		| None     -> 
+			let msg = Printf.sprintf "Cannot compile assertion due to absence of fid"  in 
+			raise (Failure msg) in 
 
 	let make_overlapping_scope_ass fid x_scope_chain fid_vars_tbl =  
 		let fid_vars_tbl = 
@@ -262,6 +313,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 		let x_scope_chain' = fe x_scope_chain in 
 		LEq (x_scope_chain', LEList fid_vis_list_les), fid_vis_list_les_pairs in 
 
+	
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
 	| JSLOr (a1, a2)                      -> LOr ((f a1), (f a2))
@@ -282,10 +334,8 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 	| JSLSetSub (le1, le2)                -> LSetSub (fe le1, fe le2)
 	
 	| JSLScope (x, le)                    ->
-		let var_to_fid_tbl = 
-			(match cc_tbl with 
-			| Some cc_tbl -> Hashtbl.find cc_tbl cur_fid  
-			| None -> raise (Failure "DEATH: js2jsil_logic")) in 
+		let cur_fid = get_fid cur_fid in 
+		let var_to_fid_tbl = get_scope_table cc_tbl cur_fid in 
 		if (Hashtbl.mem var_to_fid_tbl x) then (
 			let fid = Hashtbl.find var_to_fid_tbl x in
 			if (fid = main_fid) 
@@ -298,17 +348,17 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 					else LPointsTo (LVar (fid_to_lvar fid), LLit (String x), fe le)))
 			else (
 				LPointsTo (
-							LLit (Loc JS2JSIL_Constants.locGlobName), 
-							LLit (String x), 
-							LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ])
-			)
+					LLit (Loc JS2JSIL_Constants.locGlobName), 
+					LLit (String x), 
+					LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ]))
 	
 	| JSEmptyFields (e, les) ->
 		let non_nones = List.map (fun e -> fe e) les in
 		let js_nones = List.map (fun f_name -> LLit (String f_name)) js_obj_internal_fields in 
 		LEmptyFields (fe e, js_nones @ non_nones) 
 	
-	|	JSFunObj (id, f_loc, f_prototype, f_sc) -> 
+	| JSFunObj (id, f_loc, f_prototype, f_sc) -> 
+		let cur_fid = get_fid (Some (Option.default main_fid cur_fid)) in 
 		let f_loc' = fe f_loc in 
 		let f_prototype' = fe f_prototype in 
 		let id_vis_list = try Hashtbl.find vis_tbl id with _ -> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." id)) in 
@@ -351,10 +401,7 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 		let scope_var_assertions = 
 			List.map 
 				(fun (x, le) -> 
-					let var_to_fid_tbl = 
-						match cc_tbl with 
-						| None -> raise (Failure "DEATH! scope_var_assertions") 
-						| Some cc_tbl -> Hashtbl.find cc_tbl just_one_arbitrary_fid  in 
+					let var_to_fid_tbl = get_scope_table cc_tbl just_one_arbitrary_fid in 
 					let fid = 
 						try Hashtbl.find var_to_fid_tbl x
 							with Not_found -> raise (Failure "DEATH var_to_fid_tbl") in
@@ -372,12 +419,8 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 		JSIL_Logic_Utils.star_asses (scope_chain_assertions @ scope_var_assertions) 
 
 	| JSLVarSChain (fid, x, le_x, le_sc) -> 
-		let var_to_fid_tbl = 
-			(match cc_tbl with 
-			| Some cc_tbl -> Hashtbl.find cc_tbl fid  
-			| None -> raise (Failure "DEATH: js2jsil_logic")) in 
-		let vis_list = try Hashtbl.find vis_tbl fid with _ 
-			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid)) in 
+		let var_to_fid_tbl = get_scope_table cc_tbl fid in 
+		let vis_list       = get_vis_list vis_tbl fid in 
 				
 		if (Hashtbl.mem var_to_fid_tbl x) then (
 			let fid_x = Hashtbl.find var_to_fid_tbl x in
@@ -418,75 +461,56 @@ let rec js2jsil_logic cur_fid cc_tbl vis_tbl fun_tbl (a : js_logic_assertion) : 
 
 	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
 
+
+
+let rec js2jsil_logic_cmds 
+		(cc_tbl     : cc_tbl_type)
+		(vis_tbl    : vis_tbl_type) 
+		(fun_tbl    : pre_fun_tbl_type) 
+		(logic_cmds : (Parser_syntax.annotation_type * js_logic_assertion) list) =
+	let f = js2jsil_logic_cmds cc_tbl vis_tbl fun_tbl in 
+	let fe = js2jsil_lexpr in
+	match logic_cmds with 
+	| [] -> []
+	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (f rest)
+	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (f rest) 
+	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> 
+		(match les with 
+		| (JSLVar ret_var) :: rest_les -> 
+			(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
+			if (is_lvar_name ret_var)
+			 	then ( 
+			 		let args' = List.map fe rest_les in 
+			 		let args' = (PVar JS2JSIL_Constants.var_scope) :: ((PVar JS2JSIL_Constants.var_this) :: args') in 
+			 		CallSpec (s, ret_var, args') :: (f rest)
+			 	)
+			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
+		| _ ->  raise (Failure "DEATH: js2jsil_logic_cmds"))
+
+	| (Parser_syntax.Assert, assertion) :: rest -> 
+		let a' = js2jsil_logic None cc_tbl vis_tbl fun_tbl assertion in 
+		(Assert a') :: (f rest)
+
+	| _ -> raise (Failure "DEATH: No such logic command")
+
+
+
 let translate_predicate_def pred_def cc_tbl vis_tbl fun_tbl = 
 	let jsil_params = List.map js2jsil_lexpr pred_def.js_params in 
-	let jsil_definitions = List.map (fun a -> js2jsil_logic "" (Some cc_tbl) vis_tbl fun_tbl a) pred_def.js_definitions in 
+	let jsil_definitions = List.map (fun a -> js2jsil_logic None cc_tbl vis_tbl fun_tbl a) pred_def.js_definitions in 
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions }
-
-
-let make_scope_chain_assertion vis_list is_pre =
-	print_debug (Printf.sprintf "Inside make_scope_chain_assertion with\n\tvis_list:%s" (String.concat ", " vis_list));
-	
-	let cur, vis_list = 
-		match vis_list with 
-		| cur :: rest_vis_list -> cur, rest_vis_list 
-		| [] -> raise (Failure "DEATH: make_scope_chain_assertion - 1") in 
-	
-	(* x_sc == {{ #id1, ..., #idn, $lg }} *)
-	let le_vis_list = 
-		List.map 
-			(fun x -> if (x = main_fid) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fid_to_lvar x))
-			vis_list in 
-	let le_vis_list = 
-		if is_pre then le_vis_list 
-		else if (cur = main_fid) 
-			then (LLit (Loc JS2JSIL_Constants.locGlobName)) :: le_vis_list
-			else (PVar JS2JSIL_Constants.var_er) :: le_vis_list in 
-	let xsc_ass = LEq (PVar JS2JSIL_Constants.var_scope, LEList le_vis_list) in 
-	
-	(* types(#id1: $$object_type, ..., #idn: $$objtect_type) *)
-	let type_pairs = 
-		List.fold_left 
-			(fun ac le -> 
-				match le with 
-				| LLit _ -> ac 
-				| LVar _ 
-				| PVar _ -> (le, ObjectType) :: ac
-				| _      -> raise (Failure "DEATH: make_scope_chain_assertion - 2"))
-			[]
-			le_vis_list in 
-	let types_assertion = 
-		if (List.length type_pairs > 0) 
-			then LTypes type_pairs 
-			else LEmp in 
-	
-	(* !(#id1 == $lg) * ... * !(#idn == $lg) *) 
-	let not_lg_assertions = 
-		List.fold_left 
-			(fun ac le -> 
-				match le with 
-				| LLit _ -> ac 
-				| LVar _  
-				| PVar _ ->
-					let a = LNot (LEq (le, LLit (Loc JS2JSIL_Constants.locGlobName))) in 
-					if (ac = LEmp) then a else LStar (a, ac)
-				| _      -> raise (Failure "DEATH: make_scope_chain_assertion - 3"))
-			LEmp
-			le_vis_list in 			
-	
-	JSIL_Logic_Utils.star_asses [ xsc_ass; types_assertion; not_lg_assertions ] 
 
 
 let rec js2jsil_logic_top_level_pre a cc_tbl (vis_tbl : JS2JSIL_Constants.vis_tbl_type) (fun_tbl : JS2JSIL_Constants.pre_fun_tbl_type) fid =
 	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
 	let vis_list = try Hashtbl.find vis_tbl fid with _ -> raise (Failure "js2jsil_logic_top_level_pre - fid not found") in 
 	let is_global = (fid = main_fid) in
-	let a_scope_chain = make_scope_chain_assertion vis_list true in
+	let a_scope_chain = make_scope_chain_assertion vis_list in
 	let a_pre_js_heap = 
 		if (is_global)
 			then LPred (initial_heap_pre_pred_name, [])
 			else LPred (initial_heap_post_pred_name, []) in
-	let a' = js2jsil_logic fid (Some cc_tbl) vis_tbl fun_tbl a in
+	let a' = js2jsil_logic (Some fid) cc_tbl vis_tbl fun_tbl a in
 	let a_this = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in  
 	
 	print_debug (Printf.sprintf "J2JPre: \n\t%s\n\t%s\n\t%s"
@@ -502,16 +526,16 @@ let rec js2jsil_logic_top_level_pre a cc_tbl (vis_tbl : JS2JSIL_Constants.vis_tb
 let rec js2jsil_logic_top_level_post a cc_tbl (vis_tbl : JS2JSIL_Constants.vis_tbl_type) fun_tbl fid =
 	let vis_list = try Hashtbl.find vis_tbl fid with _ -> raise (Failure "js2jsil_logic_top_level_pre - fid not found") in 
 	let is_global = (fid = main_fid) in
-	(* let a_scope_chain = make_scope_chain_assertion vis_list false in *)
+	let a_scope_chain = make_scope_chain_assertion vis_list in 
 	let a_post_js_heap = LPred (initial_heap_post_pred_name, []) in
-	let a' = js2jsil_logic fid (Some cc_tbl) vis_tbl fun_tbl a in
+	let a' = js2jsil_logic (Some fid) cc_tbl vis_tbl fun_tbl a in
 	let a_this = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in 
 	print_debug (Printf.sprintf "J2JPost: \n\t%s\n\t%s"
 		(JSIL_Print.string_of_logic_assertion a' false) 
 		(JSIL_Print.string_of_logic_assertion a_post_js_heap false));	
 	if (is_global) 
 		then JSIL_Logic_Utils.star_asses [a'; a_post_js_heap ]
-	 	else JSIL_Logic_Utils.star_asses [ a'; a_post_js_heap; a_this ]
+	 	else JSIL_Logic_Utils.star_asses [ a'; a_post_js_heap; a_scope_chain; a_this ]
 		
 
 

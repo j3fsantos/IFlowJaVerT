@@ -262,9 +262,9 @@ type jsil_logic_assertion =
 	| LEq			    of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
 	| LLess			    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for numbers *)
 	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than-or-equal for numbers *)   
-	| LStrLess	    of jsil_logic_expr * jsil_logic_expr                           (** Expression less-than for strings *)               
-	| LSetMem  	    of jsil_logic_expr * jsil_logic_expr                           (** Set membership *)  
-	| LSetSub  	    of jsil_logic_expr * jsil_logic_expr                           (** Set subsetness *) 
+	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                           (** Expression less-than for strings *)               
+	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                           (** Set membership *)  
+	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                           (** Set subsetness *) 
 
 
 (** {b JSIL logic predicate}. *)
@@ -326,6 +326,7 @@ type jsil_logic_command =
 	| LinearRecUnfold  of string * (jsil_logic_expr list)                                         (** Recursive unfold of everything but this time I will give you the arguments *)
 	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
 	| Macro            of string * (jsil_logic_expr list)                                         (** Macro *)
+	| Assert           of jsil_logic_assertion                                                    (** Assert *) 
 
 (** {b JSIL logic macro}. *)
 type jsil_logic_macro = {

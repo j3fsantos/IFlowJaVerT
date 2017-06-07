@@ -910,7 +910,16 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 				(String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) param_vals))
 				(JSIL_Print.string_of_lcmd actual_command)); *)
 					symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars
-	)
+	| Assert a ->
+		let existentials  = get_assertion_lvars a in
+		let existentials  = SS.diff existentials spec_vars in
+		Printf.printf "Assert with: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
+		let new_symb_state, _       = Normaliser.normalise_postcondition a subst spec_vars (get_gamma symb_state) in
+		let new_symb_state          = Simplifications.simplify_ss new_symb_state (Some (Some spec_vars)) in
+		let new_spec_vars_for_later = SS.union existentials spec_vars in			
+		(match (Structural_Entailment.grab_resources symb_state new_symb_state spec_vars existentials) with
+			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later ] 
+			| None -> raise (Failure "Assert: could not grab resources.")))
 and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_with_spec_vars : (symbolic_state * SS.t) list) subst : (symbolic_state * SS.t) list =
 	let symb_states_with_spec_vars = 
@@ -1169,7 +1178,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 							Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
 							let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in			
-							(match (Structural_Entailment.unify_symb_state_against_invariant symb_state new_symb_state spec.n_lvars inv_lvars) with
+							(match (Structural_Entailment.grab_resources symb_state new_symb_state spec.n_lvars inv_lvars) with
 							(* If it does, replace current symbolic state with the invariant *)
 							| Some new_symb_state -> new_symb_state, { spec with n_lvars = new_spec_vars_for_later }
 							| None -> raise (Failure "unification with invariant failed")) in

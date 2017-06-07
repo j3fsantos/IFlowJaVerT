@@ -625,7 +625,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 	let f = translate_expr tr_ctx in
 
-	let cur_var_tbl = JS2JSIL_Preprocessing.get_scope_table cc_tbl tr_ctx.tr_er_fid in
+	let cur_var_tbl = get_scope_table cc_tbl tr_ctx.tr_er_fid in
 	let find_var_er_index v = 
 		(try 
 			print_debug (Printf.sprintf "Trying to find variable %s given the vislist %s in the var table %s \n" 
@@ -647,7 +647,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	let annotate_cmd            = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	(* The first command must get the logic commands and the invariants *)
-	let lcmds, call_lcmds       = JS2JSIL_Preprocessing.translate_lannots_in_exp false e in 
+	let lcmds, call_lcmds       = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl false e in 
 	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid e in  
 	let annotate_first_cmd      = add_more_metadata metadata lcmds invariant in 
 	let annotate_first_call_cmd = add_more_metadata metadata call_lcmds None in 
@@ -2623,7 +2623,7 @@ and translate_statement tr_ctx e  =
 		let new_tr_ctx = update_tr_ctx ~loop_list:loop_list ~previous:previous ~lab:lab tr_ctx in 
 		translate_statement new_tr_ctx e in 
 		
-	let cur_var_tbl = JS2JSIL_Preprocessing.get_scope_table cc_tbl tr_ctx.tr_er_fid in 
+	let cur_var_tbl = get_scope_table cc_tbl tr_ctx.tr_er_fid in 
 	let find_var_er_index v = 
 		(try 
 			let fid_v = Hashtbl.find cur_var_tbl v in 
@@ -2640,7 +2640,7 @@ and translate_statement tr_ctx e  =
 	let annotate_cmd            = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	(* The first command must get the logic commands and the invariants *)
-	let lcmds, _                = JS2JSIL_Preprocessing.translate_lannots_in_exp true e in 
+	let lcmds, _                = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl true e in 
 	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid e in  
 	let annotate_first_cmd      = add_more_metadata metadata lcmds invariant in 
 
@@ -4544,7 +4544,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 (**** EVAL ****)
 let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_parent e =
 	
-	let offset_converter = (fun x -> x) in 
+	let offset_converter x = 0 in 
 
 	let cc_tbl, vis_tbl = 
 		try  (Option.get cc_tbl), (Option.get vis_tbl)
@@ -4580,7 +4580,7 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 (* FUNCTION CONSTRUCTOR *)
 let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent params e =
 	
-	let offset_converter = (fun x -> x) in 
+	let offset_converter x = 0 in 
 
 	let cc_tbl, vis_tbl = 
 		try  (Option.get cc_tbl), (Option.get vis_tbl)
