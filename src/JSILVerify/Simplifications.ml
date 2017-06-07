@@ -473,7 +473,7 @@ let rec reduce_assertion store gamma pfs a =
 	| LEq (e1, e2) ->
 		let re1 = fe e1 in
 		let re2 = fe e2 in
-		(* Warning - NaNs, infinities, this and that *)
+		(* Warning - NaNs, infinities, this and that, this is not good enough *)
 		let eq = (re1 = re2) && (re1 <> LUnknown) in
 		if eq then LTrue
 		else
@@ -494,6 +494,10 @@ let rec reduce_assertion store gamma pfs a =
 					else default e1 e2 re1 re2
 			| LNone, e
 			| e, LNone -> LFalse
+
+			(* Abstract and concrete locations, bye bye *)
+			| ALoc _, LLit (Loc _) 
+			| LLit (Loc _), ALoc _ -> LFalse
 			
 			| LLit (String str), LVar x 
 			| LVar x, LLit (String str) ->

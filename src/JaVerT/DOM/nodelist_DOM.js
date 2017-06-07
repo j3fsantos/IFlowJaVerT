@@ -652,6 +652,7 @@
 function nodeListSimple(element){
 	var f = element.childNodes();
 	/* @invariant scope(f: #f) */
+	42;
 	/* @callspec unfoldFL(#ignore, #en, #f) */
 	var r = f.length();
 	/* @callspec foldFL(#ignore, #en, #f) */

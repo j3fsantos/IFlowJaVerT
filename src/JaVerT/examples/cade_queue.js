@@ -26,12 +26,14 @@
   	(length == #len_nl + 1) *
 	types(nl : $$object_type, np : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_nl : $$number_type);
 
+
 @pred Queue(pq, qp, np, max_pri, length) :
 	ObjectWithProto(pq, qp) * types(qp : $$object_type) *
 	dataField(pq, "_head",  #head) *
 	NodeList(#head, np, max_pri, length) * types(max_pri : $$number_type, length : $$number_type) *
 	((pq, "enqueue") -> None) *
 	((pq, "dequeue") -> None);
+
 
 @pred QueuePrototype(qp, np, c) :
 	standardObject(qp) *

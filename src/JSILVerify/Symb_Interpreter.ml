@@ -542,16 +542,20 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			print_debug (Printf.sprintf "Substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst)); 
 			true, transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ -> 
-			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
-			let new_symb_states =
-				List.map
-					(fun (_, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-						if (compatible_pfs symb_state spec.n_pre subst)
-							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
-							else [])
-					quotients in
-			let new_symb_states = List.concat new_symb_states in
-			false, new_symb_states in
+			let lpm = List.length quotients in
+			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" lpm);
+			(match lpm with
+			| 1 -> false, []
+			| _ -> 
+				let new_symb_states =
+					List.map
+						(fun (_, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+							if (compatible_pfs symb_state spec.n_pre subst)
+								then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
+								else [])
+						quotients in
+				let new_symb_states = List.concat new_symb_states in
+				false, new_symb_states) in
 
 	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
 	apply_correct_specs quotients
