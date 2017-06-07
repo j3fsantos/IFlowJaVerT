@@ -7,6 +7,7 @@
 
 \usepackage{amsmath}
 
+\usepackage{fullpage}
 \usepackage{listings}
 \usepackage{hyperref}
 
@@ -113,1039 +114,236 @@
 \newcommand{\JSComp}{JS-2-JSIL\xspace}
 \newcommand{\jsillogic}{\jsil logic\xspace}
 
-\newif\ifComments
-\Commentstrue
-
-\newcommand{\pg}[1]{%
-\ifComments
-\begin{center}
-\fbox{%
-\begin{minipage}{\textwidth} \color{red}
-{\bf PG:} {\rm #1}
-\end{minipage}
-}
-\end{center}
-\fi
-}
-
-\newcommand{\pmax}[1]{%
-\ifComments
-\begin{center}
-\fbox{%
-\begin{minipage}{3in} \color{blue}
-{\bf PM:} {\rm #1}
-\end{minipage}
-}
-\end{center}
-\fi
-}
-
-\newcommand{\verchal}[2]{
-\begin{center}
-\mbox{
-\begin{minipage}{0.17\textwidth} {\bf Challenge: }\end{minipage}
-\begin{minipage}{#1} {#2}\end{minipage}}
-\end{center}}
 
 \begin{document}
 
-\title{Towards Logic-based Verification \\of JavaScript Programs}
+\title{A Tutorial on JaVerT}
 
-\author{Jos\'{e} Fragoso Santos\inst{1}, Philippa Gardner\inst{1}, Petar Maksimovi\'{c}\inst{1}\inst{2}, \\[1mm]Daiva Naud\v{z}i\={u}nien\.{e}\inst{1}}
+\author{Petar Maksimovi\'{c}, Jos\'{e} Fragoso Santos}
 
-\institute{Imperial College London \and Mathematical Institute of the Serbian Academy of Sciences and Arts}
+\institute{Imperial College London}
 
 \maketitle
 
-\begin{abstract}
+\section{Abstractions}
 
-In this position paper, we argue for what we believe is a correct pathway to achieving scalable symbolic verification of JavaScript based on separation logic. We highlight the difficulties imposed by the language, the current state-of-the-art in the literature, and the  sequence of steps that needs to be taken. We briefly describe \javert, our semi-automatic toolchain for JavaScript verification.
-%Using our approach, we illustrate how to give functionally correct specifications of JavaScript programs, written in a separation logic for JavaScript. We design these specifications to be as agnostic as possible to the internals of JavaScript. 
-% and provide an interface that gives meaningful feedback to the developer. 
-%We briefly describe \javert, our semi-automatic toolchain for JavaScript verification.
+\newpage
+\section{Function closures}
+\label{sec:closures}
 
-\end{abstract}
-
-\section{Introduction}\label{intro}
-JavaScript is one of the most widespread languages for Web programming
-today:
- it is the de facto language for client-side Web
- applications; it is used for server-side scripting via 
- Node.js; and  it is even run on  small
- embedded devices with limited memory.  
-Standardised by the ECMAScript committee and natively supported by all major browsers, JavaScript is a complex and evolving language. 
-
-The ubiquitous use of JavaScript, especially in security-critical contexts, mandates a high level of trust in the written code.
-However, the dynamic nature of JavaScript, coupled with its intricate semantics, makes the understanding and development of correct JavaScript code notoriously difficult. It is because of this complexity that JavaScript developers still have very little 
-tool support for catching errors early in development, contrasted with  the abundance of tools (such as IDEs and specialised static analysis tools) available for more traditional languages, such as C and Java. 
-The transfer of analysis techniques to the domain of JavaScript is known to be a challenging task.
-
-In this position paper, we argue for what we believe is a correct pathway to achieving scalable, logic-based symbolic verification of JavaScript, highlighting the difficulties imposed by the language, the current state-of-the-art in the literature, and the sequence of steps that needs to be taken. Using our approach, we illustrate how to give functionally correct specifications of JavaScript programs, written in a separation logic for JavaScript. We aim to have such specifications be as agnostic as possible to the internals of JavaScript and provide an interface that gives meaningful feedback to the developer. We give a brief description of \javert, our semi-automatic toolchain for JavaScript verification.
-
-% demonstrate the viability of our approach by developing 
-% drawing inspiration from the Verifast tool~\cite{jacobs2011verifast}, which has been applied successfully to C and Java.
-
-\section{Motivation}
-\label{sec:overview}
-
-We illustrate the complexity of JavaScript by appealing to a JavaScript priority queue library, which uses an implementation based on singly-linked node lists. It is a variation on a Node.js priority queue library that uses doubly linked lists~\cite{priq}, simplified for exposition. We use this example to showcase the intricacies of JavaScript semantics as well as some of the major challenges that need to be addressed before JavaScript programs can be verified. 
-
-\vspace*{-0.2cm}
-\begin{figure}[!h]
-\begin{minipage}[t]{.5\textwidth}
-\begin{lstjs}[firstnumber=1]
-/* @id PQLib */
-var PriorityQueue = (function () {
-  var counter = 0; 
-   
-  /* @id Node */
-  var Node = function (pri, val) {
-    this.pri = pri; 
-    this.val = val; 
-    this.next = null;
-    counter++; 	
-  }
-
-  /* @id insert */
-  Node.prototype.insert = 
-  function (nl) {
-    if (nl === null) { 
-      return this 
-    }	
-    if (this.pri >= nl.pri) {
-      this.next = nl; 
-      return this 
-    }
-    var tmp = this.insert (nl.next);
-    nl.next = tmp;
-    return nl
-  }
-	
-  /* @id PQ */
-  var PQ = function () { 
-    this._head = null 
-  };
-\end{lstjs}
-\end{minipage}
-\hfill
-\noindent
-\begin{minipage}[t]{.45\textwidth}
-\lstset{firstnumber=last}
-\begin{lstjs}
-  /* @id enqueue */
-  PQ.prototype.enqueue = 
-  function(pri, val) {
-    if (counter > 42) {
-      throw new Error()
-    }
-    var n = new Node(pri, val);
-    this._head = n.insert(this._head); 	
-  };
-
-  /* @id dequeue */	    
-  PQ.prototype.dequeue = 
-  function () {
-    if (this._head === null) { 
-      throw new Error() 
-    }
-    var first = this._head;
-    this._head = this._head.next;
-    counter--;
-    return {pri: first.pri, 
-      val: first.val};
-  };
-   
-   return PQ;
-})();
-
-var q = new PriorityQueue();
-q.enqueue(1, "last");
-q.enqueue(3, "bar");
-q.enqueue(2, "foo");
-var r = q.dequeue();
-\end{lstjs}
-\end{minipage}
-\vspace*{-0.3cm}
-\caption{A simple  JavaScript priority queue library (lines 1-56) and  client
-  (lines 58-62). For verification purposes, each function literal is annotated  with a unique
-  identifier.}\label{ex:queue:1}
-\label{fig:runex}
-\end{figure}
-
-\vspace*{-0.5cm}
-\subsection*{A Priority Queue Library}
-In Figure~\ref{fig:runex}, we present the priority queue library
-(lines~1-56)  together with a simple
-client program (lines~58-62). 
-The priority queue is implemented as an object with
-property \jsinline|_head| pointing 
-to a singly-linked list of node
-objects, ordered in descending order of priority.
-A new priority queue object is constructed using the 
-\jsinline|PQ| function (lines 28-31), 
-which declares that 
-property \jsinline|_head|  has  value \jsinline|null|, 
-that is, that the queue is initially empty.
-The \jsinline|enqueue|
-and \jsinline|dequeue| functions (lines 32-53) provide the
-functionality to enqueue and dequeue nodes of the queue. These functions 
-should be accessible by all priority queue objects.
-This is accomplished by following the standard JavaScript
-prototype inheritance paradigm,
-%  (explained in detail shortly)
-which, in this case, means storing these two functions within the object \jsinline|PQ.prototype|. 
-
-The \jsinline|enqueue| function constructs a new node object,  and
-then adds
-it to the node list in the appropriate place given by its priority. A
-node object is constructed using the 
-\jsinline|Node| function  (lines~5-11) which declares three
-properties, a priority, a
-value  and a pointer to the
-next node in the node list, and increments the variable \jsinline|counter|,
-which keeps track of how many nodes were created
-(lines~3,10) by the library. 
-We limit the number of nodes that a library can create (lines~35-37) to illustrate scoping further.
-%This variable counter is used  to illustrate scoping (see ??). 
-The node object is then inserted into the node list 
-using the \jsinline|insert| function
-(lines~13-26)  which, again using prototype inheritance, 
-is a property of \jsinline|Node.prototype| and
-is accessible by all node objects. 
-
-
-
-Let us now show how the example actually works. Our first step is to
-initialise the priority queue library in  lines 1-50. This involves:
-\dtag{1} setting up the functionalities of node objects (lines 5-26);
-\dtag{2} setting up the functionalities of priority queue objects
-(lines 28-53); and \dtag{3} providing the interface from the priority
-queue library to the client (line 55). At this point, the client can 
-construct a new, empty priority queue, by calling \jsinline|new PriorityQueue()|,
-and enqueue and dequeue nodes of the queue, 
-by calling the \jsinline|enqueue| and \jsinline|dequeue| functions.
-%found in \jsinline|PQ.prototype|. 
-
-
-
-% Petar - I don't see it changed?
-%\pg{I think, in line 52, \jsinline|PriorityQueue| should be \jsinline|PQ|. I'm changing below and you can curse and change back if necessary:-)}
-
-% Petar - yes
-% \pg{I find this sentence confusing, I would just loose it. `After execution of lines 1-50, the variable \jsinline|PriorityQueue| holds the function \jsinline|PQ|, which exposes the above-mentioned user interface.'} 
-
-
-We demonstrate how this library  can be used via a small client program (lines 58-62).
-Line 58 constructs an empty queue, identified by the variable \jsinline|q|. 
-In doing so, the node counter associated with \jsinline|q| is set to zero, as no nodes have yet been created (line 3).
-%, by calling the \jsinline|PriorityQueue| function as a constructor, using the keyword \jsinline|new|. 
-Lines 59-62 call the \jsinline|enqueue| and \jsinline|dequeue|
-functions, for adding and removing elements from the queue. 
-For example, the command statement  \jsinline|q.enqueue(1,"last")| in line 59 inserts a new node with priority \jsinline|1| and value \jsinline|"last"| into the (at this point empty) queue \jsinline|q|. To do so, it first checks if the node limit has been reached and, since the value of the node counter is zero, it proceeds. Next, it uses the \jsinline|Node| function to construct a new node object (line~38), say \jsinline|n|, with the given priority (\jsinline|pri=1|), value (\jsinline|val="last"|), and a pointer to the next node (initially \jsinline|next| = \jsinline|null|). 
-Finally, it then calls \jsinline|n.insert(this._head)| (line 39), which inserts
-\jsinline|n| into the existing node list at \jsinline|this._head|,
-returns the head of the new node list and stores it in
-\jsinline|this._head|. In this case, since we are inserting the node
-\jsinline|n| into an empty queue, this head of the new node list will be
-\jsinline|n|. 
-The statements \jsinline|q.enqueue(3, "bar")| and \jsinline|q.enqueue(2, "foo")| behave in a similar way. After their execution, we have a queue containing three elements and the node counter is equal to 3.
-Finally, the statement \jsinline|var r = q.dequeue( )| removes the first element from the queue by swinging the \jsinline|_head| pointer to the second element of the node list, decreases the node counter to 2, creates a new object containing the priority property with value \jsinline|3| and the value property with value \jsinline|"bar"|, and returns the address of this new object. 
-
-Ideally,  it should be possible to abstract the details of
-\jsinline|Node| so that the client works with the functionalities of
-the priority queue.
-In Java, it is possible to define a \jsinline|Node| constructor and
-its associated functionalities to be private. In JavaScript, there
-is no native mechanism that provides encapsulation. Instead, the
-standard approach to establish some form of encapsulation is to use
-function closures. For example, the call of the function
-\jsinline|Node| inside the body of \jsinline|enqueue| (line 38) refers
-to the variable \jsinline|Node| declared in the enclosing scope. This
-makes it impossible for the clients of the library to see the
-\jsinline|Node| function and use it directly. However, they still can
-access and modify constructed nodes and \jsinline|Node.prototype|
-through the \jsinline|_head| property of the queue, breaking
-encapsulation.  Our goal is to provide specifications of the queue
-library functions that ensure functionally correct behaviour and
-behavioural properties of encapsulation.
-
-\subsection*{The Complexity of JavaScript}
-JavaScript is a highly dynamic language, featuring a number of non-standard concepts and behaviours. In this section, we describe the JavaScript initial heap and elaborate on the challenges that need to be addressed for tractable JavaScript verification to be possible.
-
-\paragraph{Initial Heap.} 
-Before the execution of any JavaScript program, 
-an \emph{initial heap} has to be established. 
-It contains the \emph{global object}, which holds all global variables such as \jsinline|PriorityQueue|, \jsinline|q|  and \jsinline|r| from the example.
-It also contains the functions
-of all JavaScript built-in libraries, widely used by developers: for example, \jsinline|Object|,
-\jsinline|Function| and \jsinline|Error|.
-In the example, the \jsinline|Error| built-in function is used 
-to construct a new error object when trying to dequeue an empty queue~(line~36). 
-
-\paragraph{Internal Functions.} 
-In the ECMAScript standard, the semantics of JavaScript is described operationally, that is,~the behaviour of each JavaScript expression and statement is broken down into a number of steps. These steps heavily rely on a wide variety of  \emph{internal~functions}, which capture the fundamental inner workings of the language; most notably, object property management (e.g.~creation (\jsinline|DefineOwnProperty|), lookup (\jsinline|GetValue|), mutation (\jsinline|PutValue|) and deletion (\jsinline|Delete|)) and type conversions (e.g.~\jsinline|ToString| and \jsinline|ToNumber|). 
-
-To better understand the extent of the use of the internal functions, consider the JavaScript assignment \jsinline|o["foo"] = 42|. According to its definition in the standard, it calls the internal functions five times: \jsinline|GetValue| thrice, and \jsinline|ToString| and \jsinline|PutValue| once. This, however, is only at top-level: \jsinline|GetValue|, in turn, calls \jsinline|Get|, which calls \jsinline|GetProperty|, which calls \jsinline|GetOwnProperty| and possibly itself recursively; \jsinline|PutValue| calls \jsinline|Put|, which calls \jsinline|CanPut| and \jsinline|DefineOwnProperty|, which calls \jsinline|GetOwnProperty|. In the end, a simple JavaScript assignment will make more than ten and, in some cases, even more than twenty calls to various internal functions. The more complex a JavaScript command is, the greater the number of the internal functions that it calls. Therefore, in order to be able to reason about JavaScript programs, one first has to tackle the internal functions. This brings us to the following challenge:
-
-\verchal{0.55\textwidth}{To reason robustly and abstractly about the JavaScript internal functions.}
-
-%\pg{Do we have any challenge about the initial heap?} 
-
-%\pmax{No, it's very straightforward and dull, just a bunch of objects that need to be connected properly,  no challenge. I see that you would like a challenge for everything, but some things are just not that challenging :)}
-
-%\pg{What sort of spec might be possible for the initial heap: specs for the built-in functions and do we overconstraint things to be frozen?} 
-
-
-\paragraph{JavaScript Objects.} 
-Objects in JavaScript differ C++ and Java objects in several defining ways. First, JavaScript objects are \emph{extensible}, that is, properties can be added  and removed from an object after creation.  
-Second, property access in JavaScript is \emph{dynamic}; we cannot guarantee statically which property of the object will be accessed. Third, JavaScript objects have two types of properties: \emph{internal} and \emph{named}. 
-
-Internal properties are hidden from the user, 
-%are associated directly with values, 
-but are critical for the mechanisms underlying JavaScript, such as prototype inheritance. 
-To illustrate, standard objects have three internal properties: \jsinline|@proto|, \jsinline|@class|, and \jsinline|@extensible|. 
-For example, all node objects constructed using the \jsinline|Node| function have prototype \jsinline|Node.prototype|, class \jsinline|"Object"|, and are extensible. 
-JavaScript objects constructed by some of the built-in libraries can have additional internal properties. 
-For example, a \jsinline|String| object, associated with a string literal, has properties that represent the characters of that literal.
-
-
-Named properties, which correspond to standard fields  of C++ and Java objects, are associated not with values, but instead with \emph{property descriptors}, which are lists of \emph{attributes} that describe the ways in which a property can be accessed or modified. Depending on the attributes they contain, named properties can either
-be \emph{data properties} or \emph{accessor properties}. Here, we focus on data properties, which have the following attributes: {\em value}, holding the actual value of the property; 
-{\em writable}, describing if the value can be changed;
-{\em configurable}, allowing property deletion and any change to non-value attributes; and {\em enumerable}, stating if a property may be used in a \jsinline|for-in| enumeration. 
-The values of these attributes depend on how the property is created. 
-For example,  if a property of an object is  created using a property
-accessor (for example,~\jsinline|this.pri = pri|), then by default it is  
-writable, configurable and enumerable. On the other hand, if a
-property is declared as a variable,
-then by default it is not configurable (for example,~\jsinline|q| in
-the global object). 
-
-\begin{figure}[!b]
-\includegraphics[width=\textwidth]{pchain.png}
-\vspace*{-0.6cm}
-\caption{The prototype chain of Node objects.}
-\label{fig:runex:pchain}
-\end{figure}
-
-Additionally, certain JavaScript commands and functions, such as \jsinline|for-in| or \jsinline|Object.keys|, traverse over all enumerable properties of an object. As JavaScript objects are extensible, these properties need not be known statically. Also, the \jsinline|for-in| loop may modify the object over which it is traversing. This behaviour is difficult to capture and further illustrates the dynamic nature of JavaScript.
-
-In summary, JavaScript objects have an additional, highly non-trivial layer of complexity related to object property management with respect to objects in C++ or Java. Furthermore, this complexity cannot be captured natively by the existing tools for verifying C++ or Java programs (see \S\ref{subsec:simpler} for a more detailed discussion). This constitutes an important challenge:
-
-\verchal{0.78\textwidth}{To reason about extensible objects, dynamic property access, property descriptors, and property traversal.}
-
-
-
-\paragraph{Prototype-based inheritance.}
-JavaScript models inheritance through prototype chains. 
-To look up the value of a property of an object, we
-first check  the object itself.  If the property is not there, we walk along the prototype
-chain, following the \jsinline|@proto| internal properties, checking
-for the property at each object.
-In our example, all node objects constructed using the
-\jsinline|enqueue| function (line~38) have a prototype chain like
-the one given in Figure~\ref{fig:runex:pchain}. There, the lookup of property
-\jsinline|val| starting from object \jsinline|n| only needs to check
-\jsinline|n|.
-The lookup of property \jsinline|insert| starting from \jsinline|n| first checks 
-\jsinline|n|, which does not have the property, then checks 
-\jsinline|Node.Prototype|, which does. 
-In general, prototype chains can be of arbitrary length, typically finishing at
-\jsinline|Object.prototype|, but they cannot be circular.
-Moreover, prototype chain traversal is additionally complicated in the presence of \jsinline|String| objects, which have  properties that do not exist in the heap. 
-
-Prototype chain traversal is one of the fundamental building blocks of
-the JavaScript language and is prominently featured in the behaviour of almost
-every JavaScript command. This
-brings us to our next challenge:
-
-\verchal{0.72\textwidth}{To reason about prototype chains
-  of arbitrary complexity.}
-
-\paragraph{Functions, Function objects.}
-Functions are also stored in the JavaScript heap as objects.
-Each function object has three specific internal properties: \dtag{1} \jsinline|@code|, storing the code of the original function; \dtag{2} \jsinline|@scope|, storing a representation of the scope in which the function was defined; and \dtag{3}~\jsinline|prototype|, storing the prototype of those objects created using that function as the constructor. 
-For example, \jsinline|Node.prototype| is the prototype of all
-node objects constructed using the  \jsinline|Node| function, and is
-the place to find the \jsinline|insert| function. 
-
-There are two main challenges related to reasoning about function objects. 
-The first involves the interaction between function objects and scoping, which 
-we address in the following paragraph. 
-The second has to do with higher-order functions. 
-Namely, JavaScript has full support for higher-order functions, meaning that a function  
-can take another function as an argument, or that a function can return 
-another function as a result. This behaviour is not easily captured, particularly
-in a program logic setting, but is often used in practice 
-and verification of JavaScript programs should ultimately
-be able to tackle it.
-
-\verchal{0.8\textwidth}{To reason about higher-order functions
-  of arbitrary complexity.}
-
-
-\paragraph{Scoping, Function Closures.}
-In JavaScript, scope is modelled using environment records (ERs). 
-An ER is an internal object, created upon the invocation of a function, 
-that maps the variables declared in the body of that function and its 
-formal parameters to their respective values.
-Variables are resolved with respect to a list of ER locations, called
-a \emph{scope chain}. In the non-strict mode of JavaScript, standard 
-JavaScript objects can also be part of a scope chain. In
-strict mode, the only JavaScript object that can be part of a scope
-chain is the global object, which is treated as the ER of the global code.
-Since functions in JavaScript can be nested
-(e.g.~\jsinline|Node|, \jsinline|enqueue|, \jsinline |dequeue|) and
-can also be returned as outcomes of other functions (e.g.~the
-\jsinline|PQ| function is returned by \jsinline|PQLib|), it is
-possible to create complex relationships between scope chains of
-various functions. 
-
-We discuss scoping through the \jsinline|enqueue| function, 
-which uses five variables in its body: \jsinline|pri|, \jsinline|val|, \jsinline|n|, \jsinline|Node|, and \jsinline|counter|. 
-The scope chain of \jsinline|enqueue| contains the ERs corresponding to \jsinline|enqueue|, \jsinline|PQLib|, and global code. 
-As \jsinline|pri| and \jsinline|val| are formal parameters and \jsinline|n| is a local variable of \jsinline|enqueue|, they are stored in the ER of \jsinline|enqueue|.
-However, \jsinline|Node| and \jsinline|counter| are not declared in \jsinline|enqueue| and are not its formal parameters, so we have to look for them in the rest of the scope chain associated with \jsinline|enqueue|, and we find them in the ER corresponding to \jsinline|PQLib|. This means that when we reason about \jsinline|enqueue|, we need to capture not only its ER, but also a part of the ER of \jsinline|PQLib|. We should also note that while the value of \jsinline|Node| is static, the value of \jsinline|counter| is changed both by \jsinline|Node| and by \jsinline|dequeue|, and that this change is visible by all of the functions of the library. Overall, the interaction of scope chains in JavaScript is very intricate, especially in the presence of multiple function closures. Therefore, our next challenge is:
-
-\verchal{0.55\textwidth}{To reason about scope chains and function closures of arbitrary complexity.}
-
-%In \S\ref{sec:javert}, we introduce abstractions that allow the
-%developer to reason about scope and function closures without having
-%to know any details about the internal representation of scopes in
-%JavaScript.
-
-
-%\subsection*{Correctness of the Priority Queue} 
-
-\subsection*{Specification of JavaScript libraries.} 
-There are two requirements necessary for the correct functioning
-of the priority queue library.
-First, the intention of the library developer is that  all node objects constructed using the \jsinline|Node| function should have access to the function \jsinline|insert|. This means that the node objects themselves must not have the property \jsinline|"insert"|. 
-Second, we must always be able to construct a \jsinline|Node| object. 
-This means, due to the semantics of JavaScript, that
-\jsinline|Node.Prototype| and \jsinline|Object.Prototype| must not
-have properties \jsinline|"pri"|, \jsinline|"val"| and
-\jsinline|"next"|, used in the node constructor, declared as
-non-writable. We call these two requirements 
-\emph{prototype safety}. 
-We aim to provide a library
-specification for the priority queue that ensures prototype safety,
-and believe that we have identified a desired pattern of library behaviour
-suitable for JavaScript data structure libraries developed for
-Node.js. 
-
-\verchal{0.55\textwidth}{To provide specifications of JavaScript\\
-  libraries that ensure prototype safety.}
-
-
-
-
-%In \S\ref{sec:jsil:logic}, we introduce assertions that declare the absence of properties inside objects. Using these assertions, we are able to build abstractions that yield a simple, functionally correct, prototype-safe specification of the priority queue library, where much of the complexity of JavaScript can be hidden from view.
-
-\paragraph{Hiding JavaScript internals.} Our priority queue example illustrates  some of the complexities of
-JavaScript: extensible objects, prototype-based
-inheritance, functions, scoping, and function closures.
-There is, in addition,  much complexity that is not exposed to the JavaScript 
-developer: for example, property descriptors, internal functions, as well as implicit type
-coercions,  where values of one type are coerced at
-runtime to values of another type in order to delay error
-reporting. We would like to provide specifications that 
-are as opaque as possible to such hidden features: since the 
-code does not expose them, the specification should not expose
-them either. However, all of these features have to be taken into account when
-verifying that a program satisfies a specification. One solution is
-to provide abstractions that hide these internal details from view. 
-
-
-
-\verchal{0.75\textwidth}{To create abstractions that hide the internals of JavaScript as much as possible and allow the developer to write specifications in the style of C++ and Java specifications.}
-
-
-\section{A Pathway to JavaScript Verification}
-\label{sec:pathway}
-
-Logic-based symbolic verification has recently become tractable for C and Java,
-with compositional techniques that scale and properly engineered tools
-applied to real-world code: for example, Infer, Facebook's tool based
-on separation logic for reasoning about for C, C++, Objective-C and
-Java~\cite{calcagno2015moving}; Java Pathfinder, a model checking tool
-for Java bytecode programs~\cite{Visser:2004:TIG:1007512.1007526};
-CBMC, a bounded model checker for C, currently being adapted to Java
-at Amazon~\cite{kt2014-tacas}; and WALA's analysis for Java using the
-Rosette symbolic analyser~\cite{wala}.
-
-There has been little work on logic-based symbolic verification for JavaScript. As
-far as we are aware, the only relevant work is KJS
-\cite{Park:2015,stefanescu-park-yuwen-li-rosu-2016-oopsla}, a tested
-executable semantics of JavaScript in the $\mathbb{K}$ framework
-\cite{rosu-serbanuta-2010-jlap} which is equiped with a symbolic
-execution engine. The aim of K is to provide a unified environment for
-analysing programming languages such as C, Java and JavaScript.
-Specifications are written in the reachability logic of $\mathbb{K}$,
-and the authors use KJS to specify operations on data structures, such
-as lists, binary search trees (BSTs) and AVL trees, and to verify the correctness
-of several sorting algorithms. This work does not address many
-of the challenges that laid out in the previous section. For example,
-it does not provide a general, abstract way of reasoning about
-prototype chains, scope chains, or function closures; the concrete
-shape of a prototype chain or a scope chain always needs to be known.
-It does not provide JavaScript-specific abstractions, so the
-specifications are cumbersome and reveal all JavaScript internals. 
-The internal functions are always executed in full. 
-More generally, previously proven function specifications cannot be reused to 
-jump over function calls, so the function bodies always have to be executed. 
-This significantly diminishes the scalability of KJS. We argue
-that a more JavaScript-specific approach is needed in order
-to make JavaScript verification tractable.
-
-\subsection{Choosing the Battleground} 
-
-We believe that separation logic has much to offer JavaScript, since
-it provides a natural way of reasoning modularly about the JavaScript
-heap.  Gardner, Smith and Maffeis developed a sound separation logic
-for a small fragment of JavaScript with many syntactic and semantic
-simplifications~\cite{gardner:popl:2012}. Their goal was to demonstrate that
-separation logic can be used to reason about the variable store
-emulated in the JavaScript heap. 
-%
-This approach is not extensible to the entire language.  
-For example, consider the general assignment \jsinline|e1 = e2|, where \jsinline|e1| and \jsinline|e2| are arbitrary JavaScript expressions. 
-Under the hood, this assignment evaluates these two expressions and calls the \jsinline|GetValue| and \jsinline|PutValue| internal functions. 
-The evaluation of each expression, as well as each of these two internal functions has tens of cases, so combining these case together would result in hundreds of axioms for the JavaScript assignment alone. 
-Such a logic would be extremely difficult to prove sound, let alone automate.
-In order to reason about JavaScript, we need to move to a simple intermediate representation. 
-
-\begin{center}
-{\bfseries \small
-Working directly with JavaScript is not tractable for verification
-based on program logics.
-We need  a simple intermediate representation. }
-\end{center}
-
-\subsection{Moving to a Simpler World} 
-\label{subsec:simpler}
-
-
-
-
-
-
-
-
-Our conclusion that some sort of an intermediate representation (IR)
-is necessary for JavaScript verification is not surprising. Most
-analysis tools, both for JavaScript \cite{guha:ecoop:2010,s5,kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,sridharan:ecoop:12} and other languages \cite{smallf,slayerp,jstar,jacobs2011verifast,abductor,calcagno2015moving,wala}, use an IR.
-The next step is to  understand what the desired features of an
-IR for logic-based JavaScript verification are. 
-We believe that the following  criteria need to be met.
-
-\begin{enumerate}
-\setlength{\itemsep}{1mm}
-\item {\bfseries Expressiveness.}  JavaScript is a highly dynamic
-  language, with extensible objects, dynamic field access, and dynamic
-  function calls. These features create an additional level of
-  complexity for JavaScript when compared to other object-oriented
-  languages such as C++ and Java. They should be supported  natively by the~IR.
-\item {\bfseries Simple control flow.} JavaScript has complicated
-  control flow constructs:
-for example, \jsinline|for|-\jsinline|in|, which iterates on the
-fields of an object;
- \jsinline|try|-\jsinline|catch|-\jsinline|finally| for handling
- exceptions;
-and the breaking out of loops to arbitrary labelled points in the code.
-Logic-based symbolic verification tools today typically work on
-IRs with 
-simple control flow. In particular, many of the separation-logic tools for
-analysing C, C++, and Java use goto-based IRs: for example,~\cite{smallf,slayerp,jstar,jacobs2011verifast,abductor,calcagno2015moving}. This suggests that our IR for JavaScript should be based
-on simple low-level control flow constructs.
-\end{enumerate}
-
-%\pg{I've got rid of validation, because can go in next section. I
- % wasn't sure tabout this. }
-
-%\pg{In below, where do we put Chang? They do abstract interpretation whih sugegsts that they might be quite high level. If they do 2, then we need to discuss.}
-
-%\pg{In paragraph below, where does abstract interpretation fit in. 2?}
-
-One option is to use an IR that has already been developed for
-analysing JavaScript code.
- We can broadly divide these IRs into two categories: \dtag{1}~those that work for analyses that are
-syntax-directed, following the abstract syntax tree (AST) of the
-program, such as $\lambda_{JS}$~\cite{guha:ecoop:2010}, S5~\cite{s5},
-and notJS~\cite{kashyap:fse:14}; and 
-\dtag{2}~those that aim at analyses based on the control-flow~graph of the program, such as JSIR~\cite{jsir}, WALA~\cite{wala,sridharan:ecoop:12} and the IR of TAJS~\cite{jensen:sas:2009,andreasen:oopsla:2014}.
-The IRs in~\dtag{1} are normally well-suited for high-level analysis, such as type-checking and type inference~\cite{guha:ecoop:2010,s5}, whereas those belonging to \dtag{2} are generally the target of separation-logic-based
-tools, such as Smallfoot~\cite{smallf}, Slayer~\cite{slayerp}, JStar~\cite{jstar}, VeriFast~\cite{jacobs2011verifast}, Abductor~\cite{abductor}, and Infer~\cite{calcagno2015moving}, as well as tools for tractable symbolic evaluation such as CBMC~\cite{kt2014-tacas} and Klee\cite{Klee}. 
-%As we have stated, our IR should belong to the latter category.
-
-We believe that an IR for JavaScript verification should belong to
-\dtag{2}. 
-The JSIR~\cite{jsir}  and WALA~\cite{wala,sridharan:ecoop:12} IRs  both capture the dynamic features  of
-JavaScript and provide low-level control flow constructs. However,
-neither JSIR nor WALA have associated compilers. In addition, they  do not provide  reference implementations of the JavaScript
-internal functions and built-in libraries, which makes it very difficult
-for us to assess their usability.
-%They are small gotolanguages with no  connection to  JavaScript. There is  no advantage touse them  in ourproject. 
-TAJS~\cite{jensen:sas:2009,andreasen:oopsla:2014}  does include a
-compiler, originally for ECMAScript 3 (ES3) but now extended with partial models of
-the ES5 standard library, the HTML DOM, and the browser API. 
-As TAJS is used for
-type analysis and abstract interpretation, its IR is more
-high-level than those typically used for logic-based symbolic
-verification. In addition, we believe that the aim for verification 
-should be at least ECMAScript 5 (ES5)~\cite{ecma}, 
-which is substantially different from ES3 and
-essentially provides the core language for the more recent ES6 and ES7. 
-%\pg{Am I ok with the TAJS description?} 
-
-
-
-Another option is to consider using or adapting an IR supported by  an
-existing separation-logic-based
-tool~\cite{smallf,slayerp,jstar,jacobs2011verifast,abductor,calcagno2015moving}, where we
-would have to provide the compiler from 
-JavaScript, but the analysis for the IR could be reused. 
-There are two problems worth mentioning with this approach. First, these tools all target static 
-languages that do not support extensible objects or dynamic function calls. Hence, JavaScript 
-objects could not be directly encoded using the built-in constructs of these languages. Consequently, 
-at the logical level, one would need to use custom abstractions to reason about JavaScript objects and their
-associated operations, effectively losing most of the native reasoning features of the tool in question. Second, any program logic for JavaScript needs to take into account the JavaScript 
-binary and unary operators, such as \jsinline|toInt32|~\cite{ecma}, and it is not clear that these operators would be expressible using the assertion languages of existing tools. This brings us to the following conclusion:
-
-\begin{center}
-{\bfseries \small
-JavaScript requires a dedicated low-level control-flow-based IR for
-verification: the simpler the IR, the better.}
-\end{center}
-
-We have developed a simple JavaScript  IR for our verification
-toolchain, called \jsil. It comprises only the most basic control flow
-commands (unconditional and conditional gotos), the object management
-commands needed to support extensible objects and dynamic field
-access, and top-level procedures. In the following section, we use
-\jsil to discuss what it means to design and trust the compilation and
-verification process.
-However, the methodology and principles that we lay out are general and apply
-to any verification IR for JavaScript.
-
-%\pg{In the above paragraph, we could mention, JISL assignemtn is x := e, where e is a simple expression in contrast with the JS e1 = e2. }
-
-\vspace*{-0.2cm}
-\subsection{Trusted compilation of JavaScript}
-
-The development of an appropriate IR is tightly connected with the
-development of the compiler from JavaScript to the IR, which
-brings up two challenges that need to be addressed:
-
-\begin{enumerate}
-\setlength{\itemsep}{0.5em}
-\item The compilation has to  capture all of the behaviours and corner cases of the JavaScript semantics, and must come with strong guarantees of correctness.
-\item The reasoning at JavaScript level has to be strongly connected with the reasoning at the IR level; we refer to this as logic-preserving compilation. 
-\end{enumerate}
-
-To answer these two challenges, we unpack what it means
-to show that a compiler can be trusted.
-
-\begin{itemize}
-\setlength{\itemsep}{0.5em}
-\item {\bfseries Correctness by design.} This approach assesses the compiler by looking at the
-structure of the compiler code and  at examples of compiled
-code. It is greatly simplified by using semantics-driven compilation,
-where
-the compiler and  the compiled code follow the steps of the JavaScript
-English standard line-by-line as much as possible. 
-This approach is feasible, because the JavaScript standard is given operationally, in an almost pseudo-code format. Given the complexity of JavaScript, this approach, albeit quite informal in nature, can give some confidence, particularly to the compiler developer, when it comes to compiler correctness. Ultimately, however, it is not formal enough to be sufficient on its own. 
-
-\item {\bfseries Correctness by testing.} JavaScript is a real-world language that
-  comes with an official test suite, the ECMAScript
-  Test262~\cite{test262}. Although Test262 is known not to be comprehensive,
-  it features over 20,000 tests that extensively test
-  most of the JavaScript behaviour. 
-Correctly compiled JavaScript code should pass all of the appropriate tests.
-
-\item {\bfseries Semantics-preserving compilation.} This correctness
-  condition for the compiler is
-  standard in compiler literature. It requires formalising the
-  semantics and memory model of JavaScript, formalising the semantics
-  and memory model of IR, giving a correspondence between the two
-  memory models, and, with this correspondence, proving that the
-  semantics of the JavaScript and compiled IR code match. For
-  real-world languages, either a pen-and-paper proof is given for a
-  representative fragment or a mechanised proof is given, in a proof
-  assistant such as Coq, for the entire language.
-
-\item {\bfseries Logic-preserving compilation.} This correctness
-  condition for the compiler is not commonly emphasised  in the analysis literature. 
-It assumes semantic-preserving compilation and additionally 
-requires: giving a strong correspondence
-  between JavaScript and IR assertions; 
-  relating the semantics of JavaScript triples 
-  with the semantics of the IR triples; and 
-  proving a soundness result for the IR proof rules.
-In this way, one can formally lift IR
-verification to JavaScript verification. 
-
-
-
-\end{itemize}
-
-
-What follows is an insight into
-our design process for JSIL and JS-2-JSIL, and the main lessons that
-we have learnt from it. We knew we wanted to achieve logic-preserving compilation, using a
-separation logic for reasoning about heap manipulation.
-From the start, a fundamental decision was to make the JavaScript
-and JSIL memory models as close to each other as
-possible. In the end, the only difference is the modelling of scope chains.
-We also chose to design \JSComp so that the compiled
-code follows the ECMAScript standard line-by-line, which meant that
-the choices for JSIL were quite apparent.
-This approach proved  to be important for \JSComp. It leverages on the operational aspect of the standard, making the inspection and debugging of compiled code considerably easier. 
-\begin{center}
-{\bfseries \small
-Semantics-driven compilation is greatly  beneficial.
-} \end{center}
-
-We believe that testing is an indispensable part of establishing compiler correctness for real-world languages such as JavaScript. 
-Regardless of how precise proof of correctness may be, there still is plenty of room for discrepancies to arise:
-for example, the implementation of the compiler might inadvertently deviate from its formalisation; or the formalised JavaScript semantics might deviate from the standard. 
-For us, it was testing that guided our debugging process; without it, we would not be able to claim correctness of \JSComp. 
-\begin{center}
-{\bfseries \small
-Extensive testing of the compiled code is essential.}
-\end{center}
-
-When writing a language compiler, one 
- might claim that correctness-by-design and
-correctness-by-testing are sufficient: there is a clear design
-structure to the compiler that can be checked by looking at the code
-and by testing. 
-This is not enough when using the compiler
-for logic-based verification. In this case, we 
-require logic-preserving  compilation which formally connects 
-JavaScript verification with \jsil verification. Logic-preserving
-compilation depends on semantic-preserving compilation, 
-which is difficult to prove for such a complex language as
-JavaScript. We give a pen-and-paper proof correctness proof for a
-representative fragment of the language. 
-We have given thought to providing a Coq proof of correctness,
-leveraging on our previous
-JSCert mechanised specification of JavaScript \cite{bodin:popl:2014}.
-However, the process of formalising \jsil and \JSComp, and then proving the
-correctness is beyond our manpower.
-In contrast, the proof that the compiler
-is logic preserving is comparatively straightforward
-due to the simple correspondence between the JavaScript and \jsil
-memory models. Moreover, we noticed that the complexity of our proofs 
-is strongly related to the complexity of this correspondence. 
-
-
-
-\begin{center}
-{\bfseries \small
-Semantic- and logic-preserving compilation is essential for verification.\\
-A simple correspondence between JavaScript and IR heaps is essential
-for containing the complexity of any correctness proofs.
-}
-\end{center}
-
-\subsection{Tackling the Javascript Internal Functions}
-
-The internal functions are described in the standard only in terms of
-pseudo-code and not JavaScript.
-They must, therefore, be implemented directly in the IR. With these implementations, we have identified two options on how to use them in verification.
-\begin{itemize}
-\setlength{\itemsep}{0.5em}
-\item {\bfseries Inlining.} The entire body of an internal function is inlined every time the function is supposed to be called in the compiled code.
-\item {\bfseries Axiomatic specification.} Internal functions are treated as procedures of the IR and, as such, are fully axiomatically specified. Calls to internal functions are treated as standard procedure calls of the~IR.
-\end{itemize}
-
-We do not believe that inlining is a viable option. Given the sheer
-number of calls to the internal functions and their intertwined
-nature, the size of the compiled code would quickly spiral out of
-control.
-%, which is completely opposite to our goal of having robust and
-%abstract treatment of the internal functions. 
-We would also entirely lose the visual correspondence between the compiled code and the standard. Moreover, the bulk of verification time would be spent inside this code and the overall verification process would be very slow.
-
-With axiomatic specifications, on the other hand, the calls to internal functions are featured in the compiled code as procedure calls to their IR implementations. In that sense, the compiled code reflects the English standard. During verification, the only check that has to be made is that the current symbolic state entails a precondition of the specification, which is both at a higher level of abstraction as well as faster than running the body of the function every time. 
-
-\begin{center}
-{\bfseries \small
-Axiomatic specifications of the internal functions are essential for tractable JavaScript verification.
-}
-\end{center}
-
-Creating axiomatic specifications does not come without its challenges. 
-The definitions of the internal functions are often intertwined, making it difficult to fully grasp the control flow and allowed behaviours. 
-Specifying such dependencies axiomatically involves the joining of the
-specifications of all nested function calls at the top level, which
-results in numerous branchings. 
-Also, some of the internal functions feature higher-order and, although it is
-possible to add higher-order reasoning to separation logic~\cite{chords}, the
-soundness result is known to be difficult. 
-We believe that the resulting specifications, however, will be  much more
-readable than the operational definitions of the standard. We also
-hope that they can also be easily reused for other types of analyses,
-by leveraging on executable code created from the axiomatic
-specifications. 
-
-
-\subsection{JavaScript Verification Toolchain}
-
-%\pg{Say something about coverage in footnote, as I indicate.} 
-
-We are currently developing a JavaScript verification toolchain
-(JaVerT), which targets the strict mode of the ES5 standard.
-%\footnote{Say something about coverage.}. 
-It requires
-the JavaScript code to be annotated with assertions written in our
-assertion language for JavaScript (JS Logic).  These annotations
-comprise specifications (the pre- and postconditions) for
-functions and global code, together with loop invariants and unfold/fold instructions
-for any user-defined predicates, such as a predicate for describing
-priority queues. 
-\javert also  features a number of built-in predicates that provide abstractions for the key concepts of JavaScript; 
-in particular, for prototype inheritance, scoping, function objects and function closures. 
-Such predicates enable the developer  to move away from the complexity of the JavaScript semantics and write specifications in a logically clear and concise manner.
+JavaScript supports nested functions and function closures, meaning that one function literal can be declared within another and that functions can refer to variables that are defined in the enclosing scope. 
+The relationships between the scope chains of such functions can become fairly complex and there are several challenges that the specification of function closures has to tackle, which we illustrate with the following example:
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=0.8\textwidth]{Infrastructure.png}
+\begin{minipage}{0.75\textwidth}
+\begin{lstjs}[firstnumber=1]
+var make_counter = function () {
+   var count = 0;
+
+   var getCounter = function () { return count };
+   var incCounter = function () { count++ };
+   var decCounter = function () { count-- };
+
+   return { getCounter: getCounter, incCounter: incCounter, decCounter: decCounter }
+}
+
+var counter_1 = make_counter();
+var counter_2 = make_counter();
+
+counter_1.incCounter();
+counter_1.incCounter();
+
+counter_2.incCounter();
+
+var count = counter_1.getCounter() + counter_2.getCounter()
+\end{lstjs}
+\end{minipage}
 \vspace*{-0.2cm}
-\caption{JaVerT: JavaScript Verification Toolchain}
-\label{fig:javert}
+\caption{Example: Function closures}
+\label{fig:fc}
 \end{figure}
 
-%\pg{Change diagram to put a proven correct tick by JS-2-JSIL compiler? Or even a tick with a line through it, a partial tick? Do you want to talk about scoping here? }
+The purpose of the function \jsinline|make_counter| is to provide an encapsulated counter. JavaScript has no native mechanism for providing encapsulation and encapsulation is usually simulated using function closures. One declares the resources that one wishes to keep private (in our case, the variable \jsinline|count|) inside the closure, and exposes only the interface for manipulating those resources (in our case, the functions \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter|) outside the closure. In our case, this is sufficient to achieve full encapsulation---there is no way for the programmer to access the counter directly outside \jsinline|make_counter|; in the general case, encapsulation cannot be guaranteed. In the rest of the program, we use \jsinline|make_counter| to create two counters, we increase the first one twice, the second one once, and assign their sum to the variable \jsinline|count|.
 
-Figure~\ref{fig:javert} presents the architecture of \javert, which 
-rests on an infrastructure that consists of three components: \dtag{1}
-\JSComp, our semantics-preserving\footnote{The formal result
-  that the compiler is semantics-preserving has been done for a
- fragment of the language.} and logic-preserving compiler from JavaScript to
-\jsil which has been tested using the official Test262 test suite,
-passing all the appropriate tests; \dtag{2} JSIL Verify, our semi-automatic tool for \jsil
-verification, based on 
-a sound program logic for \jsil (\jsil Logic); and \dtag{3} our 
-JSIL Logic axiomatic specifications of the JavaScript internal functions, 
-which have been verified using JSIL Verify against their
-corresponding \jsil implementations.  
-
-
-Given a JavaScript program annotated with JS Logic specifications, \javert uses our \JSComp compiler to translate it to \jsil and the \JSComp logic translator to translate JS Logic annotations to \jsil Logic.
-The resulting annotated JSIL program is then automatically verified by
-JSIL Verify, taking advantage of our specifications of the JavaScript
-internal functions.
-
-Thus far, we have used \javert to specify and verify a variety of heap-manipulating programs, including operations 
-on lists (e.g. insertion sort), priority queues and BSTs, as well as a number of small
-JavaScript programs that showcase our treatment of prototype chains,
-scoping, and function closures. All examples can be found online
-at~\cite{jsil:url} and are continually being updated. 
-
-
-
-
-\section{Specifying the Priority Queue Library}
-We illustrate JaVerT specifications by specifying the
-\jsinline|enqueue| and \jsinline|dequeue| methods of the priority
-queue library, given in Figure~\ref{fig:runex}.
-We show how these specifications are used to verify the
-client program given in  lines 58-62 of the example.
-
-In order to specify \jsinline|enqueue| and \jsinline|dequeue|, we
-first need to have a predicate \jsinline|Queue|, describing a priority
-queue, and the predicate \jsinline|QueueProto|, describing the  priority queue prototype.
-The predicate \jsinline|Queue(lq, qp, np, pri_q, len)| describes a priority queue at 
-location \jsinline|lq|, whose prototype is \jsinline|qp|, whose nodes
-have node  prototype \jsinline|np|, whose maximum  
-priority is \jsinline|pri_q|, and which contains \jsinline|len| nodes.  
-The predicate \jsinline|QueueProto(qp, np, c)| describes a priority queue prototype at location \jsinline|qp|
-for those priority queues built from node objects whose node prototype
-is \jsinline|np|.
-The parameter \jsinline|c| records the value of the variable
-\jsinline|counter| of the example (line 3), and holds the total number of existing node objects.
-
-These two abstractions, which we will not unfold in detail here,
-capture, among others, the resource associated with the \jsinline|Node|,
-\jsinline|insert|, \jsinline|enqueue|, and \jsinline|dequeue| function
-objects, as well as the resource
-corresponding to the function closures of \jsinline|enqueue| and
-\jsinline|dequeue|:  in particular, for \jsinline|enqueue|, we need the
-variable property \jsinline|Node| from the ER of \jsinline|PQLib|;
-and,  for \jsinline|dequeue|, we need the variable resource
-\jsinline|counter| from that same ER. They also capture the resources
-necessary to express prototype safety for both \jsinline|Node| and
-\jsinline|PQ|, which we describe using a technique from
-\cite{gardner:popl:2012} for reasoning about the absence of properties
-in an object. We explicitly require the \jsinline|insert| property of
-node object \jsinline|n|, and the \jsinline|pri|, \jsinline|val|, and
-\jsinline|next| properties of \jsinline|Node.prototype| and \jsinline|Object.prototype| not to be in the heap, as illustrated in Figure \ref{fig:runex:heap} by the properties in red with value \jsinline|None|.
-Note that the \jsinline|Queue| and \jsinline|QueueProto| predicates do
-not expose the internals of JavaScript, such as property descriptors
-and scope chains. Moreover, they do not expose functions not
-accessible to the client, such as the \jsinline|Node| function. They
-do expose \jsinline|Node.prototype| via the \jsinline|np| parameter,
-but this is expected since the
-client  can access it through the \jsinline|_head| property of a queue.
-
-\vspace*{-0.2cm}
-\begin{figure}[!h]
-\includegraphics[width=\textwidth]{safety.png}
-\caption{Prototype safety for Node objects}
-\label{fig:runex:heap}
-\vspace*{-0.5cm}
-\end{figure}
-
-The following specification of \jsinline|enqueue| states that it should be executed on a priority queue 
-of arbitrary length \jsinline|len|, that the total number of existing nodes \jsinline|c| needs to be not greater 
-than $42$, and that it receives two arguments \jsinline|pri| and
-\jsinline|val| with \jsinline|pri|  of type \jsinline|Num|. 
-The postcondition states that \jsinline|enqueue| returns a priority queue with \jsinline|len + 1| nodes 
-and maximum priority \jsinline|max(pri_q, pri)|, and that the total number of nodes has increased by one. 
-Due to space requirements, we omit the specification of \jsinline|enqueue| corresponding to the error case in which the total number of existing nodes is greater than $42$. 
-%
-\begin{displaymath} 
-{\scriptsize
-\hspace*{-0.2cm}
-\begin{array}{c}
-\left\{ 
-\begin{minipage}{0.62\textwidth}
-\begin{verbatim}
-Queue(this, qp, np, pri_q, len) * QueueProto(qp, np, c) *
-                types(pri: Num) * c <= 42
-\end{verbatim}
-\end{minipage}\ \right\} \\[2mm]
-\text{\bfseries \texttt{enqueue(pri, val)}} \\[1mm]
-\left\{ {\begin{array}{c}
- \text{\texttt{Queue(ret, qp, np, max(pri\_q, pri), len+1) * QueueProto(qp, np, c+1)}} 
-\end{array}} \right\} \\
-\end{array}}
-\end{displaymath}
-
-The following specification of \jsinline|dequeue| states that it should be executed on a priority queue 
-with length \jsinline|len| greater than $0$ and maximum priority \jsinline|pri_q|. 
-The postcondition states that, afterwards, the length of the queue has
-decreased by one, its priority has not increased, and the overall total number of nodes has decreased by one.
-The function also returns a standard object with 
- two fields,   \jsinline|pri| with value \jsinline|pri_q| and \jsinline|val| with 
-value \jsinline|#val|  which is existentially quantified. 
-We prefix existentially quantified variables with a `\#'.
-In the postcondition, the \jsinline|standardObject| and
-\jsinline|dataField| abstractions  hide the internal properties and property descriptors of JavaScript objects.
-Again, due
-to space requirements, 
-we omit the 
-specification of \jsinline|dequeue| where the queue from which we are
-dequeueing is empty and an error is thrown. 
-%
-\begin{displaymath} 
-{\scriptsize
-\hspace*{-0.2cm}
-\begin{array}{c}
-\left\{ 
-{\begin{array}{c}
- \text{\texttt{ Queue(this, qp, np, pri\_q, len) * QueueProto(qp, np, c) * len > 0 }} 
-\end{array}} \right\} \\[1.5mm]
-\text{\bfseries \texttt{dequeue()}} \\[1mm]
-\left\{ 
-\begin{minipage}{0.88\textwidth}
-\begin{verbatim}
-    Queue(this, qp, np, pri', len-1) * QueueProto(qp, np, c-1) * pri' <= pri_q *
- standardObject(ret) * dataField(ret, "pri", pri_q) * dataField(ret, "val", #val)
-\end{verbatim}
-\end{minipage}\ \right\}
-\end{array}}
-\end{displaymath}
-
-Given the specifications of \jsinline|enqueue| and \jsinline|dequeue|, we can 
-verify the client program in lines 59-62. We show a proof 
-sketch below, where we use the assertion \jsinline|scope(x: v)| to state that 
-variable \jsinline|x| has value \jsinline|v| in the current scope.
-Starting from an empty queue with maximum priority 
-$0$, we create three nodes, obtaining a queue with three nodes and 
-maximum priority~$3$. Then, we dequeue the head of the queue 
-(which we can do, as we know that the queue has 3 nodes), obtaining a queue with 2 nodes and existentially
-quantified priority \jsinline|#pri| not greater than $3$. Moreover, in the end, 
-the variable \jsinline|r| is bound to an object with two fields:
-\jsinline|pri|,  with value $3$;
-and \jsinline|val|,  with value \jsinline|#val| which is existentially quantified. 
-% 
-\begin{displaymath} 
-{\scriptsize
-\hspace*{-0.2cm}
-\begin{array}{c}
-\left\{ {\begin{array}{c}
-\text{\texttt{ scope(q: qv) * Queue(qv, qp, np, 0, 0) * QueueProto(qp, np, 0) * scope(r: undefined)}} 
-\end{array}} \right\} \\[1.5mm]
-\begin{minipage}{0.62\textwidth}
-\begin{verbatim}
- q.enqueue(1, "last"); q.enqueue(3, "bar"); q.enqueue(2, "foo") 
-\end{verbatim}
-\end{minipage} \\[1.5mm]
-\left\{ {\begin{array}{c}
- \text{\texttt{ scope(q: qv) * Queue(qv, qp, np, 3, 3) * QueueProto(qp, np, 3) * scope(r: undefined)}} 
-\end{array}} \right\} \\[1.5mm]
-\begin{minipage}{0.62\textwidth}
-\begin{verbatim}
- var r = q.dequeue()
-\end{verbatim}
-\end{minipage} \\[1.5mm]
-\left\{ 
-\begin{minipage}{0.95\textwidth}
-\begin{verbatim}
-     scope(q: qv) * Queue(qv, qp, np, #pri, 2) * QueueProto(qp, np, 2) * #pri <= 3 * 
- scope(r: #r) * standardObject(#r) * dataField(#r, "pri", 3) * dataField(#r, "val", #val)
-\end{verbatim}
-\end{minipage}\ \right\}
-\end{array}}
-\end{displaymath}
-
-These specifications show that it is possible to successfully abstract over JavaScript internals, 
-allowing both the library developer and the client developer to write specifications that are as free
-as possible from  JavaScript-specific clutter.
-
-\subsection{Discussion}
-We conclude with a brief discussion of  two important aspects of
-specifying JavaScript libraries: capturing prototype safety; and
-enforcing encapsulation. The situation for prototype safety is
-straightforward. It is not possible to verify a specification of
-client code if it compromises prototype safety. The situation for
-encapsulation is more subtle. 
-In the example, a client can break encapsulation by modifying node
-objects or \jsinline|Node.prototype|. 
-There are ways of breaking encapsulation that we {could choose to allow}.
-The client could, for instance, add more functionalities to
-\jsinline|Node.prototype| or add more properties to node objects, and
-this would not break the existing functionalities. However, there are
-ways of breaking encapsulation that we should certainly disallow. The client
-could, for instance, change the values of the \jsinline|pri|, \jsinline|val|, or
-\jsinline|next| properties of a node object, or change {the implementation of} the
-\jsinline|insert| function in \jsinline|Node.prototype|. 
-One way to ensure full encapsulation would be to keep the \jsinline|Queue| and \jsinline|QueueProto| predicates opaque to the client code. Hence, in order to be successfully verified, client code can only interact with a priority queue via its established interface, that being the \jsinline|enqueue| and \jsinline|dequeue| methods. By keeping library predicates opaque, we make sure that client code cannot break the existing abstractions.
+Let us specify this program. The \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter| functions are easy---we only need to be able to talk about the variable \jsinline|count|, which we do using the \jsinline|scope| assertion:
 
 \bigskip
-\noindent{\bfseries Acknowledgments.} Fragoso Santos, Gardner, and Maksimovi\'{c} were supported by the EPSRC Programme Grant REMS: Rigorous Engineering for Mainstream Systems (EP/K008528/1), and the Department of Computing in Imperial College London. Naud\v{z}i\={u}nien\.{e} was supported by an EPSRC DTA award. Maksimovi\'{c} was also partially supported by the Serbian Ministry of Education and Science through the Mathematical Institute
-of Serbian Academy of Sciences and Arts, projects ON174026 and III44006. 
+\begin{minipage}{0.36\textwidth}
+\begin{lstjs}[firstnumber=1]
+/**
+  @id getCounter
 
-%\section{JaVerT: JavaScript Verification Toolchain}
-%\label{sec:javert}
-%\input{javert}
+  @pre (
+    scope(count : #c) * 
+    types(#c : $$number_type)
+  )
+  
+  @post (
+    scope(count : #c) * (ret == #c)
+  )
+*/
+
+var getCounter = function () 
+  { return count; }
+\end{lstjs}
+\end{minipage}
+\begin{minipage}{0.33\textwidth}
+\begin{lstjs}[firstnumber=1]
+/**
+  @id incCounter
+
+  @pre (
+    scope(count : #c) * 
+    types(#c : $$number_type)
+  )
+  
+  @post (
+    scope(count : #c + 1)
+  )
+*/
+
+var incCounter = function () 
+  { count++ };
+\end{lstjs}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\begin{lstjs}[firstnumber=1]
+/**
+  @id decCounter
+
+  @pre (
+    scope(count : #c) * 
+    types(#c : $$number_type)
+  )
+  
+  @post (
+    scope(count : #c - 1)
+  )
+*/
+
+var decCounter = function () 
+  { count-- };
+\end{lstjs}
+\end{minipage}
+
+\bigskip
+The more intricate part is specifying \jsinline|make_counter|. The precondition is easy, it is \jsinline|emp|, and for the postcondition we need to capture the object that is returned (denoted by \jsinline|c|) and all the associated resources. For starters, it is a standard JavaScript object that has three properties: \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter|.
+
+\begin{lstjs}
+standardObject(c) * 
+dataField(c, "getCounter", #gc) * dataField(c, "incCounter", #ic) * dataField(c, "decCounter", #dc)
+\end{lstjs}
+
+Next, we need to state that the values of these properties correspond to the appropriate function objects:
+
+\begin{lstjs}
+fun_obj(getCounter, #gc, #gc_sc) * fun_obj(incCounter, #ic, #ic_sc) * fun_obj(decCounter, #dc, #dc_sc)
+\end{lstjs}
+
+The last bit of information that we need to capture is the one related to the closure---we need to express that the three functions all have the same variable \jsinline|count| in their scope and that its value is equal to zero. This is done by using our \jsinline|closure| abstraction:
+
+\begin{lstjs}
+closure(count: 0; getCounter: #gc_sc, incCounter: #ic_sc, decCounter: #dc_sc)
+\end{lstjs}
+
+This assertion states that the variable \jsinline|count| has value \jsinline|0| in the scope chains of \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter| (denoted by \jsinline|#gc_sc|, \jsinline|#ic_sc|, and \jsinline|#dc_sc|), and that these particular instances of these three functions were created in the same execution of \jsinline|make_counter|, i.e.~that they share the same function closure.
+
+\begin{display}{Under the hood}
+\ \ \begin{minipage}{0.97\textwidth}
+The \jsinline|closure| abstraction can actually be unfolded to show the built-in assertions that are behind it:
+\begin{lstjs}
+closure(v1: #v1, ..., vm: #vm; f1: #f1_sc, ..., fn: #fn_sc) :
+  sc_scope(f1, v1: #v1, #f1_sc) * ... * sc_scope(f1, vm: #vm, #f1_sc) *
+  o_chains(f1: #f1_sc, f2: #f2_sc) * ... o_chains(f1: #f1_sc, fn: #fn_sc) * 
+  o_chains(f2: #f2_sc, f3: #f3_sc) * ... o_chains(f2: #f2_sc, fn: #fn_sc) * 
+   ...
+  o_chains(fn-1: #fn-1_sc, fn: #fn_sc) 
+\end{lstjs}
+
+The \jsinline|sc_scope| assertion is a generalisation of the \jsinline|scope| assertion, where \jsinline|sc_scope(f, v: #v, #f_sc)| means that the variable \jsinline|v| has value \jsinline|#v| in the scope chain \jsinline|#f_sc| of the function \jsinline|f|. Recall that \jsinline|scope(v : #v)| means that the variable \jsinline|v| has value \jsinline|#v| in the scope chain of the function being specified and the name of the function and its scope chain are left implicit. 
+
+The assertion \jsinline|o_chains(f: #f_sc, g: #g_sc)|, on the other hand, is a pure assertion that states that the scope chains of the functions \jsinline|f| and \jsinline|g|, denoted by \jsinline|#f_sc| and \jsinline|#g_sc|, maximally overlap, i.e.~that \jsinline|f| and \jsinline|g| were created in the same execution of an enclosing function.
+
+\end{minipage}
+\end{display}
 
 
 
-\bibliographystyle{abbrv}
-\bibliography{pldi16}
+As we will be using \jsinline|make_counter| to create multiple counters, it makes sense to bring these assertions together into an abstraction that captures what it means to be a counter. Its parameters should only reflect the information necessary to reason about the counter: its location and its value. In this way, we successfully abstract all of the details about the function closure.
+
+\medskip
+\begin{lstjs}
+pred counter(c, c_val) :
+  standardObject(c) * 
+  dataField(c, "getCounter", #gc) * 
+  dataField(c, "incCounter", #ic) * 
+  dataField(c, "decCounter", #dc) *
+  fun_obj(getCounter, #gc, #gc_sc) * 
+  fun_obj(incCounter, #ic, #ic_sc) *
+  fun_obj(decCounter, #dc, #dc_sc) *
+  closure(count: c_val; getCounter: #gc_sc, incCounter: #ic_sc, decCounter: #dc_sc) *
+  types(c_val : $$number_type)
+\end{lstjs}
+
+\medskip
+With this abstraction, the specification of \jsinline|make_counter| becomes quite compact:
+
+\medskip
+\begin{lstjs}[firstnumber=1]
+/**
+  @id makeCounter
+
+  @pre (emp)
+  
+  @post (counter(ret, 0))
+*/
+var make_counter = function () {
+   var count = 0;
+
+   var getCounter = function () { return count };
+   var incCounter = function () { count++ };
+   var decCounter = function () { count-- };
+
+   return { getCounter: getCounter, incCounter: incCounter, decCounter: decCounter }
+}
+\end{lstjs}
+
+\medskip
+Finally, we can specify the top-level code:
+\begin{lstjs}[firstnumber=1]
+/**
+ @toprequires (emp)
+ @topensures (
+   scope(make_counter: #mc) *
+   fun_obj(makeCounter, #mc, #mc_proto) *
+   scope(counter_1: #c1) * counter(#c1, 2) *
+   scope(counter_2: #c2) * counter(#c2, 1) *
+   scope(count : 3)
+ )
+*/
+
+var make_counter = function () {
+   var count = 0;
+
+   var getCounter = function () { return count };
+   var incCounter = function () { count++ };
+   var decCounter = function () { count-- };
+
+   return { getCounter: getCounter, incCounter: incCounter, decCounter: decCounter }
+}
+
+var counter_1 = make_counter();
+var counter_2 = make_counter();
+
+counter_1.incCounter();
+counter_1.incCounter();
+
+counter_2.incCounter();
+
+var count = counter_1.getCounter() + counter_2.getCounter()
+\end{lstjs}
+
+The specification states that we start from an empty precondition, and finish with: the variable \jsinline|make_counter|, holding the function object corresponding to the \jsinline|make_counter| function; the variables \jsinline|counter_1| and \jsinline|counter_2|, holding counters whose values are, respectively, \jsinline|2| and \jsinline|1|; and the variable \jsinline|count|, whose value is \jsinline|3|.
 
 \end{document}
-
-
-%There is a wide range of literature covering
-%different flavours of program analysis for JavaScript including: type
-%systems~\cite{thiemann:esop:2005, anderson:ecoop:2005,
-%  jensen:sas:2009, typescript:toot:2014, feldthaus:oopsla:2014,
-%  bierman:ecoop:2014, rastogi:popl:2015}, control flow
-%analysis~\cite{park:ecoop:15, feldthaus2013efficient}, pointer
-%analysis~\cite{jang2009points, sridharan:ecoop:12} and  abstract
-%interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014}, among others.
