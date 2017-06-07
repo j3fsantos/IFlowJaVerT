@@ -1207,25 +1207,23 @@
 */
 
 /**
-	@id isSquare
+	@id childToParent
 
 	@pre (
 		InitialDOMHeap() * scope(document : $l_document) *
 		(element == #en) *
 		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
-		(#aList == #a1 @ {{ {{ "hole", #beta1 }} }} @ #a2 @ {{ {{ "hole", #beta2 }} }} @ #a3) *
-		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
-		val(#aa1, #s1) * val(#aa2, #s1) * types(#s1 : $$string_type, #s2 : $$string_type)
+		(#cList == {{ "hole", #beta }} :: #a1) *
+		ECell(#beta, #name2, #en2, #l_aList2, #aList2, #l_cList2, #cList2)
 	)
 	@post (
 		InitialDOMHeap() * scope(document : $l_document) *
 		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
-		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
-		(ret == $$t)
+		ECell(#beta, #name2, #en2, #l_aList2, #aList2, #l_cList2, #cList2) * (ret == #en)
 	)
 */
-function isSquare(element) {
-	var w = element.getAttribute("width");
-	var y = element.getAttribute("height");
-	return w === y;
+function childToParent(element) {
+	var c = element.firstChild();
+	var p = c.parentNode();
+	return p;
 }
