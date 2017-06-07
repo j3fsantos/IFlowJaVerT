@@ -20,11 +20,6 @@ function holePunch(element) {
 	return s;
 }
 
-function singleGet(element) {
-	var w = element.getAttribute("src");
-	return w
-}
-
 function builtSingleGet(element) {
 	var t1 = document.createTextNode("test1");
 	var t2 = document.createTextNode("test2");
