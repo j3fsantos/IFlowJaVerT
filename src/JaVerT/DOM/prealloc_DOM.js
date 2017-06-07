@@ -1211,15 +1211,15 @@
 
 	@pre (
 		InitialDOMHeap() * scope(document : $l_document) *
-		(element == #en) *
-		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
+		(element == #enx) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
 		(#cList == {{ "hole", #beta }} :: #a1) *
-		ECell(#beta, #name2, #en2, #l_aList2, #aList2, #l_cList2, #cList2)
+		ECell(#beta, #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2)
 	)
 	@post (
 		InitialDOMHeap() * scope(document : $l_document) *
-		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
-		ECell(#beta, #name2, #en2, #l_aList2, #aList2, #l_cList2, #cList2) * (ret == #en)
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
+		ECell(#beta, #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) * (ret == #enx)
 	)
 */
 function childToParent(element) {

@@ -151,7 +151,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_environment) (subst : (string, jsil_logic_expr) Hashtbl.t) : (bool * ((string * jsil_logic_expr) list option)) =
 	let start_time = Sys.time () in
-	(* print_debug_petar (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false)); *)
+	print_debug_petar (Printf.sprintf ": %s versus %s" (JSIL_Print.string_of_logic_expression le_pat false)  (JSIL_Print.string_of_logic_expression le false));
 	let result = (match le_pat with
 	
 	| LVar var
@@ -162,7 +162,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 				then (true,  None)
 				else (false, None)
 		with _ -> (* print_debug_petar (Printf.sprintf "Abstract location or variable not in subst: %s %s" var (JSIL_Print.string_of_logic_expression le false)); *)
-				 	(true, Some [ (var, le) ]))
+			(true, Some [ (var, le) ]))
 
 	| LLit _
 	| LNone ->
@@ -255,6 +255,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 	) in
 	let end_time = Sys.time () in
 	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
+	let b, _ = result in print_debug (Printf.sprintf "Result: %b" b);
 	result
 
 
@@ -825,7 +826,7 @@ let pf_list_of_discharges discharges subst partial =
 
 let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment =
 
-	print_debug (Printf.sprintf "unify_symb_stfates with the following specvars: %s" (String.concat ", " (SS.elements lvars)));
+	print_debug (Printf.sprintf "unify_symb_states with the following specvars: %s" (String.concat ", " (SS.elements lvars)));
 
 	let start_time = Sys.time () in try (
 	
