@@ -20,11 +20,6 @@ function holePunch(element) {
 	return s;
 }
 
-function singleGet(element) {
-	var w = element.getAttribute("src");
-	return w
-}
-
 function builtSingleGet(element) {
 	var t1 = document.createTextNode("test1");
 	var t2 = document.createTextNode("test2");
@@ -175,6 +170,30 @@ function sanitiseImg(img, cat){
 **/
 
 /**
+	@id isSquare
+
+	@pre (
+		InitialDOMHeap() * scope(document : $l_document) *
+		(element == #en) *
+		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
+		(#aList == #a1 @ {{ {{ "hole", #beta1 }} }} @ #a2 @ {{ {{ "hole", #beta2 }} }} @ #a3) *
+		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
+		val(#aa1, #s1) * val(#aa2, #s1) * types(#s1 : $$string_type, #s2 : $$string_type)
+	)
+	@post (
+		InitialDOMHeap() * scope(document : $l_document) *
+		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
+		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
+		(ret == $$t)
+	)
+*/
+function isSquare(element) {
+	var w = element.getAttribute("width");
+	var y = element.getAttribute("height");
+	return w === y;
+}
+
+/**
 	@id groveParent
 
 	@pre (
@@ -278,6 +297,32 @@ function sanitiseImg(img, cat){
 			}
 		}
 	}
+}
+
+/*
+	@id textAxioms
+
+	@pre (
+		InitialDOMHeap() * (tnode == #tn) *
+		Forest(#f_loc, {{ {{ "hole", #alpha1 }} }}) *
+		TCell(#alpha1, #tn, #text1_pre) * (#text1_pre == "abcdefghi")
+	)
+	@post (
+		InitialDOMHeap() * (ret == 9) *
+		Forest(#f_loc, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) *
+		TCell(#alpha1, #tn, #text1_post) * (#text1_post == "abcabcabc") *
+		TCell(#alpha2, #tn2, #text2_post) * (#text2_post == "ghia")
+	)
+*/
+function textAxioms(tnode) {
+	var l = tnode.length();
+	var c = tnode.substringData(0, 3);
+	tnode.replaceData(3, 3, c);
+	var t2 = tnode.splitText(6);
+	t2.insertData(3, c);
+	t2.deleteData(4, 10);
+	tnode.appendData(c);
+	return l
 }
 
 /*

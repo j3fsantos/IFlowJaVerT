@@ -957,7 +957,7 @@ let check_satisfiability assertions gamma =
 		let solver = get_new_solver new_assertions new_gamma in
 		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
 		let ret = Solver.check solver [] in
-		print_debug_petar (Printf.sprintf "The solver returned: %s" 
+		print_debug (Printf.sprintf "The solver returned: %s" 
 			(match ret with
 			| Solver.SATISFIABLE -> "SAT"
 			| Solver.UNSATISFIABLE -> "UNSAT"
@@ -1061,6 +1061,7 @@ let check_entailment (existentials : SS.t)
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 
 (match (e1 = e2) with
+(* This true check is not good enough, things could creep in with Unknowns *)
 | true -> Some (not (e1 = LUnknown))
 | false -> (match e1, e2 with
 

@@ -473,7 +473,7 @@ let rec reduce_assertion store gamma pfs a =
 	| LEq (e1, e2) ->
 		let re1 = fe e1 in
 		let re2 = fe e2 in
-		(* Warning - NaNs, infinities, this and that *)
+		(* Warning - NaNs, infinities, this and that, this is not good enough *)
 		let eq = (re1 = re2) && (re1 <> LUnknown) in
 		if eq then LTrue
 		else
@@ -494,6 +494,10 @@ let rec reduce_assertion store gamma pfs a =
 					else default e1 e2 re1 re2
 			| LNone, e
 			| e, LNone -> LFalse
+
+			(* Abstract and concrete locations, bye bye *)
+			| ALoc _, LLit (Loc _) 
+			| LLit (Loc _), ALoc _ -> LFalse
 			
 			| LLit (String str), LVar x 
 			| LVar x, LLit (String str) ->
@@ -915,7 +919,20 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 					let candidates = List.filter (fun (_, _, b) -> b) candidates in
 					(match candidates with 
 					| [] -> None, None
-					| (le1, le2, _) :: _ -> Some (le1, le2), Some (le1, le2))
+					| [ (le1, le2, _) ] -> Some (le1, le2), Some (le1, le2)
+					| _ -> 
+						if (!interactive) then (
+							let lcand = List.length candidates in
+							Printf.eprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates);
+							List.iter (fun (le1, le2, _) -> 
+								Printf.eprintf "%s vs. %s\n%!" (print_lexpr le1) (print_lexpr le2)) candidates;
+							Printf.eprintf "Choose: ";
+							let n = read_int() in
+							let le1, le2, _ = DynArray.get (DynArray.of_list candidates) n in
+								Some (le1, le2), Some (le1, le2)) 
+							else
+						 	let le1, le2, _ = List.hd candidates in 
+								Some (le1, le2) , Some (le1, le2))
 			| i :: _ -> Some (i, i), None) in
 			(match intersection with
 			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
@@ -1447,7 +1464,7 @@ let simplify_symb_state
 	let pfs = get_pf symb_state in
 
 	(* String translation: Use internal representation as Chars *)
-	let pfs = DynArray.map (assertion_map le_string_to_list) pfs in
+	let pfs = DynArray.map (assertion_map None le_string_to_list) pfs in
 	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs)); *)
 	let symb_state = symb_state_replace_pfs symb_state pfs in 
 	
@@ -1482,6 +1499,10 @@ let simplify_symb_state
 			
 			(* If we have false in the pfs, everything is false and we stop *)
 			| LFalse -> pfs_ok := false; msg := "Pure formulae flat-out false."
+			
+			(* We are false if we have x < x *)
+			| LLess	(LVar v1, LVar v2) when (v1 = v2) ->
+			  	pfs_ok := false; msg := "Incorrect less-than."
 			
 			(* We can reduce < if both are numbers *)
 			| LLess	(LLit (Num n1), LLit (Num n2)) ->
@@ -1751,7 +1772,7 @@ let simplify_symb_state
 		) subst;
 	
 	(* Convert Pure Formulas back *)
-	let pfs = DynArray.map (assertion_map le_list_to_string) (get_pf !symb_state) in
+	let pfs = DynArray.map (assertion_map None le_list_to_string) (get_pf !symb_state) in
 	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
 	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
 
@@ -1769,7 +1790,7 @@ let simplify_symb_state
 		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) pparams in
 		DynArray.set preds i (pname, pparams)) preds;
 
-	let others = ref (DynArray.map (assertion_map le_list_to_string) !others) in
+	let others = ref (DynArray.map (assertion_map None le_list_to_string) !others) in
 
 	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 
@@ -2076,7 +2097,8 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 		| LEq (LSetUnion ul, LSetUnion ur) -> 
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
-				print_debug_petar "I have found a union equality.";
+				print_debug_petar "Resolve set existentials: I have found a union equality.";
+				print_debug_petar (JSIL_Print.string_of_logic_assertion a false);
 				
 				(* Trying to cut the union *)
 				let same_parts = SLExpr.inter sul sur in
@@ -2138,7 +2160,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 		| LEq (LSetUnion ul, LSetUnion ur) -> 
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
-				print_debug_petar "I have found a union equality.";
+				print_debug_petar "Find impossible unions: I have found a union equality.";
 				
 				(* Just for the left *)
 				SLExpr.iter (fun s1 ->
@@ -2150,6 +2172,9 @@ let find_impossible_unions lpfs rpfs exists gamma =
 					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
 					if (must_not_intersect = [ true ]) then raise (Failure "Oopsie!");
 				) sul;
+				
+				(* Continue if we survived *)
+				i := !i + 1;
 		
 		| _ -> i := !i + 1;);
 		done;	

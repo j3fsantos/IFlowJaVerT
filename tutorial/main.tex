@@ -1,0 +1,349 @@
+\documentclass{llncs}
+
+\let\proof\relax
+\let\endproof\relax
+
+\pagestyle{plain}
+
+\usepackage{amsmath}
+
+\usepackage{fullpage}
+\usepackage{listings}
+\usepackage{hyperref}
+
+\usepackage[table]{xcolor}
+
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{xspace}
+\usepackage{amssymb,amsfonts,amsthm,latexsym,wasysym,mathrsfs,textcomp,stmaryrd}
+\usepackage{mathpartir}
+\usepackage{url}
+\usepackage{gdshojs}
+
+\definecolor{ltblue}{rgb}{0,0.4,0.4}
+\definecolor{dkblue}{rgb}{0,0.2,0.7}
+\definecolor{dkgreen}{rgb}{0,0.4,0}
+\definecolor{dkviolet}{rgb}{0.3,0,0.5}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{talkred}{rgb}{0.69,.20,0.22}
+\definecolor{talkblue}{rgb}{0.04,0.40,0.80}
+\definecolor{talkgreen}{rgb}{0.34,.81,0.10}
+\definecolor{oldtalkblue}{rgb}{0.22,.20,0.69}
+\definecolor{greenish}{rgb}{.0,.65,.0}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning,arrows,shapes,decorations.pathmorphing}
+\newcommand{\runpic}{\includegraphics[width=0.06\picwidth]{running.pdf}}
+\newcommand{\tickpic}{\resizebox{0.06\picwidth}{!}{\(\color{greenish} \checkmark \)}}
+\tikzset{
+  box/.style = {rectangle, draw=black,align=center,font=\scriptsize},
+  sbox/.style = {rectangle,draw=black,align=left,font=\scriptsize,text width=1.7cm},
+  p/.style = {-latex},
+  dp/.style = {latex-latex},
+  sz/.style n args={2}{minimum width=#2, minimum height=#1},
+  m/.style = {midway,inner sep=0pt,fill=white},
+  ll/.style = {font=\scriptsize,anchor=south west}
+}
+
+\usepackage{lstjs}
+\usepackage{lstjsivl}
+
+% to define my language
+
+%JavaScript - pretty
+\definecolor{SkyBlue}{rgb}{0.20,0.39,0.64}
+\definecolor{Plum}{rgb}{0.46,0.31,0.48}
+\definecolor{Chocolate}{rgb}{0.75,0.49,0.07}
+\definecolor{Aluminium5}{rgb}{0.33,0.34,0.32}
+\definecolor{DarkGreen}{rgb}{0.2,0.5,0.2}
+
+\lstdefinelanguage{JavaScript}{
+  morekeywords=[1]{typeof, new, true, false, catch,
+    function, return, null, catch, switch, var,
+    if, in, while, do, else, case, break, continue},
+  morekeywords=[2]{class, export, boolean, throw, implements, import, this},
+  numbers=left,
+  numbersep=4pt,
+  numberstyle=\tiny\color{dkblue},
+  columns=fullflexible,
+  sensitive=false,
+  comment=[l]{//},
+  captionpos=b,   
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  basicstyle=\scriptsize\texttt,
+  identifierstyle=\ttfamily\color{Aluminium5},
+  keywordstyle=[1]\ttfamily\color{Plum},
+  keywordstyle=[2]\ttfamily\color{SkyBlue},
+  stringstyle=\ttfamily\color{DarkGreen},
+  commentstyle=\ttfamily
+}[keywords,comments,strings]
+
+\usepackage{macros_js}
+
+\newcommand{\jsil}{JSIL\xspace}
+\newcommand{\jsverify}{JSVerify\xspace}
+\newcommand{\polish}[1]{{\color{red}#1}}
+
+\newcounter{main}
+\setcounter{main}{1}
+
+\lstnewenvironment{lstjs}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}}}{}
+\def\jsinline{\lstinline[language=JavaScript, basicstyle=\small]}
+
+%\overfullrule=5pt
+
+\newcommand{\alltests}{21301\xspace}
+
+\newcommand{\stricttests}{10469\xspace}
+\newcommand{\semdifftests}{345\xspace}
+\newcommand{\nonimpltests}{1297\xspace}
+\newcommand{\implbreaktests}{30\xspace}
+\newcommand{\ourtests}{9160\xspace}
+
+\newcommand{\apptests}{8797\xspace}
+
+\newcommand{\ourpass}{8797\xspace}
+\newcommand{\ourfail}{0\xspace}
+\newcommand{\ourpercent}{100\%\xspace}
+
+\usepackage{tikz}
+
+\newcommand{\JSComp}{JS-2-JSIL\xspace}
+\newcommand{\jsillogic}{\jsil logic\xspace}
+
+
+\begin{document}
+
+\title{A Tutorial on JaVerT}
+
+\author{Petar Maksimovi\'{c}, Jos\'{e} Fragoso Santos}
+
+\institute{Imperial College London}
+
+\maketitle
+
+\section{Abstractions}
+
+\newpage
+\section{Function closures}
+\label{sec:closures}
+
+JavaScript supports nested functions and function closures, meaning that one function literal can be declared within another and that functions can refer to variables that are defined in the enclosing scope. 
+The relationships between the scope chains of such functions can become fairly complex and there are several challenges that the specification of function closures has to tackle, which we illustrate with the following example:
+
+\begin{figure}[!h]
+\centering
+\begin{minipage}{0.75\textwidth}
+\begin{lstjs}[firstnumber=1]
+var make_counter = function () {
+   var count = 0;
+
+   var getCounter = function () { return count };
+   var incCounter = function () { count++ };
+   var decCounter = function () { count-- };
+
+   return { getCounter: getCounter, incCounter: incCounter, decCounter: decCounter }
+}
+
+var counter_1 = make_counter();
+var counter_2 = make_counter();
+
+counter_1.incCounter();
+counter_1.incCounter();
+
+counter_2.incCounter();
+
+var count = counter_1.getCounter() + counter_2.getCounter()
+\end{lstjs}
+\end{minipage}
+\vspace*{-0.2cm}
+\caption{Example: Function closures}
+\label{fig:fc}
+\end{figure}
+
+The purpose of the function \jsinline|make_counter| is to provide an encapsulated counter. JavaScript has no native mechanism for providing encapsulation and encapsulation is usually simulated using function closures. One declares the resources that one wishes to keep private (in our case, the variable \jsinline|count|) inside the closure, and exposes only the interface for manipulating those resources (in our case, the functions \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter|) outside the closure. In our case, this is sufficient to achieve full encapsulation---there is no way for the programmer to access the counter directly outside \jsinline|make_counter|; in the general case, encapsulation cannot be guaranteed. In the rest of the program, we use \jsinline|make_counter| to create two counters, we increase the first one twice, the second one once, and assign their sum to the variable \jsinline|count|.
+
+Let us specify this program. The \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter| functions are easy---we only need to be able to talk about the variable \jsinline|count|, which we do using the \jsinline|scope| assertion:
+
+\bigskip
+\begin{minipage}{0.36\textwidth}
+\begin{lstjs}[firstnumber=1]
+/**
+  @id getCounter
+
+  @pre (
+    scope(count : #c) * 
+    types(#c : $$number_type)
+  )
+  
+  @post (
+    scope(count : #c) * (ret == #c)
+  )
+*/
+
+var getCounter = function () 
+  { return count; }
+\end{lstjs}
+\end{minipage}
+\begin{minipage}{0.33\textwidth}
+\begin{lstjs}[firstnumber=1]
+/**
+  @id incCounter
+
+  @pre (
+    scope(count : #c) * 
+    types(#c : $$number_type)
+  )
+  
+  @post (
+    scope(count : #c + 1)
+  )
+*/
+
+var incCounter = function () 
+  { count++ };
+\end{lstjs}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+\begin{lstjs}[firstnumber=1]
+/**
+  @id decCounter
+
+  @pre (
+    scope(count : #c) * 
+    types(#c : $$number_type)
+  )
+  
+  @post (
+    scope(count : #c - 1)
+  )
+*/
+
+var decCounter = function () 
+  { count-- };
+\end{lstjs}
+\end{minipage}
+
+\bigskip
+The more intricate part is specifying \jsinline|make_counter|. The precondition is easy, it is \jsinline|emp|, and for the postcondition we need to capture the object that is returned (denoted by \jsinline|c|) and all the associated resources. For starters, it is a standard JavaScript object that has three properties: \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter|.
+
+\begin{lstjs}
+standardObject(c) * 
+dataField(c, "getCounter", #gc) * dataField(c, "incCounter", #ic) * dataField(c, "decCounter", #dc)
+\end{lstjs}
+
+Next, we need to state that the values of these properties correspond to the appropriate function objects:
+
+\begin{lstjs}
+fun_obj(getCounter, #gc, #gc_sc) * fun_obj(incCounter, #ic, #ic_sc) * fun_obj(decCounter, #dc, #dc_sc)
+\end{lstjs}
+
+The last bit of information that we need to capture is the one related to the closure---we need to express that the three functions all have the same variable \jsinline|count| in their scope and that its value is equal to zero. This is done by using our \jsinline|closure| abstraction:
+
+\begin{lstjs}
+closure(count: 0; getCounter: #gc_sc, incCounter: #ic_sc, decCounter: #dc_sc)
+\end{lstjs}
+
+This assertion states that the variable \jsinline|count| has value \jsinline|0| in the scope chains of \jsinline|getCounter|, \jsinline|incCounter|, and \jsinline|decCounter| (denoted by \jsinline|#gc_sc|, \jsinline|#ic_sc|, and \jsinline|#dc_sc|), and that these particular instances of these three functions were created in the same execution of \jsinline|make_counter|, i.e.~that they share the same function closure.
+
+\begin{display}{Under the hood}
+\ \ \begin{minipage}{0.97\textwidth}
+The \jsinline|closure| abstraction can actually be unfolded to show the built-in assertions that are behind it:
+\begin{lstjs}
+closure(v1: #v1, ..., vm: #vm; f1: #f1_sc, ..., fn: #fn_sc) :
+  sc_scope(f1, v1: #v1, #f1_sc) * ... * sc_scope(f1, vm: #vm, #f1_sc) *
+  o_chains(f1: #f1_sc, f2: #f2_sc) * ... o_chains(f1: #f1_sc, fn: #fn_sc) * 
+  o_chains(f2: #f2_sc, f3: #f3_sc) * ... o_chains(f2: #f2_sc, fn: #fn_sc) * 
+   ...
+  o_chains(fn-1: #fn-1_sc, fn: #fn_sc) 
+\end{lstjs}
+
+The \jsinline|sc_scope| assertion is a generalisation of the \jsinline|scope| assertion, where \jsinline|sc_scope(f, v: #v, #f_sc)| means that the variable \jsinline|v| has value \jsinline|#v| in the scope chain \jsinline|#f_sc| of the function \jsinline|f|. Recall that \jsinline|scope(v : #v)| means that the variable \jsinline|v| has value \jsinline|#v| in the scope chain of the function being specified and the name of the function and its scope chain are left implicit. 
+
+The assertion \jsinline|o_chains(f: #f_sc, g: #g_sc)|, on the other hand, is a pure assertion that states that the scope chains of the functions \jsinline|f| and \jsinline|g|, denoted by \jsinline|#f_sc| and \jsinline|#g_sc|, maximally overlap, i.e.~that \jsinline|f| and \jsinline|g| were created in the same execution of an enclosing function.
+
+\end{minipage}
+\end{display}
+
+
+
+As we will be using \jsinline|make_counter| to create multiple counters, it makes sense to bring these assertions together into an abstraction that captures what it means to be a counter. Its parameters should only reflect the information necessary to reason about the counter: its location and its value. In this way, we successfully abstract all of the details about the function closure.
+
+\medskip
+\begin{lstjs}
+pred counter(c, c_val) :
+  standardObject(c) * 
+  dataField(c, "getCounter", #gc) * 
+  dataField(c, "incCounter", #ic) * 
+  dataField(c, "decCounter", #dc) *
+  fun_obj(getCounter, #gc, #gc_sc) * 
+  fun_obj(incCounter, #ic, #ic_sc) *
+  fun_obj(decCounter, #dc, #dc_sc) *
+  closure(count: c_val; getCounter: #gc_sc, incCounter: #ic_sc, decCounter: #dc_sc) *
+  types(c_val : $$number_type)
+\end{lstjs}
+
+\medskip
+With this abstraction, the specification of \jsinline|make_counter| becomes quite compact:
+
+\medskip
+\begin{lstjs}[firstnumber=1]
+/**
+  @id makeCounter
+
+  @pre (emp)
+  
+  @post (counter(ret, 0))
+*/
+var make_counter = function () {
+   var count = 0;
+
+   var getCounter = function () { return count };
+   var incCounter = function () { count++ };
+   var decCounter = function () { count-- };
+
+   return { getCounter: getCounter, incCounter: incCounter, decCounter: decCounter }
+}
+\end{lstjs}
+
+\medskip
+Finally, we can specify the top-level code:
+\begin{lstjs}[firstnumber=1]
+/**
+ @toprequires (emp)
+ @topensures (
+   scope(make_counter: #mc) *
+   fun_obj(makeCounter, #mc, #mc_proto) *
+   scope(counter_1: #c1) * counter(#c1, 2) *
+   scope(counter_2: #c2) * counter(#c2, 1) *
+   scope(count : 3)
+ )
+*/
+
+var make_counter = function () {
+   var count = 0;
+
+   var getCounter = function () { return count };
+   var incCounter = function () { count++ };
+   var decCounter = function () { count-- };
+
+   return { getCounter: getCounter, incCounter: incCounter, decCounter: decCounter }
+}
+
+var counter_1 = make_counter();
+var counter_2 = make_counter();
+
+counter_1.incCounter();
+counter_1.incCounter();
+
+counter_2.incCounter();
+
+var count = counter_1.getCounter() + counter_2.getCounter()
+\end{lstjs}
+
+The specification states that we start from an empty precondition, and finish with: the variable \jsinline|make_counter|, holding the function object corresponding to the \jsinline|make_counter| function; the variables \jsinline|counter_1| and \jsinline|counter_2|, holding counters whose values are, respectively, \jsinline|2| and \jsinline|1|; and the variable \jsinline|count|, whose value is \jsinline|3|.
+
+\end{document}

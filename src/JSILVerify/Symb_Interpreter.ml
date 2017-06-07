@@ -542,16 +542,20 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 			print_debug (Printf.sprintf "Substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst)); 
 			true, transform_symb_state spec symb_state quotient_heap quotient_preds subst pf_discharges new_gamma
 	 	| _ -> 
-			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" (List.length quotients));
-			let new_symb_states =
-				List.map
-					(fun (_, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
-						if (compatible_pfs symb_state spec.n_pre subst)
-							then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
-							else [])
-					quotients in
-			let new_symb_states = List.concat new_symb_states in
-			false, new_symb_states in
+			let lpm = List.length quotients in
+			print_debug (Printf.sprintf "We have a PARTIAL MATCH of length: %d" lpm);
+			(match lpm with
+			| 1 -> false, []
+			| _ -> 
+				let new_symb_states =
+					List.map
+						(fun (_, spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma) ->
+							if (compatible_pfs symb_state spec.n_pre subst)
+								then transform_symb_state_partial_match (spec, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma)
+								else [])
+						quotients in
+				let new_symb_states = List.concat new_symb_states in
+				false, new_symb_states) in
 
 	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
 	apply_correct_specs quotients
@@ -597,7 +601,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 
 	let rec find_correct_pred_def cur_pred_defs : (symbolic_state * SS.t) option =
 		print_time_debug ("find_correct_pred_def:");
-		print_debug_petar (Printf.sprintf "Predicate has %d definitions." (List.length cur_pred_defs));
+		print_debug_petar (Printf.sprintf "Predicate has %d definitions remaining." (List.length cur_pred_defs));
 		(match cur_pred_defs with
 		| [] -> None
 		| pred_def :: rest_pred_defs ->
@@ -773,7 +777,7 @@ and
 lcmd_map f unfold_macros lcmd =
 	(* Map recursively to commands, assertions, and expressions *)
 	let map_l = lcmd_map f unfold_macros in
-	let map_a = assertion_map f in
+	let map_a = assertion_map None f in
 	let map_e = logic_expression_map f in
 	match lcmd with
 	| Fold      a                   -> Fold      (map_a a)
@@ -816,6 +820,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars : (symbo
 		(match a with
 		| LPred	(pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
+			print_debug_petar (Printf.sprintf "About to fold the predicate %s, which has %d definitions." pred_name (List.length pred_defs)); 
 			let new_symb_state = fold_predicate pred_name pred_defs symb_state params args spec_vars None in
 			(match new_symb_state with
 			| Some (symb_state, new_spec_vars) ->

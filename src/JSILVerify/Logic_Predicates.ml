@@ -89,23 +89,37 @@ let unify_list_pvars l1 l2 =
 
 
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
-let apply_substitution subst partial asrt =
-
-	assertion_map
-	  (fun lexpr -> (* Replace the logic expression if it has a substitute, but do not recurse *)
-		  try
-	      (Hashtbl.find subst lexpr, false)
-	    with Not_found ->
-				(match lexpr with
-				| LVar x ->
-					if partial
-						then (lexpr, true)
-						else
-							(let new_lvar = LVar (fresh_lvar_from_lvar_name x) in
-							Hashtbl.add subst lexpr new_lvar;
-							(new_lvar, false))
-				| _ -> (lexpr, true)))
-	  asrt
+let apply_substitution subst asrt =
+	
+	let f_a a = 
+		match a with 
+		| LForAll (bt, a) ->
+			let bt' = 
+				List.map 
+					(fun (x, t) -> 
+						let x' = 
+							try 
+								(match Hashtbl.find subst (LVar x) with
+								| LVar x' -> x' 
+								| _       -> raise (Failure "DEATH: apply_substitution"))
+							with Not_found -> x in 
+						(x', t)) 
+					bt in
+			LForAll (bt', a)
+		| _ -> a in 
+	
+	let f_e le = 
+		try 
+			(Hashtbl.find subst le, false)
+		with Not_found -> 
+			(match le with
+			| LVar x -> 
+				let new_lvar = LVar (fresh_lvar_from_lvar_name x) in
+				Hashtbl.add subst le new_lvar;
+				(new_lvar, false)
+			| _ -> (le, true)) in 
+	
+	assertion_map (Some f_a) f_e asrt
 
 
 (* Join two normalised_predicate defining different cases of the same predicate in a single
@@ -116,7 +130,7 @@ let join_pred pred1 pred2 =
 	  then raise (Non_unifiable ("Incompatible predicate definitions."))
 		else
 		  let subst = unify_list_pvars (List.map (fun var -> PVar var) pred1.params) pred2.params in
-		  let definitions = pred1.definitions @ (List.map (apply_substitution subst false) pred2.definitions) in
+		  let definitions = pred1.definitions @ (List.map (apply_substitution subst) pred2.definitions) in
 		  { pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
 
 (* Returns a list with the names of the predicates that occur in an assertion *)
@@ -216,7 +230,7 @@ let rec auto_unfold predicates asrt =
 				(* If it is not, unify the formal parameters with the actual parameters,    *)
 				(* apply the substitution to each definition of the predicate, and recurse. *)
 				let subst = unify_list_pvars args pred.params in
-				let new_asrts = List.map (apply_substitution subst false) pred.definitions in
+				let new_asrts = List.map (apply_substitution subst) pred.definitions in
 				List.fold_left
 				  (fun list asrt -> list @ (au asrt))
 					[]

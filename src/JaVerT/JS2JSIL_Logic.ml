@@ -94,24 +94,23 @@ let fresh_lvar () =
    counter := !counter + 1;
    v
 
-
 type js_logic_expr =
 	| JSLLit				of jsil_lit
 	| JSLNone
 	| JSLVar				of string
 	| JSALoc				of string
 	| JSPVar				of string
-	| JSLBinOp			    of js_logic_expr * jsil_binop * js_logic_expr
+	| JSLBinOp			of js_logic_expr * jsil_binop * js_logic_expr
 	| JSLUnOp				of jsil_unop * js_logic_expr
-	| JSLTypeOf			    of js_logic_expr
-	| JSLEList      		of js_logic_expr list
-	| JSLESet               of js_logic_expr list
-	| JSLLstNth     		of js_logic_expr * js_logic_expr
-	| JSLStrNth     		of js_logic_expr * js_logic_expr
-	| JSLSetUnion           of js_logic_expr list
-	| JSLSetInter           of js_logic_expr list
+	| JSLTypeOf			of js_logic_expr
+	| JSLEList      of js_logic_expr list
+	| JSLESet       of js_logic_expr list
+	| JSLLstNth     of js_logic_expr * js_logic_expr
+	| JSLStrNth     of js_logic_expr * js_logic_expr
+	| JSLSetUnion   of js_logic_expr list
+	| JSLSetInter   of js_logic_expr list
 	| JSLUnknown
-	| JSLThis
+	| JSLThis 
 
 module MyJSLExpr = 
 	struct

@@ -435,7 +435,15 @@ spec i__toBoolean (v)
 
 	[[ (v == #v) * types(#v : $$number_type) * (! (#v == 0)) ]]
 	[[ (ret == $$t) ]]
-	normal		
+	normal;
+	
+	[[ (v == #v) * types(#v : $$object_type) ]]
+	[[ (ret == $$t) ]]
+	normal;
+	
+	[[ (v == $$null) ]]
+	[[ (ret == $$f) ]]
+	normal	
 
 proc i__toBoolean (v) {
 	iu:		goto [v = $$undefined] undef in;
