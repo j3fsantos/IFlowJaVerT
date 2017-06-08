@@ -50,119 +50,6 @@ function ie10-viewport-bug-workaround() {
 */
 document.createElement("one");
 
-
-/** 
--------------------------------------------------------------------------------
-		cell encoding -- new_DOM.js
--------------------------------------------------------------------------------
-**/
-
-/** 
-	@id groveParent
-
-	@pre (
-		InitialDOMHeap() * scope(document : $l_document) *
-		(s == #text) * types(#text: $$string_type) *
-		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g)
-	)
-	@post (
-		InitialDOMHeap() * scope(document : $l_document) *
-		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
-		(#d_g_post == {{ "text", #tid, #text }} :: #d_g) *
-		(ret == $$null)
-	)
-*/
-function groveParent(s) {
-	var t = document.createTextNode(s);
-	/* @flash GroveRec(#d_l_g, #any, (#t1 :: #d_g)) */
-	var r = t.parentNode();
-	return r;
-}
-
-/** sanitiseImg specifics */
-/**
-	@pred isB(s) : (s == #s) * isB(s);
-	@pred nisB(s) : (s == #s) * nisB(s);
-
-	@onlyspec isBlackListed(s)
-		pre:  [[ (s == #s) * isB(#s) ]]
-		post: [[ isB(#s) * (ret == 1) ]]
-		outcome: normal;
-		pre:  [[ (s == #s) * (nisB(#s)) ]]
-		post: [[ (ret == 0) * (nisB(#s)) ]]
-		outcome: normal
-*/
-
-/**
-	@id createNewAttribute
-	@rec false
-
-	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
-		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
-	)
-	@post (
-		InitialDOMHeap() * (ret == $$t) * 
-		DocumentNode($l_document, #l_elem, #d_elem, #d_l_g, #d_g_post) *
-		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList_post) *
-		(#cList_post == (#cList1 @ {{ {{ "elem", "test", #n_id, #n_l_aList, #n_l_cList }} }}))
-	)
-*/
-function createNewAttribute(element){
-	var d = element.ownerDocument();
-	var e = d.createElement("test");
-	/* @callspec allocG(#zeta, #l_gList, 0) */
-	0;
-	
-	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
-	/* @fold complete(#cList2) */
-	var n = element.appendChild(e);
-	/* @callspec deallocG(#whatever, #l_gList, #zeta) */
-	return (n === e);
-}
-
-/**
-	@id sanitise
-
-	@pre (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
-		InitialDOMHeap() *
-		(img == #n) * (cat == #s2) * 
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == a1 @ ({{ "attr", "src", #a, #tf1 }} :: a2)) *
-		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
-		Grove(#grove, {{}})
-	)
-	@post (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #new_attr, #l_children, #children) *
-		(#new_attr == a1 @ ({{ "attr", "src", #a, #tf2 }} :: a2)) *
-		(#tf2 == {{ {{ "text", #r, #s2 }} }}) *
-		isB(#s1) *
-		Grove(#grove, #tf1)
-	)
-**/
-function sanitiseImg(img, cat){
-	var url = img.getAttribute("src");
-	if(url !== ""){
-		var isB = cache[url];
-		if(isB) {
-			img.setAttribute("src", cat)
-		} else {
-			isB = isBlackListed(url);
-			if(isB){
-				img.setAttribute("src", cat);
-				cache[url] = 1;
-			}
-		}
-	}
-}
-
-
 /** 
 -------------------------------------------------------------------------------
 		preallocated cell encoding -- prealloc_DOM.js
@@ -235,6 +122,32 @@ function groveParent(s) {
 	var t = document.createTextNode(s);
 	var r = t.parentNode();
 	return r;
+}
+
+/**
+	@id secondChild
+	@pre (
+		InitialDOMHeap() * scope(document : $l_document) *
+		(element == #enx1) *
+		ECell(#alpha, #name, #enx1, #l_aList, #aList, #l_cList, #cList) *
+		(#cList == {{ {{ "hole", #beta }}, {{ "hole", #gamma }} }} @ #a1) *
+		ECell(#beta,  #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) *
+		ECell(#gamma, #name3, #enx3, #l_aList3, #aList3, #l_cList3, #cList3)
+	)
+	@post (
+		InitialDOMHeap() * scope(document : $l_document) *
+		ECell(#alpha, #name, #enx1, #l_aList, #aList, #l_cList, #cList) *
+		ECell(#beta,  #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) *
+		ECell(#gamma, #name3, #enx3, #l_aList3, #aList3, #l_cList3, #cList3) *
+		(ret == #enx3)
+	)
+*/
+function secondChild(element) {
+	var r = element.firstChild();
+	/* @unfold ElementNode(#name, #enx1, #l_aList, #aList, #l_cList, #cList) */
+	var s = r.nextSibling();
+	/* @fold ElementNode(#name, #enx1, #l_aList, #aList, #l_cList, #cList) */
+	return s;
 }
 
 /**
@@ -408,10 +321,8 @@ function textAxioms(tnode) {
 /*
 	Currently unsupported
 	----Text Node predicates----
-*/ /*
-	
+
 	@pred safeName(s) :
 		(s == #c ++ #s2) * types(#c: $$string_type, #s2: $$string_type) * (s-len(#c) == 1) * (! (#c == "#")) * safeName(#s2);
-
 
 */

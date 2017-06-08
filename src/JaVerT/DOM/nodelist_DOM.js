@@ -640,7 +640,7 @@
 
 	@pre (
 		InitialDOMHeap() * (element == #en) *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * 
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, -{}-) * tids(#cList, #l) * 
 		(l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
 	)
 	@post (
