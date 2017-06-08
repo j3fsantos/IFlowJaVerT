@@ -1206,29 +1206,48 @@
 		outcome: normal
 */
 
+/** sanitiseImg specifics */
 /**
-	@id childToParent
+	@pred isB(s) : (s == #s) * isB(s);
+	@pred nisB(s) : (s == #s) * nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
+		outcome: normal
+*/
+
+/**
+	@id sanitise
 
 	@pre (
-		InitialDOMHeap() * scope(document : $l_document) *
-		(element == #enx1) *
-		ECell(#alpha, #name, #enx1, #l_aList, #aList, #l_cList, #cList) *
-		(#cList == {{ {{ "hole", #beta }}, {{ "hole", #gamma }} }} @ #a1) *
-		ECell(#beta,  #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) *
-		ECell(#gamma, #name3, #enx3, #l_aList3, #aList3, #l_cList3, #cList3)
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		out(#attr, "src")
 	)
 	@post (
-		InitialDOMHeap() * scope(document : $l_document) *
-		ECell(#alpha, #name, #enx1, #l_aList, #aList, #l_cList, #cList) *
-		ECell(#beta,  #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) *
-		ECell(#gamma, #name3, #enx3, #l_aList3, #aList3, #l_cList3, #cList3) *
-		(ret == #enx3)
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children)
 	)
-*/
-function secondChild(element) {
-	var r = element.firstChild();
-	/* @unfold ElementNode(#name, #enx1, #l_aList, #aList, #l_cList, #cList) */
-	var s = r.nextSibling();
-	/* @fold ElementNode(#name, #enx1, #l_aList, #aList, #l_cList, #cList) */
-	return s;
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = cache[url];
+		if(isB) {
+			img.setAttribute("src", cat)
+		} else {
+			isB = isBlackListed(url);
+			if(isB){
+				img.setAttribute("src", cat);
+				cache[url] = 1;
+			}
+		}
+	}
 }

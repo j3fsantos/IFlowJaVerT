@@ -283,6 +283,41 @@ function createNewAttribute(element){
 
 	@pre (
 		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		out(#attr, "src")
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children)
+	)	
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * isB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 1) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
+		TCell(#gamma2, #r, #s2) *
+		isB(#s1) *
+		Grove(#grove, #tf1)
+	)
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
 		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
 		InitialDOMHeap() *
 		(img == #n) * (cat == #s2) * 
@@ -302,6 +337,29 @@ function createNewAttribute(element){
 		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
 		TCell(#gamma2, #r, #s2) *
 		isB(#s1) *
+		Grove(#grove, #tf1)
+	)
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * nisB(#s1) * isNamedProperty(#s1) * 
+		Grove(#grove, {{}})
+	)
+	@post (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
+		TCell(#gamma2, #r, #s2) *
+		nisB(#s1) *
 		Grove(#grove, #tf1)
 	)
 **/
