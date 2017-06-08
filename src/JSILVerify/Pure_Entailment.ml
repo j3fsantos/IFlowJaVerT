@@ -984,79 +984,84 @@ let check_entailment (existentials : SS.t)
 					 (right_as     : jsil_logic_assertion list) 
 					 (gamma        : typing_environment) =
 
-	print_time_debug "check_entailment:";	
-
-	print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
-	   (String.concat ", " (SS.elements existentials))
-	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
-	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
-	   (Symbolic_State_Print.string_of_gamma gamma));
+  try (
+		print_time_debug "check_entailment:";	
 	
-	let existentials, left_as, right_as, gamma =
-		Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
-	let right_as = Simplifications.simplify_equalities_between_booleans right_as in 
-		Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
-	
-	(* If right is empty, then the left only needs to be satisfiable *)
-	if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
-	(* If left or right are directly false, everything is false *)
-	if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
-	
-	let left_as = DynArray.to_list left_as in
-	let right_as = DynArray.to_list right_as in	
-	
-	let gamma_left  = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
-	let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in 
-
-	let left_as_axioms = List.concat (List.map make_relevant_axioms left_as) in 
-	let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
-	let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in	
-	let solver = (Solver.mk_solver ctx None) in
-	Solver.add solver left_as;
-	print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
-	let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
-	if (ret_left) then (
-		let right_as_axioms = List.concat (List.map make_relevant_axioms right_as) in 
-		let right_as_axioms = List.map encode_assertion_top_level right_as_axioms in
-		let right_as = List.map (fun a -> encode_assertion_top_level (LNot a)) right_as in		
-		let right_as_or =
-			if ((List.length right_as) > 1) then
-					(Boolean.mk_or ctx right_as)
-				else if ((List.length right_as) = 1) then
-					(List.nth right_as 0)
-				else Boolean.mk_false ctx in
+		print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+		   (String.concat ", " (SS.elements existentials))
+		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
+		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
+		   (Symbolic_State_Print.string_of_gamma gamma));
 		
-		let existentials = SS.elements existentials in
-		let existentials_sorts = List.map (fun _ -> extended_literal_sort) existentials in 
-		let right_as_or =
-			print_debug_petar (Printf.sprintf "Length of existentials: %d" (List.length existentials));
-			if ((List.length existentials) > 0)
-				then (
-					let a_gamma_right   = encode_gamma gamma_right in
-					let a_right         = Boolean.mk_and ctx ( right_as_or :: a_gamma_right ) in 
-					encode_quantifier true ctx existentials existentials_sorts a_right 
-				) else right_as_or in
-					
-		Solver.add solver (right_as_or :: right_as_axioms);
-		print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+		let existentials, left_as, right_as, gamma =
+			Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+		let right_as = Simplifications.simplify_equalities_between_booleans right_as in 
+			Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 		
-		let start_time = Sys.time () in
-		let ret = Solver.check solver [ ] in
-		print_debug_petar (Printf.sprintf "The solver returned: %s" 
-					(match ret with
-					| Solver.SATISFIABLE -> "SAT"
-					| Solver.UNSATISFIABLE -> "UNSAT"
-					| Solver.UNKNOWN -> "UNKNOWN"));
-		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "solver_call" 0.;
-		JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
+		(* If right is empty, then the left only needs to be satisfiable *)
+		if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
+		(* If left or right are directly false, everything is false *)
+		if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
 		
-		if (ret = Solver.SATISFIABLE) then print_model solver;
-		let ret = (ret = Solver.UNSATISFIABLE) in
-		ret)
-	else (
-		print_time_debug "check_entailment done: false. OUTER";
-		false)
+		let left_as = DynArray.to_list left_as in
+		let right_as = DynArray.to_list right_as in	
+		
+		let gamma_left  = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
+		let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in 
+	
+		let left_as_axioms = List.concat (List.map make_relevant_axioms left_as) in 
+		let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
+		let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in	
+		let solver = (Solver.mk_solver ctx None) in
+		Solver.add solver left_as;
+		print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
+		let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
+		if (ret_left) then (
+			let right_as_axioms = List.concat (List.map make_relevant_axioms right_as) in 
+			let right_as_axioms = List.map encode_assertion_top_level right_as_axioms in
+			let right_as = List.map (fun a -> encode_assertion_top_level (LNot a)) right_as in		
+			let right_as_or =
+				if ((List.length right_as) > 1) then
+						(Boolean.mk_or ctx right_as)
+					else if ((List.length right_as) = 1) then
+						(List.nth right_as 0)
+					else Boolean.mk_false ctx in
+			
+			let existentials = SS.elements existentials in
+			let existentials_sorts = List.map (fun _ -> extended_literal_sort) existentials in 
+			let right_as_or =
+				print_debug_petar (Printf.sprintf "Length of existentials: %d" (List.length existentials));
+				if ((List.length existentials) > 0)
+					then (
+						let a_gamma_right   = encode_gamma gamma_right in
+						let a_right         = Boolean.mk_and ctx ( right_as_or :: a_gamma_right ) in 
+						encode_quantifier true ctx existentials existentials_sorts a_right 
+					) else right_as_or in
+						
+			Solver.add solver (right_as_or :: right_as_axioms);
+			print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+			
+			let start_time = Sys.time () in
+			let ret = Solver.check solver [ ] in
+			print_debug_petar (Printf.sprintf "The solver returned: %s" 
+						(match ret with
+						| Solver.SATISFIABLE -> "SAT"
+						| Solver.UNSATISFIABLE -> "UNSAT"
+						| Solver.UNKNOWN -> "UNKNOWN"));
+			let end_time = Sys.time () in
+			JSIL_Syntax.update_statistics "solver_call" 0.;
+			JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
+			
+			if (ret = Solver.SATISFIABLE) then print_model solver;
+			let ret = (ret = Solver.UNSATISFIABLE) in
+			ret)
+		else (
+			print_time_debug "check_entailment done: false. OUTER";
+			false)
+	) with 
+	| Failure _ ->
+			print_debug_petar "CHECK_ENTAILMENT_FAILURE, RETURNING FALSE"; 
+			false
 	
 
 let is_equal_on_lexprs e1 e2 pfs : bool option = 
