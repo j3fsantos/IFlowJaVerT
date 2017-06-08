@@ -355,12 +355,8 @@ function createNewAttribute(element){
 		scope(cache: #c) * dataField(#c, #s1, 0) * standardObject(#c) * 
 		InitialDOMHeap() *
 		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
-		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
-		ACell(#gamma, "src", #a, #l_tf, #tf2) *
-		(#tf2 == {{ {{ "hole", #gamma2 }} }}) *
-		TCell(#gamma2, #r, #s2) *
-		nisB(#s1) *
-		Grove(#grove, #tf1)
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * nisB(#s1) * Grove(#grove, {{}})
 	)
 **/
 function sanitiseImg(img, cat){
