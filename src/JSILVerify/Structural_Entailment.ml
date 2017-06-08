@@ -428,6 +428,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 		
 		let rec loop (remaining_locs : string list) (traversed_locs : string list) : string * (string list) = 
 			match remaining_locs with 
+			(* | [] -> raise (SymbExecFailure (UH (FloatingLocations remaining_locs))) *)
 			| [] -> pick_loc_that_exists_in_both_heaps traversed_locs []
 			| loc :: rest -> 
 				if ((not (is_abs_loc_name loc)) || (Hashtbl.mem subst loc)) 
