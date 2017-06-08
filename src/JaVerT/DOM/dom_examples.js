@@ -14,7 +14,7 @@ function childToParent(element) {
 	return p;
 }
 
-function holePunch(element) {
+function secondChild(element) {
 	var r = element.firstChild();
 	var s = r.nextSibling();
 	return s;
@@ -191,6 +191,28 @@ function isSquare(element) {
 	var w = element.getAttribute("width");
 	var y = element.getAttribute("height");
 	return w === y;
+}
+
+/**
+	@id childToParent
+
+	@pre (
+		InitialDOMHeap() * scope(document : $l_document) *
+		(element == #enx) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
+		(#cList == {{ "hole", #beta }} :: #a1) *
+		ECell(#beta, #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2)
+	)
+	@post (
+		InitialDOMHeap() * scope(document : $l_document) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
+		ECell(#beta, #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) * (ret == #enx)
+	)
+*/
+function childToParent(element) {
+	var c = element.firstChild();
+	var p = c.parentNode();
+	return p;
 }
 
 /**

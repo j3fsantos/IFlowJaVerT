@@ -1211,19 +1211,24 @@
 
 	@pre (
 		InitialDOMHeap() * scope(document : $l_document) *
-		(element == #enx) *
-		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
-		(#cList == {{ "hole", #beta }} :: #a1) *
-		ECell(#beta, #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2)
+		(element == #en1) *
+		ECell(#alpha, #name, #en1, #l_aList, #aList, #l_cList, #cList) *
+		(#cList == {{ {{ "hole", #beta }}, {{ "hole", #gamma }} }} @ #a1) *
+		ECell(#beta,  #name2, #en2, #l_aList2, #aList2, #l_cList2, #cList2) *
+		ECell(#gamma, #name3, #en3, #l_aList3, #aList3, #l_cList3, #cList3)
 	)
 	@post (
 		InitialDOMHeap() * scope(document : $l_document) *
 		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
-		ECell(#beta, #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) * (ret == #enx)
+		ECell(#beta,  #name2, #en2, #l_aList2, #aList2, #l_cList2, #cList2) *
+		ECell(#gamma, #name3, #en3, #l_aList3, #aList3, #l_cList3, #cList3) *
+		(ret == #en3)
 	)
 */
-function childToParent(element) {
-	var c = element.firstChild();
-	var p = c.parentNode();
-	return p;
+function secondChild(element) {
+	var r = element.firstChild();
+	/* @unfold ElementNode(#name, #en1, #l_aList, #aList, #l_cList, #cList) */
+	var s = r.nextSibling();
+	/* @fold ElementNode(#name, #en1, #l_aList, #aList, #l_cList, #cList) */
+	return s;
 }
