@@ -417,7 +417,74 @@ with
 	err: 	xerr, elab;
 };
 
+(* ****** *)
+(* TYPEOF *)
+(* ****** *)
 
+spec i__typeOf (v)
+
+	[[ (v == #v) * types(#v : $$undefined_type) ]]
+	[[ (ret == "undefined") ]]
+	normal; 
+
+	[[ (v == #v) * types(#v : $$null_type) ]]
+	[[ (ret == "object") ]]
+	normal; 
+	
+	[[ (v == #v) * types(#v : $$boolean_type) ]]
+	[[ (ret == "boolean") ]]
+	normal; 
+	
+	[[ (v == #v) * types(#v : $$number_type) ]]
+	[[ (ret == "number") ]]
+	normal; 
+	
+	[[ (v == #v) * types(#v : $$string_type) ]]
+	[[ (ret == "string") ]]
+	normal
+
+proc i__typeOf (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := "undefined";
+			goto rlab;
+
+	in:		goto [v = $$null] null ib;
+	null:	xret := "object";
+			goto rlab;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := "boolean";
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := "number";
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := "string";
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := hasField(v, "@call");
+			goto [xret] isfun isobj;
+
+	isobj:	xret := "object";
+			goto rlab;
+
+	isfun:	xret := "function";
+			goto rlab;
+
+	oops:	xret := "typeOf: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
 (* **************
  * i__toBoolean *
@@ -483,6 +550,50 @@ with
 	ret:	xret, rlab;
 };
 
+(* **************
+ * i__toObject  *
+ ****************)
+ 
+spec i__toObject(v)
+
+	[[ (v == #v) * types(#v : $$object_type) ]]
+	[[ (ret == #v) ]]
+	normal
+
+proc i__toObject (v) {
+	iu:		goto [v = $$undefined] throw in;
+
+	in:		goto [v = $$null] throw ib;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := "Boolean_construct" ($$undefined, $$undefined, v);
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := "Number_construct" ($$undefined, $$undefined, v);
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := "String_construct" ($$undefined, $$undefined, v);
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := v;
+			goto rlab;
+
+	oops:	xret := "ToObject: This should not happen.";
+
+	rlab:	skip;
+
+	throw:	xret := "Here!";
+			xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
 (* ********* *)
 (* TYPEERROR *)
@@ -613,6 +724,43 @@ with
 	err: 	xret, elab;
 };
 
+(* ***************** *)
+(* OP_HASOWNPROPERTY *)
+(* ***************** *)
+
+spec OP_hasOwnProperty(xsc, vthis, v)
+
+	[[ (vthis == #l) * (v == #prop) * types(#l : $$object_type, #prop : $$string_type) * 
+		Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (#ls == {{ #l }}) * (! (#d == $$undefined)) ]]
+	[[ Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (ret == $$t) ]]
+	normal;
+	
+	[[ (vthis == #l) * (v == #prop) * types(#l : $$object_type, #prop : $$string_type) * 
+		Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (1 <# l-len #ls) ]]
+	[[ Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (ret == $$f) ]]
+	normal
+
+proc OP_hasOwnProperty(xsc, vthis, v) {
+			xret := "i__toString" (v) with elab;
+			p := xret;
+
+			xret := "i__toObject" (vthis) with elab;
+			
+			[* unfold Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) *]
+			xret := "getOwnProperty" (xret, p) with elab;
+			
+			[* fold Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) *]
+			xret := not (xret = $$undefined);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 (* ****************************************
    *** *** ***   INITIAL HEAP   *** *** ***
    **************************************** *)
@@ -621,18 +769,28 @@ pred initialHeapPre () :
     (($lg,      "@class") -> None) * 
     (($lg, 	    "@proto") -> None) * 
     (($lg, "@extensible") -> None) *
-    empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : ) * empty_fields ($lerr : ) * empty_fields ($lerr_proto : );
+    empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : ) * empty_fields ($lerr : ) * empty_fields ($lerr_proto : ) * 
+    empty_fields ( $lop_hasOwnProperty : );
     
 pred initialHeapPost () :
     (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * 
-	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * empty_fields ( $lobj_proto : "@class", "@proto", "@extensible" ) *
-	(($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
+	
+	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * 
+    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }}) *
+    empty_fields ( $lobj_proto : "@class", "@proto", "@extensible", "hasOwnProperty" ) * 
+	(($lop_hasOwnProperty, "@class") -> "Function") * (($lop_hasOwnProperty, "@proto") -> $lfun_proto)                 * (($lop_hasOwnProperty, "@extensible") -> $$t) *
+	(($lop_hasOwnProperty, "@scope") -> $$empty)    * (($lop_hasOwnProperty, "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * empty_fields($lop_hasOwnProperty : "@proto", "@class", "@extensible", "@scope", "length", "@call") *
+	
+    (($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
 	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call") *	
 	(($lerr,       "@class") -> "Function") * (($lerr,       "@proto") -> $lfun_proto) * (($lerr,       "@extensible") -> $$t) *
 	(($lerr,       "@scope") -> $$empty)    * (($lerr,       "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lerr,       "@call") -> "Error_call") * 
 	(($lerr, "@construct") -> "Error_construct") * (($lerr,  "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * empty_fields($lerr : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "prototype") *
 	(($lerr_proto, "@class") -> "Error")   * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@extensible") -> $$t) * 
-	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : "@class", "@proto", "@extensible", "message");    
+	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : "@class", "@proto", "@extensible", "message");
+	
+	
+	
 
 spec setupInitialHeap ()
 
@@ -649,6 +807,10 @@ proc setupInitialHeap () {
 			(* Object.prototype *)
 
 			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
+			
+			[$lobj_proto, "hasOwnProperty"] := {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }};
+  			
+  			xret := "create_object_with_call_construct" ($lop_hasOwnProperty, "OP_hasOwnProperty", $$empty, 1);
 
 			(* Function.prototype *)
 			
