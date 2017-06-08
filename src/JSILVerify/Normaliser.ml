@@ -192,13 +192,6 @@ let rec normalise_pure_assertion store gamma subst assertion =
 
 let new_abs_loc_name var = abs_loc_prefix ^ var
 
-let unknown_name = "_lvar_unknown_"
-let counter = ref 0
-let new_unknown_lvar =
-	(fun () ->
-		counter := (!counter) + 1;
-		unknown_name ^ (string_of_int !counter))
-
 
 let new_lvar_name var = lvar_prefix ^ var
 
@@ -602,10 +595,9 @@ let process_empty_fields heap store p_formulae gamma subst a =
 				close_fields rest_fields rest_fv_list (found_field :: found_fields)) in
 
 	let rec make_fv_list_missing_fields missing_fields fv_list =
-		let new_lvar = new_unknown_lvar () in
 		match missing_fields with
 		| [] -> fv_list
-		| field :: rest -> make_fv_list_missing_fields rest ((field, LVar new_lvar) :: fv_list) in
+		| field :: rest -> make_fv_list_missing_fields rest ((field, LUnknown) :: fv_list) in
 
 	let close_object le_loc (non_none_fields : jsil_logic_expr list) =
 		print_debug_petar (Printf.sprintf "Location: %s" (JSIL_Print.string_of_logic_expression le_loc false));

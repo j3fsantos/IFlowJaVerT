@@ -85,15 +85,15 @@ let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
 				pure_formulae |=
 
 *)
-let find_field loc fv_list e p_formulae (* solver *) gamma =
+let find_field loc fv_list e p_formulae gamma =
 	let rec find_field_rec fv_list traversed_fv_list i_am_sure_the_field_does_not_exist =
 		match fv_list with
 		| [] -> traversed_fv_list, None, i_am_sure_the_field_does_not_exist
 		| (e_field, e_value) :: rest ->
-			(if (Pure_Entailment.is_equal e e_field p_formulae (* solver *) gamma)
+			(if (Pure_Entailment.is_equal e e_field p_formulae gamma)
 				then traversed_fv_list @ rest, Some (e_field, e_value), false
 				else
-					(if (i_am_sure_the_field_does_not_exist && (Pure_Entailment.is_different e e_field p_formulae (* solver *) gamma))
+					(if (i_am_sure_the_field_does_not_exist && (Pure_Entailment.is_different e e_field p_formulae gamma))
 						then find_field_rec rest ((e_field, e_value) :: traversed_fv_list) true
 						else find_field_rec rest ((e_field, e_value) :: traversed_fv_list) false)) in
 	find_field_rec fv_list [] true
@@ -167,9 +167,10 @@ let merge_heaps heap new_heap p_formulae  gamma =
 						| [] -> q_fv_list
 						| (le_field, le_val) :: rest_n_fv_list ->
 							print_debug_petar (Printf.sprintf "  Field: (%s, %s)" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false));
-							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae (* solver *) gamma in
+							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae gamma in
 							(match fv_pair, i_am_sure_the_field_does_exist with
-							| None, true -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
+							| None, true 
+							| Some (_, LUnknown), _ -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
 							| None, false -> raise (Failure "heaps non-mergeable")
 							| Some (f, v), _ -> raise (Failure "heaps non-mergeable"))) in
 					let q_fv_list = loop [] n_fv_list in

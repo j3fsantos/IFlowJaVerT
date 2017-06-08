@@ -170,7 +170,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 			then (true, None)
 			else (false, None)
 
-  | LUnknown -> (false, None)
+  | LUnknown -> (le = LUnknown, None)
 
 	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
 			(* print_debug_petar (Printf.sprintf "ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le)); *)
