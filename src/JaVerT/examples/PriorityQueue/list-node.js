@@ -40,7 +40,7 @@
     @pre ((data == #data) * types(#data: $$number_type) * ObjectWithProto(this, #np) * 
             NodePrototype(#np) * empty_fields(this : ))
 
-    @post (Node(this, #data, $$null, $$null, #np) * NodePrototype(#np) * (ret == $$empty))
+    @post (Node(this, #data, $$null, $$null, #np) * NodePrototype(#np))
   */
     function Node(data) {
         this.data = data || null;

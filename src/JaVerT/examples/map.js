@@ -59,8 +59,7 @@ function isValidKey(key) {
     
     @post (
     	Map(this, #contents, #hp) * 
-    	MapProto(#mp) * 
-    	(ret == $$empty)
+    	MapProto(#mp)
     )
 */
 function Map () {
@@ -69,7 +68,6 @@ function Map () {
 
 /**
 	@id mapGet
-
 	
 	@pre (
 		(key == #key) * validKey(key) * 

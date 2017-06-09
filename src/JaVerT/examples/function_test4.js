@@ -3,7 +3,7 @@
 	@rec false
 
 	@pre  ( emp )
-	@post ( ret == $$empty )
+	@post ( emp )
 */
 var g = function () { };
 

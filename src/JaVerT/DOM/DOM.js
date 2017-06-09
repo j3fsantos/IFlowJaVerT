@@ -218,7 +218,7 @@
 
 	@onlyspec deallocAS(alpha)
 		pre:  [[ (alpha == #alpha) * AttributeSet(#l, #as) * (#as == #as1 @ ({{ "hole", #alpha }} :: #as3)) * AttributeSet(#alpha, #as2) * types(#alpha : $$object_type)]]
-		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) * (ret == $$empty) ]]
+		post: [[ AttributeSet(#l, (#as1 @ (#as2 @ #as3))) ]]
 		outcome: normal
 
 	@onlyspec allocG(l, i, j)
@@ -234,7 +234,7 @@
 	@onlyspec deallocG(alpha)
 		pre:  [[ (alpha == #alpha) * types(#alpha : $$object_type, #g : $$list_type, #g1 : $$list_type, #g2 : $$list_type, #g3 : $$list_type) * 
 				 Grove(#l, #g) * (#g == #g1 @ ({{"hole", #alpha}} :: #g3)) * Grove(#alpha, #g2)]]
-		post: [[ Grove(#l, (#g1 @ (#g2 @ #g3))) * (ret == $$empty) ]]
+		post: [[ Grove(#l, (#g1 @ (#g2 @ #g3))) ]]
 		outcome: normal
 */ /*
 	----General Axioms----
