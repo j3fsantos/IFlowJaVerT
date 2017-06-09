@@ -82,8 +82,7 @@ PriorityQueue = (function () {
   	   	ObjectWithProto(this, #node_proto) 
   	)
 
-  	@post (
-  	   		Node(this, #pri, #val, $$null, #node_proto) * (ret == $$empty) )
+  	@post ( Node(this, #pri, #val, $$null, #node_proto) )
   */
    var Node = function (pri, val) {
       this.pri = pri; this.val = val; this.next = null;
@@ -154,8 +153,7 @@ PriorityQueue = (function () {
     @post (
           Queue(this, #pq_proto, #node_proto, 0, 0) *
           scope(Node: #n) *
-          QueuePrototype(#pq_proto, #n, #node_proto, #enqueue_sc, #dequeue_sc) *
-          (ret == $$empty)
+          QueuePrototype(#pq_proto, #n, #node_proto, #enqueue_sc, #dequeue_sc)
     )
    */
    var module = function () {
@@ -179,8 +177,7 @@ PriorityQueue = (function () {
       @post (
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #npri, #length + 1) *
-        QueuePrototype(#pq_proto, #n, #node_proto, #enqueue_sc, #dequeue_sc) *
-        (ret == $$empty)
+        QueuePrototype(#pq_proto, #n, #node_proto, #enqueue_sc, #dequeue_sc)
       )
 
       @pre (
@@ -196,8 +193,7 @@ PriorityQueue = (function () {
       @post (
         scope(Node: #n) *
         Queue(this, #pq_proto, #node_proto, #pri_q, #length + 1) *
-        QueuePrototype(#pq_proto, #n, #node_proto, #enqueue_sc, #dequeue_sc) *
-        (ret == $$empty)
+        QueuePrototype(#pq_proto, #n, #node_proto, #enqueue_sc, #dequeue_sc)
       )
 
    */

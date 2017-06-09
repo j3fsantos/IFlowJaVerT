@@ -435,8 +435,11 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 				print_debug_petar (Printf.sprintf "The post makes sense.");
 				let new_symb_state = if (copy_flag) then (copy_symb_state symb_state) else symb_state in
 				let new_symb_state = Structural_Entailment.merge_symb_states new_symb_state post subst in
-				let ret_lexpr = store_get (get_store post) ret_var in
-				let ret_lexpr = JSIL_Logic_Utils.lexpr_substitution ret_lexpr subst false in
+				let ret_lexpr = store_get_safe (get_store post) ret_var in
+				let ret_lexpr = 
+					Option.map_default 
+						(fun x -> JSIL_Logic_Utils.lexpr_substitution x subst false) 
+						(print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty) ret_lexpr in
 				[ new_symb_state, ret_flag, ret_lexpr ])
 				else begin print_debug_petar (Printf.sprintf "The post does not make sense."); [] end in
    

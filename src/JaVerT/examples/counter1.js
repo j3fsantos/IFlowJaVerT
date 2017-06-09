@@ -42,7 +42,7 @@ var make_counter = function () {
    /**
       @id  incCounter
       @pre  (scope(count : #c) * types(#c : $$number_type))
-      @post (scope(count : #c+1) * (ret == $$empty))
+      @post (scope(count : #c+1))
    */
    var incCounter = function () {
       count++;

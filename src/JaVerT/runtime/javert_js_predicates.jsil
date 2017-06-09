@@ -13,6 +13,11 @@ pred dataField (l, prop, v) :
 	((l, prop) -> {{ "d", v, $$t, $$t, $$t }}) *
 	(! (v == $$empty));
 	
+pred dataFieldGeneral (l, prop, v, writ, enum, conf) : 
+	types (l : $$object_type, prop : $$string_type) *
+	((l, prop) -> {{ "d", v, writ, enum, conf }}) *
+	(! (v == $$empty)) * types (writ : $$boolean_type, enum : $$boolean_type, conf : $$boolean_type);
+	
 pred dataFieldConst (l, prop, v) :
     types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> {{ "d", v, $$f, $$f, $$f }}) *

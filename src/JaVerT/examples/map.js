@@ -35,19 +35,11 @@
 /**
 	@id isValidKey
 	
-	@pre (
-		(key == #key) * validKey(#key)
-	)
-	@post ( 
-		ret == $$t 
-	)
+	@pre  ((key == #key) * validKey(#key))
+	@post (ret == $$t)
 		
-	@pre (
-		(key == #key) * invalidKey(#key)
-	)
-	@post ( 
-		ret == $$f
-	)
+	@pre ((key == #key) * invalidKey(#key))
+	@post (ret == $$f)
 */
 function isValidKey(key) {
 	return (typeof(key) === "string" && key !== "hasOwnProperty")
@@ -67,8 +59,7 @@ function isValidKey(key) {
     
     @post (
     	Map(this, #contents, #hp) * 
-    	MapProto(#mp) * 
-    	(ret == $$empty)
+    	MapProto(#mp)
     )
 */
 function Map () {
@@ -77,7 +68,6 @@ function Map () {
 
 /**
 	@id mapGet
-
 	
 	@pre (
 		(key == #key) * validKey(key) * 
@@ -134,6 +124,49 @@ Map.prototype.get = function getValue (key) {
 
 /**
 	@id mapPut
+
+	@pre (
+		(key == #key) * validKey(key) * 
+		(value == #value) *
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) *
+		emptyField(#contents, #key)
+	)
+	
+	@post (
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) * 
+		dataField(#contents, #key, #value)
+	)
+	
+	@pre (
+		(key == #key) * validKey(key) * 
+		(value == #value) *
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) *
+		dataFieldGeneral(#contents, #key, #oldValue, $$t, #enum, #conf) 
+	)
+	
+	@post (
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) * 
+		dataFieldGeneral(#contents, #key, #value, $$t, #enum, #conf)
+	)
+	
+	@pre (
+		(key == #key) * validKey(key) * 
+		(value == #value) *
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) *
+		dataFieldGeneral(#contents, #key, #oldValue, $$f, #enum, #conf) 
+	)
+	
+	@post (
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) * 
+		dataFieldGeneral(#contents, #key, #oldValue, $$f, #enum, #conf) *
+		isTypeError(err)
+	)
 	
 	@pre (
 		(key == #key) * invalidKey(key) *
