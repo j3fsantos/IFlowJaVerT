@@ -731,13 +731,13 @@ with
 spec OP_hasOwnProperty(xsc, vthis, v)
 
 	[[ (vthis == #l) * (v == #prop) * types(#l : $$object_type, #prop : $$string_type) * 
-		Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (#ls == {{ #l }}) * (! (#d == $$undefined)) ]]
-	[[ Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (ret == $$t) ]]
+		((#l, "@class") -> "Object") * Cell_o (#l, #prop, #dx) * types (#dx : $$list_type) ]]
+	[[ ((#l, "@class") -> "Object") * Cell_o (#l, #prop, #dx) * (ret == $$t) ]]
 	normal;
 	
 	[[ (vthis == #l) * (v == #prop) * types(#l : $$object_type, #prop : $$string_type) * 
-		Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (1 <# l-len #ls) ]]
-	[[ Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) * (ret == $$f) ]]
+		((#l, "@class") -> "Object") * Cell_o (#l, #prop, None) ]]
+	[[ ((#l, "@class") -> "Object") * Cell_o (#l, #prop, None) * (ret == $$f) ]]
 	normal
 
 proc OP_hasOwnProperty(xsc, vthis, v) {
@@ -745,11 +745,8 @@ proc OP_hasOwnProperty(xsc, vthis, v) {
 			p := xret;
 
 			xret := "i__toObject" (vthis) with elab;
-			
-			[* unfold Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) *]
 			xret := "getOwnProperty" (xret, p) with elab;
 			
-			[* fold Pi (#l, #prop, #lcls, #d, #ls, #ltf, #lpv) *]
 			xret := not (xret = $$undefined);
 
 	rlab:	skip;

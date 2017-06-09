@@ -117,15 +117,15 @@
 
 \begin{document}
 
-\title{A Tutorial on JaVerT}
+\title{A Notelet on Using JaVerT}
 
-\author{Petar Maksimovi\'{c}, Jos\'{e} Fragoso Santos}
+\author{Anonymous authors}
 
-\institute{Imperial College London}
+\institute{belonging to an anonymous institution}
 
 \maketitle
 
-\section{Abstractions}
+\section{Basic Abstractions}
 
 \newpage
 \section{Function closures}
@@ -251,7 +251,7 @@ This assertion states that the variable \jsinline|count| has value \jsinline|0| 
 
 \begin{display}{Under the hood}
 \ \ \begin{minipage}{0.97\textwidth}
-The \jsinline|closure| abstraction can actually be unfolded to show the built-in assertions that are behind it:
+The \jsinline|closure| abstraction can be unfolded to show the built-in assertions that are behind it:
 \begin{lstjs}
 closure(v1: #v1, ..., vm: #vm; f1: #f1_sc, ..., fn: #fn_sc) :
   sc_scope(f1, v1: #v1, #f1_sc) * ... * sc_scope(f1, vm: #vm, #f1_sc) *

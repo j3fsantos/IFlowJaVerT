@@ -18,6 +18,10 @@ pred dataFieldConst (l, prop, v) :
 	((l, prop) -> {{ "d", v, $$f, $$f, $$f }}) *
 	(! (v == $$empty));
 	
+pred emptyField (l, prop) :
+	types (l : $$object_type, prop : $$string_type) *
+	((l, prop) -> None);
+	
 pred ObjectWithProto (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *

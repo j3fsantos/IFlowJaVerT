@@ -2,32 +2,34 @@
 	***** VALID AND INVALID KEYS *****
 	
 	@pred validKey(key) : 
-		types (key : $$string_type);
+		isNamedProperty(key) *
+		(! (key == "hasOwnProperty"));
 		
 	@pred invalidKey(key) :
 		types (key : $$undefined_type),
 		types (key : $$null_type),
 		types (key : $$boolean_type),
-		types (key : $$number_type);
+		types (key : $$number_type),
+		types (key : $$string_type) * (key == "hasOwnProperty");
 */
 
 /**
-	***** Hashtbl abstraction *****
+	***** Map abstraction *****
 	
-	@pred Hashtbl(ht, contents, htp) :
-		ObjectWithProto(ht, htp) *
-		dataField(ht, "_contents", contents) *
+	@pred Map(m, contents, mp) :
+		ObjectWithProto(m, mp) *
+		dataField(m, "_contents", contents) *
 		standardObject(contents) *
 		((contents, "hasOwnProperty") -> None) *
-		((ht, "get") -> None) *
-		((ht, "put") -> None) *
-		types(htp : $$object_type);
+		((m, "get") -> None) *
+		((m, "put") -> None) *
+		types(mp : $$object_type);
   	
-  	@pred HashtblProto(htp) :
-		standardObject(htp) *
-		dataField(htp, "get", #get_loc) * fun_obj(hashtblGet, #get_loc, #get_proto, #get_sc) *
-		dataField(htp, "put", #put_loc) * fun_obj(hashtblPut, #put_loc, #put_proto, #put_sc) *
-		((htp, "_contents") -> None);
+  	@pred MapProto(mp) :
+		standardObject(mp) *
+		dataField(mp, "get", #get_loc) * fun_obj(mapGet, #get_loc, #get_proto, #get_sc) *
+		dataField(mp, "put", #put_loc) * fun_obj(mapPut, #put_loc, #put_proto, #put_sc) *
+		((mp, "_contents") -> None);
 */
 
 /**
@@ -48,45 +50,61 @@
 	)
 */
 function isValidKey(key) {
-	return (typeof(key) === "string") 
+	return (typeof(key) === "string" && key !== "hasOwnProperty")
 }
 
 
 /**
-    @id  hashtbl
+    @id  map
 
     @pre (
-    	ObjectWithProto(this, #htp) *
+    	ObjectWithProto(this, #mp) *
         ((this, "_contents") -> None) *
         ((this, "get") -> None) *
         ((this, "put") -> None) *
-        HashtblProto(#htp)
+        MapProto(#mp)
     )
     
     @post (
-    	Hashtbl(this, #contents, #hp) * 
-    	HashtblProto(#htp) * 
+    	Map(this, #contents, #hp) * 
+    	MapProto(#mp) * 
     	(ret == $$empty)
     )
 */
-function Hashtbl () {
+function Map () {
    this._contents = {};
-} 
+}
 
 /**
-	@id hashtblGet
+	@id mapGet
+
 	
 	@pre (
 		(key == #key) * validKey(key) * 
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
-		Hashtbl(this, #contents, #htp) * HashtblProto(#htp) *
-		Pi(#contents, #key, #lcls, #d, #ls, #ltf, #lpv) * (1 <# l-len #ls)
+		Map(this, #contents, #mp) * MapProto(#mp) *
+		dataField(#contents, #key, #v)
 	)
 	
 	@post (
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
-		Hashtbl(this, #contents, #htp) * HashtblProto(#htp) * 
-		Pi(#contents, #key, #lcls, #d, #ls, #ltf, #lpv) * (ret == $$null)
+		Map(this, #contents, #mp) * MapProto(#mp) * 
+		dataField(#contents, #key, #v) *
+		(ret == #v)
+	)
+	
+	@pre (
+		(key == #key) * validKey(key) * 
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) *
+		emptyField(#contents, #key)
+	)
+	
+	@post (
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		Map(this, #contents, #mp) * MapProto(#mp) * 
+		emptyField(#contents, #key) *
+		(ret == $$null)
 	)
 	
 	@pre (
@@ -99,7 +117,7 @@ function Hashtbl () {
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 */
-Hashtbl.prototype.get = function getValue (key) {
+Map.prototype.get = function getValue (key) {
 	var result;
 
 	if (isValidKey(key)) { 
@@ -115,7 +133,7 @@ Hashtbl.prototype.get = function getValue (key) {
 	}
 
 /**
-	@id hashtblPut
+	@id mapPut
 	
 	@pre (
 		(key == #key) * invalidKey(key) *
@@ -127,7 +145,7 @@ Hashtbl.prototype.get = function getValue (key) {
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 */
-Hashtbl.prototype.put = function (key, value) {
+Map.prototype.put = function (key, value) {
    if (isValidKey(key)) { 
        this._contents[key] = value; 
    } else {
