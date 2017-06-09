@@ -1068,7 +1068,7 @@
 		outcome: normal;
 
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_aList, #aList, #l_children, #cList) * out(#aList, #s) ]]
-		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_children, #cList) * (ret == "")     ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_children, #cList) * out(#aList, #s) * (ret == "") ]]
 		outcome: normal
 
 

@@ -276,7 +276,7 @@
 		outcome: normal;
 
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_aList, #aList, #l_children, #cList) * out(#aList, #s) ]]
-		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_children, #cList) * (ret == "")     ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_children, #cList) * out(#aList, #s) * (ret == "")     ]]
 		outcome: normal
 
 
@@ -327,7 +327,8 @@
 	@post (
 		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children)
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children) *
+		out(#attr, "src")
 	)	
 	@pre (
 		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
