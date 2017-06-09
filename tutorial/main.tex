@@ -129,6 +129,12 @@
 Something
 
 \newpage
+\section{Priority Queue}
+\label{sec:closures}
+
+Our priority queue example and its JS Logic specifications compile to approximately 900 lines of JSIL code and JSIL Logic specifications. All of the specifications (10 in total) are verified by \javert in approximately 9 seconds. 
+
+\newpage
 \section{Function Closures - Counter}
 \label{sec:closures}
 
@@ -347,7 +353,7 @@ var count = counter_1.getCounter() + counter_2.getCounter()
 
 The specification states that we start from an empty precondition, and finish with: the variable \jsinline|make_counter|, holding the function object corresponding to the \jsinline|make_counter| function; the variables \jsinline|counter_1| and \jsinline|counter_2|, holding counters whose values are, respectively, \jsinline|2| and \jsinline|1|; and the variable \jsinline|count|, whose value is \jsinline|3|.
 
-This JavaScript program and its JS Logic specifications translate to approximately 400 lines of JSIL code and JSIL Logic specifications. All of the specifications (4 in total) are verified by \javert in approximately 3.7 seconds. 
+This JavaScript program and its JS Logic specifications compile to approximately 400 lines of JSIL code and JSIL Logic specifications. All of the specifications (4 in total) are verified by \javert in approximately 3.7 seconds. 
 
 \newpage
 \section{Dynamic Property Access --- Key-Value Map}
@@ -441,7 +447,7 @@ It is common practice to test if an object has an own property using the built-i
 
 \polish{Summarise.}
 
-This JavaScript program and its JS Logic specifications translate to approximately 500 lines of JSIL code and JSIL Logic specifications. All of the specifications (22 in total, given predicate unfoldings) are verified by \javert in approximately 5 seconds. 
+This JavaScript program and its JS Logic specifications compile to approximately 500 lines of JSIL code and JSIL Logic specifications. All of the specifications (22 in total, given predicate unfoldings) are verified by \javert in approximately 5 seconds. 
 
 \begin{display}{Further work}
 \ \ \begin{minipage}{0.97\textwidth}
