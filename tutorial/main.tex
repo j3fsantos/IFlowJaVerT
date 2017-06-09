@@ -263,7 +263,7 @@ closure(v1: #v1, ..., vm: #vm; f1: #f1_sc, ..., fn: #fn_sc) :
 
 The \jsinline|sc_scope| assertion is a generalisation of the \jsinline|scope| assertion, where \jsinline|sc_scope(f, v: #v, #f_sc)| means that the variable \jsinline|v| has value \jsinline|#v| in the scope chain \jsinline|#f_sc| of the function \jsinline|f|. Recall that \jsinline|scope(v : #v)| means that the variable \jsinline|v| has value \jsinline|#v| in the scope chain of the function being specified and the name of the function and its scope chain are left implicit. 
 
-The assertion \jsinline|o_chains(f: #f_sc, g: #g_sc)|, on the other hand, is a pure assertion that states that the scope chains of the functions \jsinline|f| and \jsinline|g|, denoted by \jsinline|#f_sc| and \jsinline|#g_sc|, maximally overlap, i.e.~that \jsinline|f| and \jsinline|g| were created in the same execution of an enclosing function.
+The assertion \jsinline|o_chains(f: #f_sc, g: #g_sc)|, on the other hand, is a pure assertion that states that the scope chains of the functions \jsinline|f| and \jsinline|g|, denoted by \jsinline|#f_sc| and \jsinline|#g_sc|, maximally overlap, i.e.~that \jsinline|f| and \jsinline|g| were created in the same execution of the innermost enclosing function.
 
 \end{minipage}
 \end{display}
