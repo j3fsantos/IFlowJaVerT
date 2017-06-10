@@ -102,11 +102,6 @@
 		((dn, "@grove") -> l_grove) * Grove(l_grove, grove) *
 		empty_fields(dn : "@element", "@grove");
 
-	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList, fin, fout) :
-		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * NodeList(f, id) * 
-		empty_fields(id : "@name", "@attributes", "@children", "@address", "@flisteners", "@flistenersUnfolded") * 
-		ElementNode(name, id, l_attr, aList, l_children, cList, fin, fout);
-
 	@pred ElementNode(name, id, l_attr, aList, l_children, cList, fin, fout) :
 		((id, "@name") -> name) *
 		((id, "@attributes") -> l_attr) * AttributeSet(l_attr, aList) *
@@ -120,13 +115,10 @@
 		((id, "@text") -> text) *
 		empty_fields(id : "@text");
 
-	@pred ANode(name, id, l_children, cList) :
-		DOMObject(id, $l_anp) * empty_fields(id : "@name", "@children") *
-		AttributeNode(name, id, l_children, cList);
-
 	@pred AttributeNode(name, id, l_children, cList) :
 		((id, "@name") -> name) *
 		((id, "@children") -> l_children) * TextForest(l_children, cList);
+
 
 	@pred NodeListPrototype() :
 		DOMObject($l_nlp, $$null) *
@@ -140,17 +132,21 @@
 	@pred InitialDOMHeap() :
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype() * NodeListPrototype();
 
+*/ /*
+	----DOM Structural Data----
+*/ /*
+
+	@pred ChainCell(l, next, content) : 
+		((l, "@next") -> next) * ((l, "@content") -> content);
+
+
 	@pred DocumentElement(l, element) :
 		isNil(element) * DOMObject(l, $$null) * empty_fields(l :),
 		
 		(element == (#head :: {{}})) * isElement(#head, #id, #name, #l_a, #l_c, #fin, #fout) * 
 		DOMObject(l, $$null) * empty_fields(l :),
 		
-		(element == (#head :: {{}})) * isHole(#head, #alpha) * DOMObject(l, $$null) * empty_fields(l :);		
-
-
-	@pred ChainCell(l, next, content) : 
-		((l, "@next") -> next) * ((l, "@content") -> content);
+		(element == (#head :: {{}})) * isHole(#head, #alpha) * DOMObject(l, $$null) * empty_fields(l :);
 
 
 	@pred AttributeSet(alpha, attrs) : 
