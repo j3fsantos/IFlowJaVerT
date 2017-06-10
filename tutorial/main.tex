@@ -1,4 +1,4 @@
-\documentclass{llncs}
+\documentclass{article}
 
 \let\proof\relax
 \let\endproof\relax
@@ -117,29 +117,51 @@
 
 \begin{document}
 
-\title{Further JaVerT examples}
-
-%\author{Anonymous authors}
-
-%\institute{belonging to an anonymous institution}
+\title{JavaScript verification with JaVerT: more examples}
+\author{Anonymous authors}
 
 \maketitle
 
-\section{Basic Abstractions}
-Something
+%\tableofcontents
+
+\section{Overview}
+
+We have further examples in addition to the priority queue example of the paper. One of them is a pedagogical counter example on systematically, abstractly handling function closures and is presented in detail in Section \ref{sec:closures}. Another is a simple key-value map, shown in Section \ref{sec:kvmap}, where the main point is dynamic property access. To illustrate set reasoning, we verify operations on binary search trees, whereas for list reasoning, we verify an insertion sort algorithm.\footnote{These two examples we have in common with KJS, so we can compare. On a machine with an Intel Core i7-4960X CPU 3.60GHz and DDR3 RAM 64GB, KJS takes 35.7 seconds in total to verify the correctness of the algorithms associated with BST trees, and 44.8 seconds to verify correctness of the insertion sort algorithm. On a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB, which is approximately 30\% less powerful than the one used for KJS, JaVerT verifies the same BST algorithms in 8.5 seconds, and the insertion sort algorithm in 3.0 seconds.} The table below contains the statistics for these examples.
+
+\begin{table}[!h]
+	\centering
+    \rowcolors{2}{SkyBlue!20}{white}
+    \begin{tabular}{|lcccc|}
+    \hline
+      % Exclusion Filters applied to obtain ES5S figure:
+      % Harness, More indirect eval, noStrict labelled tests, ES6 only tests, AnnexB/Intl402
+      % Indirect Eval, Indirect Eval (JSIL Unsupported), SJSIL ES6 new features, SJSIL ES5-6 breakages,
+      % SJSIL ES6 Let, SJSIL ES6 Const
+      % CONFIGURABLE LENGTH TODO
+      \rowcolor{SkyBlue!40}
+      {\bfseries Example} & {\bfseries JS lines} & {\bfseries JSIL lines} & {\bfseries Verified specs} & {\bfseries Time(s)} \\
+      \hline
+      % Supposed parser failures, parsing, string/number casts
+      Priority queue		&  40 &  912 &  10 & 9.2 \\
+      Counter				&  19 &  412 &   4 & 3.6 \\ 
+      Key-value map			&  21 &  470 &  22 & 4.7 \\
+      BST					&  70 & 1033 &   6 & 8.5 \\
+      Insertion sort		&  24 &  418 &   3 & 3.0 \\
+      JS Internal functions & N/A & 1048 & 186 & 5.1 \\
+      \hline
+   \end{tabular}
+  \caption{Verification statistics for the examples}
+  \label{tab:stats}
+\end{table}
+
+These examples and all JavaScript programs in general heavily rely on the JavaScript internal functions. We list in the table also the breakdown for all of the internal functions that we have implemented in JSIL, axiomatically specified in JSIL Logic, and verified using JSIL Verify.
 
 \newpage
-\section{Priority Queue}
-\label{sec:closures}
-
-Our priority queue example and its JS Logic specifications compile to approximately 900 lines of JSIL code and JSIL Logic specifications. All of the specifications (10 in total) are verified by \javert in approximately 9 seconds. 
-
-\newpage
-\section{Function Closures - Counter}
+\section{Function Closures: Counter}
 \label{sec:closures}
 
 JavaScript supports nested functions and function closures, meaning that one function literal can be declared within another and that functions can refer to variables that are defined in the enclosing scope. 
-The relationships between the scope chains of such functions can become fairly complex and there are several challenges that the specification of function closures has to tackle, which we illustrate with the following example:
+The relationships between the scope chains of such functions can become fairly complex and there are several challenges that the specification of function closures has to tackle. We illustrate these with the following example:
 
 \begin{figure}[!h]
 \centering
@@ -166,7 +188,6 @@ counter_2.incCounter();
 var count = counter_1.getCounter() + counter_2.getCounter()
 \end{lstjs}
 \end{minipage}
-\vspace*{-0.2cm}
 \caption{Example: Function closures}
 \label{fig:fc}
 \end{figure}
@@ -353,19 +374,23 @@ var count = counter_1.getCounter() + counter_2.getCounter()
 
 The specification states that we start from an empty precondition, and finish with: the variable \jsinline|make_counter|, holding the function object corresponding to the \jsinline|make_counter| function; the variables \jsinline|counter_1| and \jsinline|counter_2|, holding counters whose values are, respectively, \jsinline|2| and \jsinline|1|; and the variable \jsinline|count|, whose value is \jsinline|3|.
 
-This JavaScript program and its JS Logic specifications compile to approximately 400 lines of JSIL code and JSIL Logic specifications. All of the specifications (4 in total) are verified by \javert in approximately 3.7 seconds. 
 
-\newpage
-\section{Dynamic Property Access --- Key-Value Map}
+
+
+
+
+
+
+\section{Dynamic Property Access: Key-Value Map}
+\label{sec:kvmap}
 \hspace*{-0.5cm}
-\begin{minipage}{0.95\textwidth}
+\begin{minipage}{0.98\textwidth}
 \begin{lstjs}
 /**	
   @pred validKey(key) : isNamedProperty(key) * (! (key == "hasOwnProperty"));
 		
   @pred invalidKey(key) : 
-    types (key : $$undefined_type), types (key : $$null_type), types (key : $$boolean_type),
-    types (key : $$number_type), types (key : $$string_type) * (key == "hasOwnProperty");
+    types (key : $$boolean_type), types (key : $$number_type), types (key : $$string_type) * (key == "hasOwnProperty");
   
   @pred Map(m, contents, mp) :
     ObjectWithProto(m, mp) * types(mp : $$object_type) * 
@@ -378,13 +403,11 @@ This JavaScript program and its JS Logic specifications compile to approximately
     dataField(mp, "put", #put_loc) * fun_obj(mapPut, #put_loc, #put_proto, #put_sc);
 */
 
-/** @id isValidKey
+/** 
+  @id isValidKey
 	
-  @pre  ((key == #key) * validKey(#key))
-  @post (ret == $$t)
-		
-  @pre ((key == #key) * invalidKey(#key))
-  @post (ret == $$f)
+  @pre  ((key == #key) * validKey(#key)) 										@post (ret == $$t)
+  @pre ((key == #key) * invalidKey(#key))									@post (ret == $$f)
 */
 function isValidKey(key) { return (typeof(key) === "string" && key !== "hasOwnProperty") }
 
@@ -396,7 +419,8 @@ function isValidKey(key) { return (typeof(key) === "string" && key !== "hasOwnPr
 */
 function Map () { this._contents = {}; }
 
-/** @id mapGet
+/** 
+  @id mapGet
 
   @pre (Map(this, #contents, #mp) * MapProto(#mp) * (key == #key) * validKey(#key) * dataField(#contents, #key, #v))
   @post (Map(this, #contents, #mp) * MapProto(#mp) * dataField(#contents, #key, #v) * (ret == #v))
@@ -413,7 +437,8 @@ Map.prototype.get = function getValue (key) {
   } else { throw new Error("Invalid Key") } 
 }
 
-/** @id mapPut
+/** 
+  @id mapPut
 
   @pre (Map(this, #contents, #mp) * MapProto(#mp) *
     (key == #key) * validKey(#key) * (value == #value) * emptyField(#contents, #key))
@@ -439,15 +464,9 @@ Map.prototype.put = function (key, value) {
 
 We illustrate our handling of dynamic property access by appealing to the example of a key-value map implementation in JavaScript, shown and specified in full on the previous page. A map is an object whose property \jsinline|_contents| holds an object that serves as the actual map---its property names (which are strings) are the map keys and their values (which are arbitrary) are the map values. We provide functionalities for retrieving and setting the value of a given key (\jsinline|get| and \jsinline|put|), both of which we store in \jsinline|Map.prototype|.
 
-This example draws several parallels with the priority queue example of the paper. However, reasoning about contents of a map has an additional layer of complexity. While node objects always have the static \jsinline|pri|, \jsinline|val|, and \jsinline|next| properties inside node,  the objects representing the contents of maps may have arbitrary properties, and the verification needs to be able to deal with that.
+This example draws several parallels with the priority queue example of the paper. However, reasoning about contents of a map has an additional layer of complexity. While node objects always have the static \jsinline|pri|, \jsinline|val|, and \jsinline|next| properties inside node,  the objects representing the contents of maps may have arbitrary properties. This is seen in the specifications of \jsinline|get| and \jsinline|put| functions; more specifically, in the abstractions \jsinline|dataField(#contents, #key)| and \jsinline|emptyField(#contents, #key)|, where the value of \jsinline|#key| is not staticall known. JSIL Verify was designed to handle dynamic property access and has no problems reasoning about it, as indicated by the time required to verify all of the specifications shown in Table \ref{tab:stats}.
 
-\polish{Say about the abstractions and the specification}
-
-It is common practice to test if an object has an own property using the built-in function \jsinline|hasOwnProperty|, which lives in \jsinline|Object.prototype|. Specifying this example reveals a potential flaw in such programs, related to prototype inheritance.
-
-\polish{Summarise.}
-
-This JavaScript program and its JS Logic specifications compile to approximately 500 lines of JSIL code and JSIL Logic specifications. All of the specifications (22 in total, given predicate unfoldings) are verified by \javert in approximately 5 seconds. 
+This example illustrates the common practice of testing if an object has an own property using the built-in function \jsinline|hasOwnProperty|, which lives in \jsinline|Object.prototype|. Specifying this example reveals a potential flaw in such programs, that has to do with prototype safety. Namely, the hashtable can override \jsinline|hasOwnProperty| by having the key \jsinline|"hasOwnProperty"| itself, and again, the specifications have to account for that. Our ad-hoc solution is to exclude the string \jsinline|hasOwnProperty| from the set of valid keys. There are different ways in which this can be handle more elegantly, but these are not the point of this example.
 
 \begin{display}{Further work}
 \ \ \begin{minipage}{0.97\textwidth}
