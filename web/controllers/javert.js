@@ -10,7 +10,7 @@ function javert (req, res, js_temp_file_name) {
 	var output_js2jsil;
    var output_jsilverify;
 
-	console.log('Going to run javert');
+	console.log('Going to run javert on. Dirname: ' + __dirname + '\nPath: ' + path);
 
 	try {
 		output_js2jsil = spawn('./js2jsil.native',
