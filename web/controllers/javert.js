@@ -13,7 +13,7 @@ function javert (req, res, js_temp_file_name) {
 	console.log('Going to run javert');
 
 	try {
-		output_js2jsil = spawn('./js2jsil_main.native',
+		output_js2jsil = spawn('./js2jsil.native',
 			['-file', js_temp_file_name + '.js', '-logic'],
 			{ cwd: __dirname + '/../jsil_binaries' });
 
@@ -31,7 +31,7 @@ function javert (req, res, js_temp_file_name) {
 			console.log('Now going to run jsilverify on ' + js_temp_file_name + '.jsil\n');
 
 
-			output_jsilverify = spawn('./symb_execution_main.native',
+			output_jsilverify = spawn('./jsilverify.native',
 				['-file', js_temp_file_name + '.jsil', '-js'],
 				{
 					cwd:   __dirname + '/../jsil_binaries',
