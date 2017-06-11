@@ -843,9 +843,9 @@ let print_model solver =
 	match model with
 	| Some model ->
 		let str_model = Model.to_string model in
-		print_endline (Printf.sprintf "I found the model: \n\n%s" str_model)
+		print_debug (Printf.sprintf "I found the model: \n\n%s" str_model)
 	| None ->
-		print_endline "No model found."
+		print_debug "No model found."
 
 let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in

@@ -17,3 +17,5 @@ cp src/JSILVerify/examples/sets/*.jsil environment/sets
 cp src/JaVerT/examples/*.js environment
 cp src/JaVert/examples/PriorityQueue/*.js environment/PQ
 cp src/JSILVerify/bi_examples/*.jsil environment/bi
+cp *.native web/jsil_binaries
+cp src/JaVerT/runtime/*.jsil web/jsil_binaries
