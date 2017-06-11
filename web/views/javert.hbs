@@ -6,41 +6,35 @@
   </div>
 
   <!-- Main content -->
-<div class="row">
-    <div class="six columns">
+  <div class="row">
+    <div class="twelve columns" style="padding-bottom:2em">
 
-    <pre id="editor" spellcheck="false" style="height: 350px">// Est modus in rebus</pre>
+    <pre id="editor" spellcheck="false" style="height: 300px">// Est modus in rebus</pre>
     <div id="info" class="alert-box secondary">Ready.</div>
-     <input class="small radius button secondary right" type="button" id="btn-javert" value="Verify" />
-     <br /> <br />
-     <label>Example:</label><select id="select-example"> </select>
+    <div class ="three columns">
+     <label>Select an example:</label><select id="select-example"> </select> 
     </div>
-
-    <div class="six columns">
+      <input class="small radius button secondary" style="margin-top:8px" type="button" id="btn-javert" value="Verify" />
+    </div>
+    
+    <div class="twelve columns">
      <dl class="tabs">
         <dd id="show_verification_output" class="active"><a href="#">JaVerT Output</a></dd>
         <dd id="show_jsil_output"><a href="#">JSIL Output</a></dd>
-        <dd id="show_symb_graph"><a href="#">Symb Graph</a></dd>
      </dl>
-     <ul class="tabs-content">
+     <ul class="tabs-content" style="height:800px">
 
         <li class="active" id="tab_verification_output">
-          <div class="resizable">
-           <textarea wrap="off" id="ta_verification_output" rows="20" readonly></textarea>
+          <div>
+           <textarea wrap="off" id="ta_verification_output" rows="50" readonly></textarea>
           </div>
         </li>
 
         <li id="tab_jsil_output">
-         <div class="resizable">
-          <textarea wrap="off" id="ta_jsil_output" rows="20" readonly></textarea>
+         <div>
+          <textarea wrap="off" id="ta_jsil_output" rows="50" readonly></textarea>
          </div>
         </li>
-
-        <li id="tab_symbolic_graph">
-           <div class="resizable">
-           </div>
-        </li>
-
      </ul>
     </div>
   </div>
