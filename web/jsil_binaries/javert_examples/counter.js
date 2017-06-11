@@ -3,9 +3,11 @@
    standardObject(c) *
    dataField(c, "getCounter", #gc) *
    dataField(c, "incCounter", #ic) *
+   dataField(c, "decCounter", #dc) *
    fun_obj(incCounter, #ic, #ic_proto, #ic_sc) *
    fun_obj(getCounter, #gc, #gc_proto, #gc_sc) *
-   closure(count: c_val; incCounter: #ic_sc, getCounter: #gc_sc) *
+   fun_obj(decCounter, #dc, #dc_proto, #dc_sc) *
+   closure(count: c_val; incCounter: #ic_sc, getCounter: #gc_sc, decCounter: #dc_sc) *
    types (c_val: $$number_type);
 */
 
@@ -42,15 +44,25 @@ var make_counter = function () {
    /**
       @id  incCounter
       @pre  (scope(count : #c) * types(#c : $$number_type))
-      @post (scope(count : #c+1) * (ret == $$empty))
+      @post (scope(count : #c+1))
    */
    var incCounter = function () {
       count++;
    };
+   
+   /**
+      @id  decCounter
+      @pre  (scope(count : #c) * types(#c : $$number_type))
+      @post (scope(count : (#c - 1)))
+   */
+   var decCounter = function () {
+      count--
+   };
 
    return {
       getCounter: getCounter,
-      incCounter: incCounter
+      incCounter: incCounter,
+      decCounter: decCounter
    }
 }
 
