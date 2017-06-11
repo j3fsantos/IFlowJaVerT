@@ -8,7 +8,7 @@ const javert_examples_path = "jsil_binaries/javert_examples";
 
 function javert (req, res, js_temp_file_name) {
 	var output_js2jsil;
-   var output_jsilverify;
+	var output_jsilverify;
 
 	console.log('Going to run javert');
 
@@ -25,11 +25,10 @@ function javert (req, res, js_temp_file_name) {
 
 	output_js2jsil.on('exit', (output_status) => {
 		try {
-			console.log('I finished running js2jsil!!! I got the output status: ' + output_status);
+			console.log('I finished running js2jsil! I got the output status: ' + output_status);
 			var javert_out = fs.openSync(path + javert_output_file_name, 'a');
 			console.log('created the file for the standardoutput of jsilverify');
 			console.log('Now going to run jsilverify on ' + js_temp_file_name + '.jsil\n');
-
 
 			output_jsilverify = spawn('./jsilverify.native',
 				['-file', js_temp_file_name + '.jsil', '-js'],
@@ -41,7 +40,7 @@ function javert (req, res, js_temp_file_name) {
 
 			output_jsilverify.on('exit', (output_status => {
 				try {
-					console.log('I finished running jsilverify\n');
+					console.log('I finished running jsilverify! I got the output status: ' + output_status);
 					var encoding = 'utf8';
 					var jsil_output = fs.readFileSync(path + js_temp_file_name + '.jsil', encoding);
 					var javert_output = fs.readFileSync(path + javert_output_file_name, encoding);
@@ -52,6 +51,7 @@ function javert (req, res, js_temp_file_name) {
 						javert_output: javert_output
 					});
 
+                    fs.unlinkSync(path + js_temp_file_name + '.js');
 					fs.unlinkSync(path + js_temp_file_name + '.jsil');
 					fs.unlinkSync(path + javert_output_file_name);
 				} catch (e) {
@@ -69,7 +69,7 @@ function javert (req, res, js_temp_file_name) {
 
 
 function getJavertExamples (req, res) {
-	console.log("Someone wants the Javert examples!!!!!");
+	console.log("Getting JaVerT examples.");
 	var filter = function (name) {
 		var last_dot_index = name.lastIndexOf(".");
 		if (last_dot_index === -1) { return false }
