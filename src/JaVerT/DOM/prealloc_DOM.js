@@ -102,31 +102,20 @@
 		((dn, "@grove") -> l_grove) * Grove(l_grove, grove) *
 		empty_fields(dn : "@element", "@grove");
 
-	@pred ENode(alpha, name, id, l_attr, aList, l_children, cList) :
-		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
-		ElementNode(name, id, l_attr, aList, l_children, cList);
-
 	@pred ElementNode(name, id, l_attr, aList, l_children, cList) :
 		((id, "@name") -> name) *
 		((id, "@attributes") -> l_attr) * AttributeSet(l_attr, aList) *
 		((id, "@children") -> l_children) * Forest(l_children, cList) * 
-		types(name: $$string_type, aList: $$list_type, cList: $$list_type); 
-
-	@pred TNode(alpha, id, text) :
-		DOMObject(id, $l_tnp) * ((id, "@address") -> alpha) * empty_fields(id : "@text", "@address") *
-		TextNode(id, text);
+		types(name: $$string_type, aList: $$list_type, cList: $$list_type);
 
 	@pred TextNode(id, text) :
 		((id, "@text") -> text) *
 		types(text: $$string_type);
 
-	@pred ANode(name, id, l_children, cList) :
-		DOMObject(id, $l_anp) * empty_fields(id : "@name", "@children") *
-		AttributeNode(name, id, l_children, cList);
-
 	@pred AttributeNode(name, id, l_children, cList) :
 		((id, "@name") -> name) *
 		((id, "@children") -> l_children) * TextForest(l_children, cList);
+
 
 	@pred InitialDOMHeap() :
 		NodePrototype() * DocumentNodePrototype() * ElementNodePrototype() * AttributeNodePrototype() * TextNodePrototype();
@@ -1207,27 +1196,24 @@
 */
 
 /**
-	@id secondChild
+	@id isSquare
+
 	@pre (
-		InitialDOMHeap() * scope(document : $l_document) *
-		(element == #enx1) *
-		ECell(#alpha, #name, #enx1, #l_aList, #aList, #l_cList, #cList) *
-		(#cList == {{ {{ "hole", #beta }}, {{ "hole", #gamma }} }} @ #a1) *
-		ECell(#beta,  #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) *
-		ECell(#gamma, #name3, #enx3, #l_aList3, #aList3, #l_cList3, #cList3)
+		InitialDOMHeap() * (element == #enx) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
+		(#aList == #a1 @ {{ {{ "hole", #beta1 }} }} @ #a2 @ {{ {{ "hole", #beta2 }} }} @ #a3) *
+		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
+		val(#aa1, #s1) * val(#aa2, #s1) * types(#s1 : $$string_type, #s2 : $$string_type)
 	)
 	@post (
-		InitialDOMHeap() * scope(document : $l_document) *
-		ECell(#alpha, #name, #enx1, #l_aList, #aList, #l_cList, #cList) *
-		ECell(#beta,  #name2, #enx2, #l_aList2, #aList2, #l_cList2, #cList2) *
-		ECell(#gamma, #name3, #enx3, #l_aList3, #aList3, #l_cList3, #cList3) *
-		(ret == #enx3)
+		InitialDOMHeap() * (ret == $$t) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
+		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
+		val(#aa1, #s1) * val(#aa2, #s1)
 	)
 */
-function secondChild(element) {
-	var r = element.firstChild();
-	/* @unfold ElementNode(#name, #enx1, #l_aList, #aList, #l_cList, #cList) */
-	var s = r.nextSibling();
-	/* @fold ElementNode(#name, #enx1, #l_aList, #aList, #l_cList, #cList) */
-	return s;
+function isSquare(element) {
+	var w = element.getAttribute("width");
+	var y = element.getAttribute("height");
+	return w === y;
 }

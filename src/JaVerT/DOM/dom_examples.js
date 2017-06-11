@@ -60,18 +60,17 @@ document.createElement("one");
 	@id isSquare
 
 	@pre (
-		InitialDOMHeap() * scope(document : $l_document) *
-		(element == #en) *
-		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
+		InitialDOMHeap() * (element == #enx) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
 		(#aList == #a1 @ {{ {{ "hole", #beta1 }} }} @ #a2 @ {{ {{ "hole", #beta2 }} }} @ #a3) *
 		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
 		val(#aa1, #s1) * val(#aa2, #s1) * types(#s1 : $$string_type, #s2 : $$string_type)
 	)
 	@post (
-		InitialDOMHeap() * scope(document : $l_document) *
-		ECell(#alpha, #name, #en, #l_aList, #aList, #l_cList, #cList) *
+		InitialDOMHeap() * (ret == $$t) *
+		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
 		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
-		(ret == $$t)
+		val(#aa1, #s1) * val(#aa2, #s1)
 	)
 */
 function isSquare(element) {

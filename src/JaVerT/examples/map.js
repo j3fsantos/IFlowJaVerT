@@ -13,9 +13,7 @@
 		types (key : $$string_type) * (key == "hasOwnProperty");
 */
 
-/**
-	***** Map abstraction *****
-	
+/**	
 	@pred Map(m, contents, mp) :
 		ObjectWithProto(m, mp) *
 		dataField(m, "_contents", contents) *
@@ -70,7 +68,7 @@ function Map () {
 	@id mapGet
 	
 	@pre (
-		(key == #key) * validKey(key) * 
+		(key == #key) * validKey(#key) * 
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
 		dataField(#contents, #key, #v)
@@ -84,7 +82,7 @@ function Map () {
 	)
 	
 	@pre (
-		(key == #key) * validKey(key) * 
+		(key == #key) * validKey(#key) * 
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
 		emptyField(#contents, #key)
@@ -98,35 +96,29 @@ function Map () {
 	)
 	
 	@pre (
-		(key == #key) * invalidKey(key) *
+		(key == #key) * invalidKey(#key) *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 	
 	@posterr (
-		(err == #err) * ErrorObjectWithMessage(#err, "Invalid Key") *
+		ErrorObjectWithMessage(err, "Invalid Key") *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 */
 Map.prototype.get = function getValue (key) {
-	var result;
-
 	if (isValidKey(key)) { 
-		if (this._contents.hasOwnProperty(key)) {
-			result = this._contents[key] 
-		} else {
-			result = null 
-		}  
-		return result
-	} else {
-		throw new Error("Invalid Key")
-		}
+		if (this._contents.hasOwnProperty(key)) 
+			return this._contents[key];
+		else 
+			return null
+	} else throw new Error("Invalid Key")
 	}
 
 /**
 	@id mapPut
 
 	@pre (
-		(key == #key) * validKey(key) * 
+		(key == #key) * validKey(#key) * 
 		(value == #value) *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
@@ -140,7 +132,7 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@pre (
-		(key == #key) * validKey(key) * 
+		(key == #key) * validKey(#key) * 
 		(value == #value) *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
@@ -154,14 +146,14 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@pre (
-		(key == #key) * validKey(key) * 
+		(key == #key) * validKey(#key) * 
 		(value == #value) *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
 		dataFieldGeneral(#contents, #key, #oldValue, $$f, #enum, #conf) 
 	)
 	
-	@post (
+	@posterr (
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
 		Map(this, #contents, #mp) * MapProto(#mp) * 
 		dataFieldGeneral(#contents, #key, #oldValue, $$f, #enum, #conf) *
@@ -169,12 +161,12 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@pre (
-		(key == #key) * invalidKey(key) *
+		(key == #key) * invalidKey(#key) *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 	
 	@posterr (
-		(err == #err) * ErrorObjectWithMessage(#err, "Invalid Key") *
+		ErrorObjectWithMessage(err, "Invalid Key") *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 */
