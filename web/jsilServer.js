@@ -74,7 +74,7 @@ var newSessionId = (function () {
  */
 server.get('/', function (req, res) {
 	res.type('text/html');
-	res.render('home')
+	res.render('javert')
 });
 
 server.get('/index', function (req, res) {

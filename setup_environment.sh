@@ -19,3 +19,4 @@ cp src/JaVert/examples/PriorityQueue/*.js environment/PQ
 cp src/JSILVerify/bi_examples/*.jsil environment/bi
 cp *.native web/jsil_binaries
 cp src/JaVerT/runtime/*.jsil web/jsil_binaries
+cp tutorial/main.pdf web/public/docs/tutorial.pdf
