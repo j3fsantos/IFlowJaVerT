@@ -340,26 +340,34 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 		else None
 	| _, _ -> raise (Failure "predicate_assertion_equality: FATAL ERROR")
 
+
+
+(*
+*)
 let subtract_pred 
-		(pred_name : string)
-		(args      : jsil_logic_expr list)
-		(pred_set  : predicate_set)
-		(pfs       : pure_formulae)
-		(gamma     : typing_environment)
-		(spec_vars : SS.t)
-		(existentials : string list) =
+		(pred_name    : string)
+		(args         : jsil_logic_expr list)
+		(pred_set     : predicate_set)
+		(pfs          : pure_formulae)
+		(gamma        : typing_environment)
+		(spec_vars    : SS.t)
+		(existentials : string list) 
+		(delete_pred  : bool) : substitution option =
 	let pred_list = preds_to_list pred_set in
 	let rec loop pred_list index =
 		(match pred_list with
-		| [] -> raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))
+		| [] -> None
 		| pred :: rest_pred_list ->
 			(match (predicate_assertion_equality pred (pred_name, args) pfs gamma spec_vars existentials) with
 			| None -> loop rest_pred_list (index + 1)
-			| Some subst -> index, subst)) in
+			| Some subst -> Some (index, subst))) in
 
-	let index, subst = loop pred_list 0 in
-	DynArray.delete pred_set index;
-	subst
+	match loop pred_list 0 with 
+	| None -> None 
+	| Some (index, subst) -> 
+		if(delete_pred) then DynArray.delete pred_set index; Some subst
+	
+	
 	
 let assertions_of_pred_set pred_set = 
 	let preds = preds_to_list pred_set in 
