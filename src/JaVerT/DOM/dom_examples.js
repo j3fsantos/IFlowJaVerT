@@ -36,12 +36,14 @@ function builtSingleGet(element) {
 	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
 */
 function ie10-viewport-bug-workaround() {
-    var msViewportStyle = document.createElement('style');
-    var t = document.createTextNode(
-        "@-ms-viewport{width:auto!important}"
-      );
-    msViewportStyle.appendChild(t);
-    document.appendChild(msViewportStyle);
+	if (isNavigatorIE()) {
+		var msViewportStyle = document.createElement('style');
+		var t = document.createTextNode(
+				"@-ms-viewport{width:auto!important}"
+			);
+		msViewportStyle.appendChild(t);
+		document.appendChild(msViewportStyle);
+	}
 }
 
 /** 
@@ -174,6 +176,54 @@ function createNewAttribute(element){
 	var n = element.appendChild(e);
 	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
 	return (n === e);
+}
+
+/* 
+-- BootStrap example Specifics --
+*/ /*
+	@pred isIE() :    (this == #this) * isIE();
+	@pred notisIE() : (this == #this) * notisIE();
+
+	@onlyspec isNavigatorIE()
+		pre:  [[ isIE() ]]
+		post: [[ isIE() * (ret == $$t) ]]
+		outcome: normal;
+		pre:  [[ notisIE() ]]
+		post: [[ notisIE() * (ret == $$f) ]]
+		outcome: normal
+*/
+
+/*  Bootstrap IE10 viewport bug workaround.
+	Slightly modified from source: Pulled a nested call out and replaced some inaccessible functions.
+	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
+*/
+
+/**
+	@id viewportBug
+
+	@pre (
+		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
+		InitialDOMHeap() * scope(document: $l_document) * isIE() *
+		DocumentNode($l_document, #l_elem, {{ }}, #d_l_g, #d_g)
+	)
+	@post (
+		InitialDOMHeap() * isIE() *
+		DocumentNode($l_document, #l_elem, {{ {{ "hole", #alpha }} }}, #d_l_g, #d_g) *
+		ECell(#alpha, "style", #enx, #enx_l_a, {{}}, #enx_l_cList, {{ {{ "hole", #beta }} }}) *
+		TCell(#beta, #tid, "@-ms-viewport{width:auto!important}")
+	)
+*/
+function ie10viewportbugworkaround() {
+	if (isNavigatorIE()) {
+		var msViewportStyle = document.createElement('style');
+		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
+		msViewportStyle.appendChild(t);
+		document.appendChild(msViewportStyle);
+		/* @invariant Grove(#d_l_g, #list) * (#list == ({{ "hole", #a }} :: ({{ "hole", #b }} :: #d_g))) */
+		/* @callspec deallocG(#any1, #d_l_g, #a) */
+		/* @callspec deallocG(#any1, #d_l_g, #b) */
+		return;
+	}
 }
 
 /** sanitiseImg specifics */
