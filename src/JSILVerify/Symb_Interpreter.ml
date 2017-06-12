@@ -563,7 +563,7 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
 	apply_correct_specs quotients
 
-
+exception SuccessfullyFolded of (symbolic_state * SS.t * symbolic_execution_search_info) option
 
 let rec fold_predicate pred_name pred_defs symb_state params args spec_vars existentials search_info : (symbolic_state * SS.t * symbolic_execution_search_info) option =
 
@@ -573,6 +573,8 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 	    called procedure is to be executed *)
 	let new_store = store_init params args in
 	let symb_state_aux = symb_state_replace_store symb_state new_store in
+	
+	let pred_defs_len = Array.length pred_defs in
 
 	let existentials =
 		(match existentials with
@@ -602,70 +604,110 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 		(* if complete_fold then symb_state_add_predicate_assertion symb_state (pred_name, args); *)
 		symb_state in
 
-	let rec find_correct_pred_def cur_pred_defs search_info : (symbolic_state * SS.t * symbolic_execution_search_info) option =
-		print_time_debug ("find_correct_pred_def:");
-		print_debug_petar (Printf.sprintf "Predicate has %d definitions remaining." (List.length cur_pred_defs));
-		(match cur_pred_defs with
-		| [] -> None
-		| pred_def :: rest_pred_defs ->
-			print_debug (Printf.sprintf "----------------------------");
-			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
-			let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
-				with | SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure); None in
-			(match unifier with
-			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
-			  print_debug (Printf.sprintf "I can fold this!!!");
-				let new_symb_state = update_symb_state_after_folding true symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
-				print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-				(* FOLD_HEURISTIC *) Some (new_symb_state, new_spec_vars, search_info)
+	let rec check_pred_def (index : int) search_info : (symbolic_state * SS.t * symbolic_execution_search_info) option =
+		print_time_debug ("check_pred_def:");
+		let pred_def = Array.get pred_defs index in
+		print_debug (Printf.sprintf "----------------------------");
+		print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
+		let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
+			with | SymbExecFailure failure -> print_debug (Symbolic_State_Print.print_failure failure); None in
+		(match unifier with
+		| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, _, []) ->
+		  print_debug (Printf.sprintf "I can fold this!!!");
+			let new_symb_state = update_symb_state_after_folding true symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
+			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
+			Some (new_symb_state, new_spec_vars, search_info)
 
-			| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, existentials, [ (missing_pred_name, missing_pred_args) ]) ->
-				let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst false) missing_pred_args in
-				if (not (missing_pred_name = pred_name)) then None else (
-					print_debug (Printf.sprintf "I can NOT quite fold this because I am missing %s(%s)!!!"
-						missing_pred_name
-						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
-					let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
-					let new_symb_state, new_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in 
-					
-					print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution new_subst)); 
-					
-					(** WARNING WARNING WARNING - EXPERIMENTAL START *)
-					(* Filtering existentials that still depend on existentials *)
-					Hashtbl.iter (fun v le -> 
-						let vars_le = get_logic_expression_lvars le in 
-							if (SS.inter existentials vars_le <> SS.empty) then
-							begin
-								print_debug_petar (Printf.sprintf "Warning: variable %s depends on existentials" v);
-								Hashtbl.remove new_subst v;
-							end) new_subst;
-								
-					(** WARNING WARNING WARNING - EXPERIMENTAL END   *)
+		| Some (true, quotient_heap, quotient_preds, subst, pf_discharges, new_gamma, existentials, [ (missing_pred_name, missing_pred_args) ]) ->
+			let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst false) missing_pred_args in
+			if (not (missing_pred_name = pred_name)) then None else (
+				print_debug (Printf.sprintf "I can NOT quite fold this because I am missing %s(%s)!!!"
+					missing_pred_name
+					(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+				let new_symb_state = update_symb_state_after_folding false symb_state quotient_heap quotient_preds pf_discharges new_gamma pred_name args in
+				let new_symb_state, new_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in 
+				
+				print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution new_subst)); 
+				
+				(** WARNING WARNING WARNING - EXPERIMENTAL START *)
+				(* Filtering existentials that still depend on existentials *)
+				Hashtbl.iter (fun v le -> 
+					let vars_le = get_logic_expression_lvars le in 
+						if (SS.inter existentials vars_le <> SS.empty) then
+						begin
+							print_debug_petar (Printf.sprintf "Warning: variable %s depends on existentials" v);
+							Hashtbl.remove new_subst v;
+						end) new_subst;
+							
+				(** WARNING WARNING WARNING - EXPERIMENTAL END   *)
+
+				let existentials_to_remove = (Hashtbl.fold (fun v _ ac -> v :: ac) new_subst []) in 
+				print_debug_petar (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
+				print_debug_petar (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));				
+				
+				let new_existentials = SS.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
+				print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements new_existentials)));
+				
+				let new_subst = JSIL_Logic_Utils.filter_substitution new_subst existentials in
+				print_debug (Printf.sprintf "New substitution: \n%s" (Symbolic_State_Print.string_of_substitution new_subst));
+				let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst true) missing_pred_args in
+				print_debug (Printf.sprintf "And now I am missing %s(%s)!!!"
+					missing_pred_name
+					(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+				let new_symb_state = symb_state_substitution new_symb_state new_subst true in
+				(** WARNING WARNING WARNING - EXPERIMENTAL START *)
+				(* Adding equalities we know hold *)
+				let new_pfs = get_pf new_symb_state in
+				Hashtbl.iter (fun var le -> DynArray.add new_pfs (LEq (LVar var, le))) new_subst;
+				(** WARNING WARNING WARNING - EXPERIMENTAL END *)
+				print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
+				fold_predicate pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some new_existentials) search_info)
+
+		| _ -> None) in
 	
-					let existentials_to_remove = (Hashtbl.fold (fun v _ ac -> v :: ac) new_subst []) in 
-					print_debug_petar (Printf.sprintf "Exists to remove: %s" (String.concat "," existentials_to_remove));
-					print_debug_petar (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));				
-					
-					let new_existentials = SS.filter (fun v -> (not (List.mem v existentials_to_remove))) existentials in 
-					print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements new_existentials)));
-					
-					let new_subst = JSIL_Logic_Utils.filter_substitution new_subst existentials in
-					print_debug (Printf.sprintf "New substitution: \n%s" (Symbolic_State_Print.string_of_substitution new_subst));
-					let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le new_subst true) missing_pred_args in
-					print_debug (Printf.sprintf "And now I am missing %s(%s)!!!"
-						missing_pred_name
-						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
-					let new_symb_state = symb_state_substitution new_symb_state new_subst true in
-					(** WARNING WARNING WARNING - EXPERIMENTAL START *)
-					(* Adding equalities we know hold *)
-					let new_pfs = get_pf new_symb_state in
-					Hashtbl.iter (fun var le -> DynArray.add new_pfs (LEq (LVar var, le))) new_subst;
-					(** WARNING WARNING WARNING - EXPERIMENTAL END   *)
-					print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-					fold_predicate pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some new_existentials) search_info)
+	try
+		let search_info, check_me_first = 
+			let pred_info = search_info.pred_info in
+			(match Hashtbl.mem pred_info pred_name with
+			| false -> search_info, -1
+			| true -> 
+					let s = Hashtbl.find pred_info pred_name in
+					(match Stack.is_empty s with
+					| true -> search_info, -1
+					| false -> 
+							let pred_info = Hashtbl.copy pred_info in
+							let s = Stack.copy s in
+							let cmf = Stack.pop s in
+							Hashtbl.replace pred_info pred_name s;
+							{ search_info with pred_info = pred_info }, cmf
+					)
+			) in
 
-			| Some (_, _, _, _, _, _, _, _) | None -> find_correct_pred_def rest_pred_defs search_info)) in
-	find_correct_pred_def pred_defs search_info
+		print_debug (Printf.sprintf "Check me first: %d" check_me_first);
+
+		if (0 <= check_me_first) then (
+			let outcome = check_pred_def check_me_first search_info in
+			(match outcome with
+			| None -> ()
+			| Some x ->
+					print_debug_petar (Printf.sprintf "Predicate %s folded with check_me_first definition number %d." pred_name check_me_first); 
+					raise (SuccessfullyFolded outcome)));
+
+		for i = 0 to (pred_defs_len - 1) do
+			if (i <> check_me_first) then (
+			let outcome = check_pred_def i search_info in
+			(match outcome with
+			| None -> ()
+			| Some x ->
+					print_debug_petar (Printf.sprintf "Predicate %s folded with definition number %d." pred_name i); 
+					raise (SuccessfullyFolded outcome))
+			)
+		done;
+		
+		None
+	with
+	| SuccessfullyFolded x -> x
+	| e -> raise e
 
 (* 
 	UNFOLD: Returns ->  a list of pairs containing:
@@ -699,21 +741,35 @@ let unfold_predicates
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = store_init params args in
 
-	let rec loop pred_defs results : (symbolic_state * SS.t * symbolic_execution_search_info) list =
-		(match pred_defs with
-		| [] -> results
-		| pred_symb_state :: rest_pred_defs ->
-			print_debug (Printf.sprintf "Current Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
-			print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
-			let unfolded_symb_state = Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars in
-			(match unfolded_symb_state with
-			| None -> loop rest_pred_defs results
-			| Some unfolded_symb_state ->
-				(* FOLD_HEURISTIC *) loop rest_pred_defs ((unfolded_symb_state, new_spec_vars, search_info) :: results))) in
-
-	loop pred_defs [] 
+  let unfolded_pred_defs = List.map (fun pred_symb_state ->
+		print_debug (Printf.sprintf "Current Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
+		print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+		Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars) pred_defs in
+		
+	let unfolded_pred_defs = List.mapi (fun i unfolded_symb_state ->
+		match unfolded_symb_state with
+		| None -> None
+		| Some unfolded_symb_state -> 
+				let s = Hashtbl.copy search_info.pred_info in
+				(* Add the queue to table if necessary *)
+				(match (Hashtbl.mem s pred_name) with
+				| true -> ()
+				| false -> 
+						print_debug (Printf.sprintf "Adding %s to the predicate unfolding cache, definition %d." pred_name i);
+						Hashtbl.add s pred_name (Stack.create())
+				);
+				(* Add definition to stack *)
+				let stack = Stack.copy (Hashtbl.find s pred_name) in
+				Stack.push i stack; 
+				Hashtbl.replace s pred_name stack;
+				let stack_str = Stack.fold (fun ac e -> ac ^ (Printf.sprintf "%d " e)) "" stack in
+				print_debug (Printf.sprintf "Current stack for predicate %s: %s" pred_name stack_str);
+				let new_search_info = { search_info with pred_info = s } in
+				Some (unfolded_symb_state, new_spec_vars, new_search_info)) unfolded_pred_defs in
 	
-
+	let unfolded_pred_defs = List.filter (fun x -> x <> None) unfolded_pred_defs in
+	List.map (fun x -> Option.get x) unfolded_pred_defs
+		
 let recursive_unfold 
 				(pred_name  : string) 
 				(pred_defs  : symbolic_state list) 
@@ -824,7 +880,8 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 		(match a with
 		| LPred	(pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
-			print_debug_petar (Printf.sprintf "About to fold the predicate %s, which has %d definitions." pred_name (List.length pred_defs)); 
+			let pred_defs = Array.of_list pred_defs in
+			print_debug_petar (Printf.sprintf "About to fold the predicate %s, which has %d definitions." pred_name (Array.length pred_defs)); 
 			let folded_predicate = fold_predicate pred_name pred_defs symb_state params args spec_vars None search_info in
 			(match folded_predicate with
 			| Some (symb_state, new_spec_vars, new_search_info) ->

@@ -773,7 +773,7 @@ type symbolic_execution_search_info = {
 	next_node           : int ref;
 	post_pruning_info   : (string, (bool array) list) Hashtbl.t;
 	spec_number         : int;
-	pred_info           : (string, string Queue.t) Hashtbl.t
+	pred_info           : (string, int Stack.t) Hashtbl.t
 }
 
 let make_symb_exe_search_info node_info post_pruning_info spec_number =
