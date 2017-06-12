@@ -1195,25 +1195,59 @@
 		outcome: normal
 */
 
+/* 
+-- BootStrap example Specifics --
+*/ /*
+	@pred isIE() :    isIE();
+	@pred notisIE() : notisIE();
+
+	@onlyspec isNavigatorIE()
+		pre:  [[ isIE() ]]
+		post: [[ isIE() * (ret == $$t) ]]
+		outcome: normal;
+		pre:  [[ notisIE() ]]
+		post: [[ notisIE() * (ret == $$f) ]]
+		outcome: normal
+*/
+
+/*  Bootstrap IE10 viewport bug workaround.
+	Simple real life example, slightly modified: Pulled a nested call out and replaced some inaccessible functions.
+	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
+*/
+
 /**
-	@id isSquare
+	@id viewportBug
 
 	@pre (
-		InitialDOMHeap() * (element == #enx) *
-		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
-		(#aList == #a1 @ {{ {{ "hole", #beta1 }} }} @ #a2 @ {{ {{ "hole", #beta2 }} }} @ #a3) *
-		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
-		val(#aa1, #s1) * val(#aa2, #s1) * types(#s1 : $$string_type, #s2 : $$string_type)
+		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
+		InitialDOMHeap() * scope(document: $l_document) * isIE() *
+		DocumentNode($l_document, #l_elem, {{ }}, #d_l_g, #d_g)
 	)
 	@post (
-		InitialDOMHeap() * (ret == $$t) *
-		ECell(#alpha, #name, #enx, #l_aList, #aList, #l_cList, #cList) *
-		ACell(#beta1, "width", #an1, #l_aa1, #aa1) * ACell(#beta2, "height", #an2, #l_aa2, #aa2) *
-		val(#aa1, #s1) * val(#aa2, #s1)
+		InitialDOMHeap() * isIE() *
+		DocumentNode($l_document, #l_elem, {{ {{ "hole", #alpha }} }}, #d_l_g, #d_g) *
+		ECell(#alpha, "style", #enx, #enx_l_a, {{}}, #enx_l_cList, {{ {{ "hole", #beta }} }}) *
+		TCell(#beta, #tid, "@-ms-viewport{width:auto!important}")
+	)
+	@pre (
+		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
+		InitialDOMHeap() * notisIE() *
+		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
+	)
+	@post (
+		InitialDOMHeap() * notisIE() *
+		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
 	)
 */
-function isSquare(element) {
-	var w = element.getAttribute("width");
-	var y = element.getAttribute("height");
-	return w === y;
+function ie10viewportbugworkaround() {
+	if (isNavigatorIE()) {
+		var msViewportStyle = document.createElement('style');
+		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
+		msViewportStyle.appendChild(t);
+		document.appendChild(msViewportStyle);
+		/* @invariant Grove(#d_l_g, #list) * (#list == ({{ "hole", #a }} :: ({{ "hole", #b }} :: #d_g))) */
+		/* @callspec deallocG(#any1, #d_l_g, #a) */
+		/* @callspec deallocG(#any1, #d_l_g, #b) */
+		return;
+	}
 }
