@@ -145,12 +145,12 @@
 		isNil(attrs) * (l == $$null),
 		
 		(attrs == (#head :: #attrsNext)) * isAttr(#head, #name, #id, #tfList) * 
-		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children") *
-		AttributeNode(#name, #id, #l_tf, #tfList) * 
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * AttributeSetRec(#next, #attrsNext), 
+		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children", "@address") *
+		((#id, "@address") -> root) * AttributeNode(#name, #id, #l_tf, #tfList) * 
+		ChainCell(l, #next, #id) * AttributeSetRec(#next, #attrsNext), 
 
 		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
-		((l, "@address") -> root) * ChainCell(l, #next, #alpha) * AttributeSetRec(#next, #childListNext); 	
+		ChainCell(l, #next, #alpha) * AttributeSetRec(#next, #childListNext); 	
 
 
 	@pred Forest(alpha, childList) : 
@@ -160,16 +160,17 @@
 		isNil(childList) * (l == $$null),
 
 		(childList == (#head :: #childListNext)) * isText(#head, #id, #text) * 
-		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text") * TextNode(#id, #text) *
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * ForestRec(#next, #childListNext),
+		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text", "@address") * 
+		((#id, "@address") -> root) * TextNode(#id, #text) *
+		ChainCell(l, #next, #id) * ForestRec(#next, #childListNext),
 		
 		(childList == (#head :: #childListNext)) * isElement(#head, #name, #id, #aList, #cList) * 
-		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children") *
-		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * ForestRec(#next, #childListNext),
+		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children", "@address") *
+		((#id, "@address") -> root) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
+		ChainCell(l, #next, #id) * ForestRec(#next, #childListNext),
 		
 		(childList == (#head :: #childListNext)) * isHole(#head, #alpha) *
-		((l, "@address") -> root) * ChainCell(l, #next, #alpha) * ForestRec(#next, #childListNext);
+		ChainCell(l, #next, #alpha) * ForestRec(#next, #childListNext);
 
 
 	@pred TextForest(alpha, content) : 
@@ -179,11 +180,12 @@
 		isNil(content) * (l == $$null),
 
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * 
-		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text") * TextNode(#id, #text) *
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * TextForestRec(root, #next, #contentNext),
+		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text", "@address") * 
+		((#id, "@address") -> root) * TextNode(#id, #text) *
+		ChainCell(l, #next, #id) * TextForestRec(root, #next, #contentNext),
 		
 		(content == (#head :: #contentNext)) * isHole(#head, #alpha) *
-		((l, "@address") -> root) * ChainCell(l, #next, #alpha) * TextForestRec(root, #next, #contentNext);
+		ChainCell(l, #next, #alpha) * TextForestRec(root, #next, #contentNext);
 
 
 	@pred Grove(alpha, content) : 
@@ -193,38 +195,39 @@
 		isNil(content)  * (l == $$null),
 
 		(content == (#head :: #contentNext)) * isText(#head, #id, #text) * 
-		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text") * TextNode(#id, #text) * 
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
+		DOMObject(#id, $l_tnp) * empty_fields(#id : "@text", "@address") * 
+		((#id, "@address") -> root) * TextNode(#id, #text) * 
+		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
 		(content == (#head :: #contentNext)) * isElement(#head, #name, #id, #aList, #cList) * 
-		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children") *
-		ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
+		DOMObject(#id, $l_enp) * empty_fields(#id : "@name", "@attributes", "@children", "@address") *
+		((#id, "@address") -> root) * ElementNode(#name, #id, #l_addr, #aList, #l_children, #cList) *
+		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 
 		(content == (#head :: #contentNext)) * isAttr(#head, #name, #id, #tfList) * 
-		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children") *
-		AttributeNode(#name, #id, #l_tf, #tfList) * 
-		((l, "@address") -> root) * ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
+		DOMObject(#id, $l_anp) * empty_fields(#id : "@name", "@children", "@address") *
+		((#id, "@address") -> root) * AttributeNode(#name, #id, #l_tf, #tfList) * 
+		ChainCell(l, #next, #id) * GroveRec(#next, #contentNext),
 		
 		(content == (#head :: #contentNext)) * isHole(#head, #alpha) *
-		((l, "@address") -> root) * ChainCell(l, #next, #alpha) * GroveRec(#next, #contentNext);
+		ChainCell(l, #next, #alpha) * GroveRec(#next, #contentNext);
 
 
 
 	@pred ECell(alpha, name, id, l_attr, aList, l_children, cList) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * types(#l: $$object_type) *
-		DOMObject(id, $l_enp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
-		ElementNode(name, id, l_attr, aList, l_children, cList);
+		DOMObject(id, $l_enp) * empty_fields(id : "@name", "@attributes", "@children", "@address") * 
+		((id, "@address") -> alpha) * ElementNode(name, id, l_attr, aList, l_children, cList);
 
 	@pred TCell(alpha, id, text) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) *
-		((id, "@address") -> alpha) * DOMObject(id, $l_tnp) * empty_fields(id : "@text", "@address") * 
-		TextNode(id, text);
+		DOMObject(id, $l_tnp) * empty_fields(id : "@text", "@address") * 
+		((id, "@address") -> alpha) * TextNode(id, text);
 
 	@pred ACell(alpha, name, id, l_children, cList) : 
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, id) * 
-		DOMObject(id, $l_anp) * ((id, "@address") -> alpha) * empty_fields(id : "@name", "@children", "@address") *
-		AttributeNode(name, id, l_children, cList);	
+		DOMObject(id, $l_anp) * empty_fields(id : "@name", "@children", "@address") *
+		((id, "@address") -> alpha) * AttributeNode(name, id, l_children, cList);	
 
 	@pred EmptyCell(alpha) :
 		((alpha, "@chain") ->  #l) * ChainCell(#l, $$null, $$null);
@@ -1249,8 +1252,7 @@
 		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
 	)
 */
-(function () {
-    'use strict';
+function banana() {
 	if (isNavigatorIE()) {
 		var msViewportStyle = document.createElement('style');
 		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
@@ -1261,4 +1263,4 @@
 		/* @callspec deallocG(#any1, #d_l_g, #b) */
 		return;
 	}
-})()
+}
