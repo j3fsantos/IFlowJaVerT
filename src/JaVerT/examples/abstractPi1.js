@@ -7,7 +7,7 @@
 
   @onlyspec isGoodF(p)
       pre:  [[ (p == #p) * isGood(#p) ]]
-      post: [[ isGood(#p) * (ret == 1) ]]
+      post: [[ isGood(#p) * (ret == #r) * types (#r : $$object_type) ]]
       outcome: normal
 */
 
