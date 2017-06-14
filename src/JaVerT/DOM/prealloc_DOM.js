@@ -93,8 +93,8 @@
 
 	@pred AttributeNodePrototype() :
 		DOMObject($l_anp, $l_np) *
-		DOMFunctionField($l_tnp, "name") *
-		DOMFunctionField($l_tnp, "value") *
+		DOMFunctionField($l_anp, "name") *
+		DOMFunctionField($l_anp, "value") *
 		empty_fields($l_anp : "name", "value");
 
 

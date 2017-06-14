@@ -156,7 +156,7 @@ function secondChild(element) {
 	@rec false
 
 	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type, #gList : $$list_type) *
 		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
@@ -174,7 +174,8 @@ function createNewAttribute(element){
 	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
 	/* @fold complete(#cList2) */
 	var n = element.appendChild(e);
-	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
+	/* @invariant Grove(#l_gList, ({{ "hole", #delta }} :: #gList)) */
+	/* @callspec deallocG(#nvm, #l_gList, #delta) */
 	return (n === e);
 }
 
