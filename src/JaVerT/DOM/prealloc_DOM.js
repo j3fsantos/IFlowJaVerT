@@ -652,8 +652,8 @@
 				 TCell(#beta1, #tn, #t1) * TCell(#beta2, this, #t2) * (ret == #tn) ]]
 		outcome: normal;
 
-		pre:  [[ ACell(#alpha, #name, #an, #l_tf, #tf) * (#tf == ({{ "hole", #beta }} :: #a2)) * TCell(#beta, this, #t) ]]
-		post: [[ ACell(#alpha, #name, #an, #l_tf, #tf) * (#tf == ({{ "hole", #beta }} :: #a2)) * TCell(#beta, this, #t) * (ret == $$null) ]]
+		pre:  [[ ACell(#alpha, #name, #an, #l_tf, #tf) * (#tf == #a1 @ {{ {{ "hole", #beta }} }}) * TCell(#beta, this, #t) ]]
+		post: [[ ACell(#alpha, #name, #an, #l_tf, #tf) * (#tf == #a1 @ {{ {{ "hole", #beta }} }}) * TCell(#beta, this, #t) * (ret == $$null) ]]
 		outcome: normal
 
 	@onlyspec nextSibling()
@@ -1252,7 +1252,8 @@
 		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
 	)
 */
-function banana() {
+(function () {
+	'use strict';
 	if (isNavigatorIE()) {
 		var msViewportStyle = document.createElement('style');
 		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
@@ -1263,4 +1264,4 @@ function banana() {
 		/* @callspec deallocG(#any1, #d_l_g, #b) */
 		return;
 	}
-}
+})()
