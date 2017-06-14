@@ -181,8 +181,8 @@ function createNewAttribute(element){
 /* 
 -- BootStrap example Specifics --
 */ /*
-	@pred isIE() :    (this == #this) * isIE();
-	@pred notisIE() : (this == #this) * notisIE();
+	@pred isIE() :    isIE();
+	@pred notisIE() : notisIE();
 
 	@onlyspec isNavigatorIE()
 		pre:  [[ isIE() ]]
@@ -228,8 +228,8 @@ function ie10viewportbugworkaround() {
 
 /** sanitiseImg specifics */
 /**
-	@pred isB(s) : (s == #s) * isB(s);
-	@pred nisB(s) : (s == #s) * nisB(s);
+	@pred isB(s) :  isB(s);
+	@pred nisB(s) : nisB(s);
 
 	@onlyspec isBlackListed(s)
 		pre:  [[ (s == #s) * isB(#s) ]]
