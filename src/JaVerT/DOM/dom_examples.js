@@ -194,7 +194,7 @@ function createNewAttribute(element){
 */
 
 /*  Bootstrap IE10 viewport bug workaround.
-	Slightly modified from source: Pulled a nested call out and replaced some inaccessible functions.
+	Simple real life example, slightly modified: Pulled a nested call out and replaced some inaccessible functions.
 	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
 */
 
@@ -212,8 +212,18 @@ function createNewAttribute(element){
 		ECell(#alpha, "style", #enx, #enx_l_a, {{}}, #enx_l_cList, {{ {{ "hole", #beta }} }}) *
 		TCell(#beta, #tid, "@-ms-viewport{width:auto!important}")
 	)
+	@pre (
+		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
+		InitialDOMHeap() * notisIE() *
+		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
+	)
+	@post (
+		InitialDOMHeap() * notisIE() *
+		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
+	)
 */
-function ie10viewportbugworkaround() {
+(function () {
+	'use strict';
 	if (isNavigatorIE()) {
 		var msViewportStyle = document.createElement('style');
 		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
@@ -224,7 +234,7 @@ function ie10viewportbugworkaround() {
 		/* @callspec deallocG(#any1, #d_l_g, #b) */
 		return;
 	}
-}
+})()
 
 /** sanitiseImg specifics */
 /**
