@@ -1,0 +1,1 @@
+{"description":"","tags":[{"title":"id","description":"f"},{"title":"rec","description":"false"},{"title":"pre","description":"(scope(g : #g) * scope(f : #f) * scope(y : #y) * (u == #u) * types(#u : $$number_type))"},{"title":"post","description":"(scope(g : #g) * scope(f : #f) * scope(y : #y) * (ret == (#u + 1)))"}]}

@@ -778,7 +778,11 @@ let unfold_predicates
 	let new_spec_vars = SS.union spec_vars existentials in
 	let existentials = SS.elements existentials in 
 
-	let subst0 = Symbolic_State_Utils.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars existentials in
+	let subst0 = Symbolic_State_Utils.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars existentials true in
+	let subst0 = 
+		try Option.get subst0 with _ -> 
+			raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name)) in 
+
 	
 	(* Printf.printf "I survived the subtract pred!!!\n"; *)
 

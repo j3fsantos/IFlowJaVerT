@@ -1249,7 +1249,8 @@
 		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
 	)
 */
-function ie10viewportbugworkaround() {
+(function () {
+    'use strict';
 	if (isNavigatorIE()) {
 		var msViewportStyle = document.createElement('style');
 		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
@@ -1260,4 +1261,4 @@ function ie10viewportbugworkaround() {
 		/* @callspec deallocG(#any1, #d_l_g, #b) */
 		return;
 	}
-}
+})()

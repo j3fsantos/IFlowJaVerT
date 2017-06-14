@@ -75,7 +75,7 @@ function isValidKey(key) {
     )
     
     @post (
-    	MapObject(this, #hp, -{}-) * 
+    	MapObject(this, #hp, -{}-, -{}-) * 
     	MapProto(#mp) * 
     	(ret == $$empty)
     )
@@ -89,28 +89,24 @@ function Map () {
 
 	
 	@pre (
-		(key == #key) * 
-		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
-		MapObject(this, #mp, -u- (-{ {{ #key, #value }} }-, #rest)) * MapProto(#mp) 
+		(key == #key) * scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		MapObject(this, #mp, -u- (-{ {{ #key, #value }} }-, #rest), #keys) * MapProto(#mp) 
 	)
 	
 	@post (
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
-		MapObject(this, #mp, -u- (-{ {{ #key, #value }} }-, #rest)) * MapProto(#mp) * 
+		MapObject(this, #mp, -u- (-{ {{ #key, #value }} }-, #rest), #keys) * MapProto(#mp) * 
 		(ret == #value)
 	)
 	
 	@pre (
-		(key == #key) * validKey(key) * 
-		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
-		Map(this, #contents, #mp) * MapProto(#mp) *
-		emptyField(#contents, #key)
+		(key == #key) * scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		MapObject(this, #mp, #kvs, #keys) * MapProto(#mp) * (! (#key -e- #keys))
 	)
 	
 	@post (
-		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
-		Map(this, #contents, #mp) * MapProto(#mp) * 
-		emptyField(#contents, #key) *
+		(key == #key) * scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		MapObject(this, #mp, #kvs, #keys) * MapProto(#mp) * (! (#key -e- #keys)) * 
 		(ret == $$null)
 	)
 	
@@ -143,7 +139,35 @@ Map.prototype.get = function getValue (key) {
 	@id mapPut
 	
 	@pre (
-		(key == #key) * invalidKey(key) *
+		(key == #key) * validKey(#key) * (value == #value) * validValue(#value) * 
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		scope(isValidValue : #iVV) * fun_obj(isValidValue, #iVV, #iVV_proto) * 
+		MapObject(this, #mp, -u- (-{ {{ #key, #old_value }} }-, #rest), #keys) * MapProto(#mp)
+	)
+	
+	@post (
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		scope(isValidValue : #iVV) * fun_obj(isValidValue, #iVV, #iVV_proto) * 
+		MapObject(this, #mp, -u- (-{ {{ #key, #value }} }-, #rest), #keys) * MapProto(#mp)
+	)
+
+
+	@pre (
+		(key == #key) * validKey(#key) * (value == #value) * validValue(#value) * 
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		scope(isValidValue : #iVV) * fun_obj(isValidValue, #iVV, #iVV_proto) * 
+		MapObject(this, #mp, #kvs, #keys) * MapProto(#mp) * (! (#key -e- #keys))
+	)
+	
+	@post (
+		(key == #key) * validKey(#key) * (value == #value) * validValue(#value) * 
+		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto) * 
+		scope(isValidValue : #iVV) * fun_obj(isValidValue, #iVV, #iVV_proto) * 
+		MapObject(this, #mp, -u- (#kvs, -{ {{ #key, #value }} }-), -u- (-{ #key }-, #keys)) * MapProto(#mp) 
+	)
+
+	@pre (
+		(key == #key) * (invalidKey(#key) \/ invalidValue(#value)) *
 		scope(isValidKey : #iVK) * fun_obj(isValidKey, #iVK, #iVK_proto)
 	)
 	
@@ -154,6 +178,12 @@ Map.prototype.get = function getValue (key) {
 */
 Map.prototype.put = function (key, value) {
    if (isValidKey(key)) { 
+   	   /*
+   	   	   @if ((! (#key -e- #keys)) {
+   	   	   } else { 
+   	   	   	   @unfold 
+   	   	   })
+   	   */ 
        this._contents[key] = value; 
    } else {
        throw new Error("Invalid Key")
