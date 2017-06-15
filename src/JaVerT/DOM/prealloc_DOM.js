@@ -1208,60 +1208,24 @@
 		outcome: normal
 */
 
-/* 
--- BootStrap example Specifics --
-*/ /*
-	@pred isIE() :    isIE();
-	@pred notisIE() : notisIE();
-
-	@onlyspec isNavigatorIE()
-		pre:  [[ isIE() ]]
-		post: [[ isIE() * (ret == $$t) ]]
-		outcome: normal;
-		pre:  [[ notisIE() ]]
-		post: [[ notisIE() * (ret == $$f) ]]
-		outcome: normal
-*/
-
-/*  Bootstrap IE10 viewport bug workaround.
-	Simple real life example, slightly modified: Pulled a nested call out and replaced some inaccessible functions.
-	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
-*/
-
-/**
-	@id viewportBug
+/*
+	@id textAxioms
 
 	@pre (
-		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
-		InitialDOMHeap() * scope(document: $l_document) * isIE() *
-		DocumentNode($l_document, #l_elem, {{ }}, #d_l_g, #d_g)
+		InitialDOMHeap() * (tnode == #tn) *
+		(o == #l1) * (c == #l2) *
+		(#l1 == s-len(#o)) * (#l2 == s-len(#c)) *
+		TCell(#alpha1, #tn, #t1_pre) * 
+		(#t1_pre == #o ++ #c ++ #z)*
+		types(#t1_pre : $$string_type)
 	)
 	@post (
-		InitialDOMHeap() * isIE() *
-		DocumentNode($l_document, #l_elem, {{ {{ "hole", #alpha }} }}, #d_l_g, #d_g) *
-		ECell(#alpha, "style", #enx, #enx_l_a, {{}}, #enx_l_cList, {{ {{ "hole", #beta }} }}) *
-		TCell(#beta, #tid, "@-ms-viewport{width:auto!important}")
-	)
-	@pre (
-		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
-		InitialDOMHeap() * notisIE() *
-		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
-	)
-	@post (
-		InitialDOMHeap() * notisIE() *
-		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
+		InitialDOMHeap() *
+		TCell(#alpha1, #tn, #t1_post) *
+		(#t1_post == #t1_pre ++ #c)
 	)
 */
-(function () {
-	'use strict';
-	if (isNavigatorIE()) {
-		var msViewportStyle = document.createElement('style');
-		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
-		msViewportStyle.appendChild(t);
-		document.appendChild(msViewportStyle);
-		/* @invariant Grove(#d_l_g, #list) * (#list == ({{ "hole", #a }} :: ({{ "hole", #b }} :: #d_g))) */
-		/* @callspec deallocG(#any1, #d_l_g, #a) */
-		/* @callspec deallocG(#any1, #d_l_g, #b) */
-		return;
-	}
-})()
+function textAxioms(tnode, o, c) {
+	var d = tnode.substringData(o, c);
+	tnode.appendData(d);
+}
