@@ -263,22 +263,17 @@
 
 	@pred val(t, s) :
 		isNil(t) * (s == ""),
-		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2),
-		(t == (#head :: #childListNext)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
+		(t == (#head :: #childListNext)) * isText(#head, #id, #s1) * val(#childListNext, #s2) * (s == #s1 ++ #s2);
 
 	@pred out(a, s) :
 		isNil(a),
 		(a == (#head :: #childListNext)) * isAttr(#head, #name, #id, #l_tf) * (! (s == #name)) * 
-		out(#childListNext, s) * types(s: $$string_type, #name: $$string_type),
-		(a == (#head :: #childListNext)) * isHole(#head, #alpha) * ACell(#alpha, #name, #id, #l_tf, #tf) * (! (s == #name)) * 
 		out(#childListNext, s) * types(s: $$string_type, #name: $$string_type);
 
 	@pred complete(l) :
 		isNil(l),
 		(l == (#head :: #next)) * isText(#head, #id, #s1) * complete(#next),
-		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c, #fin, #fout) * complete(#next) * complete(#l_c),
-		(l == (#head :: #next)) * isHole(#head, #alpha) * TCell(#alpha, #id, #s1) * complete(#next),
-		(l == (#head :: #next)) * isHole(#head, #alpha) * ECell(#alpha, #n, #id, #l_a, #a, #l_c, #c, #fin, #fout) * complete(#next) * complete(#c);
+		(l == (#head :: #next)) * isElement(#head, #n, #id, #l_a, #l_c, #fin, #fout) * complete(#next) * complete(#l_c);
 
 	@pred tids(t, l) :
 		isNil(t) * isNil(l),
@@ -574,8 +569,9 @@
 
 	@onlyspec getAttribute(s)
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) *
-				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s, #m, #l_t, #t) * val(#t, #s1) * types(#s1 : $$string_type) ]]
-		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) * ACell(#gamma, #s, #m, #l_t, #t) * (ret == #s1) ]]
+				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s, #m, #l_t, #t) * types(#s1 : $$string_type) * val(#t, #s1) ]]
+		post: [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) * 
+				 ACell(#gamma, #s, #m, #l_t, #t) * val(#t, #s1) * (ret == #s1) ]]
 		outcome: normal;
 		
 		pre:  [[ (s == #s) * ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) * out(#aList, #s) ]]
@@ -585,9 +581,9 @@
 
 	@onlyspec setAttribute(s, v)
 		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) * (s == #s1) * (v == #s2) * 
-				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s1, #m, #l_t, #t) * Grove(#beta, {{}}) ]]
+				 (#aList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * ACell(#gamma, #s1, #m, #l_t, #t) * Grove(#beta, #g) ]]
 		post: [[ ECell(#alpha, #name, this, #l_attr, #aList_post, #l_children, #cList, #fin, #fout) * (#aList_post == #a1 @ ({{ "hole", #gamma }} :: #a2)) * 
-				 ACell(#gamma, #s1, #m, #l_t, {{ {{ "hole", #gamma2 }} }}) * TCell(#gamma2, #r, #s2) * Grove(#beta, #t) * (ret == $$null) ]]
+				 ACell(#gamma, #s1, #m, #l_t, {{ {{ "hole", #gamma2 }} }}) * TCell(#gamma2, #r, #s2) * Grove(#beta, #t @ #g) * (ret == $$null) ]]
 		outcome: normal;
 
 		pre:  [[ ECell(#alpha, #name, this, #l_attr, #aList, #l_children, #cList, #fin, #fout) * 
@@ -621,36 +617,75 @@
 		post: [[ emp ]]
 		outcome: normal
 
-*/ /*
-	----NodeList Axioms----
-*/ /*
-	@onlyspec length()
-		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(this, #id) ]]
-		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(this, #id) * (ret == l-len(#l)) ]]
+*/ 
+
+/** sanitiseImg specifics */
+/**
+	@pred isB(s) : isB(s);
+	@pred nisB(s) : nisB(s);
+
+	@onlyspec isBlackListed(s)
+		pre:  [[ (s == #s) * isB(#s) ]]
+		post: [[ isB(#s) * (ret == 1) ]]
+		outcome: normal;
+		pre:  [[ (s == #s) * (nisB(#s)) ]]
+		post: [[ (ret == 0) * (nisB(#s)) ]]
 		outcome: normal
 */
 
 /**
-	@id nodeListSimple
-	@rec false
+	@id sanitise
 
 	@pre (
-		InitialDOMHeap() * (element == #en) *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, -{}-) * tids(#cList, #l) * 
-		(l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() * (img == #n) * (cat == #s2) * 
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
+		out(#attr, "src")
 	)
 	@post (
 		InitialDOMHeap() *
-		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin_post, #fout_post) * tids(#cList, #l) * 
-		(ret == #len)
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout)
 	)
-*/
-function nodeListSimple(element){
-	var f = element.childNodes();
-	/* @invariant scope(f: #f) */
-	42;
-	/* @callspec unfoldFL(#ignore, #en, #f) */
-	var r = f.length();
-	/* @callspec foldFL(#ignore, #en, #f) */
-	return r
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() * (img == #n) * (cat == #s2) * nisB(#s2) *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * isB(#s1) * types(#s1 : $$string_type) * (! (#s1 == "")) *
+		Grove(#grove, #g) 
+	)
+	@post (
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf2) *
+		(#tf2 == {{ {{ "hole", #gamma3 }} }}) *
+		TCell(#gamma3, #r, #s2) * nisB(#s2) *
+		isB(#s1) * true
+	)
+	@pre (
+		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
+		InitialDOMHeap() *
+		(img == #n) * (cat == #s2) *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
+		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * nisB(#s1) * types(#s1 : $$string_type) * (! (#s1 == ""))
+	)
+	@post (
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
+		ACell(#gamma, "src", #a, #l_tf, #tf1) *
+		val(#tf1, #s1) * nisB(#s1)
+	)
+**/
+function sanitiseImg(img, cat){
+	var url = img.getAttribute("src");
+	if(url !== ""){
+		var isB = isBlackListed(url);
+		if(isB){
+			img.setAttribute("src", cat);
+		}	
+	}
 }

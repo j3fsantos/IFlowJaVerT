@@ -156,7 +156,7 @@ function secondChild(element) {
 	@rec false
 
 	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type) *
+		InitialDOMHeap() * (element == #id) * types(#en : $$object_type, #gList : $$list_type) *
 		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
@@ -174,15 +174,16 @@ function createNewAttribute(element){
 	/* @invariant scope(e : #e2) * ECell(#zeta, #name2, #e2, #l_aList2, #aList2, #l_cList2, #cList2) */
 	/* @fold complete(#cList2) */
 	var n = element.appendChild(e);
-	/* @callspec deallocG(#nvm, #l_gList, #zeta) */
+	/* @invariant Grove(#l_gList, ({{ "hole", #delta }} :: #gList)) */
+	/* @callspec deallocG(#nvm, #l_gList, #delta) */
 	return (n === e);
 }
 
 /* 
 -- BootStrap example Specifics --
 */ /*
-	@pred isIE() :    (this == #this) * isIE();
-	@pred notisIE() : (this == #this) * notisIE();
+	@pred isIE() :    isIE();
+	@pred notisIE() : notisIE();
 
 	@onlyspec isNavigatorIE()
 		pre:  [[ isIE() ]]
@@ -194,7 +195,7 @@ function createNewAttribute(element){
 */
 
 /*  Bootstrap IE10 viewport bug workaround.
-	Slightly modified from source: Pulled a nested call out and replaced some inaccessible functions.
+	Simple real life example, slightly modified: Pulled a nested call out and replaced some inaccessible functions.
 	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
 */
 
@@ -212,8 +213,18 @@ function createNewAttribute(element){
 		ECell(#alpha, "style", #enx, #enx_l_a, {{}}, #enx_l_cList, {{ {{ "hole", #beta }} }}) *
 		TCell(#beta, #tid, "@-ms-viewport{width:auto!important}")
 	)
+	@pre (
+		scope(isNavigatorIE: #isnav_fun) * fun_obj(isNavigatorIE, #isnav_fun, #isnav_proto) *
+		InitialDOMHeap() * notisIE() *
+		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
+	)
+	@post (
+		InitialDOMHeap() * notisIE() *
+		DocumentNode($l_document, #l_elem, #elem, #d_l_g, #d_g)
+	)
 */
-function ie10viewportbugworkaround() {
+(function () {
+	'use strict';
 	if (isNavigatorIE()) {
 		var msViewportStyle = document.createElement('style');
 		var t = document.createTextNode("@-ms-viewport{width:auto!important}");
@@ -224,12 +235,12 @@ function ie10viewportbugworkaround() {
 		/* @callspec deallocG(#any1, #d_l_g, #b) */
 		return;
 	}
-}
+})()
 
 /** sanitiseImg specifics */
 /**
-	@pred isB(s) : (s == #s) * isB(s);
-	@pred nisB(s) : (s == #s) * nisB(s);
+	@pred isB(s) :  isB(s);
+	@pred nisB(s) : nisB(s);
 
 	@onlyspec isBlackListed(s)
 		pre:  [[ (s == #s) * isB(#s) ]]
