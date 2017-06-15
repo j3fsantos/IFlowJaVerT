@@ -823,7 +823,291 @@ let pf_list_of_discharges discharges subst partial =
 			loop rest_discharges ((LEq (s_le_pat, le)) :: pfs) in
 	loop discharges []
 
+(*******************************************************************)
+(*******************************************************************)
+(*******************************************************************)
 
+let unify_symb_heaps_single_pass 
+	(pat_heap   : symbolic_heap)      (heap           : symbolic_heap)       (q_heap : symbolic_heap)
+  (pat_gamma  : typing_environment) (gamma          : typing_environment)
+	(p_formulae : pure_formulae)      
+	(subst      : substitution)
+	(locs       : string list) : 
+	(** 
+			Pattern heap and heap remain unchanged. Quotient heap is changed IN PLACE.
+			Pattern gamma and gamma remain unchanged.
+			Pure formulae remain unchanged. New pure formulae are changed IN PLACE.
+			Substitution is changed IN PLACE.
+			
+			We return: 
+				1) the list of locations that still need to be unified
+				2) any new pure formulae that come up
+				3) any discharges that came up
+	*)
+	string list * pure_formulae * symbolic_discharge_list =		
+	
+	(* DEBUG *)
+	print_debug "Unify symbolic heaps: single pass : start";
+	print_debug (Printf.sprintf "Pattern heap: %s \n Actual heap: %s \n Quotient heap: %s \n Remaining locations: %s \n Substitution: %s"
+		(Symbolic_State_Print.string_of_shallow_symb_heap pat_heap false)
+		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)
+		(Symbolic_State_Print.string_of_shallow_symb_heap q_heap false)
+		(String.concat ", " locs)
+		(Symbolic_State_Print.string_of_substitution subst));
+  (* DEBUG *) 
+	
+	(* This should totally not be there - for the time being, it stays... *)
+	let rec pick_loc_that_exists_in_both_heaps locs traversed_locs  = 
+		match locs with 
+		| [] -> 
+				(* DEBUG *) print_debug (Printf.sprintf "pick_pat_loc failed to pick next location. Remaining locs: %s." (String.concat ", " traversed_locs));
+				(None, traversed_locs)
+		| loc :: rest -> 
+			(match LHeap.mem heap loc with
+			| true -> 
+					Hashtbl.add subst loc (ALoc loc); 
+					(Some loc, traversed_locs @ rest)
+			| false -> pick_loc_that_exists_in_both_heaps rest (traversed_locs @ [ loc ])) in 
+	
+	(* This picks the next location *)
+	let pick_pat_loc (locs_to_visit : string list) subst : string option * (string list) = 
+		let rec loop (remaining_locs : string list) (traversed_locs : string list) : string option * (string list) = 
+			match remaining_locs with 
+			| [] -> pick_loc_that_exists_in_both_heaps traversed_locs []
+			| loc :: rest -> 
+				if ((not (is_abs_loc_name loc)) || (Hashtbl.mem subst loc)) 
+					then Some loc, (traversed_locs @ rest) 
+					else loop rest (traversed_locs @ [ loc ]) in 
+		loop locs_to_visit [] in
+		
+	(* Main loop *)
+	let rec loop locs_to_visit pfs discharges = 
+		(match locs_to_visit with 
+		| [] -> ([], pfs, discharges)
+		| _ ->  
+			let pat_loc, rest_locs = pick_pat_loc locs_to_visit subst in  
+			(match pat_loc with
+			(* We are done, we cannot unify more locations *)
+			| None -> (rest_locs, pfs, discharges)
+			(* We continue, bravely *)
+			| Some pat_loc -> 
+				(* DEBUG *) print_debug (Printf.sprintf "Location: %s" pat_loc);
+				(* DEBUG *) if (Hashtbl.mem subst pat_loc) then (let subst_val = Hashtbl.find subst pat_loc in print_debug (Printf.sprintf "Substitution: %s" (print_lexpr subst_val)));
+				(match heap_get pat_heap pat_loc with
+				| Some (pat_fv_list, pat_def) ->
+			  	(if ((pat_def <> LNone) && (pat_def <> LUnknown)) then raise (SymbExecFailure (UH (IllegalDefaultValue pat_def))) else (
+						let loc = (match (is_lit_loc_name pat_loc) with
+						| true -> pat_loc
+						| false -> (match (Hashtbl.mem subst pat_loc) with
+							| false -> raise (SymbExecFailure (UH (CannotResolvePatLocation pat_loc)))
+							| true -> 
+								let le = Hashtbl.find subst pat_loc in
+								(match le with
+								| LLit (Loc loc) -> loc
+								| ALoc loc -> loc
+								| LVar v -> 
+									(* DEBUG *) print_debug (Printf.sprintf "Matched a pattern loc with the logical variable %s!\n" v);
+									let loc = try Simplifications.aux_find_me_Im_a_loc p_formulae gamma v with _ -> None in 
+									(match loc with 
+									| Some loc -> 
+										(* DEBUG *) (print_debug (Printf.sprintf "find_me_Im_a_loc returned: %s!\n" loc);
+										Hashtbl.replace subst pat_loc (ALoc loc);
+										loc)
+									| None -> 
+										(* DEBUG *) (print_debug "find_me_Im_a_loc failed!\n";
+										raise (SymbExecFailure (UH (CannotResolvePatLocation pat_loc)))))
+					  		| _ -> raise (SymbExecFailure (UH (CannotResolvePatLocation pat_loc)))))) in
+						let fv_list, (def : jsil_logic_expr) =
+							(try LHeap.find heap loc with _ -> raise (SymbExecFailure (UH (CannotResolveLocation loc)))) in
+						let fv_lists = unify_symb_fv_lists pat_loc loc pat_fv_list fv_list def p_formulae gamma subst in
+						(match fv_lists with
+						| Some (new_fv_list, matched_fv_list, new_discharges) when ((pat_def = LNone) && ((List.length new_fv_list) > 0)) ->
+							print_debug_petar (Printf.sprintf "fv_lists unified successfully");
+							let non_none_fields = List.filter (fun (_, v) -> (v <> LNone)) new_fv_list in
+							if (List.length non_none_fields = 0) then 
+								(LHeap.replace q_heap loc ([], def); 
+								loop rest_locs pfs (new_discharges @ discharges))
+							else raise (SymbExecFailure (UH (ValuesNotNone (loc, non_none_fields))))
+						| Some (new_fv_list, matched_fv_list, new_discharges) ->
+							LHeap.replace q_heap loc (new_fv_list, def);
+							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
+							loop rest_locs (new_pfs @ pfs) (new_discharges @ discharges)
+						| None -> raise (SymbExecFailure (Impossible "unify_symb_heaps: unify_symb_fv_lists returned None")))))
+					| _ -> raise (SymbExecFailure (UH PatternHeapWithDefaultValue))))) in 
+	
+	let remaining_locs, new_pfs, new_discharges = loop locs [] [] in 
+	
+	LHeap.iter (fun loc (fv_list, def) -> 
+		if ((def = LUnknown) && (List.length fv_list = 0)) then LHeap.remove q_heap loc) q_heap; 
+	
+	(* DEBUG *)
+	print_debug "Unify symbolic heaps: single pass : end";
+	print_debug (Printf.sprintf "Pattern heap: %s \n Actual heap: %s \n Quotient heap: %s \n Remaining locations: %s \n %s"
+		(Symbolic_State_Print.string_of_shallow_symb_heap pat_heap false)
+		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)
+		(Symbolic_State_Print.string_of_shallow_symb_heap q_heap false)
+		(String.concat ", " remaining_locs)
+		(Symbolic_State_Print.string_of_substitution subst));
+  (* DEBUG *) 
+	
+	(remaining_locs, DynArray.of_list new_pfs, new_discharges)
+
+
+(**
+ *
+ * Returns a list of triples of the form (substitution, preds that haven't been unified, pat_preds that haven't been unified)
+ *
+ *)
+let unify_pred_arrays_single_pass (pat_preds : predicate_set) (preds : predicate_set) p_formulae pat_gamma gamma (subst : substitution) =
+	print_debug "Entering unify_pred_arrays.";
+	
+	let result = (match (DynArray.length pat_preds) with
+	| 0 -> [ (subst, preds, []) ]
+	| _ -> 
+		let pat_preds = DynArray.to_list pat_preds in
+		let preds = DynArray.to_list preds in
+		let p_formulae = DynArray.copy p_formulae in
+		let gamma = Hashtbl.copy gamma in
+		let subst = Hashtbl.copy subst in
+		
+		let ps = get_unification_candidates (DynArray.of_list pat_preds) (DynArray.of_list preds) p_formulae gamma subst in
+		
+		let i = ref 0 in
+		let n = Array.length ps in
+		let substs = ref SSS.empty in
+		let options = DynArray.create() in
+		while (!i < n) do
+			let (subst, unifier, unmatched_preds, unmatched_pat_preds) = Array.get ps !i in
+			let result = unify_preds subst unifier p_formulae pat_gamma gamma in
+			print_debug (Printf.sprintf "Candidate is %s" (Option.map_default (fun x -> "viable.") "not viable." result));
+			(match result with
+			| None -> ()
+			| Some subst ->
+				(match (SSS.mem subst !substs) with
+				| true -> ()
+				| false -> 
+						let continue = try (
+							Hashtbl.iter (fun v le -> 
+								let (ok : bool) = gamma_subst_test v le pat_gamma gamma "unify_pred_arrays" in
+								(match ok with
+								| true -> ()
+								| false -> raise (Failure ""))) subst;
+							true
+						) with | Failure _ -> false in
+						(match continue with
+						| false -> ()
+						| true -> 
+								substs := SSS.add subst !substs;
+								DynArray.add options (subst, unmatched_preds, unmatched_pat_preds))));
+			i := !i + 1;
+		done;
+			
+		let options = List.sort 
+			(fun (_, _, upp1) (_, _, upp2) -> 
+				let len1 = List.length upp1 in
+				let len2 = List.length upp2 in
+					compare len1 len2) 
+					(DynArray.to_list options) in
+
+		print_debug_petar (Printf.sprintf "--------\nActual Outcomes: %d\n--------" (List.length options));
+		List.iter (fun (subst, unmatched_preds, unmatched_pat_preds) -> 
+				print_debug_petar (Printf.sprintf "Substitution: %s" (Symbolic_State_Print.string_of_substitution subst));
+				print_debug_petar "Unmatched predicates:";
+				DynArray.iter (fun (name, params) -> print_debug_petar (Printf.sprintf "\t%s(%s)" 
+					name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_preds;
+				print_debug_petar "Unmatched pat predicates:";
+				List.iter (fun (name, params) -> print_debug_petar (Printf.sprintf "\t%s(%s)" 
+					name (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) params)))) unmatched_pat_preds;
+			) options;
+		print_debug_petar "-------------------------";
+		options) in
+		
+		result
+
+
+(** 
+		Unifying the heaps and predicates together, in iterations.
+		We maintain a queue, with each element of the queue containing
+		  1) a substitution
+			2) the list of locations that still need to be unified; and
+			3) the list of predicates that still need to be unified.
+		We take a substitution out of the queue and into the solutions if all locations and all pattern predicates have been unified.
+		If no changes to the substitution were made during an iteration, the substitution is not a solution.
+		We stop when the queue is empty.
+*)
+let unify_symb_heaps_and_predicates
+	(pat_heap   : symbolic_heap)      (heap : symbolic_heap)
+	(pat_preds  : predicate_set)      (preds : predicate_set) 
+	(pat_gamma  : typing_environment) (gamma : typing_environment)
+	(p_formulae : pure_formulae)
+	(subst : substitution) =
+		
+	let candidates : (string list * symbolic_heap * pure_formulae * symbolic_discharge_list * predicate_set * predicate_set * substitution) Queue.t = Queue.create() in
+	let solutions = ref [] in 
+
+	let locs   = heap_domain pat_heap subst in (* H  : Remaining locations *)
+	let qheap  = LHeap.create 51  in           (* H  : Quotient heap       *)
+	let npfs   = DynArray.create() in          (* H  : New pure formulae   *)
+	let dschgs = [] in                         (* H  : Discharges          *)
+	let qpreds = DynArray.copy preds in        (* P  : Quotient predicates *)
+	let rpp    = DynArray.copy pat_preds in    (* P  : Remaining pat preds *)
+	let subst  = Hashtbl.copy subst in         (* HP : Substitution        *)
+	
+	let starting_point = (locs, qheap, npfs, dschgs, qpreds, rpp, subst) in
+	
+	Queue.push starting_point candidates;
+	
+	while (not (Queue.is_empty candidates)) do
+		print_debug "******************";
+		print_debug "* NEXT ITERATION *";
+		print_debug "******************\n";
+		let (locs, qheap, npfs, dschrg, qpreds, rpp, subst) = Queue.pop candidates in
+		
+		(* Keep the subst *)
+		let old_subst = Hashtbl.copy subst in
+		(* Go for heap unification *)
+		let remaining_locs, new_pfs, new_discharges = unify_symb_heaps_single_pass pat_heap heap qheap pat_gamma gamma p_formulae subst locs in 
+		(* Go for predicate unification *)
+		let potential_solutions (* (subst, qpreds, rpp) *) = unify_pred_arrays_single_pass rpp qpreds p_formulae pat_gamma gamma subst in
+		
+		(* Stabilise *)
+		DynArray.append new_pfs npfs;
+		let dschgs = dschgs @ new_discharges in
+		
+		let potential_solutions = List.map (fun (subst, qpreds, rpp) ->
+			(remaining_locs, LHeap.copy qheap, DynArray.copy npfs, dschgs, DynArray.copy qpreds, DynArray.copy (DynArray.of_list rpp), Hashtbl.copy subst)) potential_solutions in
+		
+		List.iter (fun (remaining_locs, qheap, npfs, dschgs, qpreds, rpp, subst) ->
+		(* How to detect if we've made progress? *)
+		(match remaining_locs with
+		| [] -> 
+				(* Solution *)
+				solutions := (qheap, npfs, dschgs, qpreds, rpp, subst) :: !solutions;
+		| _ ->
+				(* Not a solution *)
+				(match (subst = old_subst) with
+				| true -> 
+						(* We were not able to go further *)
+						()
+				| false -> 
+						(* We did make a change *)
+						let new_candidate = (remaining_locs, qheap, npfs, dschgs, qpreds, rpp, subst) in
+						Queue.push new_candidate candidates
+				))) potential_solutions;
+	done;
+	
+	print_debug (Printf.sprintf "We have %d solutions." (List.length !solutions));
+	
+	(* quotient_heap, new_pfs, discharges, quotient_preds, remaining_pat_preds *)
+	
+				(* let phd : string list = heap_domain heap_1 subst in
+			let _ = unify_symb_heaps_single_pass heap_1 heap_0 (LHeap.create 51) gamma_1 gamma_0 pf_0 subst phd in *)
+	
+	42 
+
+(*******************************************************************)
+(*******************************************************************)
+(*******************************************************************)
 
 let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool * symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment =
 
@@ -855,6 +1139,9 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			print_debug_petar (Printf.sprintf "Discharges: %d\n" (List.length discharges_0));
 			List.iter (fun (x, y) -> print_debug_petar (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
 			let keep_subst = Hashtbl.copy subst in
+			
+			let _ = unify_symb_heaps_and_predicates heap_1 heap_0 preds_1 preds_0 gamma_1 gamma_0 pf_0 subst in
+			
 			(* First try to unify heaps, then predicates *)
 			let ret_1, failure = try (Some (unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst), None) with | SymbExecFailure failure -> None, Some failure in
 			(match ret_1 with
@@ -1348,7 +1635,7 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 
 
 (**
-    symb_state        - the current symbolic state minus the predicate that is to be unfolded
+  symb_state        - the current symbolic state minus the predicate that is to be unfolded
 	pat_symb_state    - the symbolic state corresponding to the definition of the predicate that we are trying to unfold
 	calling_store     - a mapping from the parameters of the predicate to the arguments given in the unfolding
 	subst_unfold_args - substitution that matches the arguments of the unfold logical command with the arguments of
