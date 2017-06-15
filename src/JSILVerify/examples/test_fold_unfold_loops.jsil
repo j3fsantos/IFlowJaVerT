@@ -3,12 +3,12 @@
 
 pred my_list (x) : 
 	(x == $$null), 
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) * my_list(#z) * types(#y: $$int_type);
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) * my_list(#z) * types(#y: $$number_type);
 
 
 (** Expected result: YES             **)                
 spec list_cons (x, y)
-   [[ my_list(x) * types(y: $$int_type) ]]
+   [[ my_list(x) * types(y: $$number_type) ]]
    [[ my_list(x) ]]
    normal
 proc list_cons (x, y) {
@@ -25,14 +25,14 @@ proc list_cons (x, y) {
 (** Expected result: YES                             **)
 spec list_count (x)
    [[ (x == #x) * my_list(#x) ]]
-   [[ my_list(#x) * types(ret: $$int_type) ]]
+   [[ my_list(#x) * types(ret: $$number_type) ]]
    normal
 proc list_count (x) {
 		   [* unfold(my_list(x)) *]
-		   goto [ x = $$null ] then else;
-   then:   count := 0; 
+		   goto [ x = $$null ] then1 else1;
+   then1:   count := 0; 
            goto rlab;   
-   else:   z := [x, "next"]; 
+   else1:   z := [x, "next"]; 
            count := "list_count"(z);
            count := count + 1;  
            [* fold(my_list(x)) *]
