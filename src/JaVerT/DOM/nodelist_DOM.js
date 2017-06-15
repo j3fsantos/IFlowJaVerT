@@ -649,7 +649,7 @@
 
 		pre:  [[ (i == #i) * ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * 
 				tids(#cList, #l) * (#i <# l-len(#l)) * (0 <=# #i) ]]
-		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * (ret == l-nth(#l)) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * (l-nth(#l, #i) == #m) * (ret == #m) ]]
 		outcome: normal
 
 */ 
@@ -688,7 +688,7 @@
 		InitialDOMHeap() *
 		scope(cat: #s2) * nisB(#s2) * (f == #f) * (i == #i) * (len == #l) * (#i <# #l) * 
 		ECell(#beta, #enname, #en, #enl_aList, #enaList, #enl_cList, #encList, #enfin, #enfout) *
-		tids(#encList, #tid_l) * (#f --e-- #enfin) * (l-nth(#tid_l) == #n) *
+		tids(#encList, #tid_l) * (#f --e-- #enfin) * (l-nth(#tid_l, #i) == #n) *
 		ECell(#alpha, #nname, #n, #nl_aList, #naList, #nl_cList, #ncList, #nfin, #nfout) *
 		(#naList == #a1 @ ({{ "hole", #gamma }} :: #a2)) * (l-len(#a1) == #i) *
 		ACell(#gamma, "src", #a, #l_tf, #tf1) *
