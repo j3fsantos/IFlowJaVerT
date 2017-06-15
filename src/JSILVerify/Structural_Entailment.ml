@@ -1152,8 +1152,6 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			(match uhp with
 			| None -> raise (SymbExecFailure (UH GeneralHeapUnificationFailure))
 			| Some (qheap, npfs, dschgs, qpreds, rpp, subst) -> 
-					print_debug_petar (Printf.sprintf "The discharges are:\n\t%s"
-						(String.concat "\n\t" (List.map (fun (x, y) -> ))));
 					(match (DynArray.length rpp) with
 					| 0 -> ()
 					| _ -> raise (SymbExecFailure (USS CannotUnifyPredicates)));
