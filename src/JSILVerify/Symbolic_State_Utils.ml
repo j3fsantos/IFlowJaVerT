@@ -171,8 +171,10 @@ let merge_heaps heap new_heap p_formulae  gamma =
 							(match fv_pair, i_am_sure_the_field_does_exist with
 							| None, true 
 							| Some (_, LUnknown), _ -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
-							| None, false -> raise (Failure "heaps non-mergeable")
-							| Some (f, v), _ -> raise (Failure "heaps non-mergeable"))) in
+							| None, false -> raise (Failure "Heaps non-mergeable: I don't have a pair and I'm not sure the field exists")
+							| Some (f, v), _ -> raise (Failure (Printf.sprintf "Heaps non-mergeable: Something exists (%s, %s)" 
+									(JSIL_Print.string_of_logic_expression f false) 
+									(JSIL_Print.string_of_logic_expression v false))))) in
 					let q_fv_list = loop [] n_fv_list in
 					LHeap.replace heap loc (q_fv_list @ fv_list, def)
 				with Not_found ->

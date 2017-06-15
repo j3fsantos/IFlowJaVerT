@@ -882,6 +882,7 @@ let unify_symb_heaps_single_pass
 		
 	(* Main loop *)
 	let rec loop locs_to_visit pfs discharges = 
+		print_debug (Printf.sprintf "\nQuotient heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap q_heap false));
 		(match locs_to_visit with 
 		| [] -> ([], pfs, discharges)
 		| _ ->  
@@ -936,9 +937,6 @@ let unify_symb_heaps_single_pass
 					| _ -> raise (SymbExecFailure (UH PatternHeapWithDefaultValue))))) in 
 	
 	let remaining_locs, new_pfs, new_discharges = loop locs [] [] in 
-	
-	LHeap.iter (fun loc (fv_list, def) -> 
-		if ((def = LUnknown) && (List.length fv_list = 0)) then LHeap.remove q_heap loc) q_heap; 
 	
 	(* DEBUG *)
 	print_debug "Unify symbolic heaps: single pass : end";
@@ -1101,10 +1099,13 @@ let unify_symb_heaps_and_predicates
 		| e -> raise e
 	done;
 	
+	(* Polish the quotient heap *)
 	List.iter (fun (qheap, _, _ ,_, _, _) -> 
 		LHeap.iter (fun loc (fv_list, def) ->
-			if (not (LHeap.mem qheap loc)) then 
-					LHeap.add qheap loc (fv_list, def)) heap) !solutions;
+			if (not (LHeap.mem qheap loc)) then LHeap.add qheap loc (fv_list, def);
+			if ((def = LUnknown) && (List.length fv_list = 0)) then LHeap.remove qheap loc) 
+		heap) 
+	!solutions;
 	
 	print_debug (Printf.sprintf "We have %d solutions after unifying heaps and predicates." (List.length !solutions));
 	
@@ -1151,93 +1152,18 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			(match uhp with
 			| None -> raise (SymbExecFailure (UH GeneralHeapUnificationFailure))
 			| Some (qheap, npfs, dschgs, qpreds, rpp, subst) -> 
+					print_debug_petar (Printf.sprintf "The discharges are:\n\t%s"
+						(String.concat "\n\t" (List.map (fun (x, y) -> ))));
 					(match (DynArray.length rpp) with
 					| 0 -> ()
 					| _ -> raise (SymbExecFailure (USS CannotUnifyPredicates)));
 					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 						(match spec_vars_check with
-						| true -> dschgs, subst, qheap, qpreds, DynArray.to_list npfs
+						| true -> discharges_0 @ dschgs, subst, qheap, qpreds, DynArray.to_list npfs
 						| false -> raise (SymbExecFailure (USS CannotDischargeSpecVars))))) in
 			let end_time = Sys.time() in
 			JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
 			result in
-					
-			(* 
-			(* First try to unify heaps, then predicates *)
-			let ret_1, failure = try (Some (unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst), None) with | SymbExecFailure failure -> None, Some failure in
-			(match ret_1 with
-			| Some (heap_f, new_pfs, negative_discharges) ->
-				print_debug_petar (Printf.sprintf "Heaps unified successfully. Unifying predicates.\n");
-				let subst, preds_f, remaining_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
-				(match remaining_preds with
-				| [] ->
-					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
-					(match spec_vars_check with
-					| true -> discharges_0, subst, heap_f, preds_f, new_pfs
-					| false -> raise (SymbExecFailure (USS CannotDischargeSpecVars)))
-				| _ -> raise (SymbExecFailure (USS CannotUnifyPredicates)))
-			| None -> 
-					print_debug_petar (Printf.sprintf "Could not unify heaps before predicates, unifying predicates first instead."); 
-					let ret_2 = if (DynArray.length preds_0 > 0) then (Some (unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst)) else None in
-					(match ret_2 with
-					| Some (subst, preds_f, []) ->
-						print_debug_petar "Unified predicates successfully. Extracting additional knowledge";
-						
-						(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
-
-						let pat_pfs = pf_substitution pf_1 subst true in
-						let _, pf_subst = Simplifications.simplify_pfs_with_subst pf_0 gamma_0 in
-						(match pf_subst with
-						| None -> raise (SymbExecFailure (USS ContradictionInPFS))
-						| Some pf_subst -> 
-							(let pat_pfs = pf_substitution pat_pfs pf_subst true in
-							print_debug_petar (Printf.sprintf "Original pat_pfs:\n%s" (Symbolic_State_Print.string_of_shallow_p_formulae pf_1 false));
-							print_debug_petar (Printf.sprintf "Substituted pat_pfs:\n%s" (Symbolic_State_Print.string_of_shallow_p_formulae pat_pfs false));
-							let new_pfs, _ = Simplifications.simplify_pfs pat_pfs gamma_0 (Some None) in
-							(match (DynArray.to_list new_pfs) with
-							| [ LFalse ] -> raise (SymbExecFailure (USS ContradictionInPFS))
-							| _ -> 
-									print_debug_petar (Printf.sprintf "More pfs: %s" (Symbolic_State_Print.string_of_shallow_p_formulae new_pfs false));
-									
-									(* Now we can extract two things: more subst and more alocs *)
-									let hd = SS.of_list (heap_domain heap_1 subst) in
-									print_debug_petar (Printf.sprintf "Domain of the pat_heap: %s" (String.concat ", " (SS.elements hd)));
-									DynArray.iter (fun pf ->
-										(match pf with
-										| LEq (ALoc al, LLit (Loc l))
-										| LEq (LLit (Loc l), ALoc al) ->
-												(match (SS.mem al hd) with
-												| false -> ()
-												| true -> extend_substitution subst [ al ] [ LLit (Loc l) ])
-										
-										| LEq (ALoc al1, ALoc al2) ->
-											let m1 = SS.mem al1 hd in
-											let m2 = SS.mem al2 hd in
-											(match m1, m2 with
-											| true, false -> extend_substitution subst [ al1 ] [ ALoc al2 ]
-											| false, true -> extend_substitution subst [ al2 ] [ ALoc al1 ]
-											| _, _ -> ()
-											)
-
-										| _ -> ()
-										)
-									) new_pfs;
-										
-							(***** EXPERIMENTAL - PUT INTO SEPARATE FUNCTION *****)
-	
-									print_debug_petar "Now unifying heaps again.";
-									print_debug_petar (Printf.sprintf "%s" (Symbolic_State_Print.string_of_substitution subst));
-									let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
-										print_debug_petar (Printf.sprintf "Heaps unified successfully.\n");
-										let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
-										(match spec_vars_check with
-										| true -> discharges_0, subst, heap_f, preds_f, new_pfs
-										| false -> raise (SymbExecFailure (USS CannotDischargeSpecVars)))
-									)))
-					| _ -> (match failure with | Some failure -> raise (SymbExecFailure failure))))) in
-		let end_time = Sys.time() in
-		JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
-		result in *)
 
 	(* STEP 1 - Pure entailment and gamma unification                                                                                                    *)
 	(* existentials = vars(Sigma_pat) \ dom(subst)                                                                                                       *)
