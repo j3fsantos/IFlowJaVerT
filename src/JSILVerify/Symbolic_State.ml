@@ -830,6 +830,7 @@ type unify_heaps_fail =
 	| FloatingLocations of string list
 	| IllegalDefaultValue of jsil_logic_expr
 	| PatternHeapWithDefaultValue
+	| GeneralHeapUnificationFailure
 
 type unify_gamma_fail = 
 	| NoTypeForVariable of string

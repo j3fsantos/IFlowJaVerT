@@ -1024,7 +1024,6 @@ let unify_pred_arrays_single_pass (pat_preds : predicate_set) (preds : predicate
 		
 		result
 
-
 (** 
 		Unifying the heaps and predicates together, in iterations.
 		We maintain a queue, with each element of the queue containing
@@ -1066,44 +1065,52 @@ let unify_symb_heaps_and_predicates
 		(* Keep the subst *)
 		let old_subst = Hashtbl.copy subst in
 		(* Go for heap unification *)
-		let remaining_locs, new_pfs, new_discharges = unify_symb_heaps_single_pass pat_heap heap qheap pat_gamma gamma p_formulae subst locs in 
-		(* Go for predicate unification *)
-		let potential_solutions (* (subst, qpreds, rpp) *) = unify_pred_arrays_single_pass rpp qpreds p_formulae pat_gamma gamma subst in
-		
-		(* Stabilise *)
-		DynArray.append new_pfs npfs;
-		let dschgs = dschgs @ new_discharges in
-		
-		let potential_solutions = List.map (fun (subst, qpreds, rpp) ->
-			(remaining_locs, LHeap.copy qheap, DynArray.copy npfs, dschgs, DynArray.copy qpreds, DynArray.copy (DynArray.of_list rpp), Hashtbl.copy subst)) potential_solutions in
-		
-		List.iter (fun (remaining_locs, qheap, npfs, dschgs, qpreds, rpp, subst) ->
-		(* How to detect if we've made progress? *)
-		(match remaining_locs with
-		| [] -> 
-				(* Solution *)
-				solutions := (qheap, npfs, dschgs, qpreds, rpp, subst) :: !solutions;
-		| _ ->
-				(* Not a solution *)
-				(match (subst = old_subst) with
-				| true -> 
-						(* We were not able to go further *)
-						()
-				| false -> 
-						(* We did make a change *)
-						let new_candidate = (remaining_locs, qheap, npfs, dschgs, qpreds, rpp, subst) in
-						Queue.push new_candidate candidates
-				))) potential_solutions;
+		try (
+			let remaining_locs, new_pfs, new_discharges = unify_symb_heaps_single_pass pat_heap heap qheap pat_gamma gamma p_formulae subst locs in 
+			(* Go for predicate unification *)
+			let potential_solutions (* (subst, qpreds, rpp) *) = unify_pred_arrays_single_pass rpp qpreds p_formulae pat_gamma gamma subst in
+			
+			(* Stabilise *)
+			DynArray.append new_pfs npfs;
+			let dschgs = dschgs @ new_discharges in
+			
+			let potential_solutions = List.map (fun (subst, qpreds, rpp) ->
+				(remaining_locs, LHeap.copy qheap, DynArray.copy npfs, dschgs, DynArray.copy qpreds, DynArray.copy (DynArray.of_list rpp), Hashtbl.copy subst)) potential_solutions in
+			
+			List.iter (fun (remaining_locs, qheap, npfs, dschgs, qpreds, rpp, subst) ->
+			(* How to detect if we've made progress? *)
+			(match remaining_locs with
+			| [] -> 
+					(* Solution *)
+					solutions := (qheap, npfs, dschgs, qpreds, rpp, subst) :: !solutions;
+			| _ ->
+					(* Not a solution *)
+					(match (subst = old_subst) with
+					| true -> 
+							(* We were not able to go further *)
+							()
+					| false -> 
+							(* We did make a change *)
+							let new_candidate = (remaining_locs, qheap, npfs, dschgs, qpreds, rpp, subst) in
+							Queue.push new_candidate candidates
+					))) potential_solutions;
+		) 
+		with
+		| SymbExecFailure _ -> ()
+		| Failure _ -> ()
+		| e -> raise e
 	done;
 	
-	print_debug (Printf.sprintf "We have %d solutions." (List.length !solutions));
+	List.iter (fun (qheap, _, _ ,_, _, _) -> 
+		LHeap.iter (fun loc (fv_list, def) ->
+			if (not (LHeap.mem qheap loc)) then 
+					LHeap.add qheap loc (fv_list, def)) heap) !solutions;
 	
-	(* quotient_heap, new_pfs, discharges, quotient_preds, remaining_pat_preds *)
+	print_debug (Printf.sprintf "We have %d solutions after unifying heaps and predicates." (List.length !solutions));
 	
-				(* let phd : string list = heap_domain heap_1 subst in
-			let _ = unify_symb_heaps_single_pass heap_1 heap_0 (LHeap.create 51) gamma_1 gamma_0 pf_0 subst phd in *)
-	
-	42 
+	(match !solutions with
+	| [] -> None
+	| _  -> Some (List.hd !solutions))
 
 (*******************************************************************)
 (*******************************************************************)
@@ -1140,8 +1147,22 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			List.iter (fun (x, y) -> print_debug_petar (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
 			let keep_subst = Hashtbl.copy subst in
 			
-			let _ = unify_symb_heaps_and_predicates heap_1 heap_0 preds_1 preds_0 gamma_1 gamma_0 pf_0 subst in
-			
+			let uhp = unify_symb_heaps_and_predicates heap_1 heap_0 preds_1 preds_0 gamma_1 gamma_0 pf_0 subst in
+			(match uhp with
+			| None -> raise (SymbExecFailure (UH GeneralHeapUnificationFailure))
+			| Some (qheap, npfs, dschgs, qpreds, rpp, subst) -> 
+					(match (DynArray.length rpp) with
+					| 0 -> ()
+					| _ -> raise (SymbExecFailure (USS CannotUnifyPredicates)));
+					let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
+						(match spec_vars_check with
+						| true -> dschgs, subst, qheap, qpreds, DynArray.to_list npfs
+						| false -> raise (SymbExecFailure (USS CannotDischargeSpecVars))))) in
+			let end_time = Sys.time() in
+			JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
+			result in
+					
+			(* 
 			(* First try to unify heaps, then predicates *)
 			let ret_1, failure = try (Some (unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst), None) with | SymbExecFailure failure -> None, Some failure in
 			(match ret_1 with
@@ -1216,7 +1237,7 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 					| _ -> (match failure with | Some failure -> raise (SymbExecFailure failure))))) in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "USS: Step 0" (end_time -. start_time);
-		result in
+		result in *)
 
 	(* STEP 1 - Pure entailment and gamma unification                                                                                                    *)
 	(* existentials = vars(Sigma_pat) \ dom(subst)                                                                                                       *)

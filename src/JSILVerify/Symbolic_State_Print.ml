@@ -328,6 +328,7 @@ let string_of_UH_error uh_error =
 	| FloatingLocations ls ->                             Printf.sprintf "Floating locations %s" (String.concat ", " ls)
 	| IllegalDefaultValue le ->                           Printf.sprintf "Illegal default value %s" (print_lexpr le)
 	| PatternHeapWithDefaultValue ->                      Printf.sprintf "Pattern heap has default values"
+	| GeneralHeapUnificationFailure ->                    Printf.sprintf "General heap unification failure"
 	
 let string_of_UG_error ug_error = 
 	match ug_error with
