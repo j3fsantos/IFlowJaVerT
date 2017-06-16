@@ -128,8 +128,8 @@ function find_min(t)
 	/** @unfold BST(#t, #K) */
 	var result;
 	
-	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) 
-	 	@flash BST(#il, #KL) */
+	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) */
+	/** @flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else
@@ -160,7 +160,7 @@ function remove(v, t)
 		/** @fold BST(#t, #K) */
 		return null;
 
-	/** @invariant dataField(#t, "left", #il) * dataField(#t, "right", #ir) *  BST(#il, #KL) * BST(#ir, #KR) */
+	/** @invariant dataField(#t, "left", #il) * dataField(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
 	
 	if (v === t.value) {
 		if (t.left === null) {	

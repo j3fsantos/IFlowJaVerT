@@ -1128,7 +1128,18 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 	let subst = init_substitution [] in
 	SS.iter (fun var -> Hashtbl.replace subst var (LVar var)) lvars;
 
+	(* Grab object locations *)
+	Hashtbl.iter (fun l r ->
+		let loc_l = try Simplifications.aux_find_me_Im_a_loc pf_1 gamma_1 l with _ -> None in 
+		(match loc_l with
+		| None -> ()
+		| Some loc_l -> 
+				Hashtbl.remove subst l;
+				Hashtbl.replace subst loc_l r
+		)) subst;
+
 	print_debug (Printf.sprintf "Current substitution: %s" (Symbolic_State_Print.string_of_substitution subst));
+
 
 	(* STEP 0 - Unify stores, heaps, and predicate sets                                                                                                  *)
 	(* subst = empty substitution                                                                                                                        *)
