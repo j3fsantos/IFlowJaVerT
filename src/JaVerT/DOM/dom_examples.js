@@ -353,12 +353,14 @@ function sanitiseImg(img, cat){
 
 	@pre (
 		InitialDOMHeap() * (tnode == #tn) *
-		Forest(#f_loc, {{ {{ "hole", #alpha1 }} }}) *
+		Forest(#f_loc, #f_pre) *
+		(#f_pre == #a1 @ ({{ "hole", #alpha1 }} :: #a2)) *
 		TCell(#alpha1, #tn, #text1_pre) * (#text1_pre == "abcdefghi")
 	)
 	@post (
 		InitialDOMHeap() * (ret == 9) *
-		Forest(#f_loc, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) *
+		Forest(#f_loc, #f) *
+		(#f == #a1 @ {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }} @ #a2) *
 		TCell(#alpha1, #tn, #text1_post) * (#text1_post == "abcabcabc") *
 		TCell(#alpha2, #tn2, #text2_post) * (#text2_post == "ghia")
 	)
@@ -372,6 +374,35 @@ function textAxioms(tnode) {
 	t2.deleteData(4, 10);
 	tnode.appendData(c);
 	return l
+}
+
+/** 
+-------------------------------------------------------------------------------
+		nodelist encoding -- nodelist_DOM.js
+-------------------------------------------------------------------------------
+**/
+
+/**
+	@id nodeListSimple
+	@rec false
+	@pre (
+		InitialDOMHeap() * (element == #en) *
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, -{}-) * tids(#cList, #l) * 
+		(l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
+	)
+	@post (
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin_post, -{}-) * tids(#cList, #l) * 
+		(ret == #len)
+	)
+*/
+function nodeListSimple(element){
+	var f = element.childNodes();
+	/* @invariant scope(f: #f) */
+	/* @callspec unfoldFL(#ignore, #en, #f) */
+	var r = f.length();
+	/* @callspec foldFL(#ignore, #en, #f) */
+	return r
 }
 
 /*
