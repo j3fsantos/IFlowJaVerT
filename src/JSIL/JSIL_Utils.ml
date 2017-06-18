@@ -104,6 +104,8 @@ let print_position outx lexbuf =
   Format.fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
+type token = [%import: JSIL_Parser.token] [@@deriving show]
+
 (** Parse contents in 'lexbuf' from the starting symbol 'start'. Terminates if an error occurs. *)
 let parse start lexbuf =
 	let module JPMI = JSIL_Parser.MenhirInterpreter in
@@ -117,9 +119,9 @@ let parse start lexbuf =
       (function JPMI.Rejected -> failwith "Parser rejected input"
          | JPMI.HandlingError e ->
              let csn = JPMI.current_state_number e in
-               Format.eprintf "%a, last token: [WHATEVER]: %s.@."
+               Format.eprintf "%a, last token: %s: %s.@."
                  print_position lexbuf
-                 (* TokenPrinter.pp_token !last_token *)
+                 (show_token !last_token)
                  "Error message found"
                  ;
                raise JSIL_Parser.Error

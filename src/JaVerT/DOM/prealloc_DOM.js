@@ -47,7 +47,7 @@
 		DOMFunctionField($l_np, "lastChild") *
 		DOMFunctionField($l_np, "previousSibling") *
 		DOMFunctionField($l_np, "nextSibling") *
-		DOMFunctionField($l_np, "ownerDocument") *
+		DOMFunctionField($l_np, "ownerDocument") * 
 		DOMFunctionField($l_np, "insertBefore") *
 		DOMFunctionField($l_np, "replaceChild") *
 		DOMFunctionField($l_np, "removeChild") *
