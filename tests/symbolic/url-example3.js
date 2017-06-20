@@ -8,7 +8,7 @@ var account = jsil_make_symbolic_string(account);
 //if (!url.includes("?")) { throw "bananas" } 
 
 // check name non-empty
-if ((name.length > 0) && (! name.includes("?"))) {  
+if ((name.length > 0) && (!name.includes("?"))) {  
     url += ("?name="+name);
 }
 

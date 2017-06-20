@@ -17,5 +17,5 @@ o[___p1_string] = ___v1_number;
 var t = top(o);
 
 jsil_assert ((t > 15) && (___p1_string !== "")); 
-// jsil_assert (___p1_string == "a"); 
+//jsil_assert (___p1_string == "a"); 
 t

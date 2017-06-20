@@ -1,5 +1,5 @@
-var f1 = jsil_make_symbolic_string (n1); 
-var f2 = jsil_make_symbolic_string (n2); 
+var f1 = jsil_make_symbolic_string (s1); 
+var f2 = jsil_make_symbolic_string (s2); 
 
 var a = [ 1, 2, 3 ];
 var v1 = a[f1];
