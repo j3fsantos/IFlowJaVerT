@@ -545,9 +545,11 @@
 */ /*
 
 	@onlyspec documentElement()
-		pre:  [[ emp ]]
-		post: [[ emp ]]
-		outcome: normal
+		pre:  [[ DocumentNode(this, #l_elem, {{ {{ "hole", #alpha }} }}, #l_grove, #gList) *
+				 ECell(#alpha, #name, #n, #l_attr, #aList, #l_children, #cList, #fin, -{}-) ]]
+		post: [[ DocumentNode(this, #l_elem, {{ {{ "hole", #alpha }} }}, #l_grove, #gList) *
+				 ECell(#alpha, #name, #n, #l_attr, #aList, #l_children, #cList, #fin, -{}-) * (ret == #n) ]]
+		outcome: normal;
 
 	@onlyspec createElement(s)
 		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
@@ -562,8 +564,9 @@
 		outcome: normal
 
 	@onlyspec createAttribute(s)
-		pre:  [[ emp ]]
-		post: [[ emp ]]
+		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
+		post: [[ (ret == #an) * DocumentNode(this, #l_element, #element, #l_g, #g_post) * (#g_post == {{ "hole", #alpha }} :: #g) * 
+				 ACell(#alpha, #name, #an, #an_l_a, $$nil) ]]
 		outcome: normal
 
 	@onlyspec getElementsByTagName(s)

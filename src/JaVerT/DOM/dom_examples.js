@@ -156,7 +156,7 @@ function secondChild(element) {
 	@rec false
 
 	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type, #gList : $$list_type) *
+		InitialDOMHeap() * (element == #id) * types(#gList : $$list_type) *
 		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
