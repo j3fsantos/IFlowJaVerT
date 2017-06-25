@@ -549,7 +549,7 @@
 				 ECell(#alpha, #name, #n, #l_attr, #aList, #l_children, #cList, #fin, -{}-) ]]
 		post: [[ DocumentNode(this, #l_elem, {{ {{ "hole", #alpha }} }}, #l_grove, #gList) *
 				 ECell(#alpha, #name, #n, #l_attr, #aList, #l_children, #cList, #fin, -{}-) * (ret == #n) ]]
-		outcome: normal;
+		outcome: normal
 
 	@onlyspec createElement(s)
 		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
