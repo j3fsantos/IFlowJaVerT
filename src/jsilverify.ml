@@ -7,6 +7,8 @@ let stats = ref false
 let bi_abduction = ref false
 let interactive = ref false
 
+let str_bar = "-----------------------------"
+
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
@@ -112,21 +114,8 @@ let process_file path =
 		print_debug "*** Prelude: Stage 4: Building the spec table.\n";
 		Normaliser.pre_normalise_invariants_prog norm_preds prog;
 		let spec_tbl = Normaliser.build_spec_tbl norm_preds prog ext_prog.onlyspecs in
+		print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));	
 		print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-		print_debug "*** Prelude: Stage 5: Add phantom procedures for only-specs.\n";
-		Hashtbl.iter
-			(fun spec_name spec ->
-				let proc = { 	
-					proc_name = spec_name; 
-					proc_body = Array.make 0 (empty_metadata, SBasic SSkip); 
-					proc_params = spec.spec_params;
-					ret_label = None; ret_var = Some "ret";
-					error_label = None; error_var = Some "err";
-					spec = Some spec } in
-				Hashtbl.replace prog spec_name proc
-			)
-			ext_prog.onlyspecs;
-		print_debug "*** Prelude: Stage 5: Finished adding phantom procedures for only-specs\n";
 		(if (!bi_abduction) then
 			bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds
 		else 

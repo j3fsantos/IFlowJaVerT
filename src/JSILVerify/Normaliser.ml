@@ -840,6 +840,7 @@ let build_spec_tbl preds prog onlyspecs =
 							let n_spec = normalise_spec preds spec in
 							Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
 		prog;
+	
 	Hashtbl.iter
 		(fun spec_name spec ->
 			let msg = Printf.sprintf "\n*************************\n* Normalising the spec: *\n*************************\n\n%s" (Symbolic_State_Print.string_of_jsil_spec spec) in
@@ -847,7 +848,19 @@ let build_spec_tbl preds prog onlyspecs =
 			let n_spec = normalise_spec preds spec in
 			Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
 		onlyspecs;
-	print_debug (Printf.sprintf "-----------------------------\n-----------------------------\nSpec Table:\n%s" (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
+
+	Hashtbl.iter
+		(fun spec_name spec ->
+				let proc = { 	
+					proc_name = spec_name; 
+					proc_body = Array.make 0 (empty_metadata, SBasic SSkip); 
+					proc_params = spec.spec_params;
+					ret_label = None; ret_var = Some "ret";
+					error_label = None; error_var = Some "err";
+					spec = Some spec } in
+				Hashtbl.replace prog spec_name proc
+			)
+			onlyspecs;
 	spec_tbl
 
 
