@@ -6,7 +6,7 @@ function Map () {
 }
 
 function isValidKey (key) {
-    return (typeof (key) === 'string') && (key !== ''); 
+    return (typeof (key) === 'string') && (key !== '') && (key[0] !== "@"); 
 }
 
 
