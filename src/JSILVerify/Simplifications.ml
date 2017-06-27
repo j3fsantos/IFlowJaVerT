@@ -924,6 +924,7 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 						let lcand = List.length candidates in
 						let sqrtl = sqrt (float_of_int lcand) in
 						if (!interactive) && (not (sqrtl = floor sqrtl)) then (
+							print_debug (Printf.sprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates));
 							Printf.eprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates);
 							List.iter (fun (le1, le2, _) -> 
 								Printf.eprintf "%s vs. %s\n%!" (print_lexpr le1) (print_lexpr le2)) candidates;

@@ -245,16 +245,17 @@
 	----NodeList Fold/Unfolds----
 */ /*
 	@onlyspec unfoldFL(ecell, f)
-		pre:  [[ (ecell == #en) * (f == #f) * ECell(#alpha, #name, #en, #l_attr, #aList, #l_children, #cList, #fin, #fout) * (#f --e-- #fin) ]]
+		pre:  [[ (ecell == #en) * (f == #f) * ECell(#alpha, #name, #en, #l_attr, #aList, #l_children, #cList, #fin, #fout) * 
+				 (#f --e-- #fin) ]]
 		post: [[ ECell(#alpha, #name, #en, #l_attr, #aList, #l_children, #cList, #fin2, #fout2) * NodeList(#f, #en) * 
-				 (#fin2 == (#fin -d- -{#f}-)) * (! (#f --e-- #fin2)) * (#fout2 == -u-(#fout, -{ #f }-)) * (ret == $$null) ]]
+				 (#fin2 == (#fin -d- -{#f}-)) * (! (#f --e-- #fin2)) * (#fout2 == -u-(#fout, -{ #f }-)) ]]
 		outcome: normal
 
 	@onlyspec foldFL(ecell, f)
 		pre:  [[ (ecell == #en) * (f == #f) * ECell(#alpha, #name, #en, #l_attr, #aList, #l_children, #cList, #fin, #fout) * 
 				 (#f --e-- #fout) * NodeList(#f, #en) ]]
 		post: [[ ECell(#alpha, #name, #en, #l_attr, #aList, #l_children, #cList, #fin2, #fout2) *
-				 (#fout2 == (#fout -d- -{#f}-)) * (! (#f --e-- #fout2)) * (#fin2 == -u-(#fin, -{ #f }-)) * (ret == $$null)]]
+				 (#fout2 == (#fout -d- -{#f}-)) * (! (#f --e-- #fout2)) * (#fin2 == -u-(#fin, -{ #f }-)) ]]
 		outcome: normal
 
 */ /*
@@ -389,8 +390,20 @@
 		outcome: normal
 
 	@onlyspec nodeType()
-		pre:  [[ emp ]]
-		post: [[ emp ]]
+		pre:  [[ DocumentNode(this, #l_element, #element, #l_g, #grove) ]]
+		post: [[ DocumentNode(this, #l_element, #element, #l_g, #grove) * (ret == 9) ]]
+		outcome: normal;
+
+		pre:  [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_fList, #fList, #fin, #fout) ]]
+		post: [[ ECell(#alpha, #name, this, #l_aList, #aList, #l_fList, #fList, #fin, #fout) * (ret == 1) ]]
+		outcome: normal;
+
+		pre:  [[ TCell(#alpha, this, #t) ]]
+		post: [[ TCell(#alpha, this, #t) * (ret == 3) ]]
+		outcome: normal;
+
+		pre:  [[ ACell(#alpha, #name, this, #l_fList, #fList) ]]
+		post: [[ ACell(#alpha, #name, this, #l_fList, #fList) * (ret == 2) ]]
 		outcome: normal
 
 	@onlyspec parentNode()
@@ -532,8 +545,10 @@
 */ /*
 
 	@onlyspec documentElement()
-		pre:  [[ emp ]]
-		post: [[ emp ]]
+		pre:  [[ DocumentNode(this, #l_elem, {{ {{ "hole", #alpha }} }}, #l_grove, #gList) *
+				 ECell(#alpha, #name, #n, #l_attr, #aList, #l_children, #cList, #fin, -{}-) ]]
+		post: [[ DocumentNode(this, #l_elem, {{ {{ "hole", #alpha }} }}, #l_grove, #gList) *
+				 ECell(#alpha, #name, #n, #l_attr, #aList, #l_children, #cList, #fin, -{}-) * (ret == #n) ]]
 		outcome: normal
 
 	@onlyspec createElement(s)
@@ -549,8 +564,9 @@
 		outcome: normal
 
 	@onlyspec createAttribute(s)
-		pre:  [[ emp ]]
-		post: [[ emp ]]
+		pre:  [[ (s == #name) * DocumentNode(this, #l_element, #element, #l_g, #g) * types(#name : $$string_type, #g : $$list_type) ]]
+		post: [[ (ret == #an) * DocumentNode(this, #l_element, #element, #l_g, #g_post) * (#g_post == {{ "hole", #alpha }} :: #g) * 
+				 ACell(#alpha, #name, #an, #an_l_a, $$nil) ]]
 		outcome: normal
 
 	@onlyspec getElementsByTagName(s)
@@ -617,75 +633,50 @@
 		post: [[ emp ]]
 		outcome: normal
 
+*/ /*
+	----NodeList Axioms----
+*/ /*
+
+	@onlyspec length()
+		pre:  [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(this, #id) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * tids(#cList, #l) * NodeList(this, #id) * (ret == l-len(#l)) ]]
+		outcome: normal
+
+	@onlyspec item(i)
+		pre:  [[ (i == #i) * ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * (#i <# 0) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ (i == #i) * ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * tids(#cList, #l) * (l-len(#l) <=# #i) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id)  * (ret == $$null) ]]
+		outcome: normal;
+
+		pre:  [[ (i == #i) * ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * 
+				tids(#cList, #l) * (#i <# l-len(#l)) * (0 <=# #i) ]]
+		post: [[ ECell(#alpha, #name, #id, #l_a, #aList, #l_c, #cList, #fin, #fout) * NodeList(this, #id) * (l-nth(#l, #i) == #m) * (ret == #m) ]]
+		outcome: normal
+
 */ 
 
-/** sanitiseImg specifics */
 /**
-	@pred isB(s) : isB(s);
-	@pred nisB(s) : nisB(s);
-
-	@onlyspec isBlackListed(s)
-		pre:  [[ (s == #s) * isB(#s) ]]
-		post: [[ isB(#s) * (ret == 1) ]]
-		outcome: normal;
-		pre:  [[ (s == #s) * (nisB(#s)) ]]
-		post: [[ (ret == 0) * (nisB(#s)) ]]
-		outcome: normal
+	@id nodeListSimple
+	@rec false
+	@pre (
+		InitialDOMHeap() * (element == #en) *
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, -{}-) * tids(#cList, #l) * 
+		(l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
+	)
+	@post (
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin_post, -{}-) * tids(#cList, #l) * 
+		(ret == #len)
+	)
 */
-
-/**
-	@id sanitise
-
-	@pre (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		InitialDOMHeap() * (img == #n) * (cat == #s2) * 
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
-		out(#attr, "src")
-	)
-	@post (
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout)
-	)
-	@pre (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		InitialDOMHeap() * (img == #n) * (cat == #s2) * nisB(#s2) *
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
-		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
-		ACell(#gamma, "src", #a, #l_tf, #tf1) *
-		val(#tf1, #s1) * isB(#s1) * types(#s1 : $$string_type) * (! (#s1 == "")) *
-		Grove(#grove, #g) 
-	)
-	@post (
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
-		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
-		ACell(#gamma, "src", #a, #l_tf, #tf2) *
-		(#tf2 == {{ {{ "hole", #gamma3 }} }}) *
-		TCell(#gamma3, #r, #s2) * nisB(#s2) *
-		isB(#s1) * true
-	)
-	@pre (
-		scope(isBlackListed: #isB_fun) * fun_obj(isBlackListed, #isB_fun, #isB_proto) *
-		InitialDOMHeap() *
-		(img == #n) * (cat == #s2) *
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
-		(#attr == #a1 @ ({{ "hole", #gamma }} :: #a2)) *
-		ACell(#gamma, "src", #a, #l_tf, #tf1) *
-		val(#tf1, #s1) * nisB(#s1) * types(#s1 : $$string_type) * (! (#s1 == ""))
-	)
-	@post (
-		InitialDOMHeap() *
-		ECell(#alpha, #name, #n, #l_attr, #attr, #l_children, #children, #fin, #fout) *
-		ACell(#gamma, "src", #a, #l_tf, #tf1) *
-		val(#tf1, #s1) * nisB(#s1)
-	)
-**/
-function sanitiseImg(img, cat){
-	var url = img.getAttribute("src");
-	if(url !== ""){
-		var isB = isBlackListed(url);
-		if(isB){
-			img.setAttribute("src", cat);
-		}	
-	}
+function nodeListSimple(element){
+	var f = element.childNodes();
+	/* @invariant scope(f: #f) */
+	/* @callspec unfoldFL(#ignore, #en, #f) */
+	var r = f.length();
+	/* @callspec foldFL(#ignore, #en, #f) */
+	return r
 }

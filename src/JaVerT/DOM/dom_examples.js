@@ -1,51 +1,3 @@
-/**
-	Functions to verify that may lead to interesting specs and limitations.
-*/
-
-function isSquare(element) {
-	var w = element.getAttribute("width");
-	var y = element.getAttribute("height");
-	return w === y;
-}
-
-function childToParent(element) {
-	var c = element.firstChild();
-	var p = c.parentNode();
-	return p;
-}
-
-function secondChild(element) {
-	var r = element.firstChild();
-	var s = r.nextSibling();
-	return s;
-}
-
-function builtSingleGet(element) {
-	var t1 = document.createTextNode("test1");
-	var t2 = document.createTextNode("test2");
-	var a = document.createAttribute("src");
-	a.appendChild(t1);
-	a.appendChild(t2);
-	element.setAttributeNode(a);
-	var src = element.getAttribute("src");
-	return src;
-}
-
-/** Bootstrap IE10 viewport bug workaround.
-	Simple real life example, slightly modified: Removed an if condition and pulled a nested call out.
-	From: https://github.com/twbs/bootstrap/blob/master/docs/assets/js/ie10-viewport-bug-workaround.js
-*/
-function ie10-viewport-bug-workaround() {
-	if (isNavigatorIE()) {
-		var msViewportStyle = document.createElement('style');
-		var t = document.createTextNode(
-				"@-ms-viewport{width:auto!important}"
-			);
-		msViewportStyle.appendChild(t);
-		document.appendChild(msViewportStyle);
-	}
-}
-
 /** 
 	@toprequires (DocumentNode($l_document, #l_element, {{ }}, {{ }}) * InitialDOMHeap() * scope(document : $l_document))
 	@topensures  (DocumentNode($l_document, #l_element, {{ }}, {{ {{ "elem", "one", #ret, {{ }}, {{ }} }} }}) * InitialDOMHeap() * scope(document : $l_document))
@@ -156,7 +108,7 @@ function secondChild(element) {
 	@rec false
 
 	@pre (
-		InitialDOMHeap() * (element == #id) * types(#en : $$object_type, #gList : $$list_type) *
+		InitialDOMHeap() * (element == #id) * types(#gList : $$list_type) *
 		DocumentNode($l_document, #l_elem, #elem, #l_gList, #gList) *
 		ECell(#alpha, #name, #id, #l_aList1, #aList1, #l_cList1, #cList1)
 	)
@@ -353,12 +305,14 @@ function sanitiseImg(img, cat){
 
 	@pre (
 		InitialDOMHeap() * (tnode == #tn) *
-		Forest(#f_loc, {{ {{ "hole", #alpha1 }} }}) *
+		Forest(#f_loc, #f_pre) *
+		(#f_pre == #a1 @ ({{ "hole", #alpha1 }} :: #a2)) *
 		TCell(#alpha1, #tn, #text1_pre) * (#text1_pre == "abcdefghi")
 	)
 	@post (
 		InitialDOMHeap() * (ret == 9) *
-		Forest(#f_loc, {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }}) *
+		Forest(#f_loc, #f) *
+		(#f == #a1 @ {{ {{ "hole", #alpha1 }}, {{ "hole", #alpha2 }} }} @ #a2) *
 		TCell(#alpha1, #tn, #text1_post) * (#text1_post == "abcabcabc") *
 		TCell(#alpha2, #tn2, #text2_post) * (#text2_post == "ghia")
 	)
@@ -372,6 +326,35 @@ function textAxioms(tnode) {
 	t2.deleteData(4, 10);
 	tnode.appendData(c);
 	return l
+}
+
+/** 
+-------------------------------------------------------------------------------
+		nodelist encoding -- nodelist_DOM.js
+-------------------------------------------------------------------------------
+**/
+
+/**
+	@id nodeListSimple
+	@rec false
+	@pre (
+		InitialDOMHeap() * (element == #en) *
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin, -{}-) * tids(#cList, #l) * 
+		(l-len #l == #len) * types(#cList : $$list_type, #l : $$list_type)
+	)
+	@post (
+		InitialDOMHeap() *
+		ECell(#alpha, #name, #en, #l_a, #aList, #l_c, #cList, #fin_post, -{}-) * tids(#cList, #l) * 
+		(ret == #len)
+	)
+*/
+function nodeListSimple(element){
+	var f = element.childNodes();
+	/* @invariant scope(f: #f) */
+	/* @callspec unfoldFL(#ignore, #en, #f) */
+	var r = f.length();
+	/* @callspec foldFL(#ignore, #en, #f) */
+	return r
 }
 
 /*
