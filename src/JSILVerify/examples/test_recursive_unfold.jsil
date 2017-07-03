@@ -16,10 +16,10 @@ spec list_count (x)
    normal
 proc list_count (x) {
 		   [* unfold(my_list(x, #alpha, #size)) *]
-		   goto [ x = $$null ] then else;
-   then:   count := 0; 
+		   goto [ x = $$null ] then1 else1;
+   then1:   count := 0; 
            goto rlab;   
-   else:   z := [x, "next"];
+   else1:   z := [x, "next"];
    		   (* [x, "value"] := 3; *)
            count := "list_count"(z);
            count := count + 1;  
