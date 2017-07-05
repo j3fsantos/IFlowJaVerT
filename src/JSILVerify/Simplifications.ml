@@ -233,8 +233,10 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (le1, CharCons, LCList []) -> LCList [ f le1 ]
 	| LBinOp (le1, CharCons, LLit (CList [])) -> LCList [ f le1 ]
 	| LBinOp (LEList le1, LstCat,  LEList le2) -> f (LEList (le1 @ le2))
+	| LBinOp (LLit (String s1), StrCat, LLit (String s2)) -> f (LLit (String (s1 ^ s2)))
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
-	(* TODO: combinations of LLit (LList _) and LEList *)
+	
+	| LUnOp (ToStringOp, LLit (Num n)) -> LLit (String (Utils.float_to_string_inner n))
 
 	| LESet s -> 
 			let s' = List.map f s in
