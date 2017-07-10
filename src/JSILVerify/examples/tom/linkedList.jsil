@@ -1,6 +1,7 @@
 pred list_node(x, val, next):
   ((x, "value") -> val) *
-  ((x, "next") -> next);
+  ((x, "next") -> next) *
+  ((x, "@proto") -> $$null);
 
 pred linked_list(x, list):
     (list == {{ }}) *
@@ -9,7 +10,7 @@ pred linked_list(x, list):
     (list == (#item :: #items)) *
     (list_node(x, #item, #next)) *
     linked_list(#next, #items) *
-    types(list: $$list_type, #items: $$list_type);
+    types(x: $$object_type, list: $$list_type, #items: $$list_type);
 
 (** counts the number of elements in the list **)
 proc list_count (x) {
@@ -79,24 +80,23 @@ proc make_doubly_linked_list_helper (list, head) {
 
 
 spec make_linked_list (list)
-  [[ types(list: $$list_type, #list: $$list_type) * (list == #list) ]]
-  [[ linked_list(ret, #list) * (list == #list) ]]
+  [[ (list == #list) * types(#list: $$list_type) ]]
+  [[ linked_list(ret, #list) ]]
   normal
 
 (** Returns a pointer to the head of a singly-linked list **)
 proc make_linked_list (list) {
-          goto [ list = $$nil] then1 else1;
-  (** Base case **)
+          goto [ list = $$nil ] then1 else1;
+          (** Base case **)
   then1:  x := $$null;
           [* fold(linked_list(x, #list)) *]
           goto rlab;
-  (** Recurse **)
+          (** Recurse **)
   else1:  x := new ();
           [x, "value"] := l-nth(list, 0);
           y := "make_linked_list" (cdr list);
           [x, "next"] := y;
           [* fold(linked_list(x, #list)) *]
-          goto rlab;
   rlab:   skip
 } with { ret: x, rlab; };
 

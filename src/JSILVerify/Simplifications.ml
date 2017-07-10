@@ -29,7 +29,7 @@ let find_me_Im_a_list store pfs le =
 				(match value with
 				| LLit (LList _)
 				| LEList _ -> raise (FoundIt value)
-				| LBinOp (lcar, LstCons, lcdr) when ((lcar <> LLstNth (PVar var, LLit (Num 0.))) && (lcdr <> LUnOp (Cdr, PVar var))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
+				| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LLstNth (PVar var, LLit (Num 0.)) && (lcdr = LUnOp (Cdr, PVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
 				| _ ->
 					if (not (List.mem value !found)) then
 					begin
@@ -52,8 +52,8 @@ let find_me_Im_a_list store pfs le =
 							(match lexpr with
 							| LLit (LList _)
 							| LEList _ -> raise (FoundIt lexpr)
-							| LBinOp (lcar, LstCons, lcdr) when ((lcar <> LLstNth (LVar var, LLit (Num 0.))) && (lcdr <> LUnOp (Cdr, LVar var))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
-				      | _ ->
+							| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LLstNth (LVar var, LLit (Num 0.)) && (lcdr = LUnOp (Cdr, LVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
+							| _ ->
 								if (not (List.mem lexpr !found)) then
 									found := !found @ [lexpr])
 						| _ -> ())) pfs;
@@ -238,7 +238,11 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (LEList le1, LstCat,  LEList le2) -> f (LEList (le1 @ le2))
 	| LBinOp (LLit (String s1), StrCat, LLit (String s2)) -> f (LLit (String (s1 ^ s2)))
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
-	
+
+  (* List equality *)
+	| LBinOp (LLstNth (PVar x, LLit (Num 0.)), LstCons, LUnOp (Cdr, PVar y)) when (x = y) -> PVar x
+	| LBinOp (LLstNth (LVar x, LLit (Num 0.)), LstCons, LUnOp (Cdr, LVar y)) when (x = y) -> LVar x
+								
 	| LUnOp (ToStringOp, LLit (Num n)) -> LLit (String (Utils.float_to_string_inner n))
 
 	| LESet s -> 
