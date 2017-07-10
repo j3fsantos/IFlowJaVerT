@@ -1365,10 +1365,11 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 			let pfs = DynArray.of_list (pf_1_subst_list @ pf_discharges) in
 			let pf0 = DynArray.copy pf_0 in
 
- 			(*
-			Simplifications.sanitise_pfs_no_store gamma_0' pfs;
+ 			
+			Simplifications.sanitise_pfs_no_store gamma_0' pfs;  
 			(* Moving formulae on the left which contain existentials to the right *)
 
+		  
 			let to_delete = SI.empty in
 			let i = ref 0 in
 			while (!i < DynArray.length pf0) do
@@ -1381,8 +1382,8 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 					DynArray.add pfs pf
 				end
 				else i := !i + 1
-			done;
-			*)
+			done; 
+			
 
 			print_debug_petar (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
 				(Symbolic_State_Print.string_of_shallow_p_formulae pf0 false)
@@ -1434,8 +1435,8 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	)
 	with
 		| e -> (match e with
-			| SymbExecFailure failure ->
-				raise e)
+			| SymbExecFailure failure -> raise e
+			| _ -> raise e)
 
 (* get rid of the js flag here ASAP *)
 let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
