@@ -14,8 +14,8 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 							let printed_hval = string_of_literal hval false in
 							let printed_cell = Printf.sprintf "\n\"%s\": %s" prop printed_hval in
 							if (printed_obj = "") then printed_cell else ", " ^ printed_cell)
-						obj 
-						"") in 
+						obj
+						"") in
 				let printed_obj = loc ^ "-> [" ^ printed_props ^ "]\n" in
 				printed_heap ^ printed_obj)
 		h
@@ -238,11 +238,11 @@ let string_of_bi_symb_exe_results results =
 				| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
 				| Some msg -> "\n" ^ proc_name ^ "\n----------\n " ^ msg ^ "\n\n") in
 				ac_console ^ failed_msg_str
-			else 
+			else
 				ac_console)
 		""
 		results in
-	if (String.length failed_specs_str == 0) then 
+	if (String.length failed_specs_str == 0) then
 		""
 	else
 		"FAILED to generate specifications for: \n"  ^ failed_specs_str
@@ -312,13 +312,13 @@ let dot_of_search_info search_info proof_name =
  * ERROR MESSAGES
  **)
 
-let string_of_US_error us_error = 
+let string_of_US_error us_error =
 	match us_error with
 	| VariableNotInStore s ->          Printf.sprintf "Variable %s not found in store" s
 	| ValueMismatch (s, pat_le, le) -> Printf.sprintf "Value mismatch on variable %s: expected %s, got %s" s (print_lexpr pat_le) (print_lexpr le)
 	| NoSubstitution ->                Printf.sprintf "There is no substitution"
-	
-let string_of_UH_error uh_error = 
+
+let string_of_UH_error uh_error =
 	match uh_error with
 	| CannotResolvePatLocation s ->                       Printf.sprintf "Cannot find location %s in pattern heap" s
 	| CannotResolveLocation s ->                          Printf.sprintf "Cannot find location %s in symbolic heap" s
@@ -329,32 +329,32 @@ let string_of_UH_error uh_error =
 	| IllegalDefaultValue le ->                           Printf.sprintf "Illegal default value %s" (print_lexpr le)
 	| PatternHeapWithDefaultValue ->                      Printf.sprintf "Pattern heap has default values"
 	| GeneralHeapUnificationFailure ->                    Printf.sprintf "General heap unification failure"
-	
-let string_of_UG_error ug_error = 
+
+let string_of_UG_error ug_error =
 	match ug_error with
 	| NoTypeForVariable s         -> Printf.sprintf "No type found for variable %s" s
 	| VariableNotInSubstitution s -> Printf.sprintf "Variable %s not in substitution" s
 	| TypeMismatch (pv, pt, v, t) -> Printf.sprintf "Type mismatch: (%s, %s) vs (%s, %s)" pv (print_type pt) (print_lexpr v) (print_type t)
 
-let string_of_USS_error uss_error = 
+let string_of_USS_error uss_error =
 	match uss_error with
 	| CannotDischargeSpecVars -> Printf.sprintf "Cannot discharge spec vars"
 	| CannotUnifyPredicates   -> Printf.sprintf "Cannot unify predicates"
 	| ContradictionInPFS      -> Printf.sprintf "Contradiction in pure formulae"
 
-let string_of_USF_error usf_error = 
+let string_of_USF_error usf_error =
 	match usf_error with
 	| CannotSubtractPredicate s -> Printf.sprintf "Cannot subtract predicate %s" s
 	| CannotUnifyPredicates     -> Printf.sprintf "Cannot unify predicates"
 
-let string_of_FSS_error fss_error = 
+let string_of_FSS_error fss_error =
 	match fss_error with
 	| ResourcesRemain       -> Printf.sprintf "Symbolic states unified, but additional resources remain"
 	| CannotUnifySymbStates -> Printf.sprintf "Cannot unify symbolic states, entailment false"
 
-let print_failure error = 
+let print_failure error =
 	let error_message =
-	(match error with 
+	(match error with
 		| US  us_error  -> let us_error_str  = string_of_US_error  us_error  in "Unify stores: "                 ^ us_error_str
 		| UH  uh_error  -> let uh_error_str  = string_of_UH_error  uh_error  in "Unify heaps: "                  ^ uh_error_str
 		| UG  ug_error  -> let ug_error_str  = string_of_UG_error  ug_error  in "Unify gamma: "                  ^ ug_error_str
@@ -371,3 +371,6 @@ let print_failure error =
 let print_pfs pfs = string_of_shallow_p_formulae pfs false
 
 
+let print_string_of_discharge pfs =
+	let sofle le = JSIL_Print.string_of_logic_expression le false in
+	String.concat ", " (List.map (fun (le1, le2) -> "(" ^ (sofle le1) ^ ", " ^ (sofle le2) ^ ")") pfs)
