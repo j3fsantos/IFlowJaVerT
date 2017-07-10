@@ -817,10 +817,15 @@ let normalise_spec preds spec =
 	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
-		List.map (fun (x : jsil_n_single_spec) ->
-			let pre = Simplifications.simplify_ss x.n_pre (Some (Some x.n_lvars)) in
-			let post = List.map2 (fun y lvars -> Simplifications.simplify_ss y (Some (Some (SS.union x.n_lvars lvars)))) x.n_post x.n_post_lvars in
-			{ x with n_pre = pre; n_post = post }
+		List.map (fun (cur_spec : jsil_n_single_spec) ->
+			let pre = Simplifications.simplify_ss cur_spec.n_pre (Some (Some cur_spec.n_lvars)) in
+			let post = 
+				List.map2 
+					(fun post_a lvars -> 
+						Simplifications.simplify_ss post_a (Some (Some (SS.union cur_spec.n_lvars lvars)))) 
+					cur_spec.n_post 
+					cur_spec.n_post_lvars in
+			{ cur_spec with n_pre = pre; n_post = post }
 		) normalised_pre_post_list in
 	{
 		n_spec_name = spec.spec_name;
@@ -863,7 +868,15 @@ let build_spec_tbl preds prog onlyspecs =
 			onlyspecs;
 	spec_tbl
 
-
+(*
+let coalesce_overlapping_cells (symb_state : symbolic_state) (subst : substitution) : symbolic_state = 
+	let overlapping_alocs  = get_subst_vars subst is_abs_loc_name in 
+	print_debug (Printf.sprintf "Overlapping alocs: %s\n" (String.concat ", " (SS.elements overlapping_alocs) )); 
+	let alocs_substitution = filter_substitution_fun subst is_abs_loc_name in 
+	print_debug (Printf.sprintf "substitution: %s\n" (Symbolic_State_Print.string_of_substitution alocs_substitution)); 
+	let new_symb_state     = symb_state_substitution symb_state alocs_substitution true in 
+	new_symb_state 
+*)
 
 let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t =
 	print_debug "Normalising predicate definitions.\n";
@@ -873,6 +886,7 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 					let n_definitions =
 						List.map
 							(fun a ->
+										print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
 										let vars = get_assertion_vars false a in
 										let pre_normalised_as = pre_normalise_assertion a in
 										let symb_state, _ = normalise_assertion pre_normalised_as in
@@ -885,7 +899,8 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 										| true -> 
 												print_debug_petar (Printf.sprintf "Pre-Simpl Symbolic state: %s\n%s" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 												print_debug_petar (Printf.sprintf "Spec vars: %s" (String.concat ", " (SS.elements vars)));
-												let symb_state = Simplifications.simplify_ss symb_state (Some (Some vars)) in
+												let symb_state, subst = Simplifications.simplify_ss_with_subst symb_state (Some (Some vars)) in
+												(* let symb_state = coalesce_overlapping_cells symb_state subst in *)
 												print_debug_petar (Printf.sprintf "Post-Simpl Symbolic state: %s\n%s" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 												[ symb_state ]
 										| false -> 
@@ -902,3 +917,11 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 					Hashtbl.replace n_pred_defs pred_name n_pred)
 		pred_defs;
 	n_pred_defs
+
+
+
+
+
+
+
+

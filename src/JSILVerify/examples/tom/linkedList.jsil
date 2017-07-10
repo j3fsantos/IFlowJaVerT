@@ -1,0 +1,154 @@
+pred list_node(x, val, next):
+  ((x, "value") -> val) *
+  ((x, "next") -> next);
+
+pred linked_list(x, list):
+    (list == {{ }}) *
+    (x == $$null),
+
+    (list == (#item :: #items)) *
+    (list_node(x, #item, #next)) *
+    linked_list(#next, #items) *
+    types(list: $$list_type, #items: $$list_type);
+
+(** counts the number of elements in the list **)
+proc list_count (x) {
+  goto [ x = $$null ] then1 else1;
+  then1:
+    count := 0;
+    goto rlab;
+   else1:
+     z := [x, "next"];
+     count := "list_count"(z);
+     count := count + 1;
+   rlab:
+     skip
+} with { ret: count, rlab; };
+
+proc make_doubly_linked_list (list) {
+  x := "make_doubly_linked_list_helper" (list, $$null);
+  rlab:
+    skip
+} with { ret: x, rlab; };
+
+(** takes the literal list and the element to place as the head **)
+proc make_doubly_linked_list_helper (list, head) {
+  goto [list = $$nil] then1 else1;
+  then1:
+    x := $$null;
+    goto rlab;
+  else1:
+    x := new ();
+    (** can we use car here? **)
+    [x, "value"] := l-nth(list, 0);
+     y := "make_doubly_linked_list_helper" (cdr list, x);
+    [x, "next"] := y;
+    [x, "prev"] := head;
+    goto rlab;
+  rlab:
+    skip
+} with { ret: x, rlab; };
+
+(*
+
+  pred list_node(x, val, next):
+    nodes have a value and a next pointer (which can be null)
+    nodes do not inherit from anything (so have no prototype)
+
+    (x, "value") -> #val *
+    (x, "next") -> #next
+
+  pred a_list(x, list):
+     list is nil and x is null
+
+    list == {{ }} *
+    x == $$null,
+
+    or first item of list points to a list with the remainder of the list
+
+    list == #a :: #as *
+    list_node(x, #a, #next) *
+    a_list(#next, #as) *
+    types(list: $$list_type)
+
+
+
+
+
+*)
+
+
+spec make_linked_list (list)
+  [[ types(list: $$list_type, #list: $$list_type) * (list == #list) ]]
+  [[ linked_list(ret, #list) * (list == #list) ]]
+  normal
+
+(** Returns a pointer to the head of a singly-linked list **)
+proc make_linked_list (list) {
+          goto [ list = $$nil] then1 else1;
+  (** Base case **)
+  then1:  x := $$null;
+          [* fold(linked_list(x, #list)) *]
+          goto rlab;
+  (** Recurse **)
+  else1:  x := new ();
+          [x, "value"] := l-nth(list, 0);
+          y := "make_linked_list" (cdr list);
+          [x, "next"] := y;
+          [* fold(linked_list(x, #list)) *]
+          goto rlab;
+  rlab:   skip
+} with { ret: x, rlab; };
+
+(** converts a singly linked list into a doubly linked list **)
+(** takes the first element of a dynamically linked list **)
+(** returns a doubly linked list copy of the original **)
+proc singly_to_doubly_linked_list (x) {
+  y := "singly_to_doubly_linked_list_helper" (x, $$null);
+  rlab:
+    skip
+} with { ret: y, rlab; };
+
+(** traverses the list assigning the previous elements **)
+proc singly_to_doubly_linked_list_helper (x, prev) {
+  (** check for null **)
+  goto [ x = $$null] rlab notnull;
+  notnull:
+    (** create new element **)
+    newnode := new ();
+    sourcenodeval := [x, "value"];
+    [newnode, "value"] := sourcenodeval;
+    [newnode, "prev"] := prev;
+    nextsourcenode := [x, "next"];
+    nextnewnode := "singly_to_doubly_linked_list_helper" (nextsourcenode, newnode);
+    [newnode, "next"] := nextnewnode;
+  rlab:
+    skip
+} with { ret: x, rlab; };
+
+(** returns the last element in the linked list **)
+proc find_last_element_linked_list (x) {
+  next := [x, "next"];
+  goto [next = $$null] then1 else1;
+  then1: (** next element null so end of list, return x **)
+    r := x;
+    goto rlab;
+  else1: (** there is a next element, recurse **)
+    r := "find_last_element_linked_list" (next);
+    goto rlab;
+  rlab:
+    skip
+} with { ret: r, rlab; };
+
+(** should output 3 **)
+proc main () {
+  x := "make_linked_list" ({{ 1, 2, 3}});
+  y := "list_count" (x);
+  z := "singly_to_doubly_linked_list" (x);
+  a := "list_count" (z);
+  z_last := "find_last_element_linked_list" (z);
+  last_val := [z_last, "value"];
+  a := "list_count" (z);
+  rlab:
+    skip
+} with { ret: a, rlab; };

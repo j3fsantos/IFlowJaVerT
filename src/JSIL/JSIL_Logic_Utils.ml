@@ -656,16 +656,34 @@ let rec assertion_substitution a subst partial =
 			List.iter (fun (v, old_le_v) -> Hashtbl.replace subst v old_le_v) old_binders_substs;
 			LForAll (bt, new_a)
 
-	(* DO CAPTURE AVOIDING *)
 
+(* DO CAPTURE AVOIDING *)
 
-let filter_substitution subst vars =
+let get_subst_vars (subst : substitution) (filter : string -> bool) = 
+	(Hashtbl.fold 
+		(fun x le filtered_vars -> 
+			if (filter x) 
+				then filtered_vars 
+				else SS.add x filtered_vars)
+		subst
+		SS.empty)
+
+let filter_substitution (subst : substitution) (vars : SS.t) =
 	let new_subst = Hashtbl.copy subst in
 	Hashtbl.filter_map_inplace (fun v le ->
 		match (SS.mem v vars) with
 		| true -> Some le
 		| false -> None) new_subst;
 	new_subst
+
+let filter_substitution_fun (subst : substitution) (filter : string -> bool)  =
+	let new_subst = Hashtbl.copy subst in
+	Hashtbl.filter_map_inplace (fun v le ->
+		match (filter v) with
+		| true -> Some le
+		| false -> None) new_subst;
+	new_subst
+
 
 let init_substitution vars =
 	let new_subst = Hashtbl.create 31 in
@@ -686,7 +704,6 @@ let init_substitution2 vars les =
 
 	loop vars les;
 	subst
-
 
 let init_substitution3 vars_les =
 	let subst = Hashtbl.create 1021 in

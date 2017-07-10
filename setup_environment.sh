@@ -5,6 +5,7 @@ mkdir -p environment/sets
 mkdir -p environment/PQ
 mkdir -p environment/bi
 mkdir -p environment/test262
+mkdir -p environment/tom
 cp remake.sh environment
 cp test.sh environment
 cp bi_test.sh environment
@@ -21,4 +22,5 @@ cp src/JaVert/examples/PriorityQueue/*.js environment/PQ
 cp src/JSILVerify/bi_examples/*.jsil environment/bi
 cp *.native web/jsil_binaries
 cp src/JaVerT/runtime/*.jsil web/jsil_binaries
+cp src/JSILVerify/examples/tom/*.jsil environment/tom
 cp tutorial/main.pdf web/public/docs/tutorial.pdf
