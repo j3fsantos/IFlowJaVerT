@@ -4,8 +4,6 @@ open JSIL_Logic_Utils
 open Z3
 open Z3.Set
 
-let collect_garbage solver = Gc.full_major(); Solver.reset solver
-
 type encoding =
  | WithReals
  | WithFPA
@@ -44,7 +42,7 @@ type jsil_type_constructors = {
 	char_type_constructor      : FuncDecl.func_decl;
 	string_type_constructor    : FuncDecl.func_decl;
 	object_type_constructor    : FuncDecl.func_decl;
-    list_type_constructor      : FuncDecl.func_decl;
+  list_type_constructor      : FuncDecl.func_decl;
 	type_type_constructor      : FuncDecl.func_decl;
 	set_type_constructor       : FuncDecl.func_decl
 }
