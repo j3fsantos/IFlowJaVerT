@@ -93,7 +93,7 @@ proc make_linked_list (list) {
           goto rlab;
           (** Recurse **)
   else1:  x := new ();
-          [x, "value"] := l-nth(list, 0);
+          [x, "value"] := car list;
           y := "make_linked_list" (cdr list);
           [x, "next"] := y;
           [* fold(linked_list(x, #list)) *]

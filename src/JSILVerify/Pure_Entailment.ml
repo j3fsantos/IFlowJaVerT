@@ -25,6 +25,7 @@ let match_enc msg x y =
 type jsil_axiomatized_operations = {
 	llen_fun            : FuncDecl.func_decl;
 	slen_fun            : FuncDecl.func_decl;
+	car_fun             : FuncDecl.func_decl;
   cdr_fun             : FuncDecl.func_decl;
 	num2str_fun         : FuncDecl.func_decl;
 	str2num_fun         : FuncDecl.func_decl;
@@ -371,6 +372,8 @@ let axiomatised_operations =
 							[ numbers_sort; numbers_sort ] numbers_sort in
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
 							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
+  let car_fun         = FuncDecl.mk_func_decl ctx (mk_string_symb "car")
+              [ z3_jsil_list_sort ] z3_jsil_literal_sort in
   let cdr_fun         = FuncDecl.mk_func_decl ctx (mk_string_symb "cdr")
               [ z3_jsil_list_sort ] z3_jsil_list_sort in
 
@@ -381,9 +384,8 @@ let axiomatised_operations =
 		str2num_fun  = str2num_fun;
 		num2int_fun  = num2int_fun;
 		snth_fun     = snth_fun;
-
+    car_fun      = car_fun;
     cdr_fun      = cdr_fun;
-
 		lnth_fun     = lnth_fun
 	}
 
@@ -591,6 +593,8 @@ let encode_binop op le1 le2 =
 
 let encode_unop op le =
 
+	print_debug "encode_unop";
+
 	match op with
 
 	| UnaryMinus ->
@@ -627,6 +631,10 @@ let encode_unop op le =
 		let le_b      = Expr.mk_app ctx lit_operations.boolean_accessor  [ mk_singleton_access le ] in
 		let op_le_b	  = Boolean.mk_not ctx le_b in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ op_le_b ])
+
+  | Car ->
+		let le_lst        = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access le ] in
+    mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.car_fun [ le_lst ] )
 
   | Cdr ->
     let le_lst      = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access le ] in

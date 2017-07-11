@@ -29,7 +29,7 @@ let find_me_Im_a_list store pfs le =
 				(match value with
 				| LLit (LList _)
 				| LEList _ -> raise (FoundIt value)
-				| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LLstNth (PVar var, LLit (Num 0.)) && (lcdr = LUnOp (Cdr, PVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
+				| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LUnOp (Car, PVar var) && (lcdr = LUnOp (Cdr, PVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
 				| _ ->
 					if (not (List.mem value !found)) then
 					begin
@@ -52,7 +52,7 @@ let find_me_Im_a_list store pfs le =
 							(match lexpr with
 							| LLit (LList _)
 							| LEList _ -> raise (FoundIt lexpr)
-							| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LLstNth (LVar var, LLit (Num 0.)) && (lcdr = LUnOp (Cdr, LVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
+							| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LUnOp (Car, PVar var) && (lcdr = LUnOp (Cdr, LVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
 							| _ ->
 								if (not (List.mem lexpr !found)) then
 									found := !found @ [lexpr])
@@ -240,8 +240,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 
   (* List equality *)
-	| LBinOp (LLstNth (PVar x, LLit (Num 0.)), LstCons, LUnOp (Cdr, PVar y)) when (x = y) -> PVar x
-	| LBinOp (LLstNth (LVar x, LLit (Num 0.)), LstCons, LUnOp (Cdr, LVar y)) when (x = y) -> LVar x
+	| LBinOp (LUnOp (Car, PVar x), LstCons, LUnOp (Cdr, PVar y)) when (x = y) -> PVar x
+	| LBinOp (LUnOp (Car, LVar x), LstCons, LUnOp (Cdr, LVar y)) when (x = y) -> LVar x
 								
 	| LUnOp (ToStringOp, LLit (Num n)) -> LLit (String (Utils.float_to_string_inner n))
 
@@ -423,9 +423,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	(* print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false)); 
+		(JSIL_Print.string_of_logic_expression result false)); *) 
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -573,7 +573,10 @@ let rec reduce_assertion store gamma pfs a =
 	| LLess (e1, e2) ->
 		let re1 = fe e1 in
 		let re2 = fe e2 in
-		LLess (re1, re2)
+		(match re1, re2 with
+		| LUnOp (LstLen, _), LLit (Num 0.) -> LFalse
+		| LUnOp (LstLen, le), LLit (Num 1.) -> LEq (le, LEList [])
+		| _ -> LLess (re1, re2))
 
 	| LSetMem (leb, LSetUnion lle) -> 
 		let rleb = fe leb in
@@ -626,9 +629,9 @@ let rec reduce_assertion store gamma pfs a =
 			LForAll (bt, ra)
 
 	| _ -> a) in
-	print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
 		(JSIL_Print.string_of_logic_assertion a false)
-		(JSIL_Print.string_of_logic_assertion result false));
+		(JSIL_Print.string_of_logic_assertion result false)); *)
 	result
 
 let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
