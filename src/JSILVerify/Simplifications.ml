@@ -224,8 +224,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
 								
-	print_debug_petar (Printf.sprintf "Entering reduce_expression: call with %s" (print_lexpr e));
-								
 	let f = reduce_expression store gamma pfs in
 	let result = (match e with
 
@@ -348,11 +346,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* List nth *)
 	| LLstNth (e1, e2) ->
-		print_debug (Printf.sprintf "Entering l-nth: %s %s" (print_lexpr e1) (print_lexpr e2));
 		let list = f e1 in
 		let new_list = find_me_Im_a_list store pfs list in 
 		let index = f e2 in
-		print_debug (Printf.sprintf "Done reducing parameters of l-nth");
 		(match list, index with
 		| LLit (LList list), LLit (Num n) ->
 			if (Utils.is_int n) then
