@@ -23,8 +23,6 @@ let match_enc msg x y =
 type jsil_axiomatized_operations = {
 	llen_fun            : FuncDecl.func_decl;
 	slen_fun            : FuncDecl.func_decl;
-	car_fun             : FuncDecl.func_decl;
-  cdr_fun             : FuncDecl.func_decl;
 	num2str_fun         : FuncDecl.func_decl;
 	str2num_fun         : FuncDecl.func_decl;
 	num2int_fun         : FuncDecl.func_decl;
@@ -47,11 +45,10 @@ type jsil_type_constructors = {
 	set_type_constructor       : FuncDecl.func_decl
 }
 
-type jsil_value_constructors = {
+type z3_basic_jsil_value = {
+    (****************)
 	(* constructors *)
 	(****************)
-	nil_constructor       : FuncDecl.func_decl;
-	cons_constructor      : FuncDecl.func_decl;
 	undefined_constructor : FuncDecl.func_decl;
 	null_constructor      : FuncDecl.func_decl;
 	empty_constructor     : FuncDecl.func_decl;
@@ -63,6 +60,7 @@ type jsil_value_constructors = {
     type_constructor      : FuncDecl.func_decl;
     list_constructor      : FuncDecl.func_decl;
     none_constructor      : FuncDecl.func_decl;
+    (*************)
     (* accessors *)
     (*************)
     boolean_accessor      : FuncDecl.func_decl;
@@ -72,6 +70,7 @@ type jsil_value_constructors = {
     loc_accessor          : FuncDecl.func_decl;
     type_accessor         : FuncDecl.func_decl;
     list_accessor         : FuncDecl.func_decl;
+    (***************)
 	(* recognizers *)
 	(***************)
 	undefined_recognizer  : FuncDecl.func_decl;
@@ -85,6 +84,18 @@ type jsil_value_constructors = {
 	type_recognizer       : FuncDecl.func_decl;
 	list_recognizer       : FuncDecl.func_decl;
 	none_recognizer       : FuncDecl.func_decl
+}
+
+type z3_jsil_list = {
+	(** constructors **)
+	nil_constructor       : FuncDecl.func_decl;
+	cons_constructor      : FuncDecl.func_decl;
+	(** accessors    **)
+	head_accessor         : FuncDecl.func_decl; 
+	tail_accessor         : FuncDecl.func_decl; 
+	(** recognizers **)
+	nil_recognizer        : FuncDecl.func_decl;
+	cons_recognizer       : FuncDecl.func_decl
 }
 
 
@@ -165,7 +176,7 @@ let type_operations =
 	with _ -> raise (Failure ("DEATH: type_operations"))
 
 
-let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
+let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 	(* JSIL type constructors *)
 	let jsil_undefined_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Undefined") (mk_string_symb "isUndefined") [] [] [] in
@@ -233,9 +244,17 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 		let z3_jsil_literal_sort = List.nth literal_and_literal_list_sorts 0 in
 		let z3_jsil_list_sort    = List.nth literal_and_literal_list_sorts 1 in
 
-		let z3_jsil_list_constructors = Datatype.get_constructors z3_jsil_list_sort in
-		let nil_constructor           = List.nth z3_jsil_list_constructors 0 in
-		let cons_constructor          = List.nth z3_jsil_list_constructors 1 in
+		let jsil_list_constructors    = Datatype.get_constructors z3_jsil_list_sort in
+		let nil_constructor           = List.nth jsil_list_constructors 0 in
+		let cons_constructor          = List.nth jsil_list_constructors 1 in
+
+		let jsil_list_accessors       = Datatype.get_accessors z3_jsil_list_sort in
+		let head_accessor             = List.nth (List.nth jsil_list_accessors 1) 0 in
+		let tail_accessor             = List.nth (List.nth jsil_list_accessors 1) 1 in
+
+		let jsil_list_recognizers     = Datatype.get_recognizers z3_jsil_list_sort in
+		let nil_recognizer            = List.nth jsil_list_recognizers 0 in
+		let cons_recognizer           = List.nth jsil_list_recognizers 1 in
 
 		let z3_literal_constructors   = Datatype.get_constructors z3_jsil_literal_sort in
 		let undefined_constructor     = List.nth z3_literal_constructors 0 in
@@ -273,8 +292,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 		let none_recognizer           = List.nth jsil_literal_recognizers 10 in
 
 		let jsil_literal_operations   = {
-			nil_constructor       = nil_constructor;
-			cons_constructor      = cons_constructor;
+			(** constructors **)
 			undefined_constructor = undefined_constructor;
 			null_constructor      = null_constructor;
 			empty_constructor     = empty_constructor;
@@ -306,8 +324,19 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations =
 			type_recognizer       = type_recognizer;
 			list_recognizer       = list_recognizer;
 			none_recognizer       = none_recognizer
-		}  in
-		z3_jsil_literal_sort, z3_jsil_list_sort, jsil_literal_operations
+		}  in 
+		let jsil_list_operations = {
+			(** constructors **)
+			nil_constructor       = nil_constructor;
+			cons_constructor      = cons_constructor;
+			(** accessors **)
+			head_accessor         = head_accessor; 
+			tail_accessor         = tail_accessor; 
+			(** recognizers **)
+			nil_recognizer        = nil_recognizer; 
+			cons_recognizer       = cons_recognizer
+		} in
+		z3_jsil_literal_sort, z3_jsil_list_sort, jsil_literal_operations, jsil_list_operations
 	with _ -> raise (Failure ("DEATH: construction of z3_jsil_value_sort"))
 
 
@@ -370,10 +399,6 @@ let axiomatised_operations =
 							[ numbers_sort; numbers_sort ] numbers_sort in
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
 							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
-  let car_fun         = FuncDecl.mk_func_decl ctx (mk_string_symb "car")
-              [ z3_jsil_list_sort ] z3_jsil_literal_sort in
-  let cdr_fun         = FuncDecl.mk_func_decl ctx (mk_string_symb "cdr")
-              [ z3_jsil_list_sort ] z3_jsil_list_sort in
 
 	{
 		slen_fun     = slen_fun;
@@ -382,8 +407,6 @@ let axiomatised_operations =
 		str2num_fun  = str2num_fun;
 		num2int_fun  = num2int_fun;
 		snth_fun     = snth_fun;
-    car_fun      = car_fun;
-    cdr_fun      = cdr_fun;
 		lnth_fun     = lnth_fun
 	}
 
@@ -529,7 +552,7 @@ let rec encode_lit lit =
 
 		| LList lits ->
 			let args = List.map (fun lit -> mk_singleton_access (encode_lit lit)) lits in
-			let arg_list = mk_z3_list args lit_operations.nil_constructor lit_operations.cons_constructor in
+			let arg_list = mk_z3_list args list_operations.nil_constructor list_operations.cons_constructor in
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ arg_list ])
 
 	with (Failure msg) ->
@@ -565,7 +588,7 @@ let encode_binop op le1 le2 =
 
 	| LstCons  ->
 		let le2_list = Expr.mk_app ctx lit_operations.list_accessor [ mk_singleton_access le2 ] in
-		let new_list = Expr.mk_app ctx lit_operations.cons_constructor [ mk_singleton_access le1; le2_list ] in
+		let new_list = Expr.mk_app ctx list_operations.cons_constructor [ mk_singleton_access le1; le2_list ] in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ new_list ])
 
 	| SetMem ->
@@ -630,14 +653,15 @@ let encode_unop op le =
 		let op_le_b	  = Boolean.mk_not ctx le_b in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ op_le_b ])
 
-  | Car ->
-		let le_lst        = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access le ] in
-    mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.car_fun [ le_lst ] )
+  	| Cdr ->
+    	let le_lst      = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access le ] in
+    	let op_le_lst   = Expr.mk_app ctx list_operations.tail_accessor [ le_lst ] in
+    	mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ op_le_lst ])
 
-  | Cdr ->
-    let le_lst      = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access le ] in
-    let op_le_lst   = Expr.mk_app ctx axiomatised_operations.cdr_fun [ le_lst ] in
-    mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ op_le_lst ])
+    | Car ->
+    	let le_lst      = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access le ] in
+    	let op_le       = Expr.mk_app ctx list_operations.head_accessor [ le_lst ] in
+    	mk_singleton_elem op_le 
 
 	| _          ->
 		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (JSIL_Print.string_of_unop op);
@@ -667,7 +691,7 @@ let rec encode_logical_expression le =
 
 	| LEList les ->
 		let args = List.map (fun le -> mk_singleton_access (f le)) les in
-		let arg_list = mk_z3_list args lit_operations.nil_constructor lit_operations.cons_constructor in
+		let arg_list = mk_z3_list args list_operations.nil_constructor list_operations.cons_constructor in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ arg_list ])
 
 	| LLstNth (lst, index)  ->
@@ -749,7 +773,7 @@ let global_axioms =
 	(* forall x. (x = nil) \/ (llen(x) > 0) *)
 	let x         = "x" in
 	let le_x      = Expr.mk_const ctx (mk_string_symb x) z3_jsil_list_sort in
-	let a1        = Boolean.mk_eq ctx le_x (Expr.mk_app ctx lit_operations.nil_constructor []) in
+	let a1        = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_operations.nil_constructor []) in
 	let le_llen_x = Expr.mk_app ctx axiomatised_operations.llen_fun [ le_x ] in
 	let a2        = mk_lt ctx (mk_num_i 0) le_llen_x in
 	let a         = Boolean.mk_or ctx [a1; a2] in
@@ -870,6 +894,33 @@ let string_of_solver solver =
 	string_of_z3_expr_list exprs
 
 
+let make_global_axioms () = 
+	let x_name = "#x" in 
+	let lvar_x = LVar x_name in 
+  	
+  	(* forall x. 0 <= slen(x) *)
+	let slen1 = 
+		LForAll ([ (x_name, StringType)], 
+			(LLessEq ((LLit (Num 0.), LUnOp (StrLen, lvar_x))))) in 
+
+	(* forall x. 0 <= llen(x) *)
+	let llen1 = 
+		LForAll ([ (x_name, ListType)], 
+			(LLessEq ((LLit (Num 0.), LUnOp (LstLen, lvar_x))))) in 
+
+	(* forall x. (x = nil) \/ (0 < llen(x))
+	(LLess ((LLit (Num 0.), LUnop (LstLen, lvar_x)))) *)
+	let llen2 = LForAll ([ (x_name, ListType)], 
+		 LOr (((LEq (lvar_x, LLit (LList [])))), 
+		 	 LLess ((LLit (Num 0.), LUnOp (LstLen, lvar_x))))) in 
+
+	(* forall x. (car(x) = l-nth(x, 0) *)
+	let carlnth0 = LForAll ([ (x_name, ListType)], 
+		(LEq (LUnOp (Car, lvar_x), LLstNth (lvar_x, LLit (Num 0.))))) in 	
+
+	[ slen1; llen1; llen2; carlnth0 ]
+
+
 let make_list_axioms a_list =
 
 	let rec loop_nth original_les les i axioms =
@@ -920,10 +971,14 @@ let make_relevant_axioms a =
 	let a_lists      = JSIL_Logic_Utils.get_assertion_lists a in
 	let l_axioms     = List.concat (List.map make_list_axioms a_lists) in
 
-	if (List.length l_axioms > 0) then print_debug_petar (Printf.sprintf "Generated List Axioms:\n%s\n"
-	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list l_axioms) false));
+	let constant_axioms = make_global_axioms () in 
 
-	s_axioms @ l_axioms
+	(*if (List.length l_axioms > 0) then *)
+
+	print_debug_petar (Printf.sprintf "Generated Axioms:\n%s\n"
+	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list (l_axioms @ constant_axioms)) false));
+
+	s_axioms @ l_axioms @ constant_axioms
 
 let understand_satisfiability assertions gamma =
 	print_debug "Understanding unsat.";
