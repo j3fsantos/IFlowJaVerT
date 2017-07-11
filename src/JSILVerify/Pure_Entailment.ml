@@ -918,8 +918,9 @@ let make_global_axioms () =
 	let carlnth0 = LForAll ([ (x_name, ListType)], 
 		(LEq (LUnOp (Car, lvar_x), LLstNth (lvar_x, LLit (Num 0.))))) in 	
 
-	[ slen1; llen1; llen2; carlnth0 ]
+	[ slen1; llen1; llen2 ]
 
+	(* [ slen1; llen1; llen2; carlnth0 ] *)
 
 let make_list_axioms a_list =
 
