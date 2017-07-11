@@ -766,3 +766,13 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 			if (not (Hashtbl.mem gamma_l var))
 				then Hashtbl.add gamma_l var v_type)
 		gamma_r
+
+let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list = 
+	Hashtbl.fold
+		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars)) 
+		gamma
+		[]	
+
+
+
+

@@ -1170,3 +1170,16 @@ let rec isList (le : jsil_logic_expr) : bool =
 	| LBinOp (_, LstCons, le) -> isList le
 	| LBinOp (lel, LstCat, ler) -> isList lel && isList ler
 	| _ -> false)
+
+
+let concretise (a : jsil_logic_assertion) (x: string) (les : jsil_logic_expr list) : jsil_logic_assertion list = 
+	List.map 
+		(fun le -> 
+			let subst = init_substitution2 [ x ] [ le ] in 
+			assertion_substitution a subst true)
+		les 
+
+
+
+
+
