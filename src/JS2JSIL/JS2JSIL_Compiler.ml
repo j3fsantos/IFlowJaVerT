@@ -2884,7 +2884,7 @@ and translate_statement tr_ctx e  =
 		
 		let x_sc_new = fresh_scope_chain_var () in 
 		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) ~er_fid:catch_id ~sc_var:x_sc_new tr_ctx in  
-		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_2 e1 in
+		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_2 e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
 		
 		let new_loop_list = (None, end_label, tr_ctx.tr_js_lab, false) :: tr_ctx.tr_loop_list  in

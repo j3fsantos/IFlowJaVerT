@@ -1123,7 +1123,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 			new_symb_states in
 
 	(* symbolically evaluate a phi command *)
-	let symb_evaluate_phi symb_state x x_arr =
+	let symb_evaluate_phi_psi symb_state x x_arr =
 		let cur_proc_name = proc.proc_name in
 		let cur_which_pred =
 			try Hashtbl.find s_prog.which_pred (cur_proc_name, prev, i)
@@ -1134,7 +1134,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		store_put (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
-
+		
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
 	print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
@@ -1150,7 +1150,8 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 	| SCall (x, e, e_args, j) -> symb_evaluate_call symb_state x e e_args j
 
-	| SPhiAssignment (x, x_arr) -> symb_evaluate_phi symb_state x x_arr
+	| SPhiAssignment (x, x_arr) 
+	| SPsiAssignment (x, x_arr) -> symb_evaluate_phi_psi symb_state x x_arr
 
 	| _ -> raise (Failure "not implemented yet")
 

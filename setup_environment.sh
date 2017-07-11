@@ -4,6 +4,7 @@ mkdir -p environment/lists
 mkdir -p environment/sets
 mkdir -p environment/PQ
 mkdir -p environment/bi
+mkdir -p environment/test262
 mkdir -p environment/tom
 cp remake.sh environment
 cp test.sh environment
@@ -16,6 +17,7 @@ cp src/JS2JSIL/runtime/harness.js environment
 cp src/JSILVerify/examples/lists/*.jsil environment/lists
 cp src/JSILVerify/examples/sets/*.jsil environment/sets
 cp src/JaVerT/examples/*.js environment
+cp src/JaVerT/examples/test262/*.js environment/test262
 cp src/JaVert/examples/PriorityQueue/*.js environment/PQ
 cp src/JSILVerify/bi_examples/*.jsil environment/bi
 cp *.native web/jsil_binaries

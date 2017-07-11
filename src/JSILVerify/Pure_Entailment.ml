@@ -4,8 +4,6 @@ open JSIL_Logic_Utils
 open Z3
 open Z3.Set
 
-let collect_garbage solver = Gc.full_major(); Solver.reset solver
-
 type encoding =
  | WithReals
  | WithFPA
@@ -25,7 +23,6 @@ let match_enc msg x y =
 type jsil_axiomatized_operations = {
 	llen_fun            : FuncDecl.func_decl;
 	slen_fun            : FuncDecl.func_decl;
-    cdr_fun             : FuncDecl.func_decl;
 	num2str_fun         : FuncDecl.func_decl;
 	str2num_fun         : FuncDecl.func_decl;
 	num2int_fun         : FuncDecl.func_decl;
@@ -43,7 +40,7 @@ type jsil_type_constructors = {
 	char_type_constructor      : FuncDecl.func_decl;
 	string_type_constructor    : FuncDecl.func_decl;
 	object_type_constructor    : FuncDecl.func_decl;
-    list_type_constructor      : FuncDecl.func_decl;
+  list_type_constructor      : FuncDecl.func_decl;
 	type_type_constructor      : FuncDecl.func_decl;
 	set_type_constructor       : FuncDecl.func_decl
 }
@@ -402,8 +399,6 @@ let axiomatised_operations =
 							[ numbers_sort; numbers_sort ] numbers_sort in
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
 							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
-  let cdr_fun         = FuncDecl.mk_func_decl ctx (mk_string_symb "cdr")
-              [ z3_jsil_list_sort ] z3_jsil_list_sort in
 
 	{
 		slen_fun     = slen_fun;
@@ -412,9 +407,6 @@ let axiomatised_operations =
 		str2num_fun  = str2num_fun;
 		num2int_fun  = num2int_fun;
 		snth_fun     = snth_fun;
-
-    cdr_fun      = cdr_fun;
-
 		lnth_fun     = lnth_fun
 	}
 
@@ -621,6 +613,8 @@ let encode_binop op le1 le2 =
 
 
 let encode_unop op le =
+
+	print_debug "encode_unop";
 
 	match op with
 

@@ -172,7 +172,8 @@ Map.prototype.get = function getValue (key) {
 */
 Map.prototype.put = function (key, value) {
    if (isValidKey(key)) { 
-       this._contents[key] = value; 
+       var contents = this._contents;
+       contents[key] = value; 
    } else {
        throw new Error("Invalid Key")
    } 

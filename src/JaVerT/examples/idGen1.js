@@ -8,7 +8,7 @@
    sc_scope(getNewId, counter: c_val, #gni_sc) *
    sc_scope(getNewId, prefix: prefix, #gni_sc) *
    o_chains(getNewId: #gni_sc, getCurId: #gci_sc) * 
-   o_chains(getNewId: #gni_sc, getCurId: #ri_sc) * 
+   o_chains(getNewId: #gni_sc, resetId: #ri_sc) * 
    o_chains(getCurId: #gci_sc, resetId:  #ri_sc)  *
 
    types (c_val: $$number_type, prefix: $$string_type);
