@@ -16,7 +16,6 @@ let arguments () =
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
-            "-debug", Arg.Unit (fun () -> debug := true), "debug";
             
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
@@ -71,10 +70,13 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 
 	(if (complete_success) then
 		begin
+			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
 			print_normal (Printf.sprintf "ALL Succeeded in %f\n" (Sys.time()));
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
-		else (print_normal (Printf.sprintf "There were Failures in %f\n" (Sys.time()))));
+		else (
+			Printf.sprintf "There were Failures in %f\n" (Sys.time());
+			print_normal (Printf.sprintf "There were Failures in %f\n" (Sys.time()))));
 	
 	register_dot_graphs dot_graphs;
 	if (!stats) 

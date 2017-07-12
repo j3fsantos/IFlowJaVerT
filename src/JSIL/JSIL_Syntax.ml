@@ -472,7 +472,7 @@ let print_time msg =
 	print_normal (msg ^ (Printf.sprintf " Time: %f" time))
 
 let print_time_debug msg =
-  if (!debug && !im_petar) then
+  if (!im_petar) then
 		let time = Sys.time () in
 			print_debug (msg ^ (Printf.sprintf " Time: %f" time))
 		else ()
