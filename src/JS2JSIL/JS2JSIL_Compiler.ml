@@ -4617,7 +4617,7 @@ let js2jsil e offset_converter for_verification =
 			(fun f_id (_, f_params, f_body, spec) ac ->
 				Option.map_default 
 					(fun f_body -> 
-						(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
+						(* print_normal (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec); *)
 						let proc =
 							(if (f_id = main_fid)
 								then generate_main offset_converter e spec

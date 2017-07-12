@@ -40,7 +40,7 @@ let get_symb_state_lvars symb_state =
 	let symb_vars = get_symb_state_vars false symb_state in 
 	let symb_lvars = SS.filter(
 						fun var -> 
-							print_endline ("Spec Var: " ^ var);
+							(* print_normal ("Spec Var: " ^ var); *)
 							is_lvar_name var)
 					symb_vars in 
 	symb_lvars 
