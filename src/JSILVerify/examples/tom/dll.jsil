@@ -114,9 +114,11 @@ proc append_to_dll (dll, item) {
     (* PM: This gets a bit difficult from here, since last is at the end 
            and unfolding works from the start *)
   	(* Recursive helper function required just for dll_seg 
-  	   append_to_dll_seg(dll_seg, newNode) *)
+  	   along the lines of append_to_dll_seg(dll_seg, newNode) *)
   	
     goto rlab;
+  
   rlab:
     skip
+    
 } with { ret: dll, rlab; };
