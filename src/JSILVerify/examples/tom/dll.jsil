@@ -112,6 +112,8 @@ proc append_to_dll (dll, item) {
     [* fold dll_seg($$null, newNode, newNode, {{ #item }}) *]
     goto rlab;
   	
+  	(* So, this function doesn't exist, but its spec does. 
+  	   Now, you'd need to write it to match the spec. *)
   	              [* fold dll_seg($$null, #first, #last, #list) *]
   	nonemptyList: first := "append_to_dll_seg" (first, newNode);
   	
