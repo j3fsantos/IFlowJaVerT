@@ -61,11 +61,16 @@ proc create_empty_dll () {
   dll := new ();
   [dll, "first"] := $$null;
   [dll, "last"]  := $$null;
-  [* fold(dll_seg($$null, $$null, $$null, {{ }})) *]
+  [* fold (dll_seg($$null, $$null, $$null, {{ }})) *]
   goto rlab;
   rlab:
     skip
 } with { ret: dll, rlab; };
+
+only spec append_to_dll_seg(first, newNode) 
+  [[ (first == #first) * (newNode == #newNode) * dll_seg(#prev, #first, #last, #list) * dll_node(#newNode, #item, $$null, #last) * optional_object(#prev) ]]
+  [[ dll_seg(#prev, #first, #newNode, #list @ {{ #item }} ) ]]
+  normal
 
 (* Takes a dll representing a list
    and appends the item to the back of the list,
@@ -84,32 +89,33 @@ proc append_to_dll (dll, item) {
   (* Create the new node partially *)
   newNode := new ();
   [newNode, "value"] := item;
+  [newNode, "prev"] := $$null;
   [newNode, "next"] := $$null;
   
   (* Get the current state of the dll *)
   first := [dll, "first"];
   last  := [dll, "last"];
   
-  (* The last node in both cases is the new node *)
-  [dll, "last"] := newNode;
-  
+ 
   (* And only now unfold and branch *)
   [* unfold dll_seg($$null, #first, #last, #list) *]
+  [newNode, "prev"] := last;
+  
   goto [first = $$null] emptyList nonemptyList;
   
-  emptyList:   
-    (* This is the only thing to do if we had an empty dll *)
-    [newNode, "prev"] := last;
+  emptyList:
     [dll, "first"] := newNode;
+    [dll, "last"]  := newNode;
     
     (* PM: You can use program variables, so you can use newNode
            and also you already have #item from the precondition *)
-    [* fold(dll_seg($$null, newNode, newNode, {{ #item }})) *]
+    [* fold dll_seg($$null, newNode, newNode, {{ #item }}) *]
     goto rlab;
-    
-  nonemptyList:    
-    [newNode, "prev"] := last;
-  	[last, "next"] := newNode;
+  	
+  	              [* fold dll_seg($$null, #first, #last, #list) *]
+  	nonemptyList: first := "append_to_dll_seg" (first, newNode);
+  	
+  	[dll, "last"] := newNode;
   	
     (* PM: This gets a bit difficult from here, since last is at the end 
            and unfolding works from the start *)
