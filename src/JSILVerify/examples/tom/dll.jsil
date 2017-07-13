@@ -1,14 +1,20 @@
+(* PM: null_type has only one inhabitant and for such types, 
+       it's enough to give the type and the simplifications will
+       automatically put in that the corresponding variable in 
+       fact has value $$null *)
 pred optional_object(obj):
-  (obj == $$null) * types(obj: $$null_type),
-
+  types(obj: $$null_type),
   types(obj: $$object_type);
 
+(* PM: You don't have to do ...(node = #node)... for predicate 
+       parameters in predicate definitions. You should do it
+       in the specifications (pre-, postconditions) *)
 pred dll_node(node, val, next, prev):
-  (node == #node) * (val == #val) * (next == #next) * (prev == #prev) *
-  ((#node, "value") -> #val) *
-  ((#node, "next") -> #next) *
-  ((#node, "prev") -> #prev) *
-  ((#node, "@proto") -> $$null);
+  types(node : $$object_type) *
+  ((node, "value")  -> val) *
+  ((node, "next")   -> next) *
+  ((node, "prev")   -> prev) *
+  ((node, "@proto") -> $$null);
 
 (* prev: the predecessor of the first item of the list segment *)
 (*       in general, this may or may not be null *)
@@ -17,41 +23,45 @@ pred dll_node(node, val, next, prev):
 (* list: the literal list described by the list segment *)
 pred dll_seg(prev, first, last, list):
   (* Empty List *)
-  (first == #first) * (last == #last) * (list == #list) *
-  types(#first: $$null_type, #last: $$null_type, #list: $$list_type) *
-  (list == {{ }}) *
-  (#first == $$null) * (#last == $$null),
+  (* PM: I didn't have any information on prev here - will I need it? *)
+  types(prev: $$null_type, first: $$null_type, last: $$null_type, list: $$list_type) *
+  (list == {{ }}),
 
   (* Singleton List *)
-  (prev == #prev) * (first == #first) * (last == #last) * (list == #list) * (#list == (#item :: #items)) *
-  types(#first: $$object_type, #last: $$object_type, #list: $$list_type, #items: $$list_type) *
-  optional_object(#prev) *
-  (#items == {{ }}) *
-  (#first == #last) *
-  dll_node(#first, #item, $$null, #prev),
+  (* PM: You can use the literal list notation to say that there's only one element,
+         you don't need to do #item :: #items. *)
+  (list == {{ #item }}) *
+  types(first: $$object_type, last: $$object_type, list: $$list_type) *
+  optional_object(prev) *
+  (first == last) *
+  dll_node(first, #item, $$null, prev),
 
   (* Multiple Items in List *)
-  (prev == #prev) * (first == #first) * (last == #last) * (list == #list) * (#list == (#item :: #items)) *
-  types(#first: $$object_type, #last: $$null_type, #list: $$list_type, #items: $$list_type) *
-  optional_object(#prev) *
-  (!(#first == #last)) *
-  dll_node(#first, #item, #next, #prev) *
-  dll_seg(#first, #next, #last, #items);
+  (list == (#item :: #items)) *
+  types(first: $$object_type, last: $$object_type, list: $$list_type, #items: $$list_type) *
+  optional_object(prev) *
+  (! (first == last)) *
+  dll_node(first, #item, #next, prev) *
+  dll_seg(first, #next, last, #items);
 
-pred dll_list(first, last, list):
+pred dll_list(dll, first, last, list):
+  ((dll, "first")  -> first) *
+  ((dll, "last")   -> last) * 
+  ((dll, "@proto") -> $$null) * 
   dll_seg($$null, first, last, list);
 
 (* Creates an object, with fields for first and last elements of an empty doubly linked list *)
 spec create_empty_dll ()
-  [[ true ]]
-  [[ ((ret, "first") -> #first) * ((ret, "last") -> #last) * ((ret, "@proto") -> $$null) * dll_seg($$null, #first, #last, $$nil) ]]
+  (* PM: emp, not true - you don't need any resource *)
+  [[ emp ]]
+  [[ dll_list(ret, $$null, $$null, {{ }}) ]]
   normal
 
 proc create_empty_dll () {
   dll := new ();
   [dll, "first"] := $$null;
-  [dll, "last"] := $$null;
-  [* fold(dll_seg($$null, #first, #last, $$nil)) *]
+  [dll, "last"]  := $$null;
+  [* fold(dll_seg($$null, $$null, $$null, {{ }})) *]
   goto rlab;
   rlab:
     skip
@@ -60,30 +70,36 @@ proc create_empty_dll () {
 (* Takes a dll representing a list
    and appends the item to the back of the list,
    returning a dll representing (list @ [item]) *)
-spec append_to_dll (item, dll, list)
-  [[ ((dll, "first") -> #first) * ((dll, "last") -> #last) * ((dll, "@proto") -> $$null) * (list == #list) * (item == #item) * dll_seg($$null, #first, #last, #list) ]]
-  [[ ((ret, "first") -> #first) * ((ret, "last") -> #last) * ((ret, "@proto") -> $$null) * dll_seg($$null, #first, #last, (#list @ #item)) ]]
+spec append_to_dll (dll, item)
+  (* PM: You've unfolded dll manually - the input and output of 
+         this procedure should be a dll, and then you unfold *)
+  [[ (item == #item) * (dll == #dll) * dll_list(#dll, #first, #last, #list) ]]
+  [[ dll_list(#dll, #new_first, #new_last, (#list @ {{ #item }})) ]]
   normal
 
-proc append_to_dll (item, dll, list) {
-  goto [list = $$nil] emptyList nonemptyList;
+proc append_to_dll (dll, item) {
+
+  [* unfold dll_seg($$null, #first, #last, #list) *]
+  first := [dll, "first"];
+  goto [first = $$null] emptyList nonemptyList;
+  
   emptyList:
     (* create a new object, assigning the item to it.
        set first and last to it *)
+    (* PM: I think that the new node you're creating should be in dll? *)
     newNode := new ();
     [newNode, "value"] := item;
     [newNode, "next"] := $$null;
     [newNode, "prev"] := $$null;
+    
     [dll, "first"] := newNode;
     [dll, "last"] := newNode;
-
-    (* have to define these as variables to reference them in the fold? *)
-    first := [dll, "first"];
-    last := [dll, "last"];
-    list := {{ item }};
-
-    [* fold(dll_seg($$null, first, last, list)) *]
+    
+    (* PM: You can use program variables, so you can use dll
+           and also you already have #item from the precondition *)
+    [* fold(dll_seg($$null, newNode, newNode, {{ #item }})) *]
     goto rlab;
+    
   nonemptyList:
     (* save pointer to first, we want to keep this *)
     first := [dll, "first"];

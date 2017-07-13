@@ -75,7 +75,7 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
 		else (
-			Printf.sprintf "There were Failures in %f\n" (Sys.time());
+			Printf.printf "There were Failures in %f\n" (Sys.time());
 			print_normal (Printf.sprintf "There were Failures in %f\n" (Sys.time()))));
 	
 	register_dot_graphs dot_graphs;

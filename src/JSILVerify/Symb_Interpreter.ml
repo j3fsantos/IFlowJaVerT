@@ -747,7 +747,7 @@ let unfold_predicates
 	let calling_store = store_init params args in
 
   let unfolded_pred_defs = List.map (fun pred_symb_state ->
-		print_debug (Printf.sprintf "Current Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
+		print_debug (Printf.sprintf "-----------------------\nCurrent Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
 		print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 		Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars) pred_defs in
 		
@@ -773,7 +773,8 @@ let unfold_predicates
 				Some (unfolded_symb_state, new_spec_vars, new_search_info)) unfolded_pred_defs in
 	
 	let unfolded_pred_defs = List.filter (fun x -> x <> None) unfolded_pred_defs in
-	List.map (fun x -> Option.get x) unfolded_pred_defs
+	print_debug (Printf.sprintf "In the end, %d unfoldings succeeded." (List.length unfolded_pred_defs));
+	List.rev (List.map (fun x -> Option.get x) unfolded_pred_defs)
 		
 let recursive_unfold 
 				(pred_name  : string) 
