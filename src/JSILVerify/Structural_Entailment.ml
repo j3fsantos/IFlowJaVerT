@@ -106,10 +106,17 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 								print_debug_petar (Printf.sprintf "No substitution, cannot unify stores.");
 								raise (SymbExecFailure (US NoSubstitution))
 						| Some subst ->
-							print_debug_petar (Printf.sprintf "I could not resolve the location and I am creating a new location.");
-							let new_aloc = fresh_aloc () in
-							extend_subst subst lvar (ALoc new_aloc);
-							extend_subst pat_subst pat_aloc (ALoc new_aloc);
+							(match (Hashtbl.mem pat_subst pat_aloc) with
+							| false -> 
+									print_debug_petar (Printf.sprintf "I could not resolve the location and I am creating a new location.");
+									let new_aloc = fresh_aloc () in
+									extend_subst subst lvar (ALoc new_aloc);
+									extend_subst pat_subst pat_aloc (ALoc new_aloc)
+							| true -> 
+									print_debug_petar (Printf.sprintf "I could not resolve the location but I have one already.");
+									let new_aloc = Hashtbl.find pat_subst pat_aloc in
+									extend_subst subst lvar new_aloc
+							);
 							discharges))
 
 				| LLit lit, LVar lvar ->

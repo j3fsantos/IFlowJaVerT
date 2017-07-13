@@ -79,40 +79,43 @@ spec append_to_dll (dll, item)
 
 proc append_to_dll (dll, item) {
 
-  [* unfold dll_seg($$null, #first, #last, #list) *]
+  (* PM: This is independent of the unfold *)
+    
+  (* Create the new node partially *)
+  newNode := new ();
+  [newNode, "value"] := item;
+  [newNode, "next"] := $$null;
+  
+  (* Get the current state of the dll *)
   first := [dll, "first"];
+  last  := [dll, "last"];
+  
+  (* The last node in both cases is the new node *)
+  [dll, "last"] := newNode;
+  
+  (* And only now unfold and branch *)
+  [* unfold dll_seg($$null, #first, #last, #list) *]
   goto [first = $$null] emptyList nonemptyList;
   
-  emptyList:
-    (* create a new object, assigning the item to it.
-       set first and last to it *)
-    (* PM: I think that the new node you're creating should be in dll? *)
-    newNode := new ();
-    [newNode, "value"] := item;
-    [newNode, "next"] := $$null;
-    [newNode, "prev"] := $$null;
-    
+  emptyList:   
+    (* This is the only thing to do if we had an empty dll *)
+    [newNode, "prev"] := last;
     [dll, "first"] := newNode;
-    [dll, "last"] := newNode;
     
-    (* PM: You can use program variables, so you can use dll
+    (* PM: You can use program variables, so you can use newNode
            and also you already have #item from the precondition *)
     [* fold(dll_seg($$null, newNode, newNode, {{ #item }})) *]
     goto rlab;
     
-  nonemptyList:
-    (* save pointer to first, we want to keep this *)
-    first := [dll, "first"];
-    (* change the pointer to first to the next element *)
-    (* so we can iterate along the list *)
-    next := [first, "next"];
-    [dll, "first"] := next;
-    (* move down the list *)
-    appendedDll := append_to_dll (item, dll, cdr list);
-    dll := appendedDll;
-    (* this new dll will have the correct last pointer *)
-    (* all we need to do is restore the value of the first pointer *)
-    [dll, "first"] := first;
+  nonemptyList:    
+    [newNode, "prev"] := last;
+  	[last, "next"] := newNode;
+  	
+    (* PM: This gets a bit difficult from here, since last is at the end 
+           and unfolding works from the start *)
+  	(* Recursive helper function required just for dll_seg 
+  	   append_to_dll_seg(dll_seg, newNode) *)
+  	
     goto rlab;
   rlab:
     skip
