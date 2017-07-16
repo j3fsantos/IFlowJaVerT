@@ -1137,6 +1137,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
 		
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
+	let symb_state = Symbolic_State_Utils.collect_garbage symb_state in
 	print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;

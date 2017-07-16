@@ -2,7 +2,7 @@
 
  @toprequires (emp)
  @topensures (scope(q: #q) * scope(r: #r) *
-  Queue(#q, #pq_proto, #node_proto, #some_pri, 2) *
+  Queue(#q, #pq_proto, #node_proto, #some_pri, 3) *
   standardObject(#r) * dataField(#r, "pri", 3) *
   dataField(#r, "val", #some_val) *
   (ret == $$undefined))
@@ -144,7 +144,7 @@ PriorityQueue = (function () {
    /**
     @id  PriorityQueue
 
- @pre (
+	@pre (
         ((this, "_head") -> None) *
         ((this, "enqueue") -> None) *
         ((this, "dequeue") -> None) *
@@ -252,7 +252,9 @@ PriorityQueue = (function () {
 })();
 
 var q = new PriorityQueue();
-q.enqueue(1, "last");
-q.enqueue(3, "bar");
-q.enqueue(2, "foo");
+q.enqueue(2, "last");
+q.enqueue(4, "bar");
+q.enqueue(3, "foo");
+var r = q.dequeue();
+q.enqueue(1, "baz");
 var r = q.dequeue();

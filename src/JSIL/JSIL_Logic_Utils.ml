@@ -330,6 +330,33 @@ let rec get_expr_vars catch_pvars e : SS.t =
 			let v_e2 = f e2 in
 				SS.union v_e1 v_e2
 
+let rec get_locs_expr e : SS.t =
+	let f = get_locs_expr in
+	match e with
+	| ALoc l -> SS.singleton l
+	| LLit _
+	| ALoc _
+	| LNone 
+	| LUnknown 
+	| LVar _
+	| PVar _ -> SS.empty
+	| LUnOp (_, e1) -> f e1
+	| LTypeOf e1 -> f e1
+	| LEList le_list
+	| LESet le_list
+	| LSetUnion le_list
+	| LSetInter le_list
+	| LCList le_list -> 
+			List.fold_left (fun ac e -> 
+				let v_e = f e in
+					SS.union ac v_e) SS.empty le_list	
+	| LBinOp (e1, _, e2) 
+	| LLstNth (e1, e2)
+	| LStrNth (e1, e2) -> 
+			let v_e1 = f e1 in
+			let v_e2 = f e2 in
+				SS.union v_e1 v_e2
+
 let rec get_assertion_vars catch_pvars a : SS.t = 
 	let f = get_assertion_vars catch_pvars in
 	let fe = get_expr_vars catch_pvars in
@@ -383,6 +410,45 @@ let rec get_assertion_vars catch_pvars a : SS.t =
 			let v_a1 = f a1 in
 			let binders, _ = List.split bt in
 			SS.diff v_a1 (SS.of_list binders))
+	in result
+
+let rec get_locs_assertion a : SS.t = 
+	let f = get_locs_assertion in
+	let fe = get_locs_expr in
+	let result = (match a with
+	| LTrue
+	| LFalse 
+	| LEmp 
+	| LTypes _ 
+	| LEmptyFields _ -> SS.empty
+	| LNot a1 -> f a1
+	| LAnd (a1, a2) 
+	| LOr (a1, a2)
+	| LStar (a1, a2) -> 
+			let v_a1 = f a1 in
+			let v_a2 = f a2 in
+			SS.union v_a1 v_a2
+	| LEq (e1, e2)
+	| LLess (e1, e2)
+	| LLessEq (e1, e2)
+	| LStrLess (e1, e2) -> 
+			let v_e1 = fe e1 in
+			let v_e2 = fe e2 in
+			SS.union v_e1 v_e2
+	| LPointsTo (e1, e2, e3) -> 
+			let v_e1 = fe e1 in
+			let v_e2 = fe e2 in
+			let v_e3 = fe e3 in
+			SS.union v_e1 (SS.union v_e2 v_e3)
+	| LPred (_, es) -> 
+			List.fold_left (fun ac e -> 
+				let v_e = fe e in
+					SS.union ac v_e) SS.empty es
+	| LSetMem (elem, s) -> SS.union (fe elem) (fe s)
+	| LSetSub (s1, s2)  -> SS.union (fe s1) (fe s2) 
+	(* CAREFUL, BINDERS *)
+	| LForAll (_, a1) -> 
+			f a1)
 	in result
 
 let get_assertion_list_vars assertions catch_pvars =
@@ -873,15 +939,12 @@ let rec type_lexpr gamma le =
 				| Equal -> (Some BooleanType, true, constraints)
 				| LstCons -> check_valid_type t2 [ ListType ] ListType []
 				| SetMem -> check_valid_type t2 [ SetType ] BooleanType []
-				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR"))
+				| _     -> print_normal (Printf.sprintf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op)); raise (Failure "ERROR"))
 			| true -> 
 			(match op with
 			| Equal -> 
-				(	
-					Printf.printf "typing the jsil equality. t1: %s. t2: %s.\n"
-						(JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2); 
+					print_normal (Printf.sprintf "typing the jsil equality. t1: %s. t2: %s.\n" (JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2));
 					check_valid_type t1 all_types BooleanType []
-				)
 			| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType ] BooleanType []
 			| LessThanString -> check_valid_type t1 [ StringType ] BooleanType []
 			| Plus	| Minus	| Times	| Mod -> check_valid_type t1 [ NumberType ] t1 []
@@ -896,7 +959,7 @@ let rec type_lexpr gamma le =
 			| SetDiff -> check_valid_type t1 [ SetType ] SetType     []
 			| SetSub   -> check_valid_type t1 [ SetType ] BooleanType []
 			| _ ->
-				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
+				print_normal (Printf.sprintf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1));
 				raise (Failure "ERROR in type_lexpr")))
 		| _, ot2 ->
 			match op with

@@ -174,6 +174,19 @@ let heap_vars catch_pvars heap : SS.t =
 			let v_def = JSIL_Logic_Utils.get_expr_vars catch_pvars e_def in
 			SS.union ac (SS.union v_fv v_def))
 		heap SS.empty
+		
+let get_locs_heap heap : SS.t =
+	LHeap.fold
+		(fun _ (fv_list, e_def) ac ->
+			let v_fv = List.fold_left
+				(fun ac (e_field, e_val) ->
+					let v_f = JSIL_Logic_Utils.get_locs_expr e_field in
+					let v_v = JSIL_Logic_Utils.get_locs_expr e_val in
+						SS.union ac (SS.union v_f v_v))
+				SS.empty fv_list in
+			let v_def = JSIL_Logic_Utils.get_locs_expr e_def in
+			SS.union ac (SS.union v_fv v_def))
+		heap SS.empty
 
 let heap_as_list (heap : symbolic_heap) = 
 	LHeap.fold 
@@ -295,7 +308,12 @@ let store_vars catch_pvars store =
 	Hashtbl.fold (fun _ e ac -> 
 		let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
 		SS.union ac v_e) store SS.empty
-		
+
+let get_locs_store store =
+	Hashtbl.fold (fun _ e ac -> 
+		let v_e = JSIL_Logic_Utils.get_locs_expr e in
+		SS.union ac v_e) store SS.empty
+
 let store_pvars store : SS.t = 
 	Hashtbl.fold (fun v _ ac -> SS.add v ac) store SS.empty
 
@@ -399,6 +417,10 @@ let get_pf_vars catch_pvars pfs =
 		let v_a = JSIL_Logic_Utils.get_assertion_vars catch_pvars a in
 		SS.union ac v_a) SS.empty pfs
 
+let get_locs_pfs pfs =
+	DynArray.fold_left (fun ac a ->
+		let v_a = JSIL_Logic_Utils.get_locs_assertion a in
+		SS.union ac v_a) SS.empty pfs
 
 (*************************************)
 (** Predicate Set functions         **)
@@ -491,7 +513,13 @@ let get_preds_vars catch_pvars preds : SS.t =
 			SS.union ac v_e) SS.empty les in
 		SS.union ac v_les) SS.empty preds
 
-
+let get_locs_preds preds : SS.t =
+	DynArray.fold_left (fun ac (_, les) ->
+		let v_les = List.fold_left (fun ac e ->
+			let v_e = JSIL_Logic_Utils.get_locs_expr e in
+			SS.union ac v_e) SS.empty les in
+		SS.union ac v_les) SS.empty preds
+		
 (*************************************)
 (** Symbolic State functions        **)
 (*************************************)
