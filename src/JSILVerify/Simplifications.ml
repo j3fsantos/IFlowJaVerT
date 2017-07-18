@@ -460,6 +460,7 @@ let rec reduce_assertion store gamma pfs a =
 			f (LAnd (LNot al, LNot ar))
 	| LNot (LAnd (al, ar)) -> 
 			f (LOr (LNot al, LNot ar))
+	| LNot (LEq (ALoc l1, ALoc l2)) when (l1 <> l2) -> LTrue
 	| LNot a1 ->
 		let ra1 = f a1 in
 		let a' = LNot ra1 in

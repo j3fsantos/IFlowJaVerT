@@ -79,8 +79,13 @@ proc create_empty_dll () {
        (didn't know you could do this) *)
 spec append_to_dll_seg(first, newNode)
   [[ (first == $$null) * (newNode == #newNode) *
-     dll_seg(#prev, $$null, $$null, {{ }}) * dll_node(#newNode, #item, $$null, $$null) * optional_object(#prev) ]]
-  [[ dll_seg($$null, #newNode, #newNode, {{ #item }} ) ]]
+     dll_seg(#prev, $$null, $$null, {{ }}) * dll_node(#newNode, #item, $$null, #new_prev) * optional_object(#prev) * optional_object(#new_prev) ]]
+  [[ dll_seg(#new_prev, #newNode, #newNode, {{ #item }} ) ]]
+  normal;
+
+  [[ (first == #first) * (newNode == #newNode) * types(#first : $$object_type) *
+     dll_seg(#prev, #first, #last, #list) * dll_node(#newNode, #item, $$null, #last) * optional_object(#prev) ]]
+  [[ dll_seg(#prev, #first, #newNode, #list @ {{ #item }} ) ]]
   normal;
 
   [[ (first == #first) * (newNode == #newNode) * types(#first : $$object_type) *
@@ -100,28 +105,16 @@ proc append_to_dll_seg (first, newNode) {
     (* Appending to an empty list = folding matching with a singleton list *)
     first := newNode; (* TP: When you change first do you also change #first? *)
 
-    [* fold dll_seg($$null, #newNode, #newNode, {{ #item }} ) *]
+    [* fold dll_seg(#new_prev, #newNode, #newNode, {{ #item }} ) *]
 
     goto rlab;
 
   nonemptyList:
 
     next := [first, "next"];
-    goto [next = $$null] singletonList normalList;
-
-  singletonList:
-
-    (* Appending to a singleton list = folding matching with a normal list *)
-    [first, "next"] := newNode;
-
-    [* fold dll_seg(#prev, #first, #newNode, #list @ {{ #item }} ) *]
-
-    goto rlab;
-
-  normalList:
 
     (* All the links to elements prevs are already there and we dont modify them *)
-    newNext := "append_to_dll" (next, newNode);
+    newNext := "append_to_dll_seg" (next, newNode);
     [first, "next"] := newNext;
 
     (* ^Do we need to fold/unfold dll_node when modifying this? *)
