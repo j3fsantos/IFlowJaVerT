@@ -272,7 +272,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| true -> LESet []
 			| false -> LSetInter (SLExpr.elements s'))
 
-	| LBinOp (le1, SetDiff, le2) when (f le1 = f le2) -> LESet [] 
+	| LBinOp (le1, SetDiff, le2) when (f le1 = f le2) -> LESet []
+	| LBinOp (le1, SetDiff, LESet []) -> f le1 
 
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
