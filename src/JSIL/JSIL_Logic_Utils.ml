@@ -634,7 +634,7 @@ let rec assertion_substitution a subst partial =
 	| LTypes types ->
 		let s_types = List.map (fun (le, te) -> ((fe le), te)) types in
 		LTypes s_types
-	| LEmptyFields (obj, lstr) -> LEmptyFields (fe obj, lstr)
+	| LEmptyFields (obj, lstr) -> LEmptyFields (fe obj, fe lstr)
 	| LStrLess (e1, e2) -> LStrLess ((fe e1), (fe e2))
 	| LStar (a1, a2) -> LStar ((fa a1), (fa a2))
 	| LSetMem (e1, e2) -> LSetMem ((fe e1), (fe e2))
