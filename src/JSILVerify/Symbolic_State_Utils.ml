@@ -280,9 +280,18 @@ let update_abs_heap (heap : symbolic_heap) (loc : string) (e_field : jsil_logic_
 		(e_val : jsil_logic_expr) (p_formulae : pure_formulae) (gamma : typing_environment) =
 	let fv_list, domain = try LHeap.find heap loc with _ -> [], None in
 	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae gamma in
+
 	match field_val_pair, i_am_sure_the_field_does_not_exist with
 	| Some _, _
-	| None, true -> LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, domain)
+	| None, true -> 
+		let new_domain = (match domain with 
+		| None -> None 
+		| Some domain -> 
+			let new_domain = LSetUnion [ domain; LESet [ e_field ]] in 
+			let new_domain = normalise_lexpr gamma new_domain in
+			let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 
+			Some new_domain) in 
+		LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, new_domain)
 	| None, false ->
 		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field false) loc in
 			raise (Failure msg)			
