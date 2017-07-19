@@ -87,7 +87,7 @@ pred Cell_o (l, prop, d) :
 
 pred ErrorObject (l, pr) :
 	types (l : $$object_type, pr : $$object_type) *
-	((l, "@proto") -> pr) * ((l, "@class") -> "Error") * ((l, "@extensible") -> $$t) * empty_fields(l : "@proto", "@class", "@extensible");
+	((l, "@proto") -> pr) * ((l, "@class") -> "Error") * ((l, "@extensible") -> $$t) * empty_fields(l : -{ "@proto", "@class", "@extensible" }-);
 
 pred isTypeError(l) :
     ErrorObject (l, $lterr_proto);
@@ -166,7 +166,7 @@ spec copy_object (l, fields)
 	[[ (l == #l) * (fields == #fields) *
 	   (#fields == {{ #f }}) * isNamedProperty(#f) *
 	   ((#l, #f) -> #v) * isNamedProperty (#f) ]]
-	[[ ((#l, #f) -> #v) * ((ret, #f) -> #v) * ((ret, "@proto") -> $$null) * empty_fields(ret : "@proto", #f) ]]
+	[[ ((#l, #f) -> #v) * ((ret, #f) -> #v) * ((ret, "@proto") -> $$null) * empty_fields(ret : -{ "@proto", #f }-) ]]
 	normal;
 
 	[[ (l == #l) * (fields == #fields) *
@@ -174,7 +174,7 @@ spec copy_object (l, fields)
 	   ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) ]]
 	[[ ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) * (! (#f1 == "main")) *
 	   ((ret, #f1) -> #v1) * ((ret, "main") -> #v2) * ((ret, "@proto") -> $$null) 
-	   * empty_fields(ret : "@proto", #f1, "main") ]]
+	   * empty_fields(ret : -{ "@proto", #f1, "main" }-) ]]
 	normal
 
 proc copy_object (l, fields) {
@@ -237,29 +237,29 @@ spec create_default_object (l, pr, cl, ext)
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type) * (#cl == $$undefined) * (#ext == $$undefined) *
-	   empty_fields(#l : ) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) * empty_fields(#l : "@proto", "@class", "@extensible") *
+	   empty_fields(#l : -{}-) ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) * empty_fields(#l : -{"@proto", "@class", "@extensible"}-) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) *
-        empty_fields(#l : ) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) * empty_fields(#l : "@proto", "@class", "@extensible") *
+        empty_fields(#l : -{ }-) ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) * empty_fields(#l : -{ "@proto", "@class", "@extensible" }-) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type) * (#cl == $$undefined) * (#ext == $$undefined) *
-	   ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) * empty_fields(#l : "@proto", "@class", "@extensible") *
+	   ((#l, "@proto") -> $$null) * empty_fields(#l : -{ "@proto" }-) ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) * empty_fields(#l : -{ "@proto", "@class", "@extensible" }-) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) *
-       ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) * empty_fields(#l : "@proto", "@class", "@extensible") *
+       ((#l, "@proto") -> $$null) * empty_fields(#l : -{ "@proto" }-) ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) * empty_fields(#l : -{ "@proto", "@class", "@extensible" }-) *
 	   (ret == #l) ]]
     normal
 
@@ -285,31 +285,31 @@ spec create_object_with_call_construct (l, call, construct, len)
 
     [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
 	   types(#l : $$object_type, #call : $$string_type, #construct: $$string_type, #len : $$number_type) *
-       ((#l, "@proto") -> $$null) * empty_fields(#l : "@proto") ]]
+       ((#l, "@proto") -> $$null) * empty_fields(#l : -{ "@proto" }-) ]]
     [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
 	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
 	   ((#l, "@call") -> #call) * ((#l, "@construct") -> #construct) *
-	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct") *
+	   empty_fields(#l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct" }-) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (call == #call) * (construct == $$empty) * (len == #len) *
 	   types(#l : $$object_type, #call : $$string_type, #len : $$number_type) *
-       empty_fields (#l : ) ]]
+       empty_fields (#l : -{}-) ]]
     [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
 	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
 	   ((#l, "@call") -> #call) *
-	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call") *
+	   empty_fields(#l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call" }-) *
 	   (ret == #l) ]]
     normal;
     
     [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
 	   types(#l : $$object_type, #call : $$string_type, #len : $$number_type, #construct: $$string_type) *
-       empty_fields (#l : ) ]]
+       empty_fields (#l : -{}-) ]]
     [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
 	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
 	   ((#l, "@call") -> #call) * ((#l, "@construct") -> #construct) *
-	   empty_fields(#l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct") *
+	   empty_fields(#l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct" }-) *
 	   (ret == #l) ]]
     normal
 
@@ -340,7 +340,7 @@ pred function_object (l, xsc, call, construct, len, prototype) :
 	((l, "caller") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) *
 	((l, "arguments") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) *
 	((l, "prototype") -> {{ "d", prototype, $$t, $$f, $$f }}) *
-	empty_fields(l : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "caller", "arguments", "prototype");
+	empty_fields(l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "caller", "arguments", "prototype" }-);
 
 spec create_function_object (xsc, call, construct, params)
     [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * 
@@ -349,7 +349,7 @@ spec create_function_object (xsc, call, construct, params)
 	   function_object(ret, #xsc, #call, #construct, #len, prototype) * (#len == l-len #params) *
 	   ((prototype, "@proto") -> $lobj_proto) * ((prototype, "@class") -> "Object") * ((prototype, "@extensible") -> $$t) *
 	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
-	   empty_fields(prototype : "@proto", "@class", "@extensible", "constructor") ]]
+	   empty_fields(prototype : -{ "@proto", "@class", "@extensible", "constructor" }-) ]]
     normal
 
 proc create_function_object (xsc, call, construct, params) {
@@ -766,25 +766,25 @@ pred initialHeapPre () :
     (($lg,      "@class") -> None) * 
     (($lg, 	    "@proto") -> None) * 
     (($lg, "@extensible") -> None) *
-    empty_fields ( $lobj_proto : ) * empty_fields ($lfun_proto : ) * empty_fields ($lerr : ) * empty_fields ($lerr_proto : ) * 
-    empty_fields ( $lop_hasOwnProperty : );
+    empty_fields ($lobj_proto : -{}-) * empty_fields ($lfun_proto : -{ }-) * empty_fields ($lerr : -{ }-) * empty_fields ($lerr_proto : -{ }-) * 
+    empty_fields ( $lop_hasOwnProperty : -{ }-);
     
 pred initialHeapPost () :
     (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * 
 	
 	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * 
     (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }}) *
-    empty_fields ( $lobj_proto : "@class", "@proto", "@extensible", "hasOwnProperty" ) * 
+    empty_fields ( $lobj_proto : -{ "@class", "@proto", "@extensible", "hasOwnProperty" }- ) * 
 	(($lop_hasOwnProperty, "@class") -> "Function") * (($lop_hasOwnProperty, "@proto") -> $lfun_proto)                 * (($lop_hasOwnProperty, "@extensible") -> $$t) *
-	(($lop_hasOwnProperty, "@scope") -> $$empty)    * (($lop_hasOwnProperty, "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * empty_fields($lop_hasOwnProperty : "@proto", "@class", "@extensible", "@scope", "length", "@call") *
+	(($lop_hasOwnProperty, "@scope") -> $$empty)    * (($lop_hasOwnProperty, "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * empty_fields($lop_hasOwnProperty : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call" }-) *
 	
     (($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
-	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : "@proto", "@class", "@extensible", "@scope", "length", "@call") *	
+	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call" }-) *	
 	(($lerr,       "@class") -> "Function") * (($lerr,       "@proto") -> $lfun_proto) * (($lerr,       "@extensible") -> $$t) *
 	(($lerr,       "@scope") -> $$empty)    * (($lerr,       "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lerr,       "@call") -> "Error_call") * 
-	(($lerr, "@construct") -> "Error_construct") * (($lerr,  "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * empty_fields($lerr : "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "prototype") *
+	(($lerr, "@construct") -> "Error_construct") * (($lerr,  "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * empty_fields($lerr : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "prototype" }-) *
 	(($lerr_proto, "@class") -> "Error")   * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@extensible") -> $$t) * 
-	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : "@class", "@proto", "@extensible", "message");
+	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : -{ "@class", "@proto", "@extensible", "message" }-);
 	
 	
 	
