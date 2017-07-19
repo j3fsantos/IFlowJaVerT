@@ -101,7 +101,6 @@ let rec replace_nle_with_lvars pfs nle =
 			let lhs = replace_nle_with_lvars pfs le in
 			let rhs = replace_nle_with_lvars pfs le' in
 			let lhs_string = string_of_logic_expression lhs false in
-			print_endline (Printf.sprintf "LVAR LHS: %s " lhs_string);
 			(LBinOp (lhs, op, rhs)))
 	| LUnOp (op, le) -> 
 		(match find_me_in_the_pi pfs nle with 

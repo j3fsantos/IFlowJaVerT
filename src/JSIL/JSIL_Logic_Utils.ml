@@ -1055,7 +1055,7 @@ let is_sensible_subst subst gamma_source gamma_target =
 			| _, _ -> ()))
 		subst;
 	true
-	with (Failure msg) -> print_endline (Printf.sprintf "%s" msg); false
+	with (Failure msg) -> print_normal (Printf.sprintf "is_sensible_subst threw an exception: %s" msg); false
 
 
 (** Turns a logical expression into an assertions.

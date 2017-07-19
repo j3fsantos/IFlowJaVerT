@@ -884,7 +884,7 @@ let print_model solver =
 		let str_model = Model.to_string model in
 		print_debug (Printf.sprintf "I found the model: \n\n%s" str_model)
 	| None ->
-		print_debug "No model found."
+		print_debug ("No model found.")
 
 let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in
@@ -915,8 +915,6 @@ let make_global_axioms list_vars string_vars =
 	let carlnth0_s = JSIL_Logic_Utils.concretise carlnth0 x_name list_vars in 	
 
 	slen1_s @ llen1_s @ llen2_s @ carlnth0_s
-
-	(* [ slen1; llen1; llen2; carlnth0 ] *)
 
 let make_list_axioms a_list =
 
@@ -1063,9 +1061,6 @@ let check_entailment (existentials : SS.t)
 		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
 		   (Symbolic_State_Print.string_of_gamma gamma));
 
-		let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
-		let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in 
-
 		let existentials, left_as, right_as, gamma =
 			Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
 		let right_as = Simplifications.simplify_equalities_between_booleans right_as in
@@ -1075,6 +1070,9 @@ let check_entailment (existentials : SS.t)
 		if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
 		(* If left or right are directly false, everything is false *)
 		if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
+
+		let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
+		let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in 
 
 		let left_as = DynArray.to_list left_as in
 		let right_as = DynArray.to_list right_as in
@@ -1133,11 +1131,11 @@ let check_entailment (existentials : SS.t)
 			let ret = (ret = Solver.UNSATISFIABLE) in
 			ret)
 		else (
-			print_time_debug "check_entailment done: false. OUTER";
+			print_time_debug ("check_entailment done: false. OUTER");
 			false)
 	) with
 	| Failure _ ->
-			print_debug_petar "CHECK_ENTAILMENT_FAILURE, RETURNING FALSE";
+			print_debug_petar ("CHECK_ENTAILMENT_FAILURE, RETURNING FALSE");
 			false
 
 

@@ -454,20 +454,28 @@ let im_petar = ref true
 let debug = ref false
 let newencoding = ref false
 
-let print_debug msg =
-	if (!debug) then (print_endline msg)
+let output_file = open_out "normalOutput.txt"
+let output_file_debug = open_out "debugOutput.txt"
+
+let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
+let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
+				
+let close_output_files () = 
+	close_out output_file;
+	close_out output_file_debug
 
 let print_debug_petar msg =
-	if (!im_petar && !debug) then (print_endline msg)
+	if (!im_petar) then (print_debug msg) else ()
 
 let print_time msg =
 	let time = Sys.time () in
-	print_endline (msg ^ (Printf.sprintf " Time: %f" time))
+	print_normal (msg ^ (Printf.sprintf " Time: %f" time))
 
 let print_time_debug msg =
-    if (!debug && !im_petar) then
-	(let time = Sys.time () in
-	print_endline (msg ^ (Printf.sprintf " Time: %f" time)))
+  if (!im_petar) then
+		let time = Sys.time () in
+			print_debug (msg ^ (Printf.sprintf " Time: %f" time))
+		else ()
 
 (* SETS *)
 
@@ -553,8 +561,8 @@ let update_statistics (fname : string) (time : float) =
 		else Hashtbl.add statistics fname [ time ]
 
 let process_statistics () =
-	print_endline "\n STATISTICS \n ========== \n";
-	print_endline (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length check_sat_cache));
+	print_normal "\n STATISTICS \n ========== \n";
+	print_normal (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length check_sat_cache));
 	(* Process each item in statistics table *)
 	Hashtbl.iter (fun f lt ->
 		(* Calculate average, min, max *)
@@ -569,8 +577,8 @@ let process_statistics () =
 			ac +. t) 0. lt;
 		avg := !tot/.len;
 		std := ((List.fold_left (fun ac t -> ac +. (!avg -. t) ** 2.) 0. lt) /. len) ** 0.5;
-		print_endline (Printf.sprintf "\t%s\n" f);
-		print_endline (Printf.sprintf "Tot: %f\tCll: %d\nMin: %f\tMax: %f\nAvg: %f\tStd: %f\n" !tot (int_of_float len) !min !max !avg !std)) statistics
+		print_normal (Printf.sprintf "\t%s\n" f);
+		print_normal (Printf.sprintf "Tot: %f\tCll: %d\nMin: %f\tMax: %f\nAvg: %f\tStd: %f\n" !tot (int_of_float len) !min !max !avg !std)) statistics
 (**/**)
 
 (* Interactive mode *)

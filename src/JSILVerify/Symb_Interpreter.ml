@@ -917,7 +917,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 					symb_state_add_predicate_assertion symb_state (pred_name, args);
 					[ symb_state, new_spec_vars, new_search_info ]
 				| _ ->
-					print_endline (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+					print_normal (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 					let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in
 					raise (Failure msg)))
 		| _ ->
@@ -931,7 +931,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 			let params, pred_defs, args = get_pred_data pred_name les in
 			let unfolded_predicate = unfold_predicates pred_name pred_defs symb_state params args spec_vars search_info in
 			if ((List.length unfolded_predicate) = 0) then (
-				print_endline (Printf.sprintf "\nCould not unfold: %s" pred_name);
+				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);
 				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a false) in
 				raise (Failure msg))
 			else unfolded_predicate
@@ -963,8 +963,8 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
 
 		(* symbolically evaluate the args *)
-		Printf.printf "The arguments to the callspec are the following:\n%s\n"
-			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args)); 
+		print_normal (Printf.sprintf "The arguments to the callspec are the following:\n%s\n"
+			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args))); 
 		let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le) l_args in
 		let _, new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
 
@@ -1005,7 +1005,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 	| Assert a ->
 		let existentials  = get_assertion_lvars a in
 		let existentials  = SS.diff existentials spec_vars in
-		Printf.printf "Assert with: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
+		print_normal (Printf.sprintf "Assert with: %s\n" (JSIL_Print.string_of_logic_assertion a false)); 
 		let new_symb_state, _       = Normaliser.normalise_postcondition a subst spec_vars (get_gamma symb_state) in
 		let new_symb_state          = Simplifications.simplify_ss new_symb_state (Some (Some spec_vars)) in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in			
@@ -1042,7 +1042,7 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		let cmd = get_proc_cmd proc i in
 		let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
 		let time = Sys.time() in
-		print_endline (Printf.sprintf
+		print_normal (Printf.sprintf
 			"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------"
 			i time symb_state_str cmd_str) in
 
@@ -1063,13 +1063,13 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (get_pf_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
 		if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) a_le_then (get_gamma symb_state)) then
-			(print_endline "in the THEN branch";
+			(print_normal "in the THEN branch";
 			symb_evaluate_next_cmd s_prog proc spec search_info symb_state i j)
 			else (if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) a_le_else (get_gamma symb_state)) then
-					(print_endline "in the ELSE branch";
+					(print_normal "in the ELSE branch";
 					symb_evaluate_next_cmd s_prog proc spec search_info symb_state i k)
 				else
-					(print_endline "Could NOT determine the branch.";
+					(print_normal "Could NOT determine the branch.";
 
 					let then_symb_state = symb_state in
 					let then_search_info = search_info in
@@ -1248,7 +1248,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 					(* Invariant present, check if the current symbolic state entails the invariant *)
 					| Some a ->
 						(* check if the current symbolic state entails the invariant *)
-						Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
+						print_normal (Printf.sprintf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false)); 
 						let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 						let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
 						let _ = Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js in ()
@@ -1266,7 +1266,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						| Some a ->
 							let inv_lvars = get_assertion_lvars a in
 							let new_spec_vars_for_later = SS.union inv_lvars spec.n_lvars in
-							Printf.printf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false); 
+							print_normal (Printf.sprintf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false)); 
 							let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
 							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in			
 							(match (Structural_Entailment.grab_resources symb_state new_symb_state spec.n_lvars inv_lvars) with
@@ -1310,7 +1310,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 *)
 let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 	let sep_str = "----------------------------------\n" in
-	print_endline (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
+	print_normal (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
 
 	let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
 	let search_info = make_symb_exe_search_info node_info pruning_info i in
@@ -1331,7 +1331,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 			| SymbExecFailure failure -> Symbolic_State_Print.print_failure failure
 			| Failure msg -> msg
 			| _ -> raise e) in
-			(print_endline (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
+			(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
 			Symbolic_Traces.create_info_node_from_error search_info msg;
 			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
 			false, Some msg)) in
@@ -1422,6 +1422,6 @@ let sym_run_procs prog procs_to_verify spec_table which_pred pred_defs =
 						                      else count_prunings := !count_prunings + 1) l) pruning_info_list
 			)
 		spec_table;
-	print_endline (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
+	print_normal (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" !count_verified !count_prunings);
 	(* Return *)
 	results_str, dot_graphs, complete_success, results

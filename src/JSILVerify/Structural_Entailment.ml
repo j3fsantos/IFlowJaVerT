@@ -832,7 +832,7 @@ let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) : unit =
 				)
 			)
 			pat_gamma;
-		Printf.printf "I unified the gammas successfully!!!!\n";
+		print_normal "I unified the gammas successfully.\n";
 		let end_time = Sys.time () in
 			JSIL_Syntax.update_statistics "unify_gamma" (end_time -. start_time);
 	) with
@@ -1791,7 +1791,7 @@ let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe
 					(match is_unifiable with
 					| true ->
 							activate_post_in_post_pruning_info symb_exe_info proc_name i;
-							print_endline (Printf.sprintf "Verified one spec of proc %s" proc_name)
+							print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name)
 					| false -> loop rest_posts (i + 1) recovery_options)) with
 				| SymbExecFailure failure ->
 						print_debug "Failure in unify_symb_state_against_post";
