@@ -371,8 +371,10 @@ let unify_symb_fv_lists (pat_loc     : string)
 
 	let unify_explicit_none_against_default_none (pat_field : jsil_logic_expr) 
 		(pat_val : jsil_logic_expr) (domain : jsil_logic_expr option) = 
-		match pat_val, domain with 
-		| LNone, Some domain -> 
+		let (b_pv, unifier) = unify_lexprs pat_val LNone p_formulae gamma subst in
+		match b_pv, domain with 
+		| true, Some domain 
+			when Symbolic_State_Utils.update_subst1 subst unifier ->
 			let a_set_inclusion = LNot (LSetMem (pat_field, domain)) in 
 			if (Pure_Entailment.check_entailment SS.empty (pfs_to_list p_formulae) [ a_set_inclusion ] gamma)
 				then (
