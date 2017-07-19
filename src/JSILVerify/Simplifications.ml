@@ -207,6 +207,11 @@ let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 		| _ -> (se, true))
 
 
+let all_set_literals lset = List.fold_left (fun x le -> 
+	(match le with
+	| LESet _ -> x
+	| _ -> false)) true lset 
+
 (**
 	Reduction of expressions: everything must be IMMUTABLE
 
@@ -249,17 +254,15 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	
 	| LSetUnion s ->
 			let s' = List.map f s in
-			let s' = SLExpr.of_list s' in
-			let s' = SLExpr.fold (fun s ac ->
-				(match s with
-				| LESet [] -> ac 
-				| LSetUnion s'' -> SLExpr.union ac (SLExpr.of_list s'')
-				| _ -> SLExpr.add s ac)) s' (SLExpr.empty) in
-			let potential_result = SLExpr.elements s' in
-			(match potential_result with
-			| [] -> LESet []
-			| [ only_one ] -> only_one
-			| _ -> LSetUnion potential_result)
+			if (all_set_literals s') then (
+				print_debug "LSetUnion simpl";
+				let all_elems = List.fold_left (fun ac le -> 
+					(match le with | LESet lst -> ac @ lst)) [] s' in
+				let all_elems = SLExpr.elements (SLExpr.of_list all_elems) in
+				f (LESet all_elems)
+			) 
+		else
+			LSetUnion s'		
 				
 	| LSetInter s ->
 			let s' = List.map f s in
@@ -268,6 +271,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			(match is_empty_there with
 			| true -> LESet []
 			| false -> LSetInter (SLExpr.elements s'))
+
+	| LBinOp (le1, SetDiff, le2) when (f le1 = f le2) -> LESet [] 
 
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
@@ -419,9 +424,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	(* print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false)); *) 
+		(JSIL_Print.string_of_logic_expression result false)); 
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
