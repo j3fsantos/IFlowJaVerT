@@ -412,6 +412,15 @@ let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr opti
 	(pfs : pure_formulae) (gamma : typing_environment)
 		: symbolic_field_value_list * (jsil_logic_expr option) =
 
+	let q_fv_list_strs = List.map 
+		(fun (field, value) -> 
+			let field_str = JSIL_Print.string_of_logic_expression field false in 
+			let value_str = JSIL_Print.string_of_logic_expression value false in 
+			"(" ^ field_str ^ ", " ^ value_str ^ ")") q_fv_list in 
+	let q_fv_list_str = String.concat ", " q_fv_list_strs in 
+	print_debug (Printf.sprintf "caralho unify_domains: q_fv_list: %s\n" q_fv_list_str);
+
+
 	let rec find_missing_none (missing_field : jsil_logic_expr) 
 			(none_q_v_list : symbolic_field_value_list) (traversed_none_q_v_list : symbolic_field_value_list) = 
 		(match none_q_v_list with 
@@ -425,21 +434,32 @@ let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr opti
 		(match fields_to_find with 
 		| [] -> none_q_v_list
 		| f_name :: rest_fields -> 
+			print_debug (Printf.sprintf "I need to find %s caralho\n" (JSIL_Print.string_of_logic_expression f_name false)); 
 			let rest_none_q_v_list = find_missing_none f_name none_q_v_list [] in 
 			find_missing_nones rest_fields (rest_none_q_v_list @ none_q_v_list)) in  
 
 	let rec unify_some_domains dom pat_dom = 
-		let new_q_v_list, none_q_v_list = List.partition (fun (field, value) -> (value = LNone)) q_fv_list in 
+		let none_q_v_list, new_q_v_list = List.partition (fun (field, value) -> (value = LNone)) q_fv_list in 
 		let s_pat_dom = lexpr_substitution pat_dom subst true in 
-		let domain_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (s_pat_dom, SetDiff, dom)) in 
+		let domain_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (dom, SetDiff, s_pat_dom)) in 
 		let domain_difference = Simplifications.reduce_expression_no_store gamma pfs domain_difference in 
-		let domain_difference = 
-		(match domain_difference with
-		| LESet domain_difference -> domain_difference
-		| _                       -> 
-			raise (SymbExecFailure (Impossible "this is quite possible - but for the moment, it stays like this. unify_domains - illegal set subtraction"))) in
+		
+		let domain_frame_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (s_pat_dom, SetDiff, dom)) in 
+		let domain_frame_difference = Simplifications.reduce_expression_no_store gamma pfs domain_frame_difference in 
+		let domain_difference, domain_frame_difference = 
+		(match domain_difference, domain_frame_difference with
+			| LESet domain_difference, LESet domain_frame_difference -> domain_difference, domain_frame_difference
+			| _                       -> 
+				raise (SymbExecFailure (Impossible "this is quite possible - but for the moment, it stays like this. unify_domains - illegal set subtraction"))) in
+		
+		let none_q_v_list_strs = List.map (fun (field, value) -> JSIL_Print.string_of_logic_expression field false) none_q_v_list in 
+		let none_q_v_list_str = String.concat ", " none_q_v_list_strs in 
+		print_debug (Printf.sprintf "caralho none_q_v_list: %s\n" none_q_v_list_str); 
+
 		let non_matched_none_fields = find_missing_nones domain_difference none_q_v_list in 
-		new_q_v_list @ non_matched_none_fields in 
+		let new_none_q_v_list = List.map (fun le -> (le, LNone)) domain_frame_difference in 
+
+		new_q_v_list @ non_matched_none_fields @ new_none_q_v_list in 
 
 	match dom, pat_dom with 
 	| None, None             -> q_fv_list, None 
