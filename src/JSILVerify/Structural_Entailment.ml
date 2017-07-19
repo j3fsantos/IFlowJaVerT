@@ -380,8 +380,8 @@ let unify_symb_fv_lists (pat_loc     : string)
 					let new_domain = Symbolic_State_Utils.normalise_lexpr gamma new_domain in
 					let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 
 					Some new_domain
-				) else raise (SymbExecFailure (Impossible "Could not prove none-cell not in domain"))
-		| _, _ -> raise (SymbExecFailure (Impossible "Could not prove none-cell not in domain")) in 
+				) else raise (SymbExecFailure (Impossible (Printf.sprintf "Could not prove none-cell not in domain : #1 : %s not in %s with pat_val %s" (print_lexpr pat_field) (print_lexpr domain) (print_lexpr pat_val))))
+		| _, _ -> raise (SymbExecFailure (Impossible (Printf.sprintf "Could not prove none-cell not in domain : #2 : %s not in %s with pat_val %s" (print_lexpr pat_field) (Option.map_default print_lexpr "No domain" domain) (print_lexpr pat_val)))) in 
 
 	let rec loop (fv_list : symbolic_field_value_list) (pat_list : symbolic_field_value_list) 
 		(matched_fv_list : symbolic_field_value_list) (discharges : symbolic_discharge_list) (cur_domain : jsil_logic_expr option) =
