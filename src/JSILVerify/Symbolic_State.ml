@@ -16,7 +16,7 @@ module LHeap = Hashtbl.Make(
 
 type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
-type symbolic_heap             = (symbolic_field_value_list * jsil_logic_expr) LHeap.t
+type symbolic_heap             = (symbolic_field_value_list * (jsil_logic_expr option)) LHeap.t
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
@@ -64,12 +64,13 @@ let heap_init () =
 let heap_get (heap : symbolic_heap) (loc : string) =
 	try Some (LHeap.find heap loc) with _ -> None
 
-let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (def : jsil_logic_expr) =
+let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (def : jsil_logic_expr option) =
 	LHeap.replace heap loc (fv_list, def)   
 
+(* I am not sure what to do with the domain... *)
 let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
-	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
-	LHeap.replace heap loc (((field, value) :: fv_list), def_val)
+	let fv_list, domain = try LHeap.find heap loc with _ -> ([], None) in  
+	LHeap.replace heap loc (((field, value) :: fv_list), domain)
 
 let heap_remove (heap : symbolic_heap) (loc : string) =
 	LHeap.remove heap loc  
@@ -99,7 +100,7 @@ let heap_copy heap = LHeap.copy heap
 let heap_substitution (heap : symbolic_heap) (subst : substitution) (partial : bool) =
 	let new_heap = LHeap.create 1021 in
 	LHeap.iter
-		(fun loc (fv_list, def) ->
+		(fun loc (fv_list, domain) ->
 			let s_loc =
 				(try Hashtbl.find subst loc
 					with _ ->
@@ -117,14 +118,14 @@ let heap_substitution (heap : symbolic_heap) (subst : substitution) (partial : b
 					| _ ->
 						raise (Failure (Printf.sprintf "Heap substitution failed miserably: %s" (JSIL_Print.string_of_logic_expression s_loc false)))) in
 			let s_fv_list = fv_list_substitution fv_list subst partial in
-			let s_def = JSIL_Logic_Utils.lexpr_substitution def subst partial in
-			LHeap.add new_heap s_loc (s_fv_list, s_def))
+			let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst partial) domain in
+			LHeap.add new_heap s_loc (s_fv_list, s_domain))
 		heap;
 	new_heap
 
 let heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
   LHeap.iter
-  	(fun loc (fv_list, def) ->
+  	(fun loc (fv_list, domain) ->
   		let s_loc =
   			(try Hashtbl.find subst loc
   				with _ ->
@@ -138,13 +139,13 @@ let heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
   		let s_fv_list = fv_list_substitution fv_list subst true in
-  		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
-  		LHeap.replace heap s_loc (s_fv_list, s_def))
+  		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst true) domain in
+  		LHeap.replace heap s_loc (s_fv_list, s_domain))
   	heap
 		
 let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
   LHeap.iter
-  	(fun loc (fv_list, def) ->
+  	(fun loc (fv_list, domain) ->
   		let s_loc =
   			(try Hashtbl.find subst loc
   				with _ ->
@@ -158,31 +159,34 @@ let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substit
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
   		let s_fv_list = fv_list in (* selective_fv_list_substitution fv_list subst true in *)
-  		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
-  		LHeap.replace heap s_loc (s_fv_list, s_def))
+  		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst true) domain in
+  		LHeap.replace heap s_loc (s_fv_list, s_domain))
   	heap
 
-let heap_vars catch_pvars heap : SS.t =
+let heap_vars (catch_pvars : bool) (heap : symbolic_heap) : SS.t =
 	LHeap.fold
-		(fun _ (fv_list, e_def) ac ->
+		(fun _ (fv_list, domain) ac ->
 			let v_fv = List.fold_left
 				(fun ac (e_field, e_val) ->
 					let v_f = JSIL_Logic_Utils.get_expr_vars catch_pvars e_field in
 					let v_v = JSIL_Logic_Utils.get_expr_vars catch_pvars e_val in
 						SS.union ac (SS.union v_f v_v))
 				SS.empty fv_list in
-			let v_def = JSIL_Logic_Utils.get_expr_vars catch_pvars e_def in
-			SS.union ac (SS.union v_fv v_def))
+			let v_domain = 
+				Option.map_default 
+					(fun domain -> JSIL_Logic_Utils.get_expr_vars catch_pvars domain)
+					SS.empty domain in 
+			SS.union ac (SS.union v_fv v_domain))
 		heap SS.empty
 
-let heap_as_list (heap : symbolic_heap) = 
+let heap_as_list (heap : symbolic_heap) : (string * (symbolic_field_value_list * (jsil_logic_expr option))) list = 
 	LHeap.fold 
-		(fun loc (fv_list, def) heap_as_list -> 
-			((loc, (fv_list, def)) :: heap_as_list))
+		(fun loc (fv_list, domain) heap_as_list -> 
+			((loc, (fv_list, domain)) :: heap_as_list))
 		heap
 		[]
 		
-let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * jsil_logic_expr) -> unit) = 
+let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * (jsil_logic_expr option) -> unit)) = 
 	LHeap.iter f heap
 
 let is_heap_empty (heap : symbolic_heap) (js : bool) : bool =
@@ -624,7 +628,7 @@ let get_symb_state_vars catch_pvars symb_state =
 	let v_pr : SS.t = get_preds_vars catch_pvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
 
-let get_symb_state_vars_no_gamma catch_pvars symb_state : SS.t =
+let get_symb_state_vars_no_gamma (catch_pvars : bool) (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let v_h  : SS.t = heap_vars catch_pvars heap in
 	let v_s  : SS.t = store_vars catch_pvars store in

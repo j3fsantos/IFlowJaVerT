@@ -6,6 +6,8 @@ let js = ref false
 
 let print_le = (fun x -> JSIL_Print.string_of_logic_expression x false)
 
+let domain_from_single_lit lit = Some (LESet [ (LLit (String lit)) ])
+
 (**********************)
 (* Symbolic Execution *)
 (**********************)
@@ -256,7 +258,7 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 	*)
 	| SNew x ->
 		let new_loc = fresh_aloc () in
-		Symbolic_State_Utils.update_abs_heap_default heap new_loc LNone;
+		Symbolic_State_Utils.update_abs_heap_default heap new_loc (domain_from_single_lit JS2JSIL_Constants.internalProtoFieldName);
 		Symbolic_State_Utils.update_abs_heap heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null) pure_formulae (* solver *) gamma;
 		store_put store x (ALoc new_loc);
 		update_gamma gamma x (Some ObjectType);
@@ -876,7 +878,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 		let pred = get_pred s_prog.pred_defs pred_name in
 		let args =
 			List.map
-				(fun le -> Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) subst le)
+				(fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le)
 				les in
 		let params = pred.n_pred_params in
 		let pred_defs = pred.n_pred_definitions in
@@ -963,7 +965,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 		(* symbolically evaluate the args *)
 		Printf.printf "The arguments to the callspec are the following:\n%s\n"
 			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args)); 
-		let le_args = List.map (fun le -> Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) subst le) l_args in
+		let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le) l_args in
 		let _, new_symb_states = find_and_apply_spec s_prog.program spec_name proc_specs symb_state le_args in
 
 		(if ((List.length new_symb_states) = 0)
@@ -986,7 +988,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		print_time "LIf.";
-		let le' = Normaliser.normalise_lexpr (get_store symb_state) (get_gamma symb_state) (init_substitution []) le in
+		let le' = Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) (get_gamma symb_state) le in
 		let e_le', a_le' = lift_logic_expr le' in
 		let a_le_then =
 			match e_le', a_le' with

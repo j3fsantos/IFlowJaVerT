@@ -33,15 +33,12 @@ let string_of_symb_fv_list fv_list escape_string =
 		""
 		fv_list
 
-let string_of_shallow_symb_heap heap escape_string =
+let string_of_shallow_symb_heap (heap : symbolic_heap) (escape_string : bool) =
 	LHeap.fold
-		(fun loc (fv_pairs, default_value) ac ->
+		(fun loc (fv_pairs, domain) ac ->
 			let str_fv_pairs = string_of_symb_fv_list fv_pairs escape_string in
-			let default_value_str = "(default: " ^ (string_of_logic_expression default_value escape_string) ^ ")" in
-			let symb_obj_str =
-				(if (str_fv_pairs = "")
-					then loc ^ " |-> [" ^  default_value_str ^ "]"
-					else loc ^ " |-> [" ^  str_fv_pairs ^ ", " ^ default_value_str ^ "]") in
+			let domain_str = Option.map_default (fun le -> string_of_logic_expression le escape_string) "" domain in
+			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "]" in
 			if (ac = "\n\t") then (ac ^ symb_obj_str) else ac ^ "\n\t" ^ symb_obj_str)
 		heap
 		"\n\t"

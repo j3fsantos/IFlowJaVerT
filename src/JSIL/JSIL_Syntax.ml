@@ -258,13 +258,13 @@ type jsil_logic_assertion =
 	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
 	| LForAll           of (jsil_var * jsil_type) list * jsil_logic_assertion      (** Forall *)
 	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
-	| LEmptyFields	    of jsil_logic_expr * (jsil_logic_expr list)                (** emptyFields assertion *)
+	| LEmptyFields	    of jsil_logic_expr * jsil_logic_expr                       (** emptyFields assertion *)
 	| LEq			    of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
 	| LLess			    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for numbers *)
 	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than-or-equal for numbers *)
-	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                           (** Expression less-than for strings *)
-	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                           (** Set membership *)
-	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                           (** Set subsetness *)
+	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for strings *)
+	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)
+	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *)
 
 
 (** {b JSIL logic predicate}. *)

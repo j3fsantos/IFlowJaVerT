@@ -100,15 +100,15 @@ type js_logic_expr =
 	| JSLVar				of string
 	| JSALoc				of string
 	| JSPVar				of string
-	| JSLBinOp			of js_logic_expr * jsil_binop * js_logic_expr
+	| JSLBinOp				of js_logic_expr * jsil_binop * js_logic_expr
 	| JSLUnOp				of jsil_unop * js_logic_expr
-	| JSLTypeOf			of js_logic_expr
-	| JSLEList      of js_logic_expr list
-	| JSLESet       of js_logic_expr list
-	| JSLLstNth     of js_logic_expr * js_logic_expr
-	| JSLStrNth     of js_logic_expr * js_logic_expr
-	| JSLSetUnion   of js_logic_expr list
-	| JSLSetInter   of js_logic_expr list
+	| JSLTypeOf				of js_logic_expr
+	| JSLEList      		of js_logic_expr list
+	| JSLESet       		of js_logic_expr list
+	| JSLLstNth     		of js_logic_expr * js_logic_expr
+	| JSLStrNth     		of js_logic_expr * js_logic_expr
+	| JSLSetUnion   		of js_logic_expr list
+	| JSLSetInter   		of js_logic_expr list
 	| JSLUnknown
 	| JSLThis 
 
@@ -142,7 +142,7 @@ type js_logic_assertion =
 	| JSOSChains            of string * js_logic_expr * string * js_logic_expr
 	| JSFunObj      		of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
 	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
-	| JSEmptyFields			of js_logic_expr * (js_logic_expr list)
+	| JSEmptyFields			of js_logic_expr * js_logic_expr 
 	| JSLSetMem  	        of js_logic_expr * js_logic_expr              
 	| JSLSetSub  	        of js_logic_expr * js_logic_expr       
 
@@ -351,10 +351,9 @@ let rec js2jsil_logic
 					LLit (String x), 
 					LEList [ LLit (String "d"); (fe le); LLit (Bool true); LLit (Bool true); LLit (Bool false) ]))
 	
-	| JSEmptyFields (e, les) ->
-		let non_nones = List.map (fun e -> fe e) les in
+	| JSEmptyFields (e, domain) ->
 		let js_nones = List.map (fun f_name -> LLit (String f_name)) js_obj_internal_fields in 
-		LEmptyFields (fe e, js_nones @ non_nones) 
+		LEmptyFields (fe e, LSetUnion [ fe domain; (LESet js_nones) ] ) 
 	
 	| JSFunObj (id, f_loc, f_prototype, f_sc) -> 
 		let cur_fid = get_fid (Some (Option.default main_fid cur_fid)) in 

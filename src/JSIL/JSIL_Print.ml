@@ -286,8 +286,8 @@ let rec string_of_logic_assertion a escape_string =
 		(* types(e1:t1, ..., en:tn) *)
 		| LTypes type_list -> Printf.sprintf "types(%s)"
 			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
-		| LEmptyFields (obj, les) -> 
-			Printf.sprintf "empty_fields(%s : %s)" (sle obj) (String.concat ", " (List.map sle les))
+		| LEmptyFields (obj, domain) -> 
+			Printf.sprintf "empty_fields(%s : %s)" (sle obj) (sle domain)
 		(* e1 --e-- e2 *)
 		| LSetMem (e1, e2) -> Printf.sprintf "(%s --e-- %s)" (sle e1) (sle e2)
 		(* e1 --s-- e2 *)

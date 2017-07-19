@@ -7,10 +7,10 @@ spec test0 (y)
    normal
 proc test0 (y) {
   		   x := new ();
-  		   goto [y] then else; 
-   then:   [x, "cenoura"] := "maria";
+  		   goto [y] then1 else1; 
+   then1:   [x, "cenoura"] := "maria";
            goto rlab; 
-   else:   [x, "cenoura"] := "jose"; 
+   else1:   [x, "cenoura"] := "jose"; 
    rlab:   skip
 } with { ret: x, rlab; };
 
@@ -22,10 +22,10 @@ spec test1 (y)
    normal
 proc test1 (y) {
   		   x := new ();
-  		   goto [y] then else; 
-   then:   [x, "cenoura"] := "maria";
+  		   goto [y] then1 else1; 
+   then1:   [x, "cenoura"] := "maria";
            goto rlab; 
-   else:   [x, "cenoura"] := "jose"; 
+   else1:   [x, "cenoura"] := "jose"; 
    rlab:   skip
 } with { ret: x, rlab; };
 
@@ -37,10 +37,10 @@ spec test2 (y)
    normal
 proc test2 (y) {
   		   x := new ();
-  		   goto [y] then else; 
-   then:   [x, "cenoura"] := "maria";
+  		   goto [y] then1 else1; 
+   then1:   [x, "cenoura"] := "maria";
            goto rlab; 
-   else:   [x, "cenoura"] := "jose"; 
+   else1:   [x, "cenoura"] := "jose"; 
    rlab:   skip
 } with { ret: x, rlab; };
 
@@ -52,9 +52,9 @@ spec test3 (y)
    normal
 proc test3 (y) {
   		   x := new ();
-  		   goto [y] then else; 
-   then:   [x, "cenoura"] := "maria";
+  		   goto [y] then1 else1; 
+   then1:   [x, "cenoura"] := "maria";
            goto rlab; 
-   else:   [x, "cenoura"] := "jose"; 
+   else1:   [x, "cenoura"] := "jose"; 
    rlab:   skip
 } with { ret: x, rlab; };

@@ -155,7 +155,7 @@ let rec get_assertion_literals a =
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) 
 	| LSetMem (le1, le2) | LSetSub (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
-	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
+	| LEmptyFields (e, domain) -> (fe e) @ (fe domain)
 	
 
 let rec get_logic_expression_lists le =
@@ -183,7 +183,7 @@ let rec get_assertion_lists a =
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) 
 	| LStrLess (le1, le2) | LSetMem (le1, le2) | LSetSub (le1, le2) -> (fe le1) @ (fe le2)
 	| LPred (_, les) -> List.concat (List.map fe les)
-	| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les)
+	| LEmptyFields (e, domain) -> (fe e) @ (fe domain)
 
 
 
@@ -226,7 +226,7 @@ let get_assertion_lvars a : JSIL_Syntax.SS.t =
 		| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
 		| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
 		| LPred (_, les) -> List.concat (List.map fe les)
-		| LEmptyFields (e, les) -> (fe e) @ List.concat (List.map fe les) in
+		| LEmptyFields (e, domain) -> (fe e) @ (fe domain) in
 		
 	SS.of_list (get_assertion_lvars_list a)
 
@@ -370,11 +370,9 @@ let rec get_assertion_vars catch_pvars a : SS.t =
 			List.fold_left (fun ac e -> 
 				let v_e = fe e in
 					SS.union ac v_e) SS.empty es
-	| LEmptyFields (o, les) -> 
+	| LEmptyFields (o, domain) -> 
 			let v_o = fe o in
-			let v_les = List.fold_left (fun ac e -> 
-				let v_e = fe e in
-					SS.union ac v_e) SS.empty les in
+			let v_les = fe domain in
 			SS.union v_o v_les
 	| LSetMem (elem, s) -> SS.union (fe elem) (fe s)
 	| LSetSub (s1, s2)  -> SS.union (fe s1) (fe s2) 

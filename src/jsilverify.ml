@@ -20,8 +20,8 @@ let arguments () =
             
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; 
-									   Bi_Symb_Interpreter.js := true), "js2jsil output"; 
+			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true) 
+									  (* Bi_Symb_Interpreter.js := true *), "js2jsil output"; 
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			(* Flag to use symbolic execution file with bi-abduction *)
@@ -81,6 +81,7 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 		then JSIL_Syntax.process_statistics ();
 	results
 
+(*
 let bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds  = 
 	(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
 	(* if (!js) then *)
@@ -94,7 +95,8 @@ let bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds  =
 	print_endline ("\n**********     Ending normal symbolic execution.     **********\n") ;
 	Bi_Utils.process_bi_results ext_prog.procedure_names proc_list new_spec_tbl bi_results normal_results true
 	(*Bi_Utils.string_for_new_jsil_file ext_prog normal_results new_spec_tbl proc_list*)
-	
+*)	
+
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
 		let ext_prog = JSIL_Utils.ext_program_of_path path in
@@ -116,10 +118,10 @@ let process_file path =
 		let spec_tbl = Normaliser.build_spec_tbl norm_preds prog ext_prog.onlyspecs in
 		print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));	
 		print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-		(if (!bi_abduction) then
+		(* (if (!bi_abduction) then
 			bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds
-		else 
-			let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in ());
+		else *)
+			let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in ();
 		exit 0
 
 let main () =

@@ -613,9 +613,6 @@ let encode_binop op le1 le2 =
 
 
 let encode_unop op le =
-
-	print_debug "encode_unop";
-
 	match op with
 
 	| UnaryMinus ->
@@ -981,7 +978,7 @@ let make_relevant_axioms a list_vars string_vars =
 	s_axioms @ l_axioms @ constant_axioms
 
 let understand_satisfiability assertions gamma =
-	print_debug "Understanding unsat.";
+	print_debug ("Understanding unsat.");
 	let array_asses = Array.to_list (Array.make (List.length assertions) (Array.of_list assertions)) in
 	let list_asses = List.mapi (fun i x -> Array.to_list (Array.sub x 0 (i + 1))) array_asses in
 	print_debug (

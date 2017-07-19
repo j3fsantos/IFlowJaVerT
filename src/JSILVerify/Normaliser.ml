@@ -3,157 +3,15 @@ open Set
 open Stack
 open JSIL_Syntax
 open Symbolic_State
+open Symbolic_State_Utils
 open JSIL_Logic_Utils
 open Logic_Predicates
 
-(**
-	le -> non - normalised logical expression
-	subst -> table mapping variable and logical variable
-	gamma -> table mapping logical variables + variables to types
 
-	the store is assumed to contain all the program variables in le
-*)
-let rec normalise_lexpr store gamma subst le =
-
-	print_debug (Printf.sprintf "Normalising %s" (JSIL_Print.print_lexpr le));
-
-	let start_time = Sys.time() in
-
-	let f = normalise_lexpr store gamma subst in
-
-	try (
-	let result = match le with
-	| LLit _
-	| LUnknown
-	| LNone -> le
-	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
-	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
-	| PVar pvar ->
-		(try Hashtbl.find store pvar with
-		| _ ->
-			let new_lvar = extend_abs_store pvar store gamma in
-			Hashtbl.add subst pvar new_lvar;
-			new_lvar)
-
-	| LBinOp (le1, bop, le2) ->
-		let nle1 = f le1 in
-		let nle2 = f le2 in
-		(match nle1, nle2 with
-			| LLit lit1, LLit lit2 ->
-				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
-					LLit lit
-			| _, _ -> LBinOp (nle1, bop, nle2))
-
-	| LUnOp (uop, le1) ->
-		let nle1 = f le1 in
-		(match nle1 with
-			| LLit lit1 ->
-				let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
-				LLit lit
-			| _ -> LUnOp (uop, nle1))
-
-	| LTypeOf (le1) ->
-		let nle1 = f le1 in
-		(match nle1 with
-			| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
-			| LLit llit -> LLit (Type (evaluate_type_of llit))
-			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
-			| LVar lvar ->
-				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
-					(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
-			| ALoc _ -> LLit (Type ObjectType)
-			| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
-			| LBinOp (_, _, _)
-			| LUnOp (_, _) -> LTypeOf (nle1)
-			| LTypeOf _ -> LLit (Type TypeType)
-			| LEList _ -> LLit (Type ListType)
-			| LLstNth (list, index) ->
-				(match list, index with
-					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
-						let lit_n = (try List.nth list (int_of_float n) with _ ->
-							raise (Failure "List index out of bounds")) in
-						LLit (Type (evaluate_type_of lit_n))
-					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
-					| LEList list, LLit (Num n) when (Utils.is_int n) ->
-						let le_n = (try List.nth list (int_of_float n) with _ ->
-							raise (Failure "List index out of bounds")) in
-						f (LTypeOf le_n)
-					| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
-					| _, _ -> LTypeOf (nle1))
-			| LStrNth (str, index) ->
-				(match str, index with
-					| LLit (String s), LLit (Num n) when (Utils.is_int n) ->
-						let _ = (try (String.get s (int_of_float n)) with _ ->
-							raise (Failure "String index out of bounds")) in
-						LLit (Type StringType)
-					| LLit (String s), LLit (Num n) -> raise (Failure "Non-integer string index")
-					| _, _ -> LTypeOf (nle1)))
-
-	| LEList le_list ->
-		let n_le_list = List.map (fun le -> f le) le_list in
-		let all_literals, lit_list =
-			List.fold_left
-				(fun (ac, list) le ->
-					match le with
-					| LLit lit -> (ac, (list @ [ lit ]))
-					| _ -> (false, list))
-				(true, [])
-				n_le_list in
-		if (all_literals)
-		then LLit (LList lit_list)
-		else LEList n_le_list
-		
-	| LESet le_list ->
-		let n_le_list = List.map (fun le -> f le) le_list in
-		LESet n_le_list
-		
-	| LSetUnion le_list ->
-		let n_le_list = List.map (fun le -> f le) le_list in
-		LSetUnion n_le_list
-		
-	| LSetInter le_list ->
-		let n_le_list = List.map (fun le -> f le) le_list in
-		LSetInter n_le_list
-
-	| LLstNth (le1, le2) ->
-		let nle1 = f le1 in
-		let nle2 = f le2 in
-		(match nle1, nle2 with
-			| LLit (LList list), LLit (Num n) when (Utils.is_int n) -> 
-					(try LLit (List.nth list (int_of_float n)) with _ ->
-						raise (Failure "List index out of bounds"))
-			| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
-			| LEList list, LLit (Num n) when (Utils.is_int n) -> 
-					let le = (try (List.nth list (int_of_float n)) with _ ->
-						raise (Failure "List index out of bounds")) in
-					f le
-			| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
-			| _, _ -> LLstNth (nle1, nle2))
-
-	| LStrNth (le1, le2) ->
-		let nle1 = f le1 in
-		let nle2 = f le2 in
-		(match nle1, nle2 with
-			| LLit (String s), LLit (Num n) ->
-				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
-				with _ -> raise (Failure "String index out of bounds"))
-			| _, _ -> LStrNth (nle1, nle2)) in
-		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
-		(* print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
-			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
-			(JSIL_Print.string_of_logic_expression result false)); *)
-		result)
-	with
-	| Failure msg -> let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
-		print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> Failure" 
-			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false));
-		raise (Failure msg)
-
-let rec normalise_pure_assertion store gamma subst assertion =
+let rec normalise_pure_assertion (store : symbolic_store) (gamma : typing_environment) 
+		(subst : substitution) (assertion : jsil_logic_assertion) =
 	let fa = normalise_pure_assertion store gamma subst in
-	let fe = normalise_lexpr store gamma subst in
+	let fe = normalise_lexpr ~store:store ~subst:subst gamma in
 	let start_time = Sys.time() in
 	try (let result = (match assertion with
 	| LEq (le1, le2) -> LEq((fe le1), (fe le2))
@@ -344,7 +202,7 @@ let init_pure_assignments a store gamma subst =
 						let msg = Printf.sprintf "Should not be here: rewrite_assignment. Var: %s\n" var in
 						raise (Failure msg)
 				| Some le ->
-						let normalised_le = normalise_lexpr store gamma subst le in
+						let normalised_le = normalise_lexpr ~store:store ~subst:subst gamma le in
 						Hashtbl.remove subst var;
 						Hashtbl.remove pure_assignments var;
 						Hashtbl.replace store var normalised_le) in
@@ -383,7 +241,7 @@ let init_pure_assignments a store gamma subst =
 
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a =
 	let f = compute_symb_heap heap store p_formulae gamma subst in
-	let fe = normalise_lexpr store gamma subst in
+	let fe = normalise_lexpr ~store:store ~subst:subst gamma in
 
 	let simplify_element_of_cell_assertion ele =
 		(match ele with
@@ -412,19 +270,19 @@ let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_form
 				with _ -> raise (Failure (Printf.sprintf "Variable %s not found in subst table!" var))) in
 			let nle2 = simplify_element_of_cell_assertion (fe le2) in
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
-			let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], LUnknown)) in
+			let field_val_pairs, default_val = (try LHeap.find heap aloc with _ -> ([], None)) in
 			LHeap.replace heap aloc (((nle2, nle3) :: field_val_pairs), default_val)
 
 	| LPointsTo (LLit (Loc loc), le2, le3) ->
 			let nle2 = simplify_element_of_cell_assertion (fe le2) in
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
-			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
+			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
 			LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 
 	| LPointsTo (ALoc loc, le2, le3) ->
 			let nle2 = simplify_element_of_cell_assertion (fe le2) in
 			let nle3 = simplify_element_of_cell_assertion (fe le3) in
-			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], LUnknown)) in
+			let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
 			LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 	
 	| LPointsTo (_, _, _) -> 
@@ -504,7 +362,7 @@ let init_preds a store gamma subst =
 
 	let rec init_preds_aux preds a =
 		let f = init_preds_aux preds in
-		let fe = normalise_lexpr store gamma subst in
+		let fe = normalise_lexpr ~store:store ~subst:subst gamma in
 		(match a with
 			| LStar (a1, a2) ->
 				let new_assertions1 = f a1 in
@@ -550,56 +408,24 @@ let extend_typing_env_using_assertion_info a_list gamma =
 		| _ :: rest_a_list -> loop rest_a_list in
 	loop a_list
 
+
+
 let process_empty_fields heap store p_formulae gamma subst a =
 
-	let rec gather_empty_fields a =
-		let f = gather_empty_fields in
+	let rec get_all_empty_fields a =
+		let f = get_all_empty_fields in
 		match a with
 		| LAnd (_, _) | LOr (_, _) | LNot _ | LTrue | LFalse | LEq (_, _)
 			| LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LEmp
 			| LTypes (_) | LPred (_, _) | LPointsTo (_, _, _) | LForAll (_, _) 
 			| LSetMem (_, _) | LSetSub (_, _) -> []
 		| LStar (a1, a2) -> (f a1) @ (f a2)
-		| LEmptyFields (le, fields) ->
-				let le' = normalise_lexpr store gamma subst le in
-				[ (le', fields) ] in
+		| LEmptyFields (le, domain) ->
+				let le' = normalise_lexpr ~store:store ~subst:subst gamma le in
+				let domain' = normalise_lexpr ~store:store ~subst:subst gamma domain in 
+				[ (le', domain') ] in
 
-	let rec check_in_fields (le_field : jsil_logic_expr) (fields : jsil_logic_expr list) (traversed_fields : jsil_logic_expr list) : (jsil_logic_expr * (jsil_logic_expr list)) option =
-		match fields with
-		| [] -> None
-		| field :: rest_fields ->
-			let a = LEq (le_field, field) in
-			if (Pure_Entailment.check_entailment SS.empty p_formulae [ a ] gamma)
-				then Some (field, traversed_fields @ rest_fields)
-				else 
-					(if (Pure_Entailment.check_entailment SS.empty p_formulae [ LNot a ] gamma)
-						then check_in_fields le_field rest_fields (field :: traversed_fields) 
-						else raise (Failure "empty fields assertion cannot be normalised")) in 
-
-	let rec close_fields (fields : jsil_logic_expr list) (fv_list : (jsil_logic_expr * jsil_logic_expr) list) (found_fields : jsil_logic_expr list) =
-		match fv_list with
-		| [] -> fields, found_fields
-		| (le_field, le_val) :: rest_fv_list ->
-			let ret : (jsil_logic_expr * (jsil_logic_expr list)) option = check_in_fields le_field fields [] in
-			(match ret with
-			| None ->
-				if (le_val <> LNone)
-					then raise 
-						(Failure (
-							Printf.sprintf "empty_fields assertion incompatible with cell assertion. Field %s is not in the none-fields: {{ %s }}" 
-								(JSIL_Print.string_of_logic_expression le_field false)
-								(String.concat ", "
-									(List.map (fun le -> JSIL_Print.string_of_logic_expression le false) fields))))
-					else close_fields fields rest_fv_list found_fields
-			| Some (found_field, rest_fields) ->
-				close_fields rest_fields rest_fv_list (found_field :: found_fields)) in
-
-	let rec make_fv_list_missing_fields missing_fields fv_list =
-		match missing_fields with
-		| [] -> fv_list
-		| field :: rest -> make_fv_list_missing_fields rest ((field, LUnknown) :: fv_list) in
-
-	let close_object le_loc (non_none_fields : jsil_logic_expr list) =
+	let add_domain (le_loc, domain)  =
 		print_debug_petar (Printf.sprintf "Location: %s" (JSIL_Print.string_of_logic_expression le_loc false));
 		let le_loc_name =
 			match le_loc with
@@ -615,28 +441,10 @@ let process_empty_fields heap store p_formulae gamma subst a =
 				| _ -> print_debug_petar "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
 			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
-		let ret =
-		    print_debug_petar (Printf.sprintf "le_loc: %s\nNasty fields:\n" (JSIL_Print.string_of_logic_expression le_loc false));
-			List.iter (fun s -> print_debug_petar (Printf.sprintf "\t%s\n" (JSIL_Print.string_of_logic_expression s false))) non_none_fields;
-			print_debug_petar (Printf.sprintf "Heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
-			LHeap.fold (fun cur_loc (cur_fv_list, cur_def) ac ->
-				match ac with
-				| Some _ -> ac
-				| None ->
-				 	if (le_loc_name = cur_loc) then (
-						let missing_fields, _ = close_fields non_none_fields cur_fv_list [] in
-						let new_cur_fv_list = make_fv_list_missing_fields missing_fields cur_fv_list in
-						Some (cur_loc, new_cur_fv_list)
-					) else None)
-			heap
-			None in
-		match ret with
-		| Some (loc, new_fv_list) -> LHeap.replace heap loc (new_fv_list, LNone)
-		| None -> LHeap.replace heap le_loc_name (make_fv_list_missing_fields non_none_fields [], LNone) in
-
-	let fields_to_close = gather_empty_fields a in
-	List.iter (fun (le, non_none_fields) -> close_object le non_none_fields) fields_to_close
-
+		let fv_list, _ = try LHeap.find heap le_loc_name with Not_found -> [], None in
+		LHeap.replace heap le_loc_name (fv_list, Some domain) in 
+		
+	List.map add_domain (get_all_empty_fields a)
 
 
 let normalise_assertion a : symbolic_state * substitution =

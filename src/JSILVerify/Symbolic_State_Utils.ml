@@ -2,6 +2,159 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
+
+
+(**
+	le -> non - normalised logical expression
+	subst -> table mapping variable and logical variable
+	gamma -> table mapping logical variables + variables to types
+
+	the store is assumed to contain all the program variables in le
+*)
+let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution option) 
+		(gamma : typing_environment) (le : jsil_logic_expr) =
+
+	let store = Option.default (store_init [] []) store in 
+	let subst = Option.default (JSIL_Logic_Utils.init_substitution []) subst in 
+
+	let f = normalise_lexpr ~store:store ~subst:subst gamma in
+
+	print_debug (Printf.sprintf "Normalising %s" (JSIL_Print.print_lexpr le));
+
+	let start_time = Sys.time() in
+	
+	try (
+	let result = match le with
+	| LLit _
+	| LUnknown
+	| LNone -> le
+	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
+	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
+	| PVar pvar ->
+		(try Hashtbl.find store pvar with
+		| _ ->
+			let new_lvar = extend_abs_store pvar store gamma in
+			Hashtbl.add subst pvar new_lvar;
+			new_lvar)
+
+	| LBinOp (le1, bop, le2) ->
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit lit1, LLit lit2 ->
+				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
+					LLit lit
+			| _, _ -> LBinOp (nle1, bop, nle2))
+
+	| LUnOp (uop, le1) ->
+		let nle1 = f le1 in
+		(match nle1 with
+			| LLit lit1 ->
+				let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
+				LLit lit
+			| _ -> LUnOp (uop, nle1))
+
+	| LTypeOf (le1) ->
+		let nle1 = f le1 in
+		(match nle1 with
+			| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
+			| LLit llit -> LLit (Type (evaluate_type_of llit))
+			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
+			| LVar lvar ->
+				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
+					(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
+			| ALoc _ -> LLit (Type ObjectType)
+			| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
+			| LBinOp (_, _, _)
+			| LUnOp (_, _) -> LTypeOf (nle1)
+			| LTypeOf _ -> LLit (Type TypeType)
+			| LEList _ -> LLit (Type ListType)
+			| LLstNth (list, index) ->
+				(match list, index with
+					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
+						let lit_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						LLit (Type (evaluate_type_of lit_n))
+					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+					| LEList list, LLit (Num n) when (Utils.is_int n) ->
+						let le_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						f (LTypeOf le_n)
+					| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
+					| _, _ -> LTypeOf (nle1))
+			| LStrNth (str, index) ->
+				(match str, index with
+					| LLit (String s), LLit (Num n) when (Utils.is_int n) ->
+						let _ = (try (String.get s (int_of_float n)) with _ ->
+							raise (Failure "String index out of bounds")) in
+						LLit (Type StringType)
+					| LLit (String s), LLit (Num n) -> raise (Failure "Non-integer string index")
+					| _, _ -> LTypeOf (nle1)))
+
+	| LEList le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		let all_literals, lit_list =
+			List.fold_left
+				(fun (ac, list) le ->
+					match le with
+					| LLit lit -> (ac, (list @ [ lit ]))
+					| _ -> (false, list))
+				(true, [])
+				n_le_list in
+		if (all_literals)
+		then LLit (LList lit_list)
+		else LEList n_le_list
+		
+	| LESet le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LESet n_le_list
+		
+	| LSetUnion le_list ->
+		(* this can be better!!!! *)
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetUnion n_le_list
+		
+	| LSetInter le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetInter n_le_list
+
+	| LLstNth (le1, le2) ->
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (LList list), LLit (Num n) when (Utils.is_int n) -> 
+					(try LLit (List.nth list (int_of_float n)) with _ ->
+						raise (Failure "List index out of bounds"))
+			| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+			| LEList list, LLit (Num n) when (Utils.is_int n) -> 
+					let le = (try (List.nth list (int_of_float n)) with _ ->
+						raise (Failure "List index out of bounds")) in
+					f le
+			| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
+			| _, _ -> LLstNth (nle1, nle2))
+
+	| LStrNth (le1, le2) ->
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (String s), LLit (Num n) ->
+				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
+				with _ -> raise (Failure "String index out of bounds"))
+			| _, _ -> LStrNth (nle1, nle2)) in
+		let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
+		(* print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
+			(JSIL_Print.string_of_logic_expression result false)); *)
+		result)
+	with
+	| Failure msg -> let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
+		print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> Failure" 
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false));
+		raise (Failure msg)
+
+
 (*************************************)
 (** Substitution Functions          **)
 (*************************************)
@@ -98,53 +251,75 @@ let find_field loc fv_list e p_formulae gamma =
 						else find_field_rec rest ((e_field, e_value) :: traversed_fv_list) false)) in
 	find_field_rec fv_list [] true
 
-let update_abs_heap_default (heap : symbolic_heap) loc e =
-	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in
-	match default_val with
-	| LUnknown -> LHeap.replace heap loc (fv_list, e)
+let update_abs_heap_default (heap : symbolic_heap) loc dom =
+	let fv_list, domain = try LHeap.find heap loc with _ -> [], None in
+	match domain with
+	| None -> LHeap.replace heap loc (fv_list, dom)
  	| _ -> raise (Failure "the default value for the fields of a given object cannot be changed once set")
 
 
-let update_abs_heap (heap : symbolic_heap) loc e_field e_val p_formulae (* solver *) gamma =
-	let fv_list, default_val = try LHeap.find heap loc with _ -> [], LUnknown in
-	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae (* solver *) gamma in
+(* UPDATE WITH DOMAIN REASONING *)
+let update_abs_heap (heap : symbolic_heap) (loc : string) (e_field : jsil_logic_expr) 
+		(e_val : jsil_logic_expr) (p_formulae : pure_formulae) (gamma : typing_environment) =
+	let fv_list, domain = try LHeap.find heap loc with _ -> [], None in
+	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae gamma in
 	match field_val_pair, i_am_sure_the_field_does_not_exist with
 	| Some _, _
-	| None, true -> LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, default_val)
+	| None, true -> LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, domain)
 	| None, false ->
 		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field false) loc in
 			raise (Failure msg)			
 
-let abs_heap_find heap l e p_formulae gamma =
-	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in
+let abs_heap_find (heap : symbolic_heap) (l : string) (e : jsil_logic_expr) 
+		(p_formulae : pure_formulae) (gamma : typing_environment) =
+	let fv_list, domain = try LHeap.find heap l with _ -> [], None in
 	let _, field_val_pair, i_am_sure_the_field_does_not_exist = find_field l fv_list e p_formulae gamma in
-	match field_val_pair, i_am_sure_the_field_does_not_exist with
-	| Some (_, f_val), _ -> f_val
-	| None, true -> default_val
-	| None, false ->
+	match field_val_pair, i_am_sure_the_field_does_not_exist, domain with
+	| Some (_, f_val), _, _-> f_val
+	| _, _, Some domain -> 
+		let a_set_inclusion = LNot (LSetMem (e, domain)) in 
+		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list p_formulae) [ a_set_inclusion ] gamma) 
+			then LNone
+			else (
+				let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e false) l in
+				raise (Failure msg)
+			)
+	| _ -> 
 		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e false) l in
 			raise (Failure msg)
 
-let abs_heap_check_field_existence heap l e p_formulae (* solver *) gamma =
-	let f_val = abs_heap_find heap l e p_formulae (* solver *) gamma in
+let abs_heap_check_field_existence (heap : symbolic_heap) (l : string) (e : jsil_logic_expr)
+		(p_formulae : pure_formulae) (gamma : typing_environment) =
+	let f_val = abs_heap_find heap l e p_formulae gamma in
 	match f_val with
-	| LUnknown -> None, None
 	| LNone -> None, Some false
 	|	_ ->
-		if (Pure_Entailment.is_equal f_val LNone p_formulae (* solver *) gamma) then
+		if (Pure_Entailment.is_equal f_val LNone p_formulae gamma) then
 			(Some f_val, Some false)
-			else (if (Pure_Entailment.is_different f_val LNone p_formulae (* solver *) gamma) then
+			else (if (Pure_Entailment.is_different f_val LNone p_formulae gamma) then
 				(Some f_val, Some true)
 				else (Some f_val, None))
 
-let abs_heap_delete heap l e p_formulae (* solver *) gamma =
-	let fv_list, default_val = try LHeap.find heap l with _ -> [], LUnknown in
-	let rest_fv_pairs, del_fv_pair, _ = find_field l fv_list e p_formulae (* solver *) gamma in
+let abs_heap_delete (heap : symbolic_heap) (l : string) (e : jsil_logic_expr) 
+		(p_formulae : pure_formulae) (gamma : typing_environment) =
+	let fv_list, default_val = try LHeap.find heap l with _ -> [], None in
+	let rest_fv_pairs, del_fv_pair, _ = find_field l fv_list e p_formulae gamma in
 	match del_fv_pair with
 	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val)
 	| None -> raise (Failure "Trying to delete an inexistent field")
 
-let merge_heaps heap new_heap p_formulae  gamma =
+
+let combine_domains (domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) (gamma : typing_environment) = 
+	match domain_l, domain_r with 
+	| None, _ 
+	| _, None -> None 
+	| Some set1, Some set2 -> 
+		let set = LSetUnion [ set1; set2 ] in
+		let set = normalise_lexpr gamma set in  
+		Some set 
+
+let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : pure_formulae) 
+			(gamma : typing_environment) =
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
@@ -155,31 +330,12 @@ let merge_heaps heap new_heap p_formulae  gamma =
 	print_debug_petar (Printf.sprintf "gamma: %s\n" (Symbolic_State_Print.string_of_gamma gamma));
 
 	LHeap.iter
-		(fun loc (n_fv_list, n_def) ->
+		(fun loc (n_fv_list, n_domain) ->
 			print_debug_petar (Printf.sprintf "Object: %s" loc);
-			match n_def with
-			| LUnknown
-			| LNone ->
-				(try
-					let fv_list, def = LHeap.find heap loc in
-					let rec loop q_fv_list n_fv_list =
-						(match n_fv_list with
-						| [] -> q_fv_list
-						| (le_field, le_val) :: rest_n_fv_list ->
-							print_debug_petar (Printf.sprintf "  Field: (%s, %s)" (JSIL_Print.string_of_logic_expression le_field false) (JSIL_Print.string_of_logic_expression le_val false));
-							let _, fv_pair, i_am_sure_the_field_does_exist = find_field loc fv_list le_field p_formulae gamma in
-							(match fv_pair, i_am_sure_the_field_does_exist with
-							| None, true 
-							| Some (_, LUnknown), _ -> loop ((le_field, le_val) :: q_fv_list) rest_n_fv_list
-							| None, false -> raise (Failure "Heaps non-mergeable: I don't have a pair and I'm not sure the field exists")
-							| Some (f, v), _ -> raise (Failure (Printf.sprintf "Heaps non-mergeable: Something exists (%s, %s)" 
-									(JSIL_Print.string_of_logic_expression f false) 
-									(JSIL_Print.string_of_logic_expression v false))))) in
-					let q_fv_list = loop [] n_fv_list in
-					LHeap.replace heap loc (q_fv_list @ fv_list, def)
-				with Not_found ->
-					LHeap.add heap loc (n_fv_list, n_def))
-			| _ -> raise (Failure "heaps non-mergeable: the default field is not unknown!!!"))
+			try 
+				let fv_list, domain = LHeap.find heap loc in				
+				LHeap.replace heap loc (n_fv_list @ fv_list, (combine_domains domain n_domain gamma))
+			with Not_found -> LHeap.add heap loc (n_fv_list, n_domain))
 		new_heap;
 	print_debug "Finished merging heaps."
 
@@ -238,31 +394,18 @@ let get_heap_well_formedness_constraints heap =
 let rec string_of_logic_assertion a escape_string =
 **)
 
-let assertion_of_abs_heap h : jsil_logic_assertion list= 
+let assertion_of_abs_heap (h : symbolic_heap) : jsil_logic_assertion list= 
 	let make_loc_lexpr loc = 
 		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
 	
-	let rec get_fields fv_list fields_so_far = 
-		match fv_list with 
-		| [] -> fields_so_far 
-		| (f_name, f_val) :: rest -> get_fields rest (f_name :: fields_so_far) in 
+	let rec assertions_of_object (loc, (fv_list, set)) =
+	 	let le_loc = make_loc_lexpr loc in
+		let fv_assertions = List.map (fun (field, value) -> LPointsTo (le_loc, field, value)) fv_list in 
+		Option.map_default (fun set -> (LEmptyFields (le_loc, set)) :: fv_assertions) fv_assertions set in 
 
-	let rec assertions_of_fv_list loc_expr fv_list assertions =
-		match fv_list with 
-		| [] -> assertions 
-		| (f_name, f_val) :: rest ->
-			assertions_of_fv_list loc_expr rest ((LPointsTo (loc_expr, f_name, f_val)) :: assertions) in 
-	
-	LHeap.fold 
-		(fun loc (fv_list, def) assertions -> 
-			let loc_lexpr = make_loc_lexpr loc in 
-			let new_assertions = assertions_of_fv_list loc_lexpr fv_list [] in 
-			match def with 
-			| LUnknown -> List.append new_assertions assertions
-			| LNone -> 
-				let fields = get_fields fv_list [] in 
-				let ef_assertion = LEmptyFields (loc_lexpr, fields) in 
-				List.append (ef_assertion :: new_assertions) assertions) h [] 
+	List.concat (List.map assertions_of_object (heap_as_list h))
+
+
 
 let bi_merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
 	let heap_1, store_1, pf_1, gamma_1, preds_1  = symb_state_1 in
@@ -380,8 +523,8 @@ let assertions_of_pred_set pred_set =
 			loop rest ((LPred (pred_name, args)) :: assertions) in 
 	loop preds [] 
 
-let remove_abstract_locations heap store pfs : substitution  =
-	let subst = Hashtbl.create small_tbl_size in
+let remove_abstract_locations (heap : symbolic_heap) (store : symbolic_store) (pfs : pure_formulae) : substitution  =
+	let subst = init_substitution [] in
 	LHeap.iter 
 		(fun loc (fv_list, def) -> 
 			(try 
@@ -402,7 +545,7 @@ let remove_abstract_locations heap store pfs : substitution  =
 							Hashtbl.add subst loc (LVar n_lvar))
 				)
 			)
-			) heap;
+		) heap;
 	subst
 
 let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_assertion = 
