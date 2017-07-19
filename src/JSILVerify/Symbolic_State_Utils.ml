@@ -311,8 +311,9 @@ let abs_heap_delete (heap : symbolic_heap) (l : string) (e : jsil_logic_expr)
 
 let combine_domains (domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) (gamma : typing_environment) = 
 	match domain_l, domain_r with 
-	| None, _ 
-	| _, None -> None 
+	| None, None -> None
+	| None, Some domain 
+	| Some domain, None -> Some domain 
 	| Some set1, Some set2 -> 
 		let set = LSetUnion [ set1; set2 ] in
 		let set = normalise_lexpr gamma set in  
