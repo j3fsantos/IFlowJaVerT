@@ -458,7 +458,7 @@ let output_file = open_out "normalOutput.txt"
 let output_file_debug = open_out "debugOutput.txt"
 
 let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
-let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
+let print_normal msg  = Printf.printf "%s%!" msg; output_string output_file (msg ^ "\n"); print_debug msg
 				
 let close_output_files () = 
 	close_out output_file;
