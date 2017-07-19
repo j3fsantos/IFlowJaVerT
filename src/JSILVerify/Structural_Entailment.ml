@@ -377,7 +377,8 @@ let unify_symb_fv_lists (pat_loc     : string)
 			if (Pure_Entailment.check_entailment SS.empty (pfs_to_list p_formulae) [ a_set_inclusion ] gamma)
 				then (
 					let new_domain = LSetUnion [ domain; LESet [ pat_field ] ] in 
-					let new_domain = Symbolic_State_Utils.normalise_lexpr gamma new_domain in 
+					let new_domain = Symbolic_State_Utils.normalise_lexpr gamma new_domain in
+					let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 
 					Some new_domain
 				) else raise (SymbExecFailure (Impossible "Could not prove none-cell not in domain"))
 		| _, _ -> raise (SymbExecFailure (Impossible "Could not prove none-cell not in domain")) in 
@@ -429,6 +430,7 @@ let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr opti
 		let new_q_v_list, none_q_v_list = List.partition (fun (field, value) -> (value = LNone)) q_fv_list in 
 		let s_pat_dom = lexpr_substitution pat_dom subst true in 
 		let domain_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (s_pat_dom, SetDiff, dom)) in 
+		let domain_difference = Simplifications.reduce_expression_no_store gamma pfs domain_difference in 
 		let domain_difference = 
 		(match domain_difference with
 		| LESet domain_difference -> domain_difference
