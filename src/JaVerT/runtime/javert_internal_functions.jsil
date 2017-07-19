@@ -237,29 +237,15 @@ spec create_default_object (l, pr, cl, ext)
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type) * (#cl == $$undefined) * (#ext == $$undefined) *
-	   empty_fields(#l : -{}-) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) * empty_fields(#l : -{"@proto", "@class", "@extensible"}-) *
+	   ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3) ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) *
-        empty_fields(#l : -{ }-) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) * empty_fields(#l : -{ "@proto", "@class", "@extensible" }-) *
-	   (ret == #l) ]]
-    normal;
-
-    [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-	   types(#l : $$object_type) * (#cl == $$undefined) * (#ext == $$undefined) *
-	   ((#l, "@proto") -> $$null) * empty_fields(#l : -{ "@proto" }-) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) * empty_fields(#l : -{ "@proto", "@class", "@extensible" }-) *
-	   (ret == #l) ]]
-    normal;
-
-    [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) *
-       ((#l, "@proto") -> $$null) * empty_fields(#l : -{ "@proto" }-) ]]
-    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) * empty_fields(#l : -{ "@proto", "@class", "@extensible" }-) *
+       ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3)  ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) *
 	   (ret == #l) ]]
     normal
 
