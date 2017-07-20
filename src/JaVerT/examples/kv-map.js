@@ -18,7 +18,7 @@
 		ObjectWithProto(m, mp) *
 		dataField(m, "_contents", #c) * standardObject(#c) *
 		((m, "get") -> None) * ((m, "put") -> None) * ((m, "validKey") -> None) *
-		((#c, "hasOwnProperty") -> None) * KVPairs(#c, kvs, keys) * empty_fields(#c : -u- (keys, "hasOwnProperty"));
+		((#c, "hasOwnProperty") -> None) * KVPairs(#c, kvs, keys) * empty_fields(#c : -u- (keys, -{ "hasOwnProperty" }-));
   	
 	@pred KVPairs (o, kvs, keys) :
 		(kvs == -{ }-) * (keys == -{ }-),
@@ -47,11 +47,15 @@
     
     @post (
     	Map(this, #mp, #kvs, #keys) * (#kvs == -{ }-) * (#keys == -{ }-) * 
-    	MapProto(#mp)
+    	MapProto(#mp) * (ret == this)
     )
 */
 function Map () {
-   this._contents = {};
+	this._contents = {};
+	
+	/* @invariant dataField(this, "_contents", #c)
+	   @fold KVPairs(#c, -{ }-, -{ }-) */
+	return this;
 }
 
 /**
