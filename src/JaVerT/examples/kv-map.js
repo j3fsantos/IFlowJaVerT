@@ -106,8 +106,8 @@ Map.prototype.get = function (k) {
 	@post Map(this, #mp, #kvs, -u- ({{ #k, #v }}, #rkvs)) * MapProto(#mp)
 */
 Map.prototype.put = function (k, v) {
-   if (this.validKey(k)) { 
-       this._contents[k] = v; 
-   } else
-       throw new Error("Invalid Key")
+	if (this.validKey(k)) { 
+		this._contents[k] = v; 
+	} else
+		throw new Error("Invalid Key")
 }
