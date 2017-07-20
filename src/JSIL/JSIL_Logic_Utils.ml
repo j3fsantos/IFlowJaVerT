@@ -97,7 +97,7 @@ let rec assertion_map f_a f_e asrt =
 		| LEmp                   -> LEmp
 		| LPred (s, le)          -> LPred (s, List.map map_e le)
 		| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
-		| LEmptyFields (o, ls)   -> LEmptyFields (map_e o, ls)
+		| LEmptyFields (o, ls)   -> LEmptyFields (map_e o, map_e ls)
 		| LSetMem (e1, e2)       -> LSetMem (map_e e1, map_e e2)
 		| LSetSub (e1, e2)       -> LSetSub (map_e e1, map_e e2)
 		| LForAll (bt, a)        -> LForAll (bt, map_a a) in 
