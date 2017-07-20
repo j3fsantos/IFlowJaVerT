@@ -5,6 +5,7 @@ open JSIL_Print
 open Symbolic_State_Print
 
 exception FoundIt of jsil_logic_expr
+exception UnionInUnion of jsil_logic_expr list
 
 (**
 	List simplifications:
@@ -257,15 +258,27 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	
 	| LSetUnion s ->
 			let s' = List.map f s in
-			if (all_set_literals s') then (
-				print_debug "LSetUnion simpl";
-				let all_elems = List.fold_left (fun ac le -> 
-					(match le with | LESet lst -> ac @ lst)) [] s' in
-				let all_elems = SLExpr.elements (SLExpr.of_list all_elems) in
-				f (LESet all_elems)
-			) 
-		else
-			LSetUnion s'		
+			(match (all_set_literals s') with
+			| true ->
+					let all_elems = List.fold_left (fun ac le -> 
+						(match le with | LESet lst -> ac @ lst)) [] s' in
+					let all_elems = SLExpr.elements (SLExpr.of_list all_elems) in
+					f (LESet all_elems)
+			| false ->
+					try (
+						let ss' = SLExpr.of_list s' in
+						SLExpr.iter (fun x -> 
+							(match x with
+							| LSetUnion s'' ->
+								let ss' = SLExpr.remove x ss' in
+								let ss' = SLExpr.union ss' (SLExpr.of_list s'') in
+								let ss' = SLExpr.elements ss' in
+								raise (UnionInUnion ss')
+							| _ -> ())
+							) ss';
+						LSetUnion s'
+					) with
+					| UnionInUnion e -> f (LSetUnion e))
 				
 	| LSetInter s ->
 			let s' = List.map f s in
@@ -276,9 +289,23 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| false -> LSetInter (SLExpr.elements s'))
 
 	| LBinOp (le1, SetDiff, le2) when (f le1 = f le2) -> LESet []
-	| LBinOp (le1, SetDiff, LESet []) -> f le1 
-	| LBinOp (LESet le1, SetDiff, LESet le2) ->
-			f (LESet (SLExpr.elements (SLExpr.diff (SLExpr.of_list le1) (SLExpr.of_list le2))))  
+	| LBinOp (le1, SetDiff, le2) ->
+			let sle1 = f le1 in
+			let sle2 = f le2 in
+			(match sle1, sle2 with
+			| _, LESet [] -> f sle1
+			| LESet le1, LESet le2 -> f (LESet (SLExpr.elements (SLExpr.diff (SLExpr.of_list le1) (SLExpr.of_list le2))))
+			| LSetUnion l1, LSetUnion l2 ->
+					let sl1 = SLExpr.of_list l1 in
+					let sl2 = SLExpr.of_list l2 in
+					let inter = SLExpr.inter sl1 sl2 in
+					let sl1 = SLExpr.diff sl1 inter in
+					let sl2 = SLExpr.diff sl2 inter in
+					let sle1 = LSetUnion (SLExpr.elements sl1) in
+					let sle2 = LSetUnion (SLExpr.elements sl2) in
+						f (LBinOp (sle1, SetDiff, sle2))
+			| _, _ -> LBinOp (sle1, SetDiff, sle2))
+			
 
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
