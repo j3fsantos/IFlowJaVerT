@@ -74,12 +74,12 @@ Map.prototype.validKey = function (key) {
 /**
 	@id mapGet
 	
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) *
-	      (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs)
-	
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) *
-	      (ret == #v)
-	      
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * invalidKey(#k) 
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key")
+
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (! (#k --e-- #keys))
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null)
+      
 	@PETAR Ok, so this is nasty. My reasoning would be
 	
 	0) We need to get the contents of the map in #c
@@ -97,9 +97,12 @@ Map.prototype.validKey = function (key) {
 */
 Map.prototype.get = function (k) {
 	/* @invariant dataField(this, "_contents", #c) */
-    if (this._contents.hasOwnProperty(k)) { 
-        return this._contents[k] 
-    } else { return null }  
+	if (this.validKey(k)) {
+	    if (this._contents.hasOwnProperty(k)) { 
+	        return this._contents[k] 
+	    } else { return null }
+	} else
+		throw new Error("Invalid Key")
 }
 
 /**
@@ -109,7 +112,6 @@ Map.prototype.put = function (key, value) {
    if (isValidKey(key)) { 
        var contents = this._contents;
        contents[key] = value; 
-   } else {
+   } else
        throw new Error("Invalid Key")
-   } 
 }
