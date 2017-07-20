@@ -45,13 +45,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 			| LLit lit1, LLit lit2 ->
 				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
 					LLit lit
-			| _, _ -> 
-				(match bop with 
-				| SetDiff -> 
-					if (Pure_Entailment.is_equal nle1 nle2 (pfs_of_list []) gamma)
-						then LESet []
-						else LBinOp (nle1, bop, nle2)
-				| _ -> LBinOp (nle1, bop, nle2)))
+			| _, _ -> LBinOp (nle1, bop, nle2))
 
 	| LUnOp (uop, le1) ->
 		let nle1 = f le1 in
@@ -119,16 +113,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	| LSetUnion le_list ->
 		(* this can be better!!!! *)
 		let n_le_list = List.map (fun le -> f le) le_list in
-		let combinable, elements = 
-			List.fold_left 	
-				(fun (combinable, elements) le -> 
-					if (not combinable) then (combinable, elements) else (
-						match le with 
-						| LEList new_elements -> (true, new_elements @ elements)
-						| _ -> (false, elements)
-					)
-				) (true, []) n_le_list in 
-		if (combinable) then LESet elements else LSetUnion n_le_list
+		LSetUnion n_le_list
 		
 		
 	| LSetInter le_list ->
@@ -287,6 +272,7 @@ let update_abs_heap (heap : symbolic_heap) (loc : string) (e_field : jsil_logic_
 		let new_domain = (match domain with 
 		| None -> None 
 		| Some domain -> 
+			print_debug (Printf.sprintf "UAH: My domain is: %s" (JSIL_Print.string_of_logic_expression domain false));
 			let new_domain = LSetUnion [ domain; LESet [ e_field ]] in 
 			let new_domain = normalise_lexpr gamma new_domain in
 			let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 

@@ -367,10 +367,11 @@ let unify_symb_fv_lists (pat_loc     : string)
 						(subst       : substitution)
 								: (symbolic_field_value_list * symbolic_field_value_list * symbolic_discharge_list * (jsil_logic_expr option)) option =
 
-	(* Printf.printf "Inside unify_symb_fv_lists.\npat_fv_list: \n%s.\nfv_list: \n%s.\n" (Symbolic_State_Print.string_of_symb_fv_list pat_fv_list false) (Symbolic_State_Print.string_of_symb_fv_list fv_list false); *)
+	print_time_debug ("unify_symb_fv_lists");
 
 	let unify_explicit_none_against_default_none (pat_field : jsil_logic_expr) 
 		(pat_val : jsil_logic_expr) (domain : jsil_logic_expr option) = 
+		print_time_debug ("unify_explicit_none_against_default_none");
 		let (b_pv, unifier) = unify_lexprs pat_val LNone p_formulae gamma subst in
 		match b_pv, domain with 
 		| true, Some domain 
@@ -378,6 +379,7 @@ let unify_symb_fv_lists (pat_loc     : string)
 			let a_set_inclusion = LNot (LSetMem (pat_field, domain)) in 
 			if (Pure_Entailment.check_entailment SS.empty (pfs_to_list p_formulae) [ a_set_inclusion ] gamma)
 				then (
+					print_debug (Printf.sprintf "USFVL: My domain is: %s" (print_lexpr domain));
 					let new_domain = LSetUnion [ domain; LESet [ pat_field ] ] in 
 					let new_domain = Symbolic_State_Utils.normalise_lexpr gamma new_domain in
 					let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 
@@ -387,6 +389,7 @@ let unify_symb_fv_lists (pat_loc     : string)
 
 	let rec loop (fv_list : symbolic_field_value_list) (pat_list : symbolic_field_value_list) 
 		(matched_fv_list : symbolic_field_value_list) (discharges : symbolic_discharge_list) (cur_domain : jsil_logic_expr option) =
+		print_time_debug ("unify_symb_fv_lists : loop");
 		match pat_list with
 		| [] -> Some (fv_list, matched_fv_list, discharges, cur_domain)
 		| (pat_field, pat_val) :: rest_pat_list ->
@@ -406,11 +409,12 @@ let unify_symb_fv_lists (pat_loc     : string)
 	loop fv_list order_pat_list [] [] domain
 
 
-
 let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr option) 
 	(q_fv_list : symbolic_field_value_list) (subst : substitution) 
 	(pfs : pure_formulae) (gamma : typing_environment)
 		: symbolic_field_value_list * (jsil_logic_expr option) =
+
+	print_time_debug ("unify_domains");
 
 	let q_fv_list_strs = List.map 
 		(fun (field, value) -> 
@@ -418,7 +422,7 @@ let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr opti
 			let value_str = JSIL_Print.string_of_logic_expression value false in 
 			"(" ^ field_str ^ ", " ^ value_str ^ ")") q_fv_list in 
 	let q_fv_list_str = String.concat ", " q_fv_list_strs in 
-	print_debug (Printf.sprintf "caralho unify_domains: q_fv_list: %s\n" q_fv_list_str);
+	print_debug (Printf.sprintf "unify_domains: q_fv_list: %s\n" q_fv_list_str);
 
 
 	let rec find_missing_none (missing_field : jsil_logic_expr) 

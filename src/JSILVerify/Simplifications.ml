@@ -207,9 +207,12 @@ let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 
 
 let all_set_literals lset = List.fold_left (fun x le -> 
-	(match le with
-	| LESet _ -> x
-	| _ -> false)) true lset 
+	let result = (match le with
+		| LESet _ -> true
+		| _ -> false) in
+	print_debug (Printf.sprintf "All literals: %s -> %b" (print_lexpr le) result);
+	x && result
+	) true lset 
 
 (**
 	Reduction of expressions: everything must be IMMUTABLE
@@ -229,6 +232,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 						  (e     : jsil_logic_expr) =
 								
 	let f = reduce_expression store gamma pfs in
+	let orig_expr = e in
 	let result = (match e with
 
 	| LUnOp (M_sgn, LLit (Num n)) -> LLit (Num (copysign 1.0 n))
@@ -426,9 +430,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	(* print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	if (true) then (print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false)); *)
+		(JSIL_Print.string_of_logic_expression result false)));
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())

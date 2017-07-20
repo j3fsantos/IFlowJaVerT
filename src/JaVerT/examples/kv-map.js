@@ -41,6 +41,7 @@
         ((this, "_contents") -> None) *
         ((this, "get") -> None) *
         ((this, "put") -> None) *
+        ((this, "validKey") -> None) *
         MapProto(#mp)
     )
     
