@@ -77,23 +77,11 @@ Map.prototype.validKey = function (key) {
 	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * invalidKey(#k) 
 	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key")
 
-	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (! (#k --e-- #keys))
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null)
-      
-	@PETAR Ok, so this is nasty. My reasoning would be
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (! (#k --e-- #keys))
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null)
 	
-	0) We need to get the contents of the map in #c
-	
-	Scenario 1:
-	1a) if (#k --e-- #keys) then we need to do a directed unfold of KVPairs for #k
-	2a) directed fold for #k
-	
-	Scenario 2:
-	1b) if ! (#k --e-- #keys) then we need to get that (#c, #k) -> None from emptyFields
-	2b) put the key back in emptyFields (or maybe not needed)
-	
-	I don't think we have annotation mechanisms for all this (if-then-else)?
-	We're gonna need serious callspecs
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs)
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v)
 */
 Map.prototype.get = function (k) {
 	/* @invariant dataField(this, "_contents", #c) */
