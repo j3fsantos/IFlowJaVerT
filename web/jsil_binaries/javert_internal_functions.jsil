@@ -717,7 +717,7 @@ with
 spec OP_hasOwnProperty(xsc, vthis, v)
 
 	[[ (vthis == #l) * (v == #prop) * types(#l : $$object_type, #prop : $$string_type) * 
-		((#l, "@class") -> "Object") * Cell_o (#l, #prop, #dx) * types (#dx : $$list_type) ]]
+		((#l, "@class") -> "Object") * Cell_o (#l, #prop, #dx) * (! (#dx == None)) ]]
 	[[ ((#l, "@class") -> "Object") * Cell_o (#l, #prop, #dx) * (ret == $$t) ]]
 	normal;
 	

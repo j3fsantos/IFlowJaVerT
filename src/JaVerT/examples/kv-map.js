@@ -73,15 +73,34 @@ Map.prototype.validKey = function (key) {
 
 /**
 	@id mapGet
+	
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) *
+	      (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs)
+	
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) *
+	      (ret == #v)
+	      
+	@PETAR Ok, so this is nasty. My reasoning would be
+	
+	0) We need to get the contents of the map in #c
+	
+	Scenario 1:
+	1a) if (#k --e-- #keys) then we need to do a directed unfold of KVPairs for #k
+	2a) directed fold for #k
+	
+	Scenario 2:
+	1b) if ! (#k --e-- #keys) then we need to get that (#c, #k) -> None from emptyFields
+	2b) put the key back in emptyFields (or maybe not needed)
+	
+	I don't think we have annotation mechanisms for all this (if-then-else)?
+	We're gonna need serious callspecs
 */
-Map.prototype.get = function getValue (key) {
-	if (isValidKey(key)) { 
-		if (this._contents.hasOwnProperty(key)) 
-			return this._contents[key];
-		else 
-			return null
-	} else throw new Error("Invalid Key")
-	}
+Map.prototype.get = function (k) {
+	/* @invariant dataField(this, "_contents", #c) */
+    if (this._contents.hasOwnProperty(k)) { 
+        return this._contents[k] 
+    } else { return null }  
+}
 
 /**
 	@id mapPut
