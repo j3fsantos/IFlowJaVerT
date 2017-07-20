@@ -211,7 +211,7 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	let result = (match le with
 		| LESet _ -> true
 		| _ -> false) in
-	print_debug (Printf.sprintf "All literals: %s -> %b" (print_lexpr le) result);
+	(* print_debug (Printf.sprintf "All literals: %s -> %b" (print_lexpr le) result); *)
 	x && result
 	) true lset 
 
@@ -457,7 +457,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	if (true) then (print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	if (result <> orig_expr) then (print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
 		(JSIL_Print.string_of_logic_expression result false)));
 	result

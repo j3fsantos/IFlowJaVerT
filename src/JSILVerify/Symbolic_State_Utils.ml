@@ -20,7 +20,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 
 	let f = normalise_lexpr ~store:store ~subst:subst gamma in
 
-	print_debug (Printf.sprintf "Normalising %s" (JSIL_Print.print_lexpr le));
+	(* print_debug (Printf.sprintf "Normalising %s" (JSIL_Print.print_lexpr le)); *)
 
 	let start_time = Sys.time() in
 	
