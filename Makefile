@@ -13,7 +13,7 @@ init_ci: init_parser
 	opam install -y JavaScriptVerification --deps-only
 
 init_parser:
-	opam pin -y add JS_Parser "https://github.com/resource-reasoning/JS_Parser.git#d4384b12880361ceb0ff14129a60200e697ca38b"
+	opam pin -y add JS_Parser "https://github.com/resource-reasoning/JS_Parser.git#1cf7256b7414fdcc7243a4a75254fcc85e3ed5c6"
 #	opam pin -y add JS_Parser ../JS_Parser
 
 clean:
