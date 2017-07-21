@@ -149,7 +149,7 @@ type js_logic_assertion =
 type js_logic_command =
 	| JSFold             of js_logic_assertion                                                (** Recursive fold *)
 	| JSUnfold           of js_logic_assertion                                                (** Single unfold *)
-	| JSCallSpec		     of string * jsil_var * (js_logic_expr list)                          (** Spec calling *)
+	| JSCallSpec		     of js_logic_assertion                                                (** Spec calling *)
 	| JSRecUnfold        of string                                                            (** Recursive unfold of everything *)
 	| JSLogicIf          of js_logic_expr * (js_logic_command list) * (js_logic_command list) (** If-then-else *)
 	| JSMacro            of string * (js_logic_expr list)                                     (** Macro *)
@@ -473,14 +473,14 @@ let rec js2jsil_logic_cmds
 		(cc_tbl     : cc_tbl_type)
 		(vis_tbl    : vis_tbl_type) 
 		(fun_tbl    : pre_fun_tbl_type) 
-		(logic_cmds : (Parser_syntax.annotation_type * js_logic_assertion) list) =
+		(logic_cmds : js_logic_command list) =
 	let f = js2jsil_logic_cmds cc_tbl vis_tbl fun_tbl in 
 	let fe = js2jsil_lexpr in
 	match logic_cmds with 
 	| [] -> []
-	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (f rest)
-	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (f rest) 
-	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> 
+	| (JSFold (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (f rest)
+	| (JSUnfold (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (f rest) 
+	| (JSCallSpec (JSLPred (s, les))) :: rest -> 
 		(match les with 
 		| (JSLVar ret_var) :: rest_les -> 
 			(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
@@ -493,9 +493,13 @@ let rec js2jsil_logic_cmds
 			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
 		| _ ->  raise (Failure "DEATH: js2jsil_logic_cmds"))
 
-	| (Parser_syntax.Assert, assertion) :: rest -> 
+	| (JSAssert assertion) :: rest -> 
 		let a' = js2jsil_logic None cc_tbl vis_tbl fun_tbl assertion in 
 		(Assert a') :: (f rest)
+
+	| (JSRecUnfold pred_name) :: rest -> (RecUnfold pred_name) :: (f rest)
+	| (JSMacro (s, les)) :: rest -> (Macro (s, List.map fe les)) :: (f rest)
+	| (JSLogicIf (le, lcthen, lcelse)) :: rest -> (LogicIf (fe le, f lcthen, f lcelse)) :: (f rest)
 
 	| _ -> raise (Failure "DEATH: No such logic command")
 
