@@ -471,7 +471,7 @@ let rec js2jsil_logic_cmds
 	match logic_cmds with 
 	| [] -> []
 	| (Parser_syntax.Fold, (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (f rest)
-	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold (LPred (s, List.map fe les))) :: (f rest) 
+	| (Parser_syntax.Unfold, (JSLPred (s, les))) :: rest -> (Unfold ((LPred (s, List.map fe les)), None)) :: (f rest) 
 	| (Parser_syntax.CallSpec, (JSLPred (s, les))) :: rest -> 
 		(match les with 
 		| (JSLVar ret_var) :: rest_les -> 
@@ -495,7 +495,7 @@ let rec js2jsil_logic_cmds
 
 let translate_predicate_def pred_def cc_tbl vis_tbl fun_tbl = 
 	let jsil_params = List.map js2jsil_lexpr pred_def.js_params in 
-	let jsil_definitions = List.map (fun a -> js2jsil_logic None cc_tbl vis_tbl fun_tbl a) pred_def.js_definitions in 
+	let jsil_definitions = List.map (fun a -> None, (js2jsil_logic None cc_tbl vis_tbl fun_tbl a)) pred_def.js_definitions in
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions }
 
 

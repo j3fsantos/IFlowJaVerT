@@ -520,14 +520,24 @@ expr_target:
 pred_target:
 (* pred name (arg1, ..., argn) : def1, ..., defn ; *)
 	PRED; pred_head = pred_head_target; COLON;
-	definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
-  { (* Add the predicate to the collection *)
+	definitions = separated_nonempty_list(COMMA, named_assertion_target); SCOLON
+  	{ 
+  		(* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
-	  let pred = { name; num_params; params; definitions; } in
+		let pred = { name; num_params; params; definitions} in
 		Hashtbl.add predicate_table name pred;
-    pred
+    	pred
 	}
 ;
+
+named_assertion_target: 
+	id = option(assertion_id_target); a = assertion_target 
+	{ (id, a) }
+; 
+
+assertion_id_target: LBRACKET; v=VAR; RBRACKET 
+	{ v }
+;	
 
 
 js_pred_target:
@@ -597,7 +607,16 @@ post_logic_cmd_target:
 	| OOLCMD; logic_cmds = separated_list(SCOLON, logic_cmd_target); CCLCMD
 		{ logic_cmds }
 
+var_and_le_target: 
+	| lvar = LVAR; DEFEQ; le = lexpr_target 
+		{ (lvar, le) }
+; 
 
+(* [ def with #x := le1 and ... ] *)
+unfold_info_target:
+	| LBRACKET; id = VAR; WITH; var_les = separated_list(AND, var_and_le_target); RBRACKET 
+		{ (id, var_les) } 
+;
 
 (* TODO: Check that the assertions are only predicates, or deal with full assertions in the execution *)
 logic_cmd_target:
@@ -605,9 +624,9 @@ logic_cmd_target:
 	| FOLD; assertion = assertion_target
 	  { Fold (assertion) }
 
-(* unfold x(e1, ..., en) *)
-	| UNFOLD; assertion = assertion_target
-	  { Unfold (assertion) }
+(* unfold x(e1, ..., en) [ def with #x := le1 and ... ] *)
+	| UNFOLD; assertion = assertion_target; unfold_info = option(unfold_info_target)
+	  { Unfold (assertion, unfold_info) }
 
 (* unfold* x *)
 	| RECUNFOLD; v = VAR

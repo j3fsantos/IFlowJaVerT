@@ -23,11 +23,11 @@ let string_of_type t =
 	| NullType      -> "$$null_type"
 	| EmptyType     -> "$$empty_type"
 	| NoneType      -> "$$none_type"
-  | BooleanType   -> "$$boolean_type"
-  | NumberType    -> "$$number_type"
+  	| BooleanType   -> "$$boolean_type"
+  	| NumberType    -> "$$number_type"
 	| StringType    -> "$$string_type"
 	| CharType      -> "$$char_type"
-  | ObjectType    -> "$$object_type"
+  	| ObjectType    -> "$$object_type"
 	| ListType      -> "$$list_type"
 	| TypeType      -> "$$type_type"
 	| SetType       -> "$$set_type"
@@ -217,17 +217,17 @@ let rec string_of_logic_expression e escape_string =
   let sle = fun e -> string_of_logic_expression e escape_string in
   match e with
     | LLit llit -> string_of_literal llit escape_string
-		| LNone -> "None"
+	| LNone -> "None"
     | LVar lvar -> lvar (* Printf.sprintf "(Lvar %s)" lvar *)
-		| ALoc aloc -> aloc (* Printf.sprintf "(Aloc %s)" aloc *)
-		| PVar pvar -> pvar (* Printf.sprintf "(Pvar %s)" pvar *)
-		(* (e1 bop e2) *)
+	| ALoc aloc -> aloc (* Printf.sprintf "(Aloc %s)" aloc *)
+	| PVar pvar -> pvar (* Printf.sprintf "(Pvar %s)" pvar *)
+	(* (e1 bop e2) *)
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
-		(* (uop e1 e2) *)
+	(* (uop e1 e2) *)
     | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (sle e)
-		(* typeOf(e) *)
+	(* typeOf(e) *)
     | LTypeOf e -> Printf.sprintf "typeOf(%s)" (sle e)
-		(* {{ e1, ..., en }} *)
+	(* {{ e1, ..., en }} *)
     | LEList list ->
 			(match list with
 			| [] -> "$$nil"
@@ -241,11 +241,11 @@ let rec string_of_logic_expression e escape_string =
 			| [] -> "''"
 			| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map sle ll)))
 		(* l-nth(e1, e2) *)
-		| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
-		(* s-nth(e1, e2) *)
-		| LStrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
-		(* $$unknown *)
-		| LUnknown -> "$$unknown"
+	| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
+	(* s-nth(e1, e2) *)
+	| LStrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
+	(* $$unknown *)
+	| LUnknown -> "$$unknown"
 
 (** JSIL logic assertions *)
 let rec string_of_logic_assertion a escape_string =
@@ -293,10 +293,23 @@ let rec string_of_logic_assertion a escape_string =
 		(* e1 --s-- e2 *)
 		| LSetSub (e1, e2) -> Printf.sprintf "(%s --s-- %s)" (sle e1) (sle e2)
 
+
+(* [def2 with #key := #k and #value := #v] *)
+let string_of_unfold_info unfold_info = 
+	match unfold_info with 
+	| None -> ""
+	| Some (id, unfold_info_list) -> 
+		let unfold_info_list =
+			List.map (fun (v, le) -> v ^ " := " ^ (string_of_logic_expression le false)) unfold_info_list in 
+		let unfold_info_list_str = String.concat " and " unfold_info_list in 
+		"[ " ^ id ^ " with " ^ unfold_info_list_str ^ " ]"
+
+
 let rec string_of_lcmd lcmd =
 	match lcmd with
-	| Fold a -> "fold " ^ (string_of_logic_assertion a false)
-	| Unfold a -> "unfold " ^ (string_of_logic_assertion a false)
+	| Fold a                  -> "fold " ^ (string_of_logic_assertion a false)
+	| Unfold (a, unfold_info) -> 
+		"unfold " ^ (string_of_logic_assertion a false) ^ (string_of_unfold_info unfold_info)
 	| CallSpec (spec_name, ret_var, lparams) -> 
 		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
 		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in 
@@ -318,13 +331,17 @@ let rec string_of_lcmd lcmd =
 
 
 (** JSIL logic predicates *)
-let rec string_of_predicate predicate =
+let rec string_of_predicate (predicate : jsil_logic_predicate) =
 	let sle = fun e -> string_of_logic_expression e false in
 	List.fold_left
-		(fun acc_str assertion ->
-			acc_str ^ (Printf.sprintf "pred %s (%s) : %s;\n"
+		(fun acc_str (id, assertion) ->
+			let id_str = match id with 
+			| None    -> "" 
+			| Some id -> "[" ^ id ^ "]" in  
+			acc_str ^ (Printf.sprintf "pred %s (%s) : %s %s;\n"
 				predicate.name
 				(String.concat ", " (List.map sle predicate.params))
+				id_str
 				(string_of_logic_assertion assertion false)))
 		""
 		predicate.definitions
@@ -501,12 +518,10 @@ let string_of_lab_cmd lcmd =
 	let se = fun e -> string_of_expression e false in
   match lcmd with
 	(* Basic command *)
-	| SLBasic bcmd ->
-		(string_of_bcmd bcmd 0 false false)
+	| SLBasic bcmd -> (string_of_bcmd bcmd 0 false false)
 	(* goto j *)
-  | SLGoto j ->
-		Printf.sprintf "goto %s" j
-  (* goto [e] j k *)
+  	| SLGoto j -> Printf.sprintf "goto %s" j
+  	(* goto [e] j k *)
 	| SLGuardedGoto (e, j, k) ->
 		Printf.sprintf "goto [%s] %s %s" (se e) j k
 	(* x := f(y1, ..., yn) with j *)

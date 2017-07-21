@@ -1528,7 +1528,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	(*  let new_store_1 = store_1|_{unfiltered_vars}                                                                         *)
 	(*  let discharges_0 = { (le_0, le_1) | x \in filtered_vars /\ le_0 = store_0(x) /\ le_1 = store_1(x)                    *)
 	(*  let subst = new_subst ()                                                                                             *)
-	(*  let discharges_1 = unify_stores (new_store_0, new_store_1, subst, pi_0, gamma_0)	                                   *)
+	(*  let discharges_1 = unify_stores (new_store_0, new_store_1, subst, pi_0, gamma_0)	                                 *)
 	(*  Find gamma_existentials st                                                                                           *)
 	(*   dom(gamma_existentials) \subseteq existentials                                                                      *)
 	(*    forall x \in filtered_vars :                                                                                       *)
@@ -1727,6 +1727,7 @@ let get_index x lst =
     | hd :: tl -> if (hd = x) then c else get_index_rec x tl (c+1) in
 	get_index_rec x lst 0
 
+(* 
 let understand_single_recovery s_prog symb_state recovery_option : recovery =
 	let heap, store, pfs, gamma, preds = symb_state in
 	try (
@@ -1780,6 +1781,8 @@ let understand_recovery s_prog symb_state recovery_options : recovery list =
 	let result = List.filter (fun x -> x <> NoRecovery) result in
 	print_debug_petar "----------------------";
 	result
+*)
+
 
 (* This is one place to try and do recovery *)
 let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe_info js =
@@ -1794,8 +1797,8 @@ let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe
 
 	let rec loop posts i recovery_options : unit =
 		(match posts with
-		| [] ->
-				print_debug "----------------------";
+		| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "Post condition is not unifiable")
+		(*	print_debug "----------------------";
 				let can_we_recover : recovery list = understand_recovery s_prog symb_state recovery_options in
 				(match can_we_recover with
 				| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "Post condition is not unifiable")
@@ -1804,8 +1807,8 @@ let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe
 					| GR (Flash (pred_name, pred_params)) ->
 						print_debug_petar (Printf.sprintf "I can try to flash the predicate %s(%s)" pred_name (String.concat ", " (List.map (fun x -> print_lexpr x) pred_params)));
 						print_debug "----------------------";
-						raise (SymbExecRecovery rop))
-				)
+						raise ( SymbExecRecovery rop))
+				) *)
 		| post :: rest_posts ->
 			let unification_function p ss lv = (match js with
 				| true ->  let (success, _, _, _, _, _) = unify_symb_states p ss lv in success

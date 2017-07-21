@@ -608,7 +608,7 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 
 	let rec check_pred_def (index : int) search_info : (symbolic_state * SS.t * symbolic_execution_search_info) option =
 		print_time_debug ("check_pred_def:");
-		let pred_def = Array.get pred_defs index in
+		let _, pred_def = Array.get pred_defs index in
 		print_debug (Printf.sprintf "----------------------------");
 		print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
 		let unifier = try (Some (Structural_Entailment.unify_symb_states_fold pred_name existentials pred_def symb_state_aux))
@@ -711,19 +711,41 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 	| SuccessfullyFolded x -> x
 	| e -> raise e
 
+
+let use_unfold_info 
+	(unfold_info : (string * ((string * jsil_logic_expr) list)) option) 
+	(pred_defs   : ((string option) * symbolic_state) list)
+	(subst       : substitution) : (symbolic_state list) = 
+	match unfold_info with 
+	| None                    -> 
+		let pred_defs' = List.map (fun (os, a) -> a) pred_defs in 
+		pred_defs'
+	| Some (def_id, mappings) ->
+		let pred_defs' = 
+			List.filter 
+				(fun (os, a) -> 
+					match os with 
+					| Some def_id' -> (def_id = def_id')
+					| None         -> false) pred_defs in 
+		let pred_defs' = List.map (fun (os, a) -> a) pred_defs' in 
+		List.iter (fun (x, le) -> extend_subst subst x le) mappings; 
+		pred_defs'  
+
+
 (* 
 	UNFOLD: Returns ->  a list of pairs containing:
 		- an unfolded symbolic state
 		- the set of spec vars to be added
 *)
 let unfold_predicates 
-				(pred_name  : string) 
-				(pred_defs  : symbolic_state list) 
-				(symb_state : symbolic_state)
-				(params     : string list) 
-				(args       : jsil_logic_expr list)
-				(spec_vars  : SS.t) 
-				(search_info : symbolic_execution_search_info) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
+				(pred_name   : string) 
+				(pred_defs   : ((string option) * symbolic_state) list) 
+				(symb_state  : symbolic_state)
+				(params      : string list) 
+				(args        : jsil_logic_expr list)
+				(spec_vars   : SS.t) 
+				(search_info : symbolic_execution_search_info) 
+				(unfold_info : (string * ((string * jsil_logic_expr) list)) option) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
 
 	print_debug (Printf.sprintf "UNFOLD_PREDICATES: Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 
@@ -741,14 +763,14 @@ let unfold_predicates
 		try Option.get subst0 with _ -> 
 			raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name)) in 
 
-
+	let pred_defs = use_unfold_info unfold_info pred_defs subst0 in 
 
 	(* Printf.printf "I survived the subtract pred!!!\n"; *)
 
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = store_init params args in
 
-  let unfolded_pred_defs = List.map (fun pred_symb_state ->
+  	let unfolded_pred_defs = List.map (fun (pred_symb_state) ->
 		print_debug (Printf.sprintf "Current Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
 		print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 		Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars) pred_defs in
@@ -779,7 +801,7 @@ let unfold_predicates
 		
 let recursive_unfold 
 				(pred_name  : string) 
-				(pred_defs  : symbolic_state list) 
+				(pred_defs  : ((string option) * symbolic_state) list) 
 				(symb_state : symbolic_state)
 				(params     : jsil_var list) 
 				(spec_vars  : SS.t) 
@@ -796,7 +818,7 @@ let recursive_unfold
 			print_debug_petar (Printf.sprintf "pred_args: %s\n"
 				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args)));
 			let old_symb_state = copy_symb_state symb_state in 
-			let unfolded_symb_states_with_spec_vars = unfold_predicates pred_name pred_defs symb_state params args cur_spec_vars search_info in
+			let unfolded_symb_states_with_spec_vars = unfold_predicates pred_name pred_defs symb_state params args cur_spec_vars search_info None in
 			let len = List.length unfolded_symb_states_with_spec_vars in
 			print_debug (Printf.sprintf "number of unfolded_symb_states: %i\n" len);
 			if (len <> 1)
@@ -851,7 +873,7 @@ lcmd_map f unfold_macros lcmd =
 	let map_e = logic_expression_map f in
 	match lcmd with
 	| Fold      a                   -> Fold      (map_a a)
-	| Unfold    a                   -> Unfold    (map_a a)
+	| Unfold    (a, info)           -> Unfold    ((map_a a), info)
 	| RecUnfold s                   -> RecUnfold s
 	| LogicIf   (e, lcmds1, lcmds2) -> LogicIf   (map_e e, List.map (fun x -> map_l x) lcmds1, List.map (fun x -> map_l x) lcmds2)
 	| Macro     (name, params_vals) -> 
@@ -924,12 +946,12 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 			let msg = Printf.sprintf "Illegal fold command %s" (JSIL_Print.string_of_logic_assertion a false) in
 			raise (Failure msg))
 
-	| Unfold a ->
+	| Unfold (a, unfold_info) ->
 		print_time "Unfold.";
 		(match a with
 		| LPred (pred_name, les) ->
 			let params, pred_defs, args = get_pred_data pred_name les in
-			let unfolded_predicate = unfold_predicates pred_name pred_defs symb_state params args spec_vars search_info in
+			let unfolded_predicate = unfold_predicates pred_name pred_defs symb_state params args spec_vars search_info unfold_info in
 			if ((List.length unfolded_predicate) = 0) then (
 				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);
 				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a false) in
@@ -1215,7 +1237,7 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 		with | SymbExecRecovery recovery -> 
 			(match recovery with
 			| GR (Flash (pn, pp)) -> 
-				let flash = [ Unfold (LPred (pn, pp)); Fold (LPred (pn, pp)) ] in
+				let flash = [ Unfold (LPred (pn, pp), None); Fold (LPred (pn, pp)) ] in
 				let sss = symb_evaluate_logic_cmds s_prog flash [ symb_state, spec.n_lvars, search_info ] spec.n_subst in
 				print_debug (Printf.sprintf "Flash completed: %d resulting states" (List.length sss));
 				List.iter (fun (ss, sv, si) ->

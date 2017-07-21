@@ -9,7 +9,7 @@ type normalised_predicate = {
 	name         : string;
 	num_params   : int;
 	params       : jsil_var list;
-	definitions  : jsil_logic_assertion list;
+	definitions  : ((string option) * jsil_logic_assertion) list; 
 	is_recursive : bool;
 }
 
@@ -19,7 +19,7 @@ let string_of_normalised_predicate (pred : normalised_predicate) =
     "Name : " ^ pred.name ^ "\n" ^
     "Parameters : " ^ params ^ "\n" ^
     (Printf.sprintf "Recursive : %b\n" pred.is_recursive) ^
-		List.fold_left (fun ac x -> ac ^ "\nDefinition:\n" ^ (JSIL_Print.string_of_logic_assertion x false) ^ "\n") "" pred.definitions
+		List.fold_left (fun ac (_, x) -> ac ^ "\nDefinition:\n" ^ (JSIL_Print.string_of_logic_assertion x false) ^ "\n") "" pred.definitions
 
 let string_of_normalised_predicates (preds : (string, normalised_predicate) Hashtbl.t) =
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
@@ -27,8 +27,8 @@ let string_of_normalised_predicates (preds : (string, normalised_predicate) Hash
 let detect_trivia_and_nonsense norm_pred =
 	print_time_debug "detect_trivia_and_nonsense";
 	let new_definitions = List.map
-		(fun x -> reduce_assertion_no_store_no_gamma_no_pfs x) norm_pred.definitions in
-	let new_definitions = List.filter (fun x -> not (x = LFalse)) new_definitions in
+		(fun (oc, x) -> oc, (reduce_assertion_no_store_no_gamma_no_pfs x)) norm_pred.definitions in
+	let new_definitions = List.filter (fun (oc, x) -> not (x = LFalse)) new_definitions in
 	{ norm_pred with definitions = new_definitions }
 
 (* Replaces the literals and None in the arguments of a predicate with logical variables,
@@ -50,9 +50,9 @@ let replace_head_literals (pred : jsil_logic_predicate) =
 				let new_pvar = fresh_pvar () in
 				let new_assertions =
 					List.map
-						(fun prev_ass -> LStar (prev_ass, LEq (PVar new_pvar, cur_param)))
+						(fun (oc, prev_ass) -> oc, (LStar (prev_ass, LEq (PVar new_pvar, cur_param))))
 						norm_pred.definitions in
-				{ name         = norm_pred.name;
+					{ name         = norm_pred.name;
 				  num_params   = norm_pred.num_params;
 					params       = new_pvar :: norm_pred.params;
 					definitions  = new_assertions;
@@ -130,7 +130,8 @@ let join_pred pred1 pred2 =
 	  then raise (Non_unifiable ("Incompatible predicate definitions."))
 		else
 		  let subst = unify_list_pvars (List.map (fun var -> PVar var) pred1.params) pred2.params in
-		  let definitions = pred1.definitions @ (List.map (apply_substitution subst) pred2.definitions) in
+		  let definitions = pred1.definitions @ 
+		  	(List.map (fun (oid, a) -> oid, (apply_substitution subst a)) pred2.definitions) in
 		  { pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
 
 (* Returns a list with the names of the predicates that occur in an assertion *)
@@ -174,7 +175,7 @@ let find_recursive_preds preds =
 				| Not_found -> raise (Failure ("Undefined predicate " ^ pred_name))) in
 			let neighbours = (* Find the names of all predicates that the current predicate uses *)
 				List.fold_left
-				  (fun list asrt -> list @ (get_predicate_names asrt))
+				  (fun list (_, asrt) -> list @ (get_predicate_names asrt))
 					[]
 					pred.definitions in
 			let min_index = (* Compute recursively the smallest index reachable from its neighbours *)
@@ -230,11 +231,10 @@ let rec auto_unfold predicates asrt =
 				(* If it is not, unify the formal parameters with the actual parameters,    *)
 				(* apply the substitution to each definition of the predicate, and recurse. *)
 				let subst = unify_list_pvars args pred.params in
-				let new_asrts = List.map (apply_substitution subst) pred.definitions in
-				List.fold_left
-				  (fun list asrt -> list @ (au asrt))
-					[]
-				  new_asrts
+				let new_asrts  = 
+					List.map 
+						(fun (_, a) -> (apply_substitution subst a)) pred.definitions in
+				List.fold_left (fun list asrt -> list @ (au asrt)) [] new_asrts
 
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
@@ -270,14 +270,19 @@ let normalise preds =
 	let norm_rec_unfolded_predicates = Hashtbl.create (Hashtbl.length norm_rec_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
+	  		let definitions' = List.flatten (List.map 
+	  			(fun (os, a) -> 
+	  				let as' = auto_unfold norm_rec_predicates a in 
+	  				let as' = List.map (fun a -> (os, a)) as' in 
+	  				as') pred.definitions) in 
 			Hashtbl.add norm_rec_unfolded_predicates pred.name
-			(let ret_pred = { pred with definitions = List.flatten (List.map (auto_unfold norm_rec_predicates) pred.definitions); } in
+			(let ret_pred = { pred with definitions = definitions'; } in
   		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
   		  	 ret_pred))
 		norm_rec_predicates;
 	norm_rec_unfolded_predicates
 
-
+(*
 let to_string { name; num_params; params; definitions; is_recursive; } =
 	"pred " ^ name ^ " (" ^ (String.concat ", " params) ^ ")" ^
 	(match definitions with
@@ -288,3 +293,4 @@ let to_string { name; num_params; params; definitions; is_recursive; } =
 		  (" :\n\t" ^ (JSIL_Print.string_of_logic_assertion head false))
 		  tail)
 	 ^ ";\n"
+*)

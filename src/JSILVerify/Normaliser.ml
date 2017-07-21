@@ -686,18 +686,20 @@ let coalesce_overlapping_cells (symb_state : symbolic_state) (subst : substituti
 	new_symb_state 
 *)
 
-let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t =
+let normalise_predicate_definitions (pred_defs : (string, normalised_predicate) Hashtbl.t) 
+			 	: (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t =
 	print_debug "Normalising predicate definitions.\n";
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
-		(fun pred_name pred ->
+		(fun pred_name (pred : normalised_predicate)  ->
+			let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in 
 					let n_definitions =
 						List.map
-							(fun a ->
+							(fun (os, a) ->
 										print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
-										let vars = get_assertion_vars false a in
+										let vars              = get_assertion_vars false a in
 										let pre_normalised_as = pre_normalise_assertion a in
-										let symb_state, _ = normalise_assertion pre_normalised_as in
+										let symb_state, _     = normalise_assertion pre_normalised_as in
 										let heap, store, pfs, gamma, preds = symb_state in
 										let symb_state_check = 
 											let heap_constraints = Symbolic_State_Utils.get_heap_well_formedness_constraints heap in
@@ -710,17 +712,17 @@ let normalise_predicate_definitions pred_defs : (string, Symbolic_State.n_jsil_l
 												let symb_state, subst = Simplifications.simplify_ss_with_subst symb_state (Some (Some vars)) in
 												(* let symb_state = coalesce_overlapping_cells symb_state subst in *)
 												print_debug_petar (Printf.sprintf "Post-Simpl Symbolic state: %s\n%s" pred_name (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
-												[ symb_state ]
+												[ (os, symb_state) ]
 										| false -> 
 												print_debug (Printf.sprintf "WARNING: One predicate definition does not make sense: %s\n" pred_name); [ ]))
-							pred.definitions in
+							definitions in
 					let n_definitions = List.rev (List.concat n_definitions) in
 					let n_pred = {
-						n_pred_name = pred.name;
-						n_pred_num_params = pred.num_params;
-						n_pred_params = pred.params;
+						n_pred_name        = pred.name;
+						n_pred_num_params  = pred.num_params;
+						n_pred_params      = pred.params;
 						n_pred_definitions = n_definitions;
-						n_pred_is_rec = pred.is_recursive
+						n_pred_is_rec      = pred.is_recursive
 					} in
 					Hashtbl.replace n_pred_defs pred_name n_pred)
 		pred_defs;

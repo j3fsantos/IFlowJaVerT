@@ -21,9 +21,9 @@
 		((#c, "hasOwnProperty") -> None) * KVPairs(#c, kvs, keys) * empty_fields(#c : -u- (keys, -{ "hasOwnProperty" }-));
   	
 	@pred KVPairs (o, kvs, keys) :
-		(kvs == -{ }-) * (keys == -{ }-),
-		(kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * (keys == -u- (-{ #key }-, #rkeys)) *
-		validKey(#key) * dataField(o, #key, #value) * KVPairs(o, #rkvs, #rkeys);
+		[def1] (kvs == -{ }-) * (keys == -{ }-),
+		[def2] (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * (keys == -u- (-{ #key }-, #rkeys)) *
+					validKey(#key) * dataField(o, #key, #value) * KVPairs(o, #rkvs, #rkeys);
 		
   	@pred MapProto(mp) :
 		standardObject(mp) *
@@ -86,6 +86,8 @@ Map.prototype.validKey = function (key) {
 Map.prototype.get = function (k) {
 	/* @invariant dataField(this, "_contents", #c) */
 	if (this.validKey(k)) {
+		/* @unfold[def2 with #key := #k and #value := #v] KVPairs(#c, #kvs, #keys) */
+
 	    if (this._contents.hasOwnProperty(k)) { 
 	        return this._contents[k] 
 	    } else { return null }

@@ -7,7 +7,7 @@ type normalised_predicate = {
 	name         : string;
 	num_params   : int;
 	params       : jsil_logic_var list;
-	definitions  : jsil_logic_assertion list;
+	definitions  : ((string option) * jsil_logic_assertion) list; 
 	is_recursive : bool;
 }
 
@@ -24,7 +24,7 @@ val auto_unfold : (string, normalised_predicate) Hashtbl.t -> jsil_logic_asserti
     possible combination of unfoldings. *)
 
 (** Returns a string from a normalised predicate. *)
-val to_string : normalised_predicate -> string
+(* val to_string : normalised_predicate -> string *)
 (** Useful for debugging. *)
 
 val string_of_normalised_predicates : (string, normalised_predicate) Hashtbl.t -> string

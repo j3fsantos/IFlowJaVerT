@@ -269,10 +269,10 @@ type jsil_logic_assertion =
 
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
-	name        : string;                    (** Name of the predicate *)
-	num_params  : int;                       (** Number of parameters *)
-	params      : jsil_logic_expr list;      (** Actual parameters *)
-	definitions : jsil_logic_assertion list; (** Predicate definitions *)
+	name        : string;                                        (** Name of the predicate  *)
+	num_params  : int;                                           (** Number of parameters   *)
+	params      : jsil_logic_expr list;                          (** Actual parameters      *)
+	definitions : ((string option) * jsil_logic_assertion) list; (** Predicate definitions  *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -321,14 +321,14 @@ let create_jsil_spec name params specs =
 
 (** {b JSIL logic commands}. *)
 type jsil_logic_command =
-	| Fold             of jsil_logic_assertion                                                    (** Recursive fold *)
-	| Unfold           of jsil_logic_assertion                                                    (** Single unfold *)
-	| CallSpec		   of string * jsil_var * (jsil_logic_expr list)                              (** Spec calling *)
-	| RecUnfold        of string                                                                  (** Recursive unfold of everything *)
-	| LinearRecUnfold  of string * (jsil_logic_expr list)                                         (** Recursive unfold of everything but this time I will give you the arguments *)
-	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
-	| Macro            of string * (jsil_logic_expr list)                                         (** Macro *)
-	| Assert           of jsil_logic_assertion                                                    (** Assert *)
+	| Fold             of jsil_logic_assertion                                                          (** Recursive fold *)
+	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
+	| CallSpec		   of string * jsil_var * (jsil_logic_expr list)                                    (** Spec calling *)
+	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
+	| LinearRecUnfold  of string * (jsil_logic_expr list)                                               (** Recursive unfold of everything but this time I will give you the arguments *)
+	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)       (** If-then-else *)
+	| Macro            of string * (jsil_logic_expr list)                                               (** Macro *)
+	| Assert           of jsil_logic_assertion                                                          (** Assert *)
 
 (** {b JSIL logic macro}. *)
 type jsil_logic_macro = {
