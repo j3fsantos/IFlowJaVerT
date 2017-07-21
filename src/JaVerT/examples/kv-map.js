@@ -97,11 +97,19 @@ Map.prototype.get = function (k) {
 
 /**
 	@id mapPut
+	
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * invalidKey(#k) 
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key")
+
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (! (#k --e-- #keys))
+	@post Map(this, #mp, -u- ({{ #k, #v }}, #kvs), -u- (#k, #keys)) * MapProto(#mp)
+
+	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (#k --e-- #keys) * (#kvs == -u- ({{ #k, #w }}, #rkvs))
+	@post Map(this, #mp, #kvs, -u- ({{ #k, #v }}, #rkvs)) * MapProto(#mp)
 */
-Map.prototype.put = function (key, value) {
-   if (isValidKey(key)) { 
-       var contents = this._contents;
-       contents[key] = value; 
-   } else
-       throw new Error("Invalid Key")
+Map.prototype.put = function (k, v) {
+	if (this.validKey(k)) { 
+		this._contents[k] = v; 
+	} else
+		throw new Error("Invalid Key")
 }

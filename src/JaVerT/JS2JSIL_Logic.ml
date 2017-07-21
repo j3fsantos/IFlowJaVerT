@@ -146,6 +146,14 @@ type js_logic_assertion =
 	| JSLSetMem  	        of js_logic_expr * js_logic_expr              
 	| JSLSetSub  	        of js_logic_expr * js_logic_expr       
 
+type js_logic_command =
+	| JSFold             of js_logic_assertion                                                (** Recursive fold *)
+	| JSUnfold           of js_logic_assertion                                                (** Single unfold *)
+	| JSCallSpec		     of string * jsil_var * (js_logic_expr list)                          (** Spec calling *)
+	| JSRecUnfold        of string                                                            (** Recursive unfold of everything *)
+	| JSLogicIf          of js_logic_expr * (js_logic_command list) * (js_logic_command list) (** If-then-else *)
+	| JSMacro            of string * (js_logic_expr list)                                     (** Macro *)
+	| JSAssert           of js_logic_assertion                                                (** Assert *)
 
 type js_logic_predicate = {
 	js_name        : string;
