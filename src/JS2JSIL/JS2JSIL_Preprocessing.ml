@@ -232,6 +232,8 @@ let closure_clarification
 (********************************************)
 (********************************************)
 
+(* 
+
 let rec expand_flashes e =
   let f_m e = 
     let annots = e.exp_annot in 
@@ -243,6 +245,7 @@ let rec expand_flashes e =
         | _     -> [ annot ]) annots) in 
     { e with exp_annot = new_annots } in 
   js_map f_m e
+*)
 
 
 let rec propagate_annotations e = 
@@ -338,11 +341,11 @@ let get_only_specs_from_annots annots : JS2JSIL_Logic.js_spec list =
   
 
 let parse_annots_formulae annots = 
-  List.map 
+  let lcmds = List.map 
     (fun annot -> 
-      let assertion = JSIL_Utils.js_assertion_of_string annot.annot_formula in
-      (annot.annot_type, assertion))
-    annots
+      let lcmds = JSIL_Utils.js_logic_commands_of_string annot.annot_formula in
+      lcmds) annots in 
+  List.concat lcmds 
 
 
 let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e = 
@@ -495,8 +498,8 @@ let preprocess
   test_early_errors e; 
 
   (* 1 - expanding the flashes                     *)
-  JSIL_Syntax.print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
-  let e = expand_flashes e in
+  (* JSIL_Syntax.print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
+  let e = expand_flashes e in   *)
 
   (* 2 - propagating annotations                   *)
   JSIL_Syntax.print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 

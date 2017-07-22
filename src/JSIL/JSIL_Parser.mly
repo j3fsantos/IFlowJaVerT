@@ -259,6 +259,7 @@ let copy_and_clear_globals () =
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
 %type <JS2JSIL_Logic.js_logic_assertion> top_level_js_assertion_target
 %type <JS2JSIL_Logic.js_spec> js_only_spec_target
+%type <JS2JSIL_Logic.js_logic_command list> js_logic_cmds_target
 
 %type<jsil_constant> constant_target
 
@@ -269,6 +270,7 @@ let copy_and_clear_globals () =
 %start top_level_js_assertion_target
 %start js_pred_target
 %start js_only_spec_target
+%start js_logic_cmds_target
 %%
 
 (********* JSIL *********)
@@ -1153,46 +1155,72 @@ js_type_env_pair_target:
     { (v, the_type) }
 ;
 
+
+js_macro_head_target:
+ | name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
+	 { (name, params) }
+
+js_var_and_le_target: 
+	| lvar = LVAR; DEFEQ; le = js_lexpr_target 
+		{ (lvar, le) }
+; 
+
+(* [ def with #x := le1 and ... ] *)
+js_unfold_info_target:
+	| LBRACKET; id = VAR; WITH; var_les = separated_list(AND, js_var_and_le_target); RBRACKET 
+		{ (id, var_les) } 
+;
+
+
 js_logic_cmd_target:
 (* fold x(e1, ..., en) *)
 	| FOLD; assertion = js_assertion_target
 	  { JSFold (assertion) }
 
-(* unfold x(e1, ..., en) *)
-	| UNFOLD; assertion = js_assertion_target
-	  { JSUnfold (assertion) }
+(* unfold x(e1, ..., en) [ def1 with x1 := le1, ..., xn := len ] *)
+	| UNFOLD; assertion = js_assertion_target; unfold_info = option(js_unfold_info_target)
+	  { JSUnfold (assertion, unfold_info) }
 
 (* unfold* x *)
 	| RECUNFOLD; v = VAR
 	  { JSRecUnfold v }
 
 (* callspec spec_name(ret_var, args) *)
-	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE; 
+	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE; 
 	  { 
 	  	match params with 
-	  	| (LVar ret_var) :: rest_params ->  CallSpec (spec_name, ret_var, rest_params) 
+	  	| (JSLVar ret_var) :: rest_params ->  JSCallSpec (spec_name, ret_var, rest_params)
 	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
 	 }
 
-(* if(le) { lcmd* } else { lcmd* } *)
-	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
-			then_lcmds = separated_list(SCOLON, logic_cmd_target);
+(* if(le) { lcmds } else { lcmds } *)
+	| LIF; LBRACE; le=js_lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, js_logic_cmd_target); 
 			CRBRACKET; LELSE; CLBRACKET;
-			else_lcmds = separated_list(SCOLON, logic_cmd_target);
+			else_lcmds = separated_list(SCOLON, js_logic_cmd_target);
 			 CLBRACKET;
-	  { LogicIf (le, then_lcmds, else_lcmds)}
+	  { JSLogicIf (le, then_lcmds, else_lcmds) }
 
 (* if(e) { lcmd* } *)
-	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
-			then_lcmds = separated_list(SCOLON, logic_cmd_target);
+	| LIF; LBRACE; le=js_lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, js_logic_cmd_target);
 			CRBRACKET;
-	  { LogicIf (le, then_lcmds, [])}
+	  { JSLogicIf (le, then_lcmds, []) }
 
-	| macro = macro_head_target;
-		{ let (name, params) = macro in Macro (name, params) }
+	| macro = js_macro_head_target;
+		{ let (name, params) = macro in JSMacro (name, params) }
 
 (* assert a *)
-	| ASSERT; a = assertion_target 
-		{ Assert a }
+	| ASSERT; a = js_assertion_target 
+		{ JSAssert a  }
+
+(* (lcmd) *)
+  | LBRACE; lcmds=js_logic_cmd_target; RBRACE
+	  { lcmds }
 ;
 
+
+js_logic_cmds_target:
+	| lcmds = separated_list(SCOLON, js_logic_cmd_target); 
+		{ lcmds }
+; 

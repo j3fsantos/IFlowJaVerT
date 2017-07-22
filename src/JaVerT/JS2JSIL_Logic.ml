@@ -149,7 +149,7 @@ type js_logic_assertion =
 type js_logic_command =
 	| JSFold             of js_logic_assertion                                                         (** Recursive fold *)
 	| JSUnfold           of js_logic_assertion * ((string * ((string * js_logic_expr) list)) option)                                                (** Single unfold *)
-	| JSCallSpec		 of js_logic_assertion                                                         (** Spec calling *)
+	| JSCallSpec		 of string * string * (js_logic_expr list)                                     (** Spec calling *)
 	| JSRecUnfold        of string                                                                     (** Recursive unfold of everything *)
 	| JSLogicIf          of js_logic_expr * (js_logic_command list) * (js_logic_command list)          (** If-then-else *)
 	| JSMacro            of string * (js_logic_expr list)                                              (** Macro *)
@@ -489,19 +489,10 @@ let rec js2jsil_logic_cmds
 	| (JSFold (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (f rest)
 	| (JSUnfold ((JSLPred (s, les)), unfold_info)) :: rest ->
 		(Unfold ((LPred (s, List.map fe les)), (translate_unfold_info unfold_info))) :: (f rest) 
-	| (JSCallSpec (JSLPred (s, les))) :: rest -> 
-		(match les with 
-		| (JSLVar ret_var) :: rest_les -> 
-			(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
-			if (is_lvar_name ret_var)
-			 	then ( 
-			 		let args' = List.map fe rest_les in 
-			 		let args' = (PVar JS2JSIL_Constants.var_scope) :: ((PVar JS2JSIL_Constants.var_this) :: args') in 
-			 		CallSpec (s, ret_var, args') :: (f rest)
-			 	)
-			 	else raise (Failure "DEATH: js2jsil_logic_cmds")
-		| _ ->  raise (Failure "DEATH: js2jsil_logic_cmds"))
-
+	| (JSCallSpec (spec_name, x, les)) :: rest -> 
+		(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
+		let args = (PVar JS2JSIL_Constants.var_scope) :: ((PVar JS2JSIL_Constants.var_this) :: (List.map fe les)) in 
+		CallSpec (spec_name, x, args) :: (f rest)
 	| (JSAssert assertion) :: rest -> 
 		let a' = js2jsil_logic None cc_tbl vis_tbl fun_tbl assertion in 
 		(Assert a') :: (f rest)

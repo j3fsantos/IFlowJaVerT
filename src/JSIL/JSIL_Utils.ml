@@ -184,6 +184,13 @@ let js_only_spec_from_string str : JS2JSIL_Logic.js_spec =
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_only_spec_target lexbuf
 
+let js_logic_commands_of_string str =
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse JSIL_Parser.Incremental.js_logic_cmds_target lexbuf
+
+
+
 (** Add the declarations in 'program_from' to 'program_to'. *)
 let extend_declarations program_to program_from =
 	(* Extend the predicates *)
