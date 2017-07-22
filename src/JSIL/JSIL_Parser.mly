@@ -1153,5 +1153,46 @@ js_type_env_pair_target:
     { (v, the_type) }
 ;
 
+js_logic_cmd_target:
+(* fold x(e1, ..., en) *)
+	| FOLD; assertion = js_assertion_target
+	  { JSFold (assertion) }
 
+(* unfold x(e1, ..., en) *)
+	| UNFOLD; assertion = js_assertion_target
+	  { JSUnfold (assertion) }
+
+(* unfold* x *)
+	| RECUNFOLD; v = VAR
+	  { JSRecUnfold v }
+
+(* callspec spec_name(ret_var, args) *)
+	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE; 
+	  { 
+	  	match params with 
+	  	| (LVar ret_var) :: rest_params ->  CallSpec (spec_name, ret_var, rest_params) 
+	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
+	 }
+
+(* if(le) { lcmd* } else { lcmd* } *)
+	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, logic_cmd_target);
+			CRBRACKET; LELSE; CLBRACKET;
+			else_lcmds = separated_list(SCOLON, logic_cmd_target);
+			 CLBRACKET;
+	  { LogicIf (le, then_lcmds, else_lcmds)}
+
+(* if(e) { lcmd* } *)
+	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, logic_cmd_target);
+			CRBRACKET;
+	  { LogicIf (le, then_lcmds, [])}
+
+	| macro = macro_head_target;
+		{ let (name, params) = macro in Macro (name, params) }
+
+(* assert a *)
+	| ASSERT; a = assertion_target 
+		{ Assert a }
+;
 

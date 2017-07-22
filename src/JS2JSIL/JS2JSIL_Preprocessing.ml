@@ -100,11 +100,7 @@ let update_annotation annots atype new_value =
   annot :: old_removed
 
 
-let is_logic_cmd_annot annot = 
-  let annot_type = annot.annot_type in 
-  (annot_type = Parser_syntax.Unfold) || (annot_type = Parser_syntax.Fold) 
-    || (annot_type = Parser_syntax.Assert) || (annot_type = Parser_syntax.CallSpec) 
-
+let is_logic_cmd_annot annot = (annot.annot_type = Parser_syntax.Tactic) 
 
 let is_spec_annot annot = 
   let annot_type = annot.annot_type in 

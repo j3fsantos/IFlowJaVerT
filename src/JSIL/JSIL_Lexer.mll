@@ -122,7 +122,6 @@ rule read = parse
 (* Expression keywords *)
 	| "typeOf"             { JSIL_Parser.TYPEOF }
 	| "assume"             { JSIL_Parser.ASSUME }
-	| "assert"             { JSIL_Parser.ASSERT }
 	| "make-symbol-number" { JSIL_Parser.RNUMSYM }
 	| "make-symbol-string" { JSIL_Parser.RSTRSYM }
 	| "l-nth"              { JSIL_Parser.LSTNTH }
@@ -175,7 +174,12 @@ rule read = parse
 	| "if"                 { JSIL_Parser.LIF       }
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }
-(* Procedure specification keywords *)
+	| "macro"              { JSIL_Parser.MACRO     }
+	| "assert"             { JSIL_Parser.ASSERT    }
+	(**
+		macro, assert are elsewhere
+	*) 
+  (* Procedure specification keywords *)
   | "only"               { JSIL_Parser.ONLY      }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
@@ -191,7 +195,6 @@ rule read = parse
 	| "err"                { JSIL_Parser.ERR       }
 (* Others *)
 	| "import"             { JSIL_Parser.IMPORT    }
-	| "macro"              { JSIL_Parser.MACRO     }
 (* Separators *)
 	| "(*"                 { read_comment lexbuf   }
 	| '.'                  { JSIL_Parser.DOT       }
