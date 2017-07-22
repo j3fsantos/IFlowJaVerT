@@ -159,7 +159,7 @@ type js_logic_predicate = {
 	js_name        : string;
 	js_num_params  : int;
 	js_params      : js_logic_expr list;
-	js_definitions : js_logic_assertion list;
+	js_definitions : ((string option) * js_logic_assertion) list;
 }
 
 type js_single_spec = {
@@ -507,7 +507,7 @@ let rec js2jsil_logic_cmds
 
 let translate_predicate_def pred_def cc_tbl vis_tbl fun_tbl = 
 	let jsil_params = List.map js2jsil_lexpr pred_def.js_params in 
-	let jsil_definitions = List.map (fun a -> None, (js2jsil_logic None cc_tbl vis_tbl fun_tbl a)) pred_def.js_definitions in
+	let jsil_definitions = List.map (fun (os, a) -> os, (js2jsil_logic None cc_tbl vis_tbl fun_tbl a)) pred_def.js_definitions in
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions }
 
 

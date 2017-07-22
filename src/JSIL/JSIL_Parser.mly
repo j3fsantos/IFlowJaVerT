@@ -542,10 +542,15 @@ assertion_id_target: LBRACKET; v=VAR; RBRACKET
 ;	
 
 
+js_named_assertion_target: 
+	id = option(assertion_id_target); a = js_assertion_target 
+	{ (id, a) }
+; 
+
 js_pred_target:
-(* pred name (arg1, ..., argn) : def1, ..., defn ; *)
+(* pred name (arg1, ..., argn) : [def1_id] def1, ..., [def1_id] defn ; *)
 	PRED; pred_head = js_pred_head_target; COLON;
-	definitions = separated_nonempty_list(COMMA, js_assertion_target); SCOLON
+	definitions = separated_nonempty_list(COMMA, js_named_assertion_target); SCOLON
   { (* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
 	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_definitions = definitions } in
