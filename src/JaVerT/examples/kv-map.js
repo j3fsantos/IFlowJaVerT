@@ -111,7 +111,7 @@ Map.prototype.get = function (k) {
 Map.prototype.put = function (k, v) {
 	/* @invariant dataField(this, "_contents", #c) * scope (v : #v) */
 	if (this.validKey(k)) { 
-		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #w)] } */
+		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #w) and (#rkvs := #rkvs)] } */
 		this._contents[k] = v; 
 		/* @tactic if (#k -e- #keys) 
 			then { fold KVPairs(#c, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) } 
