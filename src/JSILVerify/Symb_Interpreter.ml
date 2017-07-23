@@ -715,11 +715,11 @@ let rec fold_predicate pred_name pred_defs symb_state params args spec_vars exis
 let use_unfold_info 
 	(unfold_info : (string * ((string * jsil_logic_expr) list)) option) 
 	(pred_defs   : ((string option) * symbolic_state) list)
-	(subst       : substitution) : (symbolic_state list) = 
+	(subst       : substitution) : (symbolic_state list) * (substitution option) = 
 	match unfold_info with 
 	| None                    -> 
 		let pred_defs' = List.map (fun (os, a) -> a) pred_defs in 
-		pred_defs'
+		pred_defs', None
 	| Some (def_id, mappings) ->
 		let pred_defs' = 
 			List.filter 
@@ -728,8 +728,8 @@ let use_unfold_info
 					| Some def_id' -> (def_id = def_id')
 					| None         -> false) pred_defs in 
 		let pred_defs' = List.map (fun (os, a) -> a) pred_defs' in 
-		List.iter (fun (x, le) -> extend_subst subst x le) mappings; 
-		pred_defs'  
+		let pat_subst = init_substitution3 mappings in 
+		pred_defs', (Some pat_subst)
 
 
 (* 
@@ -747,7 +747,10 @@ let unfold_predicates
 				(search_info : symbolic_execution_search_info) 
 				(unfold_info : (string * ((string * jsil_logic_expr) list)) option) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
 
-	print_debug (Printf.sprintf "UNFOLD_PREDICATES: Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+	print_debug (Printf.sprintf "UNFOLD_PREDICATE %s with info %s in the symbolic state:\n%s" 
+			(JSIL_Print.string_of_logic_assertion (LPred (pred_name, args)) false)
+			(JSIL_Print.string_of_unfold_info unfold_info) 
+			(Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 
 	let symb_state_vars : SS.t = get_symb_state_vars false symb_state  in
 	let args_vars : SS.t = JSIL_Logic_Utils.get_vars_le_list false args in
@@ -758,14 +761,17 @@ let unfold_predicates
 	let new_spec_vars = SS.union spec_vars existentials in
 	let existentials = SS.elements existentials in 
 
+	print_debug ("Before predicate subtraction!!!\n"); 
+
 	let subst0 = Symbolic_State_Utils.subtract_pred pred_name args (get_preds symb_state) (get_pf symb_state) (get_gamma symb_state) spec_vars existentials true in
 	let subst0 = 
-		try Option.get subst0 with _ -> 
-			raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name)) in 
+		try Option.get subst0 with _ -> (
+			print_debug("faleciiiiiiiiii\n");  
+			raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))) in 
 
-	let pred_defs = use_unfold_info unfold_info pred_defs subst0 in 
+	let pred_defs, pat_subst = use_unfold_info unfold_info pred_defs subst0 in 
 
-	(* Printf.printf "I survived the subtract pred!!!\n"; *)
+	print_debug(Printf.sprintf "MARICA I survived the subtract pred and got the substitution: %s\n" (Symbolic_State_Print.string_of_substitution subst0)); 
 
 	let args = List.map (fun le -> lexpr_substitution le subst0 true) args in
 	let calling_store = store_init params args in
@@ -773,7 +779,7 @@ let unfold_predicates
   	let unfolded_pred_defs = List.map (fun (pred_symb_state) ->
 		print_debug (Printf.sprintf "Current Pred DEF:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state pred_symb_state));
 		print_debug (Printf.sprintf "Current symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
-		Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars) pred_defs in
+		Structural_Entailment.unfold_predicate_definition symb_state pred_symb_state calling_store subst0 spec_vars pat_subst) pred_defs in
 		
 	let unfolded_pred_defs = List.mapi (fun i unfolded_symb_state ->
 		match unfolded_symb_state with

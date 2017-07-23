@@ -86,9 +86,9 @@ Map.prototype.validKey = function (key) {
 Map.prototype.get = function (k) {
 	/* @invariant dataField(this, "_contents", #c) */
 	if (this.validKey(k)) {
-		/* @tactic unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #v)] */
+		/* @tactic if ((#k --e-- #keys)) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #v)] } */
 	    if (this._contents.hasOwnProperty(k)) { 
-	    	result = this._contents[k];
+	    	var result = this._contents[k];
 	    	/* @tactic fold KVPairs(#c, #kvs, #keys) */
 	        return result
 	    } else { return null }

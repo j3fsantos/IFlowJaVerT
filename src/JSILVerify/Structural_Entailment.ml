@@ -1878,8 +1878,9 @@ let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbo
 	                    the predicate as it appears in the current symbolic state
 	existentials      - new variables introduced in the unfold
 	spec_vars         - logical variables that appear in the precondition
+	pat_subst         - pat_subst given by the unfolding info     
 *)
-let unfold_predicate_definition symb_state pat_symb_state calling_store subst_unfold_args spec_vars =
+let unfold_predicate_definition symb_state pat_symb_state calling_store subst_unfold_args spec_vars pat_subst =
 
 	(* PREAMBLE                                                                                                            *)
 	let gamma_old = get_gamma symb_state in
@@ -1911,7 +1912,10 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	(* pat_subst is to applied in the pat_symb_state and subst is to be applied in the symb_state                          *)
 	(* The store unification also generates a list of discharges - discharges - which need to hold for the stores to match *)
 	let step_1 () =
-		let pat_subst = init_substitution [] in
+		let pat_subst = 
+			match pat_subst with 
+			| None -> init_substitution [] 
+			| Some pat_subst -> pat_subst in
 		let subst = init_substitution [] in
 		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) gamma_1 gamma_0 in
 		(* Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
