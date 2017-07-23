@@ -265,9 +265,9 @@ let rec propagate_annotations e =
     | _ ->
       let spec_annots = List.filter is_spec_annot exp.exp_annot in 
       let lcmd_annots = List.filter is_logic_cmd_annot exp.exp_annot in 
-      (* if (((List.length (spec_annots)) + (List.length (lcmd_annots))) > 0) 
+      if (((List.length (spec_annots)) + (List.length (lcmd_annots))) > 0) 
         then Printf.printf "I found the annots %s in %s\n" 
-                (Pretty_print.string_of_annots (spec_annots @ lcmd_annots)) (Pretty_print.string_of_exp_syntax_1 exp.exp_stx true); *)
+                (Pretty_print.string_of_annots (spec_annots @ lcmd_annots)) (Pretty_print.string_of_exp_syntax_1 exp.exp_stx true); 
       false, (prev_annots @ spec_annots @ lcmd_annots) in 
 
   let f_transform exp new_exp_stx state_i state_f = 
@@ -353,6 +353,13 @@ let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e =
   if (is_e_expr && inside_stmt_compilation) then ([], []) else (
     let lcmds   = parse_annots_formulae (List.filter is_logic_cmd_annot e.exp_annot) in 
     let t_lcmds = JS2JSIL_Logic.js2jsil_logic_cmds cc_tbl vis_tbl fun_tbl lcmds in 
+
+    if ((List.length t_lcmds) > 0)
+      then (
+        let t_lcmds_str = List.map JSIL_Print.string_of_lcmd t_lcmds in 
+        let t_lcmds_str = String.concat "; " t_lcmds_str in 
+        Printf.printf "translate_lannots_in_exp. got the following commands: %s\n" t_lcmds_str
+      ); 
 
     let rec fold_partition lcmds lcmds_so_far = 
       (match lcmds with 

@@ -300,7 +300,7 @@ let string_of_unfold_info unfold_info =
 	| None -> ""
 	| Some (id, unfold_info_list) -> 
 		let unfold_info_list =
-			List.map (fun (v, le) -> v ^ " := " ^ (string_of_logic_expression le false)) unfold_info_list in 
+			List.map (fun (v, le) -> "(" ^ v ^ " := " ^ (string_of_logic_expression le false) ^ ")") unfold_info_list in 
 		let unfold_info_list_str = String.concat " and " unfold_info_list in 
 		"[ " ^ id ^ " with " ^ unfold_info_list_str ^ " ]"
 

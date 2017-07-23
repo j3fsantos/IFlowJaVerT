@@ -615,7 +615,7 @@ post_logic_cmd_target:
 		{ logic_cmds }
 
 var_and_le_target: 
-	| lvar = LVAR; DEFEQ; le = lexpr_target 
+	| LBRACE; lvar = LVAR; DEFEQ; le = lexpr_target; RBRACE; 
 		{ (lvar, le) }
 ; 
 
@@ -1166,8 +1166,9 @@ js_macro_head_target:
 	 { (name, params) }
 
 js_var_and_le_target: 
-	| lvar = LVAR; DEFEQ; le = js_lexpr_target 
-		{ (lvar, le) }
+	| LBRACE; lvar = LVAR; DEFEQ; le = js_lexpr_target; RBRACE; 
+		{ 
+			(lvar, le) }
 ; 
 
 (* [ def with #x := le1 and ... ] *)
@@ -1226,6 +1227,6 @@ js_logic_cmd_target:
 
 
 js_logic_cmds_target:
-	| lcmds = separated_list(SCOLON, js_logic_cmd_target); 
+	| lcmds = separated_list(SCOLON, js_logic_cmd_target); option(EOF); 
 		{ lcmds }
 ; 

@@ -152,6 +152,7 @@ let ext_program_of_path path =
 let specs_of_path path =
 		let inx = open_in path in
 	  let lexbuf = Lexing.from_channel inx in
+	  Printf.printf "going to parse the following specs in the following path: %s\n" path; 
 	  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
 	  let preds, specs = parse JSIL_Parser.Incremental.pred_spec_target lexbuf in
 		close_in inx;
@@ -165,31 +166,31 @@ let ext_program_of_string str =
 	prog
 
 let jsil_assertion_of_string str =
-	Printf.printf "going to parse the following jsil assertion: %s\n" str; 
+ Printf.printf "going to parse the following jsil assertion: %s\n" str; 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.top_level_assertion_target lexbuf
 
 let js_assertion_of_string str =
-	Printf.printf "going to parse the following js assertion: %s\n" str; 
+Printf.printf "going to parse the following js assertion: %s\n" str; 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
 
 let js_logic_pred_def_of_string str : JS2JSIL_Logic.js_logic_predicate =
-	Printf.printf "going to parse the following pred def: %s\n" str; 
+ Printf.printf "going to parse the following pred def: %s\n" str; 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_pred_target lexbuf
 
 let js_only_spec_from_string str : JS2JSIL_Logic.js_spec =
-	Printf.printf "going to parse the following only spec: %s\n" str; 
+ Printf.printf "going to parse the following only spec: %s\n" str; 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_only_spec_target lexbuf
 
 let js_logic_commands_of_string str =
-  Printf.printf "going to parse the following logic commands: %s\n" str; 
+ Printf.printf "going to parse the following logic commands: %s\n" str; 
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_logic_cmds_target lexbuf
