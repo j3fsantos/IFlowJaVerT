@@ -231,7 +231,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
                           (gamma : (string, jsil_type) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
-								
+	
+	(* print_debug (Printf.sprintf "Reduce expression: %s" (print_lexpr e)); *)
+	
 	let f = reduce_expression store gamma pfs in
 	let orig_expr = e in
 	let result = (match e with
@@ -255,6 +257,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LESet s -> 
 			let s' = List.map f s in
 			LESet (SLExpr.elements (SLExpr.of_list s'))
+	
+	| LSetUnion [ e ] -> f e
 	
 	| LSetUnion s ->
 			let s' = List.map f s in
