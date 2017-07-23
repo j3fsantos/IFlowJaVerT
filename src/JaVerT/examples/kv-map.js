@@ -109,6 +109,7 @@ Map.prototype.get = function (k) {
 	@post Map(this, #mp, -u- ({{ #k, #v }}, #rkvs), #keys) * MapProto(#mp)
 */
 Map.prototype.put = function (k, v) {
+	/* @invariant dataField(this, "_contents", #c) * scope (v : #v) */
 	if (this.validKey(k)) { 
 		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #w)] } */
 		this._contents[k] = v; 
