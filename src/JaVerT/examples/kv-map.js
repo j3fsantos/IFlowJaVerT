@@ -106,11 +106,16 @@ Map.prototype.get = function (k) {
 	@post Map(this, #mp, -u- ({{ #k, #v }}, #kvs), -u- (#k, #keys)) * MapProto(#mp)
 
 	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * validKey(#k) * (#k --e-- #keys) * (#kvs == -u- ({{ #k, #w }}, #rkvs))
-	@post Map(this, #mp, #kvs, -u- ({{ #k, #v }}, #rkvs)) * MapProto(#mp)
+	@post Map(this, #mp, -u- ({{ #k, #v }}, #rkvs), #keys) * MapProto(#mp)
 */
 Map.prototype.put = function (k, v) {
 	if (this.validKey(k)) { 
+		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #w)] } */
 		this._contents[k] = v; 
+		/* @tactic if (#k -e- #keys) 
+			then { fold KVPairs(#c, -u- ({{ #k, #v }}, #rkvs), #keys) } 
+			else { fold KVPairs(#c, -u- ({{ #k, #v }}, #kvs), -u- (#k, #keys)) } */
+		return v;
 	} else
 		throw new Error("Invalid Key")
 }

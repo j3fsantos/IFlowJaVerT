@@ -966,8 +966,15 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	(* Abstract locations are reverse-typable if the target type is ObjectType *)
 	| ALoc _ -> if (le_type = ObjectType) then true else false
 
-  (* LEList is not reverse typable because we lose type information *)
-	| LEList _ -> false
+  (* LEList and LESet are not reverse typable because we lose type information *)
+	| LEList _ 
+	| LESet  _ -> false
+
+  | LSetUnion les 
+	| LSetInter les ->
+		if (le_type = SetType)
+			then (List.fold_left (fun ac x -> ac && (f x SetType)) true les)
+			else false
 
 	| LUnOp (unop, le) ->
 		(* Printf.printf "UNOP\n\n\n"; *)

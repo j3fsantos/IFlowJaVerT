@@ -652,7 +652,7 @@ logic_cmd_target:
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET; LELSE; CLBRACKET;
 			else_lcmds = separated_list(SCOLON, logic_cmd_target);
-			 CLBRACKET;
+			 CRBRACKET;
 	  { LogicIf (le, then_lcmds, else_lcmds)}
 
 (* if(e) { lcmd* } *)
@@ -1204,7 +1204,7 @@ js_logic_cmd_target:
 			then_lcmds = separated_list(SCOLON, js_logic_cmd_target); 
 			CRBRACKET; LELSE; CLBRACKET;
 			else_lcmds = separated_list(SCOLON, js_logic_cmd_target);
-			 CLBRACKET;
+			 CRBRACKET;
 	  { JSLogicIf (le, then_lcmds, else_lcmds) }
 
 (* if(e) { lcmd* } *)
