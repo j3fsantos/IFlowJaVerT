@@ -2281,3 +2281,15 @@ let resolve_location lvar pfs =
 			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
 		| _ :: rest -> loop rest in
 	loop pfs
+	
+(* ******************** *
+ * EXPRESSION REDUCTION *
+ * ********************** *)
+
+let reduce_expression_using_pfs_no_store gamma pfs e =
+	let _, subst = simplify_pfs_with_subst pfs gamma in
+	(match subst with
+	| None -> e
+	| Some subst ->
+		let e = lexpr_substitution e subst true in
+			reduce_expression_no_store gamma pfs e)

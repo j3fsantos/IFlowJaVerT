@@ -446,15 +446,15 @@ let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr opti
 		let none_q_v_list, new_q_v_list = List.partition (fun (field, value) -> (value = LNone)) q_fv_list in 
 		let s_pat_dom = lexpr_substitution pat_dom subst true in 
 		let domain_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (dom, SetDiff, s_pat_dom)) in 
-		let domain_difference = Simplifications.reduce_expression_no_store gamma pfs domain_difference in 
+		let domain_difference = Simplifications.reduce_expression_using_pfs_no_store gamma pfs domain_difference in 
 		
 		let domain_frame_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (s_pat_dom, SetDiff, dom)) in 
-		let domain_frame_difference = Simplifications.reduce_expression_no_store gamma pfs domain_frame_difference in 
+		let domain_frame_difference = Simplifications.reduce_expression_using_pfs_no_store gamma pfs domain_frame_difference in 
 		let domain_difference, domain_frame_difference = 
 		(match domain_difference, domain_frame_difference with
 			| LESet domain_difference, LESet domain_frame_difference -> domain_difference, domain_frame_difference
-			| _                       -> 
-				raise (SymbExecFailure (Impossible "this is quite possible - but for the moment, it stays like this. unify_domains - illegal set subtraction"))) in
+			| ooga, booga -> 
+					raise (SymbExecFailure (Impossible (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (print_lexpr ooga) (print_lexpr booga))))) in
 		
 		let none_q_v_list_strs = List.map (fun (field, value) -> JSIL_Print.string_of_logic_expression field false) none_q_v_list in 
 		let none_q_v_list_str = String.concat ", " none_q_v_list_strs in 
