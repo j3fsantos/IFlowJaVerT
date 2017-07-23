@@ -147,8 +147,9 @@ type js_logic_assertion =
 	| JSLSetSub  	        of js_logic_expr * js_logic_expr       
 
 type js_logic_command =
-	| JSFold             of js_logic_assertion                                                         (** Recursive fold *)
-	| JSUnfold           of js_logic_assertion * ((string * ((string * js_logic_expr) list)) option)                                                (** Single unfold *)
+	| JSFold             of js_logic_assertion                                                        
+	| JSUnfold           of js_logic_assertion * ((string * ((string * js_logic_expr) list)) option)  
+	| JSFlash            of js_logic_assertion                                                                                                     (** Single unfold *)
 	| JSCallSpec		 of string * string * (js_logic_expr list)                                     (** Spec calling *)
 	| JSRecUnfold        of string                                                                     (** Recursive unfold of everything *)
 	| JSLogicIf          of js_logic_expr * (js_logic_command list) * (js_logic_command list)          (** If-then-else *)
@@ -487,6 +488,11 @@ let rec js2jsil_logic_cmds
 	| [] -> []
 
 	| (JSFold (JSLPred (s, les))) :: rest -> (Fold (LPred (s, List.map fe les))) :: (f rest)
+
+	| (JSFlash (JSLPred (s, les))) :: rest -> 
+		let flash_arg = LPred (s, List.map fe les) in 
+		Unfold (flash_arg, None) :: ((Fold flash_arg) :: (f rest))
+
 	| (JSUnfold ((JSLPred (s, les)), unfold_info)) :: rest ->
 		(Unfold ((LPred (s, List.map fe les)), (translate_unfold_info unfold_info))) :: (f rest) 
 	| (JSCallSpec (spec_name, x, les)) :: rest -> 

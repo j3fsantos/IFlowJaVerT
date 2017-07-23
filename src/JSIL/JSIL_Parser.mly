@@ -175,6 +175,7 @@ let copy_and_clear_globals () =
 %token CCLCMD
 %token FOLD
 %token UNFOLD
+%token FLASH
 %token RECUNFOLD
 %token CALLSPEC
 %token LIF
@@ -1186,6 +1187,10 @@ js_logic_cmd_target:
 (* unfold x(e1, ..., en) [ def1 with x1 := le1, ..., xn := len ] *)
 	| UNFOLD; assertion = js_assertion_target; unfold_info = option(js_unfold_info_target)
 	  { JSUnfold (assertion, unfold_info) }
+
+(* flash x(e1, ..., en) *)
+	| FLASH; assertion = js_assertion_target; 
+	  { JSFlash (assertion) }
 
 (* unfold* x *)
 	| RECUNFOLD; v = VAR

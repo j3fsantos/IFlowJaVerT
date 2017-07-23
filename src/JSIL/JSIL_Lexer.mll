@@ -169,6 +169,7 @@ rule read = parse
 	| "+]"                 { JSIL_Parser.CCLCMD    }
 	| "unfold*"            { JSIL_Parser.RECUNFOLD }
 	| "fold"               { JSIL_Parser.FOLD      }
+	| "flash"              { JSIL_Parser.FLASH     }
 	| "unfold"             { JSIL_Parser.UNFOLD    }
 	| "callspec"           { JSIL_Parser.CALLSPEC  }
 	| "if"                 { JSIL_Parser.LIF       }

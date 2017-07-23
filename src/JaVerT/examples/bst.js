@@ -59,15 +59,15 @@ function insert(v, t)
 {
   var result;
   
-  /** @unfold BST(#t, #K) */
+  /** @tactic unfold BST(#t, #K) */
   if (t === null) {
   
   	result = make_node(v);
   	
   	/** @invariant scope(result : #r) 
-  		@fold BST($$null, -{ }-)
-  		@fold BST($$null, -{ }-)
-  		@fold BST(#r, -{ #v }-) */
+  		@tactic fold BST($$null, -{ }-)
+  		@tactic fold BST($$null, -{ }-)
+  		@tactic fold BST(#r, -{ #v }-) */
     return result
   }
 
@@ -76,7 +76,7 @@ function insert(v, t)
   else if (v > t.value) 
     t.right = insert(v, t.right);
 
-  /** @fold BST(#t, -u- (#K, -{ #v }-)) */
+  /** @tactic fold BST(#t, -u- (#K, -{ #v }-)) */
   return t;
 }
 
@@ -95,7 +95,7 @@ function find (v, t)
 {
 	var result;
 
-	/** @unfold BST(#t, #K) */	
+	/** @tactic unfold BST(#t, #K) */	
 	if (t === null)
 		result = false;
 	else if (v === t.value)
@@ -107,7 +107,7 @@ function find (v, t)
 		  result = find(v, t.right);
 	}
 	
-	/** @fold BST(#t, #K) */
+	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -125,17 +125,17 @@ function find (v, t)
 */
 function find_min(t)
 {
-	/** @unfold BST(#t, #K) */
+	/** @tactic unfold BST(#t, #K) */
 	var result;
 	
 	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) */
-	/** @flash BST(#il, #KL) */
+	/** @tactic flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else
 		result = find_min(t.left);
 		
-	/** @fold BST(#t, #K) */
+	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -155,25 +155,25 @@ function find_min(t)
 */
 function remove(v, t)
 {
-	/** @unfold BST(#t, #K) */
+	/** @tactic unfold BST(#t, #K) */
 	if (t === null)
-		/** @fold BST(#t, #K) */
+		/** @tactic fold BST(#t, #K) */
 		return null;
 
 	/** @invariant dataField(#t, "left", #il) * dataField(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
 	
 	if (v === t.value) {
 		if (t.left === null) {	
-				/** @unfold BST($$null, #KL) */
+				/** @tactic unfold BST($$null, #KL) */
 				return t.right;
 			}
 		else 
 		if (t.right === null) {
-				/** @unfold BST($$null, #KR) */
+				/** @tactic unfold BST($$null, #KR) */
 	  			return t.left;
 			}
 		else {
-			/** @flash BST(#ir, #KR) */
+			/** @tactic flash BST(#ir, #KR) */
 			var min = find_min(t.right);
 			t.right = remove(min, t.right);
 			t.value = min;
@@ -184,6 +184,6 @@ function remove(v, t)
 	else
 		t.right = remove(v, t.right);	
 
-	/** @fold BST(#t, #K -d- -{ #v }-) */
+	/** @tactic fold BST(#t, #K -d- -{ #v }-) */
   	return t;
 }

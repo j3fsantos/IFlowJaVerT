@@ -39,9 +39,9 @@ function insert(node, value) {
     
     var result;
 
-    /** @unfold SOList(#n, #E) */
+    /** @tactic unfold SOList(#n, #E) */
     if (node === null) {
-    	/** @fold SOList(#n, #E) */
+    	/** @tactic fold SOList(#n, #E) */
         result = { next: null, value: value }
     } else if (node.value === value) {
         result = node;
@@ -53,7 +53,7 @@ function insert(node, value) {
     }
     
     /** @invariant scope(result : #res) 
-        @fold SOList(#res, -u- (-{ #v }-, #E)) */
+        @tactic fold SOList(#res, -u- (-{ #v }-, #E)) */
     return result;
 }
 
@@ -69,9 +69,9 @@ function insert(node, value) {
 */
 function sort(head) {
     var result;
-    /** @unfold NDList(#h, #E) */
+    /** @tactic unfold NDList(#h, #E) */
     if (head === null) {
-        /** @fold SOList($$null, -{ }-) */
+        /** @tactic fold SOList($$null, -{ }-) */
         result = null
     } else {
         var rec = sort(head.next);
