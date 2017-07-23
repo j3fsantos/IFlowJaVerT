@@ -161,15 +161,16 @@ function remove(v, t)
 		return null;
 
 	/** @invariant dataField(#t, "left", #il) * dataField(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
-	
 	if (v === t.value) {
 		if (t.left === null) {	
 				/** @tactic unfold BST($$null, #KL) */
+				/** @tactic flash BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
 		if (t.right === null) {
 				/** @tactic unfold BST($$null, #KR) */
+				/** @tactic flash BST(#il, #KL) */
 	  			return t.left;
 			}
 		else {
