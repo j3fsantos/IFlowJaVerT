@@ -140,6 +140,7 @@ type js_logic_assertion =
 	| JSLScope      		of string  * js_logic_expr
 	| JSLVarSChain          of string * string * js_logic_expr * js_logic_expr
 	| JSOSChains            of string * js_logic_expr * string * js_logic_expr
+	| JSOCS             of string * js_logic_expr 
 	| JSFunObj      		of string  * js_logic_expr * js_logic_expr * (js_logic_expr option) 
 	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
 	| JSEmptyFields			of js_logic_expr * js_logic_expr 
@@ -321,6 +322,22 @@ let rec js2jsil_logic
 		let x_scope_chain' = fe x_scope_chain in 
 		LEq (x_scope_chain', LEList fid_vis_list_les), fid_vis_list_les_pairs in 
 
+  let overlapping_scope_assertion fid1 sc1 fid2 sc2 =
+		let vis_list_1 = try Hashtbl.find vis_tbl fid1 with _ 
+			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid1)) in 
+		let vis_list_2 = try Hashtbl.find vis_tbl fid2 with _ 
+			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid2)) in 
+
+		let shared_vis_list = compute_common_suffix [ vis_list_1; vis_list_2 ] in 
+		let shared_vis_list_les_tbl = Hashtbl.create 31 in 
+		List.iter	
+			(fun fid -> Hashtbl.replace shared_vis_list_les_tbl fid (LVar (fid_to_lvar_fresh fid))) 
+			shared_vis_list; 
+		
+		let a_sc1, _ = make_overlapping_scope_ass fid1 sc1 (Some shared_vis_list_les_tbl) in 
+		let a_sc2, _ = make_overlapping_scope_ass fid2 sc2 (Some shared_vis_list_les_tbl) in 
+
+		LStar(a_sc1, a_sc2) in
 	
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
@@ -449,22 +466,12 @@ let rec js2jsil_logic
 			)
 
 	| JSOSChains (fid1, sc1, fid2, sc2) -> 
-		let vis_list_1 = try Hashtbl.find vis_tbl fid1 with _ 
-			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid1)) in 
-		let vis_list_2 = try Hashtbl.find vis_tbl fid2 with _ 
-			-> raise (Failure (Printf.sprintf "Function %s not found in the visibility table." fid2)) in 
-
-		let shared_vis_list = compute_common_suffix [ vis_list_1; vis_list_2 ] in 
-		let shared_vis_list_les_tbl = Hashtbl.create 31 in 
-		List.iter	
-			(fun fid -> Hashtbl.replace shared_vis_list_les_tbl fid (LVar (fid_to_lvar_fresh fid))) 
-			shared_vis_list; 
-		
-		let a_sc1, _ = make_overlapping_scope_ass fid1 sc1 (Some shared_vis_list_les_tbl) in 
-		let a_sc2, _ = make_overlapping_scope_ass fid2 sc2 (Some shared_vis_list_les_tbl) in 
-
-		LStar (a_sc1, a_sc2)
-				
+			overlapping_scope_assertion fid1 sc1 fid2 sc2
+			
+	| JSOCS (fid, sc) ->
+		  let cur_fid = get_fid cur_fid in
+			let cur_sc  = JSPVar JS2JSIL_Constants.var_scope in
+				overlapping_scope_assertion cur_fid cur_sc fid sc
 
 	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
 

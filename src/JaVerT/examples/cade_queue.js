@@ -129,21 +129,21 @@ var PriorityQueue = (function () {
 		)
 	*/
 	Node.prototype.insert = function (nl) {
-		/** @unfold NodeList(#nl, #np, #pri_nl, #length) */
+		/** @tactic unfold NodeList(#nl, #np, #pri_nl, #length) */
 		if (nl === null) {
-		   /** @fold NodeList(this, #np, #npri, #length + 1) */
+		   /** @tactic fold NodeList(this, #np, #npri, #length + 1) */
 		   return this
 		}
 		
 		if (this.pri > nl.pri) {
 		   this.next = nl;
-		   /** @fold NodeList(this, #np, #npri, #length + 1) */
+		   /** @tactic fold NodeList(this, #np, #npri, #length + 1) */
 		   return this
 		}
 		
 		var tmp = this.insert (nl.next);
 		nl.next = tmp;
-		/** @fold NodeList(#nl, #np, #pri_nl, #length + 1) */
+		/** @tactic fold NodeList(#nl, #np, #pri_nl, #length + 1) */
 		return nl
 	}
 
@@ -155,7 +155,7 @@ var PriorityQueue = (function () {
 	        ((this, "enqueue") -> None) *
 	        ((this, "dequeue") -> None) *
 	        ObjectWithProto(this, #pqp) *
-	        overlaps_with_current_scope(enqueue: #sc) *
+	        o_sc(enqueue: #sc) *
 	        QueuePrototype(#pqp, #np, #c, #sc)
 	    )
 	    @post (
@@ -164,7 +164,7 @@ var PriorityQueue = (function () {
 	    )
 	*/
 	var PQ = function () {
-		/** @fold NodeList($$null, #np, 0, 0) */
+		/** @tactic fold NodeList($$null, #np, 0, 0) */
 		this._head = null;
 	};
 
@@ -176,7 +176,7 @@ var PriorityQueue = (function () {
 			(val == #val) *
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
-			overlaps_with_current_scope(enqueue: #sc) *
+			o_sc(enqueue: #sc) *
 			(#pri <=# #pri_q)
 		)
 		@post (
@@ -189,7 +189,7 @@ var PriorityQueue = (function () {
 			(val == #val) *
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
-			overlaps_with_current_scope(enqueue: #sc) *
+			o_sc(enqueue: #sc) *
 			(#pri_q <# #pri)
 		)
 		@post (
@@ -208,7 +208,7 @@ var PriorityQueue = (function () {
      @pre (
        Queue(this, #pqp, #np, #pri_q, #length) * 
        QueuePrototype(#pqp, #np, #c, #sc) *
-       overlaps_with_current_scope(enqueue: #sc) *
+       o_sc(enqueue: #sc) *
        (0 <# #length)
      )
      @post (
@@ -220,7 +220,7 @@ var PriorityQueue = (function () {
      @pre (
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       overlaps_with_current_scope(enqueue: #sc)
+       o_sc(enqueue: #sc)
      )
      @posterr (
        Queue(this, #pqp, #np, 0, 0) *
@@ -229,9 +229,9 @@ var PriorityQueue = (function () {
      )
    */
    PQ.prototype.dequeue = function () {
-      /** @unfold NodeList(#head, #np, #pri_q, #length) */
+      /** @tactic unfold NodeList(#head, #np, #pri_q, #length) */
       if (this._head === null) {
-        /** @fold NodeList(#head, #np, #pri_q, #length) */
+        /** @tactic fold NodeList(#head, #np, #pri_q, #length) */
         throw new Error("Queue is empty");
       }
 

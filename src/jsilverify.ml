@@ -70,10 +70,12 @@ let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
 
 	(if (complete_success) then
 		begin
+			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
 			print_normal (Printf.sprintf "ALL Succeeded in %f\n" (Sys.time()));
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
 		else (
+			Printf.printf "There were Failures in %f\n" (Sys.time());
 			print_normal (Printf.sprintf "There were Failures in %f\n" (Sys.time()))));
 	
 	register_dot_graphs dot_graphs;

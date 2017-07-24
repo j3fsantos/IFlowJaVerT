@@ -1924,7 +1924,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 			(Symbolic_State_Print.string_of_substitution subst)
 			(Symbolic_State_Print.string_of_substitution pat_subst)
 			(Symbolic_State_Print.print_string_of_discharge discharges));
-		 Printf.printf "GAMMA_OLD - STEP 1:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_old);
+		(* Printf.printf "GAMMA_OLD - STEP 1:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_old); *)
 		discharges, subst, pat_subst in
 
 

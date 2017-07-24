@@ -21,6 +21,7 @@ rule read = parse
 	| "closure"            { JSIL_Parser.CLOSURE   }
 	| "sc_scope"           { JSIL_Parser.SCSCOPE   }
 	| "o_chains"           { JSIL_Parser.OCHAINS   }
+	| "o_sc"               { JSIL_Parser.OCS       }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT  }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT   }
