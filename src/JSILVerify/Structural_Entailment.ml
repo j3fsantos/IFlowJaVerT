@@ -1727,7 +1727,6 @@ let get_index x lst =
     | hd :: tl -> if (hd = x) then c else get_index_rec x tl (c+1) in
 	get_index_rec x lst 0
 
-(* 
 let understand_single_recovery s_prog symb_state recovery_option : recovery =
 	let heap, store, pfs, gamma, preds = symb_state in
 	try (
@@ -1761,7 +1760,7 @@ let understand_single_recovery s_prog symb_state recovery_option : recovery =
 				(fun (pn, _) ovar ->
 					let pred = get_pred s_prog.pred_defs pn in
 					let defs = pred.n_pred_definitions in
-					List.fold_left (fun ac ss -> let gamma = get_gamma ss in (Hashtbl.mem gamma ovar) && ac) true defs
+					List.fold_left (fun ac (_, ss) -> let gamma = get_gamma ss in (Hashtbl.mem gamma ovar) && ac) true defs
 				) preds ovars in
 			print_debug_petar (Printf.sprintf "Are they typed?\n\t%s" (String.concat "\n\t" (List.map (fun x -> Printf.sprintf "%b" x) do_we_have_types)));
 			let flash_candidates = List.combine preds do_we_have_types in
@@ -1781,11 +1780,11 @@ let understand_recovery s_prog symb_state recovery_options : recovery list =
 	let result = List.filter (fun x -> x <> NoRecovery) result in
 	print_debug_petar "----------------------";
 	result
-*)
 
 
 (* This is one place to try and do recovery *)
 let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe_info js =
+	
 	let print_error_to_console msg =
 		(if (msg = "")
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
@@ -1797,8 +1796,8 @@ let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe
 
 	let rec loop posts i recovery_options : unit =
 		(match posts with
-		| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "Post condition is not unifiable")
-		(*	print_debug "----------------------";
+		| [] ->
+				print_debug "----------------------";
 				let can_we_recover : recovery list = understand_recovery s_prog symb_state recovery_options in
 				(match can_we_recover with
 				| [] -> print_error_to_console "Non_unifiable symbolic states"; raise (Failure "Post condition is not unifiable")
@@ -1808,7 +1807,7 @@ let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe
 						print_debug_petar (Printf.sprintf "I can try to flash the predicate %s(%s)" pred_name (String.concat ", " (List.map (fun x -> print_lexpr x) pred_params)));
 						print_debug "----------------------";
 						raise ( SymbExecRecovery rop))
-				) *)
+				)
 		| post :: rest_posts ->
 			let unification_function p ss lv = (match js with
 				| true ->  let (success, _, _, _, _, _) = unify_symb_states p ss lv in success

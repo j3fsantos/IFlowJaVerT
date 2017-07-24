@@ -164,13 +164,11 @@ function remove(v, t)
 	if (v === t.value) {
 		if (t.left === null) {	
 				/** @tactic unfold BST($$null, #KL) */
-				/** @tactic flash BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
 		if (t.right === null) {
 				/** @tactic unfold BST($$null, #KR) */
-				/** @tactic flash BST(#il, #KL) */
 	  			return t.left;
 			}
 		else {
