@@ -13,7 +13,7 @@ pred ll_node(node, val, next):
 pred ll_seg(head, last_next, list):
   (* Empty List *)
   types(list: $$list_type) *
-  (list == {{ }}) * 
+  (list == {{ }}) *
   (head == last_next),
 
   (* Need to force the unfold to use the correct predicate *)
@@ -47,7 +47,7 @@ pred dll_node(node, val, next, prev):
 pred dll_seg_2(head, head_prev, last, last_next, list):
   (* Empty List *)
   types(list: $$list_type) *
-  (list == {{ }}) * 
+  (list == {{ }}) *
   (head_prev == last) *
   (head == last_next),
 
@@ -55,7 +55,7 @@ pred dll_seg_2(head, head_prev, last, last_next, list):
   (* Trying to stay away from nulls and optionals because they're messy *)
 
   (* Normal List *)
-  (! (head_prev == last)) * 
+  (! (head_prev == last)) *
   (list == (#items @ {{ #item }})) *
   types(list: $$list_type, #items: $$list_type, head: $$object_type, last: $$object_type) *
   (dll_node(last, #item, last_next, #last_prev)) *
@@ -102,9 +102,10 @@ spec append_to_dll (obj, new_node)
   [[ (obj == #obj) * (new_node == #new_node) *
      (types(#head: $$object_type, #last: $$object_type)) *
      dll_node(#new_node, #item, #nn, #np) *
-     dll_obj(#obj, #head, #head_prev, #last, #last_next, #list) * 
-     (! (new_node == #np)) * 
-     (! (#head_prev == new_node)) 
+     dll_obj(#obj, #head, #head_prev, #last, #last_next, #list) *
+     (! (new_node == #np)) *
+     (! (#head_prev == new_node)) *
+     types(#last_next: $$object_type)
   ]]
   [[ (#new_list == (#list @ {{ #item }})) * 
      dll_obj(#obj, #head_f, #head_prev_f, #new_last_f, #new_last_next_f, #new_list) ]]
@@ -115,26 +116,26 @@ proc append_to_dll (obj, new_node) {
   (* Extracting pointers *)
   head_prev := [obj, "head_prev"];
   last      := [obj, "last"];
-  
-  [* unfold dll_seg_2(#head, #head_prev, #last, #last_next, #list) *] 
+
+  [* unfold dll_seg_2(#head, #head_prev, #last, #last_next, #list) *]
   goto [head_prev = last] emptyList nonemptyList;
 
-  emptyList: (* VERIFIED *)
+  emptyList:
 
     [obj, "head"]      := new_node;
     [obj, "last"]      := new_node;
-    node_prev          := [new_node, "prev"]; 
-    node_next          := [new_node, "next"]; 
-    [obj, "head_prev"] := node_prev; 
-    [obj, "last_next"] := node_next; 
+    node_prev          := [new_node, "prev"];
+    node_next          := [new_node, "next"];
+    [obj, "head_prev"] := node_prev;
+    [obj, "last_next"] := node_next;
 
-    [* 
+    [*
       fold dll_seg_2(#nn, new_node, new_node, #nn, {{ }});
       fold dll_seg_2(new_node, #np, new_node, #nn, {{ #item }}) *]
     goto rlab;
 
   nonemptyList:
-    
+
     (* Both unfoldings succeeded, how to make it pick one? *)
     (* The only way I could force it to choose the correct predicate was by enforcing types,
        but this was messy - is there a way to make it respect logical values as much as types? *)
@@ -174,6 +175,3 @@ proc singly_to_doubly_linked_list_helper (x, prev) {
   rlab:
     skip
 } with { ret: x, rlab; };
-
-
-
