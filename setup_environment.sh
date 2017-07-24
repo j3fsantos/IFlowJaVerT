@@ -16,6 +16,7 @@ cp src/JS2JSIL/runtime/*.jsil environment
 cp src/JS2JSIL/runtime/harness.js environment
 cp src/JSILVerify/examples/lists/*.jsil environment/lists
 cp src/JSILVerify/examples/sets/*.jsil environment/sets
+cp src/JSILVerify/examples/tom/*.jsil environment/tom
 cp src/JaVerT/examples/*.js environment
 cp src/JaVerT/examples/test262/*.js environment/test262
 cp src/JaVert/examples/PriorityQueue/*.js environment/PQ
