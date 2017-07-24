@@ -833,7 +833,10 @@ let recursive_unfold
 					old_symb_state, spec_vars, search_info)
 				else (
 					let new_symb_state, new_spec_vars, new_search_info = List.hd unfolded_symb_states_with_spec_vars in
+					let start_time = Sys.time() in
 					let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some new_spec_vars)) in
+					let end_time = Sys.time() in
+					JSIL_Syntax.update_statistics "simplify_ss: recursive_unfold" (end_time -. start_time);
 					print_debug (Printf.sprintf "Inside recursive_unfolding. continuing with:\n%s\n" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
 					loop new_spec_vars new_symb_state new_search_info) in
 
@@ -1006,7 +1009,10 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 					update_gamma (get_gamma symb_state) ret_var ret_type;
 					add_pure_assertion (get_pf symb_state) (LEq (LVar ret_var, ret_le));
 					let new_spec_vars = SS.add ret_var spec_vars in
+					let start_time = Sys.time() in
 					let new_symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in 
+					let end_time = Sys.time() in
+					JSIL_Syntax.update_statistics "simplify_ss: callspec" (end_time -. start_time);
 					let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 					print_debug_petar "FINISHED CALLSPEC";
 					(new_symb_state, new_spec_vars, new_search_info))
@@ -1035,15 +1041,16 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 		let existentials  = SS.diff existentials spec_vars in
 		print_normal (Printf.sprintf "Assert with: %s\n" (JSIL_Print.string_of_logic_assertion a false)); 
 		let new_symb_state, _       = Normaliser.normalise_postcondition a subst spec_vars (get_gamma symb_state) in
+		let start_time = Sys.time() in
 		let new_symb_state          = Simplifications.simplify_ss new_symb_state (Some (Some spec_vars)) in
+		let end_time = Sys.time() in
+		JSIL_Syntax.update_statistics "simplify_ss: assert" (end_time -. start_time);
 		let new_spec_vars_for_later = SS.union existentials spec_vars in			
 		(match (Structural_Entailment.grab_resources symb_state new_symb_state spec_vars existentials) with
 			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later, search_info ] 
 			| None -> raise (Failure "Assert: could not grab resources.")))
 and
 symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_with_spec_vars : (symbolic_state * SS.t * symbolic_execution_search_info) list) subst : (symbolic_state * SS.t * symbolic_execution_search_info) list =
-	let symb_states_with_spec_vars = 
-		List.map (fun (ss, sv, si) -> Simplifications.simplify_ss ss (Some (Some sv)), sv, si) symb_states_with_spec_vars in
 	(match l_cmds with
 	| [] -> symb_states_with_spec_vars
 	| l_cmd :: rest_l_cmds ->
@@ -1142,7 +1149,10 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 				let ret_type, _, _ =	type_lexpr (get_gamma symb_state) ret_le in
 				store_put (get_store symb_state) x ret_le;
 				update_gamma (get_gamma symb_state) x ret_type;
+				let start_time = Sys.time() in
 				let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in 
+				let end_time = Sys.time() in
+				JSIL_Syntax.update_statistics "simplify_ss: symb_evaluate_call" (end_time -. start_time);
 				let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
 				(match ret_flag, j with
 				| Normal, _ ->
@@ -1164,8 +1174,11 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 		store_put (get_store symb_state) x le;
 		update_gamma (get_gamma symb_state) x te;
 		symb_evaluate_next_cmd s_prog proc spec search_info symb_state i (i+1) in
-		
+	
+	let start_time = Sys.time() in
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_ss: symb_evaluate_cmd" (end_time -. start_time);
 	print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;
@@ -1296,7 +1309,10 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 							let new_spec_vars_for_later = SS.union inv_lvars spec.n_lvars in
 							print_normal (Printf.sprintf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false)); 
 							let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
-							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in			
+							let start_time = Sys.time() in
+							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in	
+							let end_time = Sys.time() in		
+							JSIL_Syntax.update_statistics "simplify_ss: invariant" (end_time -. start_time);
 							(match (Structural_Entailment.grab_resources symb_state new_symb_state spec.n_lvars inv_lvars) with
 							(* If it does, replace current symbolic state with the invariant *)
 							| Some new_symb_state -> new_symb_state, { spec with n_lvars = new_spec_vars_for_later }

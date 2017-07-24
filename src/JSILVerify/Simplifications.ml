@@ -1411,7 +1411,7 @@ let simplify_symb_state
 
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
-	
+		
 	let initial_existentials = ref existentials in
 
 	let vars_to_save, save_all = 
@@ -1859,31 +1859,49 @@ let simplify_symb_state
 	
 
 let simplify_ss symb_state vars_to_save = 
+	let start_time = Sys.time() in
 	let symb_state, _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) symb_state in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_ss" (end_time -. start_time);
 	symb_state
 	
 let simplify_ss_with_subst symb_state vars_to_save = 
+	let start_time = Sys.time() in
 	let symb_state, subst, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) symb_state in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_ss_with_subst" (end_time -. start_time);
 	symb_state, subst
-	
+
 let simplify_pfs pfs gamma vars_to_save =
+	let start_time = Sys.time() in
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_pfs" (end_time -. start_time);
 	pfs, gamma
-
+			
 let simplify_pfs_with_subst pfs gamma =
+	let start_time = Sys.time() in
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_pfs_with_subst" (end_time -. start_time);
 	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
+	let start_time = Sys.time() in
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_pfs_with_exists" (end_time -. start_time);
 	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
+	let start_time = Sys.time() in
 	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_pfs_with_exists_and_others" (end_time -. start_time);
 	lpfs, rpfs, exists, gamma
 
 (* ************************** *
@@ -1893,6 +1911,8 @@ let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma =
 let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
 
 	(* print_time_debug ("simplify_existentials:"); *)
+	
+	let start_time = Sys.time() in
 	
 	let rhs_gamma = copy_gamma gamma in
 	filter_gamma_pfs p_formulae rhs_gamma;
@@ -2044,7 +2064,10 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	) p_formulae;
 
 	let pf_list = DynArray.to_list p_formulae in
-		go_through_pfs pf_list 0 
+	let result = go_through_pfs pf_list 0 in
+ 	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_existentials" (end_time -. start_time);
+	result
 
 
 
@@ -2240,6 +2263,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 
 
 let simplify_implication exists lpfs rpfs gamma =
+	let start_time = Sys.time() in
 	sanitise_pfs_no_store gamma rpfs;
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
 	sanitise_pfs_no_store gamma rpfs;
@@ -2252,6 +2276,8 @@ let simplify_implication exists lpfs rpfs gamma =
 		(print_pfs lpfs)
 		(print_pfs rpfs)
 		(Symbolic_State_Print.string_of_gamma gamma)); 
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simplify_implication" (end_time -. start_time);
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
 

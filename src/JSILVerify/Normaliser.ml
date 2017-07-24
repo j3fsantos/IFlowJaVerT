@@ -634,11 +634,18 @@ let normalise_spec preds spec =
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec preds) spec.proc_specs) in
 	let normalised_pre_post_list =
 		List.map (fun (cur_spec : jsil_n_single_spec) ->
+			let start_time = Sys.time() in
 			let pre = Simplifications.simplify_ss cur_spec.n_pre (Some (Some cur_spec.n_lvars)) in
+			let end_time = Sys.time() in
+			JSIL_Syntax.update_statistics "simplify_ss: normalise_spec_pre" (end_time -. start_time);
 			let post = 
 				List.map2 
 					(fun post_a lvars -> 
-						Simplifications.simplify_ss post_a (Some (Some (SS.union cur_spec.n_lvars lvars)))) 
+						let start_time = Sys.time() in
+						let result = Simplifications.simplify_ss post_a (Some (Some (SS.union cur_spec.n_lvars lvars))) in
+						let end_time = Sys.time() in
+						JSIL_Syntax.update_statistics "simplify_ss: normalise_spec_post" (end_time -. start_time);
+						result) 
 					cur_spec.n_post 
 					cur_spec.n_post_lvars in
 			{ cur_spec with n_pre = pre; n_post = post }
