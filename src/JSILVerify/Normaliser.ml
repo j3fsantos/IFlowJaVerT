@@ -8,6 +8,12 @@ open JSIL_Logic_Utils
 open Logic_Predicates
 
 
+let new_abs_loc_name var = abs_loc_prefix ^ var
+
+let new_lvar_name var = lvar_prefix ^ var
+
+
+
 let rec normalise_pure_assertion (store : symbolic_store) (gamma : typing_environment) 
 		(subst : substitution) (assertion : jsil_logic_assertion) =
 	let fa = normalise_pure_assertion store gamma subst in
@@ -47,13 +53,13 @@ let rec normalise_pure_assertion (store : symbolic_store) (gamma : typing_enviro
 		raise (Failure msg)
 
 	
-
-let new_abs_loc_name var = abs_loc_prefix ^ var
-
-
-let new_lvar_name var = lvar_prefix ^ var
-
-let rec init_symb_store_alocs store gamma subst ass : unit =
+(** 
+  * This function creates an abstract location for every program variable used in 
+  * a cell assertion or empty fields assertion. 
+  * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh 
+**)
+let rec init_symb_store_alocs (store : symbolic_store) (gamma : typing_environment) 
+		(subst : substitution) (ass : jsil_logic_assertion) : unit =
 	let f = init_symb_store_alocs store gamma subst in
 	match ass with
 	| LStar (a_left, a_right) ->
@@ -238,6 +244,8 @@ let init_pure_assignments a store gamma subst =
 	normalise_pure_assignments succs p_vars p_vars_tbl;
 	fill_store (get_assertion_vars true a);
 	normalise_pure_assertions ()
+
+
 
 let rec compute_symb_heap (heap : symbolic_heap) (store : symbolic_store) p_formulae gamma subst a =
 	let f = compute_symb_heap heap store p_formulae gamma subst in
