@@ -79,9 +79,9 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					if (Hashtbl.mem pat_subst lvar)
 						then (
 							let current = Hashtbl.find pat_subst lvar in
-							if (current = le) then discharges else (
+							if ((current = le) && (Option.is_none subst)) then discharges else (
 							(match current with
-							| LVar _ -> ((current, lexpr) :: discharges)
+							| LVar _ -> ((LVar lvar, lexpr) :: discharges)
 							| _ ->
 								if Pure_Entailment.is_equal current lexpr (DynArray.of_list pfs) gamma
 									then discharges
@@ -1920,10 +1920,11 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 			| Some pat_subst -> pat_subst in
 		let subst = init_substitution [] in
 		let discharges = unify_stores store_1 store_0 pat_subst (Some subst) (pfs_to_list (get_pf symb_state)) gamma_1 gamma_0 in
-		(* Printf.printf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n"
+		print_debug(Printf.sprintf "substitutions after store unification.\nSubst:\n%s\nPat_Subst:\n%s\n. Discharges:\n%s\n"
 			(Symbolic_State_Print.string_of_substitution subst)
-			(Symbolic_State_Print.string_of_substitution pat_subst);
-		 Printf.printf "GAMMA_OLD - STEP 1:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_old); *)
+			(Symbolic_State_Print.string_of_substitution pat_subst)
+			(Symbolic_State_Print.print_string_of_discharge discharges));
+		 Printf.printf "GAMMA_OLD - STEP 1:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_old);
 		discharges, subst, pat_subst in
 
 

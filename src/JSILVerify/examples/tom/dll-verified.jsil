@@ -130,7 +130,7 @@ proc append_to_dll (obj, new_node) {
     [obj, "last_next"] := node_next;
 
     [*
-      fold dll_seg_2(#nn, new_node, new_node, #nn, {{ }});
+      fold dll_seg_2(new_node, #np, #np, new_node, {{ }});
       fold dll_seg_2(new_node, #np, new_node, #nn, {{ #item }}) *]
     goto rlab;
 
