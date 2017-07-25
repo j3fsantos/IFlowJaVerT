@@ -1411,6 +1411,16 @@ let simplify_symb_state
 
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
+	
+	(* let cache_key = simpl_encache_key vars_to_save other_pfs existentials symb_state in
+	let cached = Hashtbl.mem simpl_cache cache_key in
+	if cached then (
+		let css, csubst, cots, cexs = Hashtbl.find simpl_cache cache_key in
+		let end_time = Sys.time() in
+		let result = simpl_uncache_value css csubst cots cexs in
+		JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
+		result
+	) else ( *)
 		
 	let initial_existentials = ref existentials in
 
@@ -1419,10 +1429,6 @@ let simplify_symb_state
 		| Some (Some v) -> v, false 
 		| Some None     -> SS.empty, true
 		| None          -> SS.empty, false) in
-
-	(* print_debug_petar (Printf.sprintf "Vars_to_save: %s" (String.concat ", " (SS.elements vars_to_save))); *)
-	(* print_debug_petar (Printf.sprintf "Save_all: %b" save_all); *)
-	(* print_debug_petar (Printf.sprintf "Existentials: %s" (String.concat ", " (SS.elements existentials))); *)
 
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
@@ -1853,9 +1859,13 @@ let simplify_symb_state
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
 	
 	(* print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok); *)
-	if (!pfs_ok) 
+	let ss, subst, ots, exs = if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
-		else (pfs_false subst !others !exists !symb_state !msg)
+		else (pfs_false subst !others !exists !symb_state !msg) in
+	
+	(* let cache_value = simpl_encache_value ss subst ots exs in
+	Hashtbl.replace simpl_cache cache_key cache_value; *)
+	ss, subst, ots, exs
 	
 
 let simplify_ss symb_state vars_to_save = 

@@ -746,14 +746,6 @@ let extend_substitution subst vars les =
 let filter_vars vars ignore_vars : SS.t =
 	SS.diff vars ignore_vars
 
-let hash_to_list hash = 
-	Hashtbl.fold (fun k v ac -> (k, v) :: ac) hash []
-
-let hash_of_list hash = 
-	let result = Hashtbl.create 127 in
-	List.iter (fun (v, t) -> Hashtbl.add result v t) hash;
-	result
-
 let rec type_lexpr gamma le =
 	
 	let f = type_lexpr gamma in

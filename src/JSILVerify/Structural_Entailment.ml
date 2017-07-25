@@ -2075,7 +2075,7 @@ let grab_resources symb_state pat_symb_state lvars existentials =
 				let start_time = Sys.time() in
 				let symb_state = Simplifications.simplify_ss symb_state (Some (Some (SS.union lvars existentials))) in
 				let end_time = Sys.time() in
-				JSIL_Syntax.update_statistics "simplify_ss: grab_resources" (start_time -. end_time);
+				JSIL_Syntax.update_statistics "simplify_ss: grab_resources" (end_time -. start_time);
 				Some symb_state
 		| false -> None)
 	with

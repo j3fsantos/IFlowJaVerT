@@ -665,6 +665,14 @@ let assertions_of_substitution (subst : substitution) =
 		subst                                      (* the substituion table *)
 		[]                                         (* base element *)
 
+(* Symbolic heaps *)
+module LHeap = Hashtbl.Make(
+	struct
+		type t = string
+		let equal = (=)
+		let hash = Hashtbl.hash
+	end)
+
 (* Typing Environment *)
 
 type typing_environment        = ((string, jsil_type) Hashtbl.t)
@@ -780,7 +788,23 @@ let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list
 		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars)) 
 		gamma
 		[]	
+		
+(* ******* *)
+(* Hashing *)
+(* ******* *)
 
+let hash_to_list hash = 
+	List.sort compare (Hashtbl.fold (fun k v ac -> (k, v) :: ac) hash [])
+	
+let hash_of_list hash = 
+	let result = Hashtbl.create 523 in
+	List.iter (fun (v, t) -> Hashtbl.add result v t) hash;
+	result
 
-
-
+let lheap_to_list hash = 
+	List.sort compare (LHeap.fold (fun k v ac -> (k, v) :: ac) hash [])
+	
+let lheap_of_list hash = 
+	let result = LHeap.create 523 in
+	List.iter (fun (v, t) -> LHeap.add result v t) hash;
+	result

@@ -7,12 +7,6 @@ exception Symb_state_error of string;;
 (*************************************)
 (** Symbolic States                 **)
 (*************************************)
-module LHeap = Hashtbl.Make(
-	struct
-		type t = string
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
 
 type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
@@ -23,6 +17,70 @@ type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
 type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set 
+
+(*************************************)
+(** Cached symbolic state           **)
+(*************************************)
+
+type cached_symbolic_state = 
+	  (string * ((jsil_logic_expr * jsil_logic_expr) list * jsil_logic_expr option)) list
+	* (string * jsil_logic_expr) list
+	* jsil_logic_assertion list
+	* (string * jsil_type) list
+	* (string * jsil_logic_expr list) list
+
+let cache_ss (ss : symbolic_state) : cached_symbolic_state = 
+	let sort = List.sort compare in
+	let heap, store, pfs, gamma, preds = ss in
+	let lheap = lheap_to_list heap in
+	let lstore = hash_to_list store in
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in 
+	let lgamma = hash_to_list gamma in
+	let lpreds = List.sort compare (DynArray.to_list preds) in
+	lheap, lstore, lpfs, lgamma, lpreds
+
+let uncache_ss (css : cached_symbolic_state) : symbolic_state = 
+	let start_time = Sys.time() in
+	let lheap, lstore, lpfs, lgamma, lpreds = css in
+	let heap = lheap_of_list lheap in
+	let store = hash_of_list lstore in
+	let pfs   = DynArray.of_list lpfs in 
+	let gamma = hash_of_list lgamma in
+	let preds = DynArray.of_list lpreds in
+	let result = (heap, store, pfs, gamma, preds) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "uncache_ss" (end_time -. start_time);
+	result
+
+let simpl_cache : 
+	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state, 
+	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
+
+let simpl_encache_key vts ots exs ss =
+	let start_time = Sys.time() in
+	let cots = List.sort compare (DynArray.to_list ots) in
+	let css = cache_ss ss in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simpl_encache_key" (end_time -. start_time);
+	vts, cots, exs, css
+
+let simpl_encache_value ss subst ots exs =
+	let start_time = Sys.time() in
+	let css = cache_ss ss in
+	let csubst = hash_to_list subst in
+	let cots = List.sort compare (DynArray.to_list ots) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simpl_encache_value" (end_time -. start_time);
+	css, csubst, cots, exs
+
+let simpl_uncache_value css csubst cots exs =
+	let start_time = Sys.time() in
+	let ss = uncache_ss css in
+	let subst = hash_of_list csubst in
+	let ots = DynArray.of_list cots in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "simpl_uncache_value" (end_time -. start_time);
+	ss, subst, ots, exs
 
 (*************************************)
 (** Field Value Lists               **)
