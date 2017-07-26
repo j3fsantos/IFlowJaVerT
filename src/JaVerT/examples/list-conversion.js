@@ -20,7 +20,7 @@
 @pred ll_node(node, val, next) :
   standardObject(node) *
   dataField(node, "value", val) *
-  dataField(node, "next", next) * 
+  dataField(node, "next", next) *
   empty_fields(node : -{"value", "next"}-);
 
 @pred ll_seg(head, last_next, list):
@@ -37,17 +37,18 @@
 @pred ll_obj(obj, head, last_next, list):
   types(list: $$list_type) *
   standardObject(obj) *
-  dataField(node, "head", head) *
-  dataField(node, "last_next", last_next) *
-  ll_seg(head, last_next, list);
+  dataField(obj, "head", head) *
+  dataField(obj, "last_next", last_next) *
+  ll_seg(head, last_next, list) *
+  empty_fields(obj : -{"head", "last_next"}-);
 
 @pred dll_obj(obj, head, head_prev, last, last_next, list):
   types(list: $$list_type) *
   standardObject(obj) *
-  dataField(node, "head", head) *
-  dataField(node, "head_prev", head_prev) *
-  dataField(node, "last", last) *
-  dataField(node, "last_next", last_next) *
+  dataField(obj, "head", head) *
+  dataField(obj, "head_prev", head_prev) *
+  dataField(obj, "last", last) *
+  dataField(obj, "last_next", last_next) *
   dll_seg(head, head_prev, last, last_next, list);
 */
 
@@ -100,12 +101,9 @@ function ll_seg_to_dll_seg(head, head_prev, last_next)
     /** Recurse */
     var new_dll_seg_obj = ll_seg_to_dll_seg(head.next, head, last_next);
 
-    head.next = new_dll_seg_obj.head;
+    head.next = new_dll_seg_obj.r_head;
 
-    return_obj.r_last = new_dll_seg_obj.last;
-
-    /* Remove references to the uwanted object, so it is no longer part of our heap */
-    new_dll_seg_obj = null;
+    return_obj.r_last = new_dll_seg_obj.r_last;
 
     /** @tactic fold dll_seg(#head, #head_prev, #last, #last_next, #list) */
 
@@ -114,4 +112,28 @@ function ll_seg_to_dll_seg(head, head_prev, last_next)
   }
 }
 
-/** The wrapper function is in another file while I am debugging this one */
+/**
+	@id ll_obj_to_dll_obj
+
+	@pre
+    (obj == #obj) * ll_obj(obj, #head, #last_next, #list) *
+    scope(ll_seg_to_dll_seg : #llSegToDllSeg) *
+    fun_obj(llSegToDllSeg, #llSegToDllSeg, #llSegToDllSegProto)
+
+	@post
+    dll_obj(#obj, #head, #head_prev, #last, #last_next, #list) * (ret == #obj) *
+    scope(ll_seg_to_dll_seg : #llSegToDllSeg) *
+    fun_obj(llSegToDllSeg, #llSegToDllSeg, #llSegToDllSegProto)
+*/
+function ll_obj_to_dll_obj(obj)
+{
+  var init_head_prev = null; /** ??? */
+
+  var dll_seg_obj   = ll_seg_to_dll_seg(obj.head, init_head_prev, obj.last_next);
+
+  obj.head      = dll_seg_obj.r_head;
+  obj.head_prev = init_head_prev;
+  obj.last      = dll_seg_obj.r_last;
+
+  return obj;
+}
