@@ -1,5 +1,6 @@
-(** Totals: 0 fails and 0 pass **)
+(** Totals: 1 fails and 0 pass **)
 
+(** Expected result: NO                             **)
 spec separation_nonsense_1 (x, y, z)
 	[[ ((x, y) -> "a") * ((x, z) -> "b") ]]
 	[[ ((x, y) -> "a") * ((x, z) -> "b") * (ret == "b") ]]
@@ -10,4 +11,3 @@ proc separation_nonsense_1 (x, y, z) {
 } with {
 	ret: xret, rlab;
 };
-

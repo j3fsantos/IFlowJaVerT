@@ -1,11 +1,11 @@
 (** Totals: 0 fails and 1 pass **)
 
-pred factorial (n, f) : (n == 0) * (f == 1) * types(n: $$int_type),
-						(!(n <# 1)) * (#n1 == (n - 1)) * factorial(#n1, #f1) * (f == #f) * (f == (n * #f1)) * types(n: $$int_type, #n1: $$int_type, #f: $$int_type);
+pred factorial (n, f) : (n == 0) * (f == 1) * types(n: $$number_type),
+						(!(n <# 1)) * (#n1 == (n - 1)) * factorial(#n1, #f1) * (f == #f) * (f == (n * #f1)) * types(n: $$number_type, #n1: $$number_type, #f: $$number_type);
 
 spec factorial (n)
-	[[ types(n : $$int_type) * (!(n <# 0)) ]]
-	[[ types(n : $$int_type, ret : $$int_type) * (!(n <# 0)) * factorial(n, ret) ]]
+	[[ types(n : $$number_type) * (!(#n <# 0)) * (n == #n) ]]
+	[[ types(n : $$number_type, ret : $$number_type) * (!(n <# 0)) * factorial(n, ret) ]]
 	normal
 proc factorial (n) {
 	xret := 1;
@@ -21,4 +21,3 @@ rlab:
 } with {
 	ret: xret, rlab;
 };
-

@@ -69,7 +69,7 @@ proc test5 (x) {
 (** Check if (#x == 0) entails (#x == 1)             **)
 (** Expected result: NO                              **)
 spec test6 (x)
-   [[ (x == #x) * (#x == 0) * types(#x: $$int_type) ]]
+   [[ (x == #x) * (#x == 0) * types(#x: $$number_type) ]]
    [[ (#x == 1) ]]
    normal
 proc test6 (x) {
@@ -80,7 +80,7 @@ proc test6 (x) {
 (** Check if (#x == 0) entails (#x == 0)             **)
 (** Expected result: YES                             **)
 spec test7 (x)
-   [[ (x == #x) * (#x == 0) * types(#x: $$int_type) ]]
+   [[ (x == #x) * (#x == 0) * types(#x: $$number_type) ]]
    [[ (#x == 0) ]]
    normal
 proc test7 (x) {
@@ -91,10 +91,9 @@ proc test7 (x) {
 (** Check if (#x == 0) entails (#x == "maria")       **)
 (** Expected result: NO                              **)
 spec test8 (x)
-   [[ (x == #x) * (#x == 0) * types(#x: $$int_type) ]]
+   [[ (x == #x) * (#x == 0) * types(#x: $$number_type) ]]
    [[ (#x == "maria") ]]
    normal
 proc test8 (x) {
    rlab:   skip
 } with { ret: x, rlab; };
-

@@ -1,4 +1,4 @@
-import internal_functions;
+import javert_internal_functions, javert_logic_macros, javert_js_predicates;
 
 (* *******************************************
    *** *** ***   JAVASCRIPT TEST   *** *** ***
