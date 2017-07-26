@@ -2274,9 +2274,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 
 let simplify_implication exists lpfs rpfs gamma =
 	let start_time = Sys.time() in
-	sanitise_pfs_no_store gamma rpfs;
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
-	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	clean_up_stuff exists lpfs rpfs;
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in

@@ -52,11 +52,11 @@ let uncache_ss (css : cached_symbolic_state) : symbolic_state =
 	JSIL_Syntax.update_statistics "uncache_ss" (end_time -. start_time);
 	result
 
-let simpl_cache : 
+let ss_cache : 
 	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state, 
 	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
 
-let simpl_encache_key vts ots exs ss =
+let ss_encache_key vts ots exs ss =
 	let start_time = Sys.time() in
 	let cots = List.sort compare (DynArray.to_list ots) in
 	let css = cache_ss ss in
@@ -64,7 +64,7 @@ let simpl_encache_key vts ots exs ss =
 	JSIL_Syntax.update_statistics "simpl_encache_key" (end_time -. start_time);
 	vts, cots, exs, css
 
-let simpl_encache_value ss subst ots exs =
+let ss_encache_value ss subst ots exs =
 	let start_time = Sys.time() in
 	let css = cache_ss ss in
 	let csubst = hash_to_list subst in
@@ -73,7 +73,7 @@ let simpl_encache_value ss subst ots exs =
 	JSIL_Syntax.update_statistics "simpl_encache_value" (end_time -. start_time);
 	css, csubst, cots, exs
 
-let simpl_uncache_value css csubst cots exs =
+let ss_uncache_value css csubst cots exs =
 	let start_time = Sys.time() in
 	let ss = uncache_ss css in
 	let subst = hash_of_list csubst in
@@ -81,6 +81,42 @@ let simpl_uncache_value css csubst cots exs =
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simpl_uncache_value" (end_time -. start_time);
 	ss, subst, ots, exs
+
+(*************************************)
+(** Cached pfs state                **)
+(*************************************)
+
+let pfs_cache : 
+	(jsil_logic_assertion list * (string * jsil_type) list * SS.t option option, 
+	 jsil_logic_assertion list * (string * jsil_type) list) Hashtbl.t = Hashtbl.create 21019
+
+let pfs_cache_key pfs gamma lexs = 
+	let start_time = Sys.time() in
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in 
+	let lgamma = hash_to_list gamma in
+	let result = (lpfs, lgamma, lexs) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "pfs_cache_key" (end_time -. start_time);
+	result
+
+let pfs_cache_value pfs gamma = 
+	let start_time = Sys.time() in
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in 
+	let lgamma = hash_to_list gamma in
+	let result = (lpfs, lgamma) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "pfs_cache_value" (end_time -. start_time);
+	result
+	
+let pfs_uncache_value value = 
+	let start_time = Sys.time() in
+	let lpfs, lgamma = value in
+	let pfs   = DynArray.of_list lpfs in 
+	let gamma = hash_of_list lgamma in
+	let result = (pfs, gamma) in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "pfs_uncache_value" (end_time -. start_time);
+	result
 
 (*************************************)
 (** Field Value Lists               **)
