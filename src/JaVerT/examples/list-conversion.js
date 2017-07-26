@@ -20,7 +20,8 @@
 @pred ll_node(node, val, next) :
   standardObject(node) *
   dataField(node, "value", val) *
-  dataField(node, "next", next);
+  dataField(node, "next", next) * 
+  empty_fields(node : -{"value", "next"}-);
 
 @pred ll_seg(head, last_next, list):
   types(list: $$list_type) *
