@@ -86,11 +86,10 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
                head,   last_next,             list
         ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2))
         :=
-          (! (head_1 == new_seg_obj_last_next)) done (by transivitity)
+          (! (head_1 == new_seg_obj_last_next)) don't have this as != is not transitive
           ((#list_1 @ #list_2) == (#item :: #items )) done
           (ll_node(head_1, #item, #head_next)) item done
           (ll_seg(#head_next, new_seg_obj_last_next, #items)) done
-          Should work, we have everything needed
       *)
 
     goto rlab;
