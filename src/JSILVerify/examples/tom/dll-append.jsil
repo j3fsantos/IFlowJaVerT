@@ -114,19 +114,7 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
          fold dll_seg_2(#head_1, #head_prev_1, #last_1, head_2, #list_1);
          callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1) *]
 
-      (* (second) Fold needs:
-                   head,    head_prev,    last,    last_next, list
-         dll_seg_2(#head_1, #head_prev_1, #last_1, head_2, #list_1)
-         :=
-           (! (#head_1 == head_2)) DON'T HAVE THIS, need to strengthen pre-condition(?)
-           types(#list_1: $$list_type, #items: $$list_type, #head_1: $$object_type, #last_1: $$object_type) HAVE THIS
-           (dll_node(#last_1, #item, head_2, #last_prev)) HAVE THIS
-           (dll_seg_2(#head_1, #head_prev_1, #last_prev, #last_1, #items)) HAVE THIS
-
-      *)
-
       (* TODO: Unify with post- *)
-
 
       goto rlab;
 
