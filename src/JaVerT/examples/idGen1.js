@@ -5,27 +5,23 @@
    dataField(ig, "getCurId", #gci) * fun_obj(getCurId, #gci, #gci_proto, #gci_sc) *
    dataField(ig, "resetId",  #ri)  * fun_obj(resetId,  #ri,  #ri_proto,  #ri_sc)  *
    
-   sc_scope(getNewId, counter: c_val, #gni_sc) *
-   sc_scope(getNewId, prefix: prefix, #gni_sc) *
-   o_chains(getNewId: #gni_sc, getCurId: #gci_sc) * 
-   o_chains(getNewId: #gni_sc, resetId: #ri_sc) * 
-   o_chains(getCurId: #gci_sc, resetId:  #ri_sc)  *
+   closure(counter: c_val, prefix: prefix; getNewId: #gni_sc, getCurId: #gci_sc, resetId: #ri_sc) *
 
    types (c_val: $$number_type, prefix: $$string_type);
 */
 
 
 /**
-@toprequires (emp)
-@topensures (
-   scope(makeIdGenerator: #mig) *
-   scope(idGen1: #ig1) *
-   scope(idGen2: #ig2) *
-   fun_obj(makeIdGenerator, #mig, #mig_proto, #mig_sc) *
-   idGenerator(#ig1, 1, "banana") *
-   idGenerator(#ig2, 0, "avocado") * 
-   scope(x: #x) *
-   (#x == "idbanana1"))
+	@toprequires (emp)
+	@topensures (
+	   scope(makeIdGenerator: #mig) *
+	   scope(idGen1: #ig1) *
+	   scope(idGen2: #ig2) *
+	   fun_obj(makeIdGenerator, #mig, #mig_proto, #mig_sc) *
+	   idGenerator(#ig1, 1, "banana") *
+	   idGenerator(#ig2, 0, "avocado") * 
+	   scope(x: #x) *
+	   (#x == "idbanana1"))
 */
 
 
@@ -44,8 +40,7 @@ var makeIdGenerator = function (prefix) {
 		@post (scope(counter: (#c+1)) * scope(prefix: #prefix) * (ret == ("id" ++ #prefix ++ num_to_string(#c+1))))
 	*/
 	var getNewId = function () { 
-		counter++; 
-		return "id"+prefix+counter;
+		return "id" + prefix + ++counter;
 	}; 
 
 	/**
@@ -54,14 +49,14 @@ var makeIdGenerator = function (prefix) {
 		@post (scope(counter: #c) * scope(prefix: #prefix) * (ret == ("id" ++ #prefix ++ num_to_string(#c))))
 	*/
 	var getCurId = function () { 
-		return "id"+prefix+counter; 
+		return "id" + prefix + counter; 
 	}; 
 
 
 	/**
 		@id  resetId
-		@pre  ( scope(counter: #c)) 
-		@post ( scope(counter: 0))
+		@pre  scope(counter: #c)
+		@post scope(counter: 0)
 	*/
 	var resetId = function () { 
 		counter = 0; 
@@ -77,12 +72,12 @@ var makeIdGenerator = function (prefix) {
 };
 
 
-var idgen1 = makeIdGenerator ("banana");
-var idgen2 = makeIdGenerator ("avocado");
+var idGen1 = makeIdGenerator ("banana");
+var idGen2 = makeIdGenerator ("avocado");
 
-idgen1.getNewId();
+idGen1.getNewId();
 
 
-var x = idgen1.getCurId(); 
+var x = idGen1.getCurId(); 
 
 

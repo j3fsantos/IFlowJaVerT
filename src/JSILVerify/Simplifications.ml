@@ -604,7 +604,10 @@ let rec reduce_assertion store gamma pfs a =
 						then 
 							f (LEq (re1', LLit (Num (n2 -. n1))))
 						else default e1 e2 re1 re2
-						
+			
+			(* Very special cases *)
+			| LTypeOf (LBinOp (_, StrCat, _)), LLit (Type t) when (t <> StringType) -> LFalse
+			
 			| _, _ -> default e1 e2 re1 re2
 		)
 
@@ -1799,6 +1802,7 @@ let simplify_symb_state
 							changes_made := true;
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
+				
 				| _, _ -> n := !n + 1)
 			
 			(* Special cases *)
@@ -1817,7 +1821,7 @@ let simplify_symb_state
 						(match (t = EmptyType) with
 						| true -> pfs_ok := false; msg := "Negation incorrect."
 						| false -> DynArray.delete pfs !n))
-							
+
 			| _ -> n := !n + 1);
 		done;
 	done;
@@ -2279,6 +2283,7 @@ let simplify_implication exists lpfs rpfs gamma =
 	clean_up_stuff exists lpfs rpfs;
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
 	let rpfs, exists, gamma = find_impossible_unions   lpfs rpfs exists gamma in
+	sanitise_pfs_no_store gamma rpfs;
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(print_pfs lpfs)
