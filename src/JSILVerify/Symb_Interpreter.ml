@@ -1179,7 +1179,6 @@ let rec symb_evaluate_cmd s_prog proc spec search_info symb_state i prev =
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec.n_lvars)) in
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_ss: symb_evaluate_cmd" (end_time -. start_time);
-	let symb_state = Symbolic_State_Utils.collect_garbage symb_state in
 	print_symb_state_and_cmd symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
 	mark_as_visited search_info i;

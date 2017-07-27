@@ -558,23 +558,23 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 						let fv_lists = unify_symb_fv_lists pat_loc loc pat_fv_list fv_list domain pure_formulae gamma subst in
 						(match fv_lists with
 						| Some (new_fv_list, matched_fv_list, new_discharges, new_domain) ->
+							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
+							let new_fv_list, new_domain = unify_domains new_domain pat_domain new_fv_list subst pure_formulae gamma in 
+							LHeap.replace quotient_heap loc (new_fv_list, new_domain);
 							print_debug_petar (Printf.sprintf "fv_lists unified successfully");
 							print_debug_petar (Printf.sprintf "QH: %s" (Symbolic_State_Print.string_of_shallow_symb_heap quotient_heap false));
-							let new_pfs : jsil_logic_assertion list = make_all_different_pure_assertion new_fv_list matched_fv_list in
-							let new_fv_list, new_domain = unify_domains new_domain pat_domain new_fv_list subst pure_formulae gamma in
-							LHeap.replace quotient_heap loc (new_fv_list, new_domain);
 							loop rest_locs (new_pfs @ pfs) (new_discharges @ discharges)
 						| None -> raise (SymbExecFailure (Impossible "unify_symb_heaps: unify_symb_fv_lists returned None")))
 					| _ -> raise (SymbExecFailure (UH PatternHeapWithDefaultValue)))) in
 
 		let (pfs : (jsil_logic_assertion list)), (discharges: (symbolic_discharge_list)) = loop pat_heap_domain [] [] in
 
-		print_debug_petar (Printf.sprintf "Heap again %s" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
 		LHeap.iter
 			(fun loc (fv_list, def) ->
 				try
-					let _ = LHeap.find quotient_heap loc in
-					()
+					let (fv_list, domain) = LHeap.find quotient_heap loc in
+					if (fv_list = [] && (domain = None || domain = Some (LESet []))) then 
+							while (LHeap.mem quotient_heap loc) do LHeap.remove quotient_heap loc done
 				with _ ->
 					LHeap.add quotient_heap loc (fv_list, def))
 			heap;
