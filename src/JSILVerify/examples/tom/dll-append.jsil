@@ -113,7 +113,7 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
          fold dll_seg_2(#head_1, #head_prev_1, #last_1, head_2, #list_1);
          callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1) *]
 
-      (* So now we have two dll-segs joined by their head-next's and last-prev's,
+      (* So now we have two dll-segs joined by their head-prev's and last-next's,
          need to collapse this into one dll-seg. *)
 
       (* Want to use callspec to say that two dll-segs joined in this way in fact
