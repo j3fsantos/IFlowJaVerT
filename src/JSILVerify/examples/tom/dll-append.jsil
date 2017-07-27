@@ -109,10 +109,12 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
       [head_2, "prev"] := last_1;
 
       (* Collapse both the list preds and flip the first back to the left *)
-      (* Second fold is causing an error *)
       [* fold dll_seg(#head_2, last_1, #last_2, #last_next_2, #list_2);
          fold dll_seg_2(#head_1, #head_prev_1, #last_1, head_2, #list_1);
          callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1) *]
+
+      (* So now we have two dll-segs joined by their head-next's and last-prev's,
+         need to collapse this into one dll-seg *)
 
       (* TODO: Unify with post- *)
 
