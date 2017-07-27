@@ -1331,9 +1331,11 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 							let vis_tbl = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
 							let info_node = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
 							let new_search_info = update_search_info search_info info_node vis_tbl in
-							(* Actually evaluate the next command *) 
+							(* Streamline the spec_vars *)
+							let spec_vars = SS.filter (fun sv -> String.length sv < 7 || String.sub sv 0 6 <> "_lvar_") spec_vars in
 							print_debug (Printf.sprintf "Spec vars (symb_evaluate_next_cmd_cont, loop): %s" (String.concat ", " (SS.elements spec_vars)));
 							let spec = { spec with n_lvars = spec_vars } in
+							(* Actually evaluate the next command *) 
 							symb_evaluate_cmd s_prog proc spec new_search_info symb_state next cur)
 						symb_states_with_spec_vars
 				end
