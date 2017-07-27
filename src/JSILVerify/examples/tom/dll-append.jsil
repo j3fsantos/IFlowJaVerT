@@ -114,7 +114,12 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
          callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1) *]
 
       (* So now we have two dll-segs joined by their head-next's and last-prev's,
-         need to collapse this into one dll-seg *)
+         need to collapse this into one dll-seg. *)
+
+      (* Want to use callspec to say that two dll-segs joined in this way in fact
+         make up one dll-seg (the preds are recursive so I can't think of another way
+         that doesn't involve some sort of "axiom") but it feels like cheating
+         and the kind of thing you shouldn't use very much? *)
 
       (* TODO: Unify with post- *)
 
