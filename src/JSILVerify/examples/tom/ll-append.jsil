@@ -15,12 +15,16 @@ pred ll_seg(head, last_next, list):
   (ll_node(head, #item, #head_next)) *
   (ll_seg(#head_next, last_next, #items));
 
-pred ll_obj(obj, head, last_next, list):
-  types(obj: $$object_type, list: $$list_type) *
-  ((obj, "head")      -> head) *
-  ((obj, "last_next") -> last_next) *
-  ((obj, "@proto")    -> $$null) *
-  ll_seg(head, last_next, list);
+pred disjoint_ll_seg(head, last_next, list, disjoint_element):
+  types(list: $$list_type) *
+  (list == {{ }}) * (! (head == disjoint_element)) *
+  (head == last_next),
+
+  (! (head == last_next)) * (! (head == disjoint_element)) *
+  (list == (#item :: #items )) *
+  types(list: $$list_type, #items: $$list_type) *
+  (ll_node(head, #item, #head_next)) *
+  (disjoint_ll_seg(#head_next, last_next, #items, disjoint_element));
 
 (* Returns an object holding pointers to the head and last_next
    of the list segment resulting from the appending of the two arguments *)
@@ -32,9 +36,8 @@ pred ll_obj(obj, head, last_next, list):
    Can't think of a solution except for having multiple specs.. *)
 spec append_ll_seg (head_1, last_next_1, head_2, last_next_2)
    [[ (head_1 == #head_1) * (last_next_1 == #last_next_1) * (head_2 == #head_2) * (last_next_2 == #last_next_2) *
-      (! (#last_next_1 == #last_next_2)) *
       types(#list_2: $$list_type) *
-      ll_seg(#head_1, #last_next_1, #list_1) *
+      disjoint_ll_seg(#head_1, #last_next_1, #list_1, #last_next_2) *
       ll_seg(#head_2, #last_next_2, #list_2) ]]
    [[ (#appended_list == (#list_1 @ #list_2)) *
       types(ret: $$object_type) *
@@ -46,7 +49,7 @@ spec append_ll_seg (head_1, last_next_1, head_2, last_next_2)
 
 proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
 
-  [* unfold ll_seg(#head_1, #last_next_1, #list_1) *]
+  [* unfold disjoint_ll_seg(#head_1, #last_next_1, #list_1, #last_next_2) *]
 
   return_obj := new ();
 
@@ -80,19 +83,8 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
       (* Remove unwanted heap object *)
       deleteObject(new_seg_obj);
 
+      (* Need to say that head_1 != new_seg_obj_last_next *)
       [* fold ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2)) *]
-
-      (* Fold requires:
-               head,   last_next,             list
-        ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2))
-        :=
-          (! (head_1 == new_seg_obj_last_next)) don't have this as != is not transitive
-          ((#list_1 @ #list_2) == (#item :: #items )) done
-          (ll_node(head_1, #item, #head_next)) item done
-          (ll_seg(#head_next, new_seg_obj_last_next, #items)) done
-      *)
-
-    goto rlab;
 
   rlab:
     skip
