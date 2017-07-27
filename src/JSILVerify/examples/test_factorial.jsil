@@ -4,9 +4,10 @@ pred factorial (n, f) : (n == 0) * (f == 1) * types(n: $$number_type),
 						(!(n <# 1)) * (#n1 == (n - 1)) * factorial(#n1, #f1) * (f == #f) * (f == (n * #f1)) * types(n: $$number_type, #n1: $$number_type, #f: $$number_type);
 
 spec factorial (n)
-	[[ types(n : $$number_type) * (!(#n <# 0)) * (n == #n) ]]
-	[[ types(n : $$number_type, ret : $$number_type) * (!(n <# 0)) * factorial(n, ret) ]]
+	[[ (n == #n) * (0 <=# n) * types(#n : $$number_type)]]
+	[[ types(ret : $$number_type) * factorial(#n, ret) ]]
 	normal
+	
 proc factorial (n) {
 	xret := 1;
 pos:

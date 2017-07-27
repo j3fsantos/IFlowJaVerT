@@ -330,6 +330,33 @@ let rec get_expr_vars catch_pvars e : SS.t =
 			let v_e2 = f e2 in
 				SS.union v_e1 v_e2
 
+let rec get_locs_expr e : SS.t =
+	let f = get_locs_expr in
+	match e with
+	| ALoc l -> SS.singleton l
+	| LLit _
+	| ALoc _
+	| LNone 
+	| LUnknown 
+	| LVar _
+	| PVar _ -> SS.empty
+	| LUnOp (_, e1) -> f e1
+	| LTypeOf e1 -> f e1
+	| LEList le_list
+	| LESet le_list
+	| LSetUnion le_list
+	| LSetInter le_list
+	| LCList le_list -> 
+			List.fold_left (fun ac e -> 
+				let v_e = f e in
+					SS.union ac v_e) SS.empty le_list	
+	| LBinOp (e1, _, e2) 
+	| LLstNth (e1, e2)
+	| LStrNth (e1, e2) -> 
+			let v_e1 = f e1 in
+			let v_e2 = f e2 in
+				SS.union v_e1 v_e2
+
 let rec get_assertion_vars catch_pvars a : SS.t = 
 	let f = get_assertion_vars catch_pvars in
 	let fe = get_expr_vars catch_pvars in
@@ -387,6 +414,45 @@ let get_assertion_list_vars assertions catch_pvars =
 	List.fold_left (fun ac a ->
 		let v_a = get_assertion_vars catch_pvars a in
 		SS.union ac v_a) SS.empty assertions
+
+let rec get_locs_assertion a : SS.t = 
+	let f = get_locs_assertion in
+	let fe = get_locs_expr in
+	let result = (match a with
+	| LTrue
+	| LFalse 
+	| LEmp 
+	| LTypes _ 
+	| LEmptyFields _ -> SS.empty
+	| LNot a1 -> f a1
+	| LAnd (a1, a2) 
+	| LOr (a1, a2)
+	| LStar (a1, a2) -> 
+			let v_a1 = f a1 in
+			let v_a2 = f a2 in
+			SS.union v_a1 v_a2
+	| LEq (e1, e2)
+	| LLess (e1, e2)
+	| LLessEq (e1, e2)
+	| LStrLess (e1, e2) -> 
+			let v_e1 = fe e1 in
+			let v_e2 = fe e2 in
+			SS.union v_e1 v_e2
+	| LPointsTo (e1, e2, e3) -> 
+			let v_e1 = fe e1 in
+			let v_e2 = fe e2 in
+			let v_e3 = fe e3 in
+			SS.union v_e1 (SS.union v_e2 v_e3)
+	| LPred (_, es) -> 
+			List.fold_left (fun ac e -> 
+				let v_e = fe e in
+					SS.union ac v_e) SS.empty es
+	| LSetMem (elem, s) -> SS.union (fe elem) (fe s)
+	| LSetSub (s1, s2)  -> SS.union (fe s1) (fe s2) 
+	(* CAREFUL, BINDERS *)
+	| LForAll (_, a1) -> 
+			f a1)
+	in result
 
 (* *********************************** *)
 

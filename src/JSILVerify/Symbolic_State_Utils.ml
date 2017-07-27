@@ -476,12 +476,8 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 					| LVar v' when ((SS.mem v' extss) && not (SS.mem v extss)) -> 
 							Hashtbl.remove sbt v; Hashtbl.add sbt v' (LVar v)
 					| _ -> ())) sbt); 
-					print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
-					print_debug_petar (Symbolic_State_Print.string_of_substitution sbt); 
 					Hashtbl.filter_map_inplace (fun v le -> if ((SS.mem v extss && not (Hashtbl.mem subst v))) then Some le else None) sbt;
 					Hashtbl.iter (fun v le -> Hashtbl.add subst v le) sbt;
-					print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
-					print_debug_petar (Symbolic_State_Print.string_of_substitution sbt);
 					let s_pfs = pf_substitution pfs subst true in
 					let s_le  = lexpr_substitution le subst true in
 					let s_pat_le = lexpr_substitution pat_le subst true in
@@ -617,3 +613,38 @@ let copy_single_spec s_spec =
 		n_post_lvars = s_spec.n_post_lvars;
 		n_subst      = s_spec.n_subst
 	}
+	
+(*************************************)
+(** Garbage collection              **)
+(*************************************)
+
+let get_locs_symb_state symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in 
+	let lheap  = get_locs_heap  heap  in
+	let lstore = get_locs_store store in
+	let lpfs   = get_locs_pfs   pfs   in
+	let lpreds = get_locs_preds preds in
+	SS.union lheap (SS.union lstore (SS.union lpfs lpreds))
+	
+let collect_garbage (symb_state : symbolic_state) = 
+	let heap, store, pfs, gamma, preds = symb_state in
+	let dangling_locations = 	LHeap.fold
+		(fun loc (fv_list, default) locs ->
+			match (is_abs_loc_name loc), default, fv_list with
+			| true, None, [] 
+			| true, Some (LESet []), [] -> SS.add loc locs
+			| _ -> locs
+  	)
+		heap
+		SS.empty in
+	if (dangling_locations = SS.empty) then symb_state else (
+	let ss_vars = get_locs_symb_state symb_state in
+	let collectable_locs = SS.diff dangling_locations ss_vars in
+	SS.iter (fun loc -> LHeap.remove heap loc) collectable_locs;
+		print_debug (Printf.sprintf "GCOL: Found locations: %s"
+			(String.concat ", " (SS.elements ss_vars)));
+		print_debug (Printf.sprintf "GCOL: Dangling locations: %s"
+			(String.concat ", " (SS.elements dangling_locations)));
+		print_debug (Printf.sprintf "GCOL: Collectable locations: %s"
+			(String.concat ", " (SS.elements collectable_locs)));
+	symb_state)
