@@ -52,6 +52,7 @@ only spec switch_end_to_left(head, head_prev, last, last_next, list)
 
 spec append_dll_obj(dll_obj_1, dll_obj_2)
   [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
+     (! (#head_1 == #head_2)) *
      dll_obj(#dll_obj_1, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *
      dll_obj(#dll_obj_2, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2)  ]]
   [[ (#appended_list == (#list_1 @ #list_2)) *
