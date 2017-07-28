@@ -50,6 +50,17 @@ only spec switch_end_to_left(head, head_prev, last, last_next, list)
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
   normal
 
+only spec concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, head_prev_2, last_2, last_next_2, list_2)
+  [[ (head_1 == #head_1) * (head_prev_1 == #head_prev_1) * (last_1 == #last_1) * (last_next_1 == #last_next_1) * (list_1 == #list_1) *
+     (head_2 == #head_2) * (head_prev_2 == #head_prev_2) * (last_2 == #last_2) * (last_next_2 == #last_next_2) * (list_2 == #list_2) *
+     dll_seg(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *
+     dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) *
+     (#last_next_1 == #head_2) *
+     (#head_prev_2 == #last_1) ]]
+  [[ (#concat_list == (#list_1 @ #list_2)) *
+     dll_seg(#head_1, #head_prev_1, #last_2, #last_next_2, #concat_list) ]]
+  normal
+
 spec append_dll_obj(dll_obj_1, dll_obj_2)
   [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
      (! (#head_1 == #head_2)) *
@@ -86,6 +97,7 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
     [* unfold dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) *]
 
     head_2           := [dll_obj_2, "head"];
+    last_2           := [dll_obj_2, "last"];
     last_next_2      := [dll_obj_2, "last_next"];
 
     goto [head_2 = last_next_2] emptyList2 nonemptyList2;
@@ -96,9 +108,13 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
       return_obj := dll_obj_1;
       deleteObject(dll_obj_2);
 
+      (* Collapse and switch the first seg back to the left ready to return *)
+      [* fold dll_seg_2(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1);
+         callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *]
+
       goto rlab;
 
-    nonemptyList2: (* Both lists non-empty *)
+    nonemptyList2: (* Both lists non-empty *) (* VERIFIED *)
 
       (* Set forward pointer *)
       last_1           := [dll_obj_1, "last"];
@@ -108,20 +124,18 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
       (* Set backwards pointer *)
       [head_2, "prev"] := last_1;
 
-      (* Collapse both the list preds and flip the first back to the left *)
+      (* Collapse both the list preds and flip the first back to the left
+         then axiomatically concatenate the segs *)
       [* fold dll_seg(#head_2, last_1, #last_2, #last_next_2, #list_2);
          fold dll_seg_2(#head_1, #head_prev_1, #last_1, head_2, #list_1);
-         callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1) *]
+         callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1);
+         callspec concat_dll_segs(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1, #head_2, last_1, #last_2, #last_next_2, #list_2)  *]
 
-      (* So now we have two dll-segs joined by their head-prev's and last-next's,
-         need to collapse this into one dll-seg. *)
-
-      (* Want to use callspec to say that two dll-segs joined in this way in fact
-         make up one dll-seg (the preds are recursive so I can't think of another way
-         that doesn't involve some sort of "axiom") but it feels like cheating
-         and the kind of thing you shouldn't use very much? *)
-
-      (* TODO: Unify with post- *)
+      (* Re-use the first dll obj and delete the second *)
+      return_obj                := dll_obj_1;
+      [return_obj, "last"]      := last_2;
+      [return_obj, "last_next"] := last_next_2;
+      deleteObject(dll_obj_2);
 
       goto rlab;
 
