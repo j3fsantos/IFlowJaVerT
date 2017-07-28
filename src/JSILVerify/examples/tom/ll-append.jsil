@@ -28,7 +28,6 @@ pred disjoint_ll_seg(head, last_next, list, disjoint_element):
 
 (* Returns an object holding pointers to the head and last_next
    of the list segment resulting from the appending of the two arguments *)
-
 spec append_ll_seg (head_1, last_next_1, head_2, last_next_2)
    [[ (head_1 == #head_1) * (last_next_1 == #last_next_1) * (head_2 == #head_2) * (last_next_2 == #last_next_2) *
       types(#list_2: $$list_type) *
@@ -80,7 +79,7 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
       [* fold ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2)) *]
 
       (* If this line isn't here it will try the fold in the line above
-         before going to the rlab label *)
+         when it goes to the rlab label  *)
       foo := bar;
 
   rlab:
