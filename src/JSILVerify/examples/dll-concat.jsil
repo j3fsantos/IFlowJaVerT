@@ -114,7 +114,7 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
 
       goto rlab;
 
-    nonemptyList2: (* Both lists non-empty *) (* VERIFIED *)
+    nonemptyList2: (* Both lists non-empty *)
 
       (* Set forward pointer *)
       last_1           := [dll_obj_1, "last"];
@@ -126,10 +126,10 @@ proc append_dll_obj(dll_obj_1, dll_obj_2) {
 
       (* Collapse both the list preds and flip the first back to the left
          then axiomatically concatenate the segs *)
-      [* fold dll_seg(#head_2, last_1, #last_2, #last_next_2, #list_2);
-         fold dll_seg_2(#head_1, #head_prev_1, #last_1, head_2, #list_1);
-         callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1);
-         callspec concat_dll_segs(#ignore, #head_1, #head_prev_1, #last_1, head_2, #list_1, #head_2, last_1, #last_2, #last_next_2, #list_2)  *]
+      [* fold dll_seg(#head_2, #last_1, #last_2, #last_next_2, #list_2);
+         fold dll_seg_2(#head_1, #head_prev_1, #last_1, #head_2, #list_1);
+         callspec switch_end_to_left(#ignore, #head_1, #head_prev_1, #last_1, #head_2, #list_1);
+         callspec concat_dll_segs(#ignore, #head_1, #head_prev_1, #last_1, #head_2, #list_1, #head_2, #last_1, #last_2, #last_next_2, #list_2)  *]
 
       (* Re-use the first dll obj and delete the second *)
       return_obj                := dll_obj_1;

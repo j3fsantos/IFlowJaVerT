@@ -75,8 +75,7 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
       (* Remove unwanted heap object *)
       deleteObject(new_seg_obj);
 
-      (* Need to say that head_1 != new_seg_obj_last_next *)
-      [* fold ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2)) *]
+      [* fold ll_seg(#head_1, #last_2, (#list_1 @ #list_2)) *]
 
       goto rlab;
 
