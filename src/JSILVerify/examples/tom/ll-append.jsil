@@ -28,12 +28,7 @@ pred disjoint_ll_seg(head, last_next, list, disjoint_element):
 
 (* Returns an object holding pointers to the head and last_next
    of the list segment resulting from the appending of the two arguments *)
-(* The appended seg will have the same last_next as the second seg *)
-(* Specified type for #list_2 "twice" to save having to fold/unfold,
-   but the types() assertion is pure so this shouldn't matter? *)
-(* Is it always the case that the result last_next = last_next_2?
-   What about when we append onto an empty list?
-   Can't think of a solution except for having multiple specs.. *)
+
 spec append_ll_seg (head_1, last_next_1, head_2, last_next_2)
    [[ (head_1 == #head_1) * (last_next_1 == #last_next_1) * (head_2 == #head_2) * (last_next_2 == #last_next_2) *
       types(#list_2: $$list_type) *
@@ -61,8 +56,6 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
     [return_obj, "head"]      := head_2;
     [return_obj, "last_next"] := last_next_2;
 
-    [* fold ll_seg(#head_2, #last_next_2, (#list_1 @ #list_2)) *]
-
     goto rlab;
 
   nonemptyList:
@@ -85,6 +78,10 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
 
       (* Need to say that head_1 != new_seg_obj_last_next *)
       [* fold ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2)) *]
+
+      (* If this line isn't here it will try the fold in the line above
+         before going to the rlab label *)
+      foo := bar;
 
   rlab:
     skip
