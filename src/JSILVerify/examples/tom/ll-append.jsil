@@ -78,9 +78,7 @@ proc append_ll_seg(head_1, last_next_1, head_2, last_next_2) {
       (* Need to say that head_1 != new_seg_obj_last_next *)
       [* fold ll_seg(head_1, new_seg_obj_last_next, (#list_1 @ #list_2)) *]
 
-      (* If this line isn't here it will try the fold in the line above
-         when it goes to the rlab label  *)
-      foo := bar;
+      goto rlab;
 
   rlab:
     skip
