@@ -174,11 +174,16 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
   | LUnknown -> (le = LUnknown, None)
 
 	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
-			(* print_debug_petar (Printf.sprintf "ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le)); *)
+			print_debug_petar (Printf.sprintf " ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le)); 
 			let osubst = Simplifications.unify_lists le_pat le false in
 			(match osubst with
-			| None, _ -> (false, None)
-			| Some false, _ -> (false, None)
+			| None, _ 
+			| Some false, _ -> 
+				let le_pat' = lexpr_substitution le_pat subst false in
+				if Pure_Entailment.is_equal le le_pat' p_formulae gamma 
+					then (true, None)
+					else (false, None)
+			
 			| Some true, sb ->
 
 				let rec loop sb outcome constraints =

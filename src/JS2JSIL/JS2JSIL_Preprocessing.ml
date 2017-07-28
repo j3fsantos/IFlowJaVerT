@@ -504,38 +504,34 @@ let preprocess
   (* 0 - testing early errors                      *)
   test_early_errors e; 
 
-  (* 1 - expanding the flashes                     *)
-  (* JSIL_Syntax.print_debug (Printf.sprintf "AST before expanding the flashes:\n%s\n" (Pretty_print.string_of_exp true e)); 
-  let e = expand_flashes e in   *)
-
-  (* 2 - propagating annotations                   *)
+  (* 1 - propagating annotations                   *)
   JSIL_Syntax.print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
   let e, _ = propagate_annotations e in  
   JSIL_Syntax.print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e)); 
  
-  (* 3 - obtaining and compiling only-specs        *)
+  (* 2 - obtaining and compiling only-specs        *)
   let top_annots = get_top_level_annot e in
   let js_only_specs = get_only_specs_from_annots top_annots in 
   let old_fun_tbl : pre_fun_tbl_type = Hashtbl.create medium_tbl_size in 
   let only_specs = translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs in 
 
-  (* 4 - Adding the main to the translation tables *)
+  (* 3 - Adding the main to the translation tables *)
   let main_tbl = Hashtbl.create medium_tbl_size in
   List.iter (fun v -> Hashtbl.replace main_tbl v main_fid) (get_all_vars_f e []);
   Hashtbl.add cc_tbl main_fid main_tbl;
   Hashtbl.add old_fun_tbl main_fid (main_fid, [], Some e, (top_annots, [ main_fid ], main_tbl));
   Hashtbl.add vis_tbl main_fid [ main_fid ];  
 
-  (* 5 - Add unique ids to function literals       *)
+  (* 4 - Add unique ids to function literals       *)
   let e = add_codenames e in
  
-  (* 6 - Closure clarification                     *)
+  (* 5 - Closure clarification                     *)
   closure_clarification cc_tbl old_fun_tbl vis_tbl main_fid [ main_fid ] e;
   
-  (* 7 - Translate JS Specs                        *)
+  (* 6 - Translate JS Specs                        *)
   translate_specs cc_tbl vis_tbl old_fun_tbl fun_tbl;
 
-  (* 8 - Translate JS Predicate Definitions        *)
+  (* 7 - Translate JS Predicate Definitions        *)
   let js_predicate_definitions : JS2JSIL_Logic.js_logic_predicate list = get_predicate_definitions e in  
   let jsil_predicate_definitions = 
     List.map (fun pred_def -> JS2JSIL_Logic.translate_predicate_def pred_def cc_tbl vis_tbl old_fun_tbl) js_predicate_definitions in 
