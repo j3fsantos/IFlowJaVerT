@@ -323,12 +323,33 @@ let create_jsil_spec name params specs =
 type jsil_logic_command =
 	| Fold             of jsil_logic_assertion                                                          (** Recursive fold *)
 	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
-	| CallSpec		   of string * jsil_var * (jsil_logic_expr list)                                    (** Spec calling *)
+	| CallSpec		     of string * jsil_var * (jsil_logic_expr list)                                    (** Spec calling *)
+	| ApplyLem		     of string * (jsil_logic_expr list)                                               (** Apply lemma *)
 	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
 	| LinearRecUnfold  of string * (jsil_logic_expr list)                                               (** Recursive unfold of everything but this time I will give you the arguments *)
 	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)       (** If-then-else *)
 	| Macro            of string * (jsil_logic_expr list)                                               (** Macro *)
 	| Assert           of jsil_logic_assertion                                                          (** Assert *)
+
+(** -------------------------------------------------------------------- **)
+(** lemma [[ pre ]] [[ post ]] [* proof body - list of logic commands *] ret_flag **)
+
+(** {b JSIL lemma proof body}. *)
+type jsil_lemma_proof_body = {
+	lemma_proof_body_lcmds : (jsil_logic_command list) (** Proof body, a list of logical commands **)
+}
+
+(** {b JSIL lemmas}. *)
+(** Prefixed labels to avoid clashes with spec (two types can't share the same label) *)
+type jsil_lemma = {
+	lemma_name       : string;                  (** Lemma name *)
+	lemma_params     : jsil_var list;           (** Lemma parameters *)
+	lemma_pre        : jsil_logic_assertion;    (** Precondition *)
+	lemma_post       : jsil_logic_assertion;    (** Precondition *)
+	lemma_proof_body : jsil_lemma_proof_body option  (** (Optional) Proof body *)
+}
+
+(** -------------------------------------------------------------------- **)
 
 (** {b JSIL logic macro}. *)
 type jsil_logic_macro = {
@@ -457,10 +478,10 @@ let newencoding = ref false
 let output_file = open_out "normalOutput.txt"
 let output_file_debug = open_out "debugOutput.txt"
 
-let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
+let print_debug  msg  = output_string output_file_debug (msg ^ "\n")
 let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
-				
-let close_output_files () = 
+
+let close_output_files () =
 	close_out output_file;
 	close_out output_file_debug
 
@@ -783,28 +804,28 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 				then Hashtbl.add gamma_l var v_type)
 		gamma_r
 
-let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list = 
+let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list =
 	Hashtbl.fold
-		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars)) 
+		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars))
 		gamma
-		[]	
-		
+		[]
+
 (* ******* *)
 (* Hashing *)
 (* ******* *)
 
-let hash_to_list hash = 
+let hash_to_list hash =
 	List.sort compare (Hashtbl.fold (fun k v ac -> (k, v) :: ac) hash [])
-	
-let hash_of_list hash = 
+
+let hash_of_list hash =
 	let result = Hashtbl.create 523 in
 	List.iter (fun (v, t) -> Hashtbl.add result v t) hash;
 	result
 
-let lheap_to_list hash = 
+let lheap_to_list hash =
 	List.sort compare (LHeap.fold (fun k v ac -> (k, v) :: ac) hash [])
-	
-let lheap_of_list hash = 
+
+let lheap_of_list hash =
 	let result = LHeap.create 523 in
 	List.iter (fun (v, t) -> LHeap.add result v t) hash;
 	result

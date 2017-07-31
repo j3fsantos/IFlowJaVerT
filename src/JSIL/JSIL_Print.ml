@@ -235,7 +235,7 @@ let rec string_of_logic_expression e escape_string =
 		(* -{ e1, ..., en }- *)
     | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))
     | LSetUnion list -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map sle list))
-    | LSetInter list -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map sle list))	
+    | LSetInter list -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map sle list))
 	| LCList list ->
 			(match list with
 			| [] -> "''"
@@ -279,14 +279,14 @@ let rec string_of_logic_assertion a escape_string =
 		(* exists vars . a
 		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (String.concat ", " lvars) (sla a) *)
 		(* forall vars . a *)
-		| LForAll (lvars, a) -> Printf.sprintf "(forall %s . %s)" (String.concat ", " 
-				(List.map (fun (x, t) -> Printf.sprintf "%s : %s" x (string_of_type t)) lvars)) (sla a) 
+		| LForAll (lvars, a) -> Printf.sprintf "(forall %s . %s)" (String.concat ", "
+				(List.map (fun (x, t) -> Printf.sprintf "%s : %s" x (string_of_type t)) lvars)) (sla a)
 		(* x(y1, ..., yn) *)
 		| LPred (name, params) -> Printf.sprintf "%s(%s)" name (String.concat ", " (List.map sle params))
 		(* types(e1:t1, ..., en:tn) *)
 		| LTypes type_list -> Printf.sprintf "types(%s)"
 			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
-		| LEmptyFields (obj, domain) -> 
+		| LEmptyFields (obj, domain) ->
 			Printf.sprintf "empty_fields(%s : %s)" (sle obj) (sle domain)
 		(* e1 --e-- e2 *)
 		| LSetMem (e1, e2) -> Printf.sprintf "(%s --e-- %s)" (sle e1) (sle e2)
@@ -295,24 +295,28 @@ let rec string_of_logic_assertion a escape_string =
 
 
 (* [def2 with #key := #k and #value := #v] *)
-let string_of_unfold_info unfold_info = 
-	match unfold_info with 
+let string_of_unfold_info unfold_info =
+	match unfold_info with
 	| None -> ""
-	| Some (id, unfold_info_list) -> 
+	| Some (id, unfold_info_list) ->
 		let unfold_info_list =
-			List.map (fun (v, le) -> "(" ^ v ^ " := " ^ (string_of_logic_expression le false) ^ ")") unfold_info_list in 
-		let unfold_info_list_str = String.concat " and " unfold_info_list in 
+			List.map (fun (v, le) -> "(" ^ v ^ " := " ^ (string_of_logic_expression le false) ^ ")") unfold_info_list in
+		let unfold_info_list_str = String.concat " and " unfold_info_list in
 		"[ " ^ id ^ " with " ^ unfold_info_list_str ^ " ]"
 
 
 let rec string_of_lcmd lcmd =
 	match lcmd with
 	| Fold a                  -> "fold " ^ (string_of_logic_assertion a false)
-	| Unfold (a, unfold_info) -> 
+	| Unfold (a, unfold_info) ->
 		"unfold " ^ (string_of_logic_assertion a false) ^ (string_of_unfold_info unfold_info)
-	| CallSpec (spec_name, ret_var, lparams) -> 
+	| ApplyLem (lem_name, lparams) ->
+	  let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
+		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in
+		"applyLemma " ^  lem_name ^ "(" ^ lparams_str ^ ")"
+	| CallSpec (spec_name, ret_var, lparams) ->
 		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
-		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in 
+		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in
 		"callspec " ^  spec_name ^ "(" ^ ret_var ^ lparams_str ^ ")"
 	| RecUnfold pred_name -> "unfold* " ^ pred_name
 	| LogicIf (le, then_lcmds, else_lcmds) ->
@@ -323,7 +327,7 @@ let rec string_of_lcmd lcmd =
 			then "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " }"
 			else "if (" ^ le_str ^ ") then { " ^ then_lcmds_str ^ " } else { " ^  else_lcmds_str ^ " }" in
 		ret
-	| Macro (name, lparams) -> 
+	| Macro (name, lparams) ->
 		let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
 		name ^ "(" ^ lparams_str ^ ")"
 
@@ -335,9 +339,9 @@ let rec string_of_predicate (predicate : jsil_logic_predicate) =
 	let sle = fun e -> string_of_logic_expression e false in
 	List.fold_left
 		(fun acc_str (id, assertion) ->
-			let id_str = match id with 
-			| None    -> "" 
-			| Some id -> "[" ^ id ^ "]" in  
+			let id_str = match id with
+			| None    -> ""
+			| Some id -> "[" ^ id ^ "]" in
 			acc_str ^ (Printf.sprintf "pred %s (%s) : %s %s;\n"
 				predicate.name
 				(String.concat ", " (List.map sle predicate.params))
@@ -345,8 +349,8 @@ let rec string_of_predicate (predicate : jsil_logic_predicate) =
 				(string_of_logic_assertion assertion false)))
 		""
 		predicate.definitions
-		
-let string_of_predicate_header pred_head = 
+
+let string_of_predicate_header pred_head =
 	let name, params = pred_head in
 	let sle = fun e -> string_of_logic_expression e false in
 	let result = Printf.sprintf "%s (%s)" name (String.concat ", " (List.map sle params)) in
@@ -456,6 +460,18 @@ let string_of_return_flag flag =
 	match flag with
 		| Normal -> "normal"
 		| Error -> "error"
+
+(** JSIL Lemmas *)
+let string_of_lemma lemma =
+  let string_of_params          = (String.concat ", " lemma.lemma_params) in
+	let string_of_pre             = "\t[[ " ^ string_of_logic_assertion lemma.lemma_pre  false ^ " ]]\n" in
+	let string_of_post            = "\t[[ " ^ string_of_logic_assertion lemma.lemma_post  false ^ " ]]\n" in
+	let string_of_proof_body_cmds =
+		(match lemma.lemma_proof_body with
+		  | None -> ""
+			| Some proof_body -> (String.concat ";\n" (List.map string_of_lcmd proof_body.lemma_proof_body_lcmds))) in
+	let string_of_proof_body      = "\t[* " ^ string_of_proof_body_cmds ^ " *]\n" in
+	"lemma " ^ lemma.lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_pre ^ string_of_post ^ string_of_proof_body_cmds ^ string_of_proof_body
 
 (** JSIL procedure specification *)
 let rec string_of_specs specs =
@@ -608,9 +624,9 @@ let string_of_ext_procedure proc =
 	(string_of_ext_procedure_body proc)
 
 
-let string_of_jsil_spec spec = 
+let string_of_jsil_spec spec =
 	Printf.sprintf "spec %s (%s)\n %s" spec.spec_name (String.concat ", " spec.spec_params)
-	(string_of_specs spec.proc_specs) 
+	(string_of_specs spec.proc_specs)
 
 (** Extended JSIL programs *)
 let string_of_ext_program program =
@@ -629,7 +645,7 @@ let string_of_ext_program program =
 	(Hashtbl.fold
 		(fun _ spec acc_str -> acc_str ^ "\n" ^ "only " ^ (string_of_jsil_spec spec))
 		program.onlyspecs
-		"")	
+		"")
 	^
 	(* Procedures *)
 	Hashtbl.fold
@@ -728,9 +744,9 @@ let rec full_string_of_logic_expression e  =
   match e with
     | LLit llit -> let s = (full_string_of_literal llit) in "(LLit (" ^ s ^ "))"
 	| LNone -> "LNone"
-    | LVar lvar -> Printf.sprintf "(Lvar %s)" lvar 
-	| ALoc aloc -> Printf.sprintf "(Aloc %s)" aloc 
-	| PVar pvar -> Printf.sprintf "(Pvar %s)" pvar 
+    | LVar lvar -> Printf.sprintf "(Lvar %s)" lvar
+	| ALoc aloc -> Printf.sprintf "(Aloc %s)" aloc
+	| PVar pvar -> Printf.sprintf "(Pvar %s)" pvar
 	| LBinOp (e1, op, e2) -> Printf.sprintf "LBinOp (%s, %s, %s))" (sle e1) (string_of_binop op) (sle e2)
     | LUnOp (op, e) -> Printf.sprintf "(LUnOp (%s, %s))" (string_of_unop op) (sle e)
     | LTypeOf e -> Printf.sprintf "(LTypeOf (%s))" (sle e)
@@ -762,4 +778,4 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 
 (* Shorthand *)
 let print_type  t  = string_of_type t
-let print_lexpr le = string_of_logic_expression le false 
+let print_lexpr le = string_of_logic_expression le false

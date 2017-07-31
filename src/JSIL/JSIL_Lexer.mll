@@ -173,6 +173,7 @@ rule read = parse
 	| "flash"              { JSIL_Parser.FLASH     }
 	| "unfold"             { JSIL_Parser.UNFOLD    }
 	| "callspec"           { JSIL_Parser.CALLSPEC  }
+	| "applyLemma"         { JSIL_Parser.APPLYLEM  }
 	| "if"                 { JSIL_Parser.LIF       }
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }
@@ -180,9 +181,10 @@ rule read = parse
 	| "assert"             { JSIL_Parser.ASSERT    }
 	(**
 		macro, assert are elsewhere
-	*) 
+	*)
   (* Procedure specification keywords *)
   | "only"               { JSIL_Parser.ONLY      }
+	| "lemma"              { JSIL_Parser.LEMMA     }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
