@@ -182,6 +182,39 @@ let string_of_n_spec_table spec_table =
 		spec_table
 		""
 
+let string_of_single_lemma_spec single_lemma_spec =
+	let pre_str = string_of_shallow_symb_state single_lemma_spec.n_lemma_pre in
+	let post_str = string_of_symb_state_list single_lemma_spec.n_lemma_post in
+	"Single Spec \n\nPrecondition\n" ^ pre_str ^ "\nPostconditions\n" ^ post_str
+
+
+let string_of_n_lemma lemma =
+	let lemma_name = lemma.n_lemma_name in
+	let lemma_params = lemma.n_lemma_params in
+	let pre_post_list = lemma.n_lemma_pre_posts in
+	let params_str =
+		List.fold_left
+			(fun ac param -> if (ac = "") then param else ac ^ ", " ^ param)
+			""
+			lemma_params in
+	let str = "Specs for lemma " ^ lemma_name ^ " (" ^ params_str ^ "): \n" in
+	let pre_post_list_str =
+		List.fold_left
+			(fun ac single_lemma_spec ->
+				let single_lemma_spec_str = string_of_single_lemma_spec single_lemma_spec in
+				if (ac = "") then single_lemma_spec_str else ac ^ single_lemma_spec_str)
+			""
+			pre_post_list in
+		str ^ pre_post_list_str
+
+let string_of_n_lemma_table lemma_table =
+	Hashtbl.fold
+		(fun _ lemma ac ->
+			let lemma_str = string_of_n_lemma lemma in
+			if ac = "" then lemma_str else ac ^ "----------\n" ^ lemma_str)
+		lemma_table
+		""
+
 let string_of_store store =
 	Hashtbl.fold
 		(fun (var : string) (v_val : jsil_lit) (ac : string) ->

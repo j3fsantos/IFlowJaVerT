@@ -466,12 +466,11 @@ let string_of_lemma lemma =
   let string_of_params          = (String.concat ", " lemma.lemma_params) in
 	let string_of_pre             = "\t[[ " ^ string_of_logic_assertion lemma.lemma_pre  false ^ " ]]\n" in
 	let string_of_post            = "\t[[ " ^ string_of_logic_assertion lemma.lemma_post  false ^ " ]]\n" in
-	let string_of_proof_body_cmds =
-		(match lemma.lemma_proof_body with
+	let string_of_proof =
+		(match lemma.lemma_proof with
 		  | None -> ""
-			| Some proof_body -> (String.concat ";\n" (List.map string_of_lcmd proof_body.lemma_proof_body_lcmds))) in
-	let string_of_proof_body      = "\t[* " ^ string_of_proof_body_cmds ^ " *]\n" in
-	"lemma " ^ lemma.lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_pre ^ string_of_post ^ string_of_proof_body_cmds ^ string_of_proof_body
+			| Some lemma_proof -> "\t[* " ^ (String.concat ";\n\t   " (List.map string_of_lcmd lemma_proof.lemma_proof_lcmds)) ^ " *]\n") in
+	"lemma " ^ lemma.lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_proof
 
 (** JSIL procedure specification *)
 let rec string_of_specs specs =

@@ -173,7 +173,6 @@ rule read = parse
 	| "flash"              { JSIL_Parser.FLASH     }
 	| "unfold"             { JSIL_Parser.UNFOLD    }
 	| "callspec"           { JSIL_Parser.CALLSPEC  }
-	| "applyLemma"         { JSIL_Parser.APPLYLEM  }
 	| "if"                 { JSIL_Parser.LIF       }
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }

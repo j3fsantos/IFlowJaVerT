@@ -335,8 +335,8 @@ type jsil_logic_command =
 (** lemma [[ pre ]] [[ post ]] [* proof body - list of logic commands *] ret_flag **)
 
 (** {b JSIL lemma proof body}. *)
-type jsil_lemma_proof_body = {
-	lemma_proof_body_lcmds : (jsil_logic_command list) (** Proof body, a list of logical commands **)
+type jsil_lemma_proof = {
+	lemma_proof_lcmds : (jsil_logic_command list) (** Proof body, a list of logical commands **)
 }
 
 (** {b JSIL lemmas}. *)
@@ -346,7 +346,7 @@ type jsil_lemma = {
 	lemma_params     : jsil_var list;           (** Lemma parameters *)
 	lemma_pre        : jsil_logic_assertion;    (** Precondition *)
 	lemma_post       : jsil_logic_assertion;    (** Precondition *)
-	lemma_proof_body : jsil_lemma_proof_body option  (** (Optional) Proof body *)
+	lemma_proof      : jsil_lemma_proof option  (** (Optional) Proof body *)
 }
 
 (** -------------------------------------------------------------------- **)
@@ -413,6 +413,8 @@ type jsil_ext_procedure = {
 type jsil_ext_program = {
 	(* Import statements = [Filename : String] *)
 	imports : string list;
+	(* Lemmas *)
+	lemmas : (string, jsil_lemma) Hashtbl.t;
 	(* Predicates = Name : String --> Definition *)
 	predicates : (string, jsil_logic_predicate) Hashtbl.t;
 	(* Specs = Name : String --> Spec *)

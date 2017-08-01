@@ -10,15 +10,17 @@ let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
 let lemma_table : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511
 let procedure_names  : (string list) ref = ref []
 let copy_and_clear_globals () =
+  let lemm' = Hashtbl.copy lemma_table in
 	let pred' = Hashtbl.copy predicate_table in
 	let ospc' = Hashtbl.copy only_spec_table in
 	let proc' = Hashtbl.copy procedure_table in
 	let proc_names = !procedure_names in
+	Hashtbl.clear lemma_table;
 	Hashtbl.clear predicate_table;
 	Hashtbl.clear procedure_table;
 	Hashtbl.clear only_spec_table;
 	procedure_names = ref [];
-	(pred' , ospc', proc', proc_names)
+	(lemm', pred' , ospc', proc', proc_names)
 %}
 
 (***** Token definitions *****)
@@ -180,7 +182,6 @@ let copy_and_clear_globals () =
 %token FLASH
 %token RECUNFOLD
 %token CALLSPEC
-%token APPLYLEM
 %token LIF
 %token LTHEN
 %token LELSE
@@ -284,14 +285,16 @@ let copy_and_clear_globals () =
 
 main_target:
 	| imports = import_target; declaration_target; EOF
-		{  let (pred, ospc, proc, proc_names) = copy_and_clear_globals () in
-			{ imports; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
+		{  let (lemm, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports; lemmas = lemm; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 	| declaration_target; EOF
-		{   let (pred, ospc, proc, proc_names) = copy_and_clear_globals () in
-			{ imports = []; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
+		{   let (lem, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports = []; lemmas = lem; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 ;
 
 declaration_target:
+	| declaration_target; jsil_lemma_target
+	| jsil_lemma_target
 	| declaration_target; pred_target
 	| pred_target
 	| declaration_target; proc_target
@@ -655,11 +658,11 @@ logic_cmd_target:
 	 }
 
 (* apply lemma_name(args) *)
-	 | APPLYLEM; lemma_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE;
+	 | APPLY; lemma_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE;
 	 	 {
 	 	  match params with
 	 	  | rest_params ->  ApplyLem (lemma_name, rest_params)
-	 	  | _ -> raise (Failure "DEATH: Parser: APPLYLEM ")
+	 	  | _ -> raise (Failure "DEATH: Parser: APPLY ")
 	 	}
 
 (* if(le) { lcmd* } else { lcmd* } *)
@@ -723,7 +726,7 @@ jsil_lemma_target:
   pre = spec_line;
 	post = spec_line;
 	(* the proof body is an optional list of logical commands *)
-	proof_body = option(jsil_lemma_proof_body_target);
+	proof = option(jsil_lemma_proof_target);
 	{
     let (lemma_name, lemma_params) = lemma_head in
 		let lemma =
@@ -732,22 +735,22 @@ jsil_lemma_target:
 			lemma_params = lemma_params;
 			lemma_pre = pre;
 			lemma_post = post;
-			lemma_proof_body = proof_body
+			lemma_proof = proof
 		} in
 		Hashtbl.replace lemma_table lemma_name lemma;
 		lemma
 	}
 
 jsil_lemma_head_target:
-  lemma_name = STRING; LBRACE; lemma_params = separated_list(COMMA, VAR); RBRACE
-	{ 
+  lemma_name = VAR; LBRACE; lemma_params = separated_list(COMMA, VAR); RBRACE
+	{
 		(lemma_name, lemma_params)
 	}
 ;
 
-jsil_lemma_proof_body_target:
-  OLCMD; proof_body = separated_list(SCOLON, logic_cmd_target); CLCMD;
-	{ {lemma_proof_body_lcmds = proof_body} }
+jsil_lemma_proof_target:
+  OLCMD; proof = separated_list(SCOLON, logic_cmd_target); CLCMD;
+	{ {lemma_proof_lcmds = proof} }
 
 js_pre_post_target:
 (* pre: ... post: ... outcome: ... *)
