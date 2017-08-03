@@ -2323,7 +2323,7 @@ let resolve_location lvar pfs =
 	
 (* ******************** *
  * EXPRESSION REDUCTION *
- * ********************** *)
+ * ******************** *)
 
 let reduce_expression_using_pfs_no_store gamma pfs e =
 	let _, subst = simplify_pfs_with_subst pfs gamma in
@@ -2332,3 +2332,28 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	| Some subst ->
 		let e = lexpr_substitution e subst true in
 			reduce_expression_no_store gamma pfs e)
+			
+(* ******************************** *
+ * CONGRUENCE CLOSURE APPROXIMATION *
+ * ********************************** *)
+
+(* No entailment *)
+let cc_from_subst (subst : (string, jsil_logic_expr) Hashtbl.t) : (jsil_logic_expr, SLExpr.t) Hashtbl.t =
+	let cc_table : (jsil_logic_expr, SLExpr.t) Hashtbl.t = Hashtbl.create 57 in
+	
+	let establish_initial_cc () = 
+		Hashtbl.iter (fun key value -> 
+			let var = (match (is_pvar_name key) with
+				| true -> PVar key 
+				| false -> LVar key) in
+			Hashtbl.add cc_table var (SLExpr.add value (SLExpr.singleton var))) subst in
+		
+	establish_initial_cc();
+	
+	let changes_made = ref true in
+	
+	while (!changes_made) do
+		changes_made := false;
+	done;
+	
+	cc_table
