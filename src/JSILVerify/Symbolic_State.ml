@@ -806,29 +806,29 @@ type jsil_n_single_spec = {
 }
 
 type jsil_n_spec = {
-    n_spec_name   : string;
-    n_spec_params : jsil_var list;
+	n_spec_name   : string;
+  n_spec_params : jsil_var list;
 	n_proc_specs  : jsil_n_single_spec list
 }
 
-(* For single cases of unfolding predicates with multiple definitions *)
 type jsil_n_single_lemma_spec = {
-	n_lemma_pre          : symbolic_state;
-	n_lemma_post         : symbolic_state list;
-	n_lemma_lvars        : SS.t;
-	n_lemma_post_lvars   : SS.t list;
-	n_lemma_substitution : substitution;
+	n_lemma_pre        : symbolic_state;
+	n_lemma_post       : symbolic_state list;
+	n_lemma_lvars      : SS.t;
+	n_lemma_post_lvars : SS.t list;
+	n_lemma_subst      : substitution
 }
 
 type jsil_n_lemma = {
 	n_lemma_name       : string;
 	n_lemma_params     : jsil_var list;
 	n_lemma_pre_posts  : jsil_n_single_lemma_spec list;
-
-	n_lemma_proof        : jsil_lemma_proof option (* TODO: type?? *)
+	n_lemma_proof      : (jsil_logic_command list) option
 }
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t
+
+type lemma_table = (string, jsil_n_lemma) Hashtbl.t
 
 type pruning_table = (string, bool array) Hashtbl.t
 
@@ -842,6 +842,15 @@ let update_post_pruning_info_with_spec pruning_info n_spec =
 				Array.make number_of_posts false)
 			n_spec.n_proc_specs in
 	Hashtbl.replace pruning_info n_spec.n_spec_name spec_post_pruning_info
+
+let update_post_pruning_info_with_lemma pruning_info n_lemma =
+	let lemma_post_pruning_info =
+		List.map
+			(fun spec ->
+				let number_of_posts = List.length spec.n_lemma_post in
+				Array.make number_of_posts false)
+			n_lemma.n_lemma_pre_posts in
+	Hashtbl.replace pruning_info n_lemma.n_lemma_name lemma_post_pruning_info
 
 let filter_useless_posts_in_single_spec	spec pruning_array =
 	let rec loop posts i processed_posts =
@@ -886,6 +895,7 @@ let get_pred pred_tbl pred_name =
 type symb_jsil_program = {
 	program    	: jsil_program;
 	spec_tbl   	: specification_table;
+	lemma_tbl   : lemma_table;
 	which_pred 	: (string * int * int, int) Hashtbl.t;
 	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
 }

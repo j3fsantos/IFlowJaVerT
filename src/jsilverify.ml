@@ -63,15 +63,15 @@ let write_spec_file (file : string ref) =
 	let result = "" in
 	burn_to_disk (!file ^ ".spec") result
 
-let symb_interpreter prog procs_to_verify spec_tbl which_pred norm_preds  =
+let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds  =
 	let results_str, dot_graphs, complete_success, results =
-					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl which_pred norm_preds in
+					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
 	print_normal (Printf.sprintf "RESULTS\n%s" results_str);
 
 	(if (complete_success) then
 		begin
-			Printf.printf "ALL Succeeded in %f\n" (Sys.time());
-			print_normal (Printf.sprintf "ALL Succeeded in %f\n" (Sys.time()));
+			Printf.printf "ALL specs succeeded in %f\n" (Sys.time());
+			print_normal (Printf.sprintf "ALL specs succeeded in %f\n" (Sys.time()));
 			if (not (!spec_file = "")) then write_spec_file spec_file
 		end
 		else (
@@ -124,7 +124,9 @@ let process_file path =
     let lemma_tbl = Normaliser.build_lemma_tbl norm_preds prog ext_prog.lemmas in ();
     print_debug (Printf.sprintf "%s\n%s\nLemma Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_lemma_table lemma_tbl));
     print_debug "*** Prelude: Stage 5: Finished building the lemma table\n";
-		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl which_pred norm_preds in ();
+    print_debug "*** About to prove the lemmas\n";
+    let _ = Symb_Interpreter.prove_all_lemmas lemma_tbl prog spec_tbl which_pred norm_preds in ();
+		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl lemma_tbl which_pred norm_preds in ();
 		close_output_files();
 		exit 0
 

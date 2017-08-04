@@ -331,14 +331,6 @@ type jsil_logic_command =
 	| Macro            of string * (jsil_logic_expr list)                                               (** Macro *)
 	| Assert           of jsil_logic_assertion                                                          (** Assert *)
 
-(** -------------------------------------------------------------------- **)
-(** lemma [[ pre ]] [[ post ]] [* proof body - list of logic commands *] ret_flag **)
-
-(** {b JSIL lemma proof body}. *)
-type jsil_lemma_proof = {
-	lemma_proof_lcmds : (jsil_logic_command list) (** Proof body, a list of logical commands **)
-}
-
 (** {b JSIL lemmas}. *)
 (** Prefixed labels to avoid clashes with spec (two types can't share the same label) *)
 type jsil_lemma = {
@@ -346,10 +338,8 @@ type jsil_lemma = {
 	lemma_params     : jsil_var list;           (** Lemma parameters *)
 	lemma_pre        : jsil_logic_assertion;    (** Precondition *)
 	lemma_post       : jsil_logic_assertion;    (** Precondition *)
-	lemma_proof      : jsil_lemma_proof option  (** (Optional) Proof body *)
+	lemma_proof      : (jsil_logic_command list) option  (** (Optional) Proof body *)
 }
-
-(** -------------------------------------------------------------------- **)
 
 (** {b JSIL logic macro}. *)
 type jsil_logic_macro = {

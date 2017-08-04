@@ -720,12 +720,13 @@ js_only_spec_target:
 	}
 
 jsil_lemma_target:
-(* lemma xpto (x, y) pre: assertion, post: assertion, proof_body: list of logic cmds, [* proof body - list of logic commands *] *)
+  (* lemma xpto (x, y)
+   	 [[ pre ]]
+     [[ post ]]
+     [* proof_body *] *)
 	LEMMA; lemma_head = jsil_lemma_head_target;
-  (* pre, post are simple spec lines, same as proc *)
   pre = spec_line;
 	post = spec_line;
-	(* the proof body is an optional list of logical commands *)
 	proof = option(jsil_lemma_proof_target);
 	{
     let (lemma_name, lemma_params) = lemma_head in
@@ -750,7 +751,7 @@ jsil_lemma_head_target:
 
 jsil_lemma_proof_target:
   OLCMD; proof = separated_list(SCOLON, logic_cmd_target); CLCMD;
-	{ {lemma_proof_lcmds = proof} }
+	{ proof }
 
 js_pre_post_target:
 (* pre: ... post: ... outcome: ... *)

@@ -1,0 +1,13 @@
+pred my_rec_pred(x):
+  (types(x: $$object_type)) *
+  ((x, "child")  -> #child) *
+  ((x, "@proto") -> $$null) *
+  my_rec_pred(#child),
+
+  (x == $$null);
+
+lemma my_lemma(x, y, z)
+  [[ (y == 6) * my_rec_pred(x)]]
+  [[ (y == 6) * my_rec_pred(x)]]
+  [* unfold my_rec_pred(x);
+     fold my_rec_pred(x) *]

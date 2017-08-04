@@ -469,7 +469,7 @@ let string_of_lemma lemma =
 	let string_of_proof =
 		(match lemma.lemma_proof with
 		  | None -> ""
-			| Some lemma_proof -> "\t[* " ^ (String.concat ";\n\t   " (List.map string_of_lcmd lemma_proof.lemma_proof_lcmds)) ^ " *]\n") in
+			| Some lemma_proof -> "\t[* " ^ (String.concat ";\n\t   " (List.map string_of_lcmd lemma_proof)) ^ " *]\n") in
 	"lemma " ^ lemma.lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_proof
 
 (** JSIL procedure specification *)

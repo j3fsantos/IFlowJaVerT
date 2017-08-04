@@ -691,7 +691,7 @@ let build_spec_tbl preds prog onlyspecs =
 			onlyspecs;
 	spec_tbl
 
-let normalise_lemma preds lemma =
+let normalise_lemma preds (lemma : jsil_lemma) =
 	print_time_debug"  normalise_lemma:";
 
 	print_debug (Printf.sprintf "Precondition  : %s" (JSIL_Print.string_of_logic_assertion lemma.lemma_pre false));
@@ -713,7 +713,6 @@ let normalise_lemma preds lemma =
 
 	print_debug (Printf.sprintf "Posts: %s" (f_print unfolded_posts));
 
-  (* unfolded_spec_list is the list of all the assertions in the unfolded spec *)
 	let normalised_pre_post_list =
 		List.map
 			(fun pre ->
@@ -744,12 +743,12 @@ let normalise_lemma preds lemma =
 										unfolded_posts in
 								(if (posts = []) then print_debug (Printf.sprintf "WARNING: No valid postconditions found."));
 								Some {
-									(* an object of type jsil_n_single_lemma *)
-									n_lemma_pre = pre_symb_state;
-									n_lemma_post = posts;
-									n_lemma_lvars = lvars;
-									n_lemma_post_lvars = posts_lvars;
-									n_lemma_substitution = subst
+									(* an object of type jsil_n_single_lemma_spec *)
+									n_lemma_pre         = pre_symb_state;
+									n_lemma_post        = posts;
+									n_lemma_lvars       = lvars;
+									n_lemma_post_lvars  = posts_lvars;
+									n_lemma_subst       = subst
 								})
 						end else begin
 							print_debug (Printf.sprintf "WARNING: The precondition does not make sense.");
