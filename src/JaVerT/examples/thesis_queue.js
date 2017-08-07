@@ -42,7 +42,7 @@
   fun_obj(dequeue, #dequeue_loc, #dequeue_proto, #dequeue_sc) *
   ((pqp, "_head") -> None) *
   fun_obj(Node, #n, np, #node_sc) *
-  closure(Node : #n; enqueue: enq_sc) *
+  sc_scope(enqueue, Node : #n, enq_sc) *
   NodePrototype(np)
     ;
 
