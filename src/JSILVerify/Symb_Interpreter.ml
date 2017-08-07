@@ -1586,13 +1586,13 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 				let symb_exe_search_info = make_symb_exe_search_info node_info post_pruning_info spec_number in
 				(* Can't just make a dummy program as need to supply the imports, predicates and lemmas *)
 				let s_prog = {
-					program    = prog;       (* not needed *)
+					program    = Hashtbl.create 1;       (* not needed *)
 					which_pred = which_pred; (* only needed for phi commands *)
 					spec_tbl   = spec_tbl;   (* not needed *)
 					lemma_tbl  = lemma_table;   (* not needed *)
 					pred_defs  = n_pred_defs (* needed *)
 				} in
-        let symb_states_with_spec_vars = [(spec.n_pre, spec.n_lvars, symb_exe_search_info)] in
+        let symb_states_with_spec_vars = [((copy_symb_state spec.n_pre), spec.n_lvars, symb_exe_search_info)] in
 				let subst = spec.n_subst in
 				let result_states = symb_evaluate_logic_cmds s_prog proof_body symb_states_with_spec_vars true subst in
 				print_debug (Printf.sprintf "Executed proof body commands. Resulting states: %d" (List.length result_states));
@@ -1609,7 +1609,7 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 						List.iteri prove_indivdual_pre lemma_spec.n_proc_specs in
 						let proof_outcome =
 							(match lemma.lemma_proof with
-							 | None            -> print_debug (Printf.sprintf "No proof body.")
+							 | None            -> print_normal (Printf.sprintf "No proof body.")
 							 | Some proof_body -> attempt_proof proof_body) in
 							 proof_outcome
 							 in
