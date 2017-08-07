@@ -656,7 +656,7 @@ let normalise_spec preds spec =
 		n_proc_specs = normalised_pre_post_list
 	}
 
-let build_spec_tbl preds prog onlyspecs =
+let build_spec_tbl preds prog onlyspecs (lemmas : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) =
 	let spec_tbl = Hashtbl.create 511 in
 	Hashtbl.iter
 		(fun proc_name proc ->
@@ -689,8 +689,32 @@ let build_spec_tbl preds prog onlyspecs =
 				Hashtbl.replace prog spec_name proc
 			)
 			onlyspecs;
+
+	(* Normalising the lemma specs *)
+	Hashtbl.iter
+		(fun lemma_name lemma ->
+			let msg = Printf.sprintf "\n*************************\n* Normalising the (lemma) spec: *\n*************************\n\n%s" (Symbolic_State_Print.string_of_jsil_spec lemma.lemma_spec) in
+			print_debug (msg);
+			let n_spec = normalise_spec preds lemma.lemma_spec in
+			Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec)
+		lemmas;
+
+	(* Creating dummy proc's for the lemmas *)
+		Hashtbl.iter
+			(fun lemma_name lemma ->
+					let proc = {
+						proc_name = lemma_name;
+						proc_body = Array.make 0 (empty_metadata, SBasic SSkip);
+						proc_params = lemma.lemma_spec.spec_params;
+						ret_label = None; ret_var = Some "ret";
+						error_label = None; error_var = Some "err";
+						spec = Some lemma.lemma_spec } in
+					Hashtbl.replace prog lemma_name proc
+				)
+				lemmas;
 	spec_tbl
 
+(*
 let normalise_lemma preds (lemma : jsil_lemma) =
 	print_time_debug"  normalise_lemma:";
 
@@ -791,13 +815,14 @@ let normalise_lemma preds (lemma : jsil_lemma) =
 	  (* Iterating over all the lemmas and normalising them *)
 		Hashtbl.iter
 			(fun lemma_name lemma ->
-				let msg = Printf.sprintf "\n*************************\n* Normalising the lemma: *\n*************************\n\n%s" (JSIL_Print.string_of_lemma lemma) in
+				let msg = Printf.sprintf "\n*************************\n* Normalising the lemma: *\n*************************\n\n%s" (JSIL_Print.string_of_lemma lemma_name lemma) in
 				print_debug (msg);
 				let n_lemma = (normalise_lemma preds lemma) in
 				Hashtbl.replace lemma_tbl n_lemma.n_lemma_name n_lemma)
 			lemmas;
 
 		lemma_tbl
+*)
 
 (*
 let coalesce_overlapping_cells (symb_state : symbolic_state) (subst : substitution) : symbolic_state =

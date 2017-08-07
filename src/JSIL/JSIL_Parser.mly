@@ -288,8 +288,8 @@ main_target:
 		{  let (lemm, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
 			{ imports; lemmas = lemm; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 	| declaration_target; EOF
-		{   let (lem, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
-			{ imports = []; lemmas = lem; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
+		{   let (lemm, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports = []; lemmas = lemm; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 ;
 
 declaration_target:
@@ -730,12 +730,10 @@ jsil_lemma_target:
 	proof = option(jsil_lemma_proof_target);
 	{
     let (lemma_name, lemma_params) = lemma_head in
+    let lemma_spec = create_jsil_spec lemma_name lemma_params [(create_single_spec pre post Normal)] in
 		let lemma =
 		{
-			lemma_name = lemma_name;
-			lemma_params = lemma_params;
-			lemma_pre = pre;
-			lemma_post = post;
+			lemma_spec  = lemma_spec;
 			lemma_proof = proof
 		} in
 		Hashtbl.replace lemma_table lemma_name lemma;

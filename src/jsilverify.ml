@@ -117,16 +117,13 @@ let process_file path =
 		print_debug (Printf.sprintf "\n%s\n" str_of_norm_pred);
 		print_debug "*** Prelude: Stage 4: Building the spec table.\n";
 		Normaliser.pre_normalise_invariants_prog norm_preds prog;
-		let spec_tbl = Normaliser.build_spec_tbl norm_preds prog ext_prog.onlyspecs in
+		let spec_tbl = Normaliser.build_spec_tbl norm_preds prog ext_prog.onlyspecs ext_prog.lemmas in
 		print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
 		print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-    print_debug "*** Prelude: Stage 5: Building the lemma table\n";
-    let lemma_tbl = Normaliser.build_lemma_tbl norm_preds prog ext_prog.lemmas in ();
-    print_debug (Printf.sprintf "%s\n%s\nLemma Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_lemma_table lemma_tbl));
-    print_debug "*** Prelude: Stage 5: Finished building the lemma table\n";
     print_debug "*** About to prove the lemmas\n";
-    let _ = Symb_Interpreter.prove_all_lemmas lemma_tbl prog spec_tbl which_pred norm_preds in ();
-		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl lemma_tbl which_pred norm_preds in ();
+    let n_pred_defs = Normaliser.normalise_predicate_definitions norm_preds in
+    let _ = Symb_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
+		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs in ();
 		close_output_files();
 		exit 0
 

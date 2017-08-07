@@ -394,7 +394,6 @@ let symb_evaluate_bcmd bcmd (symb_state : symbolic_state) =
 
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 
-(* TODO find_and_apply_lemma - simply add the lemma spec to the spec table and then call find_and_apply_spec? *)
 
 let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) le_args =
 
@@ -565,6 +564,27 @@ let find_and_apply_spec prog proc_name proc_specs (symb_state : symbolic_state) 
 
 	let quotients = find_correct_specs proc_specs.n_proc_specs [] in
 	apply_correct_specs quotients
+
+(* Basically find_and_apply_spec but for lemmas, will factor out common code soon
+let find_and_apply_lemma_spec lemma_args lemma_name lemma_spec symb_state le_args =
+
+  (* Create the symbolic state the program will execute in after this has been called *)
+	(* The aim is to find a spec which will unify this with the current state after application *)
+	let new_store = store_init lemma_args le_args in
+	let symb_state_aux = symb_state_replace_store symb_state new_store in
+
+	(* TODO: compatible_pfs can be factored out *)
+
+	(* TODO: new transform_symb_state, takes a post instead of a spec, and two optionals: a return flag
+	         and a proc.
+	         if this return flag is passed in, it is assumed that the proc flag is passed in too,
+					 	and we do stuff with this post *)
+
+	(* TODO: enrich_pure_part can be factored out - replace spec with pre *)
+
+	(* TODO: new type, general single spec, which can be either a jsil_n_single_spec or a jsil_n_spec.
+	   We can then pass find_correct_specs a list of this *) *)
+
 
 exception SuccessfullyFolded of (symbolic_state * SS.t * symbolic_execution_search_info) option
 
@@ -1020,28 +1040,50 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 				new_symb_states in
 		new_symb_states
 
+  (* Same principle as CallSpec *)
   | ApplyLem (lemma_name, l_args) ->
 	  print_debug (Printf.sprintf "APPLYING LEMMA %s\n" lemma_name);
-		let n_lemma =
+		(* Check that it actually is a lemma name they are calling *)
+		(* TODO: implement further checks *)
+		let lemma =
 		  (try
 				Hashtbl.find s_prog.lemma_tbl lemma_name
 			 with _ ->
 			   let msg = Printf.sprintf "No lemma called %s found" lemma_name in
 				 raise (Failure msg)) in
 
-		 List.iter (fun spec -> if (spec.n_lemma_post = []) then print_debug "Exists lemma spec with no post.") n_lemma.n_lemma_pre_posts;
+			(* Look up the spec in the spec table *)
+			let proc_specs =
+				(try
+					Hashtbl.find s_prog.spec_tbl lemma_name
+				with _ ->
+					let msg = Printf.sprintf "No spec found for lemma %s" lemma_name in
+					raise (Failure msg)) in
 
-		 (* symbolically evaluate the args *)
- 		 print_normal (Printf.sprintf "The arguments to the lemma are the following:\n%s\n"
- 			 (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) l_args)));
- 		 let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le) l_args in
-		 print_normal (Printf.sprintf "The logical arguments to the lemma are the following:\n%s\n"
- 			 (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) le_args)));
-     (* TODO: DELETE THIS LINE, CORRECT IT *)
-		 [ symb_state, spec_vars, search_info ]
+      (* symbolically evaluate the args *)
+		 	let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le) l_args in
+		 	let _, new_symb_states = find_and_apply_spec s_prog.program lemma_name proc_specs symb_state le_args in
 
-     (* TODO: write our own version of find_and_apply_spec that works for lemmas *)
+      (* Checking precondition is met *)
+			(if ((List.length new_symb_states) = 0)
+				then raise (Failure (Printf.sprintf "No precondition found for lemma %s." lemma_name)));
 
+			(* Using a dummy return var *)
+			let ret_var = "#ignoreme" in
+
+      (* Creating the new symbolic states *)
+			let new_symb_states =
+				List.map
+					(fun (symb_state, ret_flag, ret_le) ->
+						let ret_type, _, _ = type_lexpr (get_gamma symb_state) ret_le in
+						update_gamma (get_gamma symb_state) ret_var ret_type;
+						add_pure_assertion (get_pf symb_state) (LEq (LVar ret_var, ret_le));
+						let new_spec_vars = SS.add ret_var spec_vars in
+						let new_symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
+						let new_search_info = update_vis_tbl search_info (copy_vis_tbl search_info.vis_tbl) in
+						(new_symb_state, new_spec_vars, new_search_info))
+					new_symb_states in
+			new_symb_states
 
 	| LogicIf (le, then_lcmds, else_lcmds) ->
 		print_time "LIf.";
@@ -1426,9 +1468,7 @@ let symb_evaluate_proc s_prog proc_name spec i pruning_info =
 
 	TODO: Construct call graph, do dfs, do in that order
 *)
-let sym_run_procs prog procs_to_verify spec_table lemma_table which_pred pred_defs =
-	(* Normalise predicate definitions *)
-	let n_pred_defs = Normaliser.normalise_predicate_definitions pred_defs in
+let sym_run_procs prog procs_to_verify spec_table lemma_table which_pred n_pred_defs =
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
 		program = prog;
@@ -1527,48 +1567,48 @@ let unify_all_sym_states all_states all_posts lemma_name =
 		 all_states)
 
 (* Attempts to prove each lemma *)
-let prove_all_lemmas lemma_tbl prog spec_tbl which_pred norm_preds =
-  let prove_lemma lemma post_pruning_info =
-		print_debug (Printf.sprintf "Proving an individual lemma: %s." lemma.n_lemma_name);
-		let attempt_proof proof_body =
+let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
+  let prove_lemma (lemma : jsil_lemma) lemma_name post_pruning_info =
+		print_debug (Printf.sprintf "Proving an individual lemma: %s." lemma_name);
+		let attempt_proof (proof_body : jsil_logic_command list) =
 		  print_debug (Printf.sprintf "Attempting to prove the proof body.");
 			(* Add this lemma to the pruning info *)
-			update_post_pruning_info_with_lemma post_pruning_info lemma;
-			let n_pred_defs = Normaliser.normalise_predicate_definitions norm_preds in
-			let prove_indivdual_pre spec_number (spec : jsil_n_single_lemma_spec) =
+			(* TODO: correct types. update_post_pruning_info_with_lemma post_pruning_info lemma; *)
+			(* TODO: move to top level function for efficiency *)
+			let prove_indivdual_pre spec_number (spec : jsil_n_single_spec) =
 			  print_debug (Printf.sprintf "Proving an invididual spec.");
 				(* Creating an object of type symbolic_execution_search_info *)
 				(* Guessing you initialise the node here? As each pre-condition is a new "branch"(?) (not 100% sure how the graph works) *)
-				let node_info = Symbolic_Traces.create_info_node_aux spec.n_lemma_pre 0 (-1) "Precondition" in
+				let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
 				let symb_exe_search_info = make_symb_exe_search_info node_info post_pruning_info spec_number in
 				(* Can't just make a dummy program as need to supply the imports, predicates and lemmas *)
 				let s_prog = {
 					program    = prog;       (* not needed *)
 					which_pred = which_pred; (* only needed for phi commands *)
 					spec_tbl   = spec_tbl;   (* not needed *)
-					lemma_tbl  = lemma_tbl;  (* needed *)
+					lemma_tbl  = lemma_table;   (* not needed *)
 					pred_defs  = n_pred_defs (* needed *)
 				} in
-        let symb_states_with_spec_vars = [(spec.n_lemma_pre, spec.n_lemma_lvars, symb_exe_search_info)] in
-				let subst = spec.n_lemma_subst in
+        let symb_states_with_spec_vars = [(spec.n_pre, spec.n_lvars, symb_exe_search_info)] in
+				let subst = spec.n_subst in
 				let result_states = symb_evaluate_logic_cmds s_prog proof_body symb_states_with_spec_vars subst in
 				print_debug (Printf.sprintf "Executed proof body commands. Resulting states: %d" (List.length result_states));
         print_debug (Printf.sprintf "Checking all states.");
-				let lemma_result = unify_all_sym_states result_states spec.n_lemma_post lemma.n_lemma_name in
+				let lemma_result = unify_all_sym_states result_states spec.n_post lemma_name in
 				  (match lemma_result with
-						| true -> print_normal (Printf.sprintf "Lemma %s VERIFIED" lemma.n_lemma_name);
-						          Printf.printf "Lemma %s succeeded\n" lemma.n_lemma_name
-						| false -> print_normal (Printf.sprintf "FAILED to verify lemma %s" lemma.n_lemma_name);
-						          Printf.printf "Lemma %s FAILED\n" lemma.n_lemma_name);
+						| true -> print_normal (Printf.sprintf "Lemma %s VERIFIED" lemma_name);
+						          Printf.printf "Lemma %s succeeded\n" lemma_name
+						| false -> print_normal (Printf.sprintf "FAILED to verify lemma %s" lemma_name);
+						          Printf.printf "Lemma %s FAILED\n" lemma_name);
 					()
 					in
-						List.iteri prove_indivdual_pre lemma.n_lemma_pre_posts
-						in
+					  let lemma_spec = Hashtbl.find spec_tbl lemma_name in
+						List.iteri prove_indivdual_pre lemma_spec.n_proc_specs in
 						let proof_outcome =
-							(match lemma.n_lemma_proof with
+							(match lemma.lemma_proof with
 							 | None            -> print_debug (Printf.sprintf "No proof body.")
 							 | Some proof_body -> attempt_proof proof_body) in
 							 proof_outcome
 							 in
 							    let post_pruning_info = init_post_pruning_info() in
-										Hashtbl.iter (fun _ lemma -> prove_lemma lemma post_pruning_info) lemma_tbl
+										Hashtbl.iter (fun lemma_name lemma -> prove_lemma lemma lemma_name post_pruning_info) lemma_table

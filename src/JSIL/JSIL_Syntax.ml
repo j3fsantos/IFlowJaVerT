@@ -332,13 +332,9 @@ type jsil_logic_command =
 	| Assert           of jsil_logic_assertion                                                          (** Assert *)
 
 (** {b JSIL lemmas}. *)
-(** Prefixed labels to avoid clashes with spec (two types can't share the same label) *)
 type jsil_lemma = {
-	lemma_name       : string;                  (** Lemma name *)
-	lemma_params     : jsil_var list;           (** Lemma parameters *)
-	lemma_pre        : jsil_logic_assertion;    (** Precondition *)
-	lemma_post       : jsil_logic_assertion;    (** Precondition *)
-	lemma_proof      : (jsil_logic_command list) option  (** (Optional) Proof body *)
+	lemma_spec  : jsil_spec; (* The lemma spec *)
+	lemma_proof : (jsil_logic_command list) option  (** (Optional) Proof body *)
 }
 
 (** {b JSIL logic macro}. *)

@@ -462,15 +462,15 @@ let string_of_return_flag flag =
 		| Error -> "error"
 
 (** JSIL Lemmas *)
-let string_of_lemma lemma =
-  let string_of_params          = (String.concat ", " lemma.lemma_params) in
-	let string_of_pre             = "\t[[ " ^ string_of_logic_assertion lemma.lemma_pre  false ^ " ]]\n" in
-	let string_of_post            = "\t[[ " ^ string_of_logic_assertion lemma.lemma_post  false ^ " ]]\n" in
+let string_of_lemma lemma_name lemma =
+  let string_of_params          = (String.concat ", " lemma.lemma_spec.spec_params) in
+	let string_of_pre             = "\t[[ " ^ string_of_logic_assertion (List.hd lemma.lemma_spec.proc_specs).pre false ^ " ]]\n" in
+	let string_of_post            = "\t[[ " ^ string_of_logic_assertion (List.hd lemma.lemma_spec.proc_specs).post false ^ " ]]\n" in
 	let string_of_proof =
 		(match lemma.lemma_proof with
 		  | None -> ""
 			| Some lemma_proof -> "\t[* " ^ (String.concat ";\n\t   " (List.map string_of_lcmd lemma_proof)) ^ " *]\n") in
-	"lemma " ^ lemma.lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_proof
+	"lemma " ^ lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_proof
 
 (** JSIL procedure specification *)
 let rec string_of_specs specs =
