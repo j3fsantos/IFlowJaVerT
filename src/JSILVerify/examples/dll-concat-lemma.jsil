@@ -40,19 +40,11 @@ pred dll_obj(obj, head, head_prev, last, last_next, list):
   ((obj, "@proto")    -> $$null) *
   dll_seg(head, head_prev, last, last_next, list);
 
-lemma switch_end_to_right_2(head, head_prev, last, last_next, list, new_node, new_val, new_next, new_prev)
-  [[ dll_seg(head, head_prev, last, last_next, list) *
-     dll_node(new_node, new_val, new_next, new_prev) ]]
-  [[ dll_seg_2(new_node, new_prev, last, last_next, (new_val :: list)) ]]
-
 lemma switch_end_to_right(head, head_prev, last, last_next, list)
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
   [*
-    unfold dll_seg(head, head_prev, last, last_next, list);
-    if (! (head == last_next)) {
-      assert( )
-    }
+    unfold dll_seg(head, head_prev, last, last_next, list)
   *]
 
 lemma switch_end_to_left(head, head_prev, last, last_next, list)
@@ -79,12 +71,6 @@ spec append_dll_obj(dll_obj_1, dll_obj_2)
   normal
 
 proc append_dll_obj(dll_obj_1, dll_obj_2) {
-
-  [*
-    unfold(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1);
-    apply switch_end_to_right_2(#head_1, head_prev, last, last_next, list, new_node, new_val, new_next, new_prev)
-
-  *]
 
   (* Unfold first seg from right *)
   [* apply switch_end_to_right(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1);
