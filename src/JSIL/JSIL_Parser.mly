@@ -682,8 +682,8 @@ logic_cmd_target:
 	| macro = macro_head_target;
 		{ let (name, params) = macro in Macro (name, params) }
 
-(* assert a *)
-	| ASSERT; a = assertion_target
+(* assert (a) *)
+	| ASSERT; LBRACE; a = assertion_target; RBRACE
 		{ Assert a }
 ;
 
