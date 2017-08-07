@@ -1573,13 +1573,13 @@ let unify_all_sym_states all_states all_posts lemma_name =
 (* Attempts to prove each lemma *)
 let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
   let prove_lemma (lemma : jsil_lemma) lemma_name post_pruning_info =
-		print_debug (Printf.sprintf "Proving an individual lemma: %s." lemma_name);
+		print_normal (Printf.sprintf "------------------------------------------");
+		print_normal (Printf.sprintf "Proving a lemma: %s.\n" lemma_name);
 		let attempt_proof (proof_body : jsil_logic_command list) =
 		  print_debug (Printf.sprintf "Attempting to prove the proof body.");
 			(* Add this lemma to the pruning info *)
-			(* TODO: correct types. update_post_pruning_info_with_lemma post_pruning_info lemma; *)
 			let prove_indivdual_pre spec_number (spec : jsil_n_single_spec) =
-			  print_debug (Printf.sprintf "Proving an invididual spec.");
+			  print_debug (Printf.sprintf "Proving an invididual spec of the lemma %s." lemma_name);
 				(* Creating an object of type symbolic_execution_search_info *)
 				(* Guessing you initialise the node here? As each pre-condition is a new "branch"(?) (not 100% sure how the graph works) *)
 				let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
