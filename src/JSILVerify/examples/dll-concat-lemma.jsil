@@ -45,8 +45,12 @@ lemma switch_end_to_right(head, head_prev, last, last_next, list)
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
   [*
     unfold dll_seg(head, head_prev, last, last_next, list); 
-    if (not (head = last)) then { 
-      assert ( dll_seg (#next, head, last, last_next, rest_list) * dll_node(head, #val, #next, head_prev))
+    if (not (head = last_next)) then { 
+      assert ( dll_seg (#next, head, last, last_next, #rest_list) );
+      apply switch_end_to_right(#next, head, last, last_next, #rest_list);
+      fold ( dll_seg_2(head, head_prev, last, last_next, list) )  
+    } else { 
+      fold ( dll_seg_2(head, head_prev, last, last_next, list) ) 
     }
   *]
 

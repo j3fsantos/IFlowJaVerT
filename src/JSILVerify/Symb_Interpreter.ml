@@ -1101,6 +1101,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 	| Macro (name, param_vals) ->
 			let actual_command = unfold_macro name param_vals in
 				symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars search_info
+	
 	| Assert a ->
 		let existentials  = get_assertion_lvars a in
 		let existentials  = SS.diff existentials spec_vars in
@@ -1122,11 +1123,11 @@ symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_
 		let new_symb_states_with_spec_vars =
 			List.fold_left
 				(fun ac_new_symb_states_with_spec_vars (symb_state, spec_vars, search_info) ->
-					let new_symb_states_with_spec_vars = symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info in
 					let lcmds_print_state =
 					  (match print_symb_states with
 							| true -> print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\n----------------------------------\n" (Symbolic_State_Print.string_of_shallow_symb_state symb_state) (JSIL_Print.string_of_lcmd l_cmd))
 							| false -> ()) in
+					let new_symb_states_with_spec_vars = symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info in
 					new_symb_states_with_spec_vars @ ac_new_symb_states_with_spec_vars)
 				[]
 				symb_states_with_spec_vars in
