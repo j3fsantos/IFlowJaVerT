@@ -1101,7 +1101,7 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 	| Macro (name, param_vals) ->
 			let actual_command = unfold_macro name param_vals in
 				symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars search_info
-	
+
 	| Assert a ->
 		let existentials  = get_assertion_lvars a in
 		let existentials  = SS.diff existentials spec_vars in
@@ -1587,7 +1587,7 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 				let symb_exe_search_info = make_symb_exe_search_info node_info post_pruning_info spec_number in
 				(* Can't just make a dummy program as need to supply the imports, predicates and lemmas *)
 				let s_prog = {
-					program    = Hashtbl.create 1;       (* not needed *)
+					program    = prog;       (* not needed *)
 					which_pred = which_pred; (* only needed for phi commands *)
 					spec_tbl   = spec_tbl;   (* not needed *)
 					lemma_tbl  = lemma_table;   (* not needed *)
