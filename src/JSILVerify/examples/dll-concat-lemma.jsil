@@ -59,7 +59,6 @@ lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
   *]
 
 
-
 lemma append_dll_seg(head, head_prev, last, last_next, list)
   [[ dll_seg(head, head_prev, last, last_next, list) *
      dll_node(last_next, #val, #next, last) * (list == #list) * (#last_next == last_next) ]]
@@ -74,7 +73,6 @@ lemma append_dll_seg(head, head_prev, last, last_next, list)
       fold(  dll_seg(head, head_prev, last_next, #next, (#list @ {{ #val }}))) 
     }
   *]
-
 
 
 lemma switch_end_to_right(head, head_prev, last, last_next, list)
@@ -94,7 +92,16 @@ lemma switch_end_to_right(head, head_prev, last, last_next, list)
 lemma switch_end_to_left(head, head_prev, last, last_next, list)
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
-
+  [*
+    unfold dll_seg_2(head, head_prev, last, last_next, list);
+    if (not (list = ({{ }}))) then {
+      assert ( dll_seg_2 (head, head_prev, #last_prev, last, #rest_list) );
+      apply switch_end_to_left(head, head_prev, #last_prev, last, #rest_list);
+      apply append_dll_seg(head, head_prev, #last_prev, last, #rest_list)
+    } else {
+      fold ( dll_seg(head, head_prev, last, last_next, list) )
+    }
+  *]
 
 
 
@@ -107,7 +114,16 @@ lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, 
      (#head_prev_2 == #last_1) ]]
   [[ (#concat_list == (#list_1 @ #list_2)) *
      dll_seg(#head_1, #head_prev_1, #last_2, #last_next_2, #concat_list) ]]
-
+ [*
+    unfold dll_seg(head_1, head_prev_1, last_1, last_next_1, list_1);
+    if (not (list_1 = ({{ }}))) then {
+      unfold ( dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) ); 
+      fold ( dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) );
+      assert ( dll_seg (#next, head_1, last_1, last_next_1, #rest_list_1) );
+      apply concat_dll_segs(#next, head_1, last_1, last_next_1, #rest_list_1, head_2, head_prev_2, last_2, last_next_2, list_2);
+      fold (dll_seg(head_1, head_prev_1, last_2, last_next_2, (list_1 @ list_2)))
+    } else { }
+  *]
 
 
 spec append_dll_obj(dll_obj_1, dll_obj_2)
