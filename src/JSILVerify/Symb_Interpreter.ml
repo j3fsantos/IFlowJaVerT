@@ -924,7 +924,13 @@ macro_subst (lcmd : jsil_logic_command) (subst : (string, jsil_logic_expr) Hasht
 	lcmd_map substitute true lcmd
 
 
-let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info : (symbolic_state * SS.t * symbolic_execution_search_info) list =
+let rec symb_evaluate_logic_cmd s_prog 
+		(l_cmd : jsil_logic_command) 
+		(symb_state : symbolic_state) 
+		(subst : substitution) 
+		(spec_vars : SS.t) 
+		(search_info : symbolic_execution_search_info)
+		(print_symb_states : bool) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
 
 	let get_pred_data pred_name les =
 		let pred = get_pred s_prog.pred_defs pred_name in
@@ -1095,12 +1101,19 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 			| Some e_le, None -> LEq (e_le, LLit (Bool true))
 			| None, None -> LFalse in
 		if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
-			then symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars, search_info ] false subst
-			else symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars, search_info ] false subst
+			then (
+				print_normal (Printf.sprintf
+					"If Guard -- %s ==> $$t" (JSIL_Print.string_of_logic_expression le false)); 
+				symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst
+			) else (
+				print_normal (Printf.sprintf
+					"If Guard -- %s ==> $$f" (JSIL_Print.string_of_logic_expression le false)); 
+				symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst
+			)
 
 	| Macro (name, param_vals) ->
 			let actual_command = unfold_macro name param_vals in
-				symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars search_info
+				symb_evaluate_logic_cmd s_prog actual_command symb_state subst spec_vars search_info print_symb_states
 
 	| Assert a ->
 		let existentials  = get_assertion_lvars a in
@@ -1116,7 +1129,11 @@ let rec symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_i
 			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later, search_info ]
 			| None -> raise (Failure "Assert: could not grab resources.")))
 and
-symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_with_spec_vars : (symbolic_state * SS.t * symbolic_execution_search_info) list) print_symb_states subst : ((symbolic_state * SS.t * symbolic_execution_search_info) list) =
+symb_evaluate_logic_cmds s_prog 
+		(l_cmds : jsil_logic_command list) 
+		(symb_states_with_spec_vars : (symbolic_state * SS.t * symbolic_execution_search_info) list) 
+		(print_symb_states : bool)
+		(subst : substitution) : ((symbolic_state * SS.t * symbolic_execution_search_info) list) =
 	(match l_cmds with
 	| [] -> symb_states_with_spec_vars
 	| l_cmd :: rest_l_cmds ->
@@ -1127,7 +1144,7 @@ symb_evaluate_logic_cmds s_prog (l_cmds : jsil_logic_command list) (symb_states_
 					  (match print_symb_states with
 							| true -> print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\n----------------------------------\n" (Symbolic_State_Print.string_of_shallow_symb_state symb_state) (JSIL_Print.string_of_lcmd l_cmd))
 							| false -> ()) in
-					let new_symb_states_with_spec_vars = symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info in
+					let new_symb_states_with_spec_vars = symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info print_symb_states in
 					new_symb_states_with_spec_vars @ ac_new_symb_states_with_spec_vars)
 				[]
 				symb_states_with_spec_vars in

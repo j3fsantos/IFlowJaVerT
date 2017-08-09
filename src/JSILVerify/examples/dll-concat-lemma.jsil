@@ -57,35 +57,27 @@ lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
     }
   *]
 
-  (* Needed for the fold:
-              head,         head_prev, last,  last_next,       list
-    dll_seg_2(_$l_new_node, #prev,     _$l_0, _lvar_last_next, (#val :: (#rest_list @ {{ _lvar_5 }})))
-    :=
-      (! (_$l_new_node == _lvar_last_next)) DON'T HAVE THIS
-      (dll_node(_$l_0, #item, _lvar_last_next, #last_prev)) HAVE THIS
-      (dll_seg_2(_$l_new_node, #prev, #last_prev, _$l_0, (#val :: #rest_list))) (HAVE THIS IF _$l_new_node = _lvar_8 which I think it does)
-  *)
 
 lemma switch_end_to_right(head, head_prev, last, last_next, list)
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
-  (* TODO: can't use non-recursive preds here so will have to create a new dll_node in this proof *)
-  (*
   [*
     unfold dll_seg(head, head_prev, last, last_next, list);
-    if (not (head = last_next)) then {
+    if (not (list = ({{ }}))) then {
       assert ( dll_seg (#next, head, last, last_next, #rest_list) );
       apply switch_end_to_right(#next, head, last, last_next, #rest_list);
-      apply prepend_dll_seg_2(#next, head, last, last_next, #rest_list, )
+      apply prepend_dll_seg_2(#next, head, last, last_next, #rest_list, head)
     } else {
       fold ( dll_seg_2(head, head_prev, last, last_next, list) )
     }
   *]
-  *)
-
+ 
 lemma switch_end_to_left(head, head_prev, last, last_next, list)
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
+
+
+
 
 lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, head_prev_2, last_2, last_next_2, list_2)
   [[ (head_1 == #head_1) * (head_prev_1 == #head_prev_1) * (last_1 == #last_1) * (last_next_1 == #last_next_1) * (list_1 == #list_1) *

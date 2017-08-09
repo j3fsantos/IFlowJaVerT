@@ -864,7 +864,7 @@ let unify_gamma pat_gamma gamma pat_store subst (ignore_vars : SS.t) : unit =
 				)
 			)
 			pat_gamma;
-		print_normal "I unified the gammas successfully.\n";
+		print_debug "I unified the gammas successfully.\n";
 		let end_time = Sys.time () in
 			JSIL_Syntax.update_statistics "unify_gamma" (end_time -. start_time);
 	) with

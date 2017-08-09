@@ -214,13 +214,20 @@ let rec js2jsil_assertion
 	| JSEmptyFields (e, domain) 		  -> LEmptyFields (fe e, fe domain) 
 
 
-	| JSLScope (x, le)                    -> 
-		let fid  = try Option.get cur_fid with No_value -> raise (Failure "DEATH: js2jsil_assertion") in 
-		let a'   = JSLVarSChain (fid, x, le, le_sc) in 
-		
 
-	
-	
+
+
+	| JSLScope (x, le)                    -> 
+		let fid       = try Option.get cur_fid   with No_value -> raise (Failure "DEATH: js2jsil_assertion") in 
+		let scope_var = try Option.get scope_var with No_value -> raise (Failure "DEATH: js2jsil_assertion") in 
+		let a'        = JSLVarSChain (fid, x, le, scope_var) in 
+		f a' 		
+
+
+
+
+
+
 	| JSClosure (var_les, fid_sc_les) -> 
 		let vis_lists = 
 			List.map (fun (fid, _) -> 
