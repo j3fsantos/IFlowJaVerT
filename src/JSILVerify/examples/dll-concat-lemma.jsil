@@ -12,7 +12,6 @@ pred dll_seg(head, head_prev, last, last_next, list):
   (head_prev == last) *
   (head == last_next),
 
-  (! (head == last_next)) *
   types(list: $$list_type) *
   (list == (#item :: #items)) *
   (dll_node(head, #item, #next, head_prev)) *
@@ -39,6 +38,8 @@ pred dll_obj(obj, head, head_prev, last, last_next, list):
   ((obj, "@proto")    -> $$null) *
   dll_seg(head, head_prev, last, last_next, list);
 
+
+
 lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
   [[ dll_seg_2(head, head_prev, last, last_next, list) *
      dll_node(new_node, #val, #next, #prev) *
@@ -56,6 +57,24 @@ lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
       fold(dll_seg_2(new_node, #prev, last, last_next, (#val :: #list)))
     }
   *]
+
+
+
+lemma append_dll_seg(head, head_prev, last, last_next, list)
+  [[ dll_seg(head, head_prev, last, last_next, list) *
+     dll_node(last_next, #val, #next, last) * (list == #list) * (#last_next == last_next) ]]
+  [[ dll_seg(head, head_prev, #last_next, #next, (#list @ {{ #val }})) ]]
+  [*
+    unfold(dll_seg(head, head_prev, last, last_next, list));
+    if (not (list = ({{ }}))) then {
+      assert(dll_seg(#head_next, head, last, last_next, #rest_list));
+      apply append_dll_seg(#head_next, head, last, last_next, #rest_list);
+      fold(dll_seg(head, head_prev, last, last_next, (#list @ {{ #val }})))
+    } else {
+      fold(  dll_seg(head, head_prev, last_next, #next, (#list @ {{ #val }}))) 
+    }
+  *]
+
 
 
 lemma switch_end_to_right(head, head_prev, last, last_next, list)
