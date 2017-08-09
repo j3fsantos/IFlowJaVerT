@@ -108,6 +108,8 @@ lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, 
   [[ (#concat_list == (#list_1 @ #list_2)) *
      dll_seg(#head_1, #head_prev_1, #last_2, #last_next_2, #concat_list) ]]
 
+
+
 spec append_dll_obj(dll_obj_1, dll_obj_2)
   [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
      (! (#head_1 == #head_2)) *

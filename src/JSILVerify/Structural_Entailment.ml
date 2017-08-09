@@ -1899,12 +1899,15 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let store_vars = store_domain store_0 in
 
 	let find_store_var_type store gamma x =
-		let le_x = store_get_safe store x in
-		(match le_x with
-		| Some le_x ->
-			let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
-			x_type
-		| None -> None) in
+		(match gamma_get_type gamma x with 
+		| Some t_x -> Some t_x 
+		| None     -> 
+			let le_x = store_get_safe store x in
+			(match le_x with
+			| Some le_x ->
+				let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
+				x_type
+			| None -> None)) in
 
 	print_debug "Unfold predicate definition.";
 	print_debug (Printf.sprintf "Store_0:\n%s.\n Store_1:\n%s."
@@ -1955,7 +1958,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 
 	(* STEP 3 - the substitutions need to make sense wrt the gammas                                                        *)
 	(* forall x \in subst : subst(x) = le /\ Gamma_0(x) = tau =>  \Gamma_1 |- le : tau                                     *)
-	(* forall x \in pat_subst : pat_subst (x) = le /\ Gamma_1(x) = tau => \Gamma_0                                         *)
+	(* forall x \in pat_subst : pat_subst (x) = le /\ Gamma_1(x) = tau => \Gamma_0 |- le : tau                             *)
 	let step_3 subst pat_subst =
 		let subst_is_sensible = is_sensible_subst subst gamma_0 gamma_1 in
 		let pat_subst_is_sensible = is_sensible_subst pat_subst gamma_1 gamma_0 in
@@ -1978,11 +1981,15 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 				let le_x = store_get_safe store_0 x in
 				let x_type = find_store_var_type store_1 gamma_1 x in
 				match le_x, x_type with
-				| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma_0 gamma_0' le_x x_type in ()
+				| Some le_x, Some x_type -> 
+					print_debug (Printf.sprintf "Completing the gamma: %s %s\n" 
+						(JSIL_Print.string_of_logic_expression le_x false)
+						(JSIL_Print.string_of_type x_type)); 
+					let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma_0 gamma_0' le_x x_type in ()
 				|	_, _ -> ())
 				untyped_store_0_vars;
-		(* Printf.printf "GAMMA_OLD - STEP 4:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_old);
-		Printf.printf "Inferred typing information given the unfolding:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_0'); *)
+		print_debug (Printf.sprintf "GAMMA_OLD - STEP 4:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_old));
+		print_debug (Printf.sprintf "Inferred typing information given the unfolding:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_0')); 
 		gamma_0' in
 
 
