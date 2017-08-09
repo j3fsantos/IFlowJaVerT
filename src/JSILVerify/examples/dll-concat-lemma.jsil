@@ -69,7 +69,7 @@ lemma append_dll_seg(head, head_prev, last, last_next, list)
     if (not (list = ({{ }}))) then {
       assert(dll_seg(#head_next, head, last, last_next, #rest_list));
       apply append_dll_seg(#head_next, head, last, last_next, #rest_list);
-      fold(dll_seg(head, head_prev, last, last_next, (#list @ {{ #val }})))
+      fold(dll_seg(head, head_prev, last_next, #next, (#list @ {{ #val }})))
     } else {
       fold(  dll_seg(head, head_prev, last_next, #next, (#list @ {{ #val }}))) 
     }
