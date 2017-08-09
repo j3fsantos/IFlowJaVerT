@@ -28,6 +28,7 @@ type jsil_axiomatized_operations = {
 	num2int_fun         : FuncDecl.func_decl;
 	lnth_fun            : FuncDecl.func_decl;
 	snth_fun            : FuncDecl.func_decl;
+	lcat_fun            : FuncDecl.func_decl
 }
 
 type jsil_type_constructors = {
@@ -399,6 +400,8 @@ let axiomatised_operations =
 							[ numbers_sort; numbers_sort ] numbers_sort in
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
 							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
+	let lcat_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-cat")
+							[ z3_jsil_list_sort; z3_jsil_list_sort ] z3_jsil_list_sort in
 
 	{
 		slen_fun     = slen_fun;
@@ -407,7 +410,8 @@ let axiomatised_operations =
 		str2num_fun  = str2num_fun;
 		num2int_fun  = num2int_fun;
 		snth_fun     = snth_fun;
-		lnth_fun     = lnth_fun
+		lnth_fun     = lnth_fun; 
+		lcat_fun     = lcat_fun 
 	}
 
 let mk_z3_list_core les list_nil list_cons =
@@ -608,6 +612,12 @@ let encode_binop op le1 le2 =
 		let le2_set = Expr.mk_app ctx extended_literal_operations.set_accessor [ le2 ] in
 		let le      = Set.mk_subset ctx le1_set le2_set in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ le ])
+
+	| LstCat -> 
+		let n_le1 = (Expr.mk_app ctx lit_operations.list_accessor [ mk_singleton_access le1 ]) in
+		let n_le2 = (Expr.mk_app ctx lit_operations.list_accessor [ mk_singleton_access le2 ]) in
+		let n_le  = (Expr.mk_app ctx axiomatised_operations.lcat_fun [ n_le1; n_le2 ]) in 
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ n_le ])		
 
 	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
 
@@ -891,9 +901,11 @@ let string_of_solver solver =
 	string_of_z3_expr_list exprs
 
 
-let make_global_axioms list_vars string_vars = 
+let make_global_axioms list_vars string_vars list_exprs = 
 	let x_name = "#x" in 
-	let lvar_x = LVar x_name in 
+	let y_name = "#y" in 
+	let lvar_x = LVar x_name in
+	let lvar_y = LVar y_name in  
   	
   	(* forall x. 0 <= slen(x) *)
 	let slen1 = LLessEq (LLit (Num 0.), LUnOp (StrLen, lvar_x)) in 
@@ -914,7 +926,13 @@ let make_global_axioms list_vars string_vars =
 	let carlnth0 = LEq (LUnOp (Car, lvar_x), LLstNth (lvar_x, LLit (Num 0.))) in 
 	let carlnth0_s = JSIL_Logic_Utils.concretise carlnth0 x_name list_vars in 	
 
-	slen1_s @ llen1_s @ llen2_s @ carlnth0_s
+	(* forall x, y. ((x = nil) /\ (y = nil)) \/ (! (x @ y = nil)) *)
+	let l_disjunct = LAnd (LEq (lvar_x, LLit (LList [])), LEq (lvar_y, LLit (LList []))) in 
+	let r_disjunct = LNot (LEq (LLit (LList []), LBinOp (lvar_x, LstCat, lvar_y))) in 
+	let lstcat1    = LOr (l_disjunct, r_disjunct) in 
+	let lstcat1_s  = JSIL_Logic_Utils.concretise2 lstcat1 x_name y_name list_exprs in 
+
+	slen1_s @ llen1_s @ llen2_s @ carlnth0_s @ lstcat1_s
 
 let make_list_axioms a_list =
 
@@ -956,7 +974,7 @@ let make_string_axioms s =
 	slen_axiom :: (loop_nth (explode s) 0 [])
 
 
-let make_relevant_axioms a list_vars string_vars =
+let make_relevant_axioms a list_vars string_vars list_exprs =
 	(* string axioms *)
 	let a_strings, _ = JSIL_Logic_Utils.get_assertion_string_number_literals a in
 	let a_strings    = JSIL_Logic_Utils.remove_string_duplicates a_strings in
@@ -966,7 +984,7 @@ let make_relevant_axioms a list_vars string_vars =
 	let a_lists      = JSIL_Logic_Utils.get_assertion_lists a in
 	let l_axioms     = List.concat (List.map make_list_axioms a_lists) in
 
-	let constant_axioms = make_global_axioms list_vars string_vars in 
+	let constant_axioms = make_global_axioms list_vars string_vars list_exprs in 
 
 	(*if (List.length l_axioms > 0) then *)
 
@@ -1059,7 +1077,9 @@ let check_entailment (existentials : SS.t)
 			false
 		) else (
 		let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
-		let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in 
+		let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in
+		let list_exprs  : jsil_logic_expr list = List.concat (List.map JSIL_Logic_Utils.get_list_exprs ((DynArray.to_list left_as) @ (DynArray.to_list right_as))) in 
+		let list_exprs  = list_exprs @ list_vars in 
 
 		let left_as = DynArray.to_list left_as in
 		let right_as = DynArray.to_list right_as in
@@ -1069,7 +1089,7 @@ let check_entailment (existentials : SS.t)
 
 		let left_as_axioms = 
 			List.concat 
-				(List.map (fun a -> make_relevant_axioms a list_vars string_vars) left_as) in
+				(List.map (fun a -> make_relevant_axioms a list_vars string_vars list_exprs) left_as) in
 		let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
 		let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in
 		let solver = (Solver.mk_solver ctx None) in
@@ -1079,7 +1099,7 @@ let check_entailment (existentials : SS.t)
 		if (ret_left) then (
 			let right_as_axioms = 
 				List.concat 
-					(List.map (fun a -> make_relevant_axioms a list_vars string_vars) right_as) in
+					(List.map (fun a -> make_relevant_axioms a list_vars string_vars list_exprs) right_as) in
 			let right_as_axioms = List.map encode_assertion_top_level right_as_axioms in
 			let right_as = List.map (fun a -> encode_assertion_top_level (LNot a)) right_as in
 			let right_as_or =

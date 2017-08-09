@@ -43,16 +43,17 @@ lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
   [[ dll_seg_2(head, head_prev, last, last_next, list) *
      dll_node(new_node, #val, #next, #prev) *
      (#next == head) *
-     (head_prev == new_node) ]]
-  [[ dll_seg_2(new_node, #prev, last, last_next, (#val :: list)) ]]
+     (head_prev == new_node) * 
+     (new_node == #new_node) * (list == #list) ]]
+  [[ dll_seg_2(#new_node, #prev, last, last_next, (#val :: #list)) ]]
   [*
     unfold(dll_seg_2(head, head_prev, last, last_next, list));
     if (not (list = ({{ }}))) then {
       assert(dll_seg_2(head, head_prev, #last_prev, last, #rest_list));
       apply prepend_dll_seg_2(head, head_prev, #last_prev, last, #rest_list, new_node);
-      fold(dll_seg_2(new_node, #prev, last, last_next, (#val :: #rest_list)))
+      fold(dll_seg_2(new_node, #prev, last, last_next, (#val :: #list)))
     } else {
-      fold(dll_seg_2(new_node, #prev, last, last_next, #val))
+      fold(dll_seg_2(new_node, #prev, last, last_next, (#val :: #list)))
     }
   *]
 

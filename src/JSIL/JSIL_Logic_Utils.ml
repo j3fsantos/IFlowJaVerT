@@ -116,17 +116,47 @@ let rec logic_expression_fold f_atom f_fold lexpr =
   | LLstNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
   | LStrNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
 
-let rec assertion_fold f_atom f_fold asrt =
-	let fold_a = assertion_fold f_atom f_fold in
+let rec assertion_fold feo f_atom f_fold asrt =
+	let fes les = Option.map_default (fun fe -> List.map fe les) [] feo in 
+	let fold_a = assertion_fold feo f_atom f_fold in
+	
 	match asrt with
-	| LTrue | LFalse | LEq (_, _) | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) 
-	| LPointsTo (_, _, _) | LEmp | LPred (_, _) | LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) -> f_atom asrt
-	| LAnd (a1, a2)         -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
-	| LOr (a1, a2)          -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
-	| LStar (a1, a2)        -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
-	| LNot a                -> f_fold asrt [ (fold_a a) ]
-	| LForAll (_, a)        -> f_fold asrt [ (fold_a a) ]
-  
+	| LTrue | LFalse | LEmp | LTypes _  -> f_atom asrt [] 
+	
+	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) 
+		| LStrLess (le1, le2) |  LSetMem (le1, le2) 
+		| LSetSub (le1, le2)  | LEmptyFields (le1, le2) -> f_atom asrt (fes [ le1; le2 ])
+	
+	| LPointsTo (le1, le2, le3) -> f_atom asrt (fes [ le1; le2; le3 ])
+	
+	| LPred (_, les) -> f_atom asrt (fes les)
+
+	| LAnd (a1, a2)             -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
+	| LOr (a1, a2)              -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
+	| LStar (a1, a2)            -> f_fold asrt [ (fold_a a1); (fold_a a2) ]
+	| LNot a                    -> f_fold asrt [ (fold_a a) ]
+	| LForAll (_, a)            -> f_fold asrt [ (fold_a a) ]
+
+
+let get_list_exprs (a : jsil_logic_assertion) : jsil_logic_expr list = 
+	let fe_atom (le : jsil_logic_expr) = 
+		(match le with 
+		| LLit (LList lst) -> [ le ]
+		| _                -> []) in 
+	let fe_fold (le : jsil_logic_expr) (ac : jsil_logic_expr list list) = 
+		(match le with 
+		| LEList _   | LBinOp (_, LstCons, _) | LBinOp (_, LstCat, _) 
+		| LUnOp (Car, _) | LUnOp (Cdr, _) | LUnOp (LstLen, _) -> le :: (List.concat ac)
+		| _ -> (List.concat ac)) in 
+	let fe = logic_expression_fold fe_atom fe_fold in
+
+	let f_atom a ac = List.concat ac in 
+	let f_fold a ac = List.concat ac in 
+
+	assertion_fold (Some fe) f_atom f_fold a 
+
+
+
 
 let rec get_logic_expression_literals le =
 	let fe = get_logic_expression_literals in
@@ -187,7 +217,6 @@ let rec get_assertion_lists a =
 
 
 
-
 let get_assertion_string_number_literals a =
 	let lits = get_assertion_literals a in
 	let rec loop lits_to_go (strings_so_far, numbers_so_far) =
@@ -244,7 +273,7 @@ let remove_int_duplicates ints =
 
 
 let is_pure_assertion a =
-	let f_atom a =
+	let f_atom a _ =
 		(match a with
 		| LPred (_, _) | LPointsTo (_, _, _) | LEmp -> false
 		| _                                         -> true)  in
@@ -253,7 +282,7 @@ let is_pure_assertion a =
 		(match a with
 		| LAnd (_, _) | LOr (_, _) | LStar (_, _) | LNot _ | LForAll (_, _) -> ret
 		| _  -> raise (Failure "Internal Error: is_pure_assertion")) in
-	assertion_fold f_atom f_fold a
+	assertion_fold None f_atom f_fold a
 
 
 let is_pure_atom a =
@@ -262,14 +291,14 @@ let is_pure_atom a =
 	| _ -> false
 
 let only_pure_atoms_negated a =
-	let f_atom a = true in
+	let f_atom a _ = true in
 	let f_fold a ret_list =
 		let ret = List.fold_left (fun ac v -> (ac && v)) true ret_list in
 		(match a with
 		| LAnd (_, _) | LOr (_, _) | LStar (_, _) | LForAll (_, _) -> ret
 		| LNot a -> is_pure_atom a
 		| _      -> raise (Failure (Printf.sprintf "Internal Error: only_pure_atoms_negated: %s" (JSIL_Print.string_of_logic_assertion a false)))) in
-	assertion_fold f_atom f_fold a
+	assertion_fold None f_atom f_fold a
 
 
 let rec purify_stars a =
@@ -509,6 +538,8 @@ and push_in_negations_on a =
 	| LEq (_, _)   | LLess (_, _) | LLessEq (_, _) | LStrLess (_, _) | LPred (_, _) |  LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> LNot a
 	| LStar (_, _) | LEmp         | LPointsTo (_, _, _) | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) -> raise (Failure err_msg)
 	| LTypes _            -> LTrue)
+
+
 
 
 
@@ -1232,6 +1263,7 @@ let star_asses asses =
 		 LEmp
 		asses
 
+
 (* What does it mean to be a list? *)
 let rec isList (le : jsil_logic_expr) : bool =
 (match le with
@@ -1243,6 +1275,11 @@ let rec isList (le : jsil_logic_expr) : bool =
 	| _ -> false)
 
 
+let generate_all_pairs (les : jsil_logic_expr list) : (jsil_logic_expr * jsil_logic_expr) list = 
+	let cross_product lst1 lst2 = List.concat (List.map (fun elem -> List.map (fun e -> (elem, e)) lst2) lst1) in
+	cross_product les les   
+
+
 let concretise (a : jsil_logic_assertion) (x: string) (les : jsil_logic_expr list) : jsil_logic_assertion list = 
 	List.map 
 		(fun le -> 
@@ -1250,7 +1287,13 @@ let concretise (a : jsil_logic_assertion) (x: string) (les : jsil_logic_expr lis
 			assertion_substitution a subst true)
 		les 
 
+let concretise2 (a : jsil_logic_assertion) (x: string) (y: string) (les : jsil_logic_expr list) : jsil_logic_assertion list = 
+	let les_pairs = generate_all_pairs les in 
 
-
+	List.map 
+		(fun (le1, le2) -> 
+			let subst = init_substitution2 [ x; y ] [ le1; le2 ] in 
+			assertion_substitution a subst true)
+		les_pairs  
 
 
