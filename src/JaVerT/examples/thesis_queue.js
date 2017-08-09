@@ -48,9 +48,7 @@
 
 @pred PriorityQueueModule(pq) :
   QueuePrototype(#pqp, #np, #sc) *
-  fun_obj(PriorityQueue, pq, #pqp, #pq_sc) *
-  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
-
+  fun_obj(PriorityQueue, pq, #pqp, #pq_sc);
 */
 
 /**
