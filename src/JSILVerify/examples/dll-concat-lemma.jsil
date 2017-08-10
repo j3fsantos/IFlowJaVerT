@@ -89,6 +89,7 @@ lemma switch_end_to_right(head, head_prev, last, last_next, list)
     }
   *]
  
+ 
 lemma switch_end_to_left(head, head_prev, last, last_next, list)
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
