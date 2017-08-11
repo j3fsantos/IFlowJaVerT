@@ -1626,7 +1626,7 @@ let simplify_symb_state
 								| _, _ -> v, le))
 					| _ -> v, le) in
 					
-					print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (print_lexpr le));
+					(* print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (print_lexpr le)); *)
 					
 					let lvars_le = get_logic_expression_lvars le in
 					(match (SS.mem v lvars_le) with
