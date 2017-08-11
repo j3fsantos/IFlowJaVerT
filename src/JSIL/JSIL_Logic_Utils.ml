@@ -704,6 +704,62 @@ let rec lexpr_substitution lexpr subst partial =
 
 	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
 
+let rec lexpr_selective_substitution lexpr subst partial =
+	let f e = lexpr_selective_substitution e subst partial in
+	match lexpr with
+	| LLit lit -> LLit lit
+	| LNone -> LNone
+	
+	| LVar var -> (match Hashtbl.mem subst var with
+			| true -> 
+					let new_val = Hashtbl.find subst var in
+					(match new_val with
+					| LLit (LList _) | LEList _ -> new_val
+					| _ -> LVar var)
+			| false -> (match partial with
+				| true -> LVar var
+				| false -> 
+						let new_var = fresh_lvar () in
+						Hashtbl.replace subst var (LVar new_var);
+						LVar new_var))
+
+	| ALoc aloc ->
+			(try Hashtbl.find subst aloc with _ ->
+				if (not partial)
+					then
+						let new_aloc = ALoc (fresh_aloc ()) in
+						Hashtbl.replace subst aloc new_aloc;
+						new_aloc
+					else
+						ALoc aloc)
+
+	| PVar var -> (PVar var)
+	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2))
+	| LUnOp (op, le) -> LUnOp (op, (f le))
+	| LTypeOf le -> LTypeOf (f le)
+	 
+	| LEList les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LEList s_les
+	
+	| LESet les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LESet s_les
+
+	| LSetUnion les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LSetUnion s_les
+		
+	| LSetInter les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LSetInter s_les
+
+	| LCList les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LCList s_les		
+
+	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
+	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
 
 let rec assertion_substitution a subst partial =
 	let fa a = assertion_substitution a subst partial in
