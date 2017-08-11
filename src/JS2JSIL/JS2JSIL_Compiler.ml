@@ -4508,6 +4508,9 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let cmd_dr_ass = annotate_cmd (SLBasic (SAssignment (x_dr, Literal Empty))) None in
 	let rets = rets @ [ x_dr ] in
 
+	(* x_scope_final := x_scope *)
+	let cmd_xscope_final = annotate_cmd (SLBasic (SAssignment (JS2JSIL_Constants.var_scope_final, Var var_sc_proc))) None in
+
 	(* pre_lab_ret: x_return := PHI(...) *)
 	let cmd_return_phi = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
 
@@ -4528,7 +4531,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 		cmds_decls @ cmds_params @
 		[ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @ cmds_e @
-		[ cmd_dr_ass; cmd_return_phi; cmd_del_te; cmd_del_se; cmd_ret_final; cmd_error_phi; cmd_err_final ] in
+		[ cmd_dr_ass; cmd_return_phi; cmd_del_te; cmd_del_se; cmd_xscope_final; cmd_ret_final; cmd_error_phi; cmd_xscope_final; cmd_err_final ] in
 	{
 		lproc_name = fid;
     	lproc_body = (Array.of_list fid_cmds);

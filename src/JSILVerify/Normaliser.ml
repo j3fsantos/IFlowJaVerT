@@ -24,60 +24,64 @@ let new_lvar_name var = lvar_prefix ^ var
 let pre_process_list_exprs (a : jsil_logic_assertion) = 
 
 	(* 1 - Find the lists for which we know the length *)
-	let find_list_exprs_to_concretize (a : jsil_logic_assertion) : (jsil_logic_expr * int) list = 
-		let f_ac a _ _ ac = 
+	let find_list_exprs_to_concretize (a : jsil_logic_assertion) : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t =
+		let f_ac_1 a _ _ ac = 
 			(match a with 
-			| LEq (LUnOp (LstLen, le), LLit (Num i)) -> (le, (int_of_float i)) :: (List.concat ac)
+			| LEq (LEList _, LEList _) -> (List.concat ac)
+			| LEq (le, LEList les) 
+			| LEq (LEList les, le) -> (le, les) :: (List.concat ac)
 			| _ -> (List.concat ac)) in 
-		assertion_fold None f_ac None None a in 
+		let lists1 = assertion_fold None f_ac_1 None None a in		
 
+		let f_ac_2 a _ _ ac = 
+			(match a with 
+			| LEq (LUnOp (LstLen, le), LLit (Num i)) -> 
+				let vars_le = Array.to_list (Array.init (int_of_float i) (fun j -> LVar (fresh_lvar ()))) in 
+				(le, vars_le) :: (List.concat ac)
+			| _ -> (List.concat ac)) in 
+		let lists2 = assertion_fold None f_ac_2 None None a in 
 
-	(* 2 - Associate each expression corresponding to a list for which we know the length with 
-	       a list of newly created logical variables *)
-	let concretize_lists 
-		(lst_exprs : (jsil_logic_expr * int) list) : (jsil_logic_expr, (string list)) Hashtbl.t =   
-		let new_lists = Hashtbl.create (List.length lst_exprs) in
-		List.iter (fun (le, i) -> 
-			if (Hashtbl.mem new_lists le) then () else (
-				let vars_le = Array.to_list (Array.init i (fun j -> fresh_lvar ())) in
-				Hashtbl.replace new_lists le vars_le  
+		let lst_exprs = lists2 @ lists1 in 
+		let lists_tbl = Hashtbl.create (List.length lst_exprs) in
+		List.iter (fun (le, les) -> 
+			if (Hashtbl.mem lists_tbl le) then () else (
+				Hashtbl.replace lists_tbl le les  
 		)) lst_exprs;
-		new_lists in 
+		lists_tbl in 
 
 
-	(* 3 - Replace expressions of the form l-nth(le, i) where le denotes a list for which 
+	(* 2 - Replace expressions of the form l-nth(le, i) where le denotes a list for which 
 	       we know the length and i a concrete number with the newly created logical variable.
 	       E.g. if we associated in 2) le with a the list of logical variables 
 	            {{ V1, ..., Vi, ..., Vn}}, l-nth(le, i) is replaced with Vi  *)
 	let concretize_list_accesses 
 		(a : jsil_logic_assertion) 
-		(new_lists : (jsil_logic_expr, (string list)) Hashtbl.t) : jsil_logic_assertion = 
+		(new_lists : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t) : jsil_logic_assertion = 
 		let f_e le = 
 			match le with 
 			| LLstNth (le', LLit (Num i)) ->
 				(try 
 					let vs = Hashtbl.find new_lists le' in 
-					let v  = List.nth vs (int_of_float i) in 
-					LVar v, false
+					let le'' = List.nth vs (int_of_float i) in 
+					le'', false
 				with _ -> le, false)
 			| _ -> le, true  in
 		assertion_map None f_e a in 
 
 
-	(* 4 - Generate the equalities relating the expressions that denote lists whose 
+	(* 3 - Generate the equalities relating the expressions that denote lists whose 
 	       length is statically known with the lists of the newly created logical variables *)
 	let make_new_list_as  
 		(a : jsil_logic_assertion) 
-		(new_lists : (jsil_logic_expr, (string list)) Hashtbl.t) : jsil_logic_assertion  = 
+		(new_lists : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t) : jsil_logic_assertion  = 
 		let new_list_as = 
 			Hashtbl.fold 
-				(fun le vs ac -> (LEq (le, LEList (List.map (fun v -> LVar v) vs))) :: ac)
+				(fun le les ac -> (LEq (le, LEList les)) :: ac)
 				new_lists [ a ] in 
 		JSIL_Logic_Utils.star_asses new_list_as in 
 
 	(* Doing IT *)		
-	let lst_exprs = find_list_exprs_to_concretize a in 
-	let new_lists = concretize_lists lst_exprs in 
+	let new_lists = find_list_exprs_to_concretize a in 
 	let a'        = concretize_list_accesses a new_lists in 
 	make_new_list_as a' new_lists
 

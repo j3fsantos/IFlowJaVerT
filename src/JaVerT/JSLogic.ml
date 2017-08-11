@@ -240,7 +240,7 @@ let rec js2jsil_assertion
 		(a : jsil_logic_assertion) : jsil_logic_assertion = 
 		if (le_sc = JSLScope) then a else (
 			let vis_list = get_vis_list vis_tbl fid in  
-				LStar (a, LEq (LUnOp (LstLen, fe le_sc), LLit (Num (float_of_int (List.length vis_list)))))) in 
+				LStar (a, LEq (LUnOp (LstLen, fe le_sc), LLit (Num (float_of_int ((List.length vis_list) - 1)))))) in 
 	
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
@@ -371,21 +371,28 @@ let js2jsil_predicate_def
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions }
 
 
-let rec js2jsil_spec_assertion (a : js_logic_assertion) (cc_tbl : cc_tbl_type) 
-		(vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type) (fid : string) : jsil_logic_assertion =
+let rec js2jsil_single_spec 
+		(pre : js_logic_assertion) (post: js_logic_assertion) 
+		(cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type) 
+		(fid : string) : jsil_logic_assertion * jsil_logic_assertion =
 	
 	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
 	let vis_list = get_vis_list vis_tbl fid in  
-	let vis_list_len = ((List.length vis_list) - 1) in 
 
-	let is_global = (fid = main_fid) in
-	let a'        = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope)  a in
-	
-	(*  x__this == #this             *) 
-	let a_this    = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in  
-	(*  l-len(x__scope) == list_size *)
-	let a_scope   = LEq (LUnOp (LstLen, PVar JS2JSIL_Constants.var_scope), LLit (Num (float_of_int vis_list_len))) in 
+	let scope_chain_list = Array.to_list (Array.init ((List.length vis_list) - 1) (fun j -> fresh_lvar ())) in 
+	let scope_chain_list = List.map (fun v -> LVar v) scope_chain_list in 
 
-	if (is_global) then a' else JSIL_Logic_Utils.star_asses [ a'; a_scope; a_this ]
+	let pre'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) pre in
+	let post' = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope_final) post in
+
+	(*  x__this == #this                *) 
+	let a_this       = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in  
+	(*  x__scope == {{ #x1, ..., #xn }} *)
+	let a_scope_pre  = LEq (PVar JS2JSIL_Constants.var_scope, LEList scope_chain_list) in 
+	let a_scope_post = LEq (PVar JS2JSIL_Constants.var_scope_final, LEList (scope_chain_list @ [ PVar JS2JSIL_Constants.var_er ])) in  
+
+	if (fid = main_fid) 
+		then pre', post'  
+		else JSIL_Logic_Utils.star_asses [ pre'; a_scope_pre; a_this ], JSIL_Logic_Utils.star_asses [ post'; a_scope_post ]
 
 

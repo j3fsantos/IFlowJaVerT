@@ -18,7 +18,7 @@
    scope(make_counter: #mc) *
    scope(counter_1: #c1) *
    scope(counter_2: #c2) *
-   FunctionObject(make_counter, #mc, #mc_sc, #ignore) *
+   FunctionObject(#mc, "make_counter", #mc_sc, #ignore) *
    counter(#c1, 2) *
    counter(#c2, 1) *
    scope(count : 3))

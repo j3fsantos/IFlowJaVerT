@@ -380,7 +380,8 @@ let translate_invariant_in_exp cc_tbl vis_tbl fun_tbl fid e =
   | [ ]           -> None 
   | [ invariant ] ->
     let a = JSIL_Utils.js_assertion_of_string invariant.annot_formula in 
-    let a' = JSLogic.js2jsil_spec_assertion a cc_tbl vis_tbl fun_tbl fid in 
+    (* CHANGE URGENTLY!!!!! THE SCOPE VAR NEEDS TO BE GIVEN AS A PARAMETER *)
+    let a' = JSLogic.js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) a in 
     Some (JSIL_Syntax.LStar (a', JSLogic.errors_assertion))      
 
 
@@ -428,8 +429,7 @@ let translate_single_func_specs
       let post_js = JSIL_Utils.js_assertion_of_string post_str in
       (* Printf.printf "I managed to parse the js assertions\n"; *)
       
-      let pre_jsil  = JSLogic.js2jsil_spec_assertion pre_js cc_tbl vis_tbl fun_tbl fid in
-      let post_jsil = JSLogic.js2jsil_spec_assertion post_js cc_tbl vis_tbl fun_tbl fid in
+      let pre_jsil, post_jsil = JSLogic.js2jsil_single_spec pre_js post_js cc_tbl vis_tbl fun_tbl fid in
       let new_spec  = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
       new_spec)
     preconditions
@@ -476,8 +476,7 @@ let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs =
   (fun { JSLogic.js_spec_name; JSLogic.js_spec_params; JSLogic.js_proc_specs } ->
     Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; main_fid ];
     let proc_specs = List.map (fun { JSLogic.js_pre; JSLogic.js_post; JSLogic.js_ret_flag } -> 
-      let pre  = JSLogic.js2jsil_spec_assertion  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
-      let post = JSLogic.js2jsil_spec_assertion js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+      let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
         { JSIL_Syntax.pre = pre; JSIL_Syntax.post = post; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
     let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs } in
     Hashtbl.replace only_specs  js_spec_name spec;
