@@ -376,10 +376,10 @@ let store_substitution store gamma subst partial =
 	let store = store_init vars les in
 	store
 
-let store_substitution_in_place store gamma subst =
+let store_substitution_in_place store gamma subst lexpr_subst =
 	Hashtbl.iter
 		(fun pvar le ->
-			let s_le = JSIL_Logic_Utils.lexpr_substitution le subst true in
+			let s_le = lexpr_subst le subst true in
 			Hashtbl.replace store pvar s_le;
 
 			let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
@@ -717,37 +717,29 @@ let remove_concrete_values_from_the_store symb_state =
 			Some le) (get_store symb_state)
 
 let symb_state_substitution (symb_state : symbolic_state) subst partial =
+	let lexpr_subst = JSIL_Logic_Utils.lexpr_substitution in
 	let heap, store, pf, gamma, preds = symb_state in
 	let s_heap = heap_substitution heap subst partial in
 	let s_store = store_substitution store gamma subst partial in
 	let s_pf = pf_substitution pf subst partial  in
 	let s_gamma = gamma_substitution gamma subst partial in
-	let s_preds = preds_substitution preds subst partial (JSIL_Logic_Utils.lexpr_substitution) in
+	let s_preds = preds_substitution preds subst partial lexpr_subst in
 	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
 let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
+	let lexpr_subst = JSIL_Logic_Utils.lexpr_substitution in
 	let heap, store, pf, gamma, preds = symb_state in
-		heap_substitution_in_place heap subst;
-		store_substitution_in_place store gamma subst;
-		pf_substitution_in_place pf subst;
-		preds_substitution_in_place preds subst (JSIL_Logic_Utils.lexpr_substitution)
-
-let string_of_substitution substitution =
-	let str =
-		(Hashtbl.fold
-			(fun (var : string) (le : jsil_logic_expr) (ac : string) ->
-				let le_str = JSIL_Print.string_of_logic_expression le false in
-				let var_le_str = var ^ ": " ^ le_str  in
-				if (ac = "\n\t") then (ac ^ var_le_str) else ac ^ ";\n\t " ^ var_le_str)
-			substitution
-			"\n\t") in
-	"substitution: " ^ str ^ "\n"
+		store_substitution_in_place store gamma subst lexpr_subst;
+		preds_substitution_in_place preds subst lexpr_subst;
+		heap_substitution_in_place heap subst;		
+		pf_substitution_in_place pf subst
 
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
+	let lexpr_subst = JSIL_Logic_Utils.lexpr_selective_substitution in
 	let heap, store, pf, gamma, preds = symb_state in
+		store_substitution_in_place store gamma subst lexpr_subst;
+		preds_substitution_in_place preds subst lexpr_subst;
 		pf_substitution_in_place pf subst;
-		store_substitution_in_place store gamma subst;
-		preds_substitution_in_place preds subst (JSIL_Logic_Utils.lexpr_selective_substitution);
 		selective_heap_substitution_in_place heap subst
 
 let get_symb_state_vars catch_pvars symb_state =
