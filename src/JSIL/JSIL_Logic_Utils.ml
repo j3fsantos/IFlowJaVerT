@@ -3,6 +3,16 @@ open Set
 open Stack
 open JSIL_Syntax
 
+(* What does it mean to be a list? *)
+let rec isList (le : jsil_logic_expr) : bool =
+(match le with
+	| LVar _ 
+	| LLit (LList _)
+	| LEList _ -> true
+	| LBinOp (_, LstCons, le) -> isList le
+	| LBinOp (lel, LstCat, ler) -> isList lel && isList ler
+	| _ -> false)
+
 (************)
 (* Monadics *)
 (************)
@@ -711,6 +721,70 @@ let rec lexpr_substitution lexpr subst partial =
 
 	| LUnknown -> LUnknown
 
+let rec lexpr_selective_substitution lexpr subst partial =
+	let f e = lexpr_selective_substitution e subst partial in
+	match lexpr with
+	| LLit lit -> LLit lit
+	| LNone -> LNone
+	
+	| LVar var -> 
+		(match Hashtbl.mem subst var with
+		| true -> 
+				let new_val = Hashtbl.find subst var in
+				(match new_val with
+				| LVar _ -> lexpr
+				| _ -> 
+					(match isList new_val with
+					| true -> new_val
+					| false -> lexpr
+					)
+				)
+		| false -> (match partial with
+			| true -> lexpr
+			| false -> 
+					let new_var = fresh_lvar () in
+					Hashtbl.replace subst var (LVar new_var);
+					LVar new_var)
+		)
+
+	| ALoc aloc ->
+			(try Hashtbl.find subst aloc with _ ->
+				if (not partial)
+					then
+						let new_aloc = ALoc (fresh_aloc ()) in
+						Hashtbl.replace subst aloc new_aloc;
+						new_aloc
+					else
+						ALoc aloc)
+
+	| PVar var -> (PVar var)
+	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2))
+	| LUnOp (op, le) -> LUnOp (op, (f le))
+	| LTypeOf le -> LTypeOf (f le)
+	 
+	| LEList les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LEList s_les
+	
+	| LESet les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LESet s_les
+
+	| LSetUnion les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LSetUnion s_les
+		
+	| LSetInter les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LSetInter s_les
+
+	| LCList les ->
+			let s_les = List.map (fun le -> (f le)) les in
+			LCList s_les		
+
+	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
+	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
+	| LUnknown -> LUnknown
 
 let rec assertion_substitution a subst partial =
 	let fa a = assertion_substitution a subst partial in
@@ -1265,17 +1339,6 @@ let star_asses asses =
 				else ac)
 		 LEmp
 		asses
-
-
-(* What does it mean to be a list? *)
-let rec isList (le : jsil_logic_expr) : bool =
-(match le with
-	| LVar _ 
-	| LLit (LList _)
-	| LEList _ -> true
-	| LBinOp (_, LstCons, le) -> isList le
-	| LBinOp (lel, LstCat, ler) -> isList lel && isList ler
-	| _ -> false)
 
 
 let generate_all_pairs (les : jsil_logic_expr list) : (jsil_logic_expr * jsil_logic_expr) list = 
