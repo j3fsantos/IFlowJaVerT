@@ -747,7 +747,7 @@ let string_of_substitution substitution =
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
 		pf_substitution_in_place pf subst;
-		selective_store_substitution_in_place store gamma subst;
+		store_substitution_in_place store gamma subst;
 		preds_substitution_in_place preds subst;
 		selective_heap_substitution_in_place heap subst
 
