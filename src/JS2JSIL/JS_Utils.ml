@@ -395,10 +395,16 @@ let get_all_assigned_declared_identifiers exp =
 
 let rec var_decls_inner exp =
   let f_ac exp state prev_state ac = 
-    match exp.exp_stx with 
-    | VarDec vars -> (List.map (fun (v, _) -> v) vars) @ ac 
-    | _ -> ac in 
-  js_fold f_ac (fun x y -> y) true exp
+    if (not state) then ac else (
+      match exp.exp_stx with 
+      | VarDec vars -> (List.map (fun (v, _) -> v) vars) @ ac 
+      | _ -> ac
+    ) in 
+  let f_state exp state = 
+    (match exp.exp_stx with 
+    | FunctionExp _ | Function _ -> false 
+    | _                          -> state) in  
+  js_fold f_ac f_state true exp
 
 
 let var_decls exp = (List.unique (var_decls_inner exp))

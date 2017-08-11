@@ -27,7 +27,6 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	try (
 	let result = match le with
 	| LLit _
-	| LUnknown
 	| LNone -> le
 	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
 	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
@@ -58,7 +57,6 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	| LTypeOf (le1) ->
 		let nle1 = f le1 in
 		(match nle1 with
-			| LUnknown -> raise (Failure "Illegal Logic Expression: TypeOf of Unknown")
 			| LLit llit -> LLit (Type (evaluate_type_of llit))
 			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 			| LVar lvar ->
@@ -362,8 +360,9 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 			| f_name :: rest -> 
 				(match List.mem f_name rest with
 				| true -> 
-						print_debug_petar "Horror: Overlapping resources";
-						[ LFalse ]
+					print_debug_petar (Printf.sprintf "Horror: Overlapping resources in %s"
+						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) flist)));
+					[ LFalse ]
 				| false -> loop rest ((LNot (LEq (field, f_name))) :: constraints)) in
 		loop flist [] in
 
@@ -385,6 +384,9 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 	result
 
 let get_heap_well_formedness_constraints heap =
+	print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n" 
+		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)); 
+
 	LHeap.fold
 		(fun field (fv_list, _) constraints ->
 			(match constraints with

@@ -2,7 +2,7 @@ open Utils
 open Lexing
 open JSIL_Syntax
 open JS2JSIL_Constants
-open JS2JSIL_Logic
+open JSLogic
 open JS_Utils
 
 let cc_tbl      : cc_tbl_type      = Hashtbl.create medium_tbl_size
@@ -2562,9 +2562,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_f_outer_er = fresh_er_var () in
 		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in
 
-		(* x_sc_f := x_f_outer_er :: x_sc  *)
+		(* x_sc_f := x_sc @ {{ x_f_outer_er }}  *)
 		let x_sc_f = fresh_scope_chain_var () in
-		let cmd_xscf_ass = SLBasic (SAssignment (x_sc_f, BinOp (Var x_f_outer_er, LstCons, Var tr_ctx.tr_sc_var))) in
+		let cmd_xscf_ass = SLBasic (SAssignment (x_sc_f, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_f_outer_er ]))) in
 
 		(* x_f := create_function_object(x_sc_f, f_id, params) *)
 		let x_f, cmd_fun_constr = make_create_function_object_call x_sc_f f_id params in
@@ -2816,8 +2816,8 @@ and translate_statement tr_ctx e  =
 		(* [x_er, "x"] := x_err *)
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
 
-		(* x_sc_new := x_er :: x_sc *)
-		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var x_er, LstCons, Var tr_ctx.tr_sc_var))) in
+		(* x_sc_new := x_sc @ {{ x_er }}  *)
+		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
 
 	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in
@@ -2920,8 +2920,8 @@ and translate_statement tr_ctx e  =
 		(* [x_er, "x"] := x_err *)
 		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
 
-		(* x_sc_new := x_er :: x_sc *)
-		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var x_er, LstCons, Var tr_ctx.tr_sc_var))) in
+		(* x_sc_new := x_sc @ {{ x_er }} *)
+		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
 
 	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in
@@ -2983,19 +2983,19 @@ and translate_statement tr_ctx e  =
 
 	let make_try_finally_cmds e1 e3 =
 	  (**
-									cmds1
+						cmds1
 		            	goto finally
 		    err1:    	x_err := PHI(errs1)
-									cmds_finally
-									goto err
-				finally:  x_ret_1 := PHI(breaks_1, x_1)
-				          cmds_finally
-                  goto end
-				ret_tcf:  x_ret_2 := PHI(rets1)
-				          cmds_finally
-									goto ret_label
-									break_cont_ret_finally_blocks_1
-			  end:      x_ret_3 := PHI(x_ret_1, breaks_finally)
+						cmds_finally
+						goto err
+			finally:    x_ret_1 := PHI(breaks_1, x_1)
+				        cmds_finally
+                  		goto end
+			ret_tcf: 	x_ret_2 := PHI(rets1)
+				        cmds_finally
+						goto ret_label
+						break_cont_ret_finally_blocks_1
+			end:	   	x_ret_3 := PHI(x_ret_1, breaks_finally)
 	  *)
 		let new_err1, new_err2, finally, end_label, abnormal_finally, tcf_ret = fresh_tcf_vars () in
 		let new_loop_list, jumps_mapping = rename_cont_break_list tr_ctx.tr_loop_list abnormal_finally in
@@ -3080,11 +3080,11 @@ and translate_statement tr_ctx e  =
 		 C(stmt) = cmds', x'
 		 CanBeEmpty(stmt)
 		 -------------------------
-		 C_iter(stmts; stmt) =        cmds
-						      					      cmds'
-											            goto [x' = $$empty] next end
-									         next:  skip
-											     end:   x'' := PHI(x', x)
+		 C_iter(stmts; stmt) =      cmds
+						      		cmds'
+									goto [x' = $$empty] next end
+							 next:  skip
+							 end:   x'' := PHI(x', x)
 
 
 
@@ -3092,8 +3092,8 @@ and translate_statement tr_ctx e  =
 		 C_iter(stmt) = cmds', x'
 		 !CanBeEmpty(stmt)
 		 -------------------------
-		 C_iter(stmts; stmt) =   cmds
-											       cmds'
+		 C_iter(stmts; stmt) =  cmds
+								cmds'
 
 
 		 C_iter (stmts) = cmds, x
@@ -3151,9 +3151,9 @@ and translate_statement tr_ctx e  =
 			--------------------------
 			C_dec(x = e) = cmds
 			               x_v := i__getValue(x) with err
-										 x_sf := [x__scope, fid]
-										 x_ref := ref_v(x_sf, "x")
-										 x_pv := i__putValue(x_ref, x_v) with err
+						   x_sf := [x__scope, fid]
+						   x_ref := ref_v(x_sf, "x")
+						   x_pv := i__putValue(x_ref, x_v) with err
 
 			C_dec(vdec) = cmds1
 			C_dec(vdecs) = cmds2
@@ -3166,7 +3166,7 @@ and translate_statement tr_ctx e  =
 			C_dec(vdecs) = cmds
 			--------------------------
 		  C(var vdecs) = cmds
-			               x := $$empty
+			              x := $$empty
 
      *)
 		let rec loop decs cmds errs =
@@ -4386,8 +4386,8 @@ let generate_proc_eval new_fid e vis_fid =
 			(annotate_cmd cmd None))
 		new_fid_vars in
 
-	(* x_sc_0 = x_er :: x_scope *)
-	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_er), LstCons,  (Var var_scope)))))) None in
+	(* x_sc_0 = x_scope @ {{ x_er }}  *)
+	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
 
 
 	(* x__te := TypeError () *)
@@ -4489,8 +4489,8 @@ let generate_proc offset_converter e fid params vis_fid spec =
 					(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
 				] in *)
 
-	(* x_sc_0 = x_er :: x_scope *)
-	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_er), LstCons,  (Var var_scope)))))) None in
+	(* x_sc_0 = x_scope @ {{ x_er }} *)
+	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
 
 	(* x__te := TypeError () *)
 	let cmd_ass_te = make_var_ass_te () in

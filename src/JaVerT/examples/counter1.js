@@ -1,24 +1,24 @@
 /**
 @pred counter(c, c_val) :
-   standardObject(c) *
-   dataField(c, "getCounter", #gc) *
-   dataField(c, "incCounter", #ic) *
-   dataField(c, "decCounter", #dc) *
-   fun_obj(incCounter, #ic, #ic_proto, #ic_sc) *
-   fun_obj(getCounter, #gc, #gc_proto, #gc_sc) *
-   fun_obj(decCounter, #dc, #dc_proto, #dc_sc) *
+   JSObject(c) *
+   DataProp(c, "getCounter", #gc) *
+   DataProp(c, "incCounter", #ic) *
+   DataProp(c, "decCounter", #dc) *
+   FunctionObject(#ic, "incCounter", #ic_sc, #ignore1) *
+   FunctionObject(#gc, "getCounter", #gc_sc, #ignore2) *
+   FunctionObject(#dc, "decCounter", #dc_sc, #ignore3) *
    closure(count: c_val; incCounter: #ic_sc, getCounter: #gc_sc, decCounter: #dc_sc) *
    types (c_val: $$number_type);
 */
 
 
 /**
-@toprequires (emp)
+@toprequires (initialHeapPre())
 @topensures (
    scope(make_counter: #mc) *
    scope(counter_1: #c1) *
    scope(counter_2: #c2) *
-   fun_obj(make_counter, #mc, #mc_proto, #mc_sc) *
+   FunctionObject(make_counter, #mc, #mc_sc, #ignore) *
    counter(#c1, 2) *
    counter(#c2, 1) *
    scope(count : 3))
@@ -74,4 +74,5 @@ counter_1.incCounter();
 
 counter_2.incCounter();
 
-var count = counter_1.getCounter() + counter_2.getCounter()
+var count = counter_1.getCounter() + counter_2.getCounter(); 
+count 

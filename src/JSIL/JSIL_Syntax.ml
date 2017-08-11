@@ -243,7 +243,6 @@ type jsil_logic_expr =
 	| LSetUnion of jsil_logic_expr list                          (** Unions *)
 	| LSetInter of jsil_logic_expr list                          (** Intersections *)
 	| LNone                                                      (** Empty field value *)
-	| LUnknown                                                   (** Unknown field value *)
 
 (** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =

@@ -244,8 +244,6 @@ let rec string_of_logic_expression e escape_string =
 	| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
 	(* s-nth(e1, e2) *)
 	| LStrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
-	(* $$unknown *)
-	| LUnknown -> "$$unknown"
 
 (** JSIL logic assertions *)
 let rec string_of_logic_assertion a escape_string =
@@ -756,8 +754,6 @@ let rec full_string_of_logic_expression e  =
 	| LLstNth (e1, e2) -> Printf.sprintf "(LLstNth (%s, %s))" (sle e1) (sle e2)
 	(* s-nth(e1, e2) *)
 	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
-	(* $$unknown *)
-	| LUnknown -> "LUnknown"
 
 
 let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =

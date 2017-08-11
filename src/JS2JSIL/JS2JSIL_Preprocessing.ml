@@ -188,7 +188,7 @@ let closure_clarification
         | None ->
           let new_f_id = get_codename e in
           let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id (get_all_vars_f fb args) in
-          let new_visited_funs = new_f_id :: visited_funs in
+          let new_visited_funs = visited_funs @ [ new_f_id ] in
           update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl new_visited_funs;
           Hashtbl.replace vis_tbl new_f_id new_visited_funs; 
           Some (new_f_id, new_visited_funs)
@@ -197,15 +197,15 @@ let closure_clarification
           let new_f_id_outer = new_f_id ^ "_outer" in
           let _ = update_cc_tbl_single_var_er cc_tbl f_id new_f_id_outer f_name in
           let new_f_tbl = update_cc_tbl cc_tbl new_f_id_outer new_f_id (get_all_vars_f fb args) in
-          update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: new_f_id_outer :: visited_funs);
-          Hashtbl.replace vis_tbl new_f_id (new_f_id :: new_f_id_outer :: visited_funs);
-          Some (new_f_id, (new_f_id :: new_f_id_outer :: visited_funs)))
+          update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (visited_funs @ [ new_f_id_outer; new_f_id ]);
+          Hashtbl.replace vis_tbl new_f_id (visited_funs @ [ new_f_id_outer; new_f_id ]);
+          Some (new_f_id, (visited_funs @ [ new_f_id_outer; new_f_id ])))
       | Function (_, f_name, args, fb) ->
         let new_f_id = get_codename e in
         let new_f_tbl = update_cc_tbl cc_tbl f_id new_f_id (get_all_vars_f fb args) in
-        update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (new_f_id :: visited_funs);
-        Hashtbl.replace vis_tbl new_f_id (new_f_id :: visited_funs);
-        Some (new_f_id, (new_f_id :: visited_funs))
+        update_fun_tbl fun_tbl new_f_id args (Some fb) cur_annot new_f_tbl (visited_funs @ [ new_f_id ]);
+        Hashtbl.replace vis_tbl new_f_id (visited_funs @ [ new_f_id ]);
+        Some (new_f_id, (visited_funs @ [ new_f_id ]))
       | Try (_, Some (_, _), _)  -> None 
       | _     -> state) in 
 
@@ -220,7 +220,7 @@ let closure_clarification
         let _ = Option.map (f prev_state) e3 in 
         let new_f_id = get_codename e in
         update_cc_tbl_single_var_er cc_tbl f_id new_f_id x;
-        f (Some (new_f_id, (new_f_id :: visited_funs))) e2
+        f (Some (new_f_id, (visited_funs @ [ new_f_id ]))) e2
       | _ -> [] in 
   js_fold f_ac f_state (Some (f_id, visited_funs)) exp 
 
@@ -329,13 +329,13 @@ let test_early_errors e =
 (**************************************************)
 (**************************************************)
 
-let get_predicate_defs_from_annots annots : JS2JSIL_Logic.js_logic_predicate list =
+let get_predicate_defs_from_annots annots : JSLogic.js_logic_predicate list =
   let pred_def_annots = List.filter (fun annot -> annot.annot_type == Parser_syntax.Pred) annots in 
   let pred_defs = List.map (fun pred_def -> JSIL_Utils.js_logic_pred_def_of_string ("pred " ^ pred_def.annot_formula)) pred_def_annots in 
   pred_defs 
 
 
-let get_only_specs_from_annots annots : JS2JSIL_Logic.js_spec list =
+let get_only_specs_from_annots annots : JSLogic.js_spec list =
   let only_specs_annots = List.filter (fun annot -> annot.annot_type == Parser_syntax.OnlySpec) annots in 
   List.map (fun only_spec -> JSIL_Utils.js_only_spec_from_string ("js_only_spec " ^ only_spec.annot_formula)) only_specs_annots 
   
@@ -352,7 +352,7 @@ let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e =
   let is_e_expr = not (is_stmt e) in 
   if (is_e_expr && inside_stmt_compilation) then ([], []) else (
     let lcmds   = parse_annots_formulae (List.filter is_logic_cmd_annot e.exp_annot) in 
-    let t_lcmds = JS2JSIL_Logic.js2jsil_logic_cmds cc_tbl vis_tbl fun_tbl lcmds in 
+    let t_lcmds = List.concat (List.map (JSLogic.js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl) lcmds) in 
 
     if ((List.length t_lcmds) > 0)
       then (
@@ -380,8 +380,8 @@ let translate_invariant_in_exp cc_tbl vis_tbl fun_tbl fid e =
   | [ ]           -> None 
   | [ invariant ] ->
     let a = JSIL_Utils.js_assertion_of_string invariant.annot_formula in 
-    let a' = JS2JSIL_Logic.js2jsil_logic_top_level_post a cc_tbl vis_tbl fun_tbl fid in 
-    Some (JSIL_Syntax.LStar (a', JS2JSIL_Logic.errors_assertion))      
+    let a' = JSLogic.js2jsil_spec_assertion a cc_tbl vis_tbl fun_tbl fid in 
+    Some (JSIL_Syntax.LStar (a', JSLogic.errors_assertion))      
 
 
 let translate_single_func_specs 
@@ -428,8 +428,8 @@ let translate_single_func_specs
       let post_js = JSIL_Utils.js_assertion_of_string post_str in
       (* Printf.printf "I managed to parse the js assertions\n"; *)
       
-      let pre_jsil  = JS2JSIL_Logic.js2jsil_logic_top_level_pre pre_js cc_tbl vis_tbl fun_tbl fid in
-      let post_jsil = JS2JSIL_Logic.js2jsil_logic_top_level_post post_js cc_tbl vis_tbl fun_tbl fid in
+      let pre_jsil  = JSLogic.js2jsil_spec_assertion pre_js cc_tbl vis_tbl fun_tbl fid in
+      let post_jsil = JSLogic.js2jsil_spec_assertion post_js cc_tbl vis_tbl fun_tbl fid in
       let new_spec  = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
       new_spec)
     preconditions
@@ -465,7 +465,7 @@ let translate_specs
 
 let rec get_predicate_definitions exp =
   let f_ac exp state prev_state ac = 
-    let new_pred_defs : JS2JSIL_Logic.js_logic_predicate list = (get_predicate_defs_from_annots exp.Parser_syntax.exp_annot) in 
+    let new_pred_defs : JSLogic.js_logic_predicate list = (get_predicate_defs_from_annots exp.Parser_syntax.exp_annot) in 
      new_pred_defs @ ac in 
   js_fold f_ac (fun x y -> y) true exp
 
@@ -473,11 +473,11 @@ let rec get_predicate_definitions exp =
 let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs = 
   let only_specs = Hashtbl.create medium_tbl_size in
   List.iter
-  (fun { JS2JSIL_Logic.js_spec_name; JS2JSIL_Logic.js_spec_params; JS2JSIL_Logic.js_proc_specs } ->
+  (fun { JSLogic.js_spec_name; JSLogic.js_spec_params; JSLogic.js_proc_specs } ->
     Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; main_fid ];
-    let proc_specs = List.map (fun { JS2JSIL_Logic.js_pre; JS2JSIL_Logic.js_post; JS2JSIL_Logic.js_ret_flag } -> 
-      let pre  = JS2JSIL_Logic.js2jsil_logic_top_level_pre  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
-      let post = JS2JSIL_Logic.js2jsil_logic_top_level_post js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+    let proc_specs = List.map (fun { JSLogic.js_pre; JSLogic.js_post; JSLogic.js_ret_flag } -> 
+      let pre  = JSLogic.js2jsil_spec_assertion  js_pre  cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+      let post = JSLogic.js2jsil_spec_assertion js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
         { JSIL_Syntax.pre = pre; JSIL_Syntax.post = post; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
     let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs } in
     Hashtbl.replace only_specs  js_spec_name spec;
@@ -532,9 +532,9 @@ let preprocess
   translate_specs cc_tbl vis_tbl old_fun_tbl fun_tbl;
 
   (* 7 - Translate JS Predicate Definitions        *)
-  let js_predicate_definitions : JS2JSIL_Logic.js_logic_predicate list = get_predicate_definitions e in  
+  let js_predicate_definitions : JSLogic.js_logic_predicate list = get_predicate_definitions e in  
   let jsil_predicate_definitions = 
-    List.map (fun pred_def -> JS2JSIL_Logic.translate_predicate_def pred_def cc_tbl vis_tbl old_fun_tbl) js_predicate_definitions in 
+    List.map (fun pred_def -> JSLogic.js2jsil_predicate_def pred_def cc_tbl vis_tbl old_fun_tbl) js_predicate_definitions in 
   let predicates : (string, JSIL_Syntax.jsil_logic_predicate) Hashtbl.t = JSIL_Syntax.pred_def_tbl_from_list jsil_predicate_definitions in 
   
   e, only_specs, predicates

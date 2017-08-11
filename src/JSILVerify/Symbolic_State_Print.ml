@@ -13,7 +13,7 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 						(fun prop hval printed_obj ->
 							let printed_hval = string_of_literal hval false in
 							let printed_cell = Printf.sprintf "\n\"%s\": %s" prop printed_hval in
-							if (printed_obj = "") then printed_cell else ", " ^ printed_cell)
+							if (printed_obj = "") then printed_cell else printed_obj ^ ", " ^ printed_cell)
 						obj
 						"") in
 				let printed_obj = loc ^ "-> [" ^ printed_props ^ "]\n" in

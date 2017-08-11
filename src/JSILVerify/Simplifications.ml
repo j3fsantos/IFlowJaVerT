@@ -524,7 +524,7 @@ let rec reduce_assertion store gamma pfs a =
 		let re1 = fe e1 in
 		let re2 = fe e2 in
 		(* Warning - NaNs, infinities, this and that, this is not good enough *)
-		let eq = (re1 = re2) && (re1 <> LUnknown) in
+		let eq = (re1 = re2) in
 		if eq then LTrue
 		else
 		let ite a b = if (a = b) then LTrue else LFalse in

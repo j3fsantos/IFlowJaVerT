@@ -171,8 +171,6 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 			then (true, None)
 			else (false, None)
 
-  | LUnknown -> (le = LUnknown, None)
-
 	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
 			print_debug_petar (Printf.sprintf " ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le)); 
 			let osubst = Simplifications.unify_lists le_pat le false in
@@ -584,15 +582,6 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 					LHeap.add quotient_heap loc (fv_list, def))
 			heap;
 
-		(*
-		LHeap.iter
-			(fun loc (fv_list, def) ->
-				match def with
-				| LUnknown ->
-					if ((List.length fv_list) = 0)
-						then LHeap.remove quotient_heap loc
-				| _ -> ())
-			quotient_heap; *)
 
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "unify_symb_heaps" (end_time -. start_time);

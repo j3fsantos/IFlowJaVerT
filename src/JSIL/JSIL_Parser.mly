@@ -1,7 +1,7 @@
 %{
 open JSIL_Syntax
 open JSIL_Syntax_Checks
-open JS2JSIL_Logic
+open JSLogic
 
 (* Tables where we collect the predicates and the procedures as we parse them. *)
 let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
@@ -261,12 +261,12 @@ let copy_and_clear_globals () =
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
-%type <JS2JSIL_Logic.js_logic_predicate> js_pred_target
+%type <JSLogic.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
-%type <JS2JSIL_Logic.js_logic_assertion> top_level_js_assertion_target
+%type <JSLogic.js_logic_assertion> top_level_js_assertion_target
 %type <JSIL_Syntax.jsil_lemma> jsil_lemma_target
-%type <JS2JSIL_Logic.js_spec> js_only_spec_target
-%type <JS2JSIL_Logic.js_logic_command list> js_logic_cmds_target
+%type <JSLogic.js_spec> js_only_spec_target
+%type <JSLogic.js_logic_command list> js_logic_cmds_target
 
 %type<jsil_constant> constant_target
 
@@ -1116,9 +1116,6 @@ js_assertion_target:
 (* E --s-- E *)
 	| left_expr=js_lexpr_target; LSETSUB; right_expr=js_lexpr_target
 		{ JSLSetSub (left_expr, right_expr) }
-(* fun_obj (x, le, le) *)
-	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; f_scope_chain=option(js_lexpr_preceded_by_comma_target); RBRACE
-		{ JSFunObj(f_id, f_loc, f_prototype, f_scope_chain) }
 (* closure(x_0: le_0, ..., x_n: le_n; fid_0: le_0', ..., fid_n: le_n') *)
 	| CLOSURE; LBRACE; var_les=separated_list(COMMA, var_js_le_pair_target); SCOLON; fid_scs=separated_list(COMMA, var_js_le_pair_target); RBRACE
 		{	JSClosure (var_les, fid_scs)	}
@@ -1128,9 +1125,7 @@ js_assertion_target:
 (* o_chains(pid1: le1, pid2: le2) *)
 	| OCHAINS; LBRACE; pid1=VAR; COLON; le1=js_lexpr_target; COMMA; pid2=VAR; COLON; le2=js_lexpr_target; RBRACE
 		{ JSOSChains (pid1, le1, pid2, le2) }
-	| OCS; LBRACE; pid=VAR; COLON; le=js_lexpr_target; RBRACE
-		{ JSOCS (pid, le) }
-(* empty_fields (le : lit1, lit2, lit3, ...) *)
+(* empty_fields (le : le_domain) *)
 	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; domain=js_lexpr_target; RBRACE
 		{ JSEmptyFields (le, domain) }
 (* (P) *)

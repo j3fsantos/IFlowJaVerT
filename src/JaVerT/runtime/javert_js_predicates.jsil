@@ -2,32 +2,32 @@
  **** JAVASCRIPT ****
  ********************)
 
-pred standardObject (l) :
+pred JSObject (l) :
     types (l : $$object_type) *
 	((l, "@proto") -> $lobj_proto) *
 	((l, "@class") -> "Object") *
 	((l, "@extensible") -> $$t);
 
-pred dataField (l, prop, v) :
+pred DataProp (l, prop, v) :
     types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> {{ "d", v, $$t, $$t, $$t }}) *
 	(! (v == $$empty));
 	
-pred dataFieldGeneral (l, prop, v, writ, enum, conf) : 
+pred DataPropGen (l, prop, v, writ, enum, conf) : 
 	types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> {{ "d", v, writ, enum, conf }}) *
 	(! (v == $$empty)) * types (writ : $$boolean_type, enum : $$boolean_type, conf : $$boolean_type);
 	
-pred dataFieldConst (l, prop, v) :
+pred DataPropConst (l, prop, v) :
     types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> {{ "d", v, $$f, $$f, $$f }}) *
 	(! (v == $$empty));
 	
-pred emptyField (l, prop) :
+pred EmptyProp (l, prop) :
 	types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> None);
 	
-pred ObjectWithProto (l, proto) :
+pred JsObjWithProto (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
@@ -38,3 +38,17 @@ pred ErrorObjectWithMessage (l, m) :
   ((l, "@proto") -> $lerr_proto) * ((l, "@class") -> "Error") *
   ((l, "@extensible") -> $$t) *
   ((l, "message") -> {{"d", m, $$t, $$f, $$t}});
+
+pred FunctionObject (l, fid, sc, proto) : 
+	((l, "@proto") -> $lfun_proto) * 
+	((l, "@class") -> "Function") *
+	((l, "@extensible") -> $$t) * 
+	((l, "@call") -> fid) * 
+	((l, "@construct") -> fid) *
+	((l, "@scope") -> sc) * 
+	((l, "length")    -> #ignore1) *
+	((l, "arguments") -> #ignore2) *
+	((l, "caller")    -> #ignore3) *
+	((l, "prototype") -> {{ "d", proto, $$t, $$f, $$f }}) *
+	types(sc : $$list_type, fid: $$string_type) *
+	empty_fields(l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "arguments", "caller", "prototype" }- ); 

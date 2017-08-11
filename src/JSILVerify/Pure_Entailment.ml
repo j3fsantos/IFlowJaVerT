@@ -1144,7 +1144,7 @@ let check_entailment (existentials : SS.t)
 let is_equal_on_lexprs e1 e2 pfs : bool option =
 (match (e1 = e2) with
 (* This true check is not good enough, things could creep in with Unknowns *)
-| true -> Some (not (e1 = LUnknown))
+| true -> Some true
 | false -> (match e1, e2 with
 
 	| LLit (String str), LVar x
