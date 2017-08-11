@@ -556,7 +556,7 @@ let pre_normalise_invariants_prog preds prog =
 	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc preds proc.proc_body) prog
 
 let normalise_single_spec preds spec =
-	print_time_debug"  normalise_single_spec:";
+	print_time_debug"normalise_single_spec:";
 
 	print_debug (Printf.sprintf "Precondition  : %s" (JSIL_Print.string_of_logic_assertion spec.pre false));
 	print_debug (Printf.sprintf "Postcondition : %s" (JSIL_Print.string_of_logic_assertion spec.post false));

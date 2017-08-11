@@ -112,7 +112,10 @@ let rec logic_expression_fold f_atom f_fold lexpr =
   | LBinOp (e1, op, e2)   -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
   | LUnOp (op, e)         -> f_fold lexpr [ (fold_e e) ]
   | LTypeOf e             -> f_fold lexpr [ (fold_e e) ]
-  | LEList le             -> f_fold lexpr (List.map fold_e le)
+  | LEList le
+	| LESet     le
+	| LSetUnion le
+	| LSetInter le          -> f_fold lexpr (List.map fold_e le)
   | LLstNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
   | LStrNth (e1, e2)      -> f_fold lexpr [ (fold_e e1); (fold_e e2) ]
 
