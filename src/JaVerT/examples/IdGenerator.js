@@ -1,20 +1,19 @@
 /**
 @pred idGenerator(ig, c_val, prefix) :
    JSObject(ig) * 
-   DataProp(ig, "getId", #gni) * fun_obj(getId, #gni, #gni_proto, #gni_sc) *
-   types (c_val: $$number_type, prefix: $$string_type) *
-  
-   dataField(ig, "reset",  #ri) * fun_obj(reset,  #ri,  #ri_proto,  #ri_sc) *
-   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc);
+   DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
+   DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
+   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc) * 
+   types (c_val: $$number_type, prefix: $$string_type);
 */
 
 /**
-	@toprequires (emp)
+	@toprequires (initialHeapPre())
 	@topensures (
 	   scope(makeIdGen: #mig) *
 	   scope(ig1: #ig1) *
 	   scope(ig2: #ig2) *
-	   fun_obj(makeIdGen, #mig, #mig_proto, #mig_sc) *
+	   FunctionObject(#mig, "makeIdGen", #mig_sc, _) *
 	   idGenerator(#ig1, 1, "foo") *
 	   idGenerator(#ig2, 0, "bar") * 
 	   scope(id1: #id1) *
