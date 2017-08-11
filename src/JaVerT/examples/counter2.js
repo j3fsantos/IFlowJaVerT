@@ -3,8 +3,8 @@
 	JSObject(c) *
   	DataProp(c, "getCounter", #gc) *
   	DataProp(c, "incCounter", #ic) *
-  	FunctionObject(#gc, "get_counter", #gc_sc, #ignore2) *
-   	FunctionObject(#ic, "inc_counter", #ic_sc, #ignore1) *
+  	FunctionObject(#gc, "get_counter", #gc_sc, _) *
+   	FunctionObject(#ic, "inc_counter", #ic_sc, _) *
   	sc_scope(inc_counter, c: c_val, #ic_sc) *
    	o_chains(inc_counter: #ic_sc, get_counter: #gc_sc) * 
    	types (c_val: $$number_type);
@@ -17,7 +17,7 @@
    scope(make_counter: #mc) *
    scope(counter_1: #c1) *
    scope(counter_2: #c2) *
-   FunctionObject(#mc, "make_counter", #mc_sc, #ignore) *
+   FunctionObject(#mc, "make_counter", #mc_sc, _) *
    counter(#c1, 1) *
    counter(#c2, 0) * 
    scope(x: 1))

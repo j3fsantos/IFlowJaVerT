@@ -32,6 +32,7 @@ let copy_and_clear_globals () =
 %token SCSCOPE
 %token OCHAINS
 %token OCS
+%token UNDERSCORE
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -1198,6 +1199,9 @@ js_lexpr_target:
 (* (e) *)
   | LBRACE; e=js_lexpr_target; RBRACE
 	  { e }
+(* _ *)
+  | UNDERSCORE 
+  	{ JSLVar (JSLogic.fresh_lvar ()) }
 ;
 
 js_type_env_pair_target:

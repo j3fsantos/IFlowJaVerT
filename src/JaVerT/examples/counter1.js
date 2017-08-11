@@ -4,9 +4,9 @@
    DataProp(c, "getCounter", #gc) *
    DataProp(c, "incCounter", #ic) *
    DataProp(c, "decCounter", #dc) *
-   FunctionObject(#ic, "incCounter", #ic_sc, #ignore1) *
-   FunctionObject(#gc, "getCounter", #gc_sc, #ignore2) *
-   FunctionObject(#dc, "decCounter", #dc_sc, #ignore3) *
+   FunctionObject(#ic, "incCounter", #ic_sc, _) *
+   FunctionObject(#gc, "getCounter", #gc_sc, _) *
+   FunctionObject(#dc, "decCounter", #dc_sc, _) *
    closure(count: c_val; incCounter: #ic_sc, getCounter: #gc_sc, decCounter: #dc_sc) *
    types (c_val: $$number_type);
 */
@@ -18,7 +18,7 @@
    scope(make_counter: #mc) *
    scope(counter_1: #c1) *
    scope(counter_2: #c2) *
-   FunctionObject(#mc, "make_counter", #mc_sc, #ignore) *
+   FunctionObject(#mc, "make_counter", #mc_sc, _) *
    counter(#c1, 2) *
    counter(#c2, 1) *
    scope(count : 3))

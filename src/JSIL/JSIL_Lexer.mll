@@ -13,15 +13,16 @@ let newline = '\r' | '\n' | "\r\n"
 
 rule read = parse
 	| white       	       { read lexbuf }
-	|	newline	             { new_line lexbuf; read lexbuf }
+	| newline	             { new_line lexbuf; read lexbuf }
 (* js logic tokens *)
-	| "scope"              { JSIL_Parser.SCOPE     }
-	| "this"               { JSIL_Parser.THIS      }
-	| "fun_obj"            { JSIL_Parser.FUNOBJ    }
-	| "closure"            { JSIL_Parser.CLOSURE   }
-	| "sc_scope"           { JSIL_Parser.SCSCOPE   }
-	| "o_chains"           { JSIL_Parser.OCHAINS   }
-	| "o_sc"               { JSIL_Parser.OCS       }
+	| "scope"              { JSIL_Parser.SCOPE         }
+	| "this"               { JSIL_Parser.THIS          }
+	| "fun_obj"            { JSIL_Parser.FUNOBJ        }
+	| "closure"            { JSIL_Parser.CLOSURE       }
+	| "sc_scope"           { JSIL_Parser.SCSCOPE       }
+	| "o_chains"           { JSIL_Parser.OCHAINS       }
+	| "o_sc"               { JSIL_Parser.OCS           }
+	| "_"                  { JSIL_Parser.UNDERSCORE    }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT  }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT   }

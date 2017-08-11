@@ -1,7 +1,9 @@
 /**
 @pred idGenerator(ig, c_val, prefix) :
-   standardObject(ig) * types (c_val: $$number_type, prefix: $$string_type) *
-   dataField(ig, "getId", #gni) * fun_obj(getId, #gni, #gni_proto, #gni_sc) *
+   JSObject(ig) * 
+   DataProp(ig, "getId", #gni) * fun_obj(getId, #gni, #gni_proto, #gni_sc) *
+   types (c_val: $$number_type, prefix: $$string_type) *
+  
    dataField(ig, "reset",  #ri) * fun_obj(reset,  #ri,  #ri_proto,  #ri_sc) *
    closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc);
 */
