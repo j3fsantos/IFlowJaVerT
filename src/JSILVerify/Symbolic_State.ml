@@ -144,7 +144,7 @@ let fv_list_substitution fv_list subst partial =
 let selective_fv_list_substitution fv_list subst partial =
 	List.map
 		(fun (le_field, le_val) ->
-			let s_le_val = JSIL_Logic_Utils.lexpr_substitution le_val subst partial in
+			let s_le_val = JSIL_Logic_Utils.lexpr_selective_substitution le_val subst partial in
 			(le_field, s_le_val))
 		fv_list
 
@@ -391,14 +391,13 @@ let store_substitution_in_place store gamma subst =
 let selective_store_substitution_in_place store gamma subst =
 	Hashtbl.iter
 		(fun pvar le ->
-			let s_le = JSIL_Logic_Utils.lexpr_substitution le subst true in
-			(match s_le with
-			| ALoc loc -> Hashtbl.replace store pvar s_le;
-					let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
-					(match s_le_type with
-						| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
-						| None -> ())
-			| _ -> ()))
+			let s_le = JSIL_Logic_Utils.lexpr_selective_substitution le subst true in
+			Hashtbl.replace store pvar s_le;
+
+			let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
+			(match s_le_type with
+				| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
+				| None -> ()))
 		store
 
 let store_vars catch_pvars store =
@@ -526,24 +525,24 @@ let copy_pred_set preds =
 	let new_preds = DynArray.copy preds in
 	new_preds
 
-let pred_substitution pred subst partial =
+let pred_substitution pred subst partial lexpr_subst =
 	let pred_name, les = pred in
-	let s_les = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst partial)  les in
+	let s_les = List.map (fun le -> lexpr_subst le subst partial)  les in
 	(pred_name, s_les)
 
-let preds_substitution preds subst partial =
+let preds_substitution preds subst partial lexpr_subst =
 	let len = DynArray.length preds in
 	let new_preds = DynArray.create () in
 	for i=0 to len - 1 do
 		let pred = DynArray.get preds i in
-		let s_pred = pred_substitution pred subst partial in
+		let s_pred = pred_substitution pred subst partial lexpr_subst in
 		DynArray.add new_preds s_pred
 	done;
 	new_preds
 
-let preds_substitution_in_place preds subst =
+let preds_substitution_in_place preds subst lexpr_subst =
 	DynArray.iteri (fun i pred ->
-		let s_pred = pred_substitution pred subst true in
+		let s_pred = pred_substitution pred subst true lexpr_subst in
 		DynArray.set preds i s_pred) preds
 
 let extend_pred_set preds pred_assertion =
@@ -723,7 +722,7 @@ let symb_state_substitution (symb_state : symbolic_state) subst partial =
 	let s_store = store_substitution store gamma subst partial in
 	let s_pf = pf_substitution pf subst partial  in
 	let s_gamma = gamma_substitution gamma subst partial in
-	let s_preds = preds_substitution preds subst partial in
+	let s_preds = preds_substitution preds subst partial (JSIL_Logic_Utils.lexpr_substitution) in
 	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
 let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
@@ -731,7 +730,7 @@ let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subs
 		heap_substitution_in_place heap subst;
 		store_substitution_in_place store gamma subst;
 		pf_substitution_in_place pf subst;
-		preds_substitution_in_place preds subst
+		preds_substitution_in_place preds subst (JSIL_Logic_Utils.lexpr_substitution)
 
 let string_of_substitution substitution =
 	let str =
@@ -748,7 +747,7 @@ let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_s
 	let heap, store, pf, gamma, preds = symb_state in
 		pf_substitution_in_place pf subst;
 		store_substitution_in_place store gamma subst;
-		preds_substitution_in_place preds subst;
+		preds_substitution_in_place preds subst (JSIL_Logic_Utils.lexpr_selective_substitution);
 		selective_heap_substitution_in_place heap subst
 
 let get_symb_state_vars catch_pvars symb_state =
