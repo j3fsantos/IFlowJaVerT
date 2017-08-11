@@ -1,27 +1,26 @@
 /**
 @pred counter(c, c_val) :
-   standardObject(c) *
-   dataField(c, "getCounter", #gc) *
-   dataField(c, "incCounter", #ic) *
-   fun_obj(inc_counter, #ic, #ic_proto, #ic_sc) *
-   sc_scope(inc_counter, c: c_val, #ic_sc) *
-   fun_obj(get_counter, #gc, #gc_proto, #gc_sc) * 
-   o_chains(inc_counter: #ic_sc, get_counter: #gc_sc) * 
-   types (c_val: $$number_type);
+	JSObject(c) *
+  	DataProp(c, "getCounter", #gc) *
+  	DataProp(c, "incCounter", #ic) *
+  	FunctionObject(#gc, "get_counter", #gc_sc, #ignore2) *
+   	FunctionObject(#ic, "inc_counter", #ic_sc, #ignore1) *
+  	sc_scope(inc_counter, c: c_val, #ic_sc) *
+   	o_chains(inc_counter: #ic_sc, get_counter: #gc_sc) * 
+   	types (c_val: $$number_type);
 */
 
 
 /**
-@toprequires (emp)
+@toprequires (initialHeapPre())
 @topensures (
    scope(make_counter: #mc) *
    scope(counter_1: #c1) *
    scope(counter_2: #c2) *
-   fun_obj(make_counter, #mc, #mc_proto, #mc_sc) *
+   FunctionObject(#mc, "make_counter", #mc_sc, #ignore) *
    counter(#c1, 1) *
    counter(#c2, 0) * 
-   scope(x: #x) *
-   (#x == 1))
+   scope(x: 1))
 */
 
 
