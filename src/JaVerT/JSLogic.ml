@@ -379,8 +379,10 @@ let rec js2jsil_single_spec
 	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
 	let vis_list = get_vis_list vis_tbl fid in  
 
-	let scope_chain_list = Array.to_list (Array.init ((List.length vis_list) - 1) (fun j -> fresh_lvar ())) in 
-	let scope_chain_list = List.map (fun v -> LVar v) scope_chain_list in 
+	let scope_chain_list = 
+		Array.to_list (
+			Array.init ((List.length vis_list) - 1) 
+			(fun j -> if (j = 0) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fresh_lvar ()))) in 
 
 	let pre'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) pre in
 	let post' = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope_final) post in
