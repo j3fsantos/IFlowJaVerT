@@ -252,7 +252,7 @@ let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substit
   				| ALoc loc -> loc
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = fv_list in (* selective_fv_list_substitution fv_list subst true in *)
+  		let s_fv_list = selective_fv_list_substitution fv_list subst true in
   		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst true) domain in
   		LHeap.replace heap s_loc (s_fv_list, s_domain))
   	heap
@@ -732,6 +732,17 @@ let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subs
 		store_substitution_in_place store gamma subst;
 		pf_substitution_in_place pf subst;
 		preds_substitution_in_place preds subst
+
+let string_of_substitution substitution =
+	let str =
+		(Hashtbl.fold
+			(fun (var : string) (le : jsil_logic_expr) (ac : string) ->
+				let le_str = JSIL_Print.string_of_logic_expression le false in
+				let var_le_str = var ^ ": " ^ le_str  in
+				if (ac = "\n\t") then (ac ^ var_le_str) else ac ^ ";\n\t " ^ var_le_str)
+			substitution
+			"\n\t") in
+	"substitution: " ^ str ^ "\n"
 
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
 	let heap, store, pf, gamma, preds = symb_state in
