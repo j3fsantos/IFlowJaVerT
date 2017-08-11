@@ -1414,7 +1414,9 @@ let simplify_symb_state
 
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
-	
+
+	(* print_debug_petar (Printf.sprintf "Symbolic state before simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *) 
+
 	(* let cache_key = simpl_encache_key vars_to_save other_pfs existentials symb_state in
 	let cached = Hashtbl.mem simpl_cache cache_key in
 	if cached then (
@@ -1617,6 +1619,8 @@ let simplify_symb_state
 								| _, _ -> v, le))
 					| _ -> v, le) in
 					
+					print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (print_lexpr le));
+					
 					let lvars_le = get_logic_expression_lvars le in
 					(match (SS.mem v lvars_le) with
 					| true -> n := !n + 1
@@ -1635,10 +1639,12 @@ let simplify_symb_state
 							let temp_subst = Hashtbl.create 1 in
 							Hashtbl.add temp_subst v le;
 							
-							let simpl_fun = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
-								| false -> symb_state_substitution_in_place_no_gamma
-								| true -> selective_symb_state_substitution_in_place_no_gamma
+							let simpl_fun, how_subst = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
+								| false -> symb_state_substitution_in_place_no_gamma, "general"
+								| true -> selective_symb_state_substitution_in_place_no_gamma, "selective"
 								) in
+							
+							(* print_debug_petar (Printf.sprintf "The substitution will be: %s" how_subst); *)
 							
 							simpl_fun !symb_state temp_subst;
 							pf_substitution_in_place !others temp_subst;
@@ -1857,7 +1863,7 @@ let simplify_symb_state
 
 	let others = ref (DynArray.map (assertion_map None le_list_to_string) !others) in
 
-	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
+	(* print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
