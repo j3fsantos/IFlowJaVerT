@@ -12,6 +12,15 @@ let new_abs_loc_name var = abs_loc_prefix ^ var
 
 let new_lvar_name var = lvar_prefix ^ var
 
+
+(*  -----------------------------------------------------
+	List Preprocessing
+	-----------------------------------------------------
+	Preprocessing list logical expressions for which we know the length statically. 
+	if a |- l-len(le) = i, where i is a concrete number, we add the 
+	assertion le = {{ #x1, ..., #xi }} to a and replace all the occurrences of 
+	l-nth(le, j) for #xj in a 
+*)
 let pre_process_list_exprs (a : jsil_logic_assertion) = 
 
 	(* 1 - Find the lists for which we know the length *)
@@ -74,11 +83,13 @@ let pre_process_list_exprs (a : jsil_logic_assertion) =
 
 
 
-
-
-
-let rec normalise_pure_assertion (store : symbolic_store) (gamma : typing_environment)
-		(subst : substitution) (assertion : jsil_logic_assertion) =
+(*  -----------------------------------------------------
+	Normalise Pure Assertion
+	-----------------------------------------------------
+*)
+let rec normalise_pure_assertion 
+		(store : symbolic_store) (gamma : typing_environment)
+		(subst : substitution) (assertion : jsil_logic_assertion) : jsil_logic_assertion =
 	let fa = normalise_pure_assertion store gamma subst in
 	let fe = normalise_lexpr ~store:store ~subst:subst gamma in
 	let start_time = Sys.time() in
@@ -116,14 +127,17 @@ let rec normalise_pure_assertion (store : symbolic_store) (gamma : typing_enviro
 		raise (Failure msg)
 
 
-(**
+(** -------------------------------------------------------------------
+  * init_alocs: Generate the abstract locations for the normalised spec
+  * -------------------------------------------------------------------
   * This function creates an abstract location for every program variable used in
   * a cell assertion or empty fields assertion.
   * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh
 **)
-let rec init_symb_store_alocs (store : symbolic_store) (gamma : typing_environment)
-		(subst : substitution) (ass : jsil_logic_assertion) : unit =
-	let f = init_symb_store_alocs store gamma subst in
+let rec init_alocs 
+	(store : symbolic_store) (gamma : typing_environment)
+	(subst : substitution) (ass : jsil_logic_assertion) : unit =
+	let f = init_alocs store gamma subst in
 	match ass with
 	| LStar (a_left, a_right) ->
 			f a_left; f a_right
@@ -152,13 +166,21 @@ let rec init_symb_store_alocs (store : symbolic_store) (gamma : typing_environme
 
 
 
-let init_pure_assignments a store gamma subst =
+(** -----------------------------------------------------
+  * Init Pure Assignments
+  * -----------------------------------------------------
+  * This function creates an abstract location for every program variable used in
+  * a cell assertion or empty fields assertion.
+  * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh
+**)
+let normalise_pure_assertons a store gamma subst =
 
 	let pure_assignments = Hashtbl.create 31 in
 	let non_store_pure_assertions = Stack.create () in
 
 	(**
-	* After putting the variables that have assignents of the kind:
+    * --------------------------------------------------------------------
+	* After putting the program variables that have assignents of the kind:
 	* x = E (where E is a logical expression) in the store,
 	* we have to normalise the remaining pure assertions
 	*)
@@ -175,11 +197,13 @@ let init_pure_assignments a store gamma subst =
 		done;
 
 		(* Prints *)
-		print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
-		print_debug_petar (Symbolic_State_Print.string_of_substitution subst);
+	 	(* print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
+		print_debug_petar (Symbolic_State_Print.string_of_substitution subst); *)
 
 		let non_store_pure_assertions_array, _ = Simplifications.simplify_pfs non_store_pure_assertions_array gamma (Some None) in
 		non_store_pure_assertions_array in
+
+
 
 	(**
 	* Given an assertion a, this function returns the list of pure assignments in a.
@@ -307,6 +331,9 @@ let init_pure_assignments a store gamma subst =
 	normalise_pure_assignments succs p_vars p_vars_tbl;
 	fill_store (get_assertion_vars true a);
 	normalise_pure_assertions ()
+
+
+
 
 
 
@@ -531,9 +558,9 @@ let normalise_assertion a : symbolic_state * substitution =
 
 	try (
 		init_gamma gamma a;
-		init_symb_store_alocs store gamma subst a;
+		init_alocs store gamma subst a;
 
-		let p_formulae = init_pure_assignments a store gamma subst in
+		let p_formulae = normalise_pure_assertons a store gamma subst in
 
 		 (match (DynArray.to_list p_formulae) with
 		 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1
