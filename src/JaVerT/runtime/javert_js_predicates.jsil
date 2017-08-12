@@ -27,7 +27,7 @@ pred EmptyProp (l, prop) :
 	types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> None);
 	
-pred JsObjWithProto (l, proto) :
+pred JSObjWithProto (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *

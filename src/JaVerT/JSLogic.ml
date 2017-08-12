@@ -239,12 +239,14 @@ let rec js2jsil_assertion
 		(fid : string)
 		(le_sc : js_logic_expr) 
 		(a : jsil_logic_assertion) : jsil_logic_assertion = 
-		if (le_sc = JSLScope) then a else (
-			let vis_list = get_vis_list vis_tbl fid in  
-			let le_sc'   = fe le_sc in 
-			let a_1 = LEq (LUnOp (LstLen, le_sc'), LLit (Num (float_of_int ((List.length vis_list) - 1)))) in 
-			let a_2 = LEq (LLstNth (le_sc', LLit (Num 0.)), LLit (Loc JS2JSIL_Constants.locGlobName)) in 
-				LStar (a, LStar (a_1, a_2))) in 
+			match le_sc with 
+			| JSLScope -> a 
+			| _        -> 
+				let vis_list = get_vis_list vis_tbl fid in  
+				let le_sc'   = fe le_sc in 
+				let a_1 = LEq (LUnOp (LstLen, le_sc'), LLit (Num (float_of_int ((List.length vis_list) - 1)))) in 
+				let a_2 = LEq (LLstNth (le_sc', LLit (Num 0.)), LLit (Loc JS2JSIL_Constants.locGlobName)) in 
+				LStar (a, LStar (a_1, a_2)) in 
 	
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))

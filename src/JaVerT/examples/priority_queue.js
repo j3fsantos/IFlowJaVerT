@@ -1,21 +1,21 @@
 /**
 	@pred Node(n, pri, val, next, np) :
-		ObjectWithProto(n, np)     * types(np : $$object_type) *
-		dataField(n, "pri",  pri)  * types(pri : $$number_type) * (0 <# pri) *
-		dataField(n, "val",  val)  *
-		dataField(n, "next", next) *
+		JSObjWithProto(n, np)      * types(np : $$object_type) *
+		DataProp(n, "pri",  pri)   * types(pri : $$number_type) * (0 <# pri) *
+		DataProp(n, "val",  val)   *
+		DataProp(n, "next", next)  *
 		((n, "insert") -> None);
 	
 	
 	@pred NodePrototype(np) :
-		standardObject(np) *
-		dataField(np, "insert", #insert_loc) *
-		fun_obj(insert, #insert_loc, #insert_proto) *
-		((np, "pri") -> None) *
-		((np, "val") -> None) *
+		JSObject(np) *
+		DataProp(np, "insert", #insert_loc) *
+		FunctionObject(#insert_loc, "insert", _, #insert_proto) *
+		((np, "pri") -> None) * 
+		((np, "val") -> None) * 
 		((np, "next") -> None);
 	
-	
+
 	@pred NodeList(nl, np, max_pri, length) :
 		(nl == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
 	
@@ -26,47 +26,42 @@
 	
 	
 	@pred Queue(pq, qp, np, max_pri, length) :
-		ObjectWithProto(pq, qp) * types(qp : $$object_type) *
-		dataField(pq, "_head",  #head) *
+		JSObjWithProto(pq, qp) * types(qp : $$object_type) *
+		DataProp(pq, "_head",  #head) *
 		NodeList(#head, np, max_pri, length) * types(max_pri : $$number_type, length : $$number_type) *
-		((pq, "enqueue") -> None) *
+		((pq, "enqueue") -> None) * 
 		((pq, "dequeue") -> None);
 	
 	
 	@pred QueuePrototype(qp, np, c, enq_sc):
-		standardObject(qp) *
-		dataField(qp, "enqueue", #enqueue_loc) *
-		fun_obj(enqueue, #enqueue_loc, #enqueue_proto, enq_sc) *
-		dataField(qp, "dequeue", #dequeue_loc) *
-		fun_obj(dequeue, #dequeue_loc, #dequeue_proto, #dequeue_sc) *
+		JSObject(qp) *
+		DataProp(qp, "enqueue", #enqueue_loc) * FunctionObject(#enqueue_loc, "enqueue", enq_sc, _) *
+		DataProp(qp, "dequeue", #dequeue_loc) * FunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _) *
 		((qp, "_head") -> None) *
-		fun_obj(Node, #n, np, #node_sc) *
-		NodePrototype(np) * 
+		FunctionObject(#n, "Node", #node_sc, np) * NodePrototype(np) * 
 		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc) * 
 		types(c : $$number_type);
 	
+
 	@pred PriorityQueueModule(pq) :
 	  QueuePrototype(#pqp, #np, 0, #sc) *
-	  fun_obj(PriorityQueue, pq, #pqp, #pq_sc) *
+	  FunctionObject(pq, "PriorityQueue", #pq_sc, #pqp) *
 	  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
 */
 
 /**
-	@toprequires 
-		emp
-	
-	@topensures
+	@toprequires (initialHeapPre())
+	@topensures (
 		scope(q : #q) * scope(r : #r) *
 		Queue(#q, #pqp, #np, #pri_q, 2) *
-		standardObject(#r) * dataField(#r, "pri", #3) *
-		dataField(#r, "val", #some_val) *
-		(ret == #r)
+		JSObject(#r) * DataProp(#r, "pri", #3) * DataProp(#r, "val", _) * (ret == #r)
+	)
 */
 
 /** 
  	@id PQLib
-    @pre (emp)
-    @post ((ret == #pq) * PriorityQueueModule(#pq))
+    @pre  (initialHeapPost())
+    @post (initialHeapPost() * PriorityQueueModule (ret))
 */
 var PriorityQueue = (function () {
 
@@ -76,14 +71,16 @@ var PriorityQueue = (function () {
 	 	@id  Node
 	
 	 	@pre (
+	 		initialHeapPost() * 
 	 	   	(pri == #pri) * types(#pri: $$number_type) * (0 <# #pri) *
 	 	   	(val == #val) *
 	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
 	 	   	((this, "insert") -> None) *
-	 	   	ObjectWithProto(this, #np) * NodePrototype(#np) *
+	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
 	 	   	scope(counter : #c) * types(#c : $$number_type)
 	 	)
 	 	@post (
+	 		initialHeapPost() * 
 			Node(this, #pri, #val, $$null, #np) * 
 			NodePrototype(#np) * 
 			scope(counter : #c + 1)
@@ -151,14 +148,16 @@ var PriorityQueue = (function () {
 	    @id  PriorityQueue
 	
 		@pre (
+			initialHeapPost() * 
 	        ((this, "_head") -> None) *
 	        ((this, "enqueue") -> None) *
 	        ((this, "dequeue") -> None) *
-	        ObjectWithProto(this, #pqp) *
-	        o_sc(enqueue: #sc) *
+	        JSObjWithProto(this, #pqp) *
+	        o_chains(enqueue: #sc, PQLib: $$scope) *
 	        QueuePrototype(#pqp, #np, #c, #sc)
 	    )
 	    @post (
+	    	initialHeapPost() * 
 	    	Queue(this, #pqp, #np, 0, 0) *
 	    	QueuePrototype(#pqp, #np, #c, #sc)
 	    )
@@ -172,27 +171,31 @@ var PriorityQueue = (function () {
 		@id enqueue
 				
 		@pre (
+			initialHeapPost() * 
 			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
 			(val == #val) *
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
-			o_sc(enqueue: #sc) *
+			o_chains(enqueue: #sc, PQLib: $$scope) *
 			(#pri <=# #pri_q)
 		)
 		@post (
+			initialHeapPost() * 
 			Queue(this, #pqp, #np, #pri_q, #length + 1) *
 			QueuePrototype(#pqp, #np, #c + 1, #sc)
 		)
 		
 		@pre (
+			initialHeapPost() * 
 			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
 			(val == #val) *
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
-			o_sc(enqueue: #sc) *
+			o_chains(enqueue: #sc, PQLib: $$scope) *
 			(#pri_q <# #pri)
 		)
 		@post (
+			initialHeapPost() * 
 			Queue(this, #pqp, #np, #pri, #length + 1) *
 			QueuePrototype(#pqp, #np, #c + 1, #sc)
 		)
@@ -208,21 +211,23 @@ var PriorityQueue = (function () {
      @pre (
        Queue(this, #pqp, #np, #pri_q, #length) * 
        QueuePrototype(#pqp, #np, #c, #sc) *
-       o_sc(enqueue: #sc) *
+       o_chains(enqueue: #sc, dequeue: $$scope) *
        (0 <# #length)
      )
      @post (
        Queue(this, #pqp, #np, #new_pri_q, #length - 1) *
        QueuePrototype(#pqp, #np, #c - 1, #sc) *
-       (ret == #r) * standardObject(#r) * 
-       dataField(#r, "pri", #pri_q) * dataField(#r, "val", #some_val)
+       (ret == #r) * JSObject(#r) * 
+       DataProp(#r, "pri", #pri_q) * DataProp(#r, "val", #some_val)
      )
      @pre (
+       initialHeapPost() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       o_sc(enqueue: #sc)
+       o_chains(enqueue: #sc, dequeue: $$scope)
      )
      @posterr (
+       initialHeapPost() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
        (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty")
