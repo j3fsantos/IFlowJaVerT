@@ -511,11 +511,6 @@ let get_subtraction_vars_lexpr lexpr_left lexpr_right catch_pvars =
 	let v_r = get_expr_vars lexpr_right catch_pvars in
 		SS.diff v_l v_r
 		
-let get_vars_tbl vars =
-  let len = SS.cardinal vars in
-  let vars_tbl = Hashtbl.create len in
-  List.iteri (fun i var -> Hashtbl.add vars_tbl var i) (SS.elements vars);
-  vars_tbl
 
 let rec push_in_negations_off a : jsil_logic_assertion =
 	let err_msg = "push_in_negations_off: internal error" in

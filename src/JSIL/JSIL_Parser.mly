@@ -25,6 +25,7 @@ let copy_and_clear_globals () =
 
 (***** Token definitions *****)
 (*  JS Logic Literals *)
+%token SCOPELEXPR
 %token SCOPE
 %token THIS
 %token FUNOBJ
@@ -1202,6 +1203,8 @@ js_lexpr_target:
 (* _ *)
   | UNDERSCORE 
   	{ JSLVar (JSLogic.fresh_lvar ()) }
+(* $$scope *)
+  | SCOPELEXPR { JSLScope }
 ;
 
 js_type_env_pair_target:

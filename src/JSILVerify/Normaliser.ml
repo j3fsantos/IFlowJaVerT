@@ -13,14 +13,15 @@ let new_abs_loc_name var = abs_loc_prefix ^ var
 let new_lvar_name var = lvar_prefix ^ var
 
 
-(*  -----------------------------------------------------
-	List Preprocessing
-	-----------------------------------------------------
-	Preprocessing list logical expressions for which we know the length statically. 
-	if a |- l-len(le) = i, where i is a concrete number, we add the 
-	assertion le = {{ #x1, ..., #xi }} to a and replace all the occurrences of 
-	l-nth(le, j) for #xj in a 
-*)
+(*  ------------------------------------------------------------------
+ *  List Preprocessing
+ * 	------------------------------------------------------------------
+ *	Preprocess list logical expressions for which we know 
+ *	the length statically. If a |- l-len(le) = i, where i is 
+ *	a concrete number, we add the assertion le = {{ #x1, ..., #xi }} 
+ *	to a and replace all the occurrences of l-nth(le, j) for #xj in a 
+ *	------------------------------------------------------------------
+**)
 let pre_process_list_exprs (a : jsil_logic_assertion) = 
 
 	(* 1 - Find the lists for which we know the length *)
@@ -90,10 +91,15 @@ let pre_process_list_exprs (a : jsil_logic_assertion) =
 (*  -----------------------------------------------------
 	Normalise Pure Assertion
 	-----------------------------------------------------
+	Invoke normalise_logic_expression on all the logic 
+	expressions of a 
+	_____________________________________________________
 *)
 let rec normalise_pure_assertion 
-		(store : symbolic_store) (gamma : typing_environment)
-		(subst : substitution) (assertion : jsil_logic_assertion) : jsil_logic_assertion =
+		(store : symbolic_store) 
+		(gamma : typing_environment)
+		(subst : substitution) 
+		(assertion : jsil_logic_assertion) : jsil_logic_assertion =
 	let fa = normalise_pure_assertion store gamma subst in
 	let fe = normalise_lexpr ~store:store ~subst:subst gamma in
 	let start_time = Sys.time() in
@@ -171,58 +177,34 @@ let rec init_alocs
 
 
 (** -----------------------------------------------------
-  * Init Pure Assignments
+  * Normalise Pure Assertions
   * -----------------------------------------------------
-  * This function creates an abstract location for every program variable used in
-  * a cell assertion or empty fields assertion.
-  * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh
+  * -----------------------------------------------------
 **)
-let normalise_pure_assertons a store gamma subst =
+let normalise_pure_assertions 
+		(a     : jsil_logic_assertion) 
+		(store : symbolic_store) 
+		(gamma : typing_environment) 
+		(subst : substitution) : pure_formulae =
 
-	let pure_assignments = Hashtbl.create 31 in
+	let pvar_equalities           = Hashtbl.create 31 in
 	let non_store_pure_assertions = Stack.create () in
 
 	(**
-    * --------------------------------------------------------------------
-	* After putting the program variables that have assignents of the kind:
-	* x = E (where E is a logical expression) in the store,
-	* we have to normalise the remaining pure assertions
-	*)
-	let normalise_pure_assertions () =
-		let stack_size = Stack.length non_store_pure_assertions in
-		let non_store_pure_assertions_array = DynArray.make (stack_size *5) in
-		let cur_index = ref 0 in
-
-		while (not (Stack.is_empty non_store_pure_assertions)) do
-			let pure_assertion = Stack.pop non_store_pure_assertions in
-			let normalised_pure_assertion = normalise_pure_assertion store gamma subst pure_assertion in
-			DynArray.add non_store_pure_assertions_array normalised_pure_assertion;
-			cur_index := (!cur_index) + 1
-		done;
-
-		(* Prints *)
-	 	(* print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
-		print_debug_petar (Symbolic_State_Print.string_of_substitution subst); *)
-
-		let non_store_pure_assertions_array, _ = Simplifications.simplify_pfs non_store_pure_assertions_array gamma (Some None) in
-		non_store_pure_assertions_array in
-
-
-
-	(**
-	* Given an assertion a, this function returns the list of pure assignments in a.
-	* assignments of the form: x = E or E = x for a logical expression E and a variable x
-	*)
-	let rec get_pure_assignments_iter a =
+	 * Step 1 - Get equalities involving program variables
+	 * -----------------------------------------------------------------------------------
+	 * Returns the list of equalities in a involving program variables of the form x = E 
+	 * or E = x, for a logical expression E and a variable x
+	 * -----------------------------------------------------------------------------------
+	 *)
+	let rec init_pvar_equalities a =
 		(match a with
-			| LStar (a_l, a_r) ->
-					get_pure_assignments_iter a_l;
-					get_pure_assignments_iter a_r
+			| LStar (a_l, a_r) -> init_pvar_equalities a_l; init_pvar_equalities a_r
 
 			| LEq (PVar x, le)
 			| LEq (le, PVar x) ->
-					if ((not (Hashtbl.mem pure_assignments x)) && (not (Hashtbl.mem store x)))
-					then Hashtbl.add pure_assignments x le
+					if ((not (Hashtbl.mem pvar_equalities x)) && (not (Hashtbl.mem store x)))
+					then Hashtbl.add pvar_equalities x le
 					else Stack.push (LEq (PVar x, le)) non_store_pure_assertions
 
 			| LEq (_, _) | LNot _ | LLessEq (_, _) | LLess (_, _) | LOr (_, _)
@@ -230,80 +212,96 @@ let normalise_pure_assertons a store gamma subst =
 
 			| _ -> ()) in
 
-	(**
-	* all program variables not in the store need to be added there
-	*)
-	let fill_store p_vars =
-		SS.iter
-			(fun var ->
-						if (not (Hashtbl.mem store var))
-						then
-							let new_l_var = new_lvar_name var in
-							Hashtbl.add store var (LVar new_l_var);
-							Hashtbl.add subst var (LVar new_l_var);
-							(try
-								let var_type = Hashtbl.find gamma var in
-								Hashtbl.add gamma new_l_var var_type
-							with _ -> ()))
-			p_vars	in
 
 	(**
-	* dependency graphs between variable definitions
-	*)
-	let vars_succ p_vars p_vars_tbl =
+	 * Step 2 - Build a table mapping pvars to integers
+	 * ------------------------------------------------
+	 *)
+	let get_vars_tbl (vars : SS.t) : (string, int) Hashtbl.t =
+  		let len = SS.cardinal vars in
+  		let vars_tbl = Hashtbl.create len in
+ 		List.iteri (fun i var -> Hashtbl.add vars_tbl var i) (SS.elements vars);
+  		vars_tbl in 
+
+
+	(**
+	 * Step 3 - PVars Dependency Graph
+	 * ------------------------------------------------------------------------
+	 * Compute a dependency graph between PVar equalities (which are treated as 
+	 * definitions)
+	 * ------------------------------------------------------------------------
+	 *)
+	let pvars_graph 
+			(p_vars : SS.t) 
+			(p_vars_tbl : (string, int) Hashtbl.t) : (int list) array =
 		let len = SS.cardinal p_vars in
-		let succs = Array.make len [] in
+		let graph = Array.make len [] in
 
 		List.iteri (fun u cur_var ->
-			let cur_le = Hashtbl.find pure_assignments cur_var in
+			let cur_le = Hashtbl.find pvar_equalities cur_var in
 			let cur_var_deps = get_expr_vars true cur_le in
 			SS.iter (fun v ->
 				(try
 					let v_num = Hashtbl.find p_vars_tbl v in
-					succs.(u) <- v_num :: succs.(u)
+					graph.(u) <- v_num :: graph.(u)
 					with _ -> ())) cur_var_deps) (SS.elements p_vars);
 
-		succs in
+		graph in
 
+	
 	(**
-	* normalization of variable definitions
-	*)
-	let normalise_pure_assignments (succs : int list array) (p_vars : SS.t) (p_vars_tbl : (string, int) Hashtbl.t) =
-		let p_vars = Array.of_list (SS.elements p_vars) in
-		let len = Array.length p_vars in
+	 * Step 4 - Normalise PVar equalities 
+	 * ------------------------------------------------------------------------
+	 * Normalise equalities involving pvars 
+	 * Detect cyclic dependencies between pvar definitions 
+	 * Break dependencies by introducing new logical variables 
+	 * E.g. 
+	 *      (x = y + 1) * (y = #z) ==> (x = #z + 1) * (y = #z)
+	 *      (x = y + 1) * (y = (3 * x) - 2) ==> 
+	 				(x = #w + 1) * (y = #y) * (#y = (3 * (#y + 1)) - 2)
+	 				where #y = new_lvar_name (y)
+	 * ------------------------------------------------------------------------
+	 *)
+	let normalise_pvar_equalities 
+			(graph : int list array) 
+			(p_vars : SS.t) 
+			(p_vars_tbl : (string, int) Hashtbl.t) =
+		
+		let p_vars      = Array.of_list (SS.elements p_vars) in
+		let len         = Array.length p_vars in
 		let visited_tbl = Array.make len false in
 
 		let is_searchable u =
 			List.fold_left
 				(fun ac v -> ac && (not visited_tbl.(v)))
 				true
-				succs.(u) in
+				graph.(u) in
 
-		(** a pure assignment that cannot be lifted to the abstract store
-		has to remain in the pure formulae *)
+		(** a pvar-equality that cannot be lifted to the abstract store
+		    has to remain in the pure formulae *)
 		let remove_assignment var =
 			(try
-				let new_l_var = Hashtbl.find subst var in
-				let le = Hashtbl.find pure_assignments var in
-				Stack.push (LEq (new_l_var, le)) non_store_pure_assertions;
-				Hashtbl.remove pure_assignments var
+				let le = Hashtbl.find pvar_equalities var in
+				Stack.push (LEq (LVar (new_lvar_name var), le)) non_store_pure_assertions;
+				Hashtbl.remove pvar_equalities var
 			with _ ->
-					let msg = Printf.sprintf "Should not be here: remove_assignment. Var: %s." var in
-					raise (Failure msg)) in
+				let msg = Printf.sprintf "DEATH. normalise_pure_assertions -> normalise_pvar_equalities -> remove_assignment. Var: %s." var in
+				raise (Failure msg)) in
+
 
 		(** lifting an assignment to the abstract store *)
 		let rewrite_assignment var =
-			let le = try Some (Hashtbl.find pure_assignments var) with _ -> None in
-			(match le with
-				| None ->
-						let msg = Printf.sprintf "Should not be here: rewrite_assignment. Var: %s\n" var in
-						raise (Failure msg)
-				| Some le ->
-						let normalised_le = normalise_lexpr ~store:store ~subst:subst gamma le in
-						Hashtbl.remove subst var;
-						Hashtbl.remove pure_assignments var;
-						Hashtbl.replace store var normalised_le) in
+			(try 
+				let le  = Hashtbl.find pvar_equalities var in 
+				let le' = normalise_lexpr ~store:store ~subst:subst gamma le in
+				Hashtbl.replace store var le'; 
+				Hashtbl.replace subst var le' 
+			with _ -> 
+				let msg = Printf.sprintf "DEATH. normalise_pure_assertions ->  normalise_pvar_equalities -> rewrite_assignment. Var: %s\n" var in
+				raise (Failure msg)) in 
 
+
+		(** DFS on pvar dependency graph *)
 		let rec search (u : int) =
 			let u_var = p_vars.(u) in
 			visited_tbl.(u) <- true;
@@ -312,29 +310,74 @@ let normalise_pure_assertons a store gamma subst =
 			| true ->
 					List.iter
 						(fun v ->
-									if (visited_tbl.(v))
-									then ()
-									else search v)
-						succs.(u);
+							(* Given that u is searchable this if is very strange *)
+							if (visited_tbl.(v))
+								then ()
+								else search v)
+						graph.(u);
 					rewrite_assignment u_var in
-
 		for i = 0 to (len - 1) do
 			if (not (visited_tbl.(i)))
 			then search i
 			else ()
 		done in
 
-	(* get the pure assignments and store them in the hashtbl                *)
-	(* pure_assignments                                                      *)
-	get_pure_assignments_iter a;
-	let p_vars = Hashtbl.fold
-		(fun var le ac -> SS.add var ac)
-		pure_assignments SS.empty in
-	let p_vars_tbl = get_vars_tbl p_vars in
-	let succs = vars_succ p_vars p_vars_tbl in
-	normalise_pure_assignments succs p_vars p_vars_tbl;
-	fill_store (get_assertion_vars true a);
-	normalise_pure_assertions ()
+	(**
+	 * Step 5 - The store is always full  
+	 * ------------------------------------------------------------------------
+	 * PVars that were not associated with a logical expression in the store 
+	 * are mapped to a newly created logical variable
+	 * ------------------------------------------------------------------------
+	 *)
+	let fill_store p_vars =
+		SS.iter
+			(fun var ->
+				if (not (Hashtbl.mem store var))
+					then (
+						let new_l_var = new_lvar_name var in
+						Hashtbl.add store var (LVar new_l_var);
+						Hashtbl.add subst var (LVar new_l_var); 
+						try
+							let var_type = Hashtbl.find gamma var in
+							Hashtbl.add gamma new_l_var var_type
+						with _ -> ()))
+			p_vars	in
+
+
+	(**
+	 * Step 6 - Normalise Pure Assertions   
+	 * ------------------------------------------------------------------------
+	 * The pure assertions that were not lifted to the store need to be 
+	 * normalised 
+	 * ------------------------------------------------------------------------
+	 *)
+	let normalise_pure_assertions () =
+		let stack_size = Stack.length non_store_pure_assertions in
+		let pi         = DynArray.make (stack_size * 2) in
+		let cur_index  = ref 0 in
+
+		while (not (Stack.is_empty non_store_pure_assertions)) do
+			let p_assertion  = Stack.pop non_store_pure_assertions in
+			let p_assertion' = normalise_pure_assertion store gamma subst p_assertion in
+			DynArray.add pi p_assertion';
+			cur_index := (!cur_index) + 1
+		done;
+
+		(* Prints *)
+	 	(* print_debug_petar (Printf.sprintf "NPA: Pure formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae non_store_pure_assertions_array false));
+		print_debug_petar (Symbolic_State_Print.string_of_substitution subst); *)
+		let pi, _ = Simplifications.simplify_pfs pi gamma (Some None) in
+		pi in
+
+
+	(* Doing IT *)	
+	(* 1 *) init_pvar_equalities a; 
+	let p_vars = Hashtbl.fold (fun var le ac -> SS.add var ac) pvar_equalities SS.empty in
+	(* 2 *) let p_vars_tbl = get_vars_tbl p_vars in
+	(* 3 *) let pvars_graph = pvars_graph p_vars p_vars_tbl in
+	(* 4 *) normalise_pvar_equalities pvars_graph p_vars p_vars_tbl;
+	(* 5 *) fill_store (get_assertion_vars true a);
+	(* 6 *) normalise_pure_assertions ()
 
 
 
@@ -564,7 +607,7 @@ let normalise_assertion a : symbolic_state * substitution =
 		init_gamma gamma a;
 		init_alocs store gamma subst a;
 
-		let p_formulae = normalise_pure_assertons a store gamma subst in
+		let p_formulae = normalise_pure_assertions a store gamma subst in
 
 		 (match (DynArray.to_list p_formulae) with
 		 | [ LFalse ] -> (LHeap.create 1, Hashtbl.create 1, DynArray.of_list [ LFalse ], Hashtbl.create 1, DynArray.create()), Hashtbl.create 1

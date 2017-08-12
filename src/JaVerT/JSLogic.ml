@@ -21,7 +21,8 @@ let find_in_list (lst : string list) (x : string) =
 let list_overlap (lst_1 : string list) (lst_2 : string list) = 
 	let rec loop lst_1 lst_2 i = 
 		match lst_1, lst_2 with 
-		| [], [] -> i
+		| [], _ 
+		| _, [] -> i 
 		| x1 :: rest_1, x2 :: rest_2 -> 
 			if (x1 = x2) then loop rest_1 rest_2 (i+1) else i in 
 	loop lst_1 lst_2 0 
@@ -240,7 +241,10 @@ let rec js2jsil_assertion
 		(a : jsil_logic_assertion) : jsil_logic_assertion = 
 		if (le_sc = JSLScope) then a else (
 			let vis_list = get_vis_list vis_tbl fid in  
-				LStar (a, LEq (LUnOp (LstLen, fe le_sc), LLit (Num (float_of_int ((List.length vis_list) - 1)))))) in 
+			let le_sc'   = fe le_sc in 
+			let a_1 = LEq (LUnOp (LstLen, le_sc'), LLit (Num (float_of_int ((List.length vis_list) - 1)))) in 
+			let a_2 = LEq (LLstNth (le_sc', LLit (Num 0.)), LLit (Loc JS2JSIL_Constants.locGlobName)) in 
+				LStar (a, LStar (a_1, a_2))) in 
 	
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
