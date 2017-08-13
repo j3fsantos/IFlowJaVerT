@@ -373,16 +373,16 @@ let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e =
   )
 
 
-let translate_invariant_in_exp cc_tbl vis_tbl fun_tbl fid e = 
+let translate_invariant_in_exp 
+    (cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type)
+    (fid : string) (sc_var : string) (e : Parser_syntax.exp) : JSIL_Syntax.jsil_logic_assertion option = 
   let invariant = List.filter (fun annot -> annot.annot_type == Parser_syntax.Invariant) e.exp_annot in
   match invariant with 
   | _ :: _ :: _   -> raise (Failure "DEATH: No more than one invariant per command") 
   | [ ]           -> None 
   | [ invariant ] ->
     let a = JSIL_Utils.js_assertion_of_string invariant.annot_formula in 
-    (* CHANGE URGENTLY!!!!! THE SCOPE VAR NEEDS TO BE GIVEN AS A PARAMETER *)
-    let a' = JSLogic.js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) a in 
-    Some (JSIL_Syntax.LStar (a', JSLogic.errors_assertion))      
+    Some (JSLogic.js2jsil_tactic_assertion cc_tbl vis_tbl fun_tbl fid sc_var a)
 
 
 let translate_single_func_specs 

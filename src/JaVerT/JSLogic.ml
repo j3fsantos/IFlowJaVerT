@@ -6,6 +6,7 @@ module SS = Set.Make(String)
 let small_tbl_size = 31
 let medium_tbl_size = 101
 
+let funobj_pred_name = "FunctionObject"
 
 (************)
 (* Utils    *)
@@ -103,6 +104,7 @@ type js_logic_assertion =
 	| JSLVarSChain          of string * string * js_logic_expr * js_logic_expr
 	| JSOSChains            of string * js_logic_expr * string * js_logic_expr
 	| JSClosure     		of ((string * js_logic_expr) list) * ((string * js_logic_expr) list)
+	| JSSChain              of string * js_logic_expr 
 	| JSEmptyFields			of js_logic_expr * js_logic_expr 
 	| JSLSetMem  	        of js_logic_expr * js_logic_expr              
 	| JSLSetSub  	        of js_logic_expr * js_logic_expr 
@@ -193,6 +195,11 @@ let fresh_lvar () =
    counter := !counter + 1;
    v
 
+let vislist_2_les (vis_list : string list) (i : int) : jsil_logic_expr list = 
+	Array.to_list (
+		Array.init i  
+			(fun j -> if (j = 0) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fresh_lvar ())))  
+
 
 let rec js2jsil_lexpr scope_var le =
 	let fe = js2jsil_lexpr scope_var in
@@ -228,25 +235,6 @@ let rec js2jsil_assertion
 
 	let f = js2jsil_assertion cur_fid cc_tbl vis_tbl fun_tbl scope_var in
 	let fe = js2jsil_lexpr scope_var in
-
-	(* 
-		vis_tbl(fid) = {{ fid_1, ..., fid_n }}
-		le_sc' = Te(le_sc)
-		------------------------------------------------------
-		ScopeChainInfo(le_sc, fid) ::= l-len(le_sc') = n
-	*)
-	let add_extra_scope_chain_info 
-		(fid : string)
-		(le_sc : js_logic_expr) 
-		(a : jsil_logic_assertion) : jsil_logic_assertion = 
-			match le_sc with 
-			| JSLScope -> a 
-			| _        -> 
-				let vis_list = get_vis_list vis_tbl fid in  
-				let le_sc'   = fe le_sc in 
-				let a_1 = LEq (LUnOp (LstLen, le_sc'), LLit (Num (float_of_int ((List.length vis_list) - 1)))) in 
-				let a_2 = LEq (LLstNth (le_sc', LLit (Num 0.)), LLit (Loc JS2JSIL_Constants.locGlobName)) in 
-				LStar (a, LStar (a_1, a_2)) in 
 	
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
@@ -261,20 +249,27 @@ let rec js2jsil_assertion
 	| JSLStar (a1, a2)                    -> LStar ((f a1), (f a2))
 	| JSLPointsTo	(le1, le2, le3)       -> LPointsTo ((fe le1), (fe le2), (fe le3))
 	| JSLEmp                              -> LEmp
-	| JSLPred (s, les)                    -> LPred (s, (List.map fe les))
 	| JSLForAll (s, a)                    -> LForAll (s, f a)
 	| JSLTypes (vts)                      -> LTypes (List.map (fun (v, t) -> (LVar v, t)) vts)
 	| JSLSetMem (le1, le2) 	              -> LSetMem (fe le1, fe le2)
 	| JSLSetSub (le1, le2)                -> LSetSub (fe le1, fe le2)
 	| JSEmptyFields (e, domain) 		  -> LEmptyFields (fe e, fe domain) 
 
+	| JSLPred (s, les)                    -> 
+		let a' = LPred (s, (List.map fe les)) in 
+		if (s = funobj_pred_name)
+			then (
+				(match les with 
+				| [ _; JSLLit (String fid); le_sc; _ ] -> LStar (a', f (JSSChain (fid, le_sc)))
+				| _ -> raise (Failure ("Illegal FunctionObject Pred Assertion")))
+			) else a' 	
+
 	(*     le_x'  = Te(le_x)     
 		   le_sc' = Te(le_sc)
-		   a = ScopeChainInfo(le_sc', fid)
 		----------------------------------------------
 		Tr(scope(x: le_x, le_sc, fid)) ::= 
-			((l-nth(le_sc', i), "x") -> le_x') * a           if Phi(fid, x) != 0 
-			((lg, "x") -> {{"d", le_x', $$t, $$t, $$f}}) * a if Phi(fid, x) = 0 or bot *)
+			((l-nth(le_sc', i), "x") -> le_x')               if Phi(fid, x) != 0 
+			((lg, "x") -> {{"d", le_x', $$t, $$t, $$f}})     if Phi(fid, x) = 0 or bot *)
 	| JSLVarSChain (fid, x, le_x, le_sc) -> 
 		let i   = psi cc_tbl vis_tbl fid x in 
 		let a'  = 
@@ -285,7 +280,8 @@ let rec js2jsil_assertion
 			| Some i -> 
 				let le_er = LLstNth (fe le_sc, LLit (Num (float_of_int i))) in 
 				LPointsTo (le_er, LLit (String x), fe le_x)) in 
-		add_extra_scope_chain_info fid le_sc a'	
+		(* add_extra_scope_chain_info fid le_sc a'*) 
+		a' 
 
 	(* 	f_sc' = Te (f_sc)
 		g_sc' = Te (g_sc)
@@ -299,7 +295,8 @@ let rec js2jsil_assertion
 		let le_sc2' = fe le_sc2 in 
 		let f j     = 
 			let asrt = LEq (LLstNth (le_sc1', LLit (Num (float_of_int j))), LLstNth (le_sc2', LLit (Num (float_of_int j)))) in 
-			add_extra_scope_chain_info fid2 le_sc2 (add_extra_scope_chain_info fid1 le_sc1 asrt) in 
+			(* add_extra_scope_chain_info fid2 le_sc2 (add_extra_scope_chain_info fid1 le_sc1 asrt) *)
+			asrt in 
 		JSIL_Logic_Utils.star_asses (List.map f is)  
 
 	(*	Tr(scope(x: le_x)) ::= Tr(scope(x: le_x, sc, fid)) *)
@@ -310,6 +307,7 @@ let rec js2jsil_assertion
 	(* 	Tr (closure(x1: le1, ..., xn: len; fid1: le_sc1, ..., fidm: le_scm)) ::=
 			Tr ((IteratedStar_{1 <= j <= n} scope(xj: lej, le_sc1, fid1)) * 
 				   (IteratedStar_{1 < j <= m} OChains(fid1: le_sc1, fidj: le_scj)) *)
+	
 	| JSClosure (var_les, fid_sc_les) -> 
 		let (fid_1, le_sc_1), rest_fid_sc_les = 
 			match fid_sc_les with 
@@ -318,7 +316,19 @@ let rec js2jsil_assertion
 		
 		let asrt_vars = List.map (fun (x, le_x) -> JSLVarSChain (fid_1, x, le_x, le_sc_1)) var_les in 
 		let asrt_scs  = List.map (fun (fid_j, le_sc_j) -> JSOSChains (fid_j, le_sc_j, fid_1, le_sc_1)) rest_fid_sc_les in 
-		f (js_star_asses (asrt_vars @ asrt_scs)) 
+		f (js_star_asses (asrt_vars @ asrt_scs))
+
+	(* 
+		le_fid = "fid"
+		vis_tbl(fid) = {{ fid_1, ..., fid_n }}
+		le_sc' = Te(le_sc)
+		------------------------------------------------------
+		Tr(schain(le_fid, le_sc)) ::= le_sc' == {{ fid_1, ..., fid_{n-1} }}
+	*)
+	| JSSChain (fid, le) -> 
+		let vis_list = get_vis_list vis_tbl fid in 
+		let scope_chain_list = vislist_2_les vis_list ((List.length vis_list)-1) in 
+		LEq (fe le, LEList scope_chain_list)  
 
 	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
 
@@ -382,13 +392,10 @@ let rec js2jsil_single_spec
 		(cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type) 
 		(fid : string) : jsil_logic_assertion * jsil_logic_assertion =
 	
-	print_debug (Printf.sprintf "Inside js2jsil_logic_top_level_pre for procedure %s\n" fid);
+	print_debug (Printf.sprintf "Inside js2jsil_single_spec for procedure %s\n" fid);
 	let vis_list = get_vis_list vis_tbl fid in  
 
-	let scope_chain_list = 
-		Array.to_list (
-			Array.init ((List.length vis_list) - 1) 
-			(fun j -> if (j = 0) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fresh_lvar ()))) in 
+	let scope_chain_list = vislist_2_les vis_list ((List.length vis_list)-1) in 
 
 	let pre'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) pre in
 	let post' = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope_final) post in
@@ -402,5 +409,31 @@ let rec js2jsil_single_spec
 	if (fid = main_fid) 
 		then pre', post'  
 		else JSIL_Logic_Utils.star_asses [ pre'; a_scope_pre; a_this ], JSIL_Logic_Utils.star_asses [ post'; a_scope_post ]
+
+
+let rec js2jsil_tactic_assertion 
+		(cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type) 
+		(fid : string) (scope_var : string) (a : js_logic_assertion) : jsil_logic_assertion =
+	
+	print_debug (Printf.sprintf "Inside js2jsil_tactic_assertion for procedure %s\n" fid);
+
+	let vis_list = get_vis_list vis_tbl fid in  
+	let scope_chain_list = vislist_2_les vis_list (List.length vis_list) in 
+	let a'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some scope_var) a in
+
+	(*  x__scope == {{ #x1, ..., #xn }} *)
+	let a''  = LEq (PVar scope_var, LEList scope_chain_list) in 
+	LStar (a', a'')
+
+
+
+
+
+
+
+
+
+
+
 
 

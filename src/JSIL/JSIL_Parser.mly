@@ -28,11 +28,10 @@ let copy_and_clear_globals () =
 %token SCOPELEXPR
 %token SCOPE
 %token THIS
-%token FUNOBJ
 %token CLOSURE
 %token SCSCOPE
 %token OCHAINS
-%token OCS
+%token SCHAIN
 %token UNDERSCORE
 (* Type literals *)
 %token UNDEFTYPELIT
@@ -1097,6 +1096,9 @@ js_assertion_target:
 (* emp *)
 	| LEMP;
 		{ JSLEmp }
+(* schain(fid: le) *)
+	| SCHAIN; LBRACE; fid=VAR; COLON; le=js_lexpr_target; RBRACE
+		{ JSSChain (fid, le) }
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
 	  {

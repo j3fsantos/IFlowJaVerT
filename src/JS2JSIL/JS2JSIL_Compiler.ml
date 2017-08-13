@@ -648,7 +648,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 	(* The first command must get the logic commands and the invariants *)
 	let lcmds, call_lcmds       = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl false e in
-	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid e in
+	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid tr_ctx.tr_sc_var e in
 	let annotate_first_cmd      = add_more_metadata metadata lcmds invariant in
 	let annotate_first_call_cmd = add_more_metadata metadata call_lcmds None in
 
@@ -2641,7 +2641,7 @@ and translate_statement tr_ctx e  =
 
 	(* The first command must get the logic commands and the invariants *)
 	let lcmds, _                = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl true e in
-	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid e in
+	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid tr_ctx.tr_sc_var e in
 	let annotate_first_cmd      = add_more_metadata metadata lcmds invariant in
 
 	let compile_var_dec x e =
