@@ -31,9 +31,9 @@
 	@id insert
 
 	@pre ((node == #n) * (value == #v) * SOList(#n, #E) * types(#v: $$number_type) * 
-		 scope(insert: #insert_fun) * FunctionObject(insert, #insert_fun, #insert_proto))
+		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
 	@post ( (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) *
-		 scope(insert: #insert_fun) * FunctionObject(insert, #insert_fun, #insert_proto) )
+		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto) )
 */
 function insert(node, value) {
     
@@ -61,11 +61,11 @@ function insert(node, value) {
 	@id sort
 
 	@pre ((head == #h) * NDList(#h, #E) * 
-		  scope(sort: #sort_fun) * FunctionObject(sort, #sort_fun, #sort_proto) * 
-		  scope(insert: #insert_fun) * FunctionObject(insert, #insert_fun, #insert_proto))
+		  scope(sort: #sort_fun) * FunctionObject(#sort_fun, "sort", #sort_sc, #sort_proto) * 
+		  scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
 	@post (SOList(ret, #E) * nullableObject(ret) * 
-		  scope(sort: #sort_fun) * FunctionObject(sort, #sort_fun, #sort_proto) * 
-		  scope(insert: #insert_fun) * FunctionObject(insert, #insert_fun, #insert_proto))
+		  scope(sort: #sort_fun) * FunctionObject(#sort_fun, "sort", #sort_sc, #sort_proto) * 
+		  scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
 */
 function sort(head) {
     var result;

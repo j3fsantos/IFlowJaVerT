@@ -261,7 +261,15 @@ let rec js2jsil_assertion
 			then (
 				(match les with 
 				| [ _; JSLLit (String fid); le_sc; _ ] -> LStar (a', f (JSSChain (fid, le_sc)))
-				| _ -> raise (Failure ("Illegal FunctionObject Pred Assertion")))
+				| _ ->
+					print_endline (Printf.sprintf "Parameter length: %d" (List.length les));
+					print_endline (Printf.sprintf "Second parameter is string: %b" 
+						(let snd = List.nth les 1 in
+							(match snd with
+							| JSLLit (String _) -> true
+							| _ -> false))
+					);
+					raise (Failure ("Illegal FunctionObject Pred Assertion")))
 			) else a' 	
 
 	(*     le_x'  = Te(le_x)     
