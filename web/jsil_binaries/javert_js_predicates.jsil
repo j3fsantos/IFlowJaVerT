@@ -27,7 +27,7 @@ pred EmptyProp (l, prop) :
 	types (l : $$object_type, prop : $$string_type) *
 	((l, prop) -> None);
 	
-pred JsObjWithProto (l, proto) :
+pred JSObjWithProto (l, proto) :
 	types (l : $$object_type) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
@@ -39,16 +39,22 @@ pred ErrorObjectWithMessage (l, m) :
   ((l, "@extensible") -> $$t) *
   ((l, "message") -> {{"d", m, $$t, $$f, $$t}});
 
+pred EmptyProp (l, prop) : 
+	((l, prop) -> None); 
+
+pred EmptyProps (l, props) : 
+	empty_fields (l : -u- (props, -{ "@proto", "@extensible", "@class"}-)); 
+
 pred FunctionObject (l, fid, sc, proto) : 
 	((l, "@proto") -> $lfun_proto) * 
 	((l, "@class") -> "Function") *
 	((l, "@extensible") -> $$t) * 
 	((l, "@call") -> fid) * 
 	((l, "@construct") -> fid) *
-	((l, "@scope") -> sc) * 
-	((l, "length")    -> #ignore1) *
-	((l, "arguments") -> #ignore2) *
-	((l, "caller")    -> #ignore3) *
-	((l, "prototype") -> {{ "d", proto, $$t, $$f, $$f }}) *
+	((l, "@scope")     -> sc) * 
+	((l, "length")     -> #ignore1) *
+	((l, "arguments")  -> #ignore2) *
+	((l, "caller")     -> #ignore3) *
+	((l, "prototype")  -> {{ "d", proto, $$t, $$f, $$f }}) *
 	types(sc : $$list_type, fid: $$string_type) *
 	empty_fields(l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "arguments", "caller", "prototype" }- ); 
