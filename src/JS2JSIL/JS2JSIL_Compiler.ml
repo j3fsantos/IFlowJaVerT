@@ -780,18 +780,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 					x_r := v-ref(x_1, "x")
 
 		Not found in the closure clarification table: Phi(fid_1, x) = bot
-						x_1 := o__hasProperty($lg, "x") with err;
-						goto [x_1] then else
-			then: x_then := v-ref($lg, "x");
-		      	goto end;
-			else: x_else := v-ref($$undefined, "x");
-			end:  x_r = PHI(x_then, x_else)
+					x_1 := o__hasProperty($lg, "x") with err;
+					goto [x_1] then else
+			then: 	x_then := v-ref($lg, "x");
+		      		goto end;
+			else: 	x_else := v-ref($$undefined, "x");
+			end:  	x_r = PHI(x_then, x_else)
  		*)
 
 		let translate_var_not_found v =
 			(* 	x_1 := o__hasProperty($lg, "x") with err *)
 			let x_1 = fresh_var () in
-		  let cmd_ass_x1 = SLCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some tr_ctx.tr_err) in
+		  	let cmd_ass_x1 = SLCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some tr_ctx.tr_err) in
 
 			(* goto [x_1] then else *)
 			let then_lab = fresh_then_label () in
@@ -2792,7 +2792,7 @@ and translate_statement tr_ctx e  =
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
 
 		let x_sc_new = fresh_scope_chain_var () in
-		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) ~er_fid:catch_id ~sc_var:x_sc_new tr_ctx in
+		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~previous:None ~lab:None ~err:new_err2 ~vis_list:(tr_ctx.tr_vis_list @ [ catch_id ]) ~er_fid:catch_id ~sc_var:x_sc_new tr_ctx in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_2 e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
 
@@ -2883,7 +2883,7 @@ and translate_statement tr_ctx e  =
 		let cmds1, x1_v = add_final_var cmds1 x1 metadata in
 
 		let x_sc_new = fresh_scope_chain_var () in
-		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err2 ~vis_list:(catch_id :: tr_ctx.tr_vis_list) ~er_fid:catch_id ~sc_var:x_sc_new tr_ctx in
+		let new_ctx_2 = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None ~ret_lab:tcf_ret ~err:new_err2 ~vis_list:(tr_ctx.tr_vis_list @ [ catch_id ]) ~er_fid:catch_id ~sc_var:x_sc_new tr_ctx in
 		let cmds2, x2, errs2, rets2, breaks2, conts2 = translate_statement new_ctx_2 e2 in
 		let cmds2, x2_v = add_final_var cmds2 x2 metadata in
 
@@ -3493,40 +3493,37 @@ and translate_statement tr_ctx e  =
      *  C(e_lhs) = cmds1, x1; C(e_obj) = cmds2, x2; C(e_stmt) = cmds3, x3
 		 *
 		 *  C( for (e1 in e2) { e3 } ) =
-			          cmds2 																								1.	Understand what the object is
-								x2_v := i__getValue (x2) with err											2.	and get its value
-								x_ret_0 := $$empty 																		5.	Set V to $$empty
-								goto [(x2_v = $$null) or
-								      (x2_v = $$undefined)] next6 next0;							3.	If the object is $$null or $$undefined, we're done
-			next0:		x4 := "i__toObject" (x2_v) with err										4.	Otherwise, convert whatever we have to an object
-
-								xlf := "i__getAllEnumerableFields" (x4)  with err					Put all of its enumerable properties (protochain included) in xlf
-								xf  := getFields (xlf) 																		Get all of those properties
-
-								len := l-len (xf)																					Get the number of properties
-								x_c := 0;																									Initialise counter
-
-			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)													Setup return value
-								x_c_1 := PSI(x_c, x_c_2);																	Setup counter
-								goto [x_c_1 < len] body end_loop 											6.	Are we done?
-			body: 		xp := l-nth (xf, x_c_1)																6a.	Get the nth property
-								xl := [xlf, xp];																			6a.	Get the location of where it should be
-								xhf := hasField (xl, xp)              			  				6a.	Understand if it's still there!
-								goto [xhf] next1 next3																6a.	And jump accordingly
-			next1:		cmds1																									6b.	Evaluate lhs
-								x5 := "i__putValue" (x1, xp) with err									6c.	Put it in, put it in
-								cmds3																									6d. Evaluate the statement
-								x3_v = "i__getValue" (x3) with err
-			cont:     x_ret_2 := PHI(cont_vars, x3_v)
-								goto [ not (x_ret_2 = $$empty) ] next2 next3
+			        cmds2 																		1.	Understand what the object is
+					x2_v := i__getValue (x2) with err											2.	and get its value
+					x_ret_0 := $$empty 															5.	Set V to $$empty
+					goto [(x2_v = $$null) or
+					(x2_v = $$undefined)] next6 next0;											3.	If the object is $$null or $$undefined, we're done
+			next0:	x4 := "i__toObject" (x2_v) with err											4.	Otherwise, convert whatever we have to an object
+					xlf := "i__getAllEnumerableFields" (x4)  with err								Put all of its enumerable properties (protochain included) in xlf
+					xf  := getFields (xlf) 															Get all of those properties
+					len := l-len (xf)																Get the number of properties
+					x_c := 0;																		Initialise counter
+			head:   x_ret_1 := PHI(x_ret_0, x_ret_3)												Setup return value
+					x_c_1 := PSI(x_c, x_c_2);														Setup counter
+					goto [x_c_1 < len] body end_loop 											6.	Are we done?
+			body: 	xp := l-nth (xf, x_c_1)																6a.	Get the nth property
+					xl := [xlf, xp];																	6a.	Get the location of where it should be
+					xhf := hasField (xl, xp)              			  									6a.	Understand if it's still there!
+					goto [xhf] next1 next3																6a.	And jump accordingly
+			next1:	cmds1																				6b.	Evaluate lhs
+					x5 := "i__putValue" (x1, xp) with err												6c.	Put it in, put it in
+					cmds3																				6d. Evaluate the statement
+					x3_v = "i__getValue" (x3) with err
+			cont:   x_ret_2 := PHI(cont_vars, x3_v)
+					goto [ not (x_ret_2 = $$empty) ] next2 next3
 		  next2:    skip
-			next3:    x_ret_3 := PHI(x_ret_1, x_ret_2)
-			next4:		x_c_2 := x_c_1 + 1
-								goto head
+			next3:  x_ret_3 := PHI(x_ret_1, x_ret_2)
+			next4:	x_c_2 := x_c_1 + 1
+					goto head
 		  end_loop:	x_ret_4 := PHI(x_ret_1, x_ret_1, break_vars)
-			          goto [ x_ret_4 = $$empty ] next5 next6
-			next5:    skip
-			next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)
+			        goto [ x_ret_4 = $$empty ] next5 next6
+			next5:  skip
+			next6:  x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)
 
 			errs:	errs2, x2_v, x4, xlf, errs1, x5, errs3, x3_v
 		 *)
@@ -3696,26 +3693,26 @@ and translate_statement tr_ctx e  =
      *  C(e1) = cmds1, x1; C(e2) = cmds2, x2; C(e3) = cmds3, _; C(e4) = cmds4, x4
 		 *
 		 *  C( for(e1; e2; e3) { e4 } ) =
-			          cmds1
-								x1_v := i__getValue (x1) with err
-								x_ret_0 := $$empty
-			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)
-								cmds2
-			          x2_v := i__getValue (x2) with err
-								x2_b := i__toBoolean (x2_v) with err
-								goto [x2_b] body end_loop
-			body: 		cmds4
-								x4_v := i__getValue (x4) with err
-			cont:     x_ret_2 := PHI(cont_vars, x4_v)
-								goto [ not (x_ret_2 = $$empty) ] next1 next2
-		  next1:    skip
-			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
-			          cmds3
-								goto head
+			        cmds1
+					x1_v := i__getValue (x1) with err
+					x_ret_0 := $$empty
+			head:   x_ret_1 := PHI(x_ret_0, x_ret_3)
+					cmds2
+			        x2_v := i__getValue (x2) with err
+					x2_b := i__toBoolean (x2_v) with err
+					goto [x2_b] body end_loop
+			body: 	cmds4
+					x4_v := i__getValue (x4) with err
+			cont:   x_ret_2 := PHI(cont_vars, x4_v)
+					goto [ not (x_ret_2 = $$empty) ] next1 next2
+		  	next1: 	skip
+			next2:  x_ret_3 := PHI(x_ret_1, x_ret_2)
+			        cmds3
+					goto head
 		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars)
-			          goto [ x_ret_4 = $$empty ] next3 next4
-			next3:    skip
-			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1)
+			        goto [ x_ret_4 = $$empty ] next3 next4
+			next3:  skip
+			next4:  x_ret_5 := PHI(x_ret_4, x_ret_1)
 		 *)
 
 		let cmds1, x1, errs1 =
@@ -3764,7 +3761,7 @@ and translate_statement tr_ctx e  =
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
-	  (* x2_b := i__toBoolean (x2_v) with err2 *)
+	  	(* x2_b := i__toBoolean (x2_v) with err2 *)
 		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v tr_ctx.tr_err in
 
 		(* goto [x2_b] body end_loop *)
@@ -3820,8 +3817,8 @@ and translate_statement tr_ctx e  =
       Section 12.9
 
 			C(return) =
-      	x_r := $$undefined;
-      	goto ret_lab
+      			x_r := $$undefined;
+      			goto ret_lab
 
 			C(e) = cmds, x
 			---------------------------
@@ -3860,14 +3857,14 @@ and translate_statement tr_ctx e  =
 			find_continue_lab (lab) = jsil_lab
 			---------------------------
 			C(continue lab) =
-      	x_r := $$empty;
-      	goto jsil_lab
+      			x_r := $$empty;
+      			goto jsil_lab
 
 			next_continue_lab () = jsil_lab
 			---------------------------
 			C(continue) =
-      	x_r := $$empty;
-      	goto jsil_lab
+      			x_r := $$empty;
+      			goto jsil_lab
 		*)
 
 		let x_r, cmd_ret =
@@ -3893,9 +3890,9 @@ and translate_statement tr_ctx e  =
 
 	| Parser_syntax.Break lab ->
 		(**
-      Section 12.8
-      x_r := $$empty;
-      goto lab_r
+      	Section 12.8
+      		x_r := $$empty;
+      		goto lab_r
 		*)
 
 		let x_r, cmd_ret =
@@ -3932,9 +3929,9 @@ and translate_statement tr_ctx e  =
 		 C(e) = cmds, x
 		 ----------------------------
 		 C(throw e) =
-			     cmds
-		       x_v := i__getValue (x) with err
-					 goto err
+			 	cmds
+		      	x_v := i__getValue (x) with err
+				goto err
 		*)
 		let cmds, x, errs = fe e in
 		let x_v, cmd_gv_x, errs_x_v = make_get_value_call x tr_ctx.tr_err in
@@ -3953,22 +3950,22 @@ and translate_statement tr_ctx e  =
 
 	| Parser_syntax.Try (e1, Some (x, e2), Some e3) ->
 		(**
-     Section 12.14 - The try Statement
+     	Section 12.14 - The try Statement
 		 C(e1) = cmds1, x1; C(e2) = cmds2, x2; C(e3) = cmds3, x3
 		 -----------------------------------------------------------
 		  C(try { e1 } catch^{cid}(x) { e2 } finally { e3 } =
-									cmds1
-		            	goto finally
-		    err1:    	x_err := PHI(errs1)
-				        	x_er := new ()
-									[x_er, "x"] := x_err
-									[x_scope, "cid"] := x_er
-									cmds2
-									goto finally
-				err2:     x_ret_1 := PHI(errs2)
-				finally:  x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
-				          cmds3
-		 	  end:      x_ret_3 := PHI(breaks3, x_ret_2)
+							cmds1
+		            		goto finally
+		    	err1:   	x_err := PHI(errs1)
+				       		x_er := new ()
+							[x_er, "x"] := x_err
+							[x_scope, "cid"] := x_er
+							cmds2
+							goto finally
+				err2:   	x_ret_1 := PHI(errs2)
+				finally:  	x_ret_2 := PHI(breaks1, x_1, breaks2, x_2, x_ret_1)
+				          	cmds3
+		 	  	end:      	x_ret_3 := PHI(breaks3, x_ret_2)
 		 *)
 
 		let catch_id = try JS2JSIL_Preprocessing.get_codename e
@@ -3984,12 +3981,12 @@ and translate_statement tr_ctx e  =
 		 C(e1) = cmds1, x1; C(e3) = cmds3, x3
 		 -----------------------------------------------------------
 		  C(try { e1 } finally { e3 } =
-									cmds1
-									goto finally
-				err:      x_ret_1 := PHI(errs1)
-				finally:  x_ret_2 := PHI(cur_breaks1, x_1, x_ret_1)
+							cmds1
+							goto finally
+				err:     	x_ret_1 := PHI(errs1)
+				finally: 	x_ret_2 := PHI(cur_breaks1, x_1, x_ret_1)
 					        cmds3
-			  end:      x_ret_3 := PHI(cur_breaks3, x_ret_2)
+			 	end:      	x_ret_3 := PHI(cur_breaks3, x_ret_2)
 		 *)
 		let cmds, x, errs, rets, breaks, conts =  make_try_finally_cmds e1 e3 in
 		let cmds = annotate_first_cmd cmds in
@@ -4002,14 +3999,14 @@ and translate_statement tr_ctx e  =
 		 C(e1) = cmds1, x1; C(e2) = cmds2, x2;
 		 -----------------------------------------------------------
 		 	C(try { e1 } catch^{cid}(x) { e2 } =
-									cmds1
+						cmds1
 		            	goto finally
 		    err:    	x_err := PHI(errs1)
-				        	x_er := new ()
-									[x_er, "x"] := x_err
-									[x_scope, "cid"] := x_er
-									cmds2
-			  finally:  x_ret_1 := PHI(breaks1, x_1, breaks2, x_2)
+				        x_er := new ()
+						[x_er, "x"] := x_err
+						[x_scope, "cid"] := x_er
+						cmds2
+			finally:  	x_ret_1 := PHI(breaks1, x_1, breaks2, x_2)
 		 *)
 		let catch_id = try JS2JSIL_Preprocessing.get_codename e
 				with _ -> raise (Failure "catch statements must be annotated with their respective code names - try - catch - finally") in
@@ -4027,13 +4024,13 @@ and translate_statement tr_ctx e  =
 			C(e_s) = cmds2, x2
 			--------------------------------------------------------
 			C_case ( a_case, x_prev_found, x_switch_guard ) =
-				           goto [ not x_prev_found ] next1 next2
-				next1:     cmds1
-				           x1_v := getValue (x1) with err
-								   goto [ x1_v = x_switch_guard ] next2 end_case
-				           cmds2
-				end_case:  x_found := PHI(x_false, x_true)
-				           x_case := PSI(x_prev_case, x_2)
+				           	goto [ not x_prev_found ] next1 next2
+				next1:    	cmds1
+				           	x1_v := getValue (x1) with err
+							goto [ x1_v = x_switch_guard ] next2 end_case
+				           	cmds2
+				end_case:  	x_found := PHI(x_false, x_true)
+				           	x_case := PSI(x_prev_case, x_2)
 
 
 
@@ -4041,8 +4038,8 @@ and translate_statement tr_ctx e  =
 			C_a_cases ( a_cases ) = cmds2, x_prev_2
 			--------------------------------------------------------
 			C_cases ( a_case :: a_cases, x_prev, x_switch_guard ) =
-				           cmds1
-									 cmds2
+				       	cmds1
+						cmds2
 
 
 			C(s) = cmds_def, x_def
@@ -4050,11 +4047,11 @@ and translate_statement tr_ctx e  =
 			---------------------------------------------------------
 			C_default ( s, b_stmts, x_found_b, breaks_a) =
 					            cmds_def
-									    goto [ not (x_found_b) ] next end_switch
-				  next:       cmds_1
+								goto [ not (x_found_b) ] next end_switch
+				  next:       	cmds_1
 					            ...
-									    cmds_n
-				  end_switch: x_r := PHI(breaks_ab, breaks_def, x_def, breaks_b, x_n)
+								cmds_n
+				  end_switch: 	x_r := PHI(breaks_ab, breaks_def, x_def, breaks_b, x_n)
 
 
 
@@ -4065,11 +4062,11 @@ and translate_statement tr_ctx e  =
 			------------------------------------------------------
 		  C(switch(e) { a_cases, default_case, b_cases} =
 				            cmds_guard
-										x_guard_v := i__getValue (x_guard) with err
-										cmds_a
-										goto [ x_found_a ] default b_cases
-				b_cases:	  cmds_b
-				default:		x_found_b := PHI(x_false, x_false, x_true)
+							x_guard_v := i__getValue (x_guard) with err
+							cmds_a
+							goto [ x_found_a ] default b_cases
+				b_cases:	cmds_b
+				default:	x_found_b := PHI(x_false, x_false, x_true)
 				            cmds_default
 
      *)
@@ -4273,7 +4270,7 @@ let make_final_cmd vars final_lab final_var =
 
 
 
-let translate_fun_decls (top_level : bool) sc_var e =
+let translate_fun_decls (top_level : bool) (sc_var : string) (cur_index : int) e  =
 	let f_decls = get_fun_decls e in
 	let hoisted_fdecls =
 		List.fold_left (fun ac f_decl ->
@@ -4282,7 +4279,7 @@ let translate_fun_decls (top_level : bool) sc_var e =
 				| Parser_syntax.Function (s, Some f_name, f_params, body) -> f_name, f_params
 				| _ -> raise (Failure "expected function declaration")) in
 			let f_id = JS2JSIL_Preprocessing.get_codename f_decl in
-			let f_cmds, _, _ = translate_named_function_literal top_level sc_var f_name f_id f_params 0 in
+			let f_cmds, _, _ = translate_named_function_literal top_level sc_var f_name f_id f_params cur_index in
 			ac @ f_cmds)
 			[]
 			f_decls in
@@ -4326,7 +4323,7 @@ let generate_main offset_converter e spec =
 	let cmd_ass_se = annotate_cmd cmd_ass_se None in
 
 	let ctx = make_translation_ctx offset_converter main_fid [ main_fid ] sc_var_main in
-	let cmds_hoist_fdecls = translate_fun_decls true sc_var_main e in
+	let cmds_hoist_fdecls = translate_fun_decls true sc_var_main 0 e in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, _, _, _ = translate_statement ctx e in
 	(* List.iter (fun ({ line_offset; invariant; pre_logic_cmds; post_logic_cmds }, _, _) ->
@@ -4404,7 +4401,7 @@ let generate_proc_eval new_fid e vis_fid =
 	let ret_label = ctx.tr_ret_lab in
 	let ret_var = ctx.tr_ret_var in
 	let new_ctx = { ctx with tr_ret_lab = fake_ret_label;  tr_ret_var = fake_ret_var } in
-	let cmds_hoist_fdecls = translate_fun_decls false var_sc_proc e in
+	let cmds_hoist_fdecls = translate_fun_decls false var_sc_proc ((List.length vis_fid)-1) e in
 	let cmds_hoist_fdecls = annotate_cmds cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, rets, _, _ = translate_statement new_ctx e in
 
@@ -4448,7 +4445,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let ctx = make_translation_ctx offset_converter fid vis_fid var_sc_proc in
 
 	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_err = ("pre_" ^ ctx.tr_err) } in
-	let cmds_hoist_fdecls = translate_fun_decls false var_sc_proc e in
+	let cmds_hoist_fdecls = translate_fun_decls false var_sc_proc ((List.length vis_fid)-1) e in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 
 	(* x_er := new () *)

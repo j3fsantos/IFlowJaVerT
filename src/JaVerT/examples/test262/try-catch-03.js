@@ -1,5 +1,5 @@
 /**
-	@toprequires	(($lg, "y") -> None) * (($lg, "z") -> None)
+	@toprequires	(initialHeapPre() * ($lg, "y") -> None) * (($lg, "z") -> None)
 	@topensures		scope(c1 : 2) * scope(c2 : 2) * scope(c3 : 3) * scope(c4 : 2)
 */
 

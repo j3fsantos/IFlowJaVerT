@@ -1,30 +1,30 @@
 /**
-@pred counter(c, c_val) :
-	standardObject(c) *
-   dataField(c, "getCounter", #gc) *
-   dataField(c, "incCounter", #ic) *
-   fun_obj(getCounter, #gc, #gc_proto, #gc_sc) *
-   fun_obj(incCounter, #ic, #ic_proto, #ic_sc) *
+@pred Counter(c, c_val) :
+	JSObject(c) *
+   DataProp(c, "getCounter", #gc) *
+   DataProp(c, "incCounter", #ic) *
+   FunctionObject(#gc, "getCounter", #gc_sc, _) *
+   FunctionObject(#ic, "incCounter", #ic_sc, _) *
    closure(count: c_val; incCounter: #ic_sc, getCounter: #gc_sc) *
    types (c_val: $$number_type);
 */
 
 
 /**
-@toprequires (emp)
+@toprequires (initialHeapPre())
 @topensures (
    scope(make_counter: #mc) *
    scope(counter_1: #c1) *
    scope(counter_2: #c2) *
-   fun_obj(make_counter, #mc, #mc_proto, #mc_sc) *
-   counter(#c1, 1) *
-   counter(#c2, 0))
+   FunctionObject(#mc, "make_counter", #mc_sc, _) *
+   Counter(#c1, 1) *
+   Counter(#c2, 0))
 */
 
 /**
    @id  make_counter
-   @pre  (emp)
-   @post (counter(ret, 0))
+   @pre  (initialHeapPost())
+   @post (Counter(ret, 0))
 */
 var make_counter = function () {
    var count = 0;

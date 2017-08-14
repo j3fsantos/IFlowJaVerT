@@ -1,6 +1,6 @@
 /**
-@pred counter(c, c_val) :
-	fun_obj(fcounter, c, #c_proto, #c_sc) *
+@pred Counter(c, c_val) :
+	FunctionObject(c, "fcounter", #c_sc, _) *
    closure(x: c_val; fcounter: #c_sc) *
    types (c_val: $$number_type);
 */
@@ -8,7 +8,7 @@
 /**
    @id  f1
    @pre  (emp * (x == #x) * types(#x: $$number_type))
-   @post (counter(ret, #x))
+   @post (Counter(ret, #x))
 */
 var f1 = function (x) {
 
@@ -20,5 +20,4 @@ var f1 = function (x) {
    return function () {
       return x++
    }
-
 }
