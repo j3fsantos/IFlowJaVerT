@@ -134,8 +134,7 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					end
 					else raise (SymbExecFailure (US (ValueMismatch (var, pat_lexpr, lexpr))))
 
-				| le_pat, le -> if ((compare le_pat le) = 0) then discharges
-				                                 else ((le_pat, le) :: discharges)) in
+				| le_pat, le -> (le_pat, le) :: discharges) in
 				spin_me_round pat_lexpr lexpr discharges)
 			pat_store
 			[] in
