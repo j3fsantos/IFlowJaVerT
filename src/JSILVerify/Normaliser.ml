@@ -929,8 +929,17 @@ let normalise_predicate_definitions
 	n_pred_defs
 
 
-
-let pre_normalise_invariants_proc preds body =
+(** -----------------------------------------------------
+  * Pre-Normalise Invariants in JSIL Program 
+  *    - before symbolically executing a program we
+  *      autounfold all the non-recursive predicates and 
+  *      push-in negations 
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+**)
+let pre_normalise_invariants_proc 
+		(predicates : (string, normalised_predicate) Hashtbl.t) 
+		(body       : (jsil_metadata * jsil_cmd) array) : unit =
 	let f_pre_normalise a_list = List.map (fun a -> push_in_negations a) a_list in
 	let len = Array.length body in
 	for i = 0 to (len - 1) do
@@ -938,7 +947,7 @@ let pre_normalise_invariants_proc preds body =
 		match metadata.invariant with
 		| None -> ()
 		| Some a -> (
-				let unfolded_a = f_pre_normalise (Logic_Predicates.auto_unfold preds a) in
+				let unfolded_a = f_pre_normalise (Logic_Predicates.auto_unfold predicates a) in
 				match unfolded_a with
 				| [] -> raise (Failure "invariant unfolds to ZERO assertions")
 				| [ a ] -> body.(i) <- { metadata with invariant = Some a }, cmd
@@ -946,5 +955,7 @@ let pre_normalise_invariants_proc preds body =
 			)
 	done
 
-let pre_normalise_invariants_prog preds prog =
-	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc preds proc.proc_body) prog
+let pre_normalise_invariants_prog
+	(predicates : (string, normalised_predicate) Hashtbl.t)
+	(prog       : (string, jsil_procedure) Hashtbl.t) : unit =
+	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc predicates proc.proc_body) prog
