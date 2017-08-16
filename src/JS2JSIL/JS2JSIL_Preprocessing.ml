@@ -430,7 +430,7 @@ let translate_single_func_specs
       (* Printf.printf "I managed to parse the js assertions\n"; *)
       
       let pre_jsil, post_jsil = JSLogic.js2jsil_single_spec pre_js post_js cc_tbl vis_tbl fun_tbl fid in
-      let new_spec  = JSIL_Syntax.create_single_spec pre_jsil post_jsil ret_flag in
+      let new_spec  = JSIL_Syntax.create_single_spec pre_jsil [ post_jsil ] ret_flag in
       new_spec)
     preconditions
     postconditions in
@@ -477,7 +477,7 @@ let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs =
     Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; main_fid ];
     let proc_specs = List.map (fun { JSLogic.js_pre; JSLogic.js_post; JSLogic.js_ret_flag } -> 
       let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
-        { JSIL_Syntax.pre = pre; JSIL_Syntax.post = post; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
+        { JSIL_Syntax.pre = pre; JSIL_Syntax.post = [ post ]; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
     let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs } in
     Hashtbl.replace only_specs  js_spec_name spec;
     Hashtbl.replace cc_tbl      js_spec_name (Hashtbl.create 1);

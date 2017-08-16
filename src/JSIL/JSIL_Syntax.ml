@@ -1,4 +1,4 @@
-(** JSIL_Syntax *)
+4(** JSIL_Syntax *)
 
 open Set
 
@@ -289,9 +289,9 @@ type jsil_return_flag =
 
 (** {b Single JSIL specifications}. *)
 type jsil_single_spec = {
-	pre      : jsil_logic_assertion; (** Precondition *)
-	post     : jsil_logic_assertion; (** Postcondition *)
-	ret_flag : jsil_return_flag      (** Return flag ({!type:jsil_return_flag}) *)
+	pre      : jsil_logic_assertion;      (** Precondition *)
+	post     : jsil_logic_assertion list; (** Postcondition *)
+	ret_flag : jsil_return_flag           (** Return flag ({!type:jsil_return_flag}) *)
 }
 
 (** {b Full JSIL specifications}. *)
@@ -322,8 +322,8 @@ let create_jsil_spec name params specs =
 type jsil_logic_command =
 	| Fold             of jsil_logic_assertion                                                          (** Recursive fold *)
 	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
-	| CallSpec		     of string * jsil_var * (jsil_logic_expr list)                                    (** Spec calling *)
-	| ApplyLem		     of string * (jsil_logic_expr list)                                               (** Apply lemma *)
+	| CallSpec		   of string * jsil_var * (jsil_logic_expr list)                                    (** Spec calling *)
+	| ApplyLem		   of string * (jsil_logic_expr list)                                               (** Apply lemma *)
 	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
 	| LinearRecUnfold  of string * (jsil_logic_expr list)                                               (** Recursive unfold of everything but this time I will give you the arguments *)
 	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)       (** If-then-else *)
@@ -663,8 +663,45 @@ let is_spec_var_name (name : string) : bool =
 let fresh_spec_var () : string =
 	( "#" ^ fresh_svar ())
 
+
+(*******************************************************)
+(*******************************************************)
 (* A substitution type                                 *)
+(*******************************************************)
+(*******************************************************)
 type substitution = ((string, jsil_logic_expr) Hashtbl.t)
+
+let init_substitution vars =
+	let new_subst = Hashtbl.create 1021 in
+	List.iter
+		(fun var -> Hashtbl.replace new_subst var (LVar var))
+		vars;
+	new_subst
+
+let init_substitution2 vars les =
+	let subst = Hashtbl.create 1021 in
+
+	let rec loop vars les =
+		match vars, les with
+		| [], _
+		| _, [] -> ()
+		| var :: rest_vars, le :: rest_les ->
+			Hashtbl.replace subst var le; loop rest_vars rest_les in
+
+	loop vars les;
+	subst
+
+let init_substitution3 vars_les =
+	let subst = Hashtbl.create 1021 in
+
+	let rec loop vars_les =
+		match vars_les with
+		| [] -> ()
+		| (var, le) :: rest ->
+			Hashtbl.replace subst var le; loop rest in
+
+	loop vars_les;
+	subst
 
 (* creates an expression of equality from the substitution table *)
 let assertions_of_substitution (subst : substitution) =
@@ -672,6 +709,8 @@ let assertions_of_substitution (subst : substitution) =
     (fun v le ac -> (LEq (LVar v, le)) :: ac)  (* the fold function - forms an expression from the variables *)
 		subst                                      (* the substituion table *)
 		[]                                         (* base element *)
+
+
 
 (* Symbolic heaps *)
 module LHeap = Hashtbl.Make(
@@ -681,12 +720,16 @@ module LHeap = Hashtbl.Make(
 		let hash = Hashtbl.hash
 	end)
 
-(* Typing Environment *)
 
+(*******************************************************)
+(*******************************************************)
+(* Typing Environment                                  *)
+(*******************************************************)
+(*******************************************************)
 type typing_environment        = ((string, jsil_type) Hashtbl.t)
 
 (* functions to manipulate gamma *)
-let mk_gamma () = Hashtbl.create small_tbl_size
+let gamma_init () = Hashtbl.create small_tbl_size
 
 let gamma_get_type gamma var =
 	try Some (Hashtbl.find gamma var) with Not_found -> None

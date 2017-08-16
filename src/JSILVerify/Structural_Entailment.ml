@@ -1502,7 +1502,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	(* existentials -> new variables introduced by the fold                                      *)
 	(* store_vars -> vars in the store which are mapped to logical expressions with existentials *)
 	let find_existentials_types (existentials : SS.t) store_vars (store : symbolic_store) gamma pat_gamma =
-		let gamma_existentials = mk_gamma () in
+		let gamma_existentials = gamma_init () in
 		List.iter
 			(fun x ->
 				let le_x : jsil_logic_expr option = store_get_safe store x in
@@ -1966,7 +1966,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 					match t with
 					| None -> v :: ac
 					| Some _ -> ac) [] store_vars store_0_var_types in
-		let gamma_0' = mk_gamma () in
+		let gamma_0' = gamma_init () in
 		List.iter
 			(fun x ->
 				let le_x = store_get_safe store_0 x in
@@ -2012,7 +2012,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		(* Printf.printf "gamma_1'' is:\n%s\n" (Symbolic_State_Print.string_of_gamma gamma_1''); *)
 		extend_gamma gamma_0 gamma_1'';
 		let gamma = gamma_0 in
-		Normaliser.extend_typing_env_using_assertion_info pi gamma;
+		Normaliser.extend_typing_env_using_assertion_info gamma pi;
 		print_debug (Printf.sprintf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s"
 			(Symbolic_State_Print.string_of_substitution subst)
 			(Symbolic_State_Print.string_of_substitution new_pat_subst));
@@ -2032,7 +2032,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 		let unfolded_symb_state = merge_symb_states symb_state pat_symb_state pat_subst in
 		merge_pfs (get_pf unfolded_symb_state) (DynArray.of_list new_pfs);
 		extend_gamma (get_gamma unfolded_symb_state) new_gamma;
-		Normaliser.extend_typing_env_using_assertion_info new_pfs (get_gamma unfolded_symb_state);
+		Normaliser.extend_typing_env_using_assertion_info (get_gamma unfolded_symb_state) new_pfs;
 		print_debug ("Finished step 6 of safe_merge_symb_states");
 		unfolded_symb_state in
 

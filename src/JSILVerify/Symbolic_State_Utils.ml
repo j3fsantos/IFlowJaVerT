@@ -16,7 +16,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 		(gamma : typing_environment) (le : jsil_logic_expr) =
 
 	let store = Option.default (store_init [] []) store in 
-	let subst = Option.default (JSIL_Logic_Utils.init_substitution []) subst in 
+	let subst = Option.default (init_substitution []) subst in 
 
 	let f = normalise_lexpr ~store:store ~subst:subst gamma in
 
@@ -351,58 +351,9 @@ let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : 
 	print_debug "Finished merging heaps."
 
 
-let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : jsil_logic_assertion list =
 
-	let rec make_all_different_assertion_from_field_and_flist field flist =
-		let rec loop flist constraints =
-			match flist with
-			| [] -> constraints
-			| f_name :: rest -> 
-				(match List.mem f_name rest with
-				| true -> 
-					print_debug_petar (Printf.sprintf "Horror: Overlapping resources in %s"
-						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) flist)));
-					[ LFalse ]
-				| false -> loop rest ((LNot (LEq (field, f_name))) :: constraints)) in
-		loop flist [] in
 
-	let rec loop fields_to_cover fields_covered constraints =
-		match fields_to_cover with
-		| [] -> constraints
-		| f_name :: rest ->
-			let new_constraints = make_all_different_assertion_from_field_and_flist f_name rest in
-			(match new_constraints with
-			| [ LFalse ] -> [ LFalse ]
-			| _ -> loop rest (f_name :: fields_covered) (new_constraints @ constraints)) in
 
-	let result = loop f_list [] [] in
-	
-	print_debug_petar
-		(Printf.sprintf "Make all different: %s\n" 
-			(String.concat " " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) f_list)));
-	
-	result
-
-let get_heap_well_formedness_constraints heap =
-	print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n" 
-		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)); 
-
-	LHeap.fold
-		(fun field (fv_list, _) constraints ->
-			(match constraints with
-			| [ LFalse ] -> [ LFalse ]
-			| _ -> 
-  			print_debug_petar (Printf.sprintf "Object: %s" field);
-				print_debug_petar "Field-value list:";
-				print_debug_petar (String.concat "\n" 
-					(List.map (fun (field, value) -> Printf.sprintf "(%s, %s)" 
-						(JSIL_Print.string_of_logic_expression field false)
-						(JSIL_Print.string_of_logic_expression value false)) fv_list));
-				let f_list, _ = List.split fv_list in
-  			let new_constraints = make_all_different_assertion_from_fvlist f_list in
-  			new_constraints @ constraints))
-		heap
-		[]
 
 (** 
 (** JSIL logic assertions *)
@@ -463,7 +414,7 @@ let assertions_of_gamma gamma : jsil_logic_assertion=
 let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (existentials : string list) =
 	print_debug_petar (Printf.sprintf "Entering predicate_assertion_equality.\n");
 
-	let subst = JSIL_Logic_Utils.init_substitution [] in
+	let subst = init_substitution [] in
 	let extss = SS.of_list existentials in
 
 	let rec unify_pred_args les pat_les =
@@ -611,9 +562,8 @@ let copy_single_spec s_spec =
 		n_pre        = copy_pre;
 		n_post       = s_spec.n_post;
 		n_ret_flag   = s_spec.n_ret_flag;
-		n_lvars      = s_spec.n_lvars;
-		n_post_lvars = s_spec.n_post_lvars;
-		n_subst      = s_spec.n_subst
+		n_lvars      = s_spec.n_lvars; 
+		n_subst      = s_spec.n_subst 
 	}
 	
 (*************************************)

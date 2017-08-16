@@ -1118,8 +1118,12 @@ let rec symb_evaluate_logic_cmd s_prog
 	| Assert a ->
 		let existentials  = get_assertion_lvars a in
 		let existentials  = SS.diff existentials spec_vars in
-		print_normal (Printf.sprintf "Assert with: %s\n" (JSIL_Print.string_of_logic_assertion a false));
-		let new_symb_state, _       = Normaliser.normalise_postcondition a subst spec_vars (get_gamma symb_state) in
+		print_normal (Printf.sprintf "LOOP: I found an invariant: %s\nMy current subst is:\n%s\n.SpecVars:%s\n" 
+							(JSIL_Print.string_of_logic_assertion a false)
+							(Symbolic_State_Print.string_of_substitution subst)
+							(String.concat ", " (SS.elements spec_vars)));
+		let gamma_inv_0 = filter_gamma_f (get_gamma symb_state) (fun x -> SS.mem x spec_vars) in 
+		let new_symb_state = Option.get (Normaliser.normalise_post gamma_inv_0 subst spec_vars a) in
 		let start_time = Sys.time() in
 		let new_symb_state          = Simplifications.simplify_ss new_symb_state (Some (Some spec_vars)) in
 		let end_time = Sys.time() in
@@ -1376,8 +1380,12 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 					(* Invariant present, check if the current symbolic state entails the invariant *)
 					| Some a ->
 						(* check if the current symbolic state entails the invariant *)
-						print_normal (Printf.sprintf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false));
-						let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
+						print_normal (Printf.sprintf "LOOP: I found an invariant: %s\nMy current subst is:\n%s\n.SpecVars:%s\n" 
+							(JSIL_Print.string_of_logic_assertion a false)
+							(Symbolic_State_Print.string_of_substitution spec.n_subst)
+							(String.concat ", " (SS.elements spec.n_lvars)));
+						let gamma_inv_0 = filter_gamma_f (get_gamma spec.n_pre) (fun x -> SS.mem x spec.n_lvars) in 
+						let new_symb_state = Option.get (Normaliser.normalise_post gamma_inv_0 spec.n_subst spec.n_lvars a) in
 						let new_symb_state, _, _, _ = Simplifications.simplify_symb_state None (DynArray.create()) (SS.empty) new_symb_state in
 						let _ = Structural_Entailment.fully_unify_symb_state new_symb_state symb_state spec.n_lvars !js in ()
 				end
@@ -1394,8 +1402,12 @@ and symb_evaluate_next_cmd_cont s_prog proc spec search_info symb_state cur next
 						| Some a ->
 							let inv_lvars = get_assertion_lvars a in
 							let new_spec_vars_for_later = SS.union inv_lvars spec.n_lvars in
-							print_normal (Printf.sprintf "LOOP: I found an invariant: %s\n" (JSIL_Print.string_of_logic_assertion a false));
-							let new_symb_state, _ = Normaliser.normalise_postcondition a spec.n_subst spec.n_lvars (get_gamma spec.n_pre) in
+							print_normal (Printf.sprintf "LOOP: I found an invariant: %s\nMy current subst is:\n%s\n.SpecVars:%s\n" 
+								(JSIL_Print.string_of_logic_assertion a false)
+								(Symbolic_State_Print.string_of_substitution spec.n_subst)
+								(String.concat ", " (SS.elements spec.n_lvars)));
+							let gamma_inv_0 = filter_gamma_f (get_gamma spec.n_pre) (fun x -> SS.mem x spec.n_lvars) in 
+							let new_symb_state = Option.get (Normaliser.normalise_post gamma_inv_0 spec.n_subst spec.n_lvars a) in
 							let start_time = Sys.time() in
 							let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some spec.n_lvars)) in
 							let end_time = Sys.time() in

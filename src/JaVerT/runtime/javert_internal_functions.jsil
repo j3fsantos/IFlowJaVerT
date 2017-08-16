@@ -1464,10 +1464,6 @@ spec i__sameValue (v1, v2)
 	[[ ret == $$f ]]
 	normal;
 
-	[[ (v1 == #v1) * (v2 == #v2) * (! (#v1 == #v1)) * (! (#v2 == #v2)) * types (v1 : $$number_type, v2 : $$number_type) ]]
-	[[ ret == $$t ]]
-	normal;
-
 	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) ]]
 	[[ ret == $$t ]]
 	normal;

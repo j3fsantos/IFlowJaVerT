@@ -727,7 +727,7 @@ jsil_lemma_target:
      [* proof_body *] *)
 	LEMMA; lemma_head = jsil_lemma_head_target;
   pre = spec_line;
-	post = spec_line;
+	post = mult_spec_line;
 	proof = option(jsil_lemma_proof_target);
 	{
     let (lemma_name, lemma_params) = lemma_head in
@@ -782,16 +782,22 @@ spec_head_target:
 
 pre_post_target:
 (* [[ .... ]] [[ .... ]] Normal *)
-	| pre = spec_line; post = spec_line; NORMAL
+	| pre = spec_line; post = mult_spec_line; NORMAL
 		{ { pre; post; ret_flag = Normal } }
 (* [[ .... ]] [[ .... ]] Error *)
-	| pre = spec_line; post = spec_line; ERROR
+	| pre = spec_line; post = mult_spec_line; ERROR
 		{ { pre; post; ret_flag = Error } }
 ;
 
 spec_line:
   OASSERT; assertion = assertion_target; CASSERT { assertion }
 ;
+
+mult_spec_line:
+  OASSERT; assertions = separated_list(SCOLON, assertion_target); CASSERT { assertions }
+;
+
+
 
 top_level_assertion_target:
 	a = assertion_target; EOF { a }

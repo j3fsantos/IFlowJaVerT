@@ -309,7 +309,7 @@ let is_heap_empty (heap : symbolic_heap) (js : bool) : bool =
 (*************************************)
 
 let store_init vars les =
-	let store = Hashtbl.create 31 in
+	let store = Hashtbl.create 101 in
 
 	let rec loop vars les =
 		match vars, les with
@@ -521,6 +521,8 @@ let get_locs_pfs pfs =
 (*************************************)
 (** Predicate Set functions         **)
 (*************************************)
+let pred_set_init () = DynArray.make 11
+
 let copy_pred_set preds =
 	let new_preds = DynArray.copy preds in
 	new_preds
@@ -770,29 +772,6 @@ let extend_abs_store x store gamma =
 	Hashtbl.add store x new_l_var;
 	new_l_var
 
-let check_store store gamma =
-
-	let placeholder pvar le target_type =
-		if (Hashtbl.mem gamma pvar) then
-		begin
-		  let _type = Hashtbl.find gamma pvar in
-		  	(target_type = _type)
-		end
-		else
-		begin
-		   Hashtbl.add gamma pvar target_type;
-		   true
-		end in
-
-	Hashtbl.fold
-		(fun pvar le ac -> ac &&
-			(match le with
-			 | LNone -> placeholder pvar le NoneType
-			 | ALoc _ -> placeholder pvar le ObjectType
-			 | LLit lit -> placeholder pvar le (evaluate_type_of lit)
-			 | _ -> true
-			)
-		) store true
 
 
 (****************************************)
@@ -802,14 +781,13 @@ type jsil_n_single_spec = {
 	n_pre         : symbolic_state;
 	n_post        : symbolic_state list;
 	n_ret_flag    : jsil_return_flag;
-	n_lvars       : SS.t;
-	n_post_lvars  : SS.t list;
-	n_subst       : substitution
+	n_lvars       : SS.t; 
+	n_subst       : substitution 
 }
 
 type jsil_n_spec = {
 	n_spec_name   : string;
-  n_spec_params : jsil_var list;
+  	n_spec_params : jsil_var list;
 	n_proc_specs  : jsil_n_single_spec list
 }
 

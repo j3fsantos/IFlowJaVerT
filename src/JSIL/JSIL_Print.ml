@@ -460,27 +460,31 @@ let string_of_return_flag flag =
 		| Error -> "error"
 
 (** JSIL Lemmas *)
-let string_of_lemma lemma_name lemma =
-  let string_of_params          = (String.concat ", " lemma.lemma_spec.spec_params) in
-	let string_of_pre             = "\t[[ " ^ string_of_logic_assertion (List.hd lemma.lemma_spec.proc_specs).pre false ^ " ]]\n" in
-	let string_of_post            = "\t[[ " ^ string_of_logic_assertion (List.hd lemma.lemma_spec.proc_specs).post false ^ " ]]\n" in
+let string_of_lemma (lemma_name : string) lemma =
+	let f a = string_of_logic_assertion a false in 
+	let f_list asrts = String.concat "; " (List.map f asrts) in 
+  	let string_of_params          = (String.concat ", " lemma.lemma_spec.spec_params) in
+	let string_of_pre             = "\t[[ " ^ (f (List.hd lemma.lemma_spec.proc_specs).pre) ^ " ]]\n" in
+	let string_of_post            = "\t[[ " ^ (f_list (List.hd lemma.lemma_spec.proc_specs).post) ^ " ]]\n" in
 	let string_of_proof =
 		(match lemma.lemma_proof with
 		  | None -> ""
 			| Some lemma_proof -> "\t[* " ^ (String.concat ";\n\t   " (List.map string_of_lcmd lemma_proof)) ^ " *]\n") in
 	"lemma " ^ lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_proof
 
+
+let string_of_single_spec (prefix: string) (spec : jsil_single_spec) = 
+	let f a = string_of_logic_assertion a false in 
+	let f_list asrts = String.concat "; " (List.map f asrts) in 
+	(prefix ^ "[[ " ^ (f spec.pre) ^ " ]]\n" ^
+		prefix ^ "[[ " ^ (f_list spec.post) ^ " ]]\n" ^
+		prefix ^ string_of_return_flag spec.ret_flag)
+
+
 (** JSIL procedure specification *)
-let rec string_of_specs specs =
-	match specs with
-	| [] -> ""
-	| hd :: tl ->
-		"\t[[ " ^ string_of_logic_assertion hd.pre  false ^ " ]]\n" ^
-		"\t[[ " ^ string_of_logic_assertion hd.post false ^ " ]]\n" ^
-		"\t" ^ string_of_return_flag hd.ret_flag ^
-		(match tl with
-		| [] -> "\n"
-		| _ -> ";\n" ^ string_of_specs tl)
+let string_of_specs (specs : jsil_single_spec list) =
+	(String.concat ";\n " (List.map (string_of_single_spec "\t") specs)) ^ "\n"
+
 
 (** JSIL procedures *)
 (*

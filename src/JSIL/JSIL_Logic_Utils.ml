@@ -258,21 +258,11 @@ let rec get_logic_expression_lvars_list le =
 let get_logic_expression_lvars le =
 	SS.of_list (get_logic_expression_lvars_list le)
 
-let get_assertion_lvars a : JSIL_Syntax.SS.t = 
-	
-	let rec get_assertion_lvars_list a =
-		let f = get_assertion_lvars_list in
-		let fe = get_logic_expression_lvars_list in
-		match a with
-		| LTrue | LFalse | LEmp | LTypes _ -> []
-		| LNot a -> f a
-		| LAnd (a1, a2) | LOr (a1, a2) | LStar (a1, a2) -> (f a1) @ (f a2)
-		| LPointsTo (le1, le2, le3) -> (fe le1) @ (fe le2) @ (fe le3)
-		| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2) | LStrLess (le1, le2) -> (fe le1) @ (fe le2)
-		| LPred (_, les) -> List.concat (List.map fe les)
-		| LEmptyFields (e, domain) -> (fe e) @ (fe domain) in
-		
-	SS.of_list (get_assertion_lvars_list a)
+let get_assertion_lvars a : JSIL_Syntax.SS.t = 	
+	let fe = get_logic_expression_lvars_list in
+	let f_ac a _ _ ac = List.concat ac in 
+	SS.of_list (assertion_fold (Some fe) f_ac None None a)
+
 
 let remove_string_duplicates strings =
 	let string_set = SS.of_list strings in
@@ -533,7 +523,7 @@ and push_in_negations_on a =
 	let f_off = push_in_negations_off in
 	let f_on = push_in_negations_on in
 	(match a with
-	|	LAnd (a1, a2)       -> LOr ((f_on a1), (f_on a2))
+	| LAnd (a1, a2)       -> LOr ((f_on a1), (f_on a2))
 	| LOr (a1, a2)        -> LAnd ((f_on a1), (f_on a2))
 	| LTrue               -> LFalse
 	| LFalse              -> LTrue
@@ -614,38 +604,7 @@ let assertion_list_from_dnf c_list =
 	loop c_list []
 
 
-let normalize_pure_assertion a =
-	let a = push_in_negations_off a in
-	let a = build_disjunt_normal_form a in
-	remove_falses a
-
-let old_pre_normalize_assertion a =
-	(* Printf.printf "I am inside the pre_normalize being HAPPY. Looking at the assertion: %s!!!!\n"
-		(JSIL_Print.string_of_logic_assertion a false); *)
-	let f asrts =
-		List.fold_left
-			(fun ac asrt ->
-				let asrt_str = (JSIL_Print.string_of_logic_assertion asrt false) in
-				if (ac = "")
-					then asrt_str
-					else (ac ^ ";\n" ^ asrt_str))
-			""
-			asrts in
-	if (only_pure_atoms_negated a)
-		then [ a ]
-		else
-			begin
-				(* Printf.printf "there are non-pure atoms negated!!!!\n"; *)
-				let a = push_in_negations_off a in
-				let dnf_a = build_disjunt_normal_form a in
-				let dnf_a = remove_falses dnf_a in
-				let new_as = assertion_list_from_dnf dnf_a in
-				(* Printf.printf "Original a: %s.\nAfter prenormalisation:\n%s\n" (JSIL_Print.string_of_logic_assertion a false) (f new_as); *)
-				new_as
-			end
-
-
-let pre_normalise_assertion a : jsil_logic_assertion =
+let push_in_negations (a : jsil_logic_assertion) : jsil_logic_assertion =
 	(match (only_pure_atoms_negated a) with
 	| true -> a
 	| false -> push_in_negations_off a)
@@ -842,42 +801,6 @@ let filter_substitution_fun (subst : substitution) (filter : string -> bool)  =
 		| true -> Some le
 		| false -> None) new_subst;
 	new_subst
-
-
-let init_substitution vars =
-	let new_subst = Hashtbl.create 31 in
-	List.iter
-		(fun var -> Hashtbl.replace new_subst var (LVar var))
-		vars;
-	new_subst
-
-let init_substitution2 vars les =
-	let subst = Hashtbl.create 1021 in
-
-	let rec loop vars les =
-		match vars, les with
-		| [], _
-		| _, [] -> ()
-		| var :: rest_vars, le :: rest_les ->
-			Hashtbl.replace subst var le; loop rest_vars rest_les in
-
-	loop vars les;
-	subst
-
-let init_substitution3 vars_les =
-	let subst = Hashtbl.create 1021 in
-
-	let rec loop vars_les =
-		match vars_les with
-		| [] -> ()
-		| (var, le) :: rest ->
-			Hashtbl.replace subst var le; loop rest in
-
-	loop vars_les;
-	subst
-
-
-
 
 
 (**
@@ -1201,7 +1124,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 
 
 let reverse_type_lexpr gamma le le_type : typing_environment option =
-	let new_gamma : typing_environment = mk_gamma () in
+	let new_gamma : typing_environment = gamma_init () in
 	let ret = reverse_type_lexpr_aux gamma new_gamma le le_type in
 	if (ret)
 		then Some new_gamma

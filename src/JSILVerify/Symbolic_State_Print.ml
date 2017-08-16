@@ -127,7 +127,7 @@ let string_of_specs specs =
 			let flag = (match x.ret_flag with | Normal -> "Normal" | Error -> "Error") in
 			ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n\n"
 				 (string_of_logic_assertion pre false)
-				 (string_of_logic_assertion post false)
+				 (String.concat "; " (List.map (fun a -> string_of_logic_assertion a false) post))
 				 flag
 			))
 		""
