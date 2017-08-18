@@ -101,14 +101,14 @@ let bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds  =
 
 let process_file path =
 		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
-		let ext_prog = JSIL_Utils.ext_program_of_path path in
+		let ext_prog = JSIL_Syntax_Utils.ext_program_of_path path in
 		print_debug
 			("The procedures that we will be verifying are: " ^
 				(String.concat ", " ext_prog.procedure_names) ^
 				"\n");
 		print_debug "\n*** Prelude: Stage 1: Parsing successfully completed. ***\n";
 		print_debug "*** Prelude: Stage 2: Transforming the program.\n";
-		let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
+		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog path ext_prog in
 		print_debug "\n*** Prelude: Stage 2: Done transforming the program.\n";
 		print_debug "\n*** Prelude: Stage 3: Normalising predicates.\n";
 		let norm_preds = Logic_Predicates.normalise ext_prog.predicates in

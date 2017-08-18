@@ -1,0 +1,441 @@
+open Lexing
+open JSIL_Syntax
+open JSLogic
+
+(** ----------------------------------------------------
+    Extracting the jsil variables from a procedure
+    -----------------------------------------------------
+*)
+let get_proc_variables
+    (proc : jsil_procedure) : jsil_var list =
+
+  let var_table = Hashtbl.create 1021 in
+  let cmds = proc.proc_body in
+  let number_of_cmds = Array.length cmds in
+
+  (** Step 1 - Process each command in the procedure individually,
+   *  carrying along the variables found so far
+   * -----------------------------------------------------------------------------------
+   *)
+  let rec loop
+      (u : int)
+      (vars : jsil_var list) : jsil_var list =
+    if (u >= number_of_cmds)
+    then vars
+    else
+
+      (** Step 2 - Process the command at the current index
+       * -----------------------------------------------------------------------------------
+       *)
+      let spec, cmd = cmds.(u) in
+      (match cmd with
+
+       (** Step 3 - Pattern match on the command type to extract the variable
+        * -----------------------------------------------------------------------------------
+        *)
+       | SBasic (SAssignment (var, _))
+       | SBasic (SLookup (var, _, _))
+       | SBasic (SNew var)
+       | SBasic (SHasField (var, _, _))
+       | SBasic (SGetFields (var, _))
+       | SBasic (SArguments var)
+       | SCall (var, _, _, _) when (not (Hashtbl.mem var_table var)) ->
+
+         (** Step 4 - Store the variable in the global hashtable and recurse
+          * -----------------------------------------------------------------------------------
+         *)
+         Hashtbl.add var_table var true;
+         loop (u+1) (var :: vars)) in
+
+  (** Step 0 - Iterate over each index associated with a command
+   * -----------------------------------------------------------------------------------
+  *)
+  loop 0 []
+
+(** ----------------------------------------------------
+    Replacing all labels in the procedure with numbers, and recording the mapping
+    -----------------------------------------------------
+*)
+let desugar_labs
+    (lproc : jsil_ext_procedure) : jsil_procedure =
+
+	let no_of_cmds = Array.length lproc.lproc_body in
+
+  (** Step 1 - Map labels to numbers, adding the label to the mapping hashtable
+   * -----------------------------------------------------------------------------------
+   *)
+	let map_labels_to_numbers =
+		let mapping = Hashtbl.create no_of_cmds in
+		for i = 0 to (no_of_cmds - 1) do
+			(match (lproc.lproc_body).(i) with
+			  | (_, Some str, _) -> Hashtbl.add mapping str i
+				| _ -> ());
+		done;
+		mapping in
+
+ (** Step 2 - Replace labels with numbers in the procedure commands
+   * -----------------------------------------------------------------------------------
+   *)
+	let convert_to_sjsil mapping =
+		let cmds_nolab = Array.map (fun x -> (match x with | (spec, _, cmd) -> (spec, cmd))) lproc.lproc_body in
+		let cmds = Array.map (fun x ->
+      match x with
+      | spec, x ->
+				let x = match x with
+						| SLBasic cmd -> SBasic cmd
+			      | SLGoto lab -> SGoto (Hashtbl.find mapping lab)
+			      | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
+			      | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
+						| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
+						| SLPhiAssignment (x, args) -> SPhiAssignment (x, args)
+						| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
+				(spec, x)
+			) cmds_nolab in
+      cmds,
+      (match lproc.lret_label with
+       | None -> None
+       | Some lab -> Some (Hashtbl.find mapping lab)),
+      (match lproc.lerror_label with
+       | None -> None
+       | Some lab -> Some (Hashtbl.find mapping lab)) in
+
+ (** Step 3 - Return a new procedure, with the components now devoid of labels
+   * -----------------------------------------------------------------------------------
+   *)
+	let mapping = map_labels_to_numbers in
+	let b, rl, el = convert_to_sjsil mapping in
+	let proc =
+		{
+			proc_name = lproc.lproc_name;
+    	proc_body = b;
+    	proc_params = lproc.lproc_params;
+			ret_label = rl;
+			ret_var = lproc.lret_var;
+			error_label = el;
+			error_var = lproc.lerror_var;
+			spec = lproc.lspec;
+		} in
+	print_debug_petar (Printf.sprintf "%s" (JSIL_Print.string_of_procedure proc false));
+	proc
+
+(** ----------------------------------------------------
+    Prints the current position of the lexbuf
+    -----------------------------------------------------
+*)
+let print_position
+    (outx : Format.formatter)
+    (lexbuf : Lexing.lexbuf) : unit =
+  let pos = lexbuf.lex_curr_p in
+  Format.fprintf outx "%s:%d:%d" pos.pos_fname
+    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+
+type token = [%import: JSIL_Parser.token] [@@deriving show]
+
+(** ----------------------------------------------------
+    Initiates the parsing, of the contents in 'lexbuf', from the starting symbol 'start'.
+    Terminates if an error occours.
+    -----------------------------------------------------
+*)
+let parse
+    start
+    (lexbuf : Lexing.lexbuf) (** Can't specify a return type as depends on target *) =
+
+  let module JPMI = JSIL_Parser.MenhirInterpreter in
+
+  let last_token = ref JSIL_Parser.EOF
+  in let lexer lexbuf =
+       let token = JSIL_Lexer.read lexbuf in
+       last_token := token; token
+  in
+
+  (** ----------------------------------------------------
+      Start the intetpreter
+      -----------------------------------------------------
+  *)
+  JPMI.loop_handle
+    (fun result -> result)
+
+    (** ----------------------------------------------------
+        Terminate if an error occurs
+        -----------------------------------------------------
+    *)
+    (function JPMI.Rejected -> failwith "Parser rejected input"
+            | JPMI.HandlingError e ->
+              let csn = JPMI.current_state_number e in
+              Format.eprintf "%a, last token: %s: %s.@."
+                print_position lexbuf
+                (show_token !last_token)
+                "Error message found";
+              raise JSIL_Parser.Error
+            | _ -> failwith "Unexpected state in failure handler!"
+    )
+    (JPMI.lexer_lexbuf_to_supplier lexer lexbuf)
+    (start lexbuf.Lexing.lex_curr_p)
+
+(** ----------------------------------------------------
+    Open the file given by 'path' and run the parser on its contents.
+    -----------------------------------------------------
+*)
+let ext_program_of_path
+    (path : string) : jsil_ext_program =
+
+  let inx = open_in path in
+  let lexbuf = Lexing.from_channel inx in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
+  let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
+  close_in inx;
+  prog
+
+(** ----------------------------------------------------
+    Run the parser on the given string.
+    -----------------------------------------------------
+*)
+let ext_program_of_string
+    (str : string) : jsil_ext_program =
+
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
+	prog
+
+(** ----------------------------------------------------
+    Run the parser on a string of an assertion.
+    -----------------------------------------------------
+*)
+let js_assertion_of_string
+    (str : string) : js_logic_assertion =
+
+Printf.printf "Parsing the following js assertion: %s\n" str;
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
+
+(** ----------------------------------------------------
+    Run the parser on a string of a predicate definition.
+    -----------------------------------------------------
+*)
+let js_logic_pred_def_of_string
+    (str : string) : JSLogic.js_logic_predicate =
+
+ Printf.printf "Parsing the following pred def: %s\n" str;
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse JSIL_Parser.Incremental.js_pred_target lexbuf
+
+(** ----------------------------------------------------
+    Run the parser on a string of an only spec
+    -----------------------------------------------------
+*)
+let js_only_spec_from_string
+    (str : string) : JSLogic.js_spec =
+
+ Printf.printf "Parsing the following only spec: %s\n" str;
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse JSIL_Parser.Incremental.js_only_spec_target lexbuf
+
+(** ----------------------------------------------------
+    Run the parser on a string of a list of JS logical commands
+    -----------------------------------------------------
+*)
+let js_logic_commands_of_string
+    (str : string) : js_logic_command list =
+
+ Printf.printf "Parsing the following logic commands: %s\n" str;
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse JSIL_Parser.Incremental.js_logic_cmds_target lexbuf
+
+(** ----------------------------------------------------
+    Add the declarations in 'program_from' to 'program_to'.
+    -----------------------------------------------------
+*)
+let extend_declarations
+    (program_to : jsil_ext_program)
+    (program_from : jsil_ext_program) : unit =
+
+  (** Step 1 - Extend the predicates
+    * -----------------------------------------------------------------------------------
+    *)
+	Hashtbl.iter
+	  (fun pred_name pred ->
+		  (if (Hashtbl.mem program_to.predicates pred_name)
+		   then print_debug (Printf.sprintf "*** WARNING: Predicate %s already exists.\n" pred_name)
+		   else print_debug (Printf.sprintf "*** MESSAGE: Adding predicate %s.\n" pred_name));
+		  Hashtbl.add program_to.predicates pred_name pred)
+   program_from.predicates;
+
+ (** Step 1 - Extend the procedures, except where a procedure with the same name already exists
+   * -----------------------------------------------------------------------------------
+   *)
+	Hashtbl.iter
+		(fun proc_name proc ->
+			if (not (Hashtbl.mem program_to.procedures proc_name))
+				then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
+				else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
+		program_from.procedures
+
+(** ----------------------------------------------------
+  * Load the programs imported in 'program' and add its declarations to 'program' itself.
+  * -----------------------------------------------------------------------------------
+  *)
+let resolve_imports
+    (filename : string)
+    (program : jsil_ext_program) : unit =
+
+  (* 'added_imports' keeps track of the loaded files *)
+  (** Step 1 - Create a hashtable 'added_imports' which keeps track of the loaded files
+    * -----------------------------------------------------------------------------------
+    *)
+	let added_imports = Hashtbl.create 32 in
+  Hashtbl.add added_imports filename true;
+
+  (** Step 2 - Extend the program with each of the programs in imports
+    * -----------------------------------------------------------------------------------
+    *)
+	let rec resolve_imports_iter imports =
+		(match imports with
+		| [] -> ()
+		| file :: rest_imports ->
+			print_debug_petar (Printf.sprintf "File: %s\n" file);
+			if (not (Hashtbl.mem added_imports file))
+				then
+					(Hashtbl.replace added_imports file true;
+					let imported_program = ext_program_of_path (file ^ ".jsil") in
+					extend_declarations program imported_program;
+     resolve_imports_iter (rest_imports @ imported_program.imports))) in
+
+ (** Step 3 - Print debug messages..
+   * -----------------------------------------------------------------------------------
+   *)
+	print_debug_petar (Printf.sprintf "Predicates Program:\n");
+	Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program.predicates;
+	print_debug_petar (Printf.sprintf "Procedures Program:\n");
+  Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program.procedures;
+
+	resolve_imports_iter program.imports
+
+type global_which_pred_type = (string * int * int, int) Hashtbl.t
+type which_pred_type = (int * int, int) Hashtbl.t
+
+(** ----------------------------------------------------
+  * Converts an extended JSIL program into a set of basic procedures.
+  * -----------------------------------------------------------------------------------
+*)
+let prog_of_ext_prog
+    (filename : string)
+    (ext_program : jsil_ext_program) : ((string, jsil_procedure) Hashtbl.t * global_which_pred_type) =
+
+	let epreds = ext_program.predicates in
+  let eprocs = ext_program.procedures in
+
+  (** Step 1 - Add the declarations from the imported files
+    * -----------------------------------------------------------------------------------
+    *)
+	print_debug_petar (Printf.sprintf "Entering resolve_imports.\n");
+	resolve_imports filename ext_program;
+  print_debug_petar (Printf.sprintf "Exiting resolve_imports.\n");
+
+  (** Step 2 - Desugar each procedure
+   * -----------------------------------------------------------------------------------
+   *)
+	let prog = Hashtbl.create 101 in
+  let global_which_pred = Hashtbl.create 101 in
+
+	Hashtbl.iter
+		(fun proc_name ext_proc ->
+			print_debug_petar (Printf.sprintf "Going to desugar procedure %s\n" proc_name);
+
+     (** Step 3 - Desugar labels
+      * -----------------------------------------------------------------------------------
+     *)
+    let proc = desugar_labs ext_proc in
+
+    (** Step 4 - Get the succ and pred tables
+      * -----------------------------------------------------------------------------------
+      *)
+		 let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+		 print_debug_petar "succ and pred tables fetched.\n";
+
+     (** Step 5 - Compute the which_pred table
+       * -----------------------------------------------------------------------------------
+     *)
+		 let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+		 print_debug_petar "which pred table computed\n";
+
+     (** Step 6 - Update the global_which_pred table with the correct indexes
+       * -----------------------------------------------------------------------------------
+       *)
+			Hashtbl.iter
+				(fun (prev_cmd, cur_cmd) i ->
+					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
+				which_pred;
+
+			Hashtbl.replace prog proc_name proc)
+	ext_program.procedures;
+	prog, global_which_pred
+
+(** ----------------------------------------------------
+    Add the which_pred table to the global_which_pred table
+    -----------------------------------------------------
+*)
+let extend_which_pred
+    (global_which_pred : global_which_pred_type)
+    (proc : jsil_procedure) : unit =
+
+	let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+	let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+	let proc_name = proc.proc_name in
+	Hashtbl.iter
+		(fun (prev_cmd, cur_cmd) i ->
+			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
+		which_pred
+
+
+(** ----------------------------------------------------
+   Replace "ret" and "err" in spec with corresponding program variables
+   -----------------------------------------------------
+*)
+let replace_spec_keywords
+    (spec : jsil_spec option)
+    (ret_var : string option)
+    (err_var : string option) : (jsil_spec option) =
+
+  (** Step 1 - Extract values from the optionals
+   * -----------------------------------------------------------------------------------
+   *)
+  let ret_var =
+    (match ret_var with
+     | None -> ""
+     | Some var -> var) in
+  let err_var =
+    (match err_var with
+     | None -> ""
+     | Some var -> var) in
+
+  (** Step 2 - Construct a new spec with the return keyword replaced by the program variable
+   * -----------------------------------------------------------------------------------
+   * Map over each of the specs and replace the value in each post-
+   *)
+  match spec with
+  | None      -> None
+  | Some spec ->
+    Some {
+      spec_name   = spec.spec_name;
+      spec_params = spec.spec_params;
+      proc_specs  = List.map
+          (fun current_spec ->
+             let subst_ret_err =
+               (fun lexpr ->
+                  match lexpr with
+                  | PVar "ret" -> (PVar ret_var, false)
+                  | PVar "err" -> (PVar err_var, false)
+                  | _ -> (lexpr, true))
+             in
+             { pre = current_spec.pre;
+               post = List.map (JSIL_Logic_Utils.assertion_map None subst_ret_err) current_spec.post;
+               ret_flag = current_spec.ret_flag;
+             }
+          )
+          spec.proc_specs
+    }
