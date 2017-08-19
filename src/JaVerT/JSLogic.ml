@@ -189,11 +189,17 @@ let fid_to_lvar_fresh =
 		"#fid_" ^ (string_of_int fid_count) ^ "_" ^ fid
 
 let counter = ref 0
+let pvar_counter = ref 0 
 
 let fresh_lvar () =
 	let v = "#lvar_" ^ (string_of_int !counter) in
-   counter := !counter + 1;
-   v
+   	counter := !counter + 1;
+   	v
+
+let fresh_pvar () = 
+	let v = "pvar_" ^ (string_of_int !pvar_counter) in
+   	pvar_counter := !pvar_counter + 1;
+   	v
 
 let vislist_2_les (vis_list : string list) (i : int) : jsil_logic_expr list = 
 	Array.to_list (

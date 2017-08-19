@@ -636,7 +636,14 @@ let rec lexpr_substitution lexpr subst partial =
 					else
 						ALoc aloc)
 
-	| PVar var -> (PVar var)
+	| PVar var -> 
+		(try Hashtbl.find subst var with _ ->
+				if (not partial)
+					then
+						let new_var = fresh_pvar () in
+						Hashtbl.replace subst var (PVar new_var);
+						PVar new_var
+					else (PVar var))
 
 	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2))
 
@@ -1269,5 +1276,17 @@ let concretise2 (a : jsil_logic_assertion) (x: string) (y: string) (les : jsil_l
 			let subst = init_substitution2 [ x; y ] [ le1; le2 ] in 
 			assertion_substitution a subst true)
 		les_pairs  
+
+
+(* Returns a list with the names of the predicates that occur in an assertion *)
+let get_predicate_names (asrt : jsil_logic_assertion) : string list =
+	let f_ac a _ _ ac = 
+		(match a with 
+		| LPred (s, _) -> s :: (List.concat ac)
+		| _            -> List.concat ac) in 
+	assertion_fold None f_ac None None asrt
+
+
+
 
 

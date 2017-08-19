@@ -5,13 +5,226 @@ open JSIL_Syntax
 open Symbolic_State
 open Symbolic_State_Utils
 open JSIL_Logic_Utils
-open Logic_Predicates
 
 exception InvalidTypeOfLiteral
 
 let new_abs_loc_name var = abs_loc_prefix ^ var
 
 let new_lvar_name var = lvar_prefix ^ var
+
+
+(*  ------------------------------------------------------------------
+ *  Auto-Unfolding Non-recursive Predicates in Assertions
+ * 	------------------------------------------------------------------
+ *	------------------------------------------------------------------
+**)
+
+type unfolded_predicate = {
+	name         : string;
+	num_params   : int;
+	params       : jsil_var list;
+	definitions  : ((string option) * jsil_logic_assertion) list; 
+	is_recursive : bool;
+}
+
+(* Cross product of two lists, l1 and l2, combining its elements with function f *)
+let cross_product 
+		(l1 : 'a list) (l2 : 'b list) 
+		(f : 'a -> 'b -> 'c) : 'c list =
+	List.fold_left (fun result e1 -> result @ (List.map (f e1) l2)) [] l1
+
+
+let rec auto_unfold 
+		(predicates : (string, unfolded_predicate) Hashtbl.t) 
+		(asrt       : jsil_logic_assertion) : jsil_logic_assertion list =
+	let au = auto_unfold predicates in
+	match asrt with
+	| LAnd (a1, a2)          -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LAnd (asrt1, asrt2))
+	| LOr (a1, a2)           -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LOr (asrt1, asrt2))
+	| LNot a                 -> List.map (fun asrt -> LNot asrt) (au a)
+	| LStar (a1, a2)         -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LStar (asrt1, asrt2))
+	| LPred (name, args)     ->
+		(try
+		  let pred = Hashtbl.find predicates name in
+			if pred.is_recursive then
+				(* If the predicate is recursive, return the assertion unchanged.           *)
+				[asrt]
+			else
+				(* If it is not, replace the predicate assertion for the list of its definitions 
+				   substituting the formal parameters of the predicate with the corresponding 
+				   logical expressions in the argument list *)
+				let subst = init_substitution2 pred.params args  in
+				let new_asrts  = List.map (fun (_, a) -> (assertion_substitution a subst false)) pred.definitions in
+				List.concat (List.map au new_asrts)
+		 (* If the predicate is not found, raise an error *)
+		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
+	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp 
+	| LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> [asrt]
+
+
+(*  ------------------------------------------------------------------
+ *  Auto-Unfolding Non-recursive Predicates in Pred definitions
+ * 	------------------------------------------------------------------
+ *	------------------------------------------------------------------
+**)
+let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicate =
+	print_time_debug "detect_trivia_and_nonsense";
+	let new_definitions = List.map
+		(fun (oc, x) -> oc, (Simplifications.reduce_assertion_no_store_no_gamma_no_pfs x)) u_pred.definitions in
+	let new_definitions = List.filter (fun (oc, x) -> not (x = LFalse)) new_definitions in
+	{ u_pred with definitions = new_definitions }
+
+(* 
+   JSIL Predicates can have non-pvar parameters - to say that a given parameter 
+   always has a certain value...
+*)
+let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
+	let new_params, new_asrts = 
+		List.fold_right 
+			(fun cur_param (params, new_asrts) -> 
+				match cur_param with
+				| LLit _ | LNone -> 
+					(* If the parameter is a JSIL literal or None...     *)
+			  		(* Get a fresh program variable a add an additional 
+			  		   constraint to each definition *)
+			  		let new_pvar = fresh_pvar () in
+			  		(new_pvar :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts) 
+			  	| PVar x         -> 
+			  		(* If the parameter is a program variable, add the 
+			  		   parameter as it is *)
+			  		(x :: params), new_asrts 
+			  	| _              -> 
+			  		(* Otherwise, it's an error *)
+					raise (Failure ("Error in predicate " ^ pred.name ^ ": Unexpected parameter.")))
+			pred.params ([], []) in 
+	let new_definitions = List.map (fun (oid, a) -> (oid, star_asses (a :: new_asrts))) pred.definitions in 
+	{ name	       = pred.name;
+	  num_params   = pred.num_params;
+	  params       = new_params;
+	  definitions  = new_definitions;
+	  is_recursive = false } 
+
+
+(* ----------------------------------------------------------------
+   Joining predicate definitions together 
+   ----------------------------------------------------------------
+   Joins two unfolded_predicates defining different cases of the 
+   same predicate in a single unfolded_predicate
+   ----------------------------------------------------------------
+*)
+let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfolded_predicate =
+	if pred1.name <> pred2.name || pred1.num_params <> pred2.num_params
+		then (
+	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s" pred1.name in 
+	  		raise (Failure msg)
+	  ) else (
+	  		let subst = init_substitution2 pred2.params (List.map (fun var -> PVar var) pred1.params) in
+		  	let definitions = pred1.definitions @ 
+		  		(List.map (fun (oid, a) -> oid, (assertion_substitution a subst true)) pred2.definitions) in 
+		  	{ pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
+	  )
+	
+
+(* Given a Hashtbl of predicates, return a Hashtbl from predicate name
+   to boolean meaning "recursive" or "not recursive"
+*)
+let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
+	let count = ref 0 in
+	let visited = Hashtbl.create (Hashtbl.length preds) in
+	let rec_table = Hashtbl.create (Hashtbl.length preds) in
+	(* Searches by (sort of) Tarjan's SCC algorithm the predicate 'pred_name';
+	   if recursive, returns the index where recursion starts, otherwise None *)
+	let rec explore exploration_trail pred_name =
+		try
+			let ci = Hashtbl.find visited pred_name in
+			(* Already explored *)
+			if List.mem pred_name exploration_trail then
+				(* Part of the current component: recusivity detected *)
+				Some ci
+			else
+				(* A previously explored component *)
+				None
+		with Not_found ->
+			(* Exploring for the first time *)
+			let index = !count in
+			count := !count + 1;
+			Hashtbl.add visited pred_name index;
+			let pred =
+				(try Hashtbl.find preds pred_name with
+				| Not_found -> raise (Failure ("Undefined predicate " ^ pred_name))) in
+			let neighbours = (* Find the names of all predicates that the current predicate uses *)
+				List.concat (List.map (fun (_, asrt) -> (get_predicate_names asrt)) pred.definitions) in
+			let min_index = (* Compute recursively the smallest index reachable from its neighbours *)
+				List.fold_left
+			    (fun min_so_far neighbour_name ->
+						match (explore (pred_name :: exploration_trail) neighbour_name) with
+						| None -> min_so_far
+						| Some index -> min min_so_far index
+					)
+				  99999
+				  neighbours in
+			(* This predicate is recursive if we have seen an index smaller or equal than its own *)
+			if min_index <= index then
+				(Hashtbl.replace visited pred_name min_index;
+				Hashtbl.add rec_table pred_name true;
+				Some min_index)
+			else
+				(Hashtbl.add rec_table pred_name false;
+			  None)
+	in
+	(* Launch the exploration from each predicate, unless it's already been visited in a previous one *)
+	Hashtbl.iter
+	  (fun name _ ->
+			if not (Hashtbl.mem visited name)
+			  then ignore(explore [] name))
+		preds;
+	rec_table
+
+
+let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
+	let u_predicates = Hashtbl.create 100 in
+	Hashtbl.iter
+		(fun name pred ->
+			(* Substitute literals in the head for logical variables *)
+			let (u_pred : unfolded_predicate) = replace_non_pvar_params pred in
+			try
+				(* Join the new predicate definition with all previous for the same predicate (if any) *)
+				let current_pred = Hashtbl.find u_predicates name in
+				Hashtbl.replace u_predicates name (join_pred current_pred u_pred);
+			with
+			| Not_found -> Hashtbl.add u_predicates name u_pred
+			| Failure reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
+		preds;
+	(* Detect recursive predicates *)
+  	let rec_table = find_recursive_preds u_predicates in
+	
+	(* Flag those that are recursive *)
+	let u_rec_predicates = Hashtbl.create (Hashtbl.length u_predicates) in
+	Hashtbl.iter
+	  (fun name pred ->
+			Hashtbl.add u_rec_predicates pred.name
+			  { pred with is_recursive =
+					(try Hashtbl.find rec_table name with
+					| Not_found -> raise (Failure ("Undefined predicate " ^ name))); })
+		u_predicates;
+	
+	(* Auto-unfold the predicates in the definitions of other predicates *)
+	let u_rec_predicates' = Hashtbl.create (Hashtbl.length u_rec_predicates) in
+	Hashtbl.iter
+	  (fun name pred ->
+	  		let definitions' = List.flatten (List.map 
+	  			(fun (os, a) -> 
+	  				let as' = auto_unfold u_rec_predicates a in 
+	  				let as' = List.map (fun a -> (os, a)) as' in 
+	  				as') pred.definitions) in 
+			Hashtbl.add u_rec_predicates' pred.name
+			(let ret_pred = { pred with definitions = definitions'; } in
+  		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
+  		  	 ret_pred))
+		u_rec_predicates;
+	u_rec_predicates'
+
+
 
 
 (*  ------------------------------------------------------------------
@@ -784,14 +997,14 @@ let normalise_post
   * -----------------------------------------------------
 **)
 let normalise_single_spec 
-	(predicates : (string, normalised_predicate) Hashtbl.t)
+	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec_name  : string)
 	(spec       : jsil_single_spec) : jsil_n_single_spec list = 
 
 	let oget_list lst = List.map Option.get (List.filter (fun x -> not (x = None)) lst) in 
 
 	let pre_normalise (a : jsil_logic_assertion) : jsil_logic_assertion list = 
-		List.map JSIL_Logic_Utils.push_in_negations (Logic_Predicates.auto_unfold predicates a) in 
+		List.map JSIL_Logic_Utils.push_in_negations (auto_unfold predicates a) in 
 
 	print_debug (Printf.sprintf "Normalising the following spec of %s:\n%s\n" spec_name 
 			(JSIL_Print.string_of_single_spec "" spec)); 
@@ -838,7 +1051,7 @@ let normalise_single_spec
   * -----------------------------------------------------
 **)
 let normalise_spec 
-	(predicates : (string, normalised_predicate) Hashtbl.t)
+	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec       : jsil_spec) : jsil_n_spec =
 	let time = Sys.time () in
 	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
@@ -855,8 +1068,8 @@ let normalise_spec
   * -----------------------------------------------------
 **)
 let build_spec_tbl 
-		(predicates : (string, normalised_predicate) Hashtbl.t)
 		(prog       : jsil_program) 
+		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(onlyspecs  : (string, jsil_spec) Hashtbl.t)
 		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : (string, Symbolic_State.jsil_n_spec) Hashtbl.t =
 	
@@ -900,13 +1113,13 @@ let build_spec_tbl
   * -----------------------------------------------------
 **)
 let normalise_predicate_definitions 
-	(pred_defs : (string, normalised_predicate) Hashtbl.t)
+	(pred_defs : (string, unfolded_predicate) Hashtbl.t)
 		: (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t =
 
 	print_debug "Normalising predicate definitions.\n";
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
-		(fun pred_name (pred : normalised_predicate)  ->
+		(fun pred_name (pred : unfolded_predicate)  ->
 			let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
 			let n_definitions =  List.rev (List.concat (List.map 
 				(fun (os, a) ->
@@ -938,7 +1151,7 @@ let normalise_predicate_definitions
   * -----------------------------------------------------
 **)
 let pre_normalise_invariants_proc 
-		(predicates : (string, normalised_predicate) Hashtbl.t) 
+		(predicates : (string, unfolded_predicate) Hashtbl.t) 
 		(body       : (jsil_metadata * jsil_cmd) array) : unit =
 	let f_pre_normalise a_list = List.map (fun a -> push_in_negations a) a_list in
 	let len = Array.length body in
@@ -947,7 +1160,7 @@ let pre_normalise_invariants_proc
 		match metadata.invariant with
 		| None -> ()
 		| Some a -> (
-				let unfolded_a = f_pre_normalise (Logic_Predicates.auto_unfold predicates a) in
+				let unfolded_a = f_pre_normalise (auto_unfold predicates a) in
 				match unfolded_a with
 				| [] -> raise (Failure "invariant unfolds to ZERO assertions")
 				| [ a ] -> body.(i) <- { metadata with invariant = Some a }, cmd
@@ -956,6 +1169,6 @@ let pre_normalise_invariants_proc
 	done
 
 let pre_normalise_invariants_prog
-	(predicates : (string, normalised_predicate) Hashtbl.t)
+	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(prog       : (string, jsil_procedure) Hashtbl.t) : unit =
 	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc predicates proc.proc_body) prog

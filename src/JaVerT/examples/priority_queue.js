@@ -47,7 +47,7 @@
 	  QueuePrototype(#pqp, #np, 0, #sc) *
 	  FunctionObject(pq, "PriorityQueue", #pq_sc, #pqp) *
 	  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
-*/
+*/  
 
 /**
 	@toprequires (initialHeapPre())
@@ -224,7 +224,9 @@ var PriorityQueue = (function () {
        initialHeapPost() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       o_chains(enqueue: #sc, dequeue: $$scope)
+       o_chains(enqueue: #sc, dequeue: $$
+
+       )
      )
      @posterr (
        initialHeapPost() * 

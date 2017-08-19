@@ -4,7 +4,6 @@ let file = ref ""
 let spec_file = ref ""
 let output_folder = ref ""
 let stats = ref false
-let bi_abduction = ref false
 let interactive = ref false
 
 let str_bar = "-----------------------------"
@@ -23,18 +22,6 @@ let arguments () =
 									  (* Bi_Symb_Interpreter.js := true *), "js2jsil output";
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
-			(* Flag to use symbolic execution file with bi-abduction *)
-			"-bi", Arg.Unit (fun () -> bi_abduction  := true), "bi-abduction";
-			(* "-encoding", Arg.String (fun f ->
-				Printf.printf "I am here.\n";
-				let enc = match f with
-				| "ints" -> Pure_Entailment.WithInts
-				| "reals" -> Pure_Entailment.WithReals
-				| "fpa" -> Pure_Entailment.WithFPA
-				| _ -> raise (Failure "Unrecognised encoding.") in
-				Printf.printf "%s\t" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));
-				Pure_Entailment.encoding := enc;
-				Printf.printf "%s\n" (Pure_Entailment.string_of_enc (!Pure_Entailment.encoding));), "encoding"; *)
 			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
@@ -83,46 +70,46 @@ let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_pre
 		then JSIL_Syntax.process_statistics ();
 	results
 
-(*
-let bi_symb_interpreter prog ext_prog spec_tbl which_pred norm_preds  =
-	(* Perform symbolic interpretation with bi-abduction then use the result to verify using the normal symbolic execution.*)
-	(* if (!js) then *)
-	let proc_list, spec_tbl = Bi_Utils.internal_functions_preprocessing ext_prog.procedure_names prog spec_tbl in
-	print_normal ("\n*********** Starting bi-abduction symbolic execution. ***********\n") ;
-	let new_spec_tbl, proc_list, bi_results =
-			Bi_Symb_Interpreter.sym_run_procs prog proc_list spec_tbl which_pred norm_preds in
-	print_normal ("\n********** Finished bi-abduction symbolic execution. **********\n") ;
-	print_normal ("\n**********    Starting normal symbolic execution.    **********\n") ;
-	let normal_results = symb_interpreter prog proc_list new_spec_tbl which_pred norm_preds in
-	print_normal ("\n**********     Ending normal symbolic execution.     **********\n") ;
-	Bi_Utils.process_bi_results ext_prog.procedure_names proc_list new_spec_tbl bi_results normal_results true
-	(*Bi_Utils.string_for_new_jsil_file ext_prog normal_results new_spec_tbl proc_list*)
-*)
+
 
 let process_file path =
-		print_debug "\n*** Prelude: Stage 1: Parsing program. ***\n";
+	
+		(** Step 1: PARSING                                            *)
+		(*  -----------------------------------------------------------*)
+		print_debug "\n***Stage 1: Parsing program. ***\n";
 		let ext_prog = JSIL_Utils.ext_program_of_path path in
 		print_debug
 			("The procedures that we will be verifying are: " ^
 				(String.concat ", " ext_prog.procedure_names) ^
 				"\n");
-		print_debug "\n*** Prelude: Stage 1: Parsing successfully completed. ***\n";
-		print_debug "*** Prelude: Stage 2: Transforming the program.\n";
+		print_debug "\n*** Stage 1: DONE Parsing. ***\n";
+		
+		(** Step 2: Syntactic Checks + Program transformation          *)
+		(*  -----------------------------------------------------------*)
+		print_debug "*** Stage 2: Transforming the program.\n";
 		let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
-		print_debug "\n*** Prelude: Stage 2: Done transforming the program.\n";
-		print_debug "\n*** Prelude: Stage 3: Normalising predicates.\n";
-		let norm_preds = Logic_Predicates.normalise ext_prog.predicates in
-		print_debug "\n*** Prelude: Stage 3: Normalisation of predicates completed successfully.";
-		let str_of_norm_pred = Logic_Predicates.string_of_normalised_predicates norm_preds in
-		print_debug (Printf.sprintf "\n%s\n" str_of_norm_pred);
-		print_debug "*** Prelude: Stage 4: Building the spec table.\n";
-		Normaliser.pre_normalise_invariants_prog norm_preds prog;
-		let spec_tbl = Normaliser.build_spec_tbl norm_preds prog ext_prog.onlyspecs ext_prog.lemmas in
+		print_debug "\n*** Stage 2: DONE transforming the program.\n";
+		
+		(** Step 3: Normalisation                                      *)
+		(*     3.1 - auto-unfolding pred definitions                   *)
+		(*     3.2 - auto-unfolding program invariants                 *)
+		(*     3.3 - normalising specifications                        *)
+		(*     3.4 - normalising pred definitions                      *)
+		(*  -----------------------------------------------------------*)		
+		print_debug "*** Stage 3: Building the spec table.\n";
+		let u_preds = Normaliser.auto_unfold_pred_defs ext_prog.predicates in 
+		Normaliser.pre_normalise_invariants_prog u_preds prog;
+		let spec_tbl = Normaliser.build_spec_tbl prog u_preds ext_prog.onlyspecs ext_prog.lemmas in
+		let n_pred_defs = Normaliser.normalise_predicate_definitions u_preds in
 		print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
-		print_debug "*** Prelude: Stage 4: Finished building the spec table\n";
-    print_debug "*** About to prove the lemmas\n";
-    let n_pred_defs = Normaliser.normalise_predicate_definitions norm_preds in
-    let _ = Symb_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
+		print_debug "*** Stage 3: DONE building the spec table\n";
+
+		(** Step 4: Proving                                            *)
+		(*     4.1 - lemmas                                            *)
+		(*     3.2 - specs                                             *)
+		(*  -----------------------------------------------------------*)
+   		print_debug "*** Stage 4: Proving lemmas and specifications.\n";
+    	let _ = Symb_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
 		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs in ();
 		close_output_files();
 		exit 0
