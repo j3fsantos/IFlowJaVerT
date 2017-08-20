@@ -1,6 +1,6 @@
 %{
 open JSIL_Syntax
-open JSIL_Syntax_Checks
+open JSIL_Logic_Utils
 open JSLogic
 
 (* Tables where we collect the predicates and the procedures as we parse them. *)
@@ -354,8 +354,8 @@ proc_head_target:
 	spec = option(spec_target);
 	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE
 	{ (* TODO: Check pvars statically in the logic commands? *)
-		enter_procedure ();
-		validate_proc_signature spec proc_name param_list;
+		(* enter_procedure *) ();
+		(* validate_proc_signature spec proc_name param_list; *)
 		(proc_name, param_list, spec)
 	}
 ;
@@ -574,8 +574,8 @@ pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
-		register_predicate name num_params;
-		enter_predicate params;
+		(* register_predicate name num_params; *)
+		(* enter_predicate params; *)
 	  (name, num_params, params)
 	}
 ;
@@ -775,7 +775,7 @@ spec_target:
 
 spec_head_target:
   spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE
-	{ enter_specs spec_params;
+	{ (* enter_specs spec_params; *)
 		(spec_name, spec_params)
 	}
 ;
@@ -929,20 +929,20 @@ lexpr_target:
 
 logic_variable_target:
   v = LVAR
-	{ validate_lvar v; LVar v }
+	{ (* validate_lvar v; *) LVar v }
 ;
 
 just_logic_variable_target:
   v = LVAR
-	{ validate_lvar v; v }
+	{ (* validate_lvar v; *) v }
 
 program_variable_target:
   | v = VAR
-	  { let _ = validate_pvar v in PVar v }
+	  { (* let _ = validate_pvar v in *) PVar v }
 	| RET
-	  { let _ = validate_pvar "ret" in PVar "ret" }
+	  { (* let _ = validate_pvar "ret" in *) PVar "ret" }
 	| ERR
-	  { let _ = validate_pvar "err" in PVar "err" }
+	  { (* let _ = validate_pvar "err" in *) PVar "err" }
 ;
 
 (********* PREDS and SPECS only *********)
@@ -1153,11 +1153,11 @@ js_lexpr_preceded_by_comma_target:
 
 js_program_variable_target:
   | v = VAR
-	  { let _ = validate_pvar v in v }
+	  { (* let _ = validate_pvar v in *) v }
 	| RET
-	  { let _ = validate_pvar "ret" in "ret" }
+	  { (* let _ = validate_pvar "ret" in *) "ret"}
 	| ERR
-	  { let _ = validate_pvar "err" in "err" }
+	  { (* let _ = validate_pvar "err" in *) "err" }
 ;
 
 js_lexpr_target:
@@ -1209,7 +1209,7 @@ js_lexpr_target:
   | LBRACE; e=js_lexpr_target; RBRACE
 	  { e }
 (* _ *)
-  | UNDERSCORE 
+  | UNDERSCORE
   	{ JSLVar (JSLogic.fresh_lvar ()) }
 (* $$scope *)
   | SCOPELEXPR { JSLScope }

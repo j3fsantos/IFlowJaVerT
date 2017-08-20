@@ -271,7 +271,7 @@ type jsil_logic_predicate = {
 	name        : string;                                        (** Name of the predicate  *)
 	num_params  : int;                                           (** Number of parameters   *)
 	params      : jsil_logic_expr list;                          (** Actual parameters      *)
-	definitions : ((string option) * jsil_logic_assertion) list; (** Predicate definitions  *)
+	definitions : ((string option) * jsil_logic_assertion) list  (** Predicate definitions  *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -408,6 +408,15 @@ type jsil_ext_program = {
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
 	(* List of JSIL procedure names in order.*)
 	procedure_names : (string list);
+}
+
+(* Normalised predicate *)
+type normalised_predicate = {
+  name         : string;
+  num_params   : int;
+  params       : jsil_var list;
+  definitions  : ((string option) * jsil_logic_assertion) list;
+  is_recursive : bool
 }
 
 (*************************************)

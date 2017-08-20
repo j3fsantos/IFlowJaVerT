@@ -64,6 +64,7 @@ let write_spec_file (file : string ref) =
 	burn_to_disk (!file ^ ".spec") result
 
 let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds  =
+  JSIL_Syntax_Utils.check_specs_and_procs spec_tbl prog;
 	let results_str, dot_graphs, complete_success, results =
 					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
 	print_normal (Printf.sprintf "RESULTS\n%s" results_str);

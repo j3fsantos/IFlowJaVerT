@@ -2,15 +2,6 @@ open JSIL_Syntax
 
 (** Types and operations to work with JSIL logic predicates. *)
 
-(** The normalised predicate type. *)
-type normalised_predicate = {
-	name         : string;
-	num_params   : int;
-	params       : jsil_logic_var list;
-	definitions  : ((string option) * jsil_logic_assertion) list; 
-	is_recursive : bool;
-}
-
 (** Normalises a full collection of predicate declarations. *)
 val normalise : (string, jsil_logic_predicate) Hashtbl.t -> (string, normalised_predicate) Hashtbl.t
 (** Every predicate declaration for the same predicate is joined in a single normalised predicate.
