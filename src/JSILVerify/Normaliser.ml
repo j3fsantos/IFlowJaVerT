@@ -868,7 +868,7 @@ let build_spec_tbl
         1.2 - only specs
         1.3 - lemmas                                  *)
     let proc_tbl_rng = get_tbl_rng prog in
- (* JSIL_Syntax_Utils.check_specs_pvars proc_tbl_rng; *)
+    JSIL_Syntax_Utils.check_specs_pvars proc_tbl_rng;
     let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
    	let only_specs     = get_tbl_rng onlyspecs in
    	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in

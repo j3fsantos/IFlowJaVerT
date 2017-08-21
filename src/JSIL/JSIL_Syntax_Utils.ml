@@ -3,6 +3,8 @@ open JSIL_Logic_Utils
 open Symbolic_State
 open JSLogic
 
+let js = ref false
+
 (** ----------------------------------------------------
     ----------------------------------------------------
     JSIL Syntax Checks
@@ -72,12 +74,18 @@ let check_specs_pvars
     match proc.error_var with
       | None -> new_params_ret
       | Some v -> v :: new_params_ret
-    in
+  in
+
+  (* Allow these variables when dealing with JS files as they are used by the internal functions *)
+  let js_constants =
+  (match !js with
+    | true -> ["x__this"; "x__scope"; "x__scope_f"; "x__se"; "x__te"; "x__er"; "main"]
+    | false -> []) in
 
   let specs = List.fold_left (fun acc p ->
       (match p.spec with
          | None -> acc
-         | Some s -> {s with spec_params = (s.spec_params @ (ret_err_params p))} :: acc))
+         | Some s -> {s with spec_params = (s.spec_params @ (ret_err_params p) @ js_constants)} :: acc))
       [] procs in
 
   (** Step 2 - Function to check for any assertion in the spec
