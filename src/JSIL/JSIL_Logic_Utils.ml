@@ -269,7 +269,7 @@ let rec get_logic_expression_pvars_list
   let fe = get_logic_expression_pvars_list in
   match le with
   | LLit _ | LNone | ALoc _ | LVar _ -> []
-  | PVar v -> print_debug (Printf.sprintf "FOUND A PVAR"); [ v ]
+  | PVar v -> [ v ]
   | LBinOp (le1, _, le2) | LLstNth (le1, le2) | LStrNth (le1, le2) -> (fe le1) @ (fe le2)
   | LUnOp (_, le) |	LTypeOf le -> fe le
   | LEList    les

@@ -28,7 +28,7 @@ let check_pred_pvars
       let valid_pvar = List.mem pvar norm_pred.params in
       (match valid_pvar with
       | true -> ()
-      | false -> raise (Failure (Printf.sprintf "Undefined variable %s in definition of predicate %s." pvar norm_pred.name)))
+      | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the definition of predicate %s." pvar norm_pred.name)))
     ) all_pred_pvars;
   ()
 
@@ -59,16 +59,67 @@ let check_logic_command_pvars
     Checking spec definitions only use program variables they're allowed to
     -----------------------------------------------------
 *)
+let check_specs_pvars
+    (procs : jsil_procedure list) : unit =
 
-let check_spec_pvars
-    (proc_specs : jsil_spec list) : unit =
-  ()
-(* TODO
+  (** Step 1 - Get the specs for each procedure, and add the return and error variables to the list of allowed variables
+    * -----------------------------------------------------------------------------------
+  *)
+  let ret_err_params proc =
+    let new_params_ret = (match proc.ret_var with
+                            | None -> []
+                            | Some v -> [v]) in
+    match proc.error_var with
+      | None -> new_params_ret
+      | Some v -> v :: new_params_ret
+    in
+
+  let specs = List.fold_left (fun acc p ->
+      (match p.spec with
+         | None -> acc
+         | Some s -> {s with spec_params = (s.spec_params @ (ret_err_params p))} :: acc))
+      [] procs in
+
+  (** Step 2 - Function to check for any assertion in the spec
+    * -----------------------------------------------------------------------------------
+  *)
+  let check_spec_assertion_pvars
+      (spec_name : string)
+      (pre : bool) (* true for pre, false for post *)
+      (spec_params : jsil_var list)
+      (assertion : jsil_logic_assertion) : unit =
+
+    let msg_construct_type =
+      (match pre with
+      | true -> "precondition"
+      | false -> "postcondition")
+    in
+
+    List.map (fun pvar ->
+        let valid_pvar = List.mem pvar spec_params in
+        (match valid_pvar with
+        | true -> ()
+        | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the %s of %s." pvar msg_construct_type spec_name)))
+      )
+      (get_assertion_pvars assertion); ()
+    in
+
+  (** Step 3 - Run this function on the pre and all the post's of every spec
+    * -----------------------------------------------------------------------------------
+  *)
   List.map (fun spec ->
-       (print_debug (Printf.sprintf "Checking spec pvars of spec %s" spec.spec_name);
-       print_debug (Printf.sprintf "Params %s" (String.concat ", " spec.spec_params)))
-    ) proc_specs
-*)
+      let spec_params = spec.spec_params in
+      List.map (fun single_spec ->
+          check_spec_assertion_pvars spec.spec_name true spec_params single_spec.pre;
+          List.map (fun post ->
+              check_spec_assertion_pvars spec.spec_name false spec_params post;
+            )
+            single_spec.post;
+        )
+        spec.proc_specs
+    )
+    specs;
+  ()
 
 (** ----------------------------------------------------
     Checking predicates are called with the correct number of arguments
