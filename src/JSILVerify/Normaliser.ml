@@ -841,7 +841,8 @@ let normalise_spec
 	(predicates : (string, normalised_predicate) Hashtbl.t)
 	(spec       : jsil_spec) : jsil_n_spec =
 	let time = Sys.time () in
-	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
+ print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
+ print_debug (Printf.sprintf "Normalised spec? %b" spec.is_normalised);
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs) in
 	{	n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;

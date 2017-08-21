@@ -1342,5 +1342,6 @@ let replace_spec_keywords
                ret_flag = current_spec.ret_flag;
              }
           )
-          spec.proc_specs
+          spec.proc_specs;
+       is_normalised = spec.is_normalised
     }

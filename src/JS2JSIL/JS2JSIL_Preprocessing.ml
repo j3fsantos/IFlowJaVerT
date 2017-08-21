@@ -331,7 +331,7 @@ let test_early_errors e =
 
 let get_predicate_defs_from_annots annots : JSLogic.js_logic_predicate list =
   let pred_def_annots = List.filter (fun annot -> annot.annot_type == Parser_syntax.Pred) annots in
-  let pred_defs = List.map (fun pred_def -> JSIL_Syntax_Utils.js_logic_pred_def_of_string ("pred " ^ pred_def.annot_formula)) pred_def_annots in 
+  let pred_defs = List.map (fun pred_def -> JSIL_Syntax_Utils.js_logic_pred_def_of_string ("pred " ^ pred_def.annot_formula)) pred_def_annots in
   pred_defs
 
 
@@ -437,7 +437,7 @@ let translate_single_func_specs
 
 
   let fun_spec = if ((List.length single_specs) > 0)
-    then Some (JSIL_Syntax.create_jsil_spec fid fun_args single_specs)
+    then Some (JSIL_Syntax.create_jsil_spec fid fun_args single_specs false)
     else None in
   fun_spec
 
@@ -478,7 +478,7 @@ let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs =
     let proc_specs = List.map (fun { JSLogic.js_pre; JSLogic.js_post; JSLogic.js_ret_flag } ->
       let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
         { JSIL_Syntax.pre = pre; JSIL_Syntax.post = [ post ]; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
-    let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs } in
+    let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs; JSIL_Syntax.is_normalised = false } in
     Hashtbl.replace only_specs  js_spec_name spec;
     Hashtbl.replace cc_tbl      js_spec_name (Hashtbl.create 1);
     Hashtbl.replace old_fun_tbl js_spec_name (js_spec_name, js_spec_params, None, ([], [ js_spec_name; "main" ], Hashtbl.create 1));

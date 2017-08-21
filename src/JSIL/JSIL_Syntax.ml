@@ -296,9 +296,10 @@ type jsil_single_spec = {
 
 (** {b Full JSIL specifications}. *)
 type jsil_spec = {
-	spec_name    : string;               (** Procedure/spec name *)
-	spec_params  : jsil_var list;        (** Procedure/spec parameters *)
-	proc_specs   : jsil_single_spec list (** List of single specifications *)
+	spec_name     : string;                (** Procedure/spec name *)
+	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
+  proc_specs    : jsil_single_spec list; (** List of single specifications *)
+  is_normalised : bool                   (** If the spec is already normalised *)
 }
 
 (**/**)
@@ -310,11 +311,12 @@ let create_single_spec pre post flag =
 		ret_flag = flag
 	}
 
-let create_jsil_spec name params specs =
+let create_jsil_spec name params specs normalised =
 	{
 		spec_name   = name;
 		spec_params = params;
-		proc_specs  = specs
+    proc_specs  = specs;
+    is_normalised = normalised
 	}
 (**/**)
 
