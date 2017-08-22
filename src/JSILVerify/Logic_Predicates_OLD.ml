@@ -5,14 +5,6 @@ open Symbolic_State
 
 exception Non_unifiable of string
 
-type normalised_predicate = {
-	name         : string;
-	num_params   : int;
-	params       : jsil_var list;
-	definitions  : ((string option) * jsil_logic_assertion) list; 
-	is_recursive : bool;
-}
-
 let string_of_normalised_predicate (pred : normalised_predicate) =
     let params = List.fold_left (fun ac param -> ac ^ param ^ " ") "" pred.params in
     "\n*** Normalised predicate ***\n" ^
@@ -78,7 +70,8 @@ let unify_list_pvars l1 l2 =
 		(String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) l1))
 		(String.concat ", " l2)); *)
 	let subst = Hashtbl.create 10 in
-	(* Compute and return the substitution of logic variables *)
+  (* Compute and return the substitution of logic variables *)
+
 	List.iter2
 		(fun lexpr pvar2 ->
 			if Hashtbl.mem subst (PVar pvar2)
@@ -90,35 +83,35 @@ let unify_list_pvars l1 l2 =
 
 (* Replaces the logic_expressions in asrt that have a substitute in the hashtable subst *)
 let apply_substitution subst asrt =
-	
-	let f_a a = 
-		match a with 
+
+	let f_a a =
+		match a with
 		| LForAll (bt, a) ->
-			let bt' = 
-				List.map 
-					(fun (x, t) -> 
-						let x' = 
-							try 
+			let bt' =
+				List.map
+					(fun (x, t) ->
+						let x' =
+							try
 								(match Hashtbl.find subst (LVar x) with
-								| LVar x' -> x' 
+								| LVar x' -> x'
 								| _       -> raise (Failure "DEATH: apply_substitution"))
-							with Not_found -> x in 
-						(x', t)) 
+							with Not_found -> x in
+						(x', t))
 					bt in
 			LForAll (bt', a)
-		| _ -> a in 
-	
-	let f_e le = 
-		try 
+		| _ -> a in
+
+	let f_e le =
+		try
 			(Hashtbl.find subst le, false)
-		with Not_found -> 
+		with Not_found ->
 			(match le with
-			| LVar x -> 
+			| LVar x ->
 				let new_lvar = LVar (fresh_lvar_from_lvar_name x) in
 				Hashtbl.add subst le new_lvar;
 				(new_lvar, false)
-			| _ -> (le, true)) in 
-	
+			| _ -> (le, true)) in
+
 	assertion_map (Some f_a) f_e asrt
 
 
@@ -130,7 +123,7 @@ let join_pred pred1 pred2 =
 	  then raise (Non_unifiable ("Incompatible predicate definitions."))
 		else
 		  let subst = unify_list_pvars (List.map (fun var -> PVar var) pred1.params) pred2.params in
-		  let definitions = pred1.definitions @ 
+		  let definitions = pred1.definitions @
 		  	(List.map (fun (oid, a) -> oid, (apply_substitution subst a)) pred2.definitions) in
 		  { pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
 
@@ -229,16 +222,17 @@ let rec auto_unfold predicates asrt =
 				[asrt]
 			else
 				(* If it is not, unify the formal parameters with the actual parameters,    *)
-				(* apply the substitution to each definition of the predicate, and recurse. *)
+        (* apply the substitution to each definition of the predicate, and recurse. *)
+        let arg_length_check = JSIL_Syntax_Utils.check_pred_arg_count name args pred.params in
 				let subst = unify_list_pvars args pred.params in
-				let new_asrts  = 
-					List.map 
+				let new_asrts  =
+					List.map
 						(fun (_, a) -> (apply_substitution subst a)) pred.definitions in
 				List.fold_left (fun list asrt -> list @ (au asrt)) [] new_asrts
 
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
-	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp 
+	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp
 	| LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> [asrt]
 
 let normalise preds =
@@ -265,16 +259,18 @@ let normalise preds =
 			  { pred with is_recursive =
 					(try Hashtbl.find rec_table name with
 					| Not_found -> raise (Failure ("Undefined predicate " ^ name))); })
-		norm_predicates;
+  norm_predicates;
+  (* Check the predicate only uses program variables given in the argument list *)
+  let _ = Hashtbl.iter (fun _ norm_pred -> JSIL_Syntax_Utils.check_pred_pvars norm_pred) norm_predicates in ();
 	(* Auto-unfold the predicates in the definitions of other predicates *)
 	let norm_rec_unfolded_predicates = Hashtbl.create (Hashtbl.length norm_rec_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
-	  		let definitions' = List.flatten (List.map 
-	  			(fun (os, a) -> 
-	  				let as' = auto_unfold norm_rec_predicates a in 
-	  				let as' = List.map (fun a -> (os, a)) as' in 
-	  				as') pred.definitions) in 
+	  		let definitions' = List.flatten (List.map
+	  			(fun (os, a) ->
+	  				let as' = auto_unfold norm_rec_predicates a in
+	  				let as' = List.map (fun a -> (os, a)) as' in
+	  				as') pred.definitions) in
 			Hashtbl.add norm_rec_unfolded_predicates pred.name
 			(let ret_pred = { pred with definitions = definitions'; } in
   		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in

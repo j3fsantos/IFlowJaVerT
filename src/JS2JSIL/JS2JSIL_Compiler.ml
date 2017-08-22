@@ -4568,9 +4568,9 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
 					(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in
 		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
-					let proc = JSIL_Utils.desugar_labs proc in
+					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.add prog f_id proc;
-					JSIL_Utils.extend_which_pred which_pred proc) f_body)
+					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)
 		eval_fun_tbl;
 
 	let proc_eval = try Hashtbl.find prog fid_eval with _ -> raise (Failure "no eval proc was created") in
@@ -4600,9 +4600,9 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	  				generate_proc offset_converter f_body f_id f_params vis_fid None) in
 			  		(* let proc_str = JSIL_Print.string_of_ext_procedure proc in
 			  		Printf.printf "FC:\n %s\n" proc_str; *)
-					let proc = JSIL_Utils.desugar_labs proc in
+					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.replace prog f_id proc;
-					JSIL_Utils.extend_which_pred which_pred proc) f_body)
+					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)
 		new_fun_tbl;
 	let proc_fun_constr = try Hashtbl.find prog new_fid with _ -> raise (Failure "no function constructor proc was created") in
 	proc_fun_constr

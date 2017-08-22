@@ -18,7 +18,7 @@ let arguments () =
 
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true)
+			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; JSIL_Syntax_Utils.js := true)
 									  (* Bi_Symb_Interpreter.js := true *), "js2jsil output";
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
@@ -51,6 +51,7 @@ let write_spec_file (file : string ref) =
 	burn_to_disk (!file ^ ".spec") result
 
 let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds  =
+  JSIL_Syntax_Utils.check_specs_and_procs spec_tbl prog;
 	let results_str, dot_graphs, complete_success, results =
 					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
 	print_normal (Printf.sprintf "RESULTS\n%s" results_str);
@@ -73,21 +74,23 @@ let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_pre
 
 
 let process_file path =
-	
+
 		(** Step 1: PARSING                                            *)
 		(*  -----------------------------------------------------------*)
 		print_debug "\n***Stage 1: Parsing program. ***\n";
-		let ext_prog = JSIL_Utils.ext_program_of_path path in
+		let ext_prog = JSIL_Syntax_Utils.ext_program_of_path path in
+
 		print_debug
 			("The procedures that we will be verifying are: " ^
 				(String.concat ", " ext_prog.procedure_names) ^
-				"\n");
+				"\n"); 
 		print_debug "\n*** Stage 1: DONE Parsing. ***\n";
 		
+
 		(** Step 2: Syntactic Checks + Program transformation          *)
 		(*  -----------------------------------------------------------*)
 		print_debug "*** Stage 2: Transforming the program.\n";
-		let prog, which_pred = JSIL_Utils.prog_of_ext_prog path ext_prog in
+		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog path ext_prog in
 		print_debug "\n*** Stage 2: DONE transforming the program.\n";
 		
 		(** Step 3: Normalisation                                      *)

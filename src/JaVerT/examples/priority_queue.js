@@ -15,7 +15,6 @@
 		((np, "val") -> None) * 
 		((np, "next") -> None);
 	
-
 	@pred NodeList(nl, np, max_pri, length) :
 		(nl == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
 	
@@ -42,12 +41,11 @@
 		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc) * 
 		types(c : $$number_type);
 	
-
 	@pred PriorityQueueModule(pq) :
 	  QueuePrototype(#pqp, #np, 0, #sc) *
 	  FunctionObject(pq, "PriorityQueue", #pq_sc, #pqp) *
 	  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
-*/  
+*/
 
 /**
 	@toprequires (initialHeapPre())
@@ -224,9 +222,7 @@ var PriorityQueue = (function () {
        initialHeapPost() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       o_chains(enqueue: #sc, dequeue: $$
-
-       )
+       o_chains(enqueue: #sc, dequeue: $$scope)
      )
      @posterr (
        initialHeapPost() * 

@@ -586,9 +586,9 @@ let ssa_compile_proc proc (vars : string list) (nodes : (jsil_metadata * jsil_cm
 	let args : string list = proc.proc_params in
 	let number_of_nodes = Array.length succ_table in
   (* compute dominators using the Lengauer Tarjan Algorithm *)
-	let dom_table, rev_dom_table = JSIL_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
+	let dom_table, rev_dom_table = JSIL_Syntax_Utils_Graphs.lt_dom_algorithm succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r in
 	(* compute dominance frontiers using Cytron algorithm *)
-	let dominance_frontiers = JSIL_Utils_Graphs.find_dominance_frontiers succ_table dom_table rev_dom_table in
+	let dominance_frontiers = JSIL_Syntax_Utils_Graphs.find_dominance_frontiers succ_table dom_table rev_dom_table in
 	(* compute which nodes need phi variables *)
 	let phi_functions_per_node_init = insert_phi_functions nodes dominance_frontiers number_of_nodes in
 	(* compute the arguments of the phi nodes and rewrite all the nodes *)
@@ -606,12 +606,12 @@ let ssa_compile_prog prog =
 	Hashtbl.iter
 		(fun proc_name proc ->
 			let nodes, vars, succ_table, pred_table, tree_table, parent_table, dfs_num_table_f, dfs_num_table_r, which_pred =
-				JSIL_Utils.get_proc_info proc in
+				JSIL_Syntax_Utils.get_proc_info proc in
 			let rev_dom_table, dominance_frontiers, phi_functions_per_node, new_proc =
   			ssa_compile_proc proc vars nodes succ_table pred_table parent_table dfs_num_table_f dfs_num_table_r which_pred in
 
-			let new_succ_table, new_pred_table = JSIL_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in
-			let new_which_pred = JSIL_Utils_Graphs.compute_which_preds new_pred_table in
+			let new_succ_table, new_pred_table = JSIL_Syntax_Utils_Graphs.get_succ_pred new_proc.proc_body new_proc.ret_label new_proc.error_label in
+			let new_which_pred = JSIL_Syntax_Utils_Graphs.compute_which_preds new_pred_table in
 			Hashtbl.iter
 				(fun (prev_cmd, cur_cmd) i ->
 					Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)

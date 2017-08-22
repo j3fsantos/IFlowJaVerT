@@ -271,7 +271,7 @@ type jsil_logic_predicate = {
 	name        : string;                                        (** Name of the predicate  *)
 	num_params  : int;                                           (** Number of parameters   *)
 	params      : jsil_logic_expr list;                          (** Actual parameters      *)
-	definitions : ((string option) * jsil_logic_assertion) list; (** Predicate definitions  *)
+	definitions : ((string option) * jsil_logic_assertion) list  (** Predicate definitions  *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -296,9 +296,10 @@ type jsil_single_spec = {
 
 (** {b Full JSIL specifications}. *)
 type jsil_spec = {
-	spec_name    : string;               (** Procedure/spec name *)
-	spec_params  : jsil_var list;        (** Procedure/spec parameters *)
-	proc_specs   : jsil_single_spec list (** List of single specifications *)
+	spec_name     : string;                (** Procedure/spec name *)
+	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
+  proc_specs    : jsil_single_spec list; (** List of single specifications *)
+  is_normalised : bool                   (** If the spec is already normalised *)
 }
 
 (**/**)
@@ -310,11 +311,12 @@ let create_single_spec pre post flag =
 		ret_flag = flag
 	}
 
-let create_jsil_spec name params specs =
+let create_jsil_spec name params specs normalised =
 	{
 		spec_name   = name;
 		spec_params = params;
-		proc_specs  = specs
+    proc_specs  = specs;
+    is_normalised = normalised
 	}
 (**/**)
 
@@ -408,6 +410,15 @@ type jsil_ext_program = {
 	procedures : (string, jsil_ext_procedure) Hashtbl.t;
 	(* List of JSIL procedure names in order.*)
 	procedure_names : (string list);
+}
+
+(* Normalised predicate *)
+type normalised_predicate = {
+  name         : string;
+  num_params   : int;
+  params       : jsil_var list;
+  definitions  : ((string option) * jsil_logic_assertion) list;
+  is_recursive : bool
 }
 
 (*************************************)

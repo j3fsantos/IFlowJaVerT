@@ -188,6 +188,7 @@ rule read = parse
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
+	| "normalised"         { JSIL_Parser.NORMALISED}
 (* JS only spec specifics *)
 	| "js_only_spec"       { JSIL_Parser.JSOS      }
 	| "pre:"               { JSIL_Parser.JSOSPRE   }

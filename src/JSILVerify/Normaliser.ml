@@ -230,88 +230,88 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 (*  ------------------------------------------------------------------
  *  List Preprocessing
  * 	------------------------------------------------------------------
- *	Preprocess list logical expressions for which we know 
- *	the length statically. If a |- l-len(le) = i, where i is 
- *	a concrete number, we add the assertion le = {{ #x1, ..., #xi }} 
- *	to a and replace all the occurrences of l-nth(le, j) for #xj in a 
+ *	Preprocess list logical expressions for which we know
+ *	the length statically. If a |- l-len(le) = i, where i is
+ *	a concrete number, we add the assertion le = {{ #x1, ..., #xi }}
+ *	to a and replace all the occurrences of l-nth(le, j) for #xj in a
  *	------------------------------------------------------------------
 **)
-let pre_process_list_exprs (a : jsil_logic_assertion) = 
+let pre_process_list_exprs (a : jsil_logic_assertion) =
 
 	(* 1 - Find the lists for which we know the length *)
 	let find_list_exprs_to_concretize (a : jsil_logic_assertion) : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t =
-		let f_ac_1 a _ _ ac = 
-			(match a with 
+		let f_ac_1 a _ _ ac =
+			(match a with
 			| LEq (LEList _, LEList _) -> (List.concat ac)
-			| LEq (le, LEList les) 
+			| LEq (le, LEList les)
 			| LEq (LEList les, le) -> (le, les) :: (List.concat ac)
-			| _ -> (List.concat ac)) in 
-		let lists1 = assertion_fold None f_ac_1 None None a in		
+			| _ -> (List.concat ac)) in
+		let lists1 = assertion_fold None f_ac_1 None None a in
 
-		let f_ac_2 a _ _ ac = 
-			(match a with 
-			| LEq (LUnOp (LstLen, le), LLit (Num i)) -> 
-				let vars_le = Array.to_list (Array.init (int_of_float i) (fun j -> LVar (fresh_lvar ()))) in 
+		let f_ac_2 a _ _ ac =
+			(match a with
+			| LEq (LUnOp (LstLen, le), LLit (Num i)) ->
+				let vars_le = Array.to_list (Array.init (int_of_float i) (fun j -> LVar (fresh_lvar ()))) in
 				(le, vars_le) :: (List.concat ac)
-			| _ -> (List.concat ac)) in 
-		let lists2 = assertion_fold None f_ac_2 None None a in 
+			| _ -> (List.concat ac)) in
+		let lists2 = assertion_fold None f_ac_2 None None a in
 
-		let lst_exprs = lists2 @ lists1 in 
+		let lst_exprs = lists2 @ lists1 in
 		let lists_tbl = Hashtbl.create (List.length lst_exprs) in
-		List.iter (fun (le, les) -> 
+		List.iter (fun (le, les) ->
 			if (Hashtbl.mem lists_tbl le) then () else (
-				Hashtbl.replace lists_tbl le les  
+				Hashtbl.replace lists_tbl le les
 		)) lst_exprs;
-		lists_tbl in 
+		lists_tbl in
 
 
-	(* 2 - Replace expressions of the form l-nth(le, i) where le denotes a list for which 
+	(* 2 - Replace expressions of the form l-nth(le, i) where le denotes a list for which
 	       we know the length and i a concrete number with the newly created logical variable.
-	       E.g. if we associated in 2) le with a the list of logical variables 
+	       E.g. if we associated in 2) le with a the list of logical variables
 	            {{ V1, ..., Vi, ..., Vn}}, l-nth(le, i) is replaced with Vi  *)
-	let concretize_list_accesses 
-		(a : jsil_logic_assertion) 
-		(new_lists : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t) : jsil_logic_assertion = 
-		let f_e le = 
-			match le with 
+	let concretize_list_accesses
+		(a : jsil_logic_assertion)
+		(new_lists : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t) : jsil_logic_assertion =
+		let f_e le =
+			match le with
 			| LLstNth (le', LLit (Num i)) ->
-				(try 
-					let vs = Hashtbl.find new_lists le' in 
-					let le'' = List.nth vs (int_of_float i) in 
+				(try
+					let vs = Hashtbl.find new_lists le' in
+					let le'' = List.nth vs (int_of_float i) in
 					le'', false
 				with _ -> le, false)
 			| _ -> le, true  in
-		assertion_map None f_e a in 
+		assertion_map None f_e a in
 
 
-	(* 3 - Generate the equalities relating the expressions that denote lists whose 
+	(* 3 - Generate the equalities relating the expressions that denote lists whose
 	       length is statically known with the lists of the newly created logical variables *)
-	let make_new_list_as  
-		(a : jsil_logic_assertion) 
-		(new_lists : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t) : jsil_logic_assertion  = 
-		let new_list_as = 
-			Hashtbl.fold 
+	let make_new_list_as
+		(a : jsil_logic_assertion)
+		(new_lists : (jsil_logic_expr, (jsil_logic_expr list)) Hashtbl.t) : jsil_logic_assertion  =
+		let new_list_as =
+			Hashtbl.fold
 				(fun le les ac -> (LEq (le, LEList les)) :: ac)
-				new_lists [ a ] in 
-		JSIL_Logic_Utils.star_asses new_list_as in 
+				new_lists [ a ] in
+		JSIL_Logic_Utils.star_asses new_list_as in
 
-	(* Doing IT *)		
-	let new_lists = find_list_exprs_to_concretize a in 
-	let a'        = concretize_list_accesses a new_lists in 
+	(* Doing IT *)
+	let new_lists = find_list_exprs_to_concretize a in
+	let a'        = concretize_list_accesses a new_lists in
 	make_new_list_as a' new_lists
 
 
 (*  -----------------------------------------------------
 	Normalise Pure Assertion (only one!)
 	-----------------------------------------------------
-	Invoke normalise_logic_expression on all the logic 
-	expressions of a 
+	Invoke normalise_logic_expression on all the logic
+	expressions of a
 	_____________________________________________________
 *)
-let rec normalise_pure_assertion 
-		(store : symbolic_store) 
+let rec normalise_pure_assertion
+		(store : symbolic_store)
 		(gamma : typing_environment)
-		(subst : substitution) 
+		(subst : substitution)
 		(assertion : jsil_logic_assertion) : jsil_logic_assertion =
 	let fa = normalise_pure_assertion store gamma subst in
 	let fe = normalise_lexpr ~store:store ~subst:subst gamma in
@@ -356,7 +356,7 @@ let rec normalise_pure_assertion
   * a cell assertion or empty fields assertion.
   * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh
 **)
-let rec initialise_alocs 
+let rec initialise_alocs
 	(store : symbolic_store) (gamma : typing_environment)
 	(subst : substitution) (ass : jsil_logic_assertion) : unit =
 	let f = initialise_alocs store gamma subst in
@@ -392,10 +392,10 @@ let rec initialise_alocs
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_pure_assertions 
-		(store : symbolic_store) 
-		(gamma : typing_environment) 
-		(subst : substitution) 
+let normalise_pure_assertions
+		(store : symbolic_store)
+		(gamma : typing_environment)
+		(subst : substitution)
 		(a     : jsil_logic_assertion) : pure_formulae =
 
 	let pvar_equalities           = Hashtbl.create 31 in
@@ -404,7 +404,7 @@ let normalise_pure_assertions
 	(**
 	 * Step 1 - Get equalities involving program variables
 	 * -----------------------------------------------------------------------------------
-	 * Returns the list of equalities in a involving program variables of the form x = E 
+	 * Returns the list of equalities in a involving program variables of the form x = E
 	 * or E = x, for a logical expression E and a variable x
 	 * -----------------------------------------------------------------------------------
 	 *)
@@ -432,18 +432,18 @@ let normalise_pure_assertions
   		let len = SS.cardinal vars in
   		let vars_tbl = Hashtbl.create len in
  		List.iteri (fun i var -> Hashtbl.add vars_tbl var i) (SS.elements vars);
-  		vars_tbl in 
+  		vars_tbl in
 
 
 	(**
 	 * Step 3 - PVars Dependency Graph
 	 * ------------------------------------------------------------------------
-	 * Compute a dependency graph between PVar equalities (which are treated as 
+	 * Compute a dependency graph between PVar equalities (which are treated as
 	 * definitions)
 	 * ------------------------------------------------------------------------
 	 *)
-	let pvars_graph 
-			(p_vars : SS.t) 
+	let pvars_graph
+			(p_vars : SS.t)
 			(p_vars_tbl : (string, int) Hashtbl.t) : (int list) array =
 		let len = SS.cardinal p_vars in
 		let graph = Array.make len [] in
@@ -459,25 +459,25 @@ let normalise_pure_assertions
 
 		graph in
 
-	
+
 	(**
-	 * Step 4 - Normalise PVar equalities 
+	 * Step 4 - Normalise PVar equalities
 	 * ------------------------------------------------------------------------
-	 * Normalise equalities involving pvars 
-	 * Detect cyclic dependencies between pvar definitions 
-	 * Break dependencies by introducing new logical variables 
-	 * E.g. 
+	 * Normalise equalities involving pvars
+	 * Detect cyclic dependencies between pvar definitions
+	 * Break dependencies by introducing new logical variables
+	 * E.g.
 	 *      (x = y + 1) * (y = #z) ==> (x = #z + 1) * (y = #z)
-	 *      (x = y + 1) * (y = (3 * x) - 2) ==> 
+	 *      (x = y + 1) * (y = (3 * x) - 2) ==>
 	 				(x = #w + 1) * (y = #y) * (#y = (3 * (#y + 1)) - 2)
 	 				where #y = new_lvar_name (y)
 	 * ------------------------------------------------------------------------
 	 *)
-	let normalise_pvar_equalities 
-			(graph : int list array) 
-			(p_vars : SS.t) 
+	let normalise_pvar_equalities
+			(graph : int list array)
+			(p_vars : SS.t)
 			(p_vars_tbl : (string, int) Hashtbl.t) =
-		
+
 		let p_vars      = Array.of_list (SS.elements p_vars) in
 		let len         = Array.length p_vars in
 		let visited_tbl = Array.make len false in
@@ -502,14 +502,14 @@ let normalise_pure_assertions
 
 		(** lifting an assignment to the abstract store *)
 		let rewrite_assignment var =
-			(try 
-				let le  = Hashtbl.find pvar_equalities var in 
+			(try
+				let le  = Hashtbl.find pvar_equalities var in
 				let le' = normalise_lexpr ~store:store ~subst:subst gamma le in
-				Hashtbl.replace store var le'; 
-				Hashtbl.replace subst var le' 
-			with _ -> 
+				Hashtbl.replace store var le';
+				Hashtbl.replace subst var le'
+			with _ ->
 				let msg = Printf.sprintf "DEATH. normalise_pure_assertions ->  normalise_pvar_equalities -> rewrite_assignment. Var: %s\n" var in
-				raise (Failure msg)) in 
+				raise (Failure msg)) in
 
 
 		(** DFS on pvar dependency graph *)
@@ -534,9 +534,9 @@ let normalise_pure_assertions
 		done in
 
 	(**
-	 * Step 5 - The store is always full  
+	 * Step 5 - The store is always full
 	 * ------------------------------------------------------------------------
-	 * PVars that were not associated with a logical expression in the store 
+	 * PVars that were not associated with a logical expression in the store
 	 * are mapped to a newly created logical variable
 	 * ------------------------------------------------------------------------
 	 *)
@@ -547,7 +547,7 @@ let normalise_pure_assertions
 					then (
 						let new_l_var = new_lvar_name var in
 						Hashtbl.add store var (LVar new_l_var);
-						Hashtbl.add subst var (LVar new_l_var); 
+						Hashtbl.add subst var (LVar new_l_var);
 						try
 							let var_type = Hashtbl.find gamma var in
 							Hashtbl.add gamma new_l_var var_type
@@ -556,10 +556,10 @@ let normalise_pure_assertions
 
 
 	(**
-	 * Step 6 - Normalise Pure Assertions   
+	 * Step 6 - Normalise Pure Assertions
 	 * ------------------------------------------------------------------------
-	 * The pure assertions that were not lifted to the store need to be 
-	 * normalised 
+	 * The pure assertions that were not lifted to the store need to be
+	 * normalised
 	 * ------------------------------------------------------------------------
 	 *)
 	let normalise_pure_assertions () =
@@ -581,8 +581,8 @@ let normalise_pure_assertions
 		pi in
 
 
-	(* Doing IT *)	
-	(* 1 *) init_pvar_equalities a; 
+	(* Doing IT *)
+	(* 1 *) init_pvar_equalities a;
 	let p_vars = Hashtbl.fold (fun var le ac -> SS.add var ac) pvar_equalities SS.empty in
 	(* 2 *) let p_vars_tbl = get_vars_tbl p_vars in
 	(* 3 *) let pvars_graph = pvars_graph p_vars p_vars_tbl in
@@ -592,19 +592,19 @@ let normalise_pure_assertions
 
 
 (** -----------------------------------------------------
-  * Normalise Cell Assertions 
+  * Normalise Cell Assertions
   * (Initialise Symbolic Heap)
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
 let rec normalise_cell_assertions
-		(heap : symbolic_heap) (store : symbolic_store) 
-		(p_formulae : pure_formulae) (gamma : typing_environment) 
+		(heap : symbolic_heap) (store : symbolic_store)
+		(p_formulae : pure_formulae) (gamma : typing_environment)
 		(subst : substitution) (a : jsil_logic_assertion) : unit =
 	let f = normalise_cell_assertions heap store p_formulae gamma subst in
 	let fe = normalise_lexpr ~store:store ~subst:subst gamma in
 
-	(* This needs to go. but I have to generate discharges in the heap 
+	(* This needs to go. but I have to generate discharges in the heap
 	   and predicate set unification *)
 	let simplify_element_of_cell_assertion ele =
 		(match ele with
@@ -648,20 +648,20 @@ let rec normalise_cell_assertions
 		LHeap.replace heap loc (((nle2, nle3) :: field_val_pairs), default_val)
 
 	| LPointsTo (_, _, _) ->
-		let msg = Printf.sprintf "" in 
+		let msg = Printf.sprintf "" in
 		raise (Failure "Illegal PointsTo Assertion")
 
 	| _ -> ()
 
 
 (** -----------------------------------------------------
-  * Normalise Type Assertions 
+  * Normalise Type Assertions
   * (Initialise Typing Environment)
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let rec normalise_type_assertions 
-		(gamma : typing_environment) 
+let rec normalise_type_assertions
+		(gamma : typing_environment)
 		(a : jsil_logic_assertion) : unit =
 	let f = normalise_type_assertions gamma in
 	match a with
@@ -674,7 +674,7 @@ let rec normalise_type_assertions
 
 				| LVar v -> Hashtbl.replace gamma v t
 				| PVar v -> Hashtbl.replace gamma v t
-				
+
 				| LNone -> ()
 				| _ ->
 					let v_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma v in
@@ -701,13 +701,13 @@ let rec normalise_type_assertions
 
 
 (** -----------------------------------------------------
-  * Normalise Predicate Assertions 
+  * Normalise Predicate Assertions
   * (Initialise Predicate Set)
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_pred_assertions 
-	(store : symbolic_store) (gamma : typing_environment) 
+let normalise_pred_assertions
+	(store : symbolic_store) (gamma : typing_environment)
 	(subst : substitution) (a : jsil_logic_assertion) : predicate_set * (jsil_logic_assertion list) =
 	let preds = pred_set_init () in
 
@@ -720,7 +720,7 @@ let normalise_pred_assertions
 					match le with
 					| LNone	| LVar _ | LLit _ | ALoc _ -> ((le :: new_les), new_equalities)
 					| PVar x ->
-						let msg = Printf.sprintf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x in 
+						let msg = Printf.sprintf "Program Variable %s in logical expression that was supposed to be normalised!!!\n" x in
 						raise (Failure msg)
 					| _ ->
 						let x = fresh_lvar () in
@@ -746,30 +746,30 @@ let normalise_pred_assertions
 			| _ -> []) in
 	let new_assertions = init_preds_aux preds a in
 	let pfs = pfs_of_list new_assertions in
-	Simplifications.sanitise_pfs store gamma pfs; 
+	Simplifications.sanitise_pfs store gamma pfs;
 	preds, (pfs_to_list pfs)
 
 
 (** -----------------------------------------------------
-  * Normalise EmptyFields Assertions 
+  * Normalise EmptyFields Assertions
   * (Initialise Symbolic Heap Domains)
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_ef_assertions 
-	(heap : symbolic_heap) (store : symbolic_store) 
-	(p_formulae : pure_formulae) (gamma : typing_environment) 
+let normalise_ef_assertions
+	(heap : symbolic_heap) (store : symbolic_store)
+	(p_formulae : pure_formulae) (gamma : typing_environment)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_empty_fields a =
-		let f_ac a _ _ ac = 
-			match a with 
+		let f_ac a _ _ ac =
+			match a with
 			| LEmptyFields (le, domain) ->
 				let le' = normalise_lexpr ~store:store ~subst:subst gamma le in
 				let domain' = normalise_lexpr ~store:store ~subst:subst gamma domain in
-				 (le', domain') :: (List.concat ac) 
+				 (le', domain') :: (List.concat ac)
 			| _ -> List.concat ac in
-		assertion_fold None f_ac None None a in  
+		assertion_fold None f_ac None None a in
 
 	let add_domain (le_loc, domain)  =
 		print_debug_petar (Printf.sprintf "Location: %s" (JSIL_Print.string_of_logic_expression le_loc false));
@@ -793,7 +793,7 @@ let normalise_ef_assertions
 	List.iter add_domain (get_all_empty_fields a)
 
 
-let fill_store_with_gamma 
+let fill_store_with_gamma
 	(store : symbolic_store) (gamma : typing_environment) (subst : substitution) : unit =
 	Hashtbl.iter
 		(fun var t ->
@@ -806,12 +806,12 @@ let fill_store_with_gamma
 		gamma
 
 
-let extend_typing_env_using_assertion_info 
+let extend_typing_env_using_assertion_info
 	(gamma : typing_environment) (a_list : jsil_logic_assertion list) : unit =
-	List.iter (fun a -> 
-		match a with 
-		| LEq (LVar x, le) | LEq (le, LVar x) 
-		| LEq (PVar x, le) | LEq (le, PVar x) -> 
+	List.iter (fun a ->
+		match a with
+		| LEq (LVar x, le) | LEq (le, LVar x)
+		| LEq (PVar x, le) | LEq (le, PVar x) ->
 			let x_type = gamma_get_type gamma x in
 			(match x_type with
 			| None ->
@@ -819,19 +819,19 @@ let extend_typing_env_using_assertion_info
 				weak_update_gamma gamma x le_type
 			| Some _ -> ())
 		| _ -> ()
-	) a_list 
+	) a_list
 
 
-(** 
+(**
   * ---------------------------------------------------------------------------
-  * Symbolic state well-formedness checks 
+  * Symbolic state well-formedness checks
   * ---------------------------------------------------------------------------
-  * 1. the type of each pvar is consistent with the type of the logical 
+  * 1. the type of each pvar is consistent with the type of the logical
   *    expression to which it is mapped by the store
-  * 2. the underlying asusmption that all the fields of a give an object are 
+  * 2. the underlying asusmption that all the fields of a give an object are
   *    different from each other does not create a contradiction
-  * --------------------------------------------------------------------------- 
- *) 
+  * ---------------------------------------------------------------------------
+ *)
 
 
 let check_pvar_types (store : symbolic_store) (gamma : typing_environment) : bool =
@@ -864,9 +864,9 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 		let rec loop flist constraints =
 			match flist with
 			| [] -> constraints
-			| f_name :: rest -> 
+			| f_name :: rest ->
 				(match List.mem f_name rest with
-				| true -> 
+				| true ->
 					print_debug_petar (Printf.sprintf "Horror: Overlapping resources in %s"
 						(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) flist)));
 					[ LFalse ]
@@ -883,22 +883,22 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 			| _ -> loop rest (f_name :: fields_covered) (new_constraints @ constraints)) in
 
 	let result = loop f_list [] [] in
-	
+
 	print_debug_petar
-		(Printf.sprintf "Make all different: %s\n" 
+		(Printf.sprintf "Make all different: %s\n"
 			(String.concat " " (List.map (fun x -> JSIL_Print.string_of_logic_expression x false) f_list)));
-	
+
 	result
 
 let get_heap_well_formedness_constraints heap =
-	print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n" 
-		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)); 
+	print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n"
+		(Symbolic_State_Print.string_of_shallow_symb_heap heap false));
 
 	LHeap.fold
 		(fun field (fv_list, _) constraints ->
 			(match constraints with
 			| [ LFalse ] -> [ LFalse ]
-			| _ -> 
+			| _ ->
   				let f_list, _ = List.split fv_list in
   				let new_constraints = make_all_different_assertion_from_fvlist f_list in
   				new_constraints @ constraints)) heap []
@@ -907,29 +907,29 @@ let get_heap_well_formedness_constraints heap =
 
 
 (** -----------------------------------------------------
-  * Normalise Assertion 
-  * Given an assertion creates a symbolic state and a 
-  * substitution 
+  * Normalise Assertion
+  * Given an assertion creates a symbolic state and a
+  * substitution
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_assertion 
+let normalise_assertion
 		(gamma : typing_environment option)
 		(subst : substitution option)
 		(a     : jsil_logic_assertion) : (symbolic_state * substitution) option =
 
 	print_debug_petar (Printf.sprintf "Normalising assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a false));
 
-	let falsePFs pfs = 
-		match pfs_to_list pfs with 
-		| [ LFalse ] -> true 
-		| _          -> false in  
+	let falsePFs pfs =
+		match pfs_to_list pfs with
+		| [ LFalse ] -> true
+		| _          -> false in
 
 	(** Step 1 -- Preprocess list expressions - resolve l-nth(E, i) when possible  *)
-	let a = pre_process_list_exprs a in 
+	let a = pre_process_list_exprs a in
 
 	(** Step 2 -- Create empty symbolic heap, symbolic store, typing environment, and substitution *)
-	let heap  = heap_init () in 
+	let heap  = heap_init () in
 	let store = store_init [] [] in
 	let gamma = Option.map_default copy_gamma (gamma_init ()) gamma in
 	let subst = Option.map_default copy_substitution (init_substitution []) subst in
@@ -944,14 +944,14 @@ let normalise_assertion
 	if (falsePFs p_formulae) then None else (
 		(** The pure formulae are not completely bananas  *)
 
-		(** Step 4 -- Add to the store the program variables that are not there yet, BUT 
+		(** Step 4 -- Add to the store the program variables that are not there yet, BUT
 			for which we know the types *)
 		fill_store_with_gamma store gamma subst;
 		extend_typing_env_using_assertion_info gamma ((pfs_to_list p_formulae) @ (pf_of_store2 store));
 
 		(** Step 5 -- Normalise cell assertions, pred assertions, and ef assertions
 		  * 5.1 - cell assertions -> initialises heap
-	      * 5.2 - pred assertions -> initialises pred set 
+	      * 5.2 - pred assertions -> initialises pred set
 	      * 5.3 - ef assertions   -> fills in the domain for the objects in the heap
 		  *)
 		normalise_cell_assertions heap store p_formulae gamma subst a;
@@ -960,35 +960,35 @@ let normalise_assertion
 		merge_pfs p_formulae (pfs_of_list new_assertions);
 		normalise_ef_assertions heap store p_formulae gamma subst a;
 
-		(** Step 6 -- Check if the symbolic state makes sense *) 
+		(** Step 6 -- Check if the symbolic state makes sense *)
 		let heap_constraints = get_heap_well_formedness_constraints heap in
-		if ((Pure_Entailment.check_satisfiability (heap_constraints @ (pfs_to_list p_formulae)) gamma) && 
+		if ((Pure_Entailment.check_satisfiability (heap_constraints @ (pfs_to_list p_formulae)) gamma) &&
 				(check_pvar_types store gamma))
 			then Some ((heap, store, p_formulae, gamma, preds), subst)
 			else None)
 
 
-(** Normalise Postcondition 
+(** Normalise Postcondition
 	-----------------------
-	Each normlised postcondition postcondition may map additional spec vars 
-	to alocs. In order not to lose the link between the newly generated alocs 
+	Each normlised postcondition postcondition may map additional spec vars
+	to alocs. In order not to lose the link between the newly generated alocs
 	and the precondition spec vars, we need to introduce extra equalities    *)
-let normalise_post 
-		(post_gamma_0  : typing_environment) 
+let normalise_post
+		(post_gamma_0  : typing_environment)
 		(subst         : substitution)
 		(spec_vars     : SS.t)
-		(post          : jsil_logic_assertion) : symbolic_state option = 
-	(match (normalise_assertion (Some post_gamma_0) (Some subst) post) with 
-	| None -> None 
-	| Some (ss_post, post_subst) -> 
-		let post_new_spec_var_alocs = 
+		(post          : jsil_logic_assertion) : symbolic_state option =
+	(match (normalise_assertion (Some post_gamma_0) (Some subst) post) with
+	| None -> None
+	| Some (ss_post, post_subst) ->
+		let post_new_spec_var_alocs =
 			SS.elements (SS.filter (fun x -> (not (Hashtbl.mem subst x)) && (Hashtbl.mem post_subst x)) spec_vars) in
-		print_debug (Printf.sprintf "post substitution:\n%s\npost_new_spec_var_alocs: %s\n" 
+		print_debug (Printf.sprintf "post substitution:\n%s\npost_new_spec_var_alocs: %s\n"
 			(Symbolic_State_Print.string_of_substitution post_subst)
-			(String.concat ", " post_new_spec_var_alocs));  
-		let extra_post_pfs = List.map (fun x -> LEq (LVar x, Hashtbl.find post_subst x)) post_new_spec_var_alocs in 
-		extend_symb_state_with_pfs ss_post (pfs_of_list extra_post_pfs); 
-		Some (Simplifications.simplify_ss ss_post (Some (Some spec_vars)))) 
+			(String.concat ", " post_new_spec_var_alocs));
+		let extra_post_pfs = List.map (fun x -> LEq (LVar x, Hashtbl.find post_subst x)) post_new_spec_var_alocs in
+		extend_symb_state_with_pfs ss_post (pfs_of_list extra_post_pfs);
+		Some (Simplifications.simplify_ss ss_post (Some (Some spec_vars))))
 
 
 (** -----------------------------------------------------
@@ -999,48 +999,48 @@ let normalise_post
 let normalise_single_spec 
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec_name  : string)
-	(spec       : jsil_single_spec) : jsil_n_single_spec list = 
+	(spec       : jsil_single_spec) : jsil_n_single_spec list =
 
-	let oget_list lst = List.map Option.get (List.filter (fun x -> not (x = None)) lst) in 
+	let oget_list lst = List.map Option.get (List.filter (fun x -> not (x = None)) lst) in
 
 	let pre_normalise (a : jsil_logic_assertion) : jsil_logic_assertion list = 
 		List.map JSIL_Logic_Utils.push_in_negations (auto_unfold predicates a) in 
 
-	print_debug (Printf.sprintf "Normalising the following spec of %s:\n%s\n" spec_name 
-			(JSIL_Print.string_of_single_spec "" spec)); 
+	print_debug (Printf.sprintf "Normalising the following spec of %s:\n%s\n" spec_name
+			(JSIL_Print.string_of_single_spec "" spec));
 
 	(** Step 1 - Unfold non-recursive predicates + push-in negations *)
-	let spec_vars = get_assertion_lvars spec.pre in	
-	let pres      = pre_normalise spec.pre in 
-	let posts     = List.concat (List.map pre_normalise spec.post) in 
+	let spec_vars = get_assertion_lvars spec.pre in
+	let pres      = pre_normalise spec.pre in
+	let posts     = List.concat (List.map pre_normalise spec.post) in
 
 	(** Step 2 - Normalise preconditions                                     *)
-	(** Spec vars mapped to alocs in the precondition MUST also be 
+	(** Spec vars mapped to alocs in the precondition MUST also be
 	    substituted in the postcondition - so they cease to be spec vars     *)
-	let ss_pres   = oget_list (List.map (normalise_assertion None None) pres) in 
-	let ss_pres'  = List.map (fun (ss_pre, subst) -> 
+	let ss_pres   = oget_list (List.map (normalise_assertion None None) pres) in
+	let ss_pres'  = List.map (fun (ss_pre, subst) ->
 		let subst'     = filter_substitution subst spec_vars in
-		let spec_vars' = SS.filter (fun x -> not (Hashtbl.mem subst' x)) spec_vars in  
-		let ss_pre'    = Simplifications.simplify_ss ss_pre (Some (Some spec_vars')) in 
-		(ss_pre', subst', spec_vars')) ss_pres in 
+		let spec_vars' = SS.filter (fun x -> not (Hashtbl.mem subst' x)) spec_vars in
+		let ss_pre'    = Simplifications.simplify_ss ss_pre (Some (Some spec_vars')) in
+		(ss_pre', subst', spec_vars')) ss_pres in
 
-	let n_specs = List.map (fun (ss_pre, subst, spec_vars) -> 
+	let n_specs = List.map (fun (ss_pre, subst, spec_vars) ->
 		let post_gamma_0  = get_gamma ss_pre in
 		let post_gamma_0' = filter_gamma_f post_gamma_0 (fun x -> SS.mem x spec_vars) in
 
 		(** Step 3 - Normalise the postconditions associated with each pre           *)
-		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars) posts) in 
+		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars) posts) in
 		{	n_pre      = ss_pre;
 			n_post     = ss_posts;
 			n_ret_flag = spec.ret_flag;
-			n_lvars    = spec_vars; 
-			n_subst    = subst	}) ss_pres' in 
+			n_lvars    = spec_vars;
+			n_subst    = subst	}) ss_pres' in
 
-	let n_specs' = List.filter (fun n_spec -> (List.length n_spec.n_post) > 0) n_specs in 
+	let n_specs' = List.filter (fun n_spec -> (List.length n_spec.n_post) > 0) n_specs in
 	if (n_specs' = []) then (
 		(* TODO: print the invalid specification *)
-		let failed_spec_msg = Printf.sprintf "INVALID SPECIFICATION for %s:\n%s\n" spec_name 
-			(JSIL_Print.string_of_single_spec "" spec) in 
+		let failed_spec_msg = Printf.sprintf "INVALID SPECIFICATION for %s:\n%s\n" spec_name
+			(JSIL_Print.string_of_single_spec "" spec) in
 		raise (Failure failed_spec_msg)
 	) else n_specs'
 
@@ -1054,7 +1054,8 @@ let normalise_spec
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec       : jsil_spec) : jsil_n_spec =
 	let time = Sys.time () in
-	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
+ print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
+ print_debug (Printf.sprintf "Normalised spec? %b" spec.is_normalised);
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs) in
 	{	n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;
@@ -1072,43 +1073,45 @@ let build_spec_tbl
 		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(onlyspecs  : (string, jsil_spec) Hashtbl.t)
 		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : (string, Symbolic_State.jsil_n_spec) Hashtbl.t =
-	
-	let spec_tbl = Hashtbl.create 511 in
-	let get_tbl_rng tbl = Hashtbl.fold (fun k v ac -> v :: ac) tbl [] in 
 
-	(** 1 - Normalise specs from                      *) 
+	let spec_tbl = Hashtbl.create 511 in
+	let get_tbl_rng tbl = Hashtbl.fold (fun k v ac -> v :: ac) tbl [] in
+
+	(** 1 - Normalise specs from                      *)
 	(** 1.1 - from JSIL procedures
-        1.2 - only specs 
+        1.2 - only specs
         1.3 - lemmas                                  *)
-   	let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) (get_tbl_rng prog)) in  
-   	let only_specs     = get_tbl_rng onlyspecs in 
-   	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in 
-   	let non_proc_specs = only_specs @ lemma_specs in 
-   	List.iter (fun spec -> 
+    let proc_tbl_rng = get_tbl_rng prog in
+    JSIL_Syntax_Utils.check_specs_pvars proc_tbl_rng;
+    let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
+   	let only_specs     = get_tbl_rng onlyspecs in
+   	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in
+   	let non_proc_specs = only_specs @ lemma_specs in
+   	List.iter (fun spec ->
    		let n_spec = normalise_spec predicates spec in
 		Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec
-   	) (proc_specs @ non_proc_specs); 
+   	) (proc_specs @ non_proc_specs);
 
 
-   	(** 2 - Dummy procs for only specs and lemmas          
+   	(** 2 - Dummy procs for only specs and lemmas
    	 *      The point of doing this is to use the find_and_apply_specs for both
-   	 *      the symbolic execution of procedure calls and the application of 
-   	 *      lemmas *)  
-   	 let create_dummy_proc spec = 
-   		let dummy_proc = { 
+   	 *      the symbolic execution of procedure calls and the application of
+   	 *      lemmas *)
+   	 let create_dummy_proc spec =
+   		let dummy_proc = {
    	 		proc_name   = spec.spec_name;
 			proc_body   = Array.make 0 (empty_metadata, SBasic SSkip);
 			proc_params = spec.spec_params;
 			ret_label   = None; ret_var = Some "ret";
 			error_label = None; error_var = Some "err";
-			spec = Some spec } in 
-		Hashtbl.replace prog spec.spec_name dummy_proc in 
-	List.iter create_dummy_proc non_proc_specs; 
+			spec = Some spec } in
+		Hashtbl.replace prog spec.spec_name dummy_proc in
+	List.iter create_dummy_proc non_proc_specs;
 	spec_tbl
 
 
 (** -----------------------------------------------------
-  * Normalise Predicate Definitions 
+  * Normalise Predicate Definitions
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
@@ -1121,16 +1124,16 @@ let normalise_predicate_definitions
 	Hashtbl.iter
 		(fun pred_name (pred : unfolded_predicate)  ->
 			let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
-			let n_definitions =  List.rev (List.concat (List.map 
+			let n_definitions =  List.rev (List.concat (List.map
 				(fun (os, a) ->
 					print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
 					let pred_vars = get_assertion_vars false a in
-					let a' = JSIL_Logic_Utils.push_in_negations a in 
-					match (normalise_assertion None None a') with 
-					| Some (ss, _) -> 
+					let a' = JSIL_Logic_Utils.push_in_negations a in
+					match (normalise_assertion None None a') with
+					| Some (ss, _) ->
 						let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
 						[ (os, ss') ]
-					| None -> []) definitions)) in 
+					| None -> []) definitions)) in
 			let n_pred = {
 				n_pred_name        = pred.name;
 				n_pred_num_params  = pred.num_params;
@@ -1143,10 +1146,10 @@ let normalise_predicate_definitions
 
 
 (** -----------------------------------------------------
-  * Pre-Normalise Invariants in JSIL Program 
+  * Pre-Normalise Invariants in JSIL Program
   *    - before symbolically executing a program we
-  *      autounfold all the non-recursive predicates and 
-  *      push-in negations 
+  *      autounfold all the non-recursive predicates and
+  *      push-in negations
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)

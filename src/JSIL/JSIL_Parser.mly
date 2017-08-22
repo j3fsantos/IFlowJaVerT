@@ -1,6 +1,6 @@
 %{
 open JSIL_Syntax
-open JSIL_Syntax_Checks
+open JSIL_Logic_Utils
 open JSLogic
 
 (* Tables where we collect the predicates and the procedures as we parse them. *)
@@ -192,6 +192,7 @@ let copy_and_clear_globals () =
 %token LEMMA
 %token NORMAL
 %token ERROR
+%token NORMALISED
 (* JS only spec specifics *)
 %token JSOS
 %token JSOSPRE
@@ -354,8 +355,8 @@ proc_head_target:
 	spec = option(spec_target);
 	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE
 	{ (* TODO: Check pvars statically in the logic commands? *)
-		enter_procedure ();
-		validate_proc_signature spec proc_name param_list;
+		(* enter_procedure *) ();
+		(* validate_proc_signature spec proc_name param_list; *)
 		(proc_name, param_list, spec)
 	}
 ;
@@ -574,8 +575,8 @@ pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
-		register_predicate name num_params;
-		enter_predicate params;
+		(* register_predicate name num_params; *)
+		(* enter_predicate params; *)
 	  (name, num_params, params)
 	}
 ;
@@ -704,10 +705,11 @@ macro_head_target:
 
 only_spec_target:
 (* only spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
-	ONLY; SPEC; spec_head = spec_head_target;
+	normalised = option(normalised_label_target); ONLY; SPEC; spec_head = spec_head_target;
 	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
 	{ let (spec_name, spec_params) = spec_head in
-		let spec = { spec_name; spec_params; proc_specs } in
+    let is_normalised = (Option.default false normalised) in
+		let spec = { spec_name; spec_params; proc_specs; is_normalised } in
 		Hashtbl.replace only_spec_table spec_name spec;
 	}
 
@@ -731,7 +733,7 @@ jsil_lemma_target:
 	proof = option(jsil_lemma_proof_target);
 	{
     let (lemma_name, lemma_params) = lemma_head in
-    let lemma_spec = create_jsil_spec lemma_name lemma_params [(create_single_spec pre post Normal)] in
+    let lemma_spec = create_jsil_spec lemma_name lemma_params [(create_single_spec pre post Normal)] false in
 		let lemma =
 		{
 			lemma_spec  = lemma_spec;
@@ -766,16 +768,21 @@ outcome_target:
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
-	SPEC; spec_head = spec_head_target;
-	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
+	normalised = option(normalised_label_target); SPEC; spec_head = spec_head_target;
+	proc_specs = separated_nonempty_list(SCOLON, pre_post_target)
 	{ let (spec_name, spec_params) = spec_head in
-		{ spec_name; spec_params; proc_specs }
+    let is_normalised = (Option.default false normalised) in
+		{ spec_name; spec_params; proc_specs; is_normalised }
 	}
 ;
 
+normalised_label_target:
+  NORMALISED
+  { true }
+
 spec_head_target:
   spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE
-	{ enter_specs spec_params;
+	{ (* enter_specs spec_params; *)
 		(spec_name, spec_params)
 	}
 ;
@@ -929,20 +936,20 @@ lexpr_target:
 
 logic_variable_target:
   v = LVAR
-	{ validate_lvar v; LVar v }
+	{ (* validate_lvar v; *) LVar v }
 ;
 
 just_logic_variable_target:
   v = LVAR
-	{ validate_lvar v; v }
+	{ (* validate_lvar v; *) v }
 
 program_variable_target:
   | v = VAR
-	  { let _ = validate_pvar v in PVar v }
+	  { (* let _ = validate_pvar v in *) PVar v }
 	| RET
-	  { let _ = validate_pvar "ret" in PVar "ret" }
+	  { (* let _ = validate_pvar "ret" in *) PVar "ret" }
 	| ERR
-	  { let _ = validate_pvar "err" in PVar "err" }
+	  { (* let _ = validate_pvar "err" in *) PVar "err" }
 ;
 
 (********* PREDS and SPECS only *********)
@@ -1153,11 +1160,11 @@ js_lexpr_preceded_by_comma_target:
 
 js_program_variable_target:
   | v = VAR
-	  { let _ = validate_pvar v in v }
+	  { (* let _ = validate_pvar v in *) v }
 	| RET
-	  { let _ = validate_pvar "ret" in "ret" }
+	  { (* let _ = validate_pvar "ret" in *) "ret"}
 	| ERR
-	  { let _ = validate_pvar "err" in "err" }
+	  { (* let _ = validate_pvar "err" in *) "err" }
 ;
 
 js_lexpr_target:
@@ -1209,7 +1216,7 @@ js_lexpr_target:
   | LBRACE; e=js_lexpr_target; RBRACE
 	  { e }
 (* _ *)
-  | UNDERSCORE 
+  | UNDERSCORE
   	{ JSLVar (JSLogic.fresh_lvar ()) }
 (* $$scope *)
   | SCOPELEXPR { JSLScope }
