@@ -1,5 +1,6 @@
 open JSIL_Syntax
 open JSIL_Logic_Utils
+open JSIL_Parser
 open Symbolic_State
 open JSLogic
 
@@ -379,11 +380,16 @@ let parse
 
 (** ----------------------------------------------------
     Open the file given by 'path' and run the parser on its contents.
+    Detect previously normalised files.
     -----------------------------------------------------
 *)
 let ext_program_of_path
     (path : string) : jsil_ext_program =
 
+  let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9_]+\.njsil") path 0 in
+  print_debug (Printf.sprintf "%s is previously normalised? %b" path file_previously_normalised);
+  JSIL_Syntax.previously_normalised := file_previously_normalised;
+  
   let inx = open_in path in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
@@ -506,7 +512,7 @@ let resolve_imports
 			if (not (Hashtbl.mem added_imports file))
 				then
 					(Hashtbl.replace added_imports file true;
-					let imported_program = ext_program_of_path (file ^ ".jsil") in
+					let imported_program = ext_program_of_path file in
 					extend_declarations program imported_program;
      resolve_imports_iter (rest_imports @ imported_program.imports))) in
 

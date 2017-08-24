@@ -20,7 +20,7 @@ let js2jsil_imports = [
 ]
 
 let js2jsil_logic_imports = [
-	"javert_internal_functions"; "javert_logic_macros"; "javert_js_predicates"
+	"javert_internal_functions.jsil"; "javert_logic_macros.jsil"; "javert_js_predicates.jsil"
 ]
 
 let setupHeapName = "setupInitialHeap"

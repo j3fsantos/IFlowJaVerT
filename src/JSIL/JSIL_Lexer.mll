@@ -6,6 +6,7 @@ let digit = ['0'-'9']
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = (letter|'_')(letter|digit|'_')*
+let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
 let lvar = '#' (letter|digit|'_'|'$')*
 let loc = "$l" (letter|digit|'_')*
 let white = [' ' '\t']+
@@ -188,7 +189,6 @@ rule read = parse
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
-	| "normalised"         { JSIL_Parser.NORMALISED}
 (* JS only spec specifics *)
 	| "js_only_spec"       { JSIL_Parser.JSOS      }
 	| "pre:"               { JSIL_Parser.JSOSPRE   }
@@ -217,6 +217,8 @@ rule read = parse
 	                           JSIL_Parser.FLOAT n }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
+(* Filenames *)
+  | filename             { JSIL_Parser.FILENAME (Lexing.lexeme lexbuf) }
 (* Variables *)
 	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* Logic variables *)

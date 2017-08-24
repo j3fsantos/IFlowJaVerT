@@ -294,12 +294,15 @@ type jsil_single_spec = {
 	ret_flag : jsil_return_flag           (** Return flag ({!type:jsil_return_flag}) *)
 }
 
+(** Keeps track of whether the current file is a previously normalised file **)
+let previously_normalised = ref false;
+
 (** {b Full JSIL specifications}. *)
 type jsil_spec = {
 	spec_name     : string;                (** Procedure/spec name *)
 	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
   proc_specs    : jsil_single_spec list; (** List of single specifications *)
-  is_normalised : bool                   (** If the spec is already normalised *)
+  previously_normalised : bool                   (** If the spec is already normalised *)
 }
 
 (**/**)
@@ -316,7 +319,7 @@ let create_jsil_spec name params specs normalised =
 		spec_name   = name;
 		spec_params = params;
     proc_specs  = specs;
-    is_normalised = normalised
+    previously_normalised = normalised
 	}
 (**/**)
 

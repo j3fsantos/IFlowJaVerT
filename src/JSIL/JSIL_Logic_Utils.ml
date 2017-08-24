@@ -658,7 +658,7 @@ let rec lexpr_substitution lexpr subst partial =
 					else
 						ALoc aloc)
 
-	| PVar var -> 
+	| PVar var ->
 		(try Hashtbl.find subst var with _ ->
 				if (not partial)
 					then
@@ -1297,15 +1297,15 @@ let concretise2 (a : jsil_logic_assertion) (x: string) (y: string) (les : jsil_l
 		(fun (le1, le2) ->
 			let subst = init_substitution2 [ x; y ] [ le1; le2 ] in
 			assertion_substitution a subst true)
-		les_pairs  
+		les_pairs
 
 
 (* Returns a list with the names of the predicates that occur in an assertion *)
 let get_predicate_names (asrt : jsil_logic_assertion) : string list =
-	let f_ac a _ _ ac = 
-		(match a with 
+	let f_ac a _ _ ac =
+		(match a with
 		| LPred (s, _) -> s :: (List.concat ac)
-		| _            -> List.concat ac) in 
+		| _            -> List.concat ac) in
 	assertion_fold None f_ac None None asrt
 
 
@@ -1362,5 +1362,5 @@ let replace_spec_keywords
              }
           )
           spec.proc_specs;
-       is_normalised = spec.is_normalised
+       previously_normalised = spec.previously_normalised
     }
