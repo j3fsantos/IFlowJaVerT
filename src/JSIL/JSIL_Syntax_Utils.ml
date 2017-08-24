@@ -386,10 +386,15 @@ let parse
 let ext_program_of_path
     (path : string) : jsil_ext_program =
 
-  let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9_]+\.njsil") path 0 in
+  let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.njsil") path 0 in
   print_debug (Printf.sprintf "%s is previously normalised? %b" path file_previously_normalised);
   JSIL_Syntax.previously_normalised := file_previously_normalised;
-  
+
+  (* Check that the file is of a valid type *)
+  (match (file_previously_normalised || (Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.jsil") path 0)) with
+    | true -> ()
+    | false -> raise (Failure (Printf.sprintf "Failed to import %s: not a .jsil or .njsil file." path)));
+
   let inx = open_in path in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };

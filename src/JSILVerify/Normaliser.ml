@@ -967,6 +967,65 @@ let normalise_assertion
 			then Some ((heap, store, p_formulae, gamma, preds), subst)
 			else None)
 
+(** -----------------------------------------------------
+  * Normalise a Pre-Normalised Assertion
+  * Given an assertion creates a symbolic state and a
+  * substitution. However this won't actually do anything
+  * as the work has already been done.
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let normalise_normalised_assertion
+    (a : jsil_logic_assertion) : (symbolic_state * substitution) option =
+
+  print_debug (Printf.sprintf "Normalising pre-normalised assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a false));
+
+  (** Step 1 -- Create empty symbolic heap, symbolic store, typing environment, substitution and pfs *)
+  let heap  : symbolic_heap      = heap_init () in
+  let store : symbolic_store     = store_init [] [] in
+  let gamma : typing_environment = gamma_init () in
+  let pfs   : pure_formulae      = DynArray.make 0 in
+  let subst : substitution       = init_substitution [] in
+
+  (* Step 2 - Map over assertion, populate gamma, store and heap *)
+  let populate_state_from_assertion a =
+    match a with
+    | LTypes type_assertions ->
+      List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e false) t) type_assertions;
+      (a, false)
+    | LPointsTo (LLit (Loc loc), le2, le3) ->
+      (* TODO: prefix locations with _ ? *)
+      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+      (a, false)
+    | LEq ((PVar v), le)
+    | LEq (le, (PVar v)) ->
+      Hashtbl.add store v le;
+      (a, false)
+    | LEq ((LVar _), _)
+    | LEq (_, (LVar _)) ->
+      DynArray.add pfs a;
+      (a, false)
+    | LNot _
+    | LLess _
+    | LLessEq _
+    | LStrLess _
+    | LSetMem _
+    | LSetSub _ ->
+      DynArray.add pfs a;
+      (a, false)
+    | _ ->
+      (a, true)
+  in
+  assertion_map (Some populate_state_from_assertion) (fun e -> (e, false)) a;
+
+  print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
+  print_debug (Symbolic_State_Print.string_of_lexpr_store store);
+  print_debug (Printf.sprintf "Gamma: %s" (Symbolic_State_Print.string_of_gamma gamma));
+  print_debug (Printf.sprintf "Heap: %s" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
+  print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae pfs false));
+  None
+
 
 (** Normalise Postcondition
 	-----------------------
@@ -990,6 +1049,20 @@ let normalise_post
 		extend_symb_state_with_pfs ss_post (pfs_of_list extra_post_pfs);
 		Some (Simplifications.simplify_ss ss_post (Some (Some spec_vars))))
 
+(** -----------------------------------------------------
+  * Normalise Pre-Normalised Single Spec
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+(* TODO: finish *)
+let normalise_single_normalised_spec
+    (spec_name  : string)
+    (spec       : jsil_single_spec) : jsil_n_single_spec list =
+
+  (** Step 1 - Normalise preconditions                                     *)
+  let ss_pres   = List.map normalise_normalised_assertion [spec.pre] in
+
+  []
 
 (** -----------------------------------------------------
   * Normalise Single Spec
@@ -1056,7 +1129,14 @@ let normalise_spec
 	let time = Sys.time () in
  print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
  print_debug (Printf.sprintf "Previously normalised spec? %b" spec.previously_normalised);
-	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs) in
+
+  (** Treat pre-normalised specs differently *)
+  let normalised_pre_post_list =
+    match spec.previously_normalised with
+    | true -> List.concat (List.map (normalise_single_normalised_spec spec.spec_name) spec.proc_specs)
+    | false -> List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs)
+  in
+
 	{	n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;
 		n_proc_specs = normalised_pre_post_list
