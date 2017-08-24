@@ -948,7 +948,6 @@ let rec symb_evaluate_logic_cmd s_prog
       let params, pred_defs, args = get_pred_data pred_name les in
 			let pred_defs = Array.of_list pred_defs in
       if (do_i_already_have_this_predicate_assertion pred_name args) then [ symb_state, spec_vars, search_info ] else (
-        JSIL_Syntax_Utils.check_logic_command_pvars "fold" pred_name prev_symb_state les;
         print_debug_petar (Printf.sprintf "About to fold the predicate %s, which has %d definitions." pred_name (Array.length pred_defs));
 				let folded_predicate = fold_predicate pred_name pred_defs symb_state params args spec_vars None search_info in
 				(match folded_predicate with
@@ -967,7 +966,6 @@ let rec symb_evaluate_logic_cmd s_prog
 		print_time "Unfold.";
 		(match a with
    | LPred (pred_name, les) ->
-      JSIL_Syntax_Utils.check_logic_command_pvars "unfold" pred_name prev_symb_state les;
 			let params, pred_defs, args = get_pred_data pred_name les in
 			let unfolded_predicate = unfold_predicates pred_name pred_defs symb_state params args spec_vars search_info unfold_info in
 			if ((List.length unfolded_predicate) = 0) then (
@@ -1001,8 +999,6 @@ let rec symb_evaluate_logic_cmd s_prog
 				raise (Failure msg)) in
 
 		List.iter (fun spec -> if (spec.n_post = []) then print_debug "Exists spec with no post.") proc_specs.n_proc_specs;
-
-    JSIL_Syntax_Utils.check_logic_command_pvars "apply callspec" spec_name prev_symb_state l_args;
 
 		(* symbolically evaluate the args *)
 		print_normal (Printf.sprintf "The arguments to the callspec are the following:\n%s\n"
@@ -1051,7 +1047,6 @@ let rec symb_evaluate_logic_cmd s_prog
 					raise (Failure msg)) in
 
       (* symbolically evaluate the args *)
-      JSIL_Syntax_Utils.check_logic_command_pvars "apply lemma" lemma_name prev_symb_state l_args;
 		 	let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le) l_args in
 		 	let _, new_symb_states = find_and_apply_spec s_prog.program lemma_name proc_specs symb_state le_args in
 
@@ -1078,7 +1073,6 @@ let rec symb_evaluate_logic_cmd s_prog
 
 	| LogicIf (le, then_lcmds, else_lcmds) ->
     print_time "LIf.";
-    JSIL_Syntax_Utils.check_logic_command_pvars "execute logical if" (JSIL_Print.string_of_logic_expression le true) prev_symb_state [le];
 		let le' = Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) (get_gamma symb_state) le in
 		let e_le', a_le' = lift_logic_expr le' in
 		let a_le_then =
@@ -1107,7 +1101,6 @@ let rec symb_evaluate_logic_cmd s_prog
        PVar v
       )
       (get_assertion_pvars a) in
-    JSIL_Syntax_Utils.check_logic_command_pvars "assert" "" prev_symb_state expressions_of_assertion_pvars;
 		let existentials  = get_assertion_lvars a in
 		let existentials  = SS.diff existentials spec_vars in
 		print_normal (Printf.sprintf "LOOP: I found an invariant: %s\nMy current subst is:\n%s\n.SpecVars:%s\n"

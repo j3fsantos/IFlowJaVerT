@@ -4,6 +4,10 @@ open Symbolic_State
 open JSLogic
 
 let js = ref false
+let syntax_checks_enabled = ref false;
+
+type global_which_pred_type = (string * int * int, int) Hashtbl.t
+type which_pred_type = (int * int, int) Hashtbl.t
 
 (** ----------------------------------------------------
     ----------------------------------------------------
@@ -14,79 +18,65 @@ let js = ref false
     Checking predicate definitions only use program variables they are allowed to
     -----------------------------------------------------
 *)
-(** Called from inside Logic_Predicates.normalise *)
-let check_pred_pvars
-  (norm_pred : normalised_predicate) : unit =
+let check_all_pred_pvars
+    (predicates : (string, jsil_logic_predicate) Hashtbl.t) : unit =
 
-  (** Step 1 - Extract all the program variables used in the definition
-    * -----------------------------------------------------------------------------------
-  *)
-  let all_pred_pvars = List.concat (List.map (fun (_, ass) -> get_assertion_pvars ass) norm_pred.definitions) in
+  let check_pred_pvars
+    (pred_name : string)
+    (predicate : jsil_logic_predicate) : unit =
 
-  (** Step 2 - Check all predicates
-    * -----------------------------------------------------------------------------------
-  *)
-  List.map (fun pvar ->
-      let valid_pvar = List.mem pvar norm_pred.params in
-      (match valid_pvar with
-      | true -> ()
-      | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the definition of predicate %s." pvar norm_pred.name)))
-    ) all_pred_pvars;
-  ()
+    (** Step 1 - Extract all the program variables used in the definition
+      * -----------------------------------------------------------------------------------
+    *)
+    let all_pred_pvars : jsil_var list = List.concat (List.map (fun (_, ass) -> get_assertion_pvars ass) predicate.definitions) in
 
-(** ----------------------------------------------------
-    Checking logical commands only use program variables they are allowed to
-    -----------------------------------------------------
-*)
-let check_logic_command_pvars
-    (assertion_type : string) (* eg "fold", "unfold", "assert" *)
-    (target_name : string)
-    (symb_state : symbolic_state)
-    (args : jsil_logic_expr list) : unit =
+    (** Step 2 - Check all predicates
+      * -----------------------------------------------------------------------------------
+    *)
+    let string_of_params = List.map (fun le -> JSIL_Print.string_of_logic_expression le false) predicate.params in
+    List.map (fun (pvar : jsil_var) ->
+        let valid_pvar = List.mem pvar string_of_params in
+        (match valid_pvar with
+        | true -> ()
+        | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the definition of predicate %s." pvar pred_name)))
+      ) all_pred_pvars;
+    ()
 
-  (** Step 1 - Attempt to look up each argument in the store
-    * -----------------------------------------------------------------------------------
-  *)
-  let args_pvars = List.concat (List.map get_logic_expression_pvars_list args) in
-  let (_, store, _, _, _) = symb_state in
-  List.map (fun pvar ->
-      (match Hashtbl.mem store pvar with
-      | true -> ()
-      | false -> raise (Failure (Printf.sprintf "Undefined program variable %s when trying to %s %s." pvar assertion_type target_name)))
-    )
-    (List.concat (List.map get_logic_expression_pvars_list args));
-  ()
+  in
+  Hashtbl.iter check_pred_pvars predicates
 
 (** ----------------------------------------------------
     Checking spec definitions only use program variables they're allowed to
     -----------------------------------------------------
 *)
 let check_specs_pvars
-    (procs : jsil_procedure list) : unit =
+    (procedures : ((string, jsil_ext_procedure) Hashtbl.t)) : unit =
 
   (** Step 1 - Get the specs for each procedure, and add the return and error variables to the list of allowed variables
     * -----------------------------------------------------------------------------------
   *)
+  (* TODO: only allow return and error variables in the postcondition *)
   let ret_err_params proc =
-    let new_params_ret = (match proc.ret_var with
-                            | None -> []
-                            | Some v -> [v]) in
-    match proc.error_var with
-      | None -> new_params_ret
-      | Some v -> v :: new_params_ret
+    let new_params_ret = (match proc.lret_var with
+        | None -> []
+        | Some v -> [v]) in
+    match proc.lerror_var with
+    | None -> new_params_ret
+    | Some v -> v :: new_params_ret
   in
 
   (* Allow these variables when dealing with JS files as they are used by the internal functions *)
   let js_constants =
-  (match !js with
-    | true -> ["x__this"; "x__scope"; "x__scope_f"; "x__se"; "x__te"; "x__er"; "main"]
-    | false -> []) in
+    (match !js with
+     | true -> JS2JSIL_Constants.js2jsil_spec_vars
+     | false -> []) in
 
-  let specs = List.fold_left (fun acc p ->
-      (match p.spec with
-         | None -> acc
-         | Some s -> {s with spec_params = (s.spec_params @ (ret_err_params p) @ js_constants)} :: acc))
-      [] procs in
+  let specs : jsil_spec list = Hashtbl.fold (fun proc_name proc acc ->
+      match proc.lspec with
+        | None -> acc
+        | Some s -> {s with spec_params = (s.spec_params @ (ret_err_params proc) @ js_constants)} :: acc
+    ) procedures []
+  in
 
   (** Step 2 - Function to check for any assertion in the spec
     * -----------------------------------------------------------------------------------
@@ -99,18 +89,18 @@ let check_specs_pvars
 
     let msg_construct_type =
       (match pre with
-      | true -> "precondition"
-      | false -> "postcondition")
+       | true -> "precondition"
+       | false -> "postcondition")
     in
 
     List.map (fun pvar ->
         let valid_pvar = List.mem pvar spec_params in
         (match valid_pvar with
-        | true -> ()
-        | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the %s of %s." pvar msg_construct_type spec_name)))
+         | true -> ()
+         | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the %s of %s." pvar msg_construct_type spec_name)))
       )
       (get_assertion_pvars assertion); ()
-    in
+  in
 
   (** Step 3 - Run this function on the pre and all the post's of every spec
     * -----------------------------------------------------------------------------------
@@ -130,9 +120,80 @@ let check_specs_pvars
   ()
 
 (** ----------------------------------------------------
+    Checking specs correspond directly to procedures
+    -----------------------------------------------------
+*)
+let check_specs_procs_correspond
+    (procedures : ((string, jsil_ext_procedure) Hashtbl.t)) : unit =
+
+  Hashtbl.iter (fun _ proc ->
+      match proc.lspec with
+      | None -> ()
+      | Some spec ->
+
+        (** Check the arguments correspond
+          * -----------------------------------------------------------------------------------
+        *)
+        (match (List.length proc.lproc_params) = (List.length spec.spec_params) with
+          | true -> ()
+          | false -> raise (Failure (Printf.sprintf "The spec and procedure definitions for %s have different number of arguments." proc.lproc_name)));
+        (match proc.lproc_params = spec.spec_params with
+          | true -> ()
+          | false -> raise (Failure (Printf.sprintf "The spec and procedure definitions for %s have different arguments." proc.lproc_name)));
+    ) procedures
+
+(** ----------------------------------------------------
+    Wrapper function which calls each check
+    -----------------------------------------------------
+*)
+let syntax_checks
+    (ext_prog : jsil_ext_program)
+    (prog : jsil_program)
+    (which_pred : global_which_pred_type) : unit =
+
+  if (!syntax_checks_enabled)
+  then (
+    print_debug (Printf.sprintf "Running syntax checks:");
+    print_debug (Printf.sprintf "Checking predicate definitions only use program variables they are allowed to.");
+    check_all_pred_pvars ext_prog.predicates;
+    print_debug (Printf.sprintf "Checking spec definitions only use program variables they're allowed to.");
+    check_specs_pvars ext_prog.procedures;
+    print_debug (Printf.sprintf "Checking specs correspond directly to procedures");
+    check_specs_procs_correspond ext_prog.procedures;
+  )
+
+(** ----------------------------------------------------
+    Checking logical commands only use program variables they are allowed to
+    -----------------------------------------------------
+*)
+(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+(*
+let check_logic_command_pvars
+    (assertion_type : string) (* eg "fold", "unfold", "assert" *)
+    (target_name : string)
+    (symb_state : symbolic_state)
+    (args : jsil_logic_expr list) : unit =
+
+  (** Step 1 - Attempt to look up each argument in the store
+    * -----------------------------------------------------------------------------------
+  *)
+  let args_pvars = List.concat (List.map get_logic_expression_pvars_list args) in
+  let (_, store, _, _, _) = symb_state in
+  List.map (fun pvar ->
+      (match Hashtbl.mem store pvar with
+      | true -> ()
+      | false -> raise (Failure (Printf.sprintf "Undefined program variable %s when trying to %s %s." pvar assertion_type target_name)))
+    )
+    (List.concat (List.map get_logic_expression_pvars_list args));
+  ()
+*)
+
+(** ----------------------------------------------------
     Checking predicates are called with the correct number of arguments
     -----------------------------------------------------
 *)
+(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+(*
 let check_pred_arg_count
     (pred_name : string)
     (args : 'a list)
@@ -144,37 +205,7 @@ let check_pred_arg_count
   (match ((List.length args) == (List.length params)) with
   | true -> ()
   | false -> raise (Failure (Printf.sprintf "Incorrect number of arguments to predicate %s." pred_name)))
-
-(** ----------------------------------------------------
-    Checking specs correspond correctly to procedures
-    -----------------------------------------------------
 *)
-let check_specs_and_procs
-    (spec_tbl : specification_table)
-    (prog : jsil_program) : unit =
-
-  (** For each spec, check it has the same arguments as the program
-    * Set equality is probably most efficient for this
-    * -----------------------------------------------------------------------------------
-  *)
-  Hashtbl.iter (fun spec_name spec ->
-      (** Step 1 - Try and find a proc for each spec
-        * -----------------------------------------------------------------------------------
-      *)
-      try (
-        let proc = Hashtbl.find prog spec_name in
-
-        (** Step 2 - Check the arguments correspond
-          * -----------------------------------------------------------------------------------
-        *)
-        (match (List.length proc.proc_params) = (List.length spec.n_spec_params) with
-        | true -> ()
-        | false -> raise (Failure (Printf.sprintf "The spec and procedure definitions for %s have different number of arguments." spec_name)));
-        (match (proc.proc_params) = (spec.n_spec_params) with
-        | true -> ()
-        | false -> raise (Failure (Printf.sprintf "The spec and procedure definitions for %s have different arguments." spec_name)));
-      ) with Not_found -> raise (Failure (Printf.sprintf "The spec %s does not correspond to a procedure." spec_name))
-    ) spec_tbl
 
 (** ----------------------------------------------------
     Extracting the jsil variables from a procedure
@@ -488,9 +519,6 @@ let resolve_imports
   Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program.procedures;
 
 	resolve_imports_iter program.imports
-
-type global_which_pred_type = (string * int * int, int) Hashtbl.t
-type which_pred_type = (int * int, int) Hashtbl.t
 
 (** ----------------------------------------------------
   * Converts an extended JSIL program into a set of basic procedures.

@@ -191,6 +191,16 @@ let string_of_store store =
 		store
 		"Store: "
 
+let string_of_lexpr_store store =
+  "Store:\n" ^
+  (Hashtbl.fold
+		(fun (var : string) (v_val : jsil_logic_expr) (ac : string) ->
+			let v_val_str = string_of_logic_expression v_val false in
+			let var_val_str = var ^ ": " ^ v_val_str  in
+			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
+		store
+		"")
+
 let string_of_substitution substitution =
 	let str =
 		(Hashtbl.fold

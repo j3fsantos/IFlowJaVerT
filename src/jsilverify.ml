@@ -15,7 +15,7 @@ let arguments () =
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
-
+      "-syntax", Arg.Unit(fun () -> JSIL_Syntax_Utils.syntax_checks_enabled := true), "syntax checks";
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
 			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; JSIL_Syntax_Utils.js := true)
@@ -51,7 +51,6 @@ let write_spec_file (file : string ref) =
 	burn_to_disk (!file ^ ".spec") result
 
 let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds  =
-  JSIL_Syntax_Utils.check_specs_and_procs spec_tbl prog;
 	let results_str, dot_graphs, complete_success, results =
 					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
 	print_normal (Printf.sprintf "RESULTS\n%s" results_str);
@@ -83,24 +82,25 @@ let process_file path =
 		print_debug
 			("The procedures that we will be verifying are: " ^
 				(String.concat ", " ext_prog.procedure_names) ^
-				"\n"); 
+				"\n");
 		print_debug "\n*** Stage 1: DONE Parsing. ***\n";
-		
+
 
 		(** Step 2: Syntactic Checks + Program transformation          *)
 		(*  -----------------------------------------------------------*)
 		print_debug "*** Stage 2: Transforming the program.\n";
 		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog path ext_prog in
-		print_debug "\n*** Stage 2: DONE transforming the program.\n";
-		
+    JSIL_Syntax_Utils.syntax_checks ext_prog prog which_pred;
+    print_debug "\n*** Stage 2: DONE transforming the program.\n";
+
 		(** Step 3: Normalisation                                      *)
 		(*     3.1 - auto-unfolding pred definitions                   *)
 		(*     3.2 - auto-unfolding program invariants                 *)
 		(*     3.3 - normalising specifications                        *)
 		(*     3.4 - normalising pred definitions                      *)
-		(*  -----------------------------------------------------------*)		
+		(*  -----------------------------------------------------------*)
 		print_debug "*** Stage 3: Building the spec table.\n";
-		let u_preds = Normaliser.auto_unfold_pred_defs ext_prog.predicates in 
+		let u_preds = Normaliser.auto_unfold_pred_defs ext_prog.predicates in
 		Normaliser.pre_normalise_invariants_prog u_preds prog;
 		let spec_tbl = Normaliser.build_spec_tbl prog u_preds ext_prog.onlyspecs ext_prog.lemmas in
 		let n_pred_defs = Normaliser.normalise_predicate_definitions u_preds in

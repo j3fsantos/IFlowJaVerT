@@ -66,6 +66,8 @@ let checkParametersName               = "i__checkParameters"
 let getEnumFieldsName                 = "i__getAllEnumerableFields"
 let createArgsName                    = "create_arguments_object"
 
+(* N.B. Keep the list updated when adding new special spec vars: *)
+let js2jsil_spec_vars = ["x__this"; "x__scope"; "x__scope_f"; "x__se"; "x__te"; "x__er"; "main"]
 let var_this        = "x__this"
 let var_scope       = "x__scope"
 let var_scope_final = "x__scope_f"
@@ -80,8 +82,8 @@ let macro_GPVU_name   = "GPVUnfold"
 let pi_predicate_name = "Pi"
 
 
-(** 
- *  Fresh identifiers   
+(**
+ *  Fresh identifiers
  *)
 let fresh_sth (name : string) : (unit -> string) =
   let counter = ref 0 in
@@ -205,19 +207,19 @@ let fresh_catch_anonymous_eval () : string =
 
 let fresh_named_eval n : string =
   fresh_name ("___$eval___" ^ n ^ "_")
-	
-	
-let is_get_value_var x = 
-	match x with 
+
+
+let is_get_value_var x =
+	match x with
 	| Var x_name ->
-		let x_name_len = String.length x_name in 
-		print_debug (Printf.sprintf "inside is_get_value_var with %s\n" x_name); 
+		let x_name_len = String.length x_name in
+		print_debug (Printf.sprintf "inside is_get_value_var with %s\n" x_name);
 		if ((x_name_len > 2) && ((String.sub x_name (x_name_len - 2) 2) = "_v"))
 			then (
 				print_debug "I am not creating a useless getValue call!!!";
 				(* Some (String.sub x_name 0 (x_name_len - 2), x_name) *)
 				Some x_name
-			) else None 
+			) else None
 	| _ -> None
 
 let val_var_of_var x =
@@ -265,111 +267,111 @@ type loop_list_type      = (string option * string * string option * bool) list
 
 type translation_context = {
 	tr_offset_converter:   int -> int;
-	tr_fid:                string; 
+	tr_fid:                string;
 	tr_er_fid:             string;
-	tr_sc_var:             string;  
-	tr_vis_list:           string list; 
-	tr_loop_list:          loop_list_type; 
-	tr_previous:           jsil_expr option;  
-	tr_js_lab:             string option; 
+	tr_sc_var:             string;
+	tr_vis_list:           string list;
+	tr_loop_list:          loop_list_type;
+	tr_previous:           jsil_expr option;
+	tr_js_lab:             string option;
 	tr_ret_lab:            string;
 	tr_ret_var:            string;
-	tr_err:                string; 
+	tr_err:                string;
 	tr_error_var:          string;
 }
 
 
 let make_translation_ctx ?err ?(loop_list=[]) ?(previous=None) ?(js_lab=None) offset_converter fid vis_list sc_var =
-	let err = 
-		match err with 
+	let err =
+		match err with
 		| None     -> "elab"
-		| Some err -> err in 
+		| Some err -> err in
 	{
-		tr_offset_converter = offset_converter; 
-		tr_fid        = fid; 
-		tr_er_fid     = fid; 
-		tr_sc_var     = sc_var; 
-		tr_vis_list   = vis_list; 
+		tr_offset_converter = offset_converter;
+		tr_fid        = fid;
+		tr_er_fid     = fid;
+		tr_sc_var     = sc_var;
+		tr_vis_list   = vis_list;
 		tr_err        = err;
-		tr_loop_list  = loop_list; 
-		tr_previous   = previous; 
-		tr_js_lab     = js_lab; 
+		tr_loop_list  = loop_list;
+		tr_previous   = previous;
+		tr_js_lab     = js_lab;
 		tr_ret_lab    = "rlab"; (* ^ fid; *)
 		tr_ret_var    = "xret"; (* ^ fid; *)
 		tr_error_var  = "xerr"; (* ^ fid *)
 	}
 
-let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_var tr_ctx = 
-	(* err *) 
-	let new_err = 
-		match err with 
+let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_var tr_ctx =
+	(* err *)
+	let new_err =
+		match err with
 		| None           -> tr_ctx.tr_err
-		| Some err       -> err in   
+		| Some err       -> err in
 	(* loop_list *)
-	let new_loop_list = 
-		match loop_list with 
-		| Some loop_list -> loop_list 
-		| None           -> tr_ctx.tr_loop_list in 
+	let new_loop_list =
+		match loop_list with
+		| Some loop_list -> loop_list
+		| None           -> tr_ctx.tr_loop_list in
 	(* previous *)
-	let new_previous = 
-		match previous with 
-		| Some previous  -> previous 
+	let new_previous =
+		match previous with
+		| Some previous  -> previous
 		| None           -> tr_ctx.tr_previous in
 	(* lab *)
-	let new_lab = 
-		match lab with 
-		| Some lab       -> lab 
+	let new_lab =
+		match lab with
+		| Some lab       -> lab
 		| None           -> tr_ctx.tr_js_lab in
-	(* vis_list *) 
-	let new_vis_list = 
-		match vis_list with 
-		| Some vis_list  -> vis_list 
-		| None           -> tr_ctx.tr_vis_list in  
-	(* ret_lab *) 
-	let new_ret_lab = 
-		match ret_lab with 
-		| Some ret_lab   -> ret_lab 
-		| None           -> tr_ctx.tr_ret_lab in 
-	(* er_fid *) 
-	let new_er_fid = 
-		match er_fid with 
-		| Some er_fid    -> er_fid 
-		| None           -> tr_ctx.tr_er_fid in 
+	(* vis_list *)
+	let new_vis_list =
+		match vis_list with
+		| Some vis_list  -> vis_list
+		| None           -> tr_ctx.tr_vis_list in
+	(* ret_lab *)
+	let new_ret_lab =
+		match ret_lab with
+		| Some ret_lab   -> ret_lab
+		| None           -> tr_ctx.tr_ret_lab in
+	(* er_fid *)
+	let new_er_fid =
+		match er_fid with
+		| Some er_fid    -> er_fid
+		| None           -> tr_ctx.tr_er_fid in
 	(* sc_var *)
-	let new_sc_var = 
-		match sc_var with 
-		| Some sc_var    -> sc_var 
-		| None           -> tr_ctx.tr_sc_var in 
-	{ tr_ctx with 
-	    tr_vis_list  = new_vis_list; 
-			tr_err       = new_err; 
-			tr_loop_list = new_loop_list; 
-			tr_previous  = new_previous; 
-			tr_js_lab    = new_lab; 
-			tr_ret_lab   = new_ret_lab; 
-			tr_er_fid    = new_er_fid; 
+	let new_sc_var =
+		match sc_var with
+		| Some sc_var    -> sc_var
+		| None           -> tr_ctx.tr_sc_var in
+	{ tr_ctx with
+	    tr_vis_list  = new_vis_list;
+			tr_err       = new_err;
+			tr_loop_list = new_loop_list;
+			tr_previous  = new_previous;
+			tr_js_lab    = new_lab;
+			tr_ret_lab   = new_ret_lab;
+			tr_er_fid    = new_er_fid;
 			tr_sc_var    = new_sc_var
 	}
 
 
-let string_of_js_error heap err_val = 
+let string_of_js_error heap err_val =
 	match err_val with
 	| Loc loc ->
-		let obj = 
+		let obj =
 			(try SHeap.find heap loc with
 				| _ -> (raise (Failure "Error object without a prototype."))) in
-		let lproto = 
+		let lproto =
 			(try SHeap.find obj "@proto" with
 				| _ -> (raise (Failure "Error object without a prototype."))) in
 		(match lproto with
 		| Loc loc ->
-				let objproto = 
+				let objproto =
 					(try SHeap.find heap loc with
 						| _ -> (raise (Failure "Error object without a prototype."))) in
-				let eType = 
+				let eType =
 					(try SHeap.find objproto "name" with
 						| _ -> String "") in
-				let message = 
+				let message =
 					(try SHeap.find obj "message" with
 						| _ -> String "") in
 				let eType =
@@ -394,20 +396,14 @@ type cc_tbl_type         = (string, var_to_fid_tbl_type) Hashtbl.t
 type vis_tbl_type        = (string, (string list)) Hashtbl.t
 
 
-let get_scope_table (cc_tbl : cc_tbl_type) (fid : string) = 
+let get_scope_table (cc_tbl : cc_tbl_type) (fid : string) =
   try Hashtbl.find cc_tbl fid
     with _ ->
       let msg = Printf.sprintf "var tbl of function %s is not in cc-table" fid in
-      raise (Failure msg) 
+      raise (Failure msg)
 
-let get_vis_list (vis_tbl : vis_tbl_type) (fid : string) = 
+let get_vis_list (vis_tbl : vis_tbl_type) (fid : string) =
   try Hashtbl.find vis_tbl fid
     with _ ->
       let msg = Printf.sprintf "vis-list of function %s is not in vis-table" fid in
-      raise (Failure msg) 
-
-
-
-
-
-
+      raise (Failure msg)
