@@ -539,7 +539,8 @@ pred_target:
   	{
   		(* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
-		let pred = { name; num_params; params; definitions} in
+    let previously_normalised_pred = !previously_normalised in
+		let pred = { name; num_params; params; definitions; previously_normalised_pred } in
 		Hashtbl.add predicate_table name pred;
     	pred
 	}

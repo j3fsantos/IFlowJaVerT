@@ -24,7 +24,8 @@ type unfolded_predicate = {
 	num_params   : int;
 	params       : jsil_var list;
 	definitions  : ((string option) * jsil_logic_assertion) list;
-	is_recursive : bool;
+  is_recursive : bool;
+  previously_normalised_u_pred : bool
 }
 
 (* Cross product of two lists, l1 and l2, combining its elements with function f *)
@@ -102,7 +103,8 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 	  num_params   = pred.num_params;
 	  params       = new_params;
 	  definitions  = new_definitions;
-	  is_recursive = false }
+    is_recursive = false;
+    previously_normalised_u_pred = pred.previously_normalised_pred }
 
 
 (* ----------------------------------------------------------------
@@ -1201,7 +1203,6 @@ let build_spec_tbl
 	List.iter create_dummy_proc non_proc_specs;
 	spec_tbl
 
-
 (** -----------------------------------------------------
   * Normalise Predicate Definitions
   * -----------------------------------------------------
@@ -1215,17 +1216,24 @@ let normalise_predicate_definitions
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name (pred : unfolded_predicate)  ->
-			let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
+      let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
+      print_debug (Printf.sprintf "Predicate %s previously normalised? %b" pred_name pred.previously_normalised_u_pred);
 			let n_definitions =  List.rev (List.concat (List.map
-				(fun (os, a) ->
-					print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
-					let pred_vars = get_assertion_vars false a in
-					let a' = JSIL_Logic_Utils.push_in_negations a in
-					match (normalise_assertion None None a') with
-					| Some (ss, _) ->
-						let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
-						[ (os, ss') ]
-					| None -> []) definitions)) in
+        (fun (os, a) ->
+          print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
+          (* Only normalise the assertion if not already normalised *)
+          match pred.previously_normalised_u_pred with
+              | true ->
+                [os, normalise_normalised_assertion a]
+              | false ->
+                let pred_vars = get_assertion_vars false a in
+                let a' = JSIL_Logic_Utils.push_in_negations a in
+                match (normalise_assertion None None a') with
+                | Some (ss, _) ->
+                  let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
+                  [ (os, ss') ]
+                | None -> []
+      ) definitions)) in
 			let n_pred = {
 				n_pred_name        = pred.name;
 				n_pred_num_params  = pred.num_params;
@@ -1286,7 +1294,8 @@ let print_normaliser_results_to_file
       "Name : " ^ pred.n_pred_name ^ "\n" ^
       "Parameters : " ^ params ^ "\n" ^
       (Printf.sprintf "Recursive : %b\n" pred.n_pred_is_rec) ^
-      List.fold_left (fun ac (_, x) -> ac ^ "\nSymbolic State:\n" ^ (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x) false) ^ "\n") "" pred.n_pred_definitions
+      (Printf.sprintf "Number of definitions: %d\n" (List.length pred.n_pred_definitions)) ^
+      List.fold_left (fun ac (_, x) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x) false) ^ "\n") "" pred.n_pred_definitions
   in
 
   let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
