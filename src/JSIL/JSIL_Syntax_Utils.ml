@@ -37,7 +37,7 @@ let check_all_pred_pvars
     let string_of_params = List.map (fun le -> JSIL_Print.string_of_logic_expression le false) predicate.params in
     List.map (fun (pvar : jsil_var) ->
         let valid_pvar = List.mem pvar string_of_params in
-        (match valid_pvar with
+        (match valid_pvar || predicate.previously_normalised_pred with
         | true -> ()
         | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the definition of predicate %s." pvar pred_name)))
       ) all_pred_pvars;
@@ -86,6 +86,7 @@ let check_specs_pvars
       (spec_name : string)
       (pre : bool) (* true for pre, false for post *)
       (spec_params : jsil_var list)
+      (previously_normalised : bool)
       (assertion : jsil_logic_assertion) : unit =
 
     let msg_construct_type =
@@ -96,7 +97,7 @@ let check_specs_pvars
 
     List.map (fun pvar ->
         let valid_pvar = List.mem pvar spec_params in
-        (match valid_pvar with
+        (match valid_pvar || previously_normalised with
          | true -> ()
          | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the %s of %s." pvar msg_construct_type spec_name)))
       )
@@ -109,9 +110,9 @@ let check_specs_pvars
   List.map (fun spec ->
       let spec_params = spec.spec_params in
       List.map (fun single_spec ->
-          check_spec_assertion_pvars spec.spec_name true spec_params single_spec.pre;
+          check_spec_assertion_pvars spec.spec_name true spec_params spec.previously_normalised single_spec.pre;
           List.map (fun post ->
-              check_spec_assertion_pvars spec.spec_name false spec_params post;
+              check_spec_assertion_pvars spec.spec_name false spec_params spec.previously_normalised post;
             )
             single_spec.post;
         )
