@@ -97,14 +97,16 @@ let process_file path =
 		(*     3.1 - auto-unfolding pred definitions                   *)
 		(*     3.2 - auto-unfolding program invariants                 *)
 		(*     3.3 - normalising specifications                        *)
-		(*     3.4 - normalising pred definitions                      *)
+    (*     3.4 - normalising pred definitions                      *)
+    (*     3.5 - print result to file                              *)
 		(*  -----------------------------------------------------------*)
 		print_debug "*** Stage 3: Building the spec table.\n";
 		let u_preds = Normaliser.auto_unfold_pred_defs ext_prog.predicates in
 		Normaliser.pre_normalise_invariants_prog u_preds prog;
 		let spec_tbl = Normaliser.build_spec_tbl prog u_preds ext_prog.onlyspecs ext_prog.lemmas in
 		let n_pred_defs = Normaliser.normalise_predicate_definitions u_preds in
-		print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
+    print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
+    Normaliser.print_normaliser_results_to_file spec_tbl n_pred_defs;
 		print_debug "*** Stage 3: DONE building the spec table\n";
 
 		(** Step 4: Proving                                            *)
