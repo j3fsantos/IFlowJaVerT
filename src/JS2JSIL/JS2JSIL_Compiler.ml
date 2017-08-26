@@ -10,6 +10,8 @@ let fun_tbl     : fun_tbl_type     = Hashtbl.create medium_tbl_size
 let old_fun_tbl : pre_fun_tbl_type = Hashtbl.create medium_tbl_size
 let vis_tbl     : vis_tbl_type     = Hashtbl.create medium_tbl_size
 
+let annot = ref true
+
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
@@ -590,13 +592,13 @@ let annotate_cmd_top_level metadata lcmd =
 		(* No other cases handled *)
 		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
 
-	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
+	if (!annot && ((is_get_value_call cmd) || (is_put_value_call cmd)))  then (
 		(* Printf.printf "I found a call to GetValue/PutValue.\n"; *)
 		let fold_lcmds, unfold_lcmds = fold_unfold_pi_macro_for_put_and_get_value (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
-	) else if (is_hasProperty_call cmd) then (
+	) else if (!annot && (is_hasProperty_call cmd)) then (
 			let fold_lcmds, unfold_lcmds = fold_unfold_pi_for_hasProperty (get_args cmd) in
 			(* Printf.printf "I found a call to hasProperty.\n\t%n Folds: %s.\n\tUnfolds: %n!\n"
 				(List.length fold_lcmds)
@@ -4632,7 +4634,9 @@ let js2jsil e offset_converter for_verification =
 			fun_tbl
 			[] in
 
-	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
+	let cur_imports = if for_verification 
+		then (if !annot then js2jsil_logic_imports else js2jsil_logic_imports_nospecs) 
+		else js2jsil_imports in
   (* TODO: Populate table with actual lemmas *)
   let lemmas : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511 in
 	{ imports = cur_imports; lemmas; predicates; onlyspecs = only_specs; procedures; procedure_names = proc_names;}, cc_tbl, vis_tbl

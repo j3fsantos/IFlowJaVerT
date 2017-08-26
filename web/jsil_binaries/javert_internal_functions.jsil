@@ -332,10 +332,10 @@ spec create_function_object (xsc, call, construct, params)
     [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * 
 	   types(#xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
     [[ types(#l : $$object_type, #xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$number_type, ret : $$object_type) *
-	   function_object(ret, #xsc, #call, #construct, #len, prototype) * (#len == l-len #params) *
-	   ((prototype, "@proto") -> $lobj_proto) * ((prototype, "@class") -> "Object") * ((prototype, "@extensible") -> $$t) *
-	   ((prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
-	   empty_fields(prototype : -{ "@proto", "@class", "@extensible", "constructor" }-) ]]
+	   function_object(ret, #xsc, #call, #construct, #len, #prototype) * (#len == l-len #params) *
+	   ((#prototype, "@proto") -> $lobj_proto) * ((#prototype, "@class") -> "Object") * ((#prototype, "@extensible") -> $$t) *
+	   ((#prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
+	   empty_fields(#prototype : -{ "@proto", "@class", "@extensible", "constructor" }-) ]]
     normal
 
 proc create_function_object (xsc, call, construct, params) {
@@ -1462,10 +1462,6 @@ spec i__sameValue (v1, v2)
 	
 	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == 0) * (#v2 == -0) * types (v1 : $$number_type, v2 : $$number_type) ]]
 	[[ ret == $$f ]]
-	normal;
-
-	[[ (v1 == #v1) * (v2 == #v2) * (! (#v1 == #v1)) * (! (#v2 == #v2)) * types (v1 : $$number_type, v2 : $$number_type) ]]
-	[[ ret == $$t ]]
 	normal;
 
 	[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) ]]

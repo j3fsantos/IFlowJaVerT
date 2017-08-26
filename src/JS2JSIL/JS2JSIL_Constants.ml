@@ -19,9 +19,8 @@ let js2jsil_imports = [
 	"Errors"
 ]
 
-let js2jsil_logic_imports = [
-	"javert_internal_functions.jsil"; "javert_logic_macros.jsil"; "javert_js_predicates.jsil"
-]
+let js2jsil_logic_imports = [ "javert_internal_functions.jsil"; "javert_logic_macros.jsil"; "javert_js_predicates.jsil"]
+let js2jsil_logic_imports_nospecs = [ "javert_internal_functions_nospecs.jsil"; "javert_logic_macros.jsil"; "javert_js_predicates.jsil"]
 
 let setupHeapName = "setupInitialHeap"
 

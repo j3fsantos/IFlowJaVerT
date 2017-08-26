@@ -7,6 +7,7 @@ mkdir -p environment/bi
 mkdir -p environment/test262
 cp remake.sh environment
 cp test.sh environment
+cp test_nospecs.sh environment
 cp bi_test.sh environment
 cp *.native environment
 cp src/JaVerT/runtime/* environment

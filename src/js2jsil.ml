@@ -12,6 +12,7 @@ let sep_procs = ref false
 let sexpr = ref false
 let for_verification = ref false
 
+
 let arguments () =
   let usage_msg="Usage: -file <path>" in
   Arg.parse
@@ -27,6 +28,8 @@ let arguments () =
 			"-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
 			(* output for logic verification  *)
 			"-logic", Arg.Unit(fun () -> for_verification := true), "output for logic verification";
+			(* no automatic logic annotations *)
+			"-noannot", Arg.Unit(fun _ -> JS2JSIL_Compiler.annot := false), "no automatic fold-unfold annotations";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
