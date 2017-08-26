@@ -1054,8 +1054,8 @@ let normalise_spec
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec       : jsil_spec) : jsil_n_spec =
 	let time = Sys.time () in
- print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
- print_debug (Printf.sprintf "Normalised spec? %b" spec.is_normalised);
+ 	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
+ 	print_debug (Printf.sprintf "Normalised spec? %b" spec.is_normalised);
 	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs) in
 	{	n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;
@@ -1175,3 +1175,15 @@ let pre_normalise_invariants_prog
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(prog       : (string, jsil_procedure) Hashtbl.t) : unit =
 	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc predicates proc.proc_body) prog
+
+let normalise_invariant 
+	(a         : jsil_logic_assertion)
+	(gamma     : typing_environment)
+	(spec_vars : SS.t)
+	(subst     : substitution) : symbolic_state = 
+	let gamma_inv = filter_gamma_f gamma (fun x -> SS.mem x spec_vars) in
+	let new_symb_state = Option.get (normalise_post gamma_inv subst spec_vars a) in
+	new_symb_state
+						
+
+

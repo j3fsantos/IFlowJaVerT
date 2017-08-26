@@ -324,7 +324,6 @@ let create_jsil_spec name params specs normalised =
 type jsil_logic_command =
 	| Fold             of jsil_logic_assertion                                                          (** Recursive fold *)
 	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
-	| CallSpec		   of string * jsil_var * (jsil_logic_expr list)                                    (** Spec calling *)
 	| ApplyLem		   of string * (jsil_logic_expr list)                                               (** Apply lemma *)
 	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
 	| LinearRecUnfold  of string * (jsil_logic_expr list)                                               (** Recursive unfold of everything but this time I will give you the arguments *)
@@ -421,6 +420,15 @@ type normalised_predicate = {
   is_recursive : bool
 }
 
+
+(*************************************)
+(** JSIL Logic Macros               **)
+(*************************************)
+
+(* Associates a string with a jsil_logic_macro *)
+let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
+
+
 (*************************************)
 (** JSIL Heaps                      **)
 (*************************************)
@@ -464,8 +472,6 @@ let get_proc_args proc = proc.proc_params (* shorthand *)
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
-(* Associates a string with a jsil_logic_macro *)
-let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 

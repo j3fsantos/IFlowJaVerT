@@ -305,6 +305,16 @@ let dot_of_search_info search_info proof_name =
 	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	str
 
+let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : symbolic_state) : unit =
+	let symb_state_str = string_of_shallow_symb_state symb_state in
+	let cmd = get_proc_cmd proc i in
+	let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
+	let time = Sys.time() in
+	print_normal (Printf.sprintf
+		"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------"
+		i time symb_state_str cmd_str)
+
+
 (**
  * ERROR MESSAGES
  **)

@@ -1825,22 +1825,6 @@ let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe
 			loop spec.n_post 0 []
 
 
-let merge_symb_states
-		(symb_state_l : symbolic_state)
-		(symb_state_r : symbolic_state)
-		(subst : substitution) : symbolic_state =
-	(* Printf.printf "gamma_r: %s\n." (Symbolic_State_Print.string_of_gamma (get_gamma symb_state_r)); *)
-	let aux_symb_state = (copy_symb_state symb_state_r) in
-	let symb_state_r = symb_state_substitution aux_symb_state subst false in
-	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in
-	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
-	merge_pfs pf_l pf_r;
-	merge_gammas gamma_l gamma_r;
-	Symbolic_State_Utils.merge_heaps heap_l heap_r pf_l gamma_l;
-	DynArray.append preds_r preds_l;
-	print_debug ("Finished merge_symb_states");
-	(heap_l, store_l, pf_l, gamma_l, preds_l)
-
 let safe_merge_symb_states (symb_state_l : symbolic_state) (symb_state_r : symbolic_state) (subst : substitution) : symbolic_state option =
 
 	try (
@@ -2029,7 +2013,7 @@ let unfold_predicate_definition symb_state pat_symb_state calling_store subst_un
 	let step_6 subst pat_subst new_pfs new_gamma =
 		print_debug ("Entering step 6 of safe_merge_symb_states");
 		let symb_state = symb_state_substitution symb_state subst true in
-		let unfolded_symb_state = merge_symb_states symb_state pat_symb_state pat_subst in
+		let unfolded_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state pat_subst in
 		merge_pfs (get_pf unfolded_symb_state) (DynArray.of_list new_pfs);
 		extend_gamma (get_gamma unfolded_symb_state) new_gamma;
 		Normaliser.extend_typing_env_using_assertion_info (get_gamma unfolded_symb_state) new_pfs;
@@ -2072,7 +2056,7 @@ let grab_resources symb_state pat_symb_state lvars existentials =
 				extend_symb_state_with_pfs symb_state (DynArray.of_list pf_discharges);
 				let symb_state = symb_state_replace_heap symb_state quotient_heap in
 				let symb_state = symb_state_replace_preds symb_state quotient_preds in
-				let new_symb_state = merge_symb_states symb_state pat_symb_state subst in
+				let new_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state subst in
 				let subst_pfs = assertions_of_substitution subst in
 				extend_symb_state_with_pfs symb_state (DynArray.of_list subst_pfs);
 				let start_time = Sys.time() in

@@ -17,6 +17,8 @@ type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
 type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
+type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
+
 
 (*************************************)
 (** Cached symbolic state           **)
@@ -792,10 +794,9 @@ type jsil_n_spec = {
 }
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t
-
-type lemma_table = (string, jsil_lemma) Hashtbl.t
-
-type pruning_table = (string, bool array) Hashtbl.t
+type lemma_table         = (string, jsil_lemma) Hashtbl.t
+type pruning_table       = (string, (bool array) list) Hashtbl.t
+type which_predecessor   = (string * int * int, int) Hashtbl.t
 
 let init_post_pruning_info () = Hashtbl.create small_tbl_size
 
@@ -874,12 +875,12 @@ type search_info_node = {
 }
 
 type symbolic_execution_search_info = {
-	vis_tbl    		      : (int, int) Hashtbl.t;
-	cur_node_info       :	search_info_node;
-	info_nodes 		      : (int, search_info_node) Hashtbl.t;
+	vis_tbl    		    : (int, int) Hashtbl.t;
+	cur_node_info       : search_info_node;
+	info_nodes 		    : (int, search_info_node) Hashtbl.t;
 	info_edges          : (int, int list) Hashtbl.t;
 	next_node           : int ref;
-	post_pruning_info   : (string, (bool array) list) Hashtbl.t;
+	post_pruning_info   : pruning_table; 
 	spec_number         : int;
 	pred_info           : (string, int Stack.t) Hashtbl.t
 }
@@ -914,6 +915,10 @@ let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl
 let update_vis_tbl search_info vis_tbl =
 	{	search_info with vis_tbl = vis_tbl }
 
+
+let reset_vis_tbl (search_info : symbolic_execution_search_info) : symbolic_execution_search_info = 
+	{ search_info with vis_tbl = Hashtbl.create small_tbl_size }
+
 let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 	try
 		let post_pruning_info_array_list =
@@ -921,6 +926,81 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
 		post_pruning_info_array.(post_number) <- true
 	with Not_found -> ()
+
+
+let get_pred_index_from_search_info 
+		(search_info : symbolic_execution_search_info) 
+		(pred_name   : string) : symbolic_execution_search_info * int =
+	
+	let pred_info = search_info.pred_info in
+	(match Hashtbl.mem pred_info pred_name with
+	| false -> search_info, -1
+	| true ->
+		let s = Hashtbl.find pred_info pred_name in
+		(match Stack.is_empty s with
+		| true -> search_info, -1
+		| false ->
+			let pred_info = Hashtbl.copy pred_info in
+			let s         = Stack.copy s in
+			let cmf       = Stack.pop s in
+			Hashtbl.replace pred_info pred_name s;
+			{ search_info with pred_info = pred_info }, cmf)) 
+
+let add_pred_def_index_to_search_info 
+		(search_info    : symbolic_execution_search_info) 
+		(pred_name      : string)
+		(pred_def_index : int) : symbolic_execution_search_info = 
+
+	let s = Hashtbl.copy search_info.pred_info in
+	(* Add the queue to table if necessary *)
+	(match (Hashtbl.mem s pred_name) with
+		| true -> ()
+		| false ->
+			print_debug (Printf.sprintf "Adding %s to the predicate unfolding cache, definition %d." pred_name pred_def_index);
+			Hashtbl.add s pred_name (Stack.create()));
+	
+	(* Add definition to stack *)
+	let stack = Stack.copy (Hashtbl.find s pred_name) in
+	Stack.push pred_def_index stack;
+	Hashtbl.replace s pred_name stack;
+	let stack_str = Stack.fold (fun ac e -> ac ^ (Printf.sprintf "%d " e)) "" stack in
+	print_debug (Printf.sprintf "Current stack for predicate %s: %s" pred_name stack_str);
+	{ search_info with pred_info = s } 
+
+
+let mark_node_as_visited (search_info : symbolic_execution_search_info) (i : int) : unit =
+	let cur_node_info = search_info.cur_node_info in
+	Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number 
+
+ let check_if_visited (search_info : symbolic_execution_search_info) (i : int) : bool = 
+ 	Hashtbl.mem search_info.vis_tbl i
+
+
+let compute_verification_statistics 
+	(pruning_info     : pruning_table) 
+	(procs_to_verify  : string list) 
+	(spec_table       : specification_table) : int * int  = 
+
+	Hashtbl.fold
+		(fun proc_name spec (count_prunings, count_verified) ->
+			let should_we_verify = (List.mem proc_name procs_to_verify) in
+			if (should_we_verify) then (
+				let pruning_info_list = Hashtbl.find pruning_info proc_name in
+				List.fold_left 
+					(fun (count_prunings, count_verified) arr -> 
+						Array.fold_left 
+							(fun (count_prunings, count_verified) b -> if b then (count_prunings, (count_verified + 1)) else ((count_prunings + 1),  count_verified))
+							(count_prunings, count_verified)
+							arr)
+					(count_prunings, count_verified)
+					pruning_info_list
+			) else (
+				(count_prunings, count_verified)
+			))
+		spec_table
+		(0, 0)
+	
+
 
 (* Hierarchy of failures *)
 

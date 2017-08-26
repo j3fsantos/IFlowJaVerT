@@ -368,11 +368,6 @@ let rec js2jsil_logic_cmd
 	| JSUnfold ((JSLPred (s, les)), unfold_info) ->
 		[ Unfold ((LPred (s, List.map fe les)), (translate_unfold_info unfold_info)) ]  
 	
-	| JSCallSpec (spec_name, x, les) -> 
-		(*Printf.printf "I am translating a callspec for function %s with retvar %s" s ret_var;*)
-		let args = (PVar JS2JSIL_Constants.var_scope) :: ((PVar JS2JSIL_Constants.var_this) :: (List.map fe les)) in 
-		[ CallSpec (spec_name, x, args) ] 
-
 	| JSAssert assertion -> 
 		let a' = js2jsil_assertion None cc_tbl vis_tbl fun_tbl None assertion in 
 		[ Assert a' ] 

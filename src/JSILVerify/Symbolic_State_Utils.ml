@@ -3,8 +3,6 @@ open Symbolic_State
 open JSIL_Logic_Utils
 
 
-
-
 (**
 	le -> non - normalised logical expression
 	subst -> table mapping variable and logical variable
@@ -179,24 +177,6 @@ let convert_lvars_to_spec_vars symb_vars =
 					Hashtbl.add subst var (ALoc var)
 				)) symb_vars;
 	subst
-	
-
-let symb_state_lvars_to_svars symb_state_pre symb_state_post =
-	let symb_vars_pre = get_symb_state_vars false symb_state_pre in 
-	let symb_vars_post = get_symb_state_vars false symb_state_post in 
-	let subst = convert_lvars_to_spec_vars (SS.union symb_vars_pre symb_vars_post) in
-	let pre = symb_state_substitution symb_state_pre subst true in
-	let post = symb_state_substitution symb_state_post subst true in
-	(pre, post)
-
-let get_symb_state_lvars symb_state =
-	let symb_vars = get_symb_state_vars false symb_state in 
-	let symb_lvars = SS.filter(
-						fun var -> 
-							(* print_normal ("Spec Var: " ^ var); *)
-							is_lvar_name var)
-					symb_vars in 
-	symb_lvars 
 
 let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
                         (unifier2 : (string * jsil_logic_expr) list option) p_formulae (* solver *) gamma =
@@ -258,7 +238,11 @@ let update_abs_heap_default (heap : symbolic_heap) loc dom =
  	| _ -> raise (Failure "the default value for the fields of a given object cannot be changed once set")
 
 
-(* UPDATE WITH DOMAIN REASONING *)
+
+(*************************************)
+(** Symbolic Heap Functions         **)
+(*************************************)
+
 let update_abs_heap (heap : symbolic_heap) (loc : string) (e_field : jsil_logic_expr) 
 		(e_val : jsil_logic_expr) (p_formulae : pure_formulae) (gamma : typing_environment) =
 	let fv_list, domain = try LHeap.find heap loc with _ -> [], None in
@@ -350,11 +334,6 @@ let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : 
 		new_heap;
 	print_debug "Finished merging heaps."
 
-
-
-
-
-
 (** 
 (** JSIL logic assertions *)
 let rec string_of_logic_assertion a escape_string =
@@ -371,17 +350,6 @@ let assertion_of_abs_heap (h : symbolic_heap) : jsil_logic_assertion list=
 
 	List.concat (List.map assertions_of_object (heap_as_list h))
 
-
-
-let bi_merge_symb_states (symb_state_1 : symbolic_state) (symb_state_2 : symbolic_state)  =
-	let heap_1, store_1, pf_1, gamma_1, preds_1  = symb_state_1 in
-	let heap_2, store_2, pf_2, gamma_2, preds_2 = symb_state_2 in
- 	merge_pfs pf_1 pf_2;
-	merge_gammas gamma_1 gamma_2;
-	store_merge_left store_1 store_2;
-	merge_heaps heap_1 heap_2 pf_1 gamma_1;
-	DynArray.append preds_2 preds_1;
-	(heap_1, store_1, pf_1, gamma_1, preds_1)
 			
 (*************************************)
 (** Store functions                 **)
@@ -448,9 +416,6 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 	| _, _ -> raise (Failure "predicate_assertion_equality: FATAL ERROR")
 
 
-
-(*
-*)
 let subtract_pred 
 		(pred_name    : string)
 		(args         : jsil_logic_expr list)
@@ -473,8 +438,7 @@ let subtract_pred
 	| None -> None 
 	| Some (index, subst) -> 
 		if(delete_pred) then DynArray.delete pred_set index; Some subst
-	
-	
+
 	
 let assertions_of_pred_set pred_set = 
 	let preds = preds_to_list pred_set in 
@@ -484,6 +448,29 @@ let assertions_of_pred_set pred_set =
 		| (pred_name, args) :: rest -> 
 			loop rest ((LPred (pred_name, args)) :: assertions) in 
 	loop preds [] 
+
+
+(*************************************)
+(** Symbolic State functions        **)
+(*************************************)
+
+
+let symb_state_lvars_to_svars symb_state_pre symb_state_post =
+	let symb_vars_pre = get_symb_state_vars false symb_state_pre in 
+	let symb_vars_post = get_symb_state_vars false symb_state_post in 
+	let subst = convert_lvars_to_spec_vars (SS.union symb_vars_pre symb_vars_post) in
+	let pre = symb_state_substitution symb_state_pre subst true in
+	let post = symb_state_substitution symb_state_post subst true in
+	(pre, post)
+
+let get_symb_state_lvars symb_state =
+	let symb_vars = get_symb_state_vars false symb_state in 
+	let symb_lvars = SS.filter(
+						fun var -> 
+							(* print_normal ("Spec Var: " ^ var); *)
+							is_lvar_name var)
+					symb_vars in 
+	symb_lvars 
 
 let remove_abstract_locations (heap : symbolic_heap) (store : symbolic_store) (pfs : pure_formulae) : substitution  =
 	let subst = init_substitution [] in
@@ -524,6 +511,100 @@ let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_a
 		assertions in
 	assertion_substitution assertion subst true
 
+let merge_symb_states
+		(symb_state_l : symbolic_state)
+		(symb_state_r : symbolic_state)
+		(subst : substitution) : symbolic_state =
+	(* Printf.printf "gamma_r: %s\n." (Symbolic_State_Print.string_of_gamma (get_gamma symb_state_r)); *)
+	let aux_symb_state = (copy_symb_state symb_state_r) in
+	let symb_state_r = symb_state_substitution aux_symb_state subst false in
+	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in
+	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
+	merge_pfs pf_l pf_r;
+	merge_gammas gamma_l gamma_r;
+	merge_heaps heap_l heap_r pf_l gamma_l;
+	DynArray.append preds_r preds_l;
+	print_debug ("Finished merge_symb_states");
+	(heap_l, store_l, pf_l, gamma_l, preds_l)
+
+
+(**
+  * Check if the pfs of symb_state are compatible with those of pat_symb_state 
+  * when they are connected via subst *)
+let compatible_pfs 
+	(symb_state     : symbolic_state) 
+	(pat_symb_state : symbolic_state) 
+	(subst          : substitution) : bool =
+	
+	let pfs = get_pf symb_state in
+	let gamma = get_gamma symb_state in
+	let pat_pfs = get_pf pat_symb_state in
+	let pat_gamma = get_gamma pat_symb_state in
+	
+	let pat_pfs = pf_substitution pat_pfs subst false in
+	let pat_gamma = gamma_substitution pat_gamma subst false in
+	let gamma = copy_gamma gamma in
+	merge_gammas gamma pat_gamma;
+	
+	let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
+	let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
+	is_sat 
+
+
+let merge_symb_state_with_posts  
+	(proc              : jsil_procedure)
+	(spec              : jsil_n_single_spec) 
+	(caller_symb_state : symbolic_state) 
+	(symb_state_frame  : symbolic_state_frame) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list = 
+
+	let framed_heap, framed_preds, subst, pf_discharges, new_gamma = symb_state_frame in 
+	extend_symb_state_with_pfs caller_symb_state (pfs_of_list pf_discharges);
+	let symb_state_frame = symb_state_replace_heap  caller_symb_state framed_heap in
+	let symb_state_frame = symb_state_replace_preds symb_state_frame framed_preds in
+	let symb_state_frame = symb_state_replace_gamma symb_state_frame new_gamma in
+	
+	let ret_flag = spec.n_ret_flag in
+	let ret_var  = proc_get_ret_var proc ret_flag in
+
+	let f_post (post : symbolic_state) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
+		let post_makes_sense = compatible_pfs symb_state_frame post subst in
+		if (post_makes_sense) then (
+			let new_symb_state = copy_symb_state symb_state_frame in
+			let new_symb_state = merge_symb_states new_symb_state post subst in
+			let ret_lexpr      = store_get_safe (get_store post) ret_var in
+			let ret_lexpr      =
+				Option.map_default (fun x -> JSIL_Logic_Utils.lexpr_substitution x subst false)
+					(print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty) ret_lexpr in
+			[ (new_symb_state, ret_flag, ret_lexpr) ]
+		) else [] in 
+
+	List.concat (List.map f_post spec.n_post) 
+			
+
+let enrich_pure_part 
+	(symb_state     : symbolic_state)
+	(symb_state_pat : symbolic_state)
+	(subst          : substitution) : bool * symbolic_state =
+	
+	let pre_gamma = copy_gamma (get_gamma symb_state_pat)    in
+	let pre_pfs   = copy_p_formulae (get_pf symb_state_pat)  in	
+	let pfs       = pf_substitution pre_pfs subst false      in
+	let gamma     = gamma_substitution pre_gamma subst false in
+	
+	merge_gammas gamma (get_gamma symb_state);
+	merge_pfs pfs (get_pf symb_state);
+	let store          = store_copy (get_store symb_state) in
+	let heap           = get_heap symb_state               in
+	let preds          = get_preds symb_state              in
+	let new_symb_state = (heap, store, pfs, gamma, preds)  in
+	
+	let is_sat = Pure_Entailment.check_satisfiability (get_pf_list new_symb_state) (get_gamma new_symb_state) in
+	(is_sat, new_symb_state)
+
+
+(*************************************)
+(** Spec Table Functions            **)
+(*************************************)
 
 let string_of_single_spec_table_assertion single_spec =
 	let pre = convert_symb_state_to_assertion single_spec.n_pre in

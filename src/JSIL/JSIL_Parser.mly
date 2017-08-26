@@ -651,14 +651,6 @@ logic_cmd_target:
 	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
 
-(* callspec spec_name(ret_var, args) *)
-	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE;
-	  {
-	  	match params with
-	  	| (LVar ret_var) :: rest_params ->  CallSpec (spec_name, ret_var, rest_params)
-	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
-	 }
-
 (* apply lemma_name(args) *)
 	 | APPLY; lemma_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE;
 	 	 {
