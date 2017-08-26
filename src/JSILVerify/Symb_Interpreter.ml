@@ -875,6 +875,7 @@ let rec symb_evaluate_logic_cmd
 			print_time (Printf.sprintf "Fold %s." pred_name);  ".";
       		let params, pred_defs, args = get_pred_data pred_name les in
 			let pred_defs = Array.of_list pred_defs in
+
       		if (do_i_already_have_this_predicate_assertion pred_name args) then [ symb_state, spec_vars, search_info ] else (
         		let folded_predicate = fold_predicate pred_name pred_defs symb_state params args spec_vars None search_info in
 				(match folded_predicate with
@@ -911,6 +912,7 @@ let rec symb_evaluate_logic_cmd
 		let params    = pred.n_pred_params in
 		recursive_unfold_predicate pred_name pred_defs symb_state params spec_vars search_info
 
+
   	
   	| ApplyLem (lemma_name, l_args) ->
   		print_time (Printf.sprintf "ApplyLemma %s." lemma_name);
@@ -922,6 +924,7 @@ let rec symb_evaluate_logic_cmd
       	(* symbolically evaluate the args *)
       	let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) ~subst:subst (get_gamma symb_state) le) l_args in
 		let _, new_symb_states = find_and_apply_spec s_prog.program lemma_name proc_specs symb_state le_args in
+
 
       	(* Checking precondition is met *)
 		(if ((List.length new_symb_states) = 0)
@@ -937,6 +940,7 @@ let rec symb_evaluate_logic_cmd
     	print_time "LIf.";
     	
     	let le' = Symbolic_State_Utils.normalise_lexpr ~store:(get_store symb_state) (get_gamma symb_state) le in
+
 		let e_le', a_le' = lift_logic_expr le' in
 		let a_le_then =
 			match e_le', a_le' with

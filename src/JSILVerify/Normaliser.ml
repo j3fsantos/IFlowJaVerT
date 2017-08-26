@@ -23,19 +23,20 @@ type unfolded_predicate = {
 	name         : string;
 	num_params   : int;
 	params       : jsil_var list;
-	definitions  : ((string option) * jsil_logic_assertion) list; 
-	is_recursive : bool;
+	definitions  : ((string option) * jsil_logic_assertion) list;
+  is_recursive : bool;
+  previously_normalised_u_pred : bool
 }
 
 (* Cross product of two lists, l1 and l2, combining its elements with function f *)
-let cross_product 
-		(l1 : 'a list) (l2 : 'b list) 
+let cross_product
+		(l1 : 'a list) (l2 : 'b list)
 		(f : 'a -> 'b -> 'c) : 'c list =
 	List.fold_left (fun result e1 -> result @ (List.map (f e1) l2)) [] l1
 
 
-let rec auto_unfold 
-		(predicates : (string, unfolded_predicate) Hashtbl.t) 
+let rec auto_unfold
+		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(asrt       : jsil_logic_assertion) : jsil_logic_assertion list =
 	let au = auto_unfold predicates in
 	match asrt with
@@ -50,15 +51,15 @@ let rec auto_unfold
 				(* If the predicate is recursive, return the assertion unchanged.           *)
 				[asrt]
 			else
-				(* If it is not, replace the predicate assertion for the list of its definitions 
-				   substituting the formal parameters of the predicate with the corresponding 
+				(* If it is not, replace the predicate assertion for the list of its definitions
+				   substituting the formal parameters of the predicate with the corresponding
 				   logical expressions in the argument list *)
 				let subst = init_substitution2 pred.params args  in
 				let new_asrts  = List.map (fun (_, a) -> (assertion_substitution a subst false)) pred.definitions in
 				List.concat (List.map au new_asrts)
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
-	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp 
+	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp
 	| LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> [asrt]
 
 
@@ -74,56 +75,57 @@ let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicat
 	let new_definitions = List.filter (fun (oc, x) -> not (x = LFalse)) new_definitions in
 	{ u_pred with definitions = new_definitions }
 
-(* 
-   JSIL Predicates can have non-pvar parameters - to say that a given parameter 
+(*
+   JSIL Predicates can have non-pvar parameters - to say that a given parameter
    always has a certain value...
 *)
 let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
-	let new_params, new_asrts = 
-		List.fold_right 
-			(fun cur_param (params, new_asrts) -> 
+	let new_params, new_asrts =
+		List.fold_right
+			(fun cur_param (params, new_asrts) ->
 				match cur_param with
-				| LLit _ | LNone -> 
+				| LLit _ | LNone ->
 					(* If the parameter is a JSIL literal or None...     *)
-			  		(* Get a fresh program variable a add an additional 
+			  		(* Get a fresh program variable a add an additional
 			  		   constraint to each definition *)
 			  		let new_pvar = fresh_pvar () in
-			  		(new_pvar :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts) 
-			  	| PVar x         -> 
-			  		(* If the parameter is a program variable, add the 
+			  		(new_pvar :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts)
+			  	| PVar x         ->
+			  		(* If the parameter is a program variable, add the
 			  		   parameter as it is *)
-			  		(x :: params), new_asrts 
-			  	| _              -> 
+			  		(x :: params), new_asrts
+			  	| _              ->
 			  		(* Otherwise, it's an error *)
 					raise (Failure ("Error in predicate " ^ pred.name ^ ": Unexpected parameter.")))
-			pred.params ([], []) in 
-	let new_definitions = List.map (fun (oid, a) -> (oid, star_asses (a :: new_asrts))) pred.definitions in 
+			pred.params ([], []) in
+	let new_definitions = List.map (fun (oid, a) -> (oid, star_asses (a :: new_asrts))) pred.definitions in
 	{ name	       = pred.name;
 	  num_params   = pred.num_params;
 	  params       = new_params;
 	  definitions  = new_definitions;
-	  is_recursive = false } 
+    is_recursive = false;
+    previously_normalised_u_pred = pred.previously_normalised_pred }
 
 
 (* ----------------------------------------------------------------
-   Joining predicate definitions together 
+   Joining predicate definitions together
    ----------------------------------------------------------------
-   Joins two unfolded_predicates defining different cases of the 
+   Joins two unfolded_predicates defining different cases of the
    same predicate in a single unfolded_predicate
    ----------------------------------------------------------------
 *)
 let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfolded_predicate =
 	if pred1.name <> pred2.name || pred1.num_params <> pred2.num_params
 		then (
-	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s" pred1.name in 
+	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s" pred1.name in
 	  		raise (Failure msg)
 	  ) else (
 	  		let subst = init_substitution2 pred2.params (List.map (fun var -> PVar var) pred1.params) in
-		  	let definitions = pred1.definitions @ 
-		  		(List.map (fun (oid, a) -> oid, (assertion_substitution a subst true)) pred2.definitions) in 
+		  	let definitions = pred1.definitions @
+		  		(List.map (fun (oid, a) -> oid, (assertion_substitution a subst true)) pred2.definitions) in
 		  	{ pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
 	  )
-	
+
 
 (* Given a Hashtbl of predicates, return a Hashtbl from predicate name
    to boolean meaning "recursive" or "not recursive"
@@ -197,7 +199,7 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 		preds;
 	(* Detect recursive predicates *)
   	let rec_table = find_recursive_preds u_predicates in
-	
+
 	(* Flag those that are recursive *)
 	let u_rec_predicates = Hashtbl.create (Hashtbl.length u_predicates) in
 	Hashtbl.iter
@@ -207,16 +209,16 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 					(try Hashtbl.find rec_table name with
 					| Not_found -> raise (Failure ("Undefined predicate " ^ name))); })
 		u_predicates;
-	
+
 	(* Auto-unfold the predicates in the definitions of other predicates *)
 	let u_rec_predicates' = Hashtbl.create (Hashtbl.length u_rec_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
-	  		let definitions' = List.flatten (List.map 
-	  			(fun (os, a) -> 
-	  				let as' = auto_unfold u_rec_predicates a in 
-	  				let as' = List.map (fun a -> (os, a)) as' in 
-	  				as') pred.definitions) in 
+	  		let definitions' = List.flatten (List.map
+	  			(fun (os, a) ->
+	  				let as' = auto_unfold u_rec_predicates a in
+	  				let as' = List.map (fun a -> (os, a)) as' in
+	  				as') pred.definitions) in
 			Hashtbl.add u_rec_predicates' pred.name
 			(let ret_pred = { pred with definitions = definitions'; } in
   		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
@@ -967,6 +969,71 @@ let normalise_assertion
 			then Some ((heap, store, p_formulae, gamma, preds), subst)
 			else None)
 
+(** -----------------------------------------------------
+  * Normalise a Pre-Normalised Assertion
+  * Given an assertion creates a symbolic state and a
+  * substitution. However this won't actually do anything
+  * as the work has already been done.
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let normalise_normalised_assertion
+    (a : jsil_logic_assertion) : symbolic_state =
+
+  print_debug (Printf.sprintf "Normalising pre-normalised assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a false));
+
+  (** Step 1 -- Create empty symbolic heap, symbolic store, typing environment, pred set and pfs *)
+  let heap  : symbolic_heap      = heap_init () in
+  let store : symbolic_store     = store_init [] [] in
+  let gamma : typing_environment = gamma_init () in
+  let pfs   : pure_formulae      = DynArray.make 0 in
+  let preds : predicate_set      = DynArray.make 0 in
+
+  (* Step 2 - Map over assertion, populate gamma, store and heap *)
+  let populate_state_from_assertion a =
+    match a with
+    | LTypes type_assertions ->
+      List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e false) t) type_assertions;
+      (a, false)
+    | LPointsTo (PVar loc, le2, le3)
+    | LPointsTo (LLit (Loc loc), le2, le3) ->
+      (* TODO: prefix locations with _ ? *)
+      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+      (a, false)
+    | LEq ((PVar v), le)
+    | LEq (le, (PVar v)) ->
+      Hashtbl.add store v le;
+      (a, false)
+    | LEq ((PVar _), (PVar _))
+    | LEq ((LVar _), _)
+    | LEq (_, (LVar _)) ->
+      DynArray.add pfs a;
+      (a, false)
+    | LNot _
+    | LLess _
+    | LLessEq _
+    | LStrLess _
+    | LSetMem _
+    | LSetSub _ ->
+      DynArray.add pfs a;
+      (a, false)
+    | LPred (s, les) ->
+      DynArray.add preds (s, les);
+      (a, false)
+    | _ ->
+      (a, true)
+  in
+  assertion_map (Some populate_state_from_assertion) (fun e -> (e, false)) a;
+
+  print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
+  print_debug (Symbolic_State_Print.string_of_lexpr_store store);
+  print_debug (Printf.sprintf "Gamma: %s" (Symbolic_State_Print.string_of_gamma gamma));
+  print_debug (Printf.sprintf "Heap: %s" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
+  print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_shallow_p_formulae pfs false));
+  print_debug (Printf.sprintf "Preds: %s" (Symbolic_State_Print.string_of_preds preds false));
+  (heap, store, pfs, gamma, preds)
+
 
 (** Normalise Postcondition
 	-----------------------
@@ -990,21 +1057,44 @@ let normalise_post
 		extend_symb_state_with_pfs ss_post (pfs_of_list extra_post_pfs);
 		Some (Simplifications.simplify_ss ss_post (Some (Some spec_vars))))
 
+(** -----------------------------------------------------
+  * Normalise Pre-Normalised Single Spec
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let normalise_single_normalised_spec
+    (spec_name  : string)
+    (spec       : jsil_single_spec) : jsil_n_single_spec list =
+
+  (** Step 1 - "Normalise" precondition                                     *)
+  (* TODO: check: we always only have 1 pre as the specs are already unfolded? *)
+  let pre : symbolic_state = normalise_normalised_assertion spec.pre in
+
+  (** Step 2 - "Normalise" the posts *)
+  let spec_vars = get_assertion_lvars spec.pre in
+  let posts : symbolic_state list = List.map normalise_normalised_assertion spec.post in
+    [{
+      n_pre      = pre;
+    	n_post     = posts;
+    	n_ret_flag = spec.ret_flag;
+    	n_lvars    = spec_vars;
+      n_subst    = init_substitution [] (* TODO: is this correct? *)
+    }]
 
 (** -----------------------------------------------------
   * Normalise Single Spec
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_single_spec 
+let normalise_single_spec
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec_name  : string)
 	(spec       : jsil_single_spec) : jsil_n_single_spec list =
 
 	let oget_list lst = List.map Option.get (List.filter (fun x -> not (x = None)) lst) in
 
-	let pre_normalise (a : jsil_logic_assertion) : jsil_logic_assertion list = 
-		List.map JSIL_Logic_Utils.push_in_negations (auto_unfold predicates a) in 
+	let pre_normalise (a : jsil_logic_assertion) : jsil_logic_assertion list =
+		List.map JSIL_Logic_Utils.push_in_negations (auto_unfold predicates a) in
 
 	print_debug (Printf.sprintf "Normalising the following spec of %s:\n%s\n" spec_name
 			(JSIL_Print.string_of_single_spec "" spec));
@@ -1050,13 +1140,19 @@ let normalise_single_spec
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_spec 
+let normalise_spec
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec       : jsil_spec) : jsil_n_spec =
 	let time = Sys.time () in
  	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
- 	print_debug (Printf.sprintf "Normalised spec? %b" spec.is_normalised);
-	let normalised_pre_post_list = List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs) in
+ 	print_debug (Printf.sprintf "Normalised spec? %b" spec.previously_normalised);
+
+  (** Treat pre-normalised specs differently *)
+  let normalised_pre_post_list =
+    match spec.previously_normalised with
+    | true -> List.concat (List.map (normalise_single_normalised_spec spec.spec_name) spec.proc_specs)
+    | false -> List.concat (List.map (normalise_single_spec predicates spec.spec_name) spec.proc_specs)
+  in
 	{	n_spec_name = spec.spec_name;
 		n_spec_params = spec.spec_params;
 		n_proc_specs = normalised_pre_post_list
@@ -1068,11 +1164,11 @@ let normalise_spec
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let build_spec_tbl 
-		(prog       : jsil_program) 
+let build_spec_tbl
+		(prog       : jsil_program)
 		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(onlyspecs  : (string, jsil_spec) Hashtbl.t)
-		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : (string, Symbolic_State.jsil_n_spec) Hashtbl.t =
+		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : specification_table =
 
 	let spec_tbl = Hashtbl.create 511 in
 	let get_tbl_rng tbl = Hashtbl.fold (fun k v ac -> v :: ac) tbl [] in
@@ -1082,7 +1178,6 @@ let build_spec_tbl
         1.2 - only specs
         1.3 - lemmas                                  *)
     let proc_tbl_rng = get_tbl_rng prog in
-    JSIL_Syntax_Utils.check_specs_pvars proc_tbl_rng;
     let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
    	let only_specs     = get_tbl_rng onlyspecs in
    	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in
@@ -1109,13 +1204,12 @@ let build_spec_tbl
 	List.iter create_dummy_proc non_proc_specs;
 	spec_tbl
 
-
 (** -----------------------------------------------------
   * Normalise Predicate Definitions
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let normalise_predicate_definitions 
+let normalise_predicate_definitions
 	(pred_defs : (string, unfolded_predicate) Hashtbl.t)
 		: (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t =
 
@@ -1123,17 +1217,24 @@ let normalise_predicate_definitions
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name (pred : unfolded_predicate)  ->
-			let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
+      let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
+      print_debug (Printf.sprintf "Predicate %s previously normalised? %b" pred_name pred.previously_normalised_u_pred);
 			let n_definitions =  List.rev (List.concat (List.map
-				(fun (os, a) ->
-					print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
-					let pred_vars = get_assertion_vars false a in
-					let a' = JSIL_Logic_Utils.push_in_negations a in
-					match (normalise_assertion None None a') with
-					| Some (ss, _) ->
-						let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
-						[ (os, ss') ]
-					| None -> []) definitions)) in
+        (fun (os, a) ->
+          print_debug (Printf.sprintf "Normalising predicate definitions of: %s.\n" pred_name);
+          (* Only normalise the assertion if not already normalised *)
+          match pred.previously_normalised_u_pred with
+              | true ->
+                [os, normalise_normalised_assertion a]
+              | false ->
+                let pred_vars = get_assertion_vars false a in
+                let a' = JSIL_Logic_Utils.push_in_negations a in
+                match (normalise_assertion None None a') with
+                | Some (ss, _) ->
+                  let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
+                  [ (os, ss') ]
+                | None -> []
+      ) definitions)) in
 			let n_pred = {
 				n_pred_name        = pred.name;
 				n_pred_num_params  = pred.num_params;
@@ -1153,8 +1254,8 @@ let normalise_predicate_definitions
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let pre_normalise_invariants_proc 
-		(predicates : (string, unfolded_predicate) Hashtbl.t) 
+let pre_normalise_invariants_proc
+		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(body       : (jsil_metadata * jsil_cmd) array) : unit =
 	let f_pre_normalise a_list = List.map (fun a -> push_in_negations a) a_list in
 	let len = Array.length body in
@@ -1176,6 +1277,7 @@ let pre_normalise_invariants_prog
 	(prog       : (string, jsil_procedure) Hashtbl.t) : unit =
 	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc predicates proc.proc_body) prog
 
+
 let normalise_invariant 
 	(a         : jsil_logic_assertion)
 	(gamma     : typing_environment)
@@ -1187,3 +1289,56 @@ let normalise_invariant
 						
 
 
+(** -----------------------------------------------------
+  * Printing the results of the normalisation to a file
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+**)
+let print_normaliser_results_to_file
+    (spec_tbl : specification_table)
+    (pred_defs : (string, n_jsil_logic_predicate) Hashtbl.t) : unit =
+
+  (** Printing the spec assertions and spec table *)
+  let string_of_single_spec_assertions
+      (spec : jsil_n_single_spec) : string =
+    let string_of_single_symb_state_assertion
+        (symbolic_state : symbolic_state) : string =
+
+      JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state) true
+    in
+    let pre_assrt_str = "Pre:  " ^ string_of_single_symb_state_assertion spec.n_pre in
+    let post_assrt_str = "\nPost: " ^ List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post in
+    pre_assrt_str ^ post_assrt_str ^ "\n"
+  in
+  let string_of_spec_assertions
+      (specs: jsil_n_single_spec list) : string =
+    List.fold_left
+      (fun acc spec ->
+        acc ^ (string_of_single_spec_assertions spec)
+      ) "" specs
+  in
+  let string_of_spec_tbl_assertions =
+    Hashtbl.fold
+      (fun pred_name pred acc ->
+         acc ^ pred_name ^ "\n" ^ (string_of_spec_assertions pred.n_proc_specs) ^ "\n\n"
+      ) spec_tbl ""
+  in
+  print_normalisation (Printf.sprintf "----------- NORMALISED SPEC ASSERTIONS -----------\n\n%s" string_of_spec_tbl_assertions);
+  print_normalisation ("----------- NORMALISED SPEC TABLE -----------\n");
+  print_normalisation (Symbolic_State_Print.string_of_n_spec_table spec_tbl);
+
+  (** Printing the predicate table *)
+  let string_of_normalised_predicate (pred : n_jsil_logic_predicate) : string =
+      let params = List.fold_left (fun ac param -> ac ^ param ^ " ") "" pred.n_pred_params in
+      "\n*** Normalised predicate ***\n" ^
+      "Name : " ^ pred.n_pred_name ^ "\n" ^
+      "Parameters : " ^ params ^ "\n" ^
+      (Printf.sprintf "Recursive : %b\n" pred.n_pred_is_rec) ^
+      (Printf.sprintf "Number of definitions: %d\n" (List.length pred.n_pred_definitions)) ^
+      List.fold_left (fun ac (_, x) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x) true) ^ "\n") "" pred.n_pred_definitions
+  in
+  let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
+    Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
+  in
+  print_normalisation (Printf.sprintf "----------- NORMALISED PREDICATE TABLE -----------");
+  print_normalisation (string_of_normalised_predicates pred_defs)

@@ -279,7 +279,7 @@ let remove_unreachable_code proc throw =
     {
   		spec_name = lspec.spec_name;
       spec_params = lspec.spec_params;
-      is_normalised = false;
+      previously_normalised = false;
   		proc_specs =
   			let specs = lspec.proc_specs in
   			(match lerr with

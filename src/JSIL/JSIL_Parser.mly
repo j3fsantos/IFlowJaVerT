@@ -75,6 +75,8 @@ let copy_and_clear_globals () =
 %token LSTCLOSE
 (* Variables *)
 %token <string> VAR
+(* Filenames *)
+%token <string> FILENAME
 (* Binary operators *)
 %token EQUAL
 %token LESSTHAN
@@ -192,7 +194,6 @@ let copy_and_clear_globals () =
 %token LEMMA
 %token NORMAL
 %token ERROR
-%token NORMALISED
 (* JS only spec specifics *)
 %token JSOS
 %token JSOSPRE
@@ -309,7 +310,7 @@ declaration_target:
 ;
 
 import_target:
-  IMPORT; imports = separated_nonempty_list(COMMA, VAR); SCOLON { imports }
+  IMPORT; imports = separated_nonempty_list(COMMA, FILENAME); SCOLON { imports }
 ;
 
 proc_target:
@@ -538,7 +539,8 @@ pred_target:
   	{
   		(* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
-		let pred = { name; num_params; params; definitions} in
+    let previously_normalised_pred = !previously_normalised in
+		let pred = { name; num_params; params; definitions; previously_normalised_pred } in
 		Hashtbl.add predicate_table name pred;
     	pred
 	}
@@ -697,11 +699,11 @@ macro_head_target:
 
 only_spec_target:
 (* only spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
-	normalised = option(normalised_label_target); ONLY; SPEC; spec_head = spec_head_target;
+	ONLY; SPEC; spec_head = spec_head_target;
 	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
 	{ let (spec_name, spec_params) = spec_head in
-    let is_normalised = (Option.default false normalised) in
-		let spec = { spec_name; spec_params; proc_specs; is_normalised } in
+    let is_normalised = !previously_normalised in
+		let spec = { spec_name; spec_params; proc_specs; previously_normalised = is_normalised } in
 		Hashtbl.replace only_spec_table spec_name spec;
 	}
 
@@ -760,17 +762,13 @@ outcome_target:
 
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
-	normalised = option(normalised_label_target); SPEC; spec_head = spec_head_target;
+	SPEC; spec_head = spec_head_target;
 	proc_specs = separated_nonempty_list(SCOLON, pre_post_target)
 	{ let (spec_name, spec_params) = spec_head in
-    let is_normalised = (Option.default false normalised) in
-		{ spec_name; spec_params; proc_specs; is_normalised }
+    let is_normalised = !previously_normalised in
+		{ spec_name; spec_params; proc_specs; previously_normalised = is_normalised }
 	}
 ;
-
-normalised_label_target:
-  NORMALISED
-  { true }
 
 spec_head_target:
   spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE

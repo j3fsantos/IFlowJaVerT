@@ -271,7 +271,8 @@ type jsil_logic_predicate = {
 	name        : string;                                        (** Name of the predicate  *)
 	num_params  : int;                                           (** Number of parameters   *)
 	params      : jsil_logic_expr list;                          (** Actual parameters      *)
-	definitions : ((string option) * jsil_logic_assertion) list  (** Predicate definitions  *)
+  definitions : ((string option) * jsil_logic_assertion) list;  (** Predicate definitions  *)
+  previously_normalised_pred : bool                             (** If the predicate has been previously normalised *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -294,12 +295,15 @@ type jsil_single_spec = {
 	ret_flag : jsil_return_flag           (** Return flag ({!type:jsil_return_flag}) *)
 }
 
+(** Keeps track of whether the current file is a previously normalised file **)
+let previously_normalised = ref false;
+
 (** {b Full JSIL specifications}. *)
 type jsil_spec = {
 	spec_name     : string;                (** Procedure/spec name *)
 	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
   proc_specs    : jsil_single_spec list; (** List of single specifications *)
-  is_normalised : bool                   (** If the spec is already normalised *)
+  previously_normalised : bool                   (** If the spec is already normalised *)
 }
 
 (**/**)
@@ -316,7 +320,7 @@ let create_jsil_spec name params specs normalised =
 		spec_name   = name;
 		spec_params = params;
     proc_specs  = specs;
-    is_normalised = normalised
+    previously_normalised = normalised
 	}
 (**/**)
 
@@ -481,13 +485,16 @@ let newencoding = ref false
 
 let output_file = open_out "normalOutput.txt"
 let output_file_debug = open_out "debugOutput.txt"
+let output_file_normalisation = open_out "normalisationOutput.txt"
 
 let print_debug  msg  = output_string output_file_debug (msg ^ "\n")
 let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
+let print_normalisation msg  = output_string output_file_normalisation (msg ^ "\n")
 
 let close_output_files () =
 	close_out output_file;
-	close_out output_file_debug
+  close_out output_file_debug;
+  close_out output_file_normalisation
 
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
