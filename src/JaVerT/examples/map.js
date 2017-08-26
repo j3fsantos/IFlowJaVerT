@@ -128,7 +128,7 @@ Map.prototype.get = function getValue (key) {
 	@pre (
 		initialHeapPost() * 
 		(key == #key) * ValidKey(#key) * 
-		(value == #value) *
+		(value == #value) * (! (#value == $$empty)) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
 		EmptyProp(#contents, #key)
@@ -144,7 +144,7 @@ Map.prototype.get = function getValue (key) {
 	@pre (
 		initialHeapPost() * 
 		(key == #key) * ValidKey(#key) * 
-		(value == #value) *
+		(value == #value) * (! (#value == $$empty)) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
 		DataPropGen(#contents, #key, #oldValue, $$t, #enum, #conf) 
@@ -160,7 +160,7 @@ Map.prototype.get = function getValue (key) {
 	@pre (
 		initialHeapPost() * 
 		(key == #key) * ValidKey(#key) * 
-		(value == #value) *
+		(value == #value) * (! (#value == $$empty)) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
 		DataPropGen(#contents, #key, #oldValue, $$f, #enum, #conf) 
