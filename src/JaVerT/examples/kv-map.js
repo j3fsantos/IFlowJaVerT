@@ -104,14 +104,14 @@ Map.prototype.get = function (k) {
 	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPost() 
 	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPost() 
 
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPost() 
+	@pre  (k == #k) * (v == #v) * (! (#v == $$empty)) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPost() 
 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPost() 
 
-	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * (#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPost() 
+	@pre  (k == #k) * (v == #v) * (! (#v == $$empty)) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * (#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPost() 
 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPost() 
 */
 Map.prototype.put = function (k, v) {
-	/* @invariant DataProp(this, "_contents", #c) * scope (v : #v) */
+	/* @invariant DataProp(this, "_contents", #c) */
 	if (this.validKey(k)) { 
 		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #w) and (#rkvs := #rkvs)] } */
 		this._contents[k] = v; 
