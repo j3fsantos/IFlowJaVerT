@@ -1,3 +1,5 @@
+import javert_js_predicates.jsil;
+
 (* ******************
    *** PREDICATES ***
    ****************** *)
@@ -161,6 +163,22 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
  * COPY_OBJECT *
  ***************)
 
+spec copy_object (l, fields)
+
+	[[ (l == #l) * (fields == #fields) *
+	   (#fields == {{ #f }}) * isNamedProperty(#f) *
+	   ((#l, #f) -> #v) * isNamedProperty (#f) ]]
+	[[ ((#l, #f) -> #v) * ((ret, #f) -> #v) * ((ret, "@proto") -> $$null) * empty_fields(ret : -{ "@proto", #f }-) ]]
+	normal;
+
+	[[ (l == #l) * (fields == #fields) *
+	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) * (! (#f1 == "main")) *
+	   ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) ]]
+	[[ ((#l, #f1) -> #v1) * ((#l, "main") -> #v2) * (! (#f1 == "main")) *
+	   ((ret, #f1) -> #v1) * ((ret, "main") -> #v2) * ((ret, "@proto") -> $$null) 
+	   * empty_fields(ret : -{ "@proto", #f1, "main" }-) ]]
+	normal
+
 proc copy_object (l, fields) {
 			xret := new ();
 
@@ -170,6 +188,29 @@ with
 {
 	ret:	xret, rlab;
 };
+
+spec copy_object_rec (lf, fields, lt)
+
+	[[ fields == {{ }} ]]
+	[[ ret == #lt ]]
+	normal;
+	
+	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
+	   (#fields == {{ #f }}) * isNamedProperty(#f) *
+	   ((#lf, #f) -> #v)   *
+	   ((#lt, #f) -> None) * ((#lt, "@proto") -> $$null) ]]
+	[[ ((#lf, #f) -> #v) * 
+	   ((#lt, #f) -> #v) * ((#lt, "@proto") -> $$null) * (ret == #lt) ]]
+	normal;
+
+	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
+	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
+	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2)  *
+	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) * ((#lt, "@proto") -> $$null) ]]
+	[[ ((#lf, #f1) -> #v1) * ((#lf, "main") -> #v2) *
+	   ((#lt, #f1) -> #v1) * ((#lt, "main") -> #v2) * ((#lt, "@proto") -> $$null) * 
+	   (ret == #lt) ]]
+	normal
 
 proc copy_object_rec (lf, fields, lt) {
 			goto [fields = {{ }}] rlab next;
@@ -194,6 +235,22 @@ with
  * CREATE_DEFAULT_OBJECT *
  *************************)
 
+spec create_default_object (l, pr, cl, ext)
+
+    [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+	   types(#l : $$object_type) * (#cl == $$undefined) * (#ext == $$undefined) *
+	   ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3) ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> "Object") * ((#l, "@extensible") -> $$t) *
+	   (ret == #l) ]]
+    normal;
+
+    [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+	   types(#l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) *
+       ((#l, "@proto") -> #v1) * ((#l, "@class") -> #v2) * ((#l, "@extensible") -> #v3)  ]]
+    [[ ((#l, "@proto") -> #pr) * ((#l, "@class") -> #cl) * ((#l, "@extensible") -> #ext) *
+	   (ret == #l) ]]
+    normal
+
 proc create_default_object (l, pr, cl, ext) {
 
  			goto [cl = $$undefined] scl text;
@@ -211,6 +268,38 @@ with
 {
 	ret:	xret, rlab;
 };
+
+spec create_object_with_call_construct (l, call, construct, len)
+
+    [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
+	   types(#l : $$object_type, #call : $$string_type, #construct: $$string_type, #len : $$number_type) *
+       ((#l, "@proto") -> $$null) * empty_fields(#l : -{ "@proto" }-) ]]
+    [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
+	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
+	   ((#l, "@call") -> #call) * ((#l, "@construct") -> #construct) *
+	   empty_fields(#l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct" }-) *
+	   (ret == #l) ]]
+    normal;
+
+    [[ (l == #l) * (call == #call) * (construct == $$empty) * (len == #len) *
+	   types(#l : $$object_type, #call : $$string_type, #len : $$number_type) *
+       empty_fields (#l : -{}-) ]]
+    [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
+	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
+	   ((#l, "@call") -> #call) *
+	   empty_fields(#l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call" }-) *
+	   (ret == #l) ]]
+    normal;
+    
+    [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
+	   types(#l : $$object_type, #call : $$string_type, #len : $$number_type, #construct: $$string_type) *
+       empty_fields (#l : -{}-) ]]
+    [[ ((#l, "@proto") -> $lfun_proto) * ((#l, "@class") -> "Function") * ((#l, "@extensible") -> $$t) *
+	   ((#l, "@scope") -> $$empty) * ((#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) *
+	   ((#l, "@call") -> #call) * ((#l, "@construct") -> #construct) *
+	   empty_fields(#l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct" }-) *
+	   (ret == #l) ]]
+    normal
 
 proc create_object_with_call_construct (l, call, construct, len) {
 
@@ -230,6 +319,26 @@ with
 {
 	ret:	xret, rlab;
 };
+
+pred function_object (l, xsc, call, construct, len, prototype) :
+	types(l : $$object_type, xsc : $$list_type, call : $$string_type, construct: $$string_type, len : $$number_type, prototype : $$object_type) *
+	((l, "@proto") -> $lfun_proto) * ((l, "@class") -> "Function") * ((l, "@extensible") -> $$t) *
+	((l, "@scope") -> xsc)  * ((l, "length") -> {{ "d", len, $$f, $$f, $$f }}) *
+	((l, "@call")  -> call) * ((l, "@construct") -> construct) *
+	((l, "caller") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) *
+	((l, "arguments") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) *
+	((l, "prototype") -> {{ "d", prototype, $$t, $$f, $$f }}) *
+	empty_fields(l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "caller", "arguments", "prototype" }-);
+
+spec create_function_object (xsc, call, construct, params)
+    [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * 
+	   types(#xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type) ]]
+    [[ types(#l : $$object_type, #xsc : $$list_type, #call : $$string_type, #construct: $$string_type, #params : $$list_type, #len : $$number_type, ret : $$object_type) *
+	   function_object(ret, #xsc, #call, #construct, #len, #prototype) * (#len == l-len #params) *
+	   ((#prototype, "@proto") -> $lobj_proto) * ((#prototype, "@class") -> "Object") * ((#prototype, "@extensible") -> $$t) *
+	   ((#prototype, "constructor") -> {{ "d", ret, $$t, $$f, $$t }} ) *
+	   empty_fields(#prototype : -{ "@proto", "@class", "@extensible", "constructor" }-) ]]
+    normal
 
 proc create_function_object (xsc, call, construct, params) {
 			len := l-len (params);
@@ -858,7 +967,15 @@ with
 
 spec i__toPrimitive (v, hint)
 
-    [[ (v == #v) * types (#v : $$string_type) ]]
+    [[ v == $$undefined ]]
+    [[ ret == $$undefined ]]
+    normal;
+
+    [[ v == $$null ]]
+    [[ ret == $$null ]]
+    normal;
+
+    [[ (v == #v) * types (#v : $$number_type) ]]
 	[[ (ret == #v) ]]
 	normal;
 
@@ -866,28 +983,20 @@ spec i__toPrimitive (v, hint)
 	[[ (ret == #v) ]]
 	normal;
 
-    [[ (v == #v) * types (#v : $$number_type) ]]
+    [[ (v == #v) * types (#v : $$string_type) ]]
 	[[ (ret == #v) ]]
-	normal;
-
-    [[ v == $$null ]]
-    [[ ret == $$null ]]
-    normal;
-
-    [[ v == $$undefined ]]
-    [[ ret == $$undefined ]]
-    normal
+	normal
 
 proc i__toPrimitive (v, hint) {
 			xret := v;
 			tv := typeOf(v);
 
 	iu:		goto [(v = $$undefined) or (v = $$null) or
-	              (tv = $$boolean_type) or (tv = $$number_type) or
-	              (tv = $$string_type)] rlab is_obj;
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
+	              (typeOf(v) = $$string_type)] rlab is_obj;
 
 	is_obj:	print := "object";
-			goto [tv = $$object_type] obj oops;
+			goto [typeOf(v) = $$object_type] obj oops;
 	obj:	xret := "defaultValue" (v, hint) with elab;
 			goto rlab;
 
@@ -912,19 +1021,13 @@ spec i__abstractComparison (v1, v2, leftFirst)
     [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
        types(#v1 : $$number_type, #v2 : $$number_type, #leftFirst : $$boolean_type) *
        (#v1 <# #v2) ]]
-    [[ (ret == $$t) * (#v1 <# #v2) ]]
+    [[ (ret == $$t) ]]
     normal;
     
     [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
        types(#v1 : $$number_type, #v2 : $$number_type, #leftFirst : $$boolean_type) *
-       (#v1 == #v2) ]]
-    [[ (ret == $$f) * (#v1 == #v2)]]
-    normal;
-
-    [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
-       types(#v1 : $$number_type, #v2 : $$number_type, #leftFirst : $$boolean_type) *
-       (#v2 <# #v1) ]]
-    [[ (ret == $$f) * (#v2 <# #v1)]]
+       (! (#v1 <# #v2)) ]]
+    [[ (ret == $$f) ]]
     normal
 
 proc i__abstractComparison (v1, v2, leftFirst) {
@@ -1094,20 +1197,6 @@ spec i__toString (v)
 	normal
 
 proc i__toString (v) {
-
-	is:		goto [typeOf(v) = $$string_type] str io;
-	str:	xret := v;
-			goto rlab;
-
-	io:		goto [typeOf(v) = $$object_type] obj inum;
-	obj:	xret := "i__toPrimitive" (v, "String") with elab;
-			xret := "i__toString" (xret) with elab;
-			goto rlab;
-
-	inum:	goto [typeOf(v) = $$number_type] num iu;
-	num:	xret := num_to_string v;
-			goto rlab;
-
 	iu:		goto [v = $$undefined] undef in;
 	undef:	xret := "undefined";
 			goto rlab;
@@ -1116,11 +1205,24 @@ proc i__toString (v) {
 	null:	xret := "null";
 			goto rlab;
 
-	ib:		goto [typeOf(v) = $$boolean_type] bool oops;
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
 	bool:	goto [v = $$t] is_t is_f;
 	is_t:	xret := "true";
 			goto rlab;
 	is_f:	xret := "false";
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := num_to_string v;
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := v;
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := "i__toPrimitive" (v, "String") with elab;
+			xret := "i__toString" (xret) with elab;
 			goto rlab;
 
 	oops:	xret := "TypeError" ("ToString: This should not happen.");
@@ -1141,13 +1243,18 @@ with
 
 spec i__isDataDescriptor (desc)
 
+    (* Property not defined at all *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal;
+
     (* Data descriptor *)
     [[ DataDescriptor(desc) ]]
     [[ ret == $$t ]]
     normal;
 
-    (* Property not defined at all *)
-    [[ desc == $$undefined ]]
+    (* Generic descriptor, no data descriptor components *)
+    [[ GenericDescriptor(desc) * (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) ]]
     [[ ret == $$f ]]
     normal;
 
@@ -1159,11 +1266,6 @@ spec i__isDataDescriptor (desc)
     (* Generic descriptor, with writable *)
     [[ GenericDescriptor(desc) * (! l-nth (desc, 4) == $$empty) ]]
     [[ ret == $$t ]]
-    normal;
-    
-    (* Generic descriptor, no data descriptor components *)
-    [[ GenericDescriptor(desc) * (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) ]]
-    [[ ret == $$f ]]
     normal
 
 proc i__isDataDescriptor (desc) {
@@ -1187,7 +1289,6 @@ with
 (* *********************** *)
 (* I__ISACCESSORDESCRIPTOR *)
 (* *********************** *)
-
 
 spec i__isAccessorDescriptor (desc)
 
@@ -1780,6 +1881,7 @@ with
 proc canPut (l, prop) {
 
             xret := "getOwnProperty" (l, prop) with elab;
+	
 	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
 
 	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
@@ -1817,6 +1919,67 @@ with
 (* ******************** *)
 (* O__DEFINEOWNPROPERTY *)
 (* ******************** *)
+
+spec o__defineOwnProperty (l, prop, desc, throw)
+
+	(* SUCCESSES *)
+
+	(* S1. Current undefined, object extensible, non-string object, data descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   Cell_o (#l, #prop, None) *
+	   ((#l, "@extensible") -> $$t) * 
+	   ((#l, "@class") -> #cls) * types(#cls : $$string_type) * isClass(#cls, "Non-String") * 
+	   DataDescriptor (#desc) ]]
+    [[ Cell_o (#l, #prop, #desc) * ((#l, "@extensible") -> $$t) * ((#l, "@class") -> #cls) *
+	   (ret == $$t) ]]
+    normal;
+    
+    (* S2. Current defined, data descriptor, configurable, non-string object, data descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+	   Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * desc_conf(#dcur, $$t) *
+	   ((#l, "@class") -> #cls) * types(#cls : $$string_type) * isClass(#cls, "Non-String") * 
+	   DataDescriptor (#desc) * 
+	   ((#l, "@extensible") -> #ext) * types(#ext : $$boolean_type) ]]
+    [[ Cell_o (#l, #prop, #desc) * ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   (ret == $$t) ]]
+    normal;	
+    
+    (* S3. Current is defined, data descriptor, writable, non-string object, general descriptor with only value, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type, #throw : $$boolean_type) *
+       DataPropGen(#l, #prop, #val, $$t, #dec, #dcc) *
+       ((#l, "@class") -> #cls) * types(#cls : $$string_type) * isClass(#cls, "Non-String") *
+       (#desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (! (#gval == $$empty)) *
+       ((#l, "@extensible") -> #ext) * types(#ext : $$boolean_type) ]]
+    [[ ((#l, "@class") -> #cls) * ((#l, "@extensible") -> #ext) *
+	   DataPropGen(#l, #prop, #gval, $$t, #dec, #dcc) *
+	   (ret == $$t) ]]
+	normal;
+
+	(* FAILURES *)
+	
+	(* E1. Current undefined, object not extensible, non-string object, throw true  *)
+	
+    [[ (l == #l) * (prop == #prop) * (throw == $$t) *
+	   types (#l : $$object_type, #prop : $$string_type) * 
+	   Cell_o (#l, #prop, None) *
+	   ((#l, "@extensible") -> $$f) *
+	   ((#l, "@class") -> #cls) * types(#cls : $$string_type) * isClass(#cls, "Non-String") ]]
+    [[ ((#l, "@class") -> #cls) * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+	   isTypeError(err) ]]
+    error;
+    
+	(* E2. Current undefined, object not extensible, throw false *)
+	[[ (l == #l) * (prop == #prop) * (throw == $$f) *
+	   types (#l : $$object_type, #prop : $$string_type) * 
+	   Cell_o (#l, #prop, None) *
+	   ((#l, "@extensible") -> $$f) *
+	   ((#l, "@class") -> #cls) * types(#cls : $$string_type) * isClass(#cls, "Non-String") ]]
+    [[ ((#l, "@class") -> #cls) * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> $$f) *
+	   (ret == $$f) ]]
+    normal
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
@@ -2067,25 +2230,6 @@ with
     ret: xret, rlab;
     err: xret, elab;
 };
-
-
-
-(* *********** *)
-(* HASPROPERTY *)
-(* *********** *)
-
-proc hasProperty (l, prop) {
-			xret := "getProperty" (l, prop) with elab;
-
-	rlab:	xret := not (xret = $$undefined);
-	elab:	skip
-}
-with
-{
-	ret: 	xret, rlab;
-	err:	xret, elab;
-};
-
 
 (* ******** *)
 (* PUTVALUE *)

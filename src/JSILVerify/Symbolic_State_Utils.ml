@@ -557,6 +557,9 @@ let merge_symb_state_with_posts
 	(caller_symb_state : symbolic_state) 
 	(symb_state_frame  : symbolic_state_frame) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list = 
 
+	print_debug_petar ("LOOK HERE: Entering merge_symb_state_with_posts.");
+
+	let caller_symb_state = copy_symb_state caller_symb_state in
 	let framed_heap, framed_preds, subst, pf_discharges, new_gamma = symb_state_frame in 
 	extend_symb_state_with_pfs caller_symb_state (pfs_of_list pf_discharges);
 	let symb_state_frame = symb_state_replace_heap  caller_symb_state framed_heap in
@@ -577,6 +580,8 @@ let merge_symb_state_with_posts
 					(print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty) ret_lexpr in
 			[ (new_symb_state, ret_flag, ret_lexpr) ]
 		) else [] in 
+
+	print_debug_petar ("LOOK HERE: Exiting merge_symb_state_with_posts.");
 
 	List.concat (List.map f_post spec.n_post) 
 			
