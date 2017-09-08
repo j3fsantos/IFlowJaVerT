@@ -98,11 +98,11 @@ let string_of_preds preds escape_string =
 
 let string_of_shallow_symb_state (symb_state : symbolic_state) =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)
-	let str_heap       = "Heap: " ^ (string_of_shallow_symb_heap (get_heap symb_state) true) ^ "\n" in
-	let str_store      = "Store: " ^ (string_of_shallow_symb_store (get_store symb_state) true) ^ "\n" in
-	let str_p_formulae = "Pure Formulae: " ^ (string_of_shallow_p_formulae (get_pf symb_state) true) ^ "\n" in
-	let str_gamma      = "Gamma: " ^ (string_of_gamma (get_gamma symb_state)) ^ "\n" in
-	let str_preds      = "Preds: " ^ (string_of_preds (get_preds symb_state) true) ^ "\n" in
+	let str_heap       = "Heap: " ^ (string_of_shallow_symb_heap (ss_heap symb_state) true) ^ "\n" in
+	let str_store      = "Store: " ^ (string_of_shallow_symb_store (ss_store symb_state) true) ^ "\n" in
+	let str_p_formulae = "Pure Formulae: " ^ (string_of_shallow_p_formulae (ss_pfs symb_state) true) ^ "\n" in
+	let str_gamma      = "Gamma: " ^ (string_of_gamma (ss_gamma symb_state)) ^ "\n" in
+	let str_preds      = "Preds: " ^ (string_of_preds (ss_preds symb_state) true) ^ "\n" in
 	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 
 

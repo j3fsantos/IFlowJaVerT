@@ -10,6 +10,7 @@ let syntax_checks_enabled = ref false;
 type global_which_pred_type = (string * int * int, int) Hashtbl.t
 type which_pred_type = (int * int, int) Hashtbl.t
 
+
 (** ----------------------------------------------------
     ----------------------------------------------------
     JSIL Syntax Checks
@@ -29,7 +30,7 @@ let check_all_pred_pvars
     (** Step 1 - Extract all the program variables used in the definition
       * -----------------------------------------------------------------------------------
     *)
-    let all_pred_pvars : jsil_var list = List.concat (List.map (fun (_, ass) -> get_assertion_pvars ass) predicate.definitions) in
+    let all_pred_pvars : jsil_var list = List.concat (List.map (fun (_, ass) -> SS.elements (get_asrt_pvars ass)) predicate.definitions) in
 
     (** Step 2 - Check all predicates
       * -----------------------------------------------------------------------------------
@@ -101,7 +102,7 @@ let check_specs_pvars
          | true -> ()
          | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the %s of %s." pvar msg_construct_type spec_name)))
       )
-      (get_assertion_pvars assertion); ()
+      (SS.elements (get_asrt_pvars assertion)); ()
   in
 
   (** Step 3 - Run this function on the pre and all the post's of every spec

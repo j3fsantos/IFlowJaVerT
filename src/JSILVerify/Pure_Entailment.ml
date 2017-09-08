@@ -976,12 +976,12 @@ let make_string_axioms s =
 
 let make_relevant_axioms a list_vars string_vars list_exprs =
 	(* string axioms *)
-	let a_strings, _ = JSIL_Logic_Utils.get_assertion_string_number_literals a in
+	let a_strings, _ = JSIL_Logic_Utils.get_asrt_strings_and_numbers a in
 	let a_strings    = JSIL_Logic_Utils.remove_string_duplicates a_strings in
 	let s_axioms     = List.concat (List.map make_string_axioms a_strings) in
 
 	(* list axioms *)
-	let a_lists      = JSIL_Logic_Utils.get_assertion_lists a in
+	let a_lists      = JSIL_Logic_Utils.get_asrt_lists a in
 	let l_axioms     = List.concat (List.map make_list_axioms a_lists) in
 
 	let constant_axioms = make_global_axioms list_vars string_vars list_exprs in 
@@ -1058,7 +1058,7 @@ let check_entailment (existentials : SS.t)
 		let start_time = Sys.time () in
 
 		let existentials, left_as, right_as, gamma =
-			Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+			Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (gamma_copy gamma) in
 		let right_as = Simplifications.simplify_equalities_between_booleans right_as in
 			Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 
@@ -1078,7 +1078,7 @@ let check_entailment (existentials : SS.t)
 		) else (
 		let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
 		let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in
-		let list_exprs  : jsil_logic_expr list = List.concat (List.map JSIL_Logic_Utils.get_list_exprs ((DynArray.to_list left_as) @ (DynArray.to_list right_as))) in 
+		let list_exprs  : jsil_logic_expr list = List.concat (List.map JSIL_Logic_Utils.get_asrt_list_lexprs ((DynArray.to_list left_as) @ (DynArray.to_list right_as))) in 
 		let list_exprs  = list_exprs @ list_vars in 
 
 		let left_as = DynArray.to_list left_as in

@@ -1,13 +1,15 @@
 4(** JSIL_Syntax *)
 
 open Set
+open Queue
 
 (**/**)
 (* Exceptions *)
 exception Syntax_error of string
 
-let small_tbl_size = 31
-let big_tbl_size = 1021
+let small_tbl_size  = 31
+let medium_tbl_size = 101 
+let big_tbl_size    = 1021
 (**/**)
 
 (** {2 Syntax of the JSIL language} *)
@@ -302,8 +304,8 @@ let previously_normalised = ref false;
 type jsil_spec = {
 	spec_name     : string;                (** Procedure/spec name *)
 	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
-  proc_specs    : jsil_single_spec list; (** List of single specifications *)
-  previously_normalised : bool                   (** If the spec is already normalised *)
+  	proc_specs    : jsil_single_spec list; (** List of single specifications *)
+  	previously_normalised : bool                   (** If the spec is already normalised *)
 }
 
 (**/**)
@@ -487,7 +489,7 @@ let output_file = open_out "normalOutput.txt"
 let output_file_debug = open_out "debugOutput.txt"
 let output_file_normalisation = open_out "normalisationOutput.txt"
 
-let print_debug  msg  = output_string output_file_debug (msg ^ "\n")
+let print_debug  msg  = Printf.printf "%s\n%!" msg; output_string output_file_debug (msg ^ "\n")
 let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
 let print_normalisation msg  = output_string output_file_normalisation (msg ^ "\n")
 
@@ -573,6 +575,8 @@ module SExpr = Set.Make(MyExpr)
 module SLExpr = Set.Make(MyLExpr)
 
 module SFV = Set.Make(MyFieldValueList)
+
+
 
 (* Satisfiability cache *)
 (* Maps each assertion to true or false (if it's sasisfiable) *)
@@ -693,7 +697,8 @@ let fresh_spec_var () : string =
 (* A substitution type                                 *)
 (*******************************************************)
 (*******************************************************)
-type substitution = ((string, jsil_logic_expr) Hashtbl.t)
+type substitution      = ((string, jsil_logic_expr) Hashtbl.t)
+type substitution_list = ((string * jsil_logic_expr) list) 
 
 let init_substitution vars =
 	let new_subst = Hashtbl.create 1021 in
@@ -734,6 +739,12 @@ let assertions_of_substitution (subst : substitution) =
 		subst                                      (* the substituion table *)
 		[]                                         (* base element *)
 
+let copy_substitution (subst : substitution) : substitution = Hashtbl.copy subst
+
+let extend_substitution (subst : substitution) (vars : string list) (les : jsil_logic_expr list) : unit =
+	List.iter2 (fun v le -> Hashtbl.replace subst v le) vars les
+
+
 
 
 (* Symbolic heaps *)
@@ -768,7 +779,7 @@ let weak_update_gamma (gamma : typing_environment) x te =
 	| None -> ()
 	| Some te -> Hashtbl.replace gamma x te)
 
-let copy_gamma gamma =
+let gamma_copy (gamma : typing_environment) : typing_environment =
 	let new_gamma = Hashtbl.copy gamma in
 	new_gamma
 
@@ -810,13 +821,10 @@ let filter_gamma_with_subst gamma vars subst =
 		gamma;
 	new_gamma
 
-let get_gamma_vars catch_pvars gamma : SS.t =
+let gamma_lvars (gamma : typing_environment) : SS.t =
 	Hashtbl.fold
 		(fun var _ ac ->
-			let is_lvar = is_lvar_name var in
-			(match ((is_lvar && not catch_pvars) || (not is_lvar && catch_pvars)) with
-			| true -> SS.add var ac
-			| false -> ac))
+			if is_lvar_name var then SS.add var ac else ac)
 		gamma SS.empty
 
 let get_gamma_all_vars gamma : SS.t =

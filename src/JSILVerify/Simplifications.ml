@@ -741,8 +741,8 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typin
 
 
  let naively_infer_type_information_symb_state (symb_state : symbolic_state) = 
- 	let gamma = get_gamma symb_state in 
- 	let pfs = get_pf symb_state in 
+ 	let gamma = ss_gamma symb_state in 
+ 	let pfs = ss_pfs symb_state in 
  	naively_infer_type_information pfs gamma
 
 (*************************************)
@@ -817,12 +817,12 @@ let rec isExistentiallySubstitutable le =
 let get_lvars_pfs pfs =
 	List.fold_left
 		(fun lvars pf -> 
-			let lvs = get_assertion_lvars pf in
+			let lvs = get_asrt_lvars pf in
 				SS.union lvars lvs)
 		SS.empty (DynArray.to_list pfs)
 	
 let filter_gamma_pfs pfs gamma = 
-	let pfs_vars = get_pf_vars false pfs in
+	let pfs_vars = pfs_lvars pfs in
 	Hashtbl.filter_map_inplace 
 		(fun k v -> if (SS.mem k pfs_vars) then Some v else None) 
 		gamma
@@ -1422,7 +1422,7 @@ let simplify_symb_state
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
 
-	(* print_debug_petar (Printf.sprintf "Symbolic state before simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *) 
+	print_debug_petar (Printf.sprintf "Symbolic state before simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));  
 
 	(* let cache_key = simpl_encache_key vars_to_save other_pfs existentials symb_state in
 	let cached = Hashtbl.mem simpl_cache cache_key in
@@ -1452,7 +1452,7 @@ let simplify_symb_state
 
 	(* Are there any singleton types in gamma? *)
 	let simplify_singleton_types others exists symb_state subst types =		 
-		let gamma = get_gamma symb_state in
+		let gamma = ss_gamma symb_state in
 		if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
 			(Hashtbl.iter (fun v t -> 
 				let lexpr = (match t with
@@ -1467,8 +1467,8 @@ let simplify_symb_state
 						Hashtbl.add subst v lexpr;
 				| None -> ())) gamma;
 			(* Substitute *)
-			let symb_state = symb_state_substitution symb_state subst true in
-			let others = pf_substitution others subst true in
+			let symb_state = ss_substitution subst true symb_state in
+			let others = pfs_substitution subst true others in
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
 			Hashtbl.iter (fun v _ ->
@@ -1516,7 +1516,7 @@ let simplify_symb_state
 	 * and are also not in others
 	 *)
 	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
-	let lvars = SS.union (get_symb_state_vars_no_gamma false symb_state) (get_pf_vars false other_pfs) in
+	let lvars = SS.union (ss_vars_no_gamma symb_state) (pfs_lvars other_pfs) in
 	let lvars_gamma = get_gamma_all_vars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
@@ -1534,12 +1534,12 @@ let simplify_symb_state
 	let subst = Hashtbl.create 57 in
 	let symb_state, subst, others, exists = simplify_singleton_types other_pfs !initial_existentials symb_state subst types in
 
-	let pfs = get_pf symb_state in
+	let pfs = ss_pfs symb_state in
 
 	(* String translation: Use internal representation as Chars *)
-	let pfs = DynArray.map (assertion_map None le_string_to_list) pfs in
+	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_string_to_list None))) pfs in
 	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs)); *)
-	let symb_state = symb_state_replace_pfs symb_state pfs in 
+	let symb_state = ss_replace_pfs symb_state pfs in 
 	
 	let changes_made = ref true in
 	let symb_state   = ref symb_state in
@@ -1628,7 +1628,7 @@ let simplify_symb_state
 					
 					(* print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (print_lexpr le)); *)
 					
-					let lvars_le = get_logic_expression_lvars le in
+					let lvars_le = get_lexpr_lvars le in
 					(match (SS.mem v lvars_le) with
 					| true -> n := !n + 1
 					| false -> 		
@@ -1647,14 +1647,14 @@ let simplify_symb_state
 							Hashtbl.add temp_subst v le;
 							
 							let simpl_fun, how_subst = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
-								| false -> symb_state_substitution_in_place_no_gamma, "general"
+								| false -> ss_substitution_in_place_no_gamma, "general"
 								| true -> selective_symb_state_substitution_in_place_no_gamma, "selective"
 								) in
 							
 							(* print_debug_petar (Printf.sprintf "The substitution will be: %s" how_subst); *)
 							
-							simpl_fun !symb_state temp_subst;
-							pf_substitution_in_place !others temp_subst;
+							simpl_fun temp_subst !symb_state;
+							pfs_substitution_in_place temp_subst !others;
 							
 							(* Add to subst *)
 							if (Hashtbl.mem subst v) then 
@@ -1663,7 +1663,7 @@ let simplify_symb_state
 							Hashtbl.iter (fun v' le' ->
 								let sb = Hashtbl.create 1 in
 									Hashtbl.add sb v le;
-									let sa = lexpr_substitution le' sb true in
+									let sa = lexpr_substitution sb true le' in
 										Hashtbl.replace subst v' sa) subst;
 							Hashtbl.replace subst v le;
 							
@@ -1841,7 +1841,7 @@ let simplify_symb_state
 
 	(* String translation: Move back from internal representation to Strings - EVERYWHERE *)	
 	(* Convert substitutions back to string format *)
-	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) subst;
+	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) subst;
 
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
@@ -1850,25 +1850,25 @@ let simplify_symb_state
 		) subst;
 	
 	(* Convert Pure Formulas back *)
-	let pfs = DynArray.map (assertion_map None le_list_to_string) (get_pf !symb_state) in
-	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
+	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) (ss_pfs !symb_state) in
+	let symb_state = ref (ss_replace_pfs !symb_state pfs) in
 	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
 
 	let heap, store, _, _, preds = !symb_state in
 	
 	(* Convert Store, Heap and Preds back, which should only change new additions *)
-	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) store;
+	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) store;
 	LHeap.filter_map_inplace (fun loc (fv_list, default) -> 
 		let fn, fv = List.split fv_list in
-		let fn = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) fn in
-		let fv = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) fv in
+		let fn = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fn in
+		let fv = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fv in
 		Some (List.combine fn fv, default)
 		) heap; 
 	DynArray.iteri (fun i (pname, pparams) ->
-		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) pparams in
+		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) pparams in
 		DynArray.set preds i (pname, pparams)) preds;
 
-	let others = ref (DynArray.map (assertion_map None le_list_to_string) !others) in
+	let others = ref (DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) !others) in
 
 	(* print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 
@@ -1882,6 +1882,9 @@ let simplify_symb_state
 	
 	(* let cache_value = simpl_encache_value ss subst ots exs in
 	Hashtbl.replace simpl_cache cache_key cache_value; *)
+
+	print_debug ("symb_state after call to simplification: \n" ^ (Symbolic_State_Print.string_of_shallow_symb_state ss)); 
+
 	ss, subst, ots, exs
 	
 
@@ -1901,7 +1904,7 @@ let simplify_ss_with_subst symb_state vars_to_save =
 
 let simplify_pfs pfs gamma vars_to_save =
 	let start_time = Sys.time() in
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_pfs" (end_time -. start_time);
@@ -1909,7 +1912,7 @@ let simplify_pfs pfs gamma vars_to_save =
 			
 let simplify_pfs_with_subst pfs gamma =
 	let start_time = Sys.time() in
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_pfs_with_subst" (end_time -. start_time);
@@ -1917,7 +1920,7 @@ let simplify_pfs_with_subst pfs gamma =
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
 	let start_time = Sys.time() in
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_pfs_with_exists" (end_time -. start_time);
@@ -1925,7 +1928,7 @@ let simplify_pfs_with_exists exists lpfs gamma vars_to_save =
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
 	let start_time = Sys.time() in
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_pfs_with_exists_and_others" (end_time -. start_time);
@@ -1941,7 +1944,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	
 	let start_time = Sys.time() in
 	
-	let rhs_gamma = copy_gamma gamma in
+	let rhs_gamma = gamma_copy gamma in
 	filter_gamma_pfs p_formulae rhs_gamma;
 	
 	let p_formulae, exists, _ = simplify_pfs_with_exists exists p_formulae rhs_gamma (Some None) in
@@ -1963,7 +1966,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
 		let subst = Hashtbl.create 1 in
 		Hashtbl.add subst v le;
-		simplify_existentials exists lpfs (pf_substitution p_formulae subst true) gamma in
+		simplify_existentials exists lpfs (pfs_substitution subst true p_formulae) gamma in
 
 	let test_for_nonsense pfs =
 
@@ -2232,7 +2235,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 								print_debug (Printf.sprintf "Managed to instantiate a set existential: %s" v);
 								let temp_subst = Hashtbl.create 1 in
 								Hashtbl.add temp_subst v rhs;
-								pf_substitution_in_place rpfs temp_subst;
+								pfs_substitution_in_place temp_subst rpfs;
 								exists := SS.remove v !exists;
 								while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
 								DynArray.delete rpfs !i
@@ -2343,7 +2346,7 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	(match subst with
 	| None -> e
 	| Some subst ->
-		let e = lexpr_substitution e subst true in
+		let e = lexpr_substitution subst true e in
 			reduce_expression_no_store gamma pfs e)
 			
 (* ******************************** *
