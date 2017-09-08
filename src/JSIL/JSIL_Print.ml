@@ -755,6 +755,16 @@ let rec full_string_of_logic_expression e  =
 	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
 
 
+(** Stores *)
+let string_of_store store =
+	Hashtbl.fold
+		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
+			let v_val_str = string_of_literal v_val true in
+			let var_val_str = var ^ ": " ^ v_val_str  in
+			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
+		store
+		"Store: "
+
 let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 	SHeap.fold
 		(fun loc obj printed_heap ->

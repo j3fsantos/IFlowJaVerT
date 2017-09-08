@@ -1,7 +1,6 @@
 open JSIL_Syntax
 open JSIL_Logic_Utils
 open JSIL_Parser
-open Symbolic_State
 open JSLogic
 
 let js = ref false

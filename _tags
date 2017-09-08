@@ -1,4 +1,4 @@
-true: package(z3), package(batteries), package(extlib), package(oUnit), package(JS_Parser), package(menhirLib), package(ppx_import), package(ppx_deriving.std)
+true: ackage(batteries), package(extlib), package(oUnit), package(JS_Parser), package(menhirLib), package(ppx_import), package(ppx_deriving.std)
 true: use_menhir, table
 <src/**>: include
 <tests/*>: package(oUnit), include

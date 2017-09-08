@@ -3,7 +3,6 @@
 *)
 open Batteries
 open JSIL_Syntax
-open Symbolic_State
 
 let larguments = "$largs"
 let largvals = "args"
@@ -387,7 +386,7 @@ evaluate_expr (e : jsil_expr) store =
 		(match Utils.try_find store x with
 		| None ->
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in
-			let store_str = Symbolic_State_Print.string_of_store store in
+			let store_str = JSIL_Print.string_of_store store in
 			if (!verbose) then Printf.printf "The current store is: \n%s" store_str;
 			raise (Failure err_msg)
 		| Some v -> v)
@@ -615,7 +614,7 @@ let init_store params args =
 				loop rest_params []) in
 	loop params args;
 
-	let str_store = Symbolic_State_Print.string_of_store new_store in
+	let str_store = JSIL_Print.string_of_store new_store in
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store;
 	new_store
 
