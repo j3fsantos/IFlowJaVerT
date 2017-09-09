@@ -1,3 +1,4 @@
+open Common
 open Parser_syntax
 open Utils
 open Batteries
@@ -347,7 +348,6 @@ let parse_annots_formulae annots =
       lcmds) annots in
   List.concat lcmds
 
-
 let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e =
   let is_e_expr = not (is_stmt e) in
   if (is_e_expr && inside_stmt_compilation) then ([], []) else (
@@ -504,9 +504,9 @@ let preprocess
   test_early_errors e;
 
   (* 1 - propagating annotations                   *)
-  JSIL_Syntax.print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e));
+  print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e));
   let e, _ = propagate_annotations e in
-  JSIL_Syntax.print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e));
+  print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e));
 
   (* 2 - obtaining and compiling only-specs        *)
   let top_annots = get_top_level_annot e in

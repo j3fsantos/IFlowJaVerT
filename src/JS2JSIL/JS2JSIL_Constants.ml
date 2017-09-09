@@ -1,7 +1,5 @@
+open Common
 open JSIL_Syntax
-
-let small_tbl_size = 31
-let medium_tbl_size = 101
 
 let js2jsil_imports = [
 	"Array";
@@ -79,18 +77,6 @@ let main_fid        = "main"
 let macro_GPVF_name   = "GPVFold"
 let macro_GPVU_name   = "GPVUnfold"
 let pi_predicate_name = "Pi"
-
-
-(**
- *  Fresh identifiers
- *)
-let fresh_sth (name : string) : (unit -> string) =
-  let counter = ref 0 in
-  let rec f () =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
 
 let fresh_var : (unit -> string) = fresh_sth "x_"
 

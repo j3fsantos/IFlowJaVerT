@@ -1,3 +1,4 @@
+open Common
 open Lexing
 open JSIL_Syntax
 open JSIL_Interpreter

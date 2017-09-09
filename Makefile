@@ -6,7 +6,6 @@ default:
 
 init: init_ci
 	.git-hooks/install.sh .
-	echo "Now install Z3"
 
 init_ci: init_parser
 	opam pin -yn add .

@@ -1,3 +1,4 @@
+open Common
 open JSIL_Syntax
 open JSIL_Logic_Utils
 open JSIL_Parser
@@ -162,51 +163,6 @@ let syntax_checks
     print_debug (Printf.sprintf "Checking specs correspond directly to procedures");
     check_specs_procs_correspond ext_prog.procedures;
   )
-
-(** ----------------------------------------------------
-    Checking logical commands only use program variables they are allowed to
-    -----------------------------------------------------
-*)
-(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
-(*
-let check_logic_command_pvars
-    (assertion_type : string) (* eg "fold", "unfold", "assert" *)
-    (target_name : string)
-    (symb_state : symbolic_state)
-    (args : jsil_logic_expr list) : unit =
-
-  (** Step 1 - Attempt to look up each argument in the store
-    * -----------------------------------------------------------------------------------
-  *)
-  let args_pvars = List.concat (List.map get_logic_expression_pvars_list args) in
-  let (_, store, _, _, _) = symb_state in
-  List.map (fun pvar ->
-      (match Hashtbl.mem store pvar with
-      | true -> ()
-      | false -> raise (Failure (Printf.sprintf "Undefined program variable %s when trying to %s %s." pvar assertion_type target_name)))
-    )
-    (List.concat (List.map get_logic_expression_pvars_list args));
-  ()
-*)
-
-(** ----------------------------------------------------
-    Checking predicates are called with the correct number of arguments
-    -----------------------------------------------------
-*)
-(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
-(*
-let check_pred_arg_count
-    (pred_name : string)
-    (args : 'a list)
-    (params : 'b list) : unit =
-
-  (** Step 1 - Check same number of args and params
-    * -----------------------------------------------------------------------------------
-  *)
-  (match ((List.length args) == (List.length params)) with
-  | true -> ()
-  | false -> raise (Failure (Printf.sprintf "Incorrect number of arguments to predicate %s." pred_name)))
-*)
 
 (** ----------------------------------------------------
     Extracting the jsil variables from a procedure
@@ -531,6 +487,112 @@ let resolve_imports
 
 	resolve_imports_iter program.imports
 
+(* Understand the successors and predecessors of commands *)
+let get_succ_pred cmds opt_ret_label opt_error_label =
+
+  let cmds = Array.map (fun x -> match x with (_, cmd) -> cmd) cmds in
+
+  let ret_label =
+    (match opt_ret_label with
+    | None -> -1021
+    | Some l -> l) in
+
+  let err_label =
+    (match opt_error_label with
+    | None -> -1021
+    | Some l -> l) in
+
+  let number_of_cmds = Array.length cmds in
+  let succ_table = Array.make number_of_cmds [] in
+  let pred_table = Array.make number_of_cmds [] in
+
+  (* adding i to the predecessors of j *)
+  let update_pred_table i j =
+    (if ((j < number_of_cmds) && (i < number_of_cmds))
+      then pred_table.(j) <- i :: pred_table.(j)
+      else ()) in
+
+  (* adding i to the successors of j *)
+  let update_succ_table i j =
+    (if ((j < number_of_cmds) && (i < number_of_cmds))
+      then succ_table.(j) <- i :: succ_table.(j)
+      else ()) in
+
+  for u=0 to number_of_cmds-1 do
+      (match cmds.(u) with
+      | SBasic _
+      | SPhiAssignment (_, _)
+      | SPsiAssignment (_, _) ->
+        if (not ((u == ret_label) || (u == err_label)))
+          then
+          begin
+            update_succ_table (u + 1) u;
+            update_pred_table u (u + 1)
+          end
+
+      | SGoto i ->
+        if (not ((u == ret_label) || (u == err_label)))
+          then
+          begin
+            update_succ_table i u;
+            update_pred_table u i
+          end
+
+      | SGuardedGoto (e, i, j) ->
+        if (not ((u == ret_label) || (u == err_label)))
+          then
+          begin
+            update_succ_table i u;
+            update_pred_table u i;
+            update_succ_table j u;
+            update_pred_table u j
+          end
+
+      | SCall (_, _, _, i) ->
+        (match i with
+        | None -> ()
+        | Some i -> (update_succ_table i u; update_pred_table u i));
+        if (not ((u == ret_label) || (u == err_label)))
+          then
+          begin
+            update_succ_table (u+1) u;
+            update_pred_table u (u+1)
+          end
+
+      | SApply (_, _, i) ->
+        (match i with
+        | None -> ()
+        | Some i -> (update_succ_table i u; update_pred_table u i));
+        if (not ((u == ret_label) || (u == err_label)))
+          then
+          begin
+            update_succ_table (u+1) u;
+            update_pred_table u (u+1)
+          end)
+  done;
+
+  for k = 0 to (number_of_cmds - 1) do
+    succ_table.(k) <- List.rev succ_table.(k);
+    pred_table.(k) <- List.rev pred_table.(k);
+  done;
+  succ_table, pred_table
+
+(* Compute the which_pred table *)
+let compute_which_preds pred =
+  let which_pred = Hashtbl.create 1021 in
+  let number_of_nodes = Array.length pred in
+
+  for u=0 to number_of_nodes-1 do
+    let cur_preds = pred.(u) in
+    List.iteri
+      (fun i v ->
+        Hashtbl.add which_pred (v, u) i)
+      cur_preds
+  done;
+
+  which_pred
+
+
 (** ----------------------------------------------------
   * Converts an extended JSIL program into a set of basic procedures.
   * -----------------------------------------------------------------------------------
@@ -567,13 +629,13 @@ let prog_of_ext_prog
     (** Step 4 - Get the succ and pred tables
       * -----------------------------------------------------------------------------------
       *)
-		 let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+		 let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
 		 print_debug_petar "succ and pred tables fetched.\n";
 
      (** Step 5 - Compute the which_pred table
        * -----------------------------------------------------------------------------------
      *)
-		 let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+		 let which_pred = compute_which_preds pred_table in
 		 print_debug_petar "which pred table computed\n";
 
      (** Step 6 - Update the global_which_pred table with the correct indexes
@@ -596,8 +658,8 @@ let extend_which_pred
     (global_which_pred : global_which_pred_type)
     (proc : jsil_procedure) : unit =
 
-	let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+	let which_pred = compute_which_preds pred_table in
 	let proc_name = proc.proc_name in
 	Hashtbl.iter
 		(fun (prev_cmd, cur_cmd) i ->

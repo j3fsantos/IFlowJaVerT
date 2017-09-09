@@ -225,7 +225,7 @@ rule read = parse
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 (* EOF *)
 	| eof                  { JSIL_Parser.EOF }
-	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+	| _                    { raise (Common.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 and
 (* Read strings *)
 read_string buf =
@@ -243,12 +243,12 @@ read_string buf =
 		                       Buffer.add_string buf (Lexing.lexeme lexbuf);
     											 read_string buf lexbuf
     			               }
-  | _                    { raise (JSIL_Syntax.Syntax_error ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
-  | eof                  { raise (JSIL_Syntax.Syntax_error ("String is not terminated")) }
+  | _                    { raise (Common.Syntax_error ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
+  | eof                  { raise (Common.Syntax_error ("String is not terminated")) }
 and
 (* Read comments *)
 read_comment =
   parse
 	| "*)"                 { read lexbuf }
-	| eof                  { raise (JSIL_Syntax.Syntax_error ("Comment is not terminated")) }
+	| eof                  { raise (Common.Syntax_error ("Comment is not terminated")) }
 	| _                    { read_comment lexbuf }

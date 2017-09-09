@@ -1,6 +1,7 @@
-open Set
+open Common
 open JSIL_Syntax
 open JS2JSIL_Constants
+open JSIL_Logic_Utils
 
 module SS = Set.Make(String)
 let small_tbl_size = 31
@@ -141,14 +142,14 @@ type js_spec = {
 }
 
 
-let js_star_asses asses =
+let js_star_assertions asrts =
 	List.fold_left
 		(fun ac a ->
 			if (not (a = JSLEmp))
 				then (if (ac = JSLEmp) then a else JSLStar (a, ac))
 				else ac)
-		 JSLEmp
-		asses
+		JSLEmp
+		asrts
 
 
 (******************)
@@ -306,7 +307,7 @@ let rec js2jsil_assertion
 			let asrt = LEq (LLstNth (le_sc1', LLit (Num (float_of_int j))), LLstNth (le_sc2', LLit (Num (float_of_int j)))) in
 			(* add_extra_scope_chain_info fid2 le_sc2 (add_extra_scope_chain_info fid1 le_sc1 asrt) *)
 			asrt in
-		JSIL_Logic_Utils.star_asses (List.map f is)
+		star_assertions (List.map f is)
 
 	(*	Tr(scope(x: le_x)) ::= Tr(scope(x: le_x, sc, fid)) *)
 	| JSLScope (x, le)                    ->
@@ -325,7 +326,7 @@ let rec js2jsil_assertion
 
 		let asrt_vars = List.map (fun (x, le_x) -> JSLVarSChain (fid_1, x, le_x, le_sc_1)) var_les in
 		let asrt_scs  = List.map (fun (fid_j, le_sc_j) -> JSOSChains (fid_j, le_sc_j, fid_1, le_sc_1)) rest_fid_sc_les in
-		f (js_star_asses (asrt_vars @ asrt_scs))
+		f (js_star_assertions (asrt_vars @ asrt_scs))
 
 	(*
 		le_fid = "fid"
@@ -413,7 +414,7 @@ let rec js2jsil_single_spec
 
 	if (fid = main_fid)
 		then pre', post'
-		else JSIL_Logic_Utils.star_asses [ pre'; a_scope_pre; a_this ], JSIL_Logic_Utils.star_asses [ post'; a_scope_post ]
+		else star_assertions [ pre'; a_scope_pre; a_this ], star_assertions [ post'; a_scope_post ]
 
 
 let rec js2jsil_tactic_assertion
