@@ -17,7 +17,7 @@ type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
 type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
-type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
+type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment
 
 
 (*************************************)
@@ -735,7 +735,7 @@ let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subs
 	let heap, store, pf, gamma, preds = symb_state in
 		store_substitution_in_place store gamma subst lexpr_subst;
 		preds_substitution_in_place preds subst lexpr_subst;
-		heap_substitution_in_place heap subst;		
+		heap_substitution_in_place heap subst;
 		pf_substitution_in_place pf subst
 
 let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
@@ -783,8 +783,8 @@ type jsil_n_single_spec = {
 	n_pre         : symbolic_state;
 	n_post        : symbolic_state list;
 	n_ret_flag    : jsil_return_flag;
-	n_lvars       : SS.t; 
-	n_subst       : substitution 
+	n_lvars       : SS.t;
+	n_subst       : substitution
 }
 
 type jsil_n_spec = {
@@ -857,6 +857,24 @@ type symb_jsil_program = {
 	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
 }
 
+(*********************************************************)
+(** Lemma Dependency Graph **)
+(*********************************************************)
+type lemm_depd_variant_tracker = {
+  lemm_depd_variant_index : int;            (* Index of the variant in the paramater list *)
+  lemm_depd_variant_prev  : jsil_logic_expr (* Previous value of the variant *)
+}
+
+type lemm_depd_node = {
+  lemm_depd_cmd     : jsil_logic_command; (* The current command *)
+  lemm_depd_ss      : symbolic_state;     (* The current symbolic state  *)
+  lemm_depd_variant : lemm_depd_variant_tracker option;
+}
+
+type lemm_depd_graph = {
+  lemm_depd_nodes : (int, lemm_depd_node) Hashtbl.t;
+  lemm_depd_edges : (int, int list) Hashtbl.t;
+}
 
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
@@ -880,7 +898,7 @@ type symbolic_execution_search_info = {
 	info_nodes 		    : (int, search_info_node) Hashtbl.t;
 	info_edges          : (int, int list) Hashtbl.t;
 	next_node           : int ref;
-	post_pruning_info   : pruning_table; 
+	post_pruning_info   : pruning_table;
 	spec_number         : int;
 	pred_info           : (string, int Stack.t) Hashtbl.t
 }
@@ -916,7 +934,7 @@ let update_vis_tbl search_info vis_tbl =
 	{	search_info with vis_tbl = vis_tbl }
 
 
-let reset_vis_tbl (search_info : symbolic_execution_search_info) : symbolic_execution_search_info = 
+let reset_vis_tbl (search_info : symbolic_execution_search_info) : symbolic_execution_search_info =
 	{ search_info with vis_tbl = Hashtbl.create small_tbl_size }
 
 let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
@@ -928,10 +946,10 @@ let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
 	with Not_found -> ()
 
 
-let get_pred_index_from_search_info 
-		(search_info : symbolic_execution_search_info) 
+let get_pred_index_from_search_info
+		(search_info : symbolic_execution_search_info)
 		(pred_name   : string) : symbolic_execution_search_info * int =
-	
+
 	let pred_info = search_info.pred_info in
 	(match Hashtbl.mem pred_info pred_name with
 	| false -> search_info, -1
@@ -944,12 +962,12 @@ let get_pred_index_from_search_info
 			let s         = Stack.copy s in
 			let cmf       = Stack.pop s in
 			Hashtbl.replace pred_info pred_name s;
-			{ search_info with pred_info = pred_info }, cmf)) 
+			{ search_info with pred_info = pred_info }, cmf))
 
-let add_pred_def_index_to_search_info 
-		(search_info    : symbolic_execution_search_info) 
+let add_pred_def_index_to_search_info
+		(search_info    : symbolic_execution_search_info)
 		(pred_name      : string)
-		(pred_def_index : int) : symbolic_execution_search_info = 
+		(pred_def_index : int) : symbolic_execution_search_info =
 
 	let s = Hashtbl.copy search_info.pred_info in
 	(* Add the queue to table if necessary *)
@@ -958,37 +976,37 @@ let add_pred_def_index_to_search_info
 		| false ->
 			print_debug (Printf.sprintf "Adding %s to the predicate unfolding cache, definition %d." pred_name pred_def_index);
 			Hashtbl.add s pred_name (Stack.create()));
-	
+
 	(* Add definition to stack *)
 	let stack = Stack.copy (Hashtbl.find s pred_name) in
 	Stack.push pred_def_index stack;
 	Hashtbl.replace s pred_name stack;
 	let stack_str = Stack.fold (fun ac e -> ac ^ (Printf.sprintf "%d " e)) "" stack in
 	print_debug (Printf.sprintf "Current stack for predicate %s: %s" pred_name stack_str);
-	{ search_info with pred_info = s } 
+	{ search_info with pred_info = s }
 
 
 let mark_node_as_visited (search_info : symbolic_execution_search_info) (i : int) : unit =
 	let cur_node_info = search_info.cur_node_info in
-	Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number 
+	Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number
 
- let check_if_visited (search_info : symbolic_execution_search_info) (i : int) : bool = 
+ let check_if_visited (search_info : symbolic_execution_search_info) (i : int) : bool =
  	Hashtbl.mem search_info.vis_tbl i
 
 
-let compute_verification_statistics 
-	(pruning_info     : pruning_table) 
-	(procs_to_verify  : string list) 
-	(spec_table       : specification_table) : int * int  = 
+let compute_verification_statistics
+	(pruning_info     : pruning_table)
+	(procs_to_verify  : string list)
+	(spec_table       : specification_table) : int * int  =
 
 	Hashtbl.fold
 		(fun proc_name spec (count_prunings, count_verified) ->
 			let should_we_verify = (List.mem proc_name procs_to_verify) in
 			if (should_we_verify) then (
 				let pruning_info_list = Hashtbl.find pruning_info proc_name in
-				List.fold_left 
-					(fun (count_prunings, count_verified) arr -> 
-						Array.fold_left 
+				List.fold_left
+					(fun (count_prunings, count_verified) arr ->
+						Array.fold_left
 							(fun (count_prunings, count_verified) b -> if b then (count_prunings, (count_verified + 1)) else ((count_prunings + 1),  count_verified))
 							(count_prunings, count_verified)
 							arr)
@@ -999,7 +1017,7 @@ let compute_verification_statistics
 			))
 		spec_table
 		(0, 0)
-	
+
 
 
 (* Hierarchy of failures *)

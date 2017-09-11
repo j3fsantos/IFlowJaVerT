@@ -8,7 +8,10 @@ let letter = ['a'-'z''A'-'Z']
 let var = (letter|'_')(letter|digit|'_')*
 let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
 let lvar = '#' (letter|digit|'_'|'$')*
+let normalised_lvar = "##NORMALISED_LVAR" (letter|digit|'_'|'$')*
 let loc = "$l" (letter|digit|'_')*
+let aloc = "_$l_" (letter|digit|'_')*
+let normalised_aloc = "_$l_#" (letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 
@@ -217,12 +220,15 @@ rule read = parse
 	                           JSIL_Parser.FLOAT n }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
+	| aloc                  { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
+	| normalised_aloc       { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
 (* Filenames *)
   | filename             { JSIL_Parser.FILENAME (Lexing.lexeme lexbuf) }
 (* Variables *)
 	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* Logic variables *)
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+	| normalised_lvar      { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 (* EOF *)
 	| eof                  { JSIL_Parser.EOF }
 	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

@@ -145,6 +145,13 @@ let check_specs_procs_correspond
     ) procedures
 
 (** ----------------------------------------------------
+    Checking logical commands only use program variables they are allowed to
+    -----------------------------------------------------
+*)
+(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+(* You can't actually do this with the information, as the graph hasn't been generated?? *)
+
+(** ----------------------------------------------------
     Wrapper function which calls each check
     -----------------------------------------------------
 *)
@@ -387,6 +394,8 @@ let parse
 let ext_program_of_path
     (path : string) : jsil_ext_program =
 
+  print_debug (Printf.sprintf "Creating ext_program_of_path %s" path);
+
   let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.njsil") path 0 in
   print_debug (Printf.sprintf "%s is previously normalised? %b" path file_previously_normalised);
   JSIL_Syntax.previously_normalised := file_previously_normalised;
@@ -401,6 +410,8 @@ let ext_program_of_path
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
   let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
   close_in inx;
+
+  print_debug (Printf.sprintf "CREATED ext_program_of_path %s" path);
   prog
 
 (** ----------------------------------------------------

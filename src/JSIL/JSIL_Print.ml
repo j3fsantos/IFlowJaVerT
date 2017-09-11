@@ -216,11 +216,11 @@ let rec string_of_bcmd bcmd i line_numbers_on escape_string =
 let rec string_of_logic_expression e escape_string =
   let sle = fun e -> string_of_logic_expression e escape_string in
   match e with
-    | LLit llit -> string_of_literal llit escape_string
+  | LLit llit -> string_of_literal llit escape_string
 	| LNone -> "None"
-    | LVar lvar -> lvar (* Printf.sprintf "(Lvar %s)" lvar *)
-	| ALoc aloc -> aloc (* Printf.sprintf "(Aloc %s)" aloc *)
-	| PVar pvar -> pvar (* Printf.sprintf "(Pvar %s)" pvar *)
+ | LVar lvar -> lvar (* Printf.sprintf "(Lvar %s)" lvar *)
+ | ALoc aloc -> aloc (* Printf.sprintf "(Aloc %s)" aloc *)
+ | PVar pvar -> pvar (* Printf.sprintf "(Pvar %s)" pvar *)
 	(* (e1 bop e2) *)
     | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
 	(* (uop e1 e2) *)
@@ -456,8 +456,8 @@ let string_of_return_flag flag =
 
 (** JSIL Lemmas *)
 let string_of_lemma (lemma_name : string) lemma =
-	let f a = string_of_logic_assertion a false in 
-	let f_list asrts = String.concat "; " (List.map f asrts) in 
+	let f a = string_of_logic_assertion a false in
+	let f_list asrts = String.concat "; " (List.map f asrts) in
   	let string_of_params          = (String.concat ", " lemma.lemma_spec.spec_params) in
 	let string_of_pre             = "\t[[ " ^ (f (List.hd lemma.lemma_spec.proc_specs).pre) ^ " ]]\n" in
 	let string_of_post            = "\t[[ " ^ (f_list (List.hd lemma.lemma_spec.proc_specs).post) ^ " ]]\n" in
@@ -468,9 +468,9 @@ let string_of_lemma (lemma_name : string) lemma =
 	"lemma " ^ lemma_name ^ "(" ^ string_of_params ^ ")\n" ^ string_of_pre ^ string_of_post ^ string_of_proof
 
 
-let string_of_single_spec (prefix: string) (spec : jsil_single_spec) = 
-	let f a = string_of_logic_assertion a false in 
-	let f_list asrts = String.concat "; " (List.map f asrts) in 
+let string_of_single_spec (prefix: string) (spec : jsil_single_spec) =
+	let f a = string_of_logic_assertion a false in
+	let f_list asrts = String.concat "; " (List.map f asrts) in
 	(prefix ^ "[[ " ^ (f spec.pre) ^ " ]]\n" ^
 		prefix ^ "[[ " ^ (f_list spec.post) ^ " ]]\n" ^
 		prefix ^ string_of_return_flag spec.ret_flag)

@@ -107,6 +107,8 @@ let process_file path =
 		let n_pred_defs = Normaliser.normalise_predicate_definitions u_preds in
     print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
     Normaliser.print_normaliser_results_to_file spec_tbl n_pred_defs;
+    (* TODO delete this after we have generated/confirmed the normalised internal functions *)
+    Normaliser.generate_nsjil_file spec_tbl n_pred_defs;
 		print_debug "*** Stage 3: DONE building the spec table\n";
 
 		(** Step 4: Proving                                            *)

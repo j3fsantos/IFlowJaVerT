@@ -9,6 +9,7 @@ let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 51
 let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
 let lemma_table : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511
 let procedure_names  : (string list) ref = ref []
+let normalised_lvar_r = Str.regexp "##NORMALISED_LVAR"
 let copy_and_clear_globals () =
   let lemm' = Hashtbl.copy lemma_table in
 	let pred' = Hashtbl.copy predicate_table in
@@ -155,6 +156,7 @@ let copy_and_clear_globals () =
 %token <string> LVAR
 (* Logical expressions *)
 %token LNONE
+%token <string> ALOC
 (* Logic assertions *)
 %token OASSERT
 %token CASSERT
@@ -886,7 +888,9 @@ lexpr_target:
 (* Logic variable *)
 	| lvar = logic_variable_target
 	  { lvar }
-(* Abstract locations are computed on normalisation *)
+(* Abstract locations are *normally* computed on normalisation *)
+  | ALOC
+    { ALoc $1 }
 (* Program variable (including the special variable "ret") *)
 	| pvar = program_variable_target
 	  { pvar }
@@ -926,7 +930,10 @@ lexpr_target:
 
 logic_variable_target:
   v = LVAR
-	{ (* validate_lvar v; *) LVar v }
+	{
+    let v_imported = Str.replace_first normalised_lvar_r "_lvar" v in
+    (* TODO: build up hashtable of used logic variables, so we don't repeat outselves when generating them *)
+    (* validate_lvar v; *) LVar v_imported }
 ;
 
 just_logic_variable_target:

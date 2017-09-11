@@ -989,31 +989,41 @@ let normalise_normalised_assertion
   let pfs   : pure_formulae      = DynArray.make 0 in
   let preds : predicate_set      = DynArray.make 0 in
 
+  print_debug (Printf.sprintf "PARSING NORMALISED ASSERTION");
+     print_debug (JSIL_Print.string_of_logic_assertion a true);
+
   (* Step 2 - Map over assertion, populate gamma, store and heap *)
   let populate_state_from_assertion a =
     match a with
     | LTypes type_assertions ->
       List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e false) t) type_assertions;
       (a, false)
-    | LPointsTo (PVar loc, le2, le3)
-    | LPointsTo (LLit (Loc loc), le2, le3) ->
-      (* TODO: prefix locations with _ ? *)
-      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+    | LPointsTo ((PVar loc), le2, le3)
+    | LPointsTo ((LLit (Loc loc)), le2, le3)
+    | LPointsTo ((ALoc loc), le2, le3) ->
+      let field_val_pairs, default_empty_fields = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_empty_fields);
+      (a, false)
+    | LEmptyFields (obj, domain) ->
+      let loc = JSIL_Print.string_of_logic_expression obj false in
+      let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc ((field_val_pairs), (Some domain));
       (a, false)
     | LEq ((PVar v), le)
     | LEq (le, (PVar v)) ->
       Hashtbl.add store v le;
       (a, false)
-    | LEq ((PVar _), (PVar _))
     | LEq ((LVar _), _)
     | LEq (_, (LVar _)) ->
       DynArray.add pfs a;
       (a, false)
     | LNot _
+    | LAnd _ (* TODO: correct? *)
+    | LOr _ (* TODO: correct? *)
     | LLess _
     | LLessEq _
     | LStrLess _
+    | LForAll _
     | LSetMem _
     | LSetSub _ ->
       DynArray.add pfs a;
@@ -1066,6 +1076,9 @@ let normalise_single_normalised_spec
     (spec_name  : string)
     (spec       : jsil_single_spec) : jsil_n_single_spec list =
 
+  print_debug (Printf.sprintf "BANANAS. SPEC %S ALREADY NORMALISED: %s" spec_name
+                 (JSIL_Print.string_of_single_spec "" spec));
+
   (** Step 1 - "Normalise" precondition                                     *)
   (* TODO: check: we always only have 1 pre as the specs are already unfolded? *)
   let pre : symbolic_state = normalise_normalised_assertion spec.pre in
@@ -1073,7 +1086,13 @@ let normalise_single_normalised_spec
   (** Step 2 - "Normalise" the posts *)
   let spec_vars = get_assertion_lvars spec.pre in
   let posts : symbolic_state list = List.map normalise_normalised_assertion spec.post in
-    [{
+
+  print_debug
+    (Printf.sprintf "SAMOSAS. Normalised Pre: %s. Normalised Posts: %s\n"
+      (Symbolic_State_Print.string_of_shallow_symb_state pre)
+      (String.concat "; " (List.map Symbolic_State_Print.string_of_shallow_symb_state posts)));
+
+  [{
       n_pre      = pre;
     	n_post     = posts;
     	n_ret_flag = spec.ret_flag;
@@ -1278,15 +1297,15 @@ let pre_normalise_invariants_prog
 	Hashtbl.iter (fun proc_name proc -> pre_normalise_invariants_proc predicates proc.proc_body) prog
 
 
-let normalise_invariant 
+let normalise_invariant
 	(a         : jsil_logic_assertion)
 	(gamma     : typing_environment)
 	(spec_vars : SS.t)
-	(subst     : substitution) : symbolic_state = 
+	(subst     : substitution) : symbolic_state =
 	let gamma_inv = filter_gamma_f gamma (fun x -> SS.mem x spec_vars) in
 	let new_symb_state = Option.get (normalise_post gamma_inv subst spec_vars a) in
 	new_symb_state
-						
+
 
 
 (** -----------------------------------------------------
@@ -1303,8 +1322,9 @@ let print_normaliser_results_to_file
       (spec : jsil_n_single_spec) : string =
     let string_of_single_symb_state_assertion
         (symbolic_state : symbolic_state) : string =
-
-      JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state) true
+      (* print_normalisation ("PRINTNG STRING OF SYMBOLIC STATE FOR SPEC");
+         print_normalisation (Symbolic_State_Print.string_of_shallow_symb_state symbolic_state); *)
+      JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state false) true
     in
     let pre_assrt_str = "Pre:  " ^ string_of_single_symb_state_assertion spec.n_pre in
     let post_assrt_str = "\nPost: " ^ List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post in
@@ -1335,10 +1355,64 @@ let print_normaliser_results_to_file
       "Parameters : " ^ params ^ "\n" ^
       (Printf.sprintf "Recursive : %b\n" pred.n_pred_is_rec) ^
       (Printf.sprintf "Number of definitions: %d\n" (List.length pred.n_pred_definitions)) ^
-      List.fold_left (fun ac (_, x) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x) true) ^ "\n") "" pred.n_pred_definitions
+      List.fold_left (fun ac (_, x) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x false) false) ^ "\n") "" pred.n_pred_definitions
   in
   let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""
   in
   print_normalisation (Printf.sprintf "----------- NORMALISED PREDICATE TABLE -----------");
   print_normalisation (string_of_normalised_predicates pred_defs)
+
+(** -----------------------------------------------------
+  * Generate a .njsil file from the normalised specs (normalisedSpecsPreds.njsil)
+  * NB - This does not print the procs, just the preds and the specs, so the result will not be a syntactically valid output
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let generate_nsjil_file
+    (spec_tbl : specification_table)
+    (pred_defs : (string, n_jsil_logic_predicate) Hashtbl.t) : unit =
+
+  (* Printing the predicates *)
+  let predicate_output
+      (pred : n_jsil_logic_predicate) : string =
+    let params_string = String.concat ", " pred.n_pred_params in
+    let definitions_string_list = List.map (fun (_, x) ->  (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x false) false)) pred.n_pred_definitions in
+    let definitions_string = String.concat ",\n " definitions_string_list in
+    "pred " ^ pred.n_pred_name ^ " (" ^ params_string ^ "): \n" ^ definitions_string ^ ";\n\n"
+  in
+
+  let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
+    Hashtbl.fold (fun pname pred ac -> ac ^ predicate_output pred) preds ""
+  in
+
+  print_njsil_file (string_of_normalised_predicates pred_defs);
+
+  (* Printing the specs - NOT THE PROCS *)
+  let string_of_single_spec_assertions
+      (spec : jsil_n_single_spec) : string =
+    let string_of_single_symb_state_assertion
+        (symbolic_state : symbolic_state) : string =
+
+      JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state false) false
+    in
+    let pre_assrt_str = "[[ " ^ (string_of_single_symb_state_assertion spec.n_pre) ^ " ]]" in
+    let post_assrt_str = "\n[[ " ^ (List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post) ^ " ]]" in
+    let ret_flag_str = (match spec.n_ret_flag with
+                        | Normal -> "normal"
+                        | Error -> "error") in
+    pre_assrt_str ^ post_assrt_str ^ "\n" ^ ret_flag_str
+  in
+  let string_of_spec_assertions
+      (specs: jsil_n_single_spec list) : string =
+    let string_of_spec_assertions_list = List.map string_of_single_spec_assertions specs in
+    String.concat ";\n\n " string_of_spec_assertions_list
+  in
+  let string_of_spec_tbl_assertions =
+    Hashtbl.fold
+      (fun spec_name (spec : jsil_n_spec) acc ->
+         let params_str = String.concat ", " spec.n_spec_params in
+         acc ^ "spec " ^ spec_name ^ "(" ^ params_str ^ ")" ^ "\n" ^ (string_of_spec_assertions spec.n_proc_specs) ^ "\n\n"
+      ) spec_tbl ""
+  in
+  print_njsil_file (string_of_spec_tbl_assertions);
