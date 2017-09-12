@@ -309,8 +309,7 @@ let rec string_of_lcmd lcmd =
 	| Unfold (a, unfold_info) ->
 		"unfold " ^ (string_of_logic_assertion a false) ^ (string_of_unfold_info unfold_info)
 	| ApplyLem (lem_name, lparams) ->
-	  let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
-		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in
+    let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e false) lparams) in
 		"applyLemma " ^  lem_name ^ "(" ^ lparams_str ^ ")"
 	| RecUnfold pred_name -> "unfold* " ^ pred_name
 	| LogicIf (le, then_lcmds, else_lcmds) ->

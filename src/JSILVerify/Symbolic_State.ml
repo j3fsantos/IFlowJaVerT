@@ -859,21 +859,29 @@ type symb_jsil_program = {
 
 (*********************************************************)
 (** Lemma Dependency Graph **)
+(** Used for detecting cyclic dependencies and checking for a well-founded ordering **)
 (*********************************************************)
-type lemm_depd_variant_tracker = {
-  lemm_depd_variant_index : int;            (* Index of the variant in the paramater list *)
-  lemm_depd_variant_prev  : jsil_logic_expr (* Previous value of the variant *)
+type lemm_depd_recursive_call = {
+  lemm_debp_rec_init_sym_state : symbolic_state; (* Initial symbolic state for the pre-condition *)
+  lemm_depd_rec_sym_state      : symbolic_state; (* Symbolic state at the time of the recursive call *)
+  lemm_depd_params             : jsil_logic_expr list (* The arguments to the recursive call *)
 }
 
+(* Represents a lemma *)
 type lemm_depd_node = {
-  lemm_depd_cmd     : jsil_logic_command; (* The current command *)
-  lemm_depd_ss      : symbolic_state;     (* The current symbolic state  *)
-  lemm_depd_variant : lemm_depd_variant_tracker option;
+  lemm_depd_lemm_name       : string; (* Name of the lemma *)
+  lemm_depd_node_id         : int; (* Node ID *)
+  lemm_depd_params          : jsil_var list; (* List of the initial params *)
+  lemm_depd_recursive_calls : lemm_depd_recursive_call list (* List of all recursive calls *)
 }
 
 type lemm_depd_graph = {
-  lemm_depd_nodes : (int, lemm_depd_node) Hashtbl.t;
-  lemm_depd_edges : (int, int list) Hashtbl.t;
+  lemm_depd_names_ids       : (string, int) Hashtbl.t; (* mapping lemma names to node id's *)
+  lemm_depd_nodes           : (int, lemm_depd_node) Hashtbl.t;
+  lemm_depd_edges           : (int, int list) Hashtbl.t; (* lemm_depd_edges.find(x) = list of all dependencies of x *)
+  lemm_depd_node_count      : int; (* keeping track of the amount of nodes so we know what to call new nodes *)
+  lemm_depd_curr_lemma      : string; (* the name of the current lemma node *)
+  lemm_depd_init_symb_state : symbolic_state; (* The current initial symbolic state - might not need this?? *)
 }
 
 (*********************************************************)

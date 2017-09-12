@@ -843,8 +843,7 @@ let rec symb_evaluate_logic_cmd
 		(spec_vars         : SS.t)
 		(search_info       : symbolic_execution_search_info)
     (print_symb_states : bool)
-    (lemma_depd_graph : (lemm_depd_graph ref) option)
-    (lemma_depd_variant : lemm_depd_variant_tracker option) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
+    (lemma_depd_graph : (lemm_depd_graph ref) option) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
 
   	let prev_symb_state = copy_symb_state symb_state in
 
@@ -914,12 +913,35 @@ let rec symb_evaluate_logic_cmd
 		let params    = pred.n_pred_params in
 		recursive_unfold_predicate pred_name pred_defs symb_state params spec_vars search_info
 
-
-
-  	| ApplyLem (lemma_name, l_args) ->
+ | ApplyLem (lemma_name, l_args) ->
      print_time (Printf.sprintf "ApplyLemma %s." lemma_name);
 
-     (* TODO: add to the dependency graph *)
+     (* Add to the lemma dependency graph if called from a lemma *)
+     (match lemma_depd_graph with
+      | Some depd_graph ->
+        let curr_lemm_name    = (!depd_graph).lemm_depd_curr_lemma in
+        let curr_lemm_node_id = Hashtbl.find (!depd_graph).lemm_depd_names_ids curr_lemm_name in
+        let curr_lemm_node    = Hashtbl.find (!depd_graph).lemm_depd_nodes curr_lemm_node_id in
+       (match lemma_name = curr_lemm_name with
+        | true ->
+         (* Recursive Call *)
+         let init_symb_state : symbolic_state = (!depd_graph).lemm_depd_init_symb_state in
+         let rec_call : lemm_depd_recursive_call = {
+           lemm_debp_rec_init_sym_state = init_symb_state;
+           lemm_depd_rec_sym_state      = symb_state;
+           lemm_depd_params             = l_args;
+         } in
+         let new_depds_list = List.cons rec_call curr_lemm_node.lemm_depd_recursive_calls in
+         let updated_node = {curr_lemm_node with lemm_depd_recursive_calls = new_depds_list} in
+         Hashtbl.replace (!depd_graph).lemm_depd_nodes curr_lemm_node_id updated_node
+       | false ->
+         (* Lemma Dependency *)
+         let called_lemma_node_id : int   = Hashtbl.find (!depd_graph).lemm_depd_names_ids lemma_name in
+         let curr_lemm_depds : (int list) = Hashtbl.find (!depd_graph).lemm_depd_edges curr_lemm_node_id in
+         (match (List.mem called_lemma_node_id curr_lemm_depds) with
+         | true -> () (* Already an edge *)
+         | false -> Hashtbl.replace (!depd_graph).lemm_depd_edges curr_lemm_node_id (List.cons called_lemma_node_id curr_lemm_depds)))
+      | _ -> ());
 
   		(* Look up the lemma specs in the spec table *)
 		let proc_specs = try Hashtbl.find s_prog.spec_tbl lemma_name
@@ -954,14 +976,14 @@ let rec symb_evaluate_logic_cmd
 			if (Pure_Entailment.check_entailment SS.empty (get_pf_list symb_state) [ a_le_then ] (get_gamma symb_state))
 				then (
 					print_normal (Printf.sprintf "LIf Guard -- %s ==> $$t" (JSIL_Print.string_of_logic_expression le false));
-					symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst lemma_depd_graph lemma_depd_variant
+					symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst lemma_depd_graph
 				) else (
 					print_normal (Printf.sprintf "If Guard -- %s ==> $$f" (JSIL_Print.string_of_logic_expression le false));
-					symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst lemma_depd_graph lemma_depd_variant)
+					symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst lemma_depd_graph)
 
 	| Macro (name, param_vals) ->
 		let macro_body = expand_macro name param_vals in
-		symb_evaluate_logic_cmd s_prog macro_body symb_state subst spec_vars search_info print_symb_states lemma_depd_graph lemma_depd_variant
+		symb_evaluate_logic_cmd s_prog macro_body symb_state subst spec_vars search_info print_symb_states lemma_depd_graph
 
  	| Assert a ->
    		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a false));
@@ -979,8 +1001,7 @@ symb_evaluate_logic_cmds s_prog
 	(symb_states_with_spec_vars : (symbolic_state * SS.t * symbolic_execution_search_info) list)
 	(print_symb_states : bool)
   (subst : substitution)
-  (lemma_depd_graph : (lemm_depd_graph ref) option)
-  (lemma_depd_variant : lemm_depd_variant_tracker option) : ((symbolic_state * SS.t * symbolic_execution_search_info) list) =
+  (lemma_depd_graph : (lemm_depd_graph ref) option) : ((symbolic_state * SS.t * symbolic_execution_search_info) list) =
 	(match l_cmds with
 	| [] -> symb_states_with_spec_vars
 	| l_cmd :: rest_l_cmds ->
@@ -990,8 +1011,8 @@ symb_evaluate_logic_cmds s_prog
 					print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\n----------------------------------\n"
 						(Symbolic_State_Print.string_of_shallow_symb_state symb_state)
       (JSIL_Print.string_of_lcmd l_cmd)));
-				symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info print_symb_states lemma_depd_graph lemma_depd_variant) symb_states_with_spec_vars) in
-		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states_with_spec_vars print_symb_states subst lemma_depd_graph lemma_depd_variant)
+				symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info print_symb_states lemma_depd_graph) symb_states_with_spec_vars) in
+		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states_with_spec_vars print_symb_states subst lemma_depd_graph)
 
 
 (**
@@ -1164,7 +1185,7 @@ and post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state cu
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
-	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec_vars, search_info ] false subst None None in
+	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec_vars, search_info ] false subst None in
 	(* The number of symbolic states resulting from the evaluation of the logic commands *)
 	let len = List.length symb_states_with_spec_vars in
 	(* For each obtained symbolic state *)
@@ -1225,7 +1246,7 @@ and pre_symb_evaluate_cmd
 
 			(* 2. Execute the pre logical commands *)
 			let symb_states_with_spec_vars =
-				symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state, spec_vars, search_info ] false subst None None in
+				symb_evaluate_logic_cmds s_prog metadata.pre_logic_cmds [ symb_state, spec_vars, search_info ] false subst None in
 
 			(* 3. Evaluate the next command in all the possible symb_states *)
 			let len = List.length symb_states_with_spec_vars in
@@ -1277,7 +1298,7 @@ let symb_evaluate_proc
 				(try Structural_Entailment.unify_symb_state_against_post s_prog proc_name spec symb_state ret_flag search_info !js with
 					| SymbExecRecovery GR (Flash (pn, pp)) ->
 						let flash = [ Unfold (LPred (pn, pp), None); Fold (LPred (pn, pp)) ] in
-						let sss = symb_evaluate_logic_cmds s_prog flash [ symb_state, spec_vars, search_info ] false spec.n_subst None None in
+						let sss = symb_evaluate_logic_cmds s_prog flash [ symb_state, spec_vars, search_info ] false spec.n_subst None in
 						List.iter (fun (ss, sv, si) ->
 							let spec = { spec with n_lvars = sv } in
 							let _ = Structural_Entailment.unify_symb_state_against_post s_prog proc.proc_name spec ss ret_flag si !js in
@@ -1331,11 +1352,11 @@ let sym_run_procs
 
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
-		program = prog;
+		program    = prog;
 		which_pred = which_pred;
-		spec_tbl = spec_table;
-		lemma_tbl = lemma_table;
-		pred_defs = n_pred_defs
+		spec_tbl   = spec_table;
+		lemma_tbl  = lemma_table;
+		pred_defs  = n_pred_defs
 	} in
 	let pruning_info = init_post_pruning_info () in
 
@@ -1346,9 +1367,9 @@ let sym_run_procs
 		(fun ac_results proc_name ->
     (* Q1: Have we got a spec? *)
     print_debug (Printf.sprintf "PROVING SPECS FOR PROC %s" proc_name);
-			let spec = try (Some (Hashtbl.find spec_table proc_name)) with | _ -> None in
-			(* Q1: YES *)
-			(match spec with
+		let spec = try (Some (Hashtbl.find spec_table proc_name)) with | _ -> None in
+		(* Q1: YES *)
+		(match spec with
     | Some spec ->
       print_debug (Printf.sprintf "SPEC FOUND FOR PROC %s" proc_name);
 				update_post_pruning_info_with_spec pruning_info spec;
@@ -1388,14 +1409,6 @@ let sym_run_procs
 	(* Return *)
 	results_str, dot_graphs, complete_success, results
 
-
-
-
-
-
-
-
-
 (* Given a series of posts, it attempts to unify them with the given symb state *)
 let rec unify_all_posts all_posts symb_state lvars lemma_name i =
   print_debug (Printf.sprintf "Trying to unify against postcondition %d." i);
@@ -1427,128 +1440,43 @@ let unify_all_sym_states all_states all_posts lemma_name =
 	     unify_all_posts all_posts final_symb_state final_lvars lemma_name 0)
 		 all_states)
 
-(* Checks termination of a lemma *)
-(* If each call uses smaller arguments (i.e. a well founded ordering) *)
-
-(* Need to establish a VARIANT, a paramter which changes *)
-(* For this we need to have the actual value of the initial paramaters *)
-
-(* Goal: get the type information for each paramater *)
-(* Idea: use the type information from the pre-condition *)
-(* Therefore we need to make it a requirement that each paramater is typed in the pre-condition *)
-(* Most (all?) of these will be exist as the precondition is normalised *)
-
-(* Need to use the normalised form? *)
-
-    (*
-let does_lemma_terminate
-    (lemma: jsil_lemma)
-    (gamma: typing_environment) : bool =
-
-  (* 1. Get the current arguments *)
-  let lemma_init_args = lemma.lemma_spec.spec_params in
-
-  (* 2. Check all paramaters are typed *)
-  (* TODO is this check necessary? *)
-  (*
-  let all_params_typed = not (List.mem false (List.map (Hashtbl.mem gamma) params)) in
-  (match all_params_typed with
-  | false -> raise (Failure (Printf.sprintf "Not all paramaters in lemma %s are typed in the precondition." lemma.spec.spec_name)))
-  | true -> ());
-*)
-
-  (* 3. Each time a recursive call is made, check the arguments are smaller *)
-  let check_proof_cmds (cmds: jsil_logic_command list) : bool =
-    let checked_cmds_list = List.map
-        (fun cmd ->
-           match cmd with
-           | ApplyLem ((called_lemma_name : string), params) ->
-             match String.equal called_lemma_name lemma.lemma_spec.spec_name with
-             | true ->
-               (* Checking the arguments *)
-               (* We have a list of JSIL vars, but we are checking against a logical expression *)
-               (List.map (fun param ->
-                    print_debug (Printf.sprintf "Lemma argument, jsil var: %s" param)) params);
-               true
-             | false -> true
-           | _ -> true
-        )
-        cmds in
-    (not (List.mem false checked_cmds_list))
-    in
-
-  (* Check the proof body, if it exists *)
-  match lemma.lemma_proof with
-  | Some cmds -> check_proof_cmds cmds
-  | None -> true
-
-*)
-
-
-(* Only perform induction over jsil_literals *)
-
-
-(* Generates lemma dependency graph *)
-(*
-let generate_lemma_dependency_graph
-    (lemma_table : lemma_table)
-    (spec_tbl) : lemma_depd_graph =
-
-  (* For each lemma *)
-  (* *)
-  (* For each logical command *)
-  (* If *)
-
-NEED TO CREATE THIS IN THE SYMBOLIC EXECUTION
-
-Additional assertion: specify which paramater is the variant (index of paramater list)
-
-PLAN:
-
-Each node needs:
-  Command (this will only ever be an ApplyLem)
-  The previous value of the variant
-  Symbolic state (do we need to store the full state? will this impact performance?)
-  Variant index (optional)
-  Node ID
-
-Store the edges associated with each node (id -> list of id's)
-
-Graph can (will probably) be not connected
-
-*)
-
 (* Initialise the lemma dependency graph *)
-let lemma_dependency_graph : (lemm_depd_graph ref) = ref {
-  lemm_depd_nodes = Hashtbl.create 511;
-  lemm_depd_edges = Hashtbl.create 511
+let lemm_depd_graph : (lemm_depd_graph ref) = ref {
+  lemm_depd_names_ids       = Hashtbl.create 30;
+  lemm_depd_nodes           = Hashtbl.create 30;
+  lemm_depd_edges           = Hashtbl.create 30;
+  lemm_depd_node_count      = 0;
+  lemm_depd_curr_lemma      = "";
+  lemm_depd_init_symb_state = ((heap_init ()), (store_init [] []), (DynArray.make 0), (gamma_init ()), (DynArray.make 0))
 }
 
 (* Attempts to prove each lemma *)
 let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
+
+(* Populate the initial lemma dependency graph *)
+  let _ = Hashtbl.fold (fun lemma_name lemma count ->
+      let lemma_spec = Hashtbl.find spec_tbl lemma_name in
+      let new_node : lemm_depd_node = {
+        lemm_depd_lemm_name       = lemma_name;
+        lemm_depd_node_id         = count;
+        lemm_depd_params          = lemma_spec.n_spec_params;
+        lemm_depd_recursive_calls = [];
+      } in
+      Hashtbl.replace (!lemm_depd_graph).lemm_depd_nodes count new_node;
+      Hashtbl.replace (!lemm_depd_graph).lemm_depd_names_ids lemma_name count;
+      count + 1
+    )
+    lemma_table 0 in
+
   let prove_lemma (lemma : jsil_lemma) lemma_name post_pruning_info =
 		print_normal (Printf.sprintf "------------------------------------------");
-		print_normal (Printf.sprintf "Proving a lemma: %s.\n" lemma_name);
+    print_normal (Printf.sprintf "Proving a lemma: %s.\n" lemma_name);
+    lemm_depd_graph := {(!lemm_depd_graph) with lemm_depd_curr_lemma = lemma_name};
 		let attempt_proof (proof_body : jsil_logic_command list) =
     print_debug (Printf.sprintf "Attempting to prove the proof body.");
 
-       (* Dummy variant index TODO change *)
-      let variant_index = 3 in
-      let variant_init_variable_name = List.nth lemma.lemma_spec.spec_params variant_index in
-
-
 			(* Add this lemma to the pruning info *)
-			let prove_indivdual_pre spec_number (spec : jsil_n_single_spec) =
-      print_debug (Printf.sprintf "Proving an invididual spec of the lemma %s." lemma_name);
-
-      (* Get the initial value of the variant *)
-      let (_, init_symbolic_store, _, _, _) = spec.n_pre in
-      let variant_init_value = Hashtbl.find init_symbolic_store variant_init_variable_name in
-      let variant_init : lemm_depd_variant_tracker = {
-        lemm_depd_variant_index = variant_index;
-        lemm_depd_variant_prev = variant_init_value
-      } in
-
+    let prove_indivdual_pre spec_number (spec : jsil_n_single_spec) (params : jsil_var list) =
 				(* Creating an object of type symbolic_execution_search_info *)
 				(* Guessing you initialise the node here? As each pre-condition is a new "branch"(?) (not 100% sure how the graph works) *)
 				let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
@@ -1563,7 +1491,7 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
         } in
         let symb_states_with_spec_vars = [((copy_symb_state spec.n_pre), spec.n_lvars, symb_exe_search_info)] in
 				let subst = spec.n_subst in
-      let result_states = symb_evaluate_logic_cmds s_prog proof_body symb_states_with_spec_vars true subst (Some lemma_dependency_graph) (Some variant_init) in
+      let result_states = symb_evaluate_logic_cmds s_prog proof_body symb_states_with_spec_vars true subst (Some lemm_depd_graph) in
 				print_debug (Printf.sprintf "Executed proof body commands. Resulting states: %d" (List.length result_states));
         print_debug (Printf.sprintf "Checking all states.");
 				let lemma_result = unify_all_sym_states result_states spec.n_post lemma_name in
@@ -1574,8 +1502,9 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 						          Printf.printf "Lemma %s FAILED\n" lemma_name);
 					()
 					in
-					  let lemma_spec = Hashtbl.find spec_tbl lemma_name in
-						List.iteri prove_indivdual_pre lemma_spec.n_proc_specs in
+     let lemma_spec = Hashtbl.find spec_tbl lemma_name in
+     print_debug (Printf.sprintf "Lemma specs: %d" (List.length lemma_spec.n_proc_specs));
+						List.iteri (fun spec_number spec -> prove_indivdual_pre spec_number spec lemma_spec.n_spec_params) lemma_spec.n_proc_specs in
 						let proof_outcome =
 							(match lemma.lemma_proof with
 							 | None            -> print_normal (Printf.sprintf "No proof body.")
