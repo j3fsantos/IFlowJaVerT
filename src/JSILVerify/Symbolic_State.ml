@@ -862,9 +862,8 @@ type symb_jsil_program = {
 (** Used for detecting cyclic dependencies and checking for a well-founded ordering **)
 (*********************************************************)
 type lemm_depd_recursive_call = {
-  lemm_debp_rec_init_sym_state : symbolic_state; (* Initial symbolic state for the pre-condition *)
   lemm_depd_rec_sym_state      : symbolic_state; (* Symbolic state at the time of the recursive call *)
-  lemm_depd_params             : jsil_logic_expr list (* The arguments to the recursive call *)
+  lemm_depd_args               : jsil_logic_expr list (* The arguments to the recursive call *)
 }
 
 (* Represents a lemma *)
@@ -872,7 +871,8 @@ type lemm_depd_node = {
   lemm_depd_lemm_name       : string; (* Name of the lemma *)
   lemm_depd_node_id         : int; (* Node ID *)
   lemm_depd_params          : jsil_var list; (* List of the initial params *)
-  lemm_depd_recursive_calls : lemm_depd_recursive_call list (* List of all recursive calls *)
+  lemm_depd_recursive_calls : lemm_depd_recursive_call list; (* List of all recursive calls *)
+  lemm_depd_variant         : jsil_logic_expr option (* The variant *)
 }
 
 type lemm_depd_graph = {
@@ -880,8 +880,7 @@ type lemm_depd_graph = {
   lemm_depd_nodes           : (int, lemm_depd_node) Hashtbl.t;
   lemm_depd_edges           : (int, int list) Hashtbl.t; (* lemm_depd_edges.find(x) = list of all dependencies of x *)
   lemm_depd_node_count      : int; (* keeping track of the amount of nodes so we know what to call new nodes *)
-  lemm_depd_curr_lemma      : string; (* the name of the current lemma node *)
-  lemm_depd_init_symb_state : symbolic_state; (* The current initial symbolic state - might not need this?? *)
+  lemm_depd_curr_lemma      : string (* the name of the current lemma node *)
 }
 
 (*********************************************************)

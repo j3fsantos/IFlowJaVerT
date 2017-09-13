@@ -189,6 +189,7 @@ rule read = parse
   (* Procedure specification keywords *)
   | "only"               { JSIL_Parser.ONLY      }
 	| "lemma"              { JSIL_Parser.LEMMA     }
+	| "variant"            { JSIL_Parser.VARIANT   }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }

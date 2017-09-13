@@ -194,6 +194,7 @@ let copy_and_clear_globals () =
 %token ONLY
 %token SPEC
 %token LEMMA
+%token VARIANT
 %token NORMAL
 %token ERROR
 (* JS only spec specifics *)
@@ -720,10 +721,12 @@ js_only_spec_target:
 
 jsil_lemma_target:
   (* lemma xpto (x, y)
+     variant(x)
    	 [[ pre ]]
      [[ post ]]
      [* proof_body *] *)
 	LEMMA; lemma_head = jsil_lemma_head_target;
+  variant = option(jsil_lemma_variant_target);
   pre = spec_line;
 	post = mult_spec_line;
 	proof = option(jsil_lemma_proof_target);
@@ -733,7 +736,8 @@ jsil_lemma_target:
 		let lemma =
 		{
 			lemma_spec  = lemma_spec;
-			lemma_proof = proof
+			lemma_proof = proof;
+      lemma_variant = variant
 		} in
 		Hashtbl.replace lemma_table lemma_name lemma;
 		lemma
@@ -743,6 +747,13 @@ jsil_lemma_head_target:
   lemma_name = VAR; LBRACE; lemma_params = separated_list(COMMA, VAR); RBRACE
 	{
 		(lemma_name, lemma_params)
+	}
+;
+
+jsil_lemma_variant_target:
+  VARIANT LBRACE; variant = lexpr_target; RBRACE
+	{
+		variant
 	}
 ;
 

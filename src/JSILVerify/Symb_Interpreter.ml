@@ -925,11 +925,9 @@ let rec symb_evaluate_logic_cmd
        (match lemma_name = curr_lemm_name with
         | true ->
          (* Recursive Call *)
-         let init_symb_state : symbolic_state = (!depd_graph).lemm_depd_init_symb_state in
          let rec_call : lemm_depd_recursive_call = {
-           lemm_debp_rec_init_sym_state = init_symb_state;
            lemm_depd_rec_sym_state      = symb_state;
-           lemm_depd_params             = l_args;
+           lemm_depd_args               = l_args;
          } in
          let new_depds_list = List.cons rec_call curr_lemm_node.lemm_depd_recursive_calls in
          let updated_node = {curr_lemm_node with lemm_depd_recursive_calls = new_depds_list} in
@@ -1446,9 +1444,180 @@ let lemm_depd_graph : (lemm_depd_graph ref) = ref {
   lemm_depd_nodes           = Hashtbl.create 30;
   lemm_depd_edges           = Hashtbl.create 30;
   lemm_depd_node_count      = 0;
-  lemm_depd_curr_lemma      = "";
-  lemm_depd_init_symb_state = ((heap_init ()), (store_init [] []), (DynArray.make 0), (gamma_init ()), (DynArray.make 0))
+  lemm_depd_curr_lemma      = ""
 }
+
+(* Check recursive calls operate on smaller arguments *)
+let check_lemma_recursive_calls
+    unit : unit =
+
+  (* Check each lemma *)
+  let lemma_recursive_check
+      (variant : jsil_logic_expr)
+      (lemma_node : lemm_depd_node) : unit =
+
+    print_debug (Printf.sprintf "Checking recursive calls in lemma %s" lemma_node.lemm_depd_lemm_name);
+    print_debug (Printf.sprintf "Variant: %s" (JSIL_Print.string_of_logic_expression variant false));
+
+    let string_of_lemma_params = String.concat ", " lemma_node.lemm_depd_params in
+
+    (* Check each recursive call in the lemma *)
+    let check_recursive_call
+        (rec_call : lemm_depd_recursive_call) : unit =
+
+      (* Check units *)
+      print_debug (Printf.sprintf "Checking recursive call..");
+
+      (* What do we have.. *)
+      (*
+      print_debug (Printf.sprintf "Lemma params: %s" string_of_lemma_params);
+      let string_of_rec_arguments = String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) rec_call.lemm_depd_args) in
+      print_debug (Printf.sprintf "Rec call args: %s" string_of_rec_arguments);
+      print_debug (Printf.sprintf "Initial symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state rec_call.lemm_debp_rec_init_sym_state));
+      print_debug (Printf.sprintf "Symbolic state at time of call:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state rec_call.lemm_depd_rec_sym_state));
+      *)
+
+      (* Substitute the PVars in the variant with their replacement logical expressions in the next call *)
+      let variant_subst : ((jsil_var, jsil_logic_expr) Hashtbl.t) = Hashtbl.create 20 in
+      List.iteri (fun i param ->
+          Hashtbl.replace variant_subst param (List.nth rec_call.lemm_depd_args i)
+        )
+        lemma_node.lemm_depd_params;
+
+      (* Make a new second variant with these logical expressions substituted, representing the variant in the called state *)
+      let rec subst_lexpr_pvars
+          (lexpr : jsil_logic_expr) : jsil_logic_expr =
+
+        match lexpr with
+        | LLit _ | LNone | LVar _ | ALoc _ -> lexpr
+        | PVar v -> Hashtbl.find variant_subst v
+        | LBinOp (e1, op, e2) -> LBinOp (subst_lexpr_pvars e1, op, subst_lexpr_pvars e2)
+        | LUnOp (op, e)       -> LUnOp (op, subst_lexpr_pvars e)
+        | LTypeOf e           -> LTypeOf (subst_lexpr_pvars e)
+        | LEList le           -> LEList (List.map subst_lexpr_pvars le)
+        | LCList le           -> LCList (List.map subst_lexpr_pvars le)
+        | LESet le            -> LESet  (List.map subst_lexpr_pvars le)
+        | LSetUnion le        -> LSetUnion  (List.map subst_lexpr_pvars le)
+        | LSetInter le        -> LSetInter  (List.map subst_lexpr_pvars le)
+        | LLstNth (e1, e2)    -> LLstNth (subst_lexpr_pvars e1, subst_lexpr_pvars e2)
+        | LStrNth (e1, e2)    -> LStrNth (subst_lexpr_pvars e1, subst_lexpr_pvars e2)
+      in
+      let new_variant = subst_lexpr_pvars variant in
+
+      (* Transform the PVars into LVars for Z3 *)
+      let rec tranform_pvars_lvars
+          (lexpr : jsil_logic_expr) : jsil_logic_expr =
+
+        match lexpr with
+        | LLit _ | LNone | LVar _ | ALoc _ -> lexpr
+        | PVar v -> LVar ("_lvar_" ^ v)
+        | LBinOp (e1, op, e2) -> LBinOp (tranform_pvars_lvars e1, op, tranform_pvars_lvars e2)
+        | LUnOp (op, e)       -> LUnOp (op, tranform_pvars_lvars e)
+        | LTypeOf e           -> LTypeOf (tranform_pvars_lvars e)
+        | LEList le           -> LEList (List.map tranform_pvars_lvars le)
+        | LCList le           -> LCList (List.map tranform_pvars_lvars le)
+        | LESet le            -> LESet  (List.map tranform_pvars_lvars le)
+        | LSetUnion le        -> LSetUnion  (List.map tranform_pvars_lvars le)
+        | LSetInter le        -> LSetInter  (List.map tranform_pvars_lvars le)
+        | LLstNth (e1, e2)    -> LLstNth (tranform_pvars_lvars e1, tranform_pvars_lvars e2)
+        | LStrNth (e1, e2)    -> LStrNth (tranform_pvars_lvars e1, tranform_pvars_lvars e2)
+      in
+
+      (* Create an assertion var_1 <# var_2 *)
+      let termination_assertion : jsil_logic_assertion = LLess ((tranform_pvars_lvars new_variant), (tranform_pvars_lvars variant)) in
+      print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion false));
+
+      (* Check that the store, pfs and gamma entail the termination_assertion *)
+      let _, state_store, state_pfs, state_gamma, _ = rec_call.lemm_depd_rec_sym_state in
+      let state_entails_termination_assertion =
+
+        (* Transform the store into a list of assertions, and add these to the pfs *)
+        Hashtbl.iter (fun (var : string) (value : jsil_logic_expr) ->
+            (* Turn PVars into Lvars *)
+            DynArray.add state_pfs (LEq ((LVar ("_lvar_" ^ var)) , value))
+          ) state_store;
+
+        let pfs : jsil_logic_assertion list = Symbolic_State.pfs_to_list state_pfs in
+        Pure_Entailment.check_entailment SS.empty (pfs) [termination_assertion] state_gamma
+      in
+
+      (* Throw an error if the assertion is not entailed *)
+      (match state_entails_termination_assertion with
+      | true -> ()
+      | false -> raise (Failure (Printf.sprintf "The lemma %s variant %s does not decrease in every recursive call." lemma_node.lemm_depd_lemm_name (JSIL_Print.string_of_logic_expression variant false))));
+
+      print_debug (Printf.sprintf "State on call entails termination assertion? %b" state_entails_termination_assertion);
+    in
+    List.map check_recursive_call lemma_node.lemm_depd_recursive_calls;
+    ()
+
+  in
+  (* Only perform the check on lemmas where the variant is specified *)
+  Hashtbl.iter (fun _ lemma_node ->
+      match lemma_node.lemm_depd_variant with
+      | Some variant -> lemma_recursive_check variant lemma_node
+      | None -> ()
+    ) (!lemm_depd_graph).lemm_depd_nodes
+
+(* Check for cyclic dependencies *)
+let check_lemma_cyclic_dependencies
+  unit : unit =
+
+  (* TODO: Later optimise the DFS using DP *)
+
+  (* For each lemma, perform a DFS on the graph *)
+  let lemma_dfs_search
+      (lemma_name : string)
+      (lemma_node_id : int) : unit =
+
+    print_debug (Printf.sprintf "Checking dependencies of lemma %s (%d)" lemma_name lemma_node_id);
+
+    let visited_nodes : ((int, bool) Hashtbl.t) = Hashtbl.create 50 in
+
+    (* Get the next node we haven't visited yet *)
+    (* Pre: the stack is non-empty *)
+    let rec get_next_node
+        (dfs_stack : (int Stack.t)) : ((int * (int Stack.t)) option) =
+
+      let next_node = Stack.pop dfs_stack in
+      try
+        (* Nodes are only in the hashtable if we have visited them, so if an error is thrown we have not *)
+        let visited = Hashtbl.find visited_nodes next_node in
+        get_next_node dfs_stack
+      with
+      | _ -> Some (next_node, dfs_stack)
+    in
+
+    let rec dfs
+        (curr_node : int)
+        (dfs_stack : (int Stack.t)) : unit =
+
+      (* Add current node to visited hashtbl *)
+      Hashtbl.replace visited_nodes curr_node true;
+
+      (* Get all children of current node *)
+      let curr_node_children : int list = Hashtbl.find (!lemm_depd_graph).lemm_depd_edges curr_node in
+      (* Check they are not equal to the lemma node *)
+      List.map
+        (fun child ->
+           match child = lemma_node_id with
+           | true -> raise (Failure (Printf.sprintf "Cyclic dependency detected for lemma %s" lemma_name))
+           | false -> Stack.push child dfs_stack
+        )
+      curr_node_children;
+
+      (* Visit the next item in the stack *)
+      (match Stack.is_empty dfs_stack with
+      | true -> ()
+      | false ->
+        match get_next_node dfs_stack with
+        | Some (next_node, new_stack) -> dfs next_node new_stack
+        | None -> ()
+      ) in
+
+    dfs lemma_node_id (Stack.create ()) in
+
+  Hashtbl.iter lemma_dfs_search (!lemm_depd_graph).lemm_depd_names_ids
 
 (* Attempts to prove each lemma *)
 let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
@@ -1461,9 +1630,11 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
         lemm_depd_node_id         = count;
         lemm_depd_params          = lemma_spec.n_spec_params;
         lemm_depd_recursive_calls = [];
+        lemm_depd_variant         = lemma.lemma_variant
       } in
       Hashtbl.replace (!lemm_depd_graph).lemm_depd_nodes count new_node;
       Hashtbl.replace (!lemm_depd_graph).lemm_depd_names_ids lemma_name count;
+      Hashtbl.replace (!lemm_depd_graph).lemm_depd_edges count [];
       count + 1
     )
     lemma_table 0 in
@@ -1512,4 +1683,6 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 							 proof_outcome
 							 in
 							    let post_pruning_info = init_post_pruning_info() in
-										Hashtbl.iter (fun lemma_name lemma -> prove_lemma lemma lemma_name post_pruning_info) lemma_table
+        Hashtbl.iter (fun lemma_name lemma -> prove_lemma lemma lemma_name post_pruning_info) lemma_table;
+        check_lemma_cyclic_dependencies ();
+        check_lemma_recursive_calls ()
