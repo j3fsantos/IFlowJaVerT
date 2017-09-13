@@ -1,4 +1,4 @@
-import Internals, Object;
+import Internals.jsil, Object.jsil;
 
 (* *** DEFAULT *** *)
 

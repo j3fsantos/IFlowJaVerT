@@ -1,4 +1,4 @@
-import Object;
+import Object.jsil;
 
 proc create_default_object (l, pr, cl, ext) {
 

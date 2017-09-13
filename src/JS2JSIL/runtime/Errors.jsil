@@ -1,4 +1,4 @@
-import Internals, Init;
+import Internals.jsil, Init.jsil;
 
 (* ***************** *)
 (* THE ERROR LIBRARY *)

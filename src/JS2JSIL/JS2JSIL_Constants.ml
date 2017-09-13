@@ -2,19 +2,19 @@ open Common
 open JSIL_Syntax
 
 let js2jsil_imports = [
-	"Array";
-	"Boolean";
-	"Date";
-	"Function";
-	"Global";
-	"Init";
-	"Internals";
-	"Math";
-	"Number";
-	"Object";
-	"RegExp";
-	"String";
-	"Errors"
+	"Array.jsil";
+	"Boolean.jsil";
+	"Date.jsil";
+	"Function.jsil";
+	"Global.jsil";
+	"Init.jsil";
+	"Internals.jsil";
+	"Math.jsil";
+	"Number.jsil";
+	"Object.jsil";
+	"RegExp.jsil";
+	"String.jsil";
+	"Errors.jsil"
 ]
 
 let js2jsil_logic_imports = [ "javert_internal_functions.jsil"; "javert_logic_macros.jsil"; "javert_js_predicates.jsil"]

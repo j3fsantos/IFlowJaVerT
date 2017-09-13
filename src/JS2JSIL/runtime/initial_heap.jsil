@@ -1,4 +1,4 @@
-import Init;
+import Init.jsil;
 
 proc main () {
 	rlab:	xret := "setupInitialHeap" ()

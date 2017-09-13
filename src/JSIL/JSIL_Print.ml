@@ -740,7 +740,7 @@ let string_of_store store =
 		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
 			let v_val_str = string_of_literal v_val true in
 			let var_val_str = var ^ ": " ^ v_val_str  in
-			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
+			if (ac = "") then "\t" ^ var_val_str else ac ^ "\n\t" ^ var_val_str)
 		store
 		"Store: "
 
@@ -755,6 +755,22 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 							print_obj ^ printed_cell)
 						obj "") in
 			printed_heap ^ (printed_object))
+		h
+		""
+
+let legible_string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
+	SHeap.fold
+		(fun loc obj printed_heap ->
+			let pre_str = "\t[ " ^ loc ^ " : " in
+			let post_str = "]\n" in
+			  let printed_object =
+					(SHeap.fold
+						(fun prop hval print_obj ->
+							let printed_hval = string_of_literal hval false in
+							let printed_cell = Printf.sprintf "(%s : %s) " prop printed_hval in
+							print_obj ^ printed_cell)
+						obj "") in
+			printed_heap ^ (pre_str ^ printed_object ^ post_str))
 		h
 		""
 

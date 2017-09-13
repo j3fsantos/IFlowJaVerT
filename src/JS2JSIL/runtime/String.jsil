@@ -1,4 +1,4 @@
-import Internals;
+import Internals.jsil;
 
 (* ****************** *)
 (* THE STRING LIBRARY *)

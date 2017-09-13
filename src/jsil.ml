@@ -25,7 +25,7 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 
 			(* access debugging information *)
-			"-debug", Arg.Unit(fun () -> debug := true; verbose := true), "debug information";
+			"-debug", Arg.Unit(fun () -> debug := true), "debug information";
 
 			(* it is a compiled js program *)
 			"-js", Arg.Unit(fun () -> js := true), "input is a compiled js program";
@@ -87,9 +87,7 @@ let main () =
       | JS2JSIL_Preprocessing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1)
 	else (
 		let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
-		Printf.printf "I got the program to run:\n%s\n" (JSIL_Print.string_of_ext_program ext_prog);
 		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog in
-		Printf.printf "I de-labeled the program to run\n";
 		run_jsil_prog prog which_pred None None
 	)
 
