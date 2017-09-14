@@ -97,7 +97,13 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 					print_debug_petar (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s" pat_aloc lvar);
 					let loc = Simplifications.resolve_location lvar (DynArray.of_list pfs) in
 					
-					print_debug_petar (Printf.sprintf "Location resolution finished.");
+					print_debug_petar (Printf.sprintf "Location resolution for %s with pfs %s finished: %s" 
+					lvar 
+					(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list pfs) false)
+					(match loc with
+					| Some loc -> JSIL_Print.string_of_logic_expression loc false
+					| None -> "None"));
+					
 					(match loc with
 					| Some loc ->
 						print_debug_petar (Printf.sprintf "I managed to resolve location and I know that %s = %s\n" lvar (JSIL_Print.string_of_logic_expression loc false));
