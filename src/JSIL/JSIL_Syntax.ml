@@ -639,7 +639,7 @@ let fresh_sth (name : string) : (unit -> string) =
 let lit_loc_prefix = "$"
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
-let pvar_prefix = "_pvar_"
+let pvar_prefix = "pvar_"
 let svar_prefix = "s_"
 
 (* initialising the counts *)
