@@ -7,7 +7,8 @@ let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
 let var = (letter|'_')(letter|digit|'_')*
 let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
-let lvar = '#' (letter|digit|'_'|'$')*
+let lvar  = '#' (letter|digit|'_'|'$')*
+let lvar2 = "_lvar_" (letter|digit|'_')*
 let normalised_lvar = "##NORMALISED_LVAR" (letter|digit|'_'|'$')*
 let loc = "$l" (letter|digit|'_')*
 let aloc = "_$l_" (letter|digit|'_')*
@@ -225,11 +226,12 @@ rule read = parse
 	| normalised_aloc       { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
 (* Filenames *)
   | filename             { JSIL_Parser.FILENAME (Lexing.lexeme lexbuf) }
-(* Variables *)
-	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* Logic variables *)
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+	| lvar2                { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 	| normalised_lvar      { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+(* Variables *)
+	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* EOF *)
 	| eof                  { JSIL_Parser.EOF }
 	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
