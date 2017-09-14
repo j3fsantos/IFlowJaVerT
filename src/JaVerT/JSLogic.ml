@@ -204,7 +204,8 @@ let fresh_pvar () =
 let vislist_2_les (vis_list : string list) (i : int) : jsil_logic_expr list =
 	Array.to_list (
 		Array.init i
-			(fun j -> if (j = 0) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fresh_lvar ())))
+			(fun j -> if (j = 0) then LLit (Loc JS2JSIL_Constants.locGlobName) else LVar (fresh_lvar ()))) 
+
 
 
 let rec js2jsil_lexpr scope_var le =
@@ -337,7 +338,13 @@ let rec js2jsil_assertion
 	| JSSChain (fid, le) ->
 		let vis_list = get_vis_list vis_tbl fid in
 		let scope_chain_list = vislist_2_les vis_list ((List.length vis_list)-1) in
-		LEq (fe le, LEList scope_chain_list)
+		if ((List.length scope_chain_list) <= 1) then LEq (fe le, LEList scope_chain_list) else (
+			let les_fids = List.tl scope_chain_list in 
+			LStar (
+				LEq (fe le, LEList scope_chain_list), 
+				LTypes (List.map (fun le -> (le, ObjectType)) les_fids)
+			)
+		)
 
 	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
 
@@ -408,7 +415,14 @@ let rec js2jsil_single_spec
 	(*  x__this == #this                *)
 	let a_this       = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in
 	(*  x__scope == {{ #x1, ..., #xn }} *)
-	let a_scope_pre  = LEq (PVar JS2JSIL_Constants.var_scope, LEList scope_chain_list) in
+	let a_scope_pre  = 
+		if ((List.length scope_chain_list) <= 1) then LEq (PVar JS2JSIL_Constants.var_scope, LEList scope_chain_list) else (
+			let les_fids = List.tl scope_chain_list in 
+			LStar (
+				LEq (PVar JS2JSIL_Constants.var_scope, LEList scope_chain_list), 
+				LTypes (List.map (fun le -> (le, ObjectType)) les_fids)
+			)
+		) in 
 	let a_scope_post = LEq (PVar JS2JSIL_Constants.var_scope_final, LEList (scope_chain_list @ [ PVar JS2JSIL_Constants.var_er ])) in
 
 	if (fid = main_fid)
