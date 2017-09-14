@@ -8,6 +8,16 @@
 */
 
 /**
+@pred IDGeneratorAlternate(ig, c_val, prefix, scp) :
+   JSObject(ig) * 
+   DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
+   DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
+   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc) * 
+   o_chains(getId: #gni_sc, makeIdGen: scp) *
+   types (c_val: $$number_type, prefix: $$string_type);
+*/
+
+/**
 	@toprequires (initialHeapPre())
 	@topensures (
 	   scope(makeIdGen: #mig) *
@@ -32,8 +42,12 @@ var makeIdGen = function (prefix) {
 
 	/**
 		@id   getId
+		
 		@pre  (scope(count: #c)     * scope(prefix: #prefix) * types(#c: $$number_type, #prefix: $$string_type)) 
 		@post (scope(count: (#c+1)) * scope(prefix: #prefix) * (ret == (#prefix ++ "_id_" ++ num_to_string(#c))))
+		
+		@pre  IDGeneratorAlternate(#ig, #c, #p, #sc_ig) 
+		@post IDGeneratorAlternate(#ig, #c + 1, #p, #sc_ig)
 	*/
 	var getId = function () { return prefix + "_id_" + (count++) }; 
 
