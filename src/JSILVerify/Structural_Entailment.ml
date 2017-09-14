@@ -484,7 +484,7 @@ let unify_domains (dom : jsil_logic_expr option) (pat_dom : jsil_logic_expr opti
 
 
 
-let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae pat_gamma gamma (subst : substitution) : symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list =
+let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_formulae pat_pfs pat_gamma gamma (subst : substitution) : symbolic_heap * (jsil_logic_assertion list) * symbolic_discharge_list =
 	print_debug (Printf.sprintf "Unify heaps %s \nand %s \nwith substitution: %s\nwith pure formulae: %s\nwith gamma: %s"
 		(Symbolic_State_Print.string_of_shallow_symb_heap pat_heap false)
 		(Symbolic_State_Print.string_of_shallow_symb_heap heap false)
@@ -496,6 +496,17 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 	let quotient_heap = LHeap.create 1021 in
 	let pat_heap_domain : string list = heap_domain pat_heap subst in
 	print_debug_petar (Printf.sprintf "PatHeapDomain: %s" (String.concat ", " pat_heap_domain));
+
+	Hashtbl.iter 
+		(fun k v -> 
+			let loc = Simplifications.resolve_location k pat_pfs in
+			(match loc with
+			| None -> ()
+			| Some loc -> (match loc with
+				| ALoc loc
+				| LLit (Loc loc) -> Hashtbl.replace subst loc v
+				| _ -> ()))
+		) subst;
 
 	let rec pick_loc_that_exists_in_both_heaps locs traversed_locs  =
 		match locs with
@@ -550,7 +561,7 @@ let unify_symb_heaps (pat_heap : symbolic_heap) (heap : symbolic_heap) pure_form
 								| LVar v ->
 									print_debug (Printf.sprintf "matched a pattern loc with the logical variable %s!\n" v);
 
-									let loc = try Simplifications.aux_find_me_Im_a_loc pure_formulae gamma v with _ -> None in
+									let loc = try Simplifications.resolve_location_loc v pure_formulae with _ -> None in
 									(match loc with
 									| Some loc ->
 										(print_debug (Printf.sprintf "find_me_Im_a_loc returned: %s!\n" loc);
@@ -1361,7 +1372,7 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 			List.iter (fun (x, y) -> print_debug_petar (Printf.sprintf "\t%s : %s\n" (JSIL_Print.string_of_logic_expression x false) (JSIL_Print.string_of_logic_expression y false))) discharges_0;
 			let keep_subst = Hashtbl.copy subst in
 			(* First try to unify heaps, then predicates *)
-			let ret_1, failure = try (Some (unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst), None) with | SymbExecFailure failure -> None, Some failure in
+			let ret_1, failure = try (Some (unify_symb_heaps heap_1 heap_0 pf_0 pf_1 gamma_1 gamma_0 subst), None) with | SymbExecFailure failure -> None, Some failure in
 			(match ret_1 with
 			| Some (heap_f, new_pfs, negative_discharges) ->
 				print_debug_petar (Printf.sprintf "Heaps unified successfully. Unifying predicates.\n");
@@ -1424,7 +1435,7 @@ let unify_symb_states pat_symb_state (symb_state : symbolic_state) lvars : bool 
 
 									print_debug_petar "Now unifying heaps again.";
 									print_debug_petar (Printf.sprintf "%s" (Symbolic_State_Print.string_of_substitution subst));
-									let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
+									let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 pf_1 gamma_1 gamma_0 subst in
 										print_debug_petar (Printf.sprintf "Heaps unified successfully.\n");
 										let spec_vars_check = spec_logic_vars_discharge subst lvars pf_0 gamma_0 in
 										(match spec_vars_check with
@@ -1577,7 +1588,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 	(* STEP 1 *)
 	let step_1 subst =
 		print_debug "\tEntering step 1.";
-		let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 gamma_1 gamma_0 subst in
+		let heap_f, new_pfs, negative_discharges = unify_symb_heaps heap_1 heap_0 pf_0 pf_1 gamma_1 gamma_0 subst in
 		let new_subst, preds_f, unmatched_pat_preds = unify_pred_arrays preds_1 preds_0 pf_0 gamma_1 gamma_0 subst in
 			print_debug (Printf.sprintf "subst after unify_heaps: %s" (Symbolic_State_Print.string_of_substitution subst));
 			print_debug (Printf.sprintf "subst after unify_preds: %s" (Symbolic_State_Print.string_of_substitution new_subst));

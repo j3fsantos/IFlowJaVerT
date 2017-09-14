@@ -290,9 +290,9 @@ let symb_evaluate_bcmd
 			| LLit (Loc l)
 			| ALoc l -> l
 			| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
+			 (match Simplifications.resolve_location_loc lvar pure_formulae with
 		 		| Some loc ->
-		 			loc
+		 				loc
 		 		| None ->
 					raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
 			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
@@ -319,7 +319,7 @@ let symb_evaluate_bcmd
 		| ALoc l ->
 			Symbolic_State_Utils.update_abs_heap heap l ne2 ne3 pure_formulae gamma
 		| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
+			 (match Simplifications.resolve_location_loc lvar pure_formulae with
 		 		| Some loc ->
 		 			Symbolic_State_Utils.update_abs_heap heap loc ne2 ne3 pure_formulae gamma
 		 		| None ->
@@ -343,7 +343,7 @@ let symb_evaluate_bcmd
 			| LLit (Loc l)
 			| ALoc l -> l
 			| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
+			 (match Simplifications.resolve_location_loc lvar pure_formulae  with
 		 		| Some loc ->
 		 			loc
 		 		| None ->
@@ -366,7 +366,7 @@ let symb_evaluate_bcmd
 			| LLit (Loc l)
 			| ALoc l -> l
 			| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
+			 (match Simplifications.resolve_location_loc lvar pure_formulae with
 		 		| Some loc ->
 		 			loc
 		 		| None ->
@@ -394,7 +394,7 @@ let symb_evaluate_bcmd
 		| ALoc l ->
 				member_check heap l ne2 pure_formulae gamma x store
 		| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
+			 (match Simplifications.resolve_location_loc lvar pure_formulae with
 		 		| Some loc ->
 		 			member_check heap loc ne2 pure_formulae gamma x store
 		 		| None ->

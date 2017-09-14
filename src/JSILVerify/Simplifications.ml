@@ -70,18 +70,6 @@ let find_me_Im_a_list store pfs le =
 			else (List.hd flist)
 	) with FoundIt result -> result
 
-let rec find_me_Im_a_loc pfs lvar = 
-	match pfs with 
-	| [] -> None 
-	| LEq (lvar', ALoc loc) :: rest
-	| LEq (lvar', LLit (Loc loc))  :: rest
-	| LEq (ALoc loc, lvar') :: rest
-	| LEq ( LLit (Loc loc), lvar') :: rest ->
-		if (lvar = lvar') 
-			then Some loc 
-			else find_me_Im_a_loc rest lvar
-	| _ :: rest -> find_me_Im_a_loc rest lvar
-
 let find_me_in_the_pi pfs nle =
 	DynArray.fold_left (fun ac a -> 
 			(match a with 
@@ -686,19 +674,6 @@ let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create
 let reduce_assertion_no_store_no_gamma        = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1)
 let reduce_assertion_no_store                 = reduce_assertion (Hashtbl.create 1)
 
-
-
-(*
-let resolve_logical_variables pfs lvars = 
-	let rec loop pfs lvars_found_so_far = 
-		match pfs with 
-		| [] -> lvars_found_so_far 
-		| LEq (LVar v, le) :: rest
-		| LEq (le, LVar v) :: rest ->
-			let vars_le = 
-			if (List.mem v lvars) 
-				then loop rest 
-				else find_me_Im_a_loc rest lvar  *)
 
 
 let simplify_equalities_between_booleans (p_assertions : pure_formulae) = 
@@ -2319,11 +2294,16 @@ let aux_find_me_Im_a_loc pfs gamma v =
 				| _ -> None))
 
 let resolve_location lvar pfs = 
+	
+	print_debug_petar (Printf.sprintf "Resolving location %s in pfs %s"
+		lvar
+		(Symbolic_State_Print.string_of_shallow_p_formulae pfs false));
+	
 	let search_set = ref (SLExpr.singleton (LVar lvar)) in
 	let expr_added = ref true in
 	let found  = ref false in
 	let result = ref None in
-	let length = DynArray.length pfs - 1 in
+	let length = DynArray.length pfs in
 	
 	let check_and_add le = 
 		let proceed = (match le with
@@ -2339,26 +2319,33 @@ let resolve_location lvar pfs =
 	
 		(while (!expr_added && not !found) do
 			expr_added := false;
-			for i = 0 to length do
-				(match !found with
-				| true -> ()
-				| false -> 
-  				let pf = DynArray.get pfs i in
-  				(match pf with
-  				| LEq (lhs, rhs) -> 
-  					let lhs_in = SLExpr.mem lhs !search_set in 
-  					let rhs_in = SLExpr.mem rhs !search_set in
-  					(match lhs_in, rhs_in with
-  					| true, true
-  					| false, false -> ()
-  					| true, false -> check_and_add rhs
-						| false, true -> check_and_add lhs)
-				| _ -> ()));
+			let i = ref 0 in
+			while (!i < length && not !found) do
+  			let pf = DynArray.get pfs !i in
+				i := !i + 1;
+  			(match pf with
+  			| LEq (lhs, rhs) -> 
+  				let lhs_in = SLExpr.mem lhs !search_set in 
+  				let rhs_in = SLExpr.mem rhs !search_set in
+  				(match lhs_in, rhs_in with
+  				| true, true
+  				| false, false -> ()
+  				| true, false -> check_and_add rhs
+					| false, true -> check_and_add lhs)
+				| _ -> ())
 			done;
 		done);
 		
 	!result
 	
+let resolve_location_loc lvar pfs = 
+	let result = resolve_location lvar pfs in
+	(match result with
+	| None -> None
+	| Some loc -> (match loc with
+		| ALoc loc
+		| LLit (Loc loc) -> Some loc
+		| _ -> raise (Failure ("Impossible loc returned")))) 
 	
 (* ******************** *
  * EXPRESSION REDUCTION *

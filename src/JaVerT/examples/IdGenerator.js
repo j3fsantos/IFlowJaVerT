@@ -16,8 +16,8 @@
 	   scope(ig1: #ig1) *
 	   scope(ig2: #ig2) *
 	   FunctionObject(#mig, "makeIdGen", #mig_sc, _) *
-	   idGenerator(#ig1, 1, "foo", #sc1) *
-	   idGenerator(#ig2, 0, "bar", #sc2) * 
+	   idGenerator(#ig1, 1, "foo", _) *
+	   idGenerator(#ig2, 0, "bar", _) * 
 	   scope(id1: #id1) *
 	   (#id1 == "foo_id_0")
 */
@@ -34,21 +34,20 @@ var makeIdGen = function (prefix) {
 
 	/**
 		@id   getId
-		@pre  idGenerator(#ig, #c,     #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
-		@post idGenerator(#ig, #c + 1, #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
+		@pre  idGenerator(#ig, #c,     #p, #sc_ig) * (this == #ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
+		@post idGenerator(#ig, #c + 1, #p, #sc_ig) * (this == #ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
 	*/
 	var getId = function () { return prefix + "_id_" + (count++) }; 
 
 	/**
 		@id   reset
-		@pre  idGenerator(#ig, #c, #p, #sc_ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
-		@post idGenerator(#ig,  0, #p, #sc_ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
+		@pre  idGenerator(#ig, #c, #p, #sc_ig) * (this == #ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
+		@post idGenerator(#ig,  0, #p, #sc_ig) * (this == #ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
 	*/
 	var reset = function () { count = 0 }; 
 
 	return { getId: getId, reset: reset }
 };
-
 
 var ig1 = makeIdGen ("foo");
 var ig2 = makeIdGen ("bar");
