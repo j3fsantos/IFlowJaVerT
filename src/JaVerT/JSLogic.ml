@@ -192,7 +192,7 @@ let counter = ref 0
 let pvar_counter = ref 0
 
 let fresh_lvar () =
-	let v = "_lvar_" ^ (string_of_int !counter) in
+	let v = "#lvar_" ^ (string_of_int !counter) in
    	counter := !counter + 1;
    	v
 

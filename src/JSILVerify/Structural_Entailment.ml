@@ -95,7 +95,8 @@ let unify_stores (pat_store : symbolic_store) (store : symbolic_store) (pat_subs
 
 				| ALoc pat_aloc, LVar lvar ->
 					print_debug_petar (Printf.sprintf "So, in unify_stores: Aloc %s, Lvar %s" pat_aloc lvar);
-					let loc = Simplifications.resolve_location lvar pfs in
+					let loc = Simplifications.resolve_location lvar (DynArray.of_list pfs) in
+					
 					print_debug_petar (Printf.sprintf "Location resolution finished.");
 					(match loc with
 					| Some loc ->

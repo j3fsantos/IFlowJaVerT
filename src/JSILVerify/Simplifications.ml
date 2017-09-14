@@ -2318,19 +2318,47 @@ let aux_find_me_Im_a_loc pfs gamma v =
 				| LLit (Loc w) -> Some w
 				| _ -> None))
 
-(** This function is dramatically incomplete **)
-let resolve_location lvar pfs =
-	let rec loop pfs =
-		match pfs with
-		| [] -> None
-		| LEq (LVar cur_lvar, ALoc loc) :: rest
-		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
-			if (cur_lvar = lvar) then Some (ALoc loc) else loop rest
-		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
-		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
-			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
-		| _ :: rest -> loop rest in
-	loop pfs
+let resolve_location lvar pfs = 
+	let search_set = ref (SLExpr.singleton (LVar lvar)) in
+	let expr_added = ref true in
+	let found  = ref false in
+	let result = ref None in
+	let length = DynArray.length pfs - 1 in
+	
+	let check_and_add le = 
+		let proceed = (match le with
+			| ALoc loc
+			| LLit (Loc loc) ->
+					found := true;
+					result := Some le;
+					false
+			| _ -> true) in
+		if proceed then (
+			search_set := SLExpr.union !search_set (SLExpr.singleton le);	
+			expr_added := true) in
+	
+		(while (!expr_added && not !found) do
+			expr_added := false;
+			for i = 0 to length do
+				(match !found with
+				| true -> ()
+				| false -> 
+  				let pf = DynArray.get pfs i in
+  				(match pf with
+  				| LEq (lhs, rhs) -> 
+  					let lhs_in = SLExpr.mem lhs !search_set in 
+  					let rhs_in = SLExpr.mem rhs !search_set in
+  					(match lhs_in, rhs_in with
+  					| true, true
+  					| false, false -> ()
+  					| true, false -> check_and_add rhs
+						| false, true -> check_and_add lhs)
+				| _ -> ()));
+			done;
+		done);
+		
+	!result
+	
 	
 (* ******************** *
  * EXPRESSION REDUCTION *
