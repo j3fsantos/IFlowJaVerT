@@ -46,8 +46,8 @@ var makeIdGen = function (prefix) {
 		@pre  (scope(count: #c)     * scope(prefix: #prefix) * types(#c: $$number_type, #prefix: $$string_type)) 
 		@post (scope(count: (#c+1)) * scope(prefix: #prefix) * (ret == (#prefix ++ "_id_" ++ num_to_string(#c))))
 		
-		@pre  IDGeneratorAlternate(#ig, #c, #p, #sc_ig) * o_chains(getId: sc, makeIdGen: #sc_ig)
-		@post IDGeneratorAlternate(#ig, #c + 1, #p, #sc_ig) * o_chains(getId: sc, makeIdGen: #sc_ig)
+		@pre  IDGeneratorAlternate(#ig, #c, #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
+		@post IDGeneratorAlternate(#ig, #c + 1, #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
 	*/
 	var getId = function () { return prefix + "_id_" + (count++) }; 
 
