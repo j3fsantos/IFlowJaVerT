@@ -14,6 +14,7 @@
    DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
    closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc) * 
    o_chains(getId: #gni_sc, makeIdGen: sc_id) *
+   o_chains(reset: #ri_sc,  makeIdGen: sc_id) *
    types (c_val: $$number_type, prefix: $$string_type);
 */
 
@@ -42,19 +43,15 @@ var makeIdGen = function (prefix) {
 
 	/**
 		@id   getId
-		
-		@pre  (scope(count: #c)     * scope(prefix: #prefix) * types(#c: $$number_type, #prefix: $$string_type)) 
-		@post (scope(count: (#c+1)) * scope(prefix: #prefix) * (ret == (#prefix ++ "_id_" ++ num_to_string(#c))))
-		
-		@pre  IDGeneratorAlternate(#ig, #c, #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
+		@pre  IDGeneratorAlternate(#ig, #c,     #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
 		@post IDGeneratorAlternate(#ig, #c + 1, #p, #sc_ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
 	*/
 	var getId = function () { return prefix + "_id_" + (count++) }; 
 
 	/**
 		@id   reset
-		@pre  scope(count: #c)
-		@post scope(count: 0)
+		@pre  IDGeneratorAlternate(#ig, #c, #p, #sc_ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
+		@post IDGeneratorAlternate(#ig,  0, #p, #sc_ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
 	*/
 	var reset = function () { count = 0 }; 
 
