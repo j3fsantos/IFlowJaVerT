@@ -93,8 +93,8 @@ let rec assertion_map
   
 	(* Map recursively to assertions and expressions *)
 	let map_a = assertion_map f_a f_e in
-  let map_e = logic_expression_map f_e in
-  let (mapped_lasrt, recurse) =
+    let map_e = logic_expression_map f_e in
+    let (mapped_lasrt, recurse) =
    (match f_a with
      | Some f -> f asrt
      | None -> (asrt, true)) in
@@ -126,6 +126,39 @@ let rec assertion_map
     let (a'', _) = f_a a' in
      a''
 
+(* Map over the logic commands,
+	applying f_l (which should NON-RECURSIVE) to the logical commands,
+			 f_a to the logical assertions
+			 f_e to the logical expressions,
+	recursing over lists of logical expressions.
+	*)
+let rec logic_command_map
+	(f_l : (jsil_logic_command -> jsil_logic_command) option)
+	(f_a : (jsil_logic_assertion -> jsil_logic_assertion * bool) option)
+	(f_e : (jsil_logic_expr -> jsil_logic_expr * bool) option)
+	(lcmd : jsil_logic_command) : jsil_logic_command =
+
+	(* Functions to map over assertions and expressions *)
+	let map_l    = logic_command_map f_l f_a f_e in
+	let some_f_e = Option.default (fun e -> (e, true)) f_e in
+	let map_a    = assertion_map f_a some_f_e in
+	let map_e    = logic_expression_map some_f_e in
+
+	(* Apply the given function to the logical command *)
+	let some_f_l = Option.default (fun l -> l) f_l in
+	let mapped_lcmd = some_f_l lcmd in
+
+	(* Map over the elements of the command *)
+	match mapped_lcmd with
+		| Fold a -> Fold (map_a a)
+		| Unfold (a, None) -> Unfold ((map_a a), None)
+		| Unfold (a, (Some (s, l))) -> Unfold ((map_a a), (Some (s, (List.map (fun (x, e) -> (x, (map_e e))) l))))
+		| ApplyLem (s, l) -> ApplyLem (s, (List.map map_e l))
+		| RecUnfold s -> RecUnfold s
+		| LinearRecUnfold (s, l) -> LinearRecUnfold (s, (List.map map_e l))
+		| LogicIf (e, l1, l2) -> LogicIf ((map_e e), (List.map map_l l1), (List.map map_l l2))
+		| Macro (s, l) -> Macro (s, (List.map map_e l))
+		| Assert a -> Assert (map_a a)
 
 let rec logic_expression_fold f_ac f_state state lexpr =
 
