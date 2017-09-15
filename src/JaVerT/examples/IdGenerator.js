@@ -1,11 +1,10 @@
 /**
-@pred idGenerator(ig, c_val, prefix, sc_id) :
+@pred idGenerator(ig, c_val, prefix, sc_ig) :
    JSObject(ig) * 
    DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
    DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
-   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc) * 
-   o_chains(getId: #gni_sc, makeIdGen: sc_id) *
-   o_chains(reset: #ri_sc,  makeIdGen: sc_id) *
+   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc) *
+   o_chains(getId : #gni_sc, makeIdGen : sc_ig) *
    types (c_val: $$number_type, prefix: $$string_type);
 */
 
@@ -15,7 +14,7 @@
 	   scope(makeIdGen: #mig) *
 	   scope(ig1: #ig1) *
 	   scope(ig2: #ig2) *
-	   FunctionObject(#mig, "makeIdGen", #mig_sc, _) *
+	   FunctionObject(#mig, "makeIdGen", _, _) *
 	   idGenerator(#ig1, 1, "foo", _) *
 	   idGenerator(#ig2, 0, "bar", _) * 
 	   scope(id1: #id1) *
@@ -34,15 +33,15 @@ var makeIdGen = function (prefix) {
 
 	/**
 		@id   getId
-		@pre  idGenerator(#ig, #c,     #p, #sc_ig) * (this == #ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
-		@post idGenerator(#ig, #c + 1, #p, #sc_ig) * (this == #ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig)
+		@pre  (this == #ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig) * idGenerator(#ig, #c, #p, #sc_ig)
+		@post idGenerator(#ig, #c + 1, #p, #sc_ig) * (ret == (#p ++ "_id_" ++ num_to_string(#c)))
 	*/
-	var getId = function () { return prefix + "_id_" + (count++) }; 
+	var getId = function () { return prefix + "_id_" + (count++) };
 
 	/**
 		@id   reset
-		@pre  idGenerator(#ig, #c, #p, #sc_ig) * (this == #ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
-		@post idGenerator(#ig,  0, #p, #sc_ig) * (this == #ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig)
+		@pre  (this == #ig) * o_chains(reset: $$scope, makeIdGen: #sc_ig) * idGenerator(#ig, #c, #p, #sc_ig) 
+		@post idGenerator(#ig, 0, #p, #sc_ig)
 	*/
 	var reset = function () { count = 0 }; 
 

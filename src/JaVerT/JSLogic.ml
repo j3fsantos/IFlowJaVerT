@@ -288,8 +288,9 @@ let rec js2jsil_assertion
 				let desc = LEList [ LLit (String "d"); (fe le_x); LLit (Bool true); LLit (Bool true); LLit (Bool false) ] in
 				LPointsTo (LLit (Loc JS2JSIL_Constants.locGlobName), LLit (String x), desc)
 			| Some i ->
-				let le_er = LLstNth (fe le_sc, LLit (Num (float_of_int i))) in
-				LPointsTo (le_er, LLit (String x), fe le_x)) in
+				let fsc = fe le_sc in
+				let le_er = LLstNth (fsc, LLit (Num (float_of_int i))) in
+				LStar (LTypes [ (fsc, ListType) ], LPointsTo (le_er, LLit (String x), fe le_x))) in
 		(* add_extra_scope_chain_info fid le_sc a'*)
 		a'
 
@@ -306,7 +307,7 @@ let rec js2jsil_assertion
 		let f j     =
 			let asrt = LEq (LLstNth (le_sc1', LLit (Num (float_of_int j))), LLstNth (le_sc2', LLit (Num (float_of_int j)))) in
 			(* add_extra_scope_chain_info fid2 le_sc2 (add_extra_scope_chain_info fid1 le_sc1 asrt) *)
-			asrt in
+			LStar (LTypes [(le_sc1', ListType); (le_sc2', ListType)], asrt) in
 		JSIL_Logic_Utils.star_asses (List.map f is)
 
 	(*	Tr(scope(x: le_x)) ::= Tr(scope(x: le_x, sc, fid)) *)
