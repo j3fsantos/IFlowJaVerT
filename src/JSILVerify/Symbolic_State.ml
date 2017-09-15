@@ -886,15 +886,18 @@ type lemm_depd_graph = {
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
 (*********************************************************)
+(* Nodes can either be labelled with the command which generated them and the line number,
+   the logical command which generated them,
+   or with a message (e.g. "Postcondition")*)
+type node_label =
+  | Cmd  of jsil_cmd
+  | LCmd of jsil_logic_command
+  | Msg  of string
+
 type search_info_node = {
-	heap_str    : string;
-	store_str   : string;
-	pfs_str     : string;
-	gamma_str   : string;
-	preds_str   : string;
-	(* cmd index *)
+	symb_state  : symbolic_state option;
+	label       : node_label;
 	cmd_index   : int;
-	cmd_str     : string;
 	(* node number *)
 	node_number : int
 }
@@ -929,11 +932,6 @@ let make_symb_exe_search_info node_info post_pruning_info spec_number =
 		Hashtbl.replace new_search_info.info_nodes 0 node_info;
 		new_search_info
 	end
-
-let update_search_info search_info info_node vis_tbl =
-	{
-		search_info with cur_node_info = info_node; vis_tbl = vis_tbl
-	}
 
 let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl
 

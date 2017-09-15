@@ -1,0 +1,2149 @@
+pred isClass (c, _pvar_0):
+(c == "Array") * (_pvar_0 == "Array") * types(c : $$string_type, _pvar_0 : $$string_type),
+ (c == "String") * (_pvar_0 == "String") * types(c : $$string_type, _pvar_0 : $$string_type),
+ (c == ##NORMALISED_LVAR_c) * (_pvar_0 == "Non-String") * (! (##NORMALISED_LVAR_c == "String")) * types(c : $$string_type, _pvar_0 : $$string_type, ##NORMALISED_LVAR_c : $$string_type),
+ (c == ##NORMALISED_LVAR_c) * (_pvar_0 == "Non-Array") * (! (##NORMALISED_LVAR_c == "Array")) * types(c : $$string_type, _pvar_0 : $$string_type, ##NORMALISED_LVAR_c : $$string_type);
+
+pred ErrorObject (l, pr):
+empty_fields(_$l_l : -{ "@class", "@extensible", "@proto" }-) * ((_$l_l, "@extensible") -> $$t) * ((_$l_l, "@class") -> "Error") * ((_$l_l, "@proto") -> ##NORMALISED_LVAR_pr) * (l == _$l_l) * (pr == ##NORMALISED_LVAR_pr) * types(l : $$object_type, ##NORMALISED_LVAR_pr : $$object_type, pr : $$object_type);
+
+pred initialHeapPost ():
+empty_fields($lfun_proto : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-) * (($lfun_proto, "@call") -> "FP_default") * (($lfun_proto, "length") -> {{ "d", 0., $$f, $$f, $$f }}) * (($lfun_proto, "@scope") -> $$empty) * (($lfun_proto, "@extensible") -> $$t) * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@class") -> "Function") * empty_fields($lerr : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "length", "prototype" }-) * (($lerr, "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * (($lerr, "@construct") -> "Error_construct") * (($lerr, "@call") -> "Error_call") * (($lerr, "length") -> {{ "d", 1., $$f, $$f, $$f }}) * (($lerr, "@scope") -> $$empty) * (($lerr, "@extensible") -> $$t) * (($lerr, "@proto") -> $lfun_proto) * (($lerr, "@class") -> "Function") * (($lg, "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * (($lg, "@extensible") -> $$t) * (($lg, "@proto") -> $lobj_proto) * (($lg, "@class") -> "Object") * empty_fields($lop_hasOwnProperty : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * (($lop_hasOwnProperty, "length") -> {{ "d", 1., $$f, $$f, $$f }}) * (($lop_hasOwnProperty, "@scope") -> $$empty) * (($lop_hasOwnProperty, "@extensible") -> $$t) * (($lop_hasOwnProperty, "@proto") -> $lfun_proto) * (($lop_hasOwnProperty, "@class") -> "Function") * empty_fields($lobj_proto : -{ "@class", "@extensible", "@proto", "hasOwnProperty" }-) * (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }}) * (($lobj_proto, "@extensible") -> $$t) * (($lobj_proto, "@proto") -> $$null) * (($lobj_proto, "@class") -> "Object") * empty_fields($lerr_proto : -{ "@class", "@extensible", "@proto", "message" }-) * (($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * (($lerr_proto, "@extensible") -> $$t) * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@class") -> "Error") * types();
+
+pred desc_enum (d, v):
+(v == l-nth(##NORMALISED_LVAR_1000518, 3.)) * (d == ##NORMALISED_LVAR_1000518) * types(d : $$list_type, ##NORMALISED_LVAR_1000518 : $$list_type);
+
+pred desc_set (d, v):
+(v == l-nth(##NORMALISED_LVAR_1000517, 2.)) * (d == ##NORMALISED_LVAR_1000517) * types(d : $$list_type, ##NORMALISED_LVAR_1000517 : $$list_type);
+
+pred desc_conf (d, v):
+(v == l-nth(##NORMALISED_LVAR_1000520, 4.)) * (d == ##NORMALISED_LVAR_1000520) * types(d : $$list_type, ##NORMALISED_LVAR_1000520 : $$list_type);
+
+pred desc_val (d, v):
+(v == l-nth(##NORMALISED_LVAR_1000519, 1.)) * (d == ##NORMALISED_LVAR_1000519) * types(d : $$list_type, ##NORMALISED_LVAR_1000519 : $$list_type);
+
+pred DataDescriptor (d):
+(d == {{ "d", #dval, #dwrit, #denum, #dconf }}) * (! (#dval == $$empty)) * types(#denum : $$boolean_type, d : $$list_type, #dwrit : $$boolean_type, #dconf : $$boolean_type);
+
+pred GenericDescriptor (d):
+(d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }}) * types(d : $$list_type);
+
+pred Pi (l, prop, lcls, d, ls, ltf, lpv):
+((_$l_l, ##NORMALISED_LVAR_prop) -> None) * ((_$l_l, "@class") -> #cls) * ((_$l_l, "@proto") -> $$null) * (lcls == {{ #cls }}) * (l == _$l_l) * (prop == ##NORMALISED_LVAR_prop) * (ltf == {{ $$f }}) * (ls == {{ _$l_l }}) * (d == $$undefined) * (lpv == {{ "" }}) * (! (s-nth(##NORMALISED_LVAR_prop, 0.) == "@")) * (! (##NORMALISED_LVAR_prop == "")) * (! (#cls == "String")) * types(ls : $$list_type, lcls : $$list_type, ##NORMALISED_LVAR_prop : $$string_type, d : $$undefined_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, ltf : $$list_type, lpv : $$list_type),
+ ((_$l_l, ##NORMALISED_LVAR_prop) -> {{ "d", ##NORMALISED_LVAR_10004, ##NORMALISED_LVAR_10005, ##NORMALISED_LVAR_10006, ##NORMALISED_LVAR_10007 }}) * ((_$l_l, "@class") -> #cls) * (lcls == {{ #cls }}) * (l == _$l_l) * (prop == ##NORMALISED_LVAR_prop) * (ltf == {{ $$f }}) * (ls == {{ _$l_l }}) * (d == {{ "d", ##NORMALISED_LVAR_10004, ##NORMALISED_LVAR_10005, ##NORMALISED_LVAR_10006, ##NORMALISED_LVAR_10007 }}) * (lpv == {{ "" }}) * (! (##NORMALISED_LVAR_10004 == $$empty)) * (! (s-nth(##NORMALISED_LVAR_prop, 0.) == "@")) * (! (##NORMALISED_LVAR_prop == "")) * (! (#cls == "String")) * types(lcls : $$list_type, ls : $$list_type, ##NORMALISED_LVAR_prop : $$string_type, l : $$object_type, d : $$list_type, ##NORMALISED_LVAR_10006 : $$boolean_type, prop : $$string_type, #cls : $$string_type, ltf : $$list_type, ##NORMALISED_LVAR_10005 : $$boolean_type, lpv : $$list_type, ##NORMALISED_LVAR_10007 : $$boolean_type),
+ ((_$l_l, ##NORMALISED_LVAR_prop) -> None) * ((_$l_l, "@proto") -> #lp) * ((_$l_l, "@class") -> #cls) * (lcls == (#cls :: (#pcls :: #ocls))) * (l == _$l_l) * (prop == ##NORMALISED_LVAR_prop) * (ltf == ($$f :: (#ptf :: #otf))) * (ls == (_$l_l :: (#lp :: #ols))) * (d == ##NORMALISED_LVAR_d) * (lpv == ("" :: (#ppv :: #otv))) * (! (s-nth(##NORMALISED_LVAR_prop, 0.) == "@")) * (! (##NORMALISED_LVAR_prop == "")) * (! (#cls == "String")) * (#lpv == (#ppv :: #otv)) * (#ltf == (#ptf :: #otf)) * (#lls == (#lp :: #ols)) * (#lcls == (#pcls :: #ocls)) * types(#ocls : $$list_type, #otv : $$list_type, #otf : $$list_type, #lcls : $$list_type, lcls : $$list_type, ls : $$list_type, #lp : $$object_type, ##NORMALISED_LVAR_prop : $$string_type, l : $$object_type, #ols : $$list_type, prop : $$string_type, #cls : $$string_type, #ppv : $$string_type, #ptf : $$boolean_type, ltf : $$list_type, #lls : $$list_type, lpv : $$list_type, #pcls : $$string_type, #ltf : $$list_type, #lpv : $$list_type) * Pi(#lp, ##NORMALISED_LVAR_prop, (#pcls :: #ocls), ##NORMALISED_LVAR_d, (#lp :: #ols), (#ptf :: #otf), (#ppv :: #otv));
+
+pred isReferenceError (l):
+empty_fields(_$l_l : -{ "@class", "@extensible", "@proto" }-) * ((_$l_l, "@extensible") -> $$t) * ((_$l_l, "@class") -> "Error") * ((_$l_l, "@proto") -> $lrferr_proto) * (l == _$l_l) * types(l : $$object_type);
+
+pred initialHeapPre ():
+empty_fields($lfun_proto : -{  }-) * empty_fields($lerr : -{  }-) * (($lg, "@extensible") -> None) * (($lg, "@proto") -> None) * (($lg, "@class") -> None) * empty_fields($lop_hasOwnProperty : -{  }-) * empty_fields($lobj_proto : -{  }-) * empty_fields($lerr_proto : -{  }-) * types();
+
+pred isTypeError (l):
+empty_fields(_$l_l : -{ "@class", "@extensible", "@proto" }-) * ((_$l_l, "@extensible") -> $$t) * ((_$l_l, "@class") -> "Error") * ((_$l_l, "@proto") -> $lterr_proto) * (l == _$l_l) * types(l : $$object_type);
+
+pred isSyntaxError (l):
+empty_fields(_$l_l : -{ "@class", "@extensible", "@proto" }-) * ((_$l_l, "@extensible") -> $$t) * ((_$l_l, "@class") -> "Error") * ((_$l_l, "@proto") -> $lserr_proto) * (l == _$l_l) * types(l : $$object_type);
+
+pred desc_writ (d, v):
+(v == l-nth(##NORMALISED_LVAR_1000522, 2.)) * (d == ##NORMALISED_LVAR_1000522) * types(##NORMALISED_LVAR_1000522 : $$list_type, d : $$list_type);
+
+pred function_object (l, xsc, call, construct, len, prototype):
+empty_fields(_$l_l : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "arguments", "caller", "length", "prototype" }-) * ((_$l_l, "prototype") -> {{ "d", ##NORMALISED_LVAR_prototype, $$t, $$f, $$f }}) * ((_$l_l, "arguments") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) * ((_$l_l, "caller") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) * ((_$l_l, "@construct") -> ##NORMALISED_LVAR_construct) * ((_$l_l, "@call") -> ##NORMALISED_LVAR_call) * ((_$l_l, "length") -> {{ "d", ##NORMALISED_LVAR_len, $$f, $$f, $$f }}) * ((_$l_l, "@scope") -> ##NORMALISED_LVAR_xsc) * ((_$l_l, "@extensible") -> $$t) * ((_$l_l, "@class") -> "Function") * ((_$l_l, "@proto") -> $lfun_proto) * (call == ##NORMALISED_LVAR_call) * (len == ##NORMALISED_LVAR_len) * (construct == ##NORMALISED_LVAR_construct) * (prototype == ##NORMALISED_LVAR_prototype) * (xsc == ##NORMALISED_LVAR_xsc) * (l == _$l_l) * types(##NORMALISED_LVAR_prototype : $$object_type, ##NORMALISED_LVAR_call : $$string_type, construct : $$string_type, prototype : $$object_type, xsc : $$list_type, l : $$object_type, call : $$string_type, len : $$number_type, ##NORMALISED_LVAR_construct : $$string_type, ##NORMALISED_LVAR_xsc : $$list_type, ##NORMALISED_LVAR_len : $$number_type);
+
+pred isNamedProperty (prop):
+(prop == ##NORMALISED_LVAR_prop) * (! (s-nth(##NORMALISED_LVAR_prop, 0.) == "@")) * (! (##NORMALISED_LVAR_prop == "")) * types(##NORMALISED_LVAR_prop : $$string_type, prop : $$string_type);
+
+pred desc_get (d, v):
+(v == l-nth(##NORMALISED_LVAR_1000525, 1.)) * (d == ##NORMALISED_LVAR_1000525) * types(##NORMALISED_LVAR_1000525 : $$list_type, d : $$list_type);
+
+
+pred Cell_o (l, prop, None):
+((_$l_l, ##NORMALISED_LVAR_prop) -> None) * (l == _$l_l) * (prop == ##NORMALISED_LVAR_prop) * (d == None) * (! (s-nth(##NORMALISED_LVAR_prop, 0.) == "@")) * (! (##NORMALISED_LVAR_prop == "")) * types(##NORMALISED_LVAR_prop : $$string_type, d : $$none_type, l : $$object_type, prop : $$string_type);
+
+pred Cell_o (l, prop, d):
+ ((_$l_l, ##NORMALISED_LVAR_prop) -> {{ "d", ##NORMALISED_LVAR_100012, ##NORMALISED_LVAR_100013, ##NORMALISED_LVAR_100014, ##NORMALISED_LVAR_100015 }}) * (l == _$l_l) * (prop == ##NORMALISED_LVAR_prop) * (d == {{ "d", ##NORMALISED_LVAR_100012, ##NORMALISED_LVAR_100013, ##NORMALISED_LVAR_100014, ##NORMALISED_LVAR_100015 }}) * (! (##NORMALISED_LVAR_100012 == $$empty)) * (! (s-nth(##NORMALISED_LVAR_prop, 0.) == "@")) * (! (##NORMALISED_LVAR_prop == "")) * types(##NORMALISED_LVAR_100013 : $$boolean_type, ##NORMALISED_LVAR_prop : $$string_type, l : $$object_type, d : $$list_type, prop : $$string_type, ##NORMALISED_LVAR_100014 : $$boolean_type, ##NORMALISED_LVAR_100015 : $$boolean_type);
+
+pred isInternalProperty (prop):
+(prop == ##NORMALISED_LVAR_prop) * (s-nth(##NORMALISED_LVAR_prop, 0.) == "@") * (! (##NORMALISED_LVAR_prop == "")) * types(##NORMALISED_LVAR_prop : $$string_type, prop : $$string_type);
+
+spec TypeError_call(xsc, vthis, v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal
+
+proc TypeError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lterr_proto, "Error", $$t);
+
+			xret := "Error_construct" ($$undefined, xret, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+spec TypeError(v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal
+
+proc TypeError (v) {
+			xret := "TypeError_call" ($$undefined, $$undefined, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+spec i__isCallable(l)
+[[ ((_$l_l, "@call") -> None) * (l == _$l_l) * types(l : $$object_type) ]]
+[[ ((_$l_l, "@call") -> None) * (l == _$l_l) * (xret == $$f) * types(l : $$object_type, xret : $$boolean_type) ]]
+normal;
+
+ [[ ((_$l_l, "@call") -> #y) * (l == _$l_l) * (! (#y == None)) * types(l : $$object_type) ]]
+[[ ((_$l_l, "@call") -> #y) * (l == _$l_l) * (xret == $$t) * types(l : $$object_type, xret : $$boolean_type) ]]
+normal
+
+proc i__isCallable (l) {
+			xret := $$f;
+			goto [typeOf(l) = $$object_type] obj rlab;
+	obj:	xret := hasField(l, "@call");
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec defineOwnProperty(l, prop, desc, throw)
+[[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == #desc) * (throw == $$t) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#cls == "Array")) * types(#desc : $$list_type, l : $$object_type, #cls : $$string_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (xret == _$l_xret) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * types(#desc : $$list_type, #cls : $$string_type, xret : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == #desc) * (throw == $$f) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#cls == "Array")) * types(#desc : $$list_type, l : $$object_type, #cls : $$string_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * types(#desc : $$list_type, #cls : $$string_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000282, ##NORMALISED_LVAR_1000283, ##NORMALISED_LVAR_1000284, ##NORMALISED_LVAR_1000285 }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000282 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#cls == "Array")) * (#desc == {{ "d", ##NORMALISED_LVAR_1000282, ##NORMALISED_LVAR_1000283, ##NORMALISED_LVAR_1000284, ##NORMALISED_LVAR_1000285 }}) * types(#desc : $$list_type, ##NORMALISED_LVAR_1000285 : $$boolean_type, ##NORMALISED_LVAR_1000283 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, ##NORMALISED_LVAR_1000284 : $$boolean_type, #throw : $$boolean_type, desc : $$list_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * (! (#cls == "String")) * types(#desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000290, ##NORMALISED_LVAR_1000291, ##NORMALISED_LVAR_1000292, $$t }}) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000294, ##NORMALISED_LVAR_1000295, ##NORMALISED_LVAR_1000296, ##NORMALISED_LVAR_1000297 }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000290 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#cls == "Array")) * (! (##NORMALISED_LVAR_1000294 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000294, ##NORMALISED_LVAR_1000295, ##NORMALISED_LVAR_1000296, ##NORMALISED_LVAR_1000297 }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000290, ##NORMALISED_LVAR_1000291, ##NORMALISED_LVAR_1000292, $$t }}) * types(##NORMALISED_LVAR_1000296 : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, ##NORMALISED_LVAR_1000295 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, ##NORMALISED_LVAR_1000291 : $$boolean_type, desc : $$list_type, ##NORMALISED_LVAR_1000292 : $$boolean_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000297 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000298, ##NORMALISED_LVAR_1000299, ##NORMALISED_LVAR_1000300, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000302, ##NORMALISED_LVAR_1000303, ##NORMALISED_LVAR_1000304, $$t }}) * (throw == $$t) * (! (##NORMALISED_LVAR_1000298 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#cls == "Array")) * (! (##NORMALISED_LVAR_1000302 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000302, ##NORMALISED_LVAR_1000303, ##NORMALISED_LVAR_1000304, $$t }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000298, ##NORMALISED_LVAR_1000299, ##NORMALISED_LVAR_1000300, $$f }}) * types(##NORMALISED_LVAR_1000300 : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, l : $$object_type, ##NORMALISED_LVAR_1000304 : $$boolean_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000299 : $$boolean_type, ##NORMALISED_LVAR_1000303 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == _$l_xret) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000306, ##NORMALISED_LVAR_1000307, ##NORMALISED_LVAR_1000308, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000310, ##NORMALISED_LVAR_1000311, ##NORMALISED_LVAR_1000312, $$t }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000306 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#cls == "Array")) * (! (##NORMALISED_LVAR_1000310 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000310, ##NORMALISED_LVAR_1000311, ##NORMALISED_LVAR_1000312, $$t }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000306, ##NORMALISED_LVAR_1000307, ##NORMALISED_LVAR_1000308, $$f }}) * types(##NORMALISED_LVAR_1000307 : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, ##NORMALISED_LVAR_1000312 : $$boolean_type, ##NORMALISED_LVAR_1000308 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, ##NORMALISED_LVAR_1000311 : $$boolean_type, #ext : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000314, ##NORMALISED_LVAR_1000315, #ec, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000318, ##NORMALISED_LVAR_1000319, #ed, $$f }}) * (throw == $$t) * (! (##NORMALISED_LVAR_1000314 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#ed == #ec)) * (! (##NORMALISED_LVAR_1000318 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000318, ##NORMALISED_LVAR_1000319, #ed, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000314, ##NORMALISED_LVAR_1000315, #ec, $$f }}) * types(#ec : $$boolean_type, #dcur : $$list_type, #ed : $$boolean_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, ##NORMALISED_LVAR_1000319 : $$boolean_type, desc : $$list_type, #ext : $$boolean_type, throw : $$boolean_type, #prop : $$string_type, ##NORMALISED_LVAR_1000315 : $$boolean_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == _$l_xret) * (! (#cls == "String")) * types(#ec : $$boolean_type, #ed : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000322, ##NORMALISED_LVAR_1000323, #ec, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000326, ##NORMALISED_LVAR_1000327, #ed, $$f }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000322 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#ed == #ec)) * (! (##NORMALISED_LVAR_1000326 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000326, ##NORMALISED_LVAR_1000327, #ed, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000322, ##NORMALISED_LVAR_1000323, #ec, $$f }}) * types(#ec : $$boolean_type, ##NORMALISED_LVAR_1000323 : $$boolean_type, #dcur : $$list_type, #ed : $$boolean_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000327 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (#cls == "String")) * types(#ec : $$boolean_type, #ed : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000330, $$f, #enum, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000334, $$t, #enum, $$f }}) * (throw == $$t) * (! (##NORMALISED_LVAR_1000330 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000334 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000334, $$t, #enum, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000330, $$f, #enum, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, #enum : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == _$l_xret) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, #enum : $$boolean_type, xret : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000338, $$f, #enum, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000342, $$t, #enum, $$f }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000338 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000342 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000342, $$t, #enum, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000338, $$f, #enum, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, #enum : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, #enum : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000346, $$t, #enum, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000350, ##NORMALISED_LVAR_1000351, #enum, $$f }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000346 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000350 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000350, ##NORMALISED_LVAR_1000351, #enum, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000346, $$t, #enum, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, #enum : $$boolean_type, ##NORMALISED_LVAR_1000351 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, #enum : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000354, $$t, #dec, #dcc }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000354 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#gval == $$empty)) * (#desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000354, $$t, #dec, #dcc }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, desc : $$list_type, #ext : $$boolean_type, #dec : $$boolean_type, #dcc : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> {{ "d", #gval, $$t, #dec, #dcc }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, #dec : $$boolean_type, xret : $$boolean_type, #dcc : $$boolean_type, #prop : $$string_type) ]]
+normal
+
+proc defineOwnProperty (l, prop, desc, throw) {
+
+			class := [l, "@class"];
+
+			goto [class = "Array"] adop odop;
+
+	adop:	xret := "a__defineOwnProperty" (l, prop, desc, throw) with elab;
+			goto rlab;
+
+	odop:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__strictEquality(v1, v2)
+[[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types() ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (! (#v1 == #v2)) * types() ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__strictEquality (v1, v2) {
+			xret := (v1 = v2);
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec i__isDataDescriptor(desc)
+[[ (desc == $$undefined) * types(desc : $$undefined_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "d", ##NORMALISED_LVAR_1000244, ##NORMALISED_LVAR_1000245, ##NORMALISED_LVAR_1000246, ##NORMALISED_LVAR_1000247 }}) * (! (##NORMALISED_LVAR_1000244 == $$empty)) * types(##NORMALISED_LVAR_1000246 : $$boolean_type, ##NORMALISED_LVAR_1000245 : $$boolean_type, desc : $$list_type, ##NORMALISED_LVAR_1000247 : $$boolean_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000248, ##NORMALISED_LVAR_1000249, $$empty, $$empty, ##NORMALISED_LVAR_1000252, ##NORMALISED_LVAR_1000253 }}) * types(##NORMALISED_LVAR_1000250 : $$empty_type, ##NORMALISED_LVAR_1000251 : $$empty_type, desc : $$list_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000254, ##NORMALISED_LVAR_1000255, ##NORMALISED_LVAR_1000256, ##NORMALISED_LVAR_1000257, ##NORMALISED_LVAR_1000258, ##NORMALISED_LVAR_1000259 }}) * (! (##NORMALISED_LVAR_1000256 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000260, ##NORMALISED_LVAR_1000261, ##NORMALISED_LVAR_1000262, ##NORMALISED_LVAR_1000263, ##NORMALISED_LVAR_1000264, ##NORMALISED_LVAR_1000265 }}) * (! (##NORMALISED_LVAR_1000263 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__isDataDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "d"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+			goto [(v = $$empty) and (w = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+spec Error_construct(xsc, vthis, v)
+[[ ((_$l_#vthis, "@extensible") -> #ext) * ((_$l_#vthis, "@class") -> #cls) * (vthis == _$l_#vthis) * (v == $$undefined) * types(vthis : $$object_type, v : $$undefined_type) ]]
+[[ ((_$l_#vthis, "@extensible") -> $$t) * ((_$l_#vthis, "@class") -> "Error") * (xret == _$l_#vthis) * types(xret : $$object_type) ]]
+normal;
+
+ [[ ((_$l_#vthis, "@extensible") -> #ext) * ((_$l_#vthis, "@class") -> #cls) * (vthis == _$l_#vthis) * (v == #m) * types(vthis : $$object_type, #m : $$string_type) ]]
+[[ ((_$l_#vthis, "message") -> {{ "d", #m, $$t, $$f, $$t }}) * ((_$l_#vthis, "@extensible") -> $$t) * ((_$l_#vthis, "@class") -> "Error") * (xret == _$l_#vthis) * types(#m : $$string_type, xret : $$object_type) ]]
+normal
+
+proc Error_construct (xsc, vthis, v) {
+			xret := vthis;
+
+			[vthis, "@class"] := "Error";
+			[vthis, "@extensible"] := $$t;
+
+			goto [v = $$undefined] rlab mess;
+
+	mess:	xerr := "i__toString" (v) with elab;
+			[xret, "message"] := {{ "d", xerr, $$t, $$f, $$t }};
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xerr, elab;
+};
+
+spec canPut(l, prop)
+[[ ((_$l_#l, "@extensible") -> #ext) * (l == _$l_#l) * (prop == #prop) * types(l : $$object_type, #ext : $$boolean_type) * Pi(_$l_#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ ((_$l_#l, "@extensible") -> #ext) * (xret == #ext) * types(#ext : $$boolean_type) * Pi(_$l_#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ (l == #l) * (prop == #prop) * (! (##NORMALISED_LVAR_100016 == $$empty)) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_100016, #writ, ##NORMALISED_LVAR_100018, ##NORMALISED_LVAR_100019 }}) * types(#g_aux_1 : $$list_type, #writ : $$boolean_type, ##NORMALISED_LVAR_100018 : $$boolean_type, ##NORMALISED_LVAR_100019 : $$boolean_type) * Pi(#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_100016, #writ, ##NORMALISED_LVAR_100018, ##NORMALISED_LVAR_100019 }}, {{ #l }}, #g_aux_3, #g_aux_4) ]]
+[[ (xret == #writ) * types(#g_aux_1 : $$list_type, #writ : $$boolean_type, xret : $$boolean_type) * Pi(#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$f) * (l == _$l_#l) * (prop == #prop) * (! (##NORMALISED_LVAR_100022 == $$empty)) * (#g_aux_2 == (_$l_#l :: (#lp :: #other))) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_100022, ##NORMALISED_LVAR_100023, ##NORMALISED_LVAR_100024, ##NORMALISED_LVAR_100025 }}) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_100025 : $$boolean_type, #lp : $$object_type, #g_aux_2 : $$list_type, ##NORMALISED_LVAR_100023 : $$boolean_type, l : $$object_type, #other : $$list_type, ##NORMALISED_LVAR_100024 : $$boolean_type) * Pi(_$l_#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_100022, ##NORMALISED_LVAR_100023, ##NORMALISED_LVAR_100024, ##NORMALISED_LVAR_100025 }}, (_$l_#l :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ ((_$l_#l, "@extensible") -> $$f) * (xret == $$f) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, xret : $$boolean_type) * Pi(_$l_#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (l == _$l_#l) * (prop == #prop) * (! (##NORMALISED_LVAR_100026 == $$empty)) * (#g_aux_2 == (_$l_#l :: (#lp :: #other))) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_100026, #writ, ##NORMALISED_LVAR_100028, ##NORMALISED_LVAR_100029 }}) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_100028 : $$boolean_type, #writ : $$boolean_type, #lp : $$object_type, #g_aux_2 : $$list_type, ##NORMALISED_LVAR_100029 : $$boolean_type, l : $$object_type, #other : $$list_type) * Pi(_$l_#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_100026, #writ, ##NORMALISED_LVAR_100028, ##NORMALISED_LVAR_100029 }}, (_$l_#l :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * (xret == #writ) * types(#g_aux_1 : $$list_type, #writ : $$boolean_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type) * Pi(_$l_#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal
+
+proc canPut (l, prop) {
+
+			[* unfold Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+            xret := "getOwnProperty" (l, prop) with elab;
+			[* fold Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
+
+	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
+			goto [d = "d"] odd nop;					    (* Is the descriptor a data descriptor? *)
+
+	odd:	xret := l-nth (xret, 2);					(* It is; return the Writable attribute *)
+			goto rlab;
+
+	nop:	e := [l, "@extensible"];				   (* Get the extensible property *)
+			xret := "getProperty" (l, prop) with elab; (* Does the property exist? *)
+			goto [xret = $$undefined] ext desc;		   (* It doesn't; return extensible *)
+
+	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			v := l-nth (xret, 2);					(* Get the writable/setter *)
+			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
+
+	dd:		goto [e] wr ext;						(* Yes; is the object extensible? *)
+	wr:		xret := v;								(* Yes; return writable *)
+			goto rlab;
+
+	ad:		xret := not (v = $$undefined); 			(* Accessor descriptor *)
+			goto rlab;
+
+	ext:	xret := e;								(* Return extensible *)
+
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};
+
+spec setupInitialHeap()
+[[ empty_fields($lfun_proto : -{  }-) * empty_fields($lerr : -{  }-) * (($lg, "@extensible") -> None) * (($lg, "@proto") -> None) * (($lg, "@class") -> None) * empty_fields($lop_hasOwnProperty : -{  }-) * empty_fields($lobj_proto : -{  }-) * empty_fields($lerr_proto : -{  }-) * types() ]]
+[[ empty_fields($lfun_proto : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-) * (($lfun_proto, "@call") -> "FP_default") * (($lfun_proto, "length") -> {{ "d", 0., $$f, $$f, $$f }}) * (($lfun_proto, "@scope") -> $$empty) * (($lfun_proto, "@extensible") -> $$t) * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@class") -> "Function") * empty_fields($lerr : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "length", "prototype" }-) * (($lerr, "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * (($lerr, "@construct") -> "Error_construct") * (($lerr, "@call") -> "Error_call") * (($lerr, "length") -> {{ "d", 1., $$f, $$f, $$f }}) * (($lerr, "@scope") -> $$empty) * (($lerr, "@extensible") -> $$t) * (($lerr, "@proto") -> $lfun_proto) * (($lerr, "@class") -> "Function") * (($lg, "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * (($lg, "@extensible") -> $$t) * (($lg, "@proto") -> $lobj_proto) * (($lg, "@class") -> "Object") * empty_fields($lop_hasOwnProperty : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * (($lop_hasOwnProperty, "length") -> {{ "d", 1., $$f, $$f, $$f }}) * (($lop_hasOwnProperty, "@scope") -> $$empty) * (($lop_hasOwnProperty, "@extensible") -> $$t) * (($lop_hasOwnProperty, "@proto") -> $lfun_proto) * (($lop_hasOwnProperty, "@class") -> "Function") * empty_fields($lobj_proto : -{ "@class", "@extensible", "@proto", "hasOwnProperty" }-) * (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }}) * (($lobj_proto, "@extensible") -> $$t) * (($lobj_proto, "@proto") -> $$null) * (($lobj_proto, "@class") -> "Object") * empty_fields($lerr_proto : -{ "@class", "@extensible", "@proto", "message" }-) * (($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * (($lerr_proto, "@extensible") -> $$t) * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@class") -> "Error") * (xret == $$empty) * types(xret : $$empty_type) ]]
+normal
+
+proc setupInitialHeap () {
+
+			(* Global object *)
+
+			xret := "create_default_object" ($lg, $lobj_proto, "Object", $$t);
+
+			(* Object.prototype *)
+
+			xret := "create_default_object" ($lobj_proto, $$null, "Object", $$t);
+
+			[$lobj_proto, "hasOwnProperty"] := {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }};
+
+  			xret := "create_object_with_call_construct" ($lop_hasOwnProperty, "OP_hasOwnProperty", $$empty, 1);
+
+			(* Function.prototype *)
+
+			xret := "create_object_with_call_construct" ($lfun_proto, "FP_default", $$empty, 0);
+			[$lfun_proto, "@proto"] := $lobj_proto;
+
+			(* Error object *)
+
+			xret := "create_object_with_call_construct" ($lerr, "Error_call", "Error_construct", 1);
+			[$lg, "Error"] := {{ "d", $lerr, $$t, $$f, $$t }};
+			[$lerr, "prototype"] := {{ "d", $lerr_proto, $$f, $$f, $$f }};
+
+			(* Error.prototype *)
+
+			xret := "create_default_object" ($lerr_proto, $lobj_proto, "Error", $$t);
+			[$lerr_proto, "message"]     := {{ "d", "", $$t, $$f, $$t }};
+
+	rlab:	xret := $$empty
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec copy_object(l, fields)
+[[ ((_$l_#l, #f) -> #v) * (l == _$l_#l) * (fields == {{ #f }}) * (! (s-nth(#f, 0.) == "@")) * (! (#f == "")) * (#fields == {{ #f }}) * types(#f : $$string_type, l : $$object_type, #fields : $$list_type, fields : $$list_type) ]]
+[[ empty_fields(_$l_xret : -{ "@proto", #f }-) * ((_$l_xret, "@proto") -> $$null) * ((_$l_xret, #f) -> #v) * ((_$l_#l, #f) -> #v) * (xret == _$l_xret) * types(#f : $$string_type, #fields : $$list_type, xret : $$object_type) ]]
+normal;
+
+ [[ ((_$l_#l, "main") -> #v2) * ((_$l_#l, #f1) -> #v1) * (l == _$l_#l) * (fields == {{ #f1, "main" }}) * (! (#f1 == "main")) * (! (s-nth(#f1, 0.) == "@")) * (! (#f1 == "")) * (#fields == {{ #f1, "main" }}) * types(#f1 : $$string_type, l : $$object_type, #fields : $$list_type, fields : $$list_type) ]]
+[[ empty_fields(_$l_xret : -{ "@proto", "main", #f1 }-) * ((_$l_xret, "@proto") -> $$null) * ((_$l_xret, "main") -> #v2) * ((_$l_xret, #f1) -> #v1) * ((_$l_#l, "main") -> #v2) * ((_$l_#l, #f1) -> #v1) * (xret == _$l_xret) * (! (#f1 == "main")) * types(#f1 : $$string_type, #fields : $$list_type, xret : $$object_type) ]]
+normal
+
+proc copy_object (l, fields) {
+			xret := new ();
+
+	rlab:	xret := "copy_object_rec" (l, fields, xret)
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec i__typeOf(v)
+[[ (v == $$undefined) * (#v == $$undefined) * types(v : $$undefined_type, #v : $$undefined_type) ]]
+[[ (xret == "undefined") * (#v == $$undefined) * types(#v : $$undefined_type, xret : $$string_type) ]]
+normal;
+
+ [[ (v == $$null) * (#v == $$null) * types(v : $$null_type, #v : $$null_type) ]]
+[[ (xret == "object") * (#v == $$null) * types(#v : $$null_type, xret : $$string_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$boolean_type) ]]
+[[ (xret == "boolean") * types(#v : $$boolean_type, xret : $$string_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$number_type) ]]
+[[ (xret == "number") * types(#v : $$number_type, xret : $$string_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$string_type) ]]
+[[ (xret == "string") * types(#v : $$string_type, xret : $$string_type) ]]
+normal
+
+proc i__typeOf (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := "undefined";
+			goto rlab;
+
+	in:		goto [v = $$null] null ib;
+	null:	xret := "object";
+			goto rlab;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := "boolean";
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := "number";
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := "string";
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := hasField(v, "@call");
+			goto [xret] isfun isobj;
+
+	isobj:	xret := "object";
+			goto rlab;
+
+	isfun:	xret := "function";
+			goto rlab;
+
+	oops:	xret := "typeOf: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec create_function_object(xsc, call, construct, params)
+[[ (call == #call) * (params == #params) * (construct == #construct) * (xsc == #xsc) * types(#construct : $$string_type, #params : $$list_type, #xsc : $$list_type, #call : $$string_type) ]]
+[[ empty_fields(_$l_xret : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "arguments", "caller", "length", "prototype" }-) * ((_$l_xret, "prototype") -> {{ "d", _$l_#prototype, $$t, $$f, $$f }}) * ((_$l_xret, "arguments") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) * ((_$l_xret, "caller") -> {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }}) * ((_$l_xret, "@construct") -> #construct) * ((_$l_xret, "@call") -> #call) * ((_$l_xret, "length") -> {{ "d", (l-len #params), $$f, $$f, $$f }}) * ((_$l_xret, "@scope") -> #xsc) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Function") * ((_$l_xret, "@proto") -> $lfun_proto) * empty_fields(_$l_#prototype : -{ "@class", "@extensible", "@proto", "constructor" }-) * ((_$l_#prototype, "constructor") -> {{ "d", _$l_xret, $$t, $$f, $$t }}) * ((_$l_#prototype, "@extensible") -> $$t) * ((_$l_#prototype, "@class") -> "Object") * ((_$l_#prototype, "@proto") -> $lobj_proto) * (xret == _$l_xret) * types(#construct : $$string_type, #params : $$list_type, xret : $$object_type, #xsc : $$list_type, #call : $$string_type) ]]
+normal
+
+proc create_function_object (xsc, call, construct, params) {
+			len := l-len (params);
+			l := new ();
+			l := "create_object_with_call_construct" (l, call, construct, len);
+
+			[l, "@scope"] := xsc;
+
+			prototype := new ();
+			prototype := "create_default_object" (prototype, $lobj_proto, "Object", $$t);
+			[prototype, "constructor"] := {{ "d", l, $$t, $$f, $$t }};
+			[l, "prototype"] := {{ "d", prototype, $$t, $$f, $$f }};
+
+			(* Strict mode only *)
+			[l, "caller"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+			[l, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+
+			xret := l;
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec i__abstractComparison(v1, v2, leftFirst)
+[[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * (#v1 <# #v2) * types(#leftFirst : $$boolean_type, #v2 : $$number_type, #v1 : $$number_type) ]]
+[[ (xret == $$t) * (#v1 <# #v2) * types(#leftFirst : $$boolean_type, #v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * (#v1 == #v2) * types(#leftFirst : $$boolean_type, v2 : $$number_type, #v2 : $$number_type, v1 : $$number_type, #v1 : $$number_type, leftFirst : $$boolean_type) ]]
+[[ (xret == $$f) * (#v1 == #v2) * types(#leftFirst : $$boolean_type, #v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * (#v2 <# #v1) * types(#leftFirst : $$boolean_type, #v2 : $$number_type, #v1 : $$number_type) ]]
+[[ (xret == $$f) * (#v2 <# #v1) * types(#leftFirst : $$boolean_type, #v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal
+
+proc i__abstractComparison (v1, v2, leftFirst) {
+			goto [(leftFirst = $$empty) or (leftFirst = $$t)] eleft eright;
+
+	eleft:	xret := "i__toPrimitive" (v1, "Number") with elab;
+			px := xret;
+			xret := "i__toPrimitive" (v2, "Number") with elab;
+			py := xret;
+			goto is_str;
+
+	eright:	xret := "i__toPrimitive" (v2, "Number") with elab;
+			py := xret;
+			xret := "i__toPrimitive" (v1, "Number") with elab;
+			px := xret;
+
+	is_str:	goto [(typeOf(px) = $$string_type) and (typeOf(py) = $$string_type)] str num;
+
+	str:	xret := (px <s py);
+			goto rlab;
+
+	num:	xret := "i__toNumber" (px) with elab;
+			nx := xret;
+			xret := "i__toNumber" (py) with elab;
+			ny := xret;
+
+			goto [(not (nx = nx)) or (not (ny = ny))] ru eq;
+
+	eq:		goto [nx = ny] rf sl;
+
+	sl:		xret := (nx < ny);
+			goto rlab;
+
+	ru:		xret := $$undefined;
+			goto rlab;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__toNumber(v)
+[[ (v == $$t) * types(v : $$boolean_type) ]]
+[[ (xret == 1.) * types(xret : $$number_type) ]]
+normal;
+
+ [[ (v == $$f) * types(v : $$boolean_type) ]]
+[[ (xret == 0.) * types(xret : $$number_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$number_type) ]]
+[[ (xret == #v) * types(#v : $$number_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$string_type) ]]
+[[ (xret == (string_to_num #v)) * types(#v : $$string_type, xret : $$number_type) ]]
+normal
+
+proc i__toNumber (v) {
+    iu:		goto [v = $$undefined] undef in;
+	undef:	xret := nan;
+    		goto rlab;
+
+    in:		goto [v = $$null] null ib;
+	null:	xret := 0;
+    		goto rlab;
+
+    ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	goto [v = $$t] is_t is_f;
+    is_t:	xret := 1;
+    		goto rlab;
+    is_f:	xret := 0;
+    		goto rlab;
+
+    inum:	goto [typeOf(v) = $$number_type] num is;
+    num:	xret := v;
+    		goto rlab;
+
+    is:		goto [typeOf(v) = $$string_type] str io;
+    str:	xret := string_to_num v;
+    		goto rlab;
+
+    io:		goto [typeOf(v) = $$object_type] obj oops;
+    obj:	xret := "i__toPrimitive" (v, "Number") with elab;
+    		xret := "i__toNumber" (xret);
+    		goto rlab;
+
+    oops:	xret := "TypeError" ("ToNumber: This should not happen.");
+            goto elab;
+
+    rlab:	skip;
+    elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec ReferenceError(v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal
+
+proc ReferenceError (v) {
+			xret := "ReferenceError_call" ($$undefined, $$undefined, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+spec create_default_object(l, pr, cl, ext)
+[[ ((_$l_#l, "@extensible") -> #v3) * ((_$l_#l, "@class") -> #v2) * ((_$l_#l, "@proto") -> #v1) * (cl == $$undefined) * (l == _$l_#l) * (ext == $$undefined) * (pr == #pr) * (#ext == $$undefined) * (#cl == $$undefined) * types(l : $$object_type, #cl : $$undefined_type, cl : $$undefined_type, #ext : $$undefined_type, ext : $$undefined_type) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@class") -> "Object") * ((_$l_#l, "@proto") -> #pr) * (xret == _$l_#l) * (#ext == $$undefined) * (#cl == $$undefined) * types(#cl : $$undefined_type, #ext : $$undefined_type, xret : $$object_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> #v3) * ((_$l_#l, "@class") -> #v2) * ((_$l_#l, "@proto") -> #v1) * (cl == #cl) * (l == _$l_#l) * (ext == #ext) * (pr == #pr) * types(l : $$object_type, #cl : $$string_type, #ext : $$boolean_type) ]]
+[[ ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cl) * ((_$l_#l, "@proto") -> #pr) * (xret == _$l_#l) * types(#cl : $$string_type, #ext : $$boolean_type, xret : $$object_type) ]]
+normal
+
+proc create_default_object (l, pr, cl, ext) {
+
+ 			goto [cl = $$undefined] scl text;
+ 	scl:	cl := "Object";
+ 	text:	goto [ext = $$undefined] sext setall;
+ 	sext:	ext := $$t;
+
+ 	setall:	[l, "@proto"] := pr;
+ 			[l, "@class"] := cl;
+ 			[l, "@extensible"] := ext;
+
+ 	rlab:	xret := l
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec o__defineOwnProperty(l, prop, desc, throw)
+[[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == #desc) * (throw == $$t) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * types(#desc : $$list_type, l : $$object_type, #cls : $$string_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * empty_fields(_$l_xerr : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xerr, "@extensible") -> $$t) * ((_$l_xerr, "@class") -> "Error") * ((_$l_xerr, "@proto") -> $lterr_proto) * (xerr == _$l_xerr) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * types(#desc : $$list_type, #cls : $$string_type, xerr : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == #desc) * (throw == $$f) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * types(#desc : $$list_type, l : $$object_type, #cls : $$string_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, "@extensible") -> $$f) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * types(#desc : $$list_type, #cls : $$string_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000114, ##NORMALISED_LVAR_1000115, ##NORMALISED_LVAR_1000116, ##NORMALISED_LVAR_1000117 }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000114 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (#desc == {{ "d", ##NORMALISED_LVAR_1000114, ##NORMALISED_LVAR_1000115, ##NORMALISED_LVAR_1000116, ##NORMALISED_LVAR_1000117 }}) * types(#desc : $$list_type, ##NORMALISED_LVAR_1000117 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, desc : $$list_type, ##NORMALISED_LVAR_1000115 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type, ##NORMALISED_LVAR_1000116 : $$boolean_type) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * (! (#cls == "String")) * types(#desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000122, ##NORMALISED_LVAR_1000123, ##NORMALISED_LVAR_1000124, $$t }}) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000126, ##NORMALISED_LVAR_1000127, ##NORMALISED_LVAR_1000128, ##NORMALISED_LVAR_1000129 }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000122 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000126 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000126, ##NORMALISED_LVAR_1000127, ##NORMALISED_LVAR_1000128, ##NORMALISED_LVAR_1000129 }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000122, ##NORMALISED_LVAR_1000123, ##NORMALISED_LVAR_1000124, $$t }}) * types(#dcur : $$list_type, #desc : $$list_type, ##NORMALISED_LVAR_1000128 : $$boolean_type, ##NORMALISED_LVAR_1000127 : $$boolean_type, ##NORMALISED_LVAR_1000123 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, desc : $$list_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000129 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type, ##NORMALISED_LVAR_1000124 : $$boolean_type) ]]
+[[ ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000130, ##NORMALISED_LVAR_1000131, ##NORMALISED_LVAR_1000132, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000134, ##NORMALISED_LVAR_1000135, ##NORMALISED_LVAR_1000136, $$t }}) * (throw == $$t) * (! (##NORMALISED_LVAR_1000130 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000134 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000134, ##NORMALISED_LVAR_1000135, ##NORMALISED_LVAR_1000136, $$t }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000130, ##NORMALISED_LVAR_1000131, ##NORMALISED_LVAR_1000132, $$f }}) * types(##NORMALISED_LVAR_1000135 : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, ##NORMALISED_LVAR_1000136 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000131 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type, ##NORMALISED_LVAR_1000132 : $$boolean_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * empty_fields(_$l_xerr : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xerr, "@extensible") -> $$t) * ((_$l_xerr, "@class") -> "Error") * ((_$l_xerr, "@proto") -> $lterr_proto) * (xerr == _$l_xerr) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xerr : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000138, ##NORMALISED_LVAR_1000139, ##NORMALISED_LVAR_1000140, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000142, ##NORMALISED_LVAR_1000143, ##NORMALISED_LVAR_1000144, $$t }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000138 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000142 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000142, ##NORMALISED_LVAR_1000143, ##NORMALISED_LVAR_1000144, $$t }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000138, ##NORMALISED_LVAR_1000139, ##NORMALISED_LVAR_1000140, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, ##NORMALISED_LVAR_1000140 : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, ##NORMALISED_LVAR_1000143 : $$boolean_type, desc : $$list_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000144 : $$boolean_type, ##NORMALISED_LVAR_1000139 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000146, ##NORMALISED_LVAR_1000147, #ec, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000150, ##NORMALISED_LVAR_1000151, #ed, $$f }}) * (throw == $$t) * (! (##NORMALISED_LVAR_1000146 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#ed == #ec)) * (! (##NORMALISED_LVAR_1000150 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000150, ##NORMALISED_LVAR_1000151, #ed, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000146, ##NORMALISED_LVAR_1000147, #ec, $$f }}) * types(#ec : $$boolean_type, #dcur : $$list_type, #ed : $$boolean_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, ##NORMALISED_LVAR_1000151 : $$boolean_type, #ext : $$boolean_type, ##NORMALISED_LVAR_1000147 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * empty_fields(_$l_xerr : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xerr, "@extensible") -> $$t) * ((_$l_xerr, "@class") -> "Error") * ((_$l_xerr, "@proto") -> $lterr_proto) * (xerr == _$l_xerr) * (! (#cls == "String")) * types(#ec : $$boolean_type, #ed : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xerr : $$object_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000154, ##NORMALISED_LVAR_1000155, #ec, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000158, ##NORMALISED_LVAR_1000159, #ed, $$f }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000154 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#ed == #ec)) * (! (##NORMALISED_LVAR_1000158 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000158, ##NORMALISED_LVAR_1000159, #ed, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000154, ##NORMALISED_LVAR_1000155, #ec, $$f }}) * types(#ec : $$boolean_type, #dcur : $$list_type, #ed : $$boolean_type, ##NORMALISED_LVAR_1000159 : $$boolean_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, ##NORMALISED_LVAR_1000155 : $$boolean_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (#cls == "String")) * types(#ec : $$boolean_type, #ed : $$boolean_type, #dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000162, $$f, #enum, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000166, $$t, #enum, $$f }}) * (throw == $$t) * (! (##NORMALISED_LVAR_1000162 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000166 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000166, $$t, #enum, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000162, $$f, #enum, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, #enum : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * empty_fields(_$l_xerr : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xerr, "@extensible") -> $$t) * ((_$l_xerr, "@class") -> "Error") * ((_$l_xerr, "@proto") -> $lterr_proto) * (xerr == _$l_xerr) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, xerr : $$object_type, #enum : $$boolean_type, #prop : $$string_type) ]]
+error;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000170, $$f, #enum, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000174, $$t, #enum, $$f }}) * (throw == $$f) * (! (##NORMALISED_LVAR_1000170 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000174 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000174, $$t, #enum, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000170, $$f, #enum, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, desc : $$list_type, #ext : $$boolean_type, #enum : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #dcur) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$f) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #ext : $$boolean_type, #enum : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000178, $$t, #enum, $$f }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "d", ##NORMALISED_LVAR_1000182, ##NORMALISED_LVAR_1000183, #enum, $$f }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000178 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000182 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000182, ##NORMALISED_LVAR_1000183, #enum, $$f }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000178, $$t, #enum, $$f }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, ##NORMALISED_LVAR_1000183 : $$boolean_type, #throw : $$boolean_type, desc : $$list_type, #ext : $$boolean_type, #enum : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * (! (#cls == "String")) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, #enum : $$boolean_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000186, $$t, #dec, #dcc }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (l == _$l_#l) * (prop == #prop) * (desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (throw == #throw) * (! (##NORMALISED_LVAR_1000186 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (! (#cls == "String")) * (! (#gval == $$empty)) * (#desc == {{ "g", $$empty, $$empty, #gval, $$empty, $$empty, $$empty }}) * (#dcur == {{ "d", ##NORMALISED_LVAR_1000186, $$t, #dec, #dcc }}) * types(#dcur : $$list_type, #desc : $$list_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, desc : $$list_type, #ext : $$boolean_type, #dec : $$boolean_type, #dcc : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> {{ "d", #gval, $$t, #dec, #dcc }}) * ((_$l_#l, "@extensible") -> #ext) * ((_$l_#l, "@class") -> #cls) * (xret == $$t) * types(#dcur : $$list_type, #desc : $$list_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, #dec : $$boolean_type, xret : $$boolean_type, #dcc : $$boolean_type, #prop : $$string_type) ]]
+normal
+
+proc o__defineOwnProperty (l, prop, desc, throw) {
+
+			xret := $$t;
+
+			current := "getOwnProperty" (l, prop) with celab;
+			extensible := [l, "@extensible"];
+
+			goto [(current = $$undefined)] cuf getall;
+	cuf:	goto [(extensible = $$f)] reject l4;
+
+	l4:		gd := "i__isGenericDescriptor" (desc);
+			dd := "i__isDataDescriptor" (desc);
+
+			goto [gd or dd] l4a1 l4b;
+
+	l4a1:	ndesc := "i__toDataDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+
+	l4b:	ndesc := "i__toAccessorDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+
+	getall:	goto [l-nth (desc, 0) = "d"] ddd odd;
+
+			(* Data *)
+	ddd:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := l-nth (desc, 1);
+			dw := l-nth (desc, 2);
+			dg := $$empty;
+			ds := $$empty;
+			goto l5;
+
+	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
+
+			(* Accessor *)
+	add:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := $$empty;
+			dw := $$empty;
+			dg := l-nth (desc, 1);
+			ds := l-nth (desc, 2);
+			goto l5;
+
+			(* Generic *)
+	gdd:	de := l-nth (desc, 1);
+			dc := l-nth (desc, 2);
+			dv := l-nth (desc, 3);
+			dw := l-nth (desc, 4);
+			dg := l-nth (desc, 5);
+			ds := l-nth (desc, 6);
+
+	l5:		goto [(de = $$empty) and (dc = $$empty) and (dv = $$empty) and
+			      (dw = $$empty) and (dg = $$empty) and (ds = $$empty)] acc_t l6;
+
+	l6:		goto [l-nth (current, 0) = "d"] chd cha;
+
+	chd:	goto [(dg = $$empty) and (ds = $$empty)] chd1 l7;
+	chd1:	t1 := "i__sameValue" (dc, l-nth (current, 4));
+			goto [t1] chd2 l7;
+	chd2:	t2 := "i__sameValue" (de, l-nth (current, 3));
+			goto [t2] chd3 l7;
+	chd3:	t3 := "i__sameValue" (dw, l-nth (current, 2));
+			goto [t3] chd4 l7;
+	chd4:	t4 := "i__sameValue" (dv, l-nth (current, 1));
+			goto [t4] acc_t l7;
+
+	cha:	goto [(dv = $$empty) and (dw = $$empty)] cha1 l7;
+	cha1:	t1 := "i__sameValue" (dc, l-nth (current, 4));
+			goto [t1] cha2 l7;
+	cha2:	t2 := "i__sameValue" (de, l-nth (current, 3));
+			goto [t2] cha3 l7;
+	cha3:	t3 := "i__sameValue" (ds, l-nth (current, 2));
+			goto [t3] cha4 l7;
+	cha4:	t4 := "i__sameValue" (dg, l-nth (current, 1));
+			goto [t4] acc_t l7;
+
+	l7:		cc := l-nth (current, 4);
+			ce := l-nth (current, 3);
+			goto [(cc = $$f)] l71 l8;
+	l71:	goto [(dc = $$t)] reject l72;
+	l72:	goto [de = $$empty] l8 l73;
+	l73:	goto [not (ce = de)] reject l8;
+
+	l8:		ct := l-nth (current, 0);
+			cvg := l-nth (current, 1);
+			cws := l-nth (current, 2);
+
+			gd := "i__isGenericDescriptor" (desc);
+			goto [gd] l12 l9;
+
+	l9:		cdd := "i__isDataDescriptor" (current);
+			ddd := "i__isDataDescriptor" (desc);
+
+			goto [not (cdd = ddd)] l9a l10;
+
+	l9a:	goto [cc = $$f] reject change;
+	change:	goto [cdd = $$t] toa tod;
+	toa:	goto [dg = $$empty] sg gs;
+	sg:		dg := $$undefined;
+	gs:		goto [ds = $$empty] ss ge1;
+	ss:		ds := $$undefined;
+	ge1:	goto [de = $$empty] se1 gc1;
+	se1:	de := ce;
+	gc1:	goto [dc = $$empty] sc1 spa;
+	sc1:	dc := cc;
+	spa:	[l, prop] := {{ "a", dg, ds, de, dc }};
+			goto acc_t;
+
+	tod:	goto [dv = $$empty] sv gw;
+	sv:		dv := $$undefined;
+	gw:		goto [dw = $$empty] sw ge2;
+	sw:		dw := $$f;
+	ge2:	goto [de = $$empty] se2 gc2;
+	se2:	de := ce;
+	gc2:	goto [dc = $$empty] sc2 spd;
+	sc2:	dc := cc;
+	spd:	[l, prop] := {{ "d", dv, dw, de, dc }};
+			goto acc_t;
+
+	l10:	goto [cdd = $$t] l10a l11;
+
+	l10a:	goto [cc = $$f] l10ai l12;
+	l10ai:	goto [(cws = $$f) and (dw = $$t)] reject l10aii;
+	l10aii:	goto [(cws = $$f) and (not (dv = $$empty))] sv l12;
+	sv:		t1 := "i__sameValue" (cvg, dv);
+	 		goto [not t1] reject l12;
+
+	l11: 	t1 := "i__sameValue" (dg, l-nth (current, 1));
+			t2 := "i__sameValue" (ds, l-nth (current, 2));
+			goto [(cc = $$f) and
+	             (((not (dg = $$empty)) and (not t1)) or
+	              ((not (ds = $$empty)) and (not t2)))] reject l12;
+
+	l12:	re := de;
+			rc := dc;
+			goto [de = $$empty] rec red;
+	rec:	re := l-nth (current, 3);
+	red:	goto [dc = $$empty] rcd rd;
+	rcd:	rc := l-nth (current, 4);
+
+	rd: 	goto [ct = "d"] l12d l12a;
+
+	l12d:	rv := dv;
+			rw := dw;
+			goto [dv = $$empty] rvc rvd;
+	rvc:	rv := l-nth (current, 1);
+	rvd:	goto [dw = $$empty] rwd setd;
+	rwd:	rw := l-nth (current, 2);
+	setd:	[l, prop] := {{ "d", rv, rw, re, rc }};
+			goto acc_t;
+
+	l12a:	rg := dg;
+			rs := ds;
+			goto [dg = $$empty] rgc rgd;
+	rgc:	rg := l-nth (current, 1);
+	rgd:	goto [ds = $$empty] rsd seta;
+	rsd:	rs := l-nth (current, 2);
+	seta:	[l, prop] := {{ "a", rg, rs, re, rc }};
+			goto acc_t;
+
+	acc_t:	xret := $$t;
+			goto rlab;
+
+	acc_f:	xret := $$f;
+	rlab:	skip;
+
+	celab:	xerr := current;
+			goto elab;
+
+    reject: goto [throw] tt acc_f;
+    tt:     xerr := "TypeError" ();
+    elab:   skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+spec i__toPrimitive(v, hint)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ (xret == $$undefined) * types(xret : $$undefined_type) ]]
+normal;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ (xret == $$null) * types(xret : $$null_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$number_type) ]]
+[[ (xret == #v) * types(#v : $$number_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$boolean_type) ]]
+[[ (xret == #v) * types(#v : $$boolean_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$string_type) ]]
+[[ (xret == #v) * types(#v : $$string_type) ]]
+normal
+
+proc i__toPrimitive (v, hint) {
+			xret := v;
+			tv := typeOf(v);
+
+	iu:		goto [(v = $$undefined) or (v = $$null) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
+	              (typeOf(v) = $$string_type)] rlab is_obj;
+
+	is_obj:	print := "object";
+			goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := "defaultValue" (v, hint) with elab;
+			goto rlab;
+
+	oops:	xret := "ToPrimitive: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__isAccessorDescriptor(desc)
+[[ (desc == $$undefined) * types(desc : $$undefined_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "d", ##NORMALISED_LVAR_100058, ##NORMALISED_LVAR_100059, ##NORMALISED_LVAR_100060, ##NORMALISED_LVAR_100061 }}) * (! (##NORMALISED_LVAR_100058 == $$empty)) * types(##NORMALISED_LVAR_100059 : $$boolean_type, ##NORMALISED_LVAR_100061 : $$boolean_type, desc : $$list_type, ##NORMALISED_LVAR_100060 : $$boolean_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_100062, ##NORMALISED_LVAR_100063, ##NORMALISED_LVAR_100064, ##NORMALISED_LVAR_100065, $$empty, $$empty }}) * types(##NORMALISED_LVAR_100067 : $$empty_type, desc : $$list_type, ##NORMALISED_LVAR_100066 : $$empty_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_100068, ##NORMALISED_LVAR_100069, ##NORMALISED_LVAR_100070, ##NORMALISED_LVAR_100071, ##NORMALISED_LVAR_100072, ##NORMALISED_LVAR_100073 }}) * (! (##NORMALISED_LVAR_100072 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_100074, ##NORMALISED_LVAR_100075, ##NORMALISED_LVAR_100076, ##NORMALISED_LVAR_100077, ##NORMALISED_LVAR_100078, ##NORMALISED_LVAR_100079 }}) * (! (##NORMALISED_LVAR_100079 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__isAccessorDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "a"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	g := l-nth (desc, 5);
+			s := l-nth (desc, 6);
+			goto [(g = $$empty) and (s = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+spec o__getOwnProperty(l, prop)
+[[ ((_$l_#l, #prop) -> None) * (l == _$l_#l) * (prop == #prop) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(l : $$object_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> None) * (xret == $$undefined) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(xret : $$undefined_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_100039, ##NORMALISED_LVAR_100040, ##NORMALISED_LVAR_100041, ##NORMALISED_LVAR_100042 }}) * (l == _$l_#l) * (prop == #prop) * (! (##NORMALISED_LVAR_100039 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (#dx == {{ "d", ##NORMALISED_LVAR_100039, ##NORMALISED_LVAR_100040, ##NORMALISED_LVAR_100041, ##NORMALISED_LVAR_100042 }}) * types(##NORMALISED_LVAR_100041 : $$boolean_type, l : $$object_type, ##NORMALISED_LVAR_100042 : $$boolean_type, prop : $$string_type, ##NORMALISED_LVAR_100040 : $$boolean_type, #prop : $$string_type, #dx : $$list_type) ]]
+[[ ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_100043, ##NORMALISED_LVAR_100044, ##NORMALISED_LVAR_100045, ##NORMALISED_LVAR_100046 }}) * (xret == {{ "d", ##NORMALISED_LVAR_100043, ##NORMALISED_LVAR_100044, ##NORMALISED_LVAR_100045, ##NORMALISED_LVAR_100046 }}) * (! (##NORMALISED_LVAR_100043 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (#dx == {{ "d", ##NORMALISED_LVAR_100043, ##NORMALISED_LVAR_100044, ##NORMALISED_LVAR_100045, ##NORMALISED_LVAR_100046 }}) * types(##NORMALISED_LVAR_100046 : $$boolean_type, ##NORMALISED_LVAR_100044 : $$boolean_type, ##NORMALISED_LVAR_100045 : $$boolean_type, xret : $$list_type, #prop : $$string_type, #dx : $$list_type) ]]
+normal
+
+proc o__getOwnProperty (l, prop) {
+            x := hasField(l, prop);
+            goto [x] hp nhp; 			(* Does the field exist? *)
+
+    nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
+            goto rlab;
+
+    hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
+
+    rlab:   skip
+}
+with
+{
+    ret: 	xret, rlab;
+};
+
+spec i__toInteger(v)
+[[ (v == #v) * types(#v : $$string_type) ]]
+[[ (xret == (num_to_int (string_to_num #v))) * types(#v : $$string_type, xret : $$number_type) ]]
+normal
+
+proc i__toInteger (v) {
+			xret := "i__toNumber" (v) with elab;
+			xret := num_to_int (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec deleteProperty(l, prop, throw)
+[[ (l == #l) * (prop == #prop) * (#desc == $$undefined) * types(#desc : $$undefined_type, l : $$object_type, prop : $$string_type, #l : $$object_type, #clsx : $$list_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, $$undefined, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+[[ (xret == $$t) * (#desc == $$undefined) * types(#desc : $$undefined_type, #l : $$object_type, #clsx : $$list_type, xret : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, $$undefined, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+normal;
+
+ [[ (l == #l) * (prop == #prop) * (! (##NORMALISED_LVAR_1000382 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000382, ##NORMALISED_LVAR_1000383, ##NORMALISED_LVAR_1000384, $$t }}) * types(#desc : $$list_type, ##NORMALISED_LVAR_1000384 : $$boolean_type, l : $$object_type, ##NORMALISED_LVAR_1000383 : $$boolean_type, prop : $$string_type, #l : $$object_type, #clsx : $$list_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, {{ "d", ##NORMALISED_LVAR_1000382, ##NORMALISED_LVAR_1000383, ##NORMALISED_LVAR_1000384, $$t }}, {{ #l }}, #gp_aux_3, #gp_aux_4) ]]
+[[ (xret == $$t) * types(#desc : $$list_type, #l : $$object_type, #clsx : $$list_type, xret : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) ]]
+normal;
+
+ [[ (l == #l) * (prop == #prop) * (throw == $$t) * (! (##NORMALISED_LVAR_1000388 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000388, ##NORMALISED_LVAR_1000389, ##NORMALISED_LVAR_1000390, $$f }}) * types(##NORMALISED_LVAR_1000390 : $$boolean_type, ##NORMALISED_LVAR_1000389 : $$boolean_type, #desc : $$list_type, l : $$object_type, prop : $$string_type, #l : $$object_type, #clsx : $$list_type, throw : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, {{ "d", ##NORMALISED_LVAR_1000388, ##NORMALISED_LVAR_1000389, ##NORMALISED_LVAR_1000390, $$f }}, {{ #l }}, #gp_aux_3, #gp_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(#desc : $$list_type, #l : $$object_type, #clsx : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) ]]
+error;
+
+ [[ (l == #l) * (prop == #prop) * (throw == $$f) * (! (##NORMALISED_LVAR_1000394 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000394, ##NORMALISED_LVAR_1000395, ##NORMALISED_LVAR_1000396, $$f }}) * types(#desc : $$list_type, l : $$object_type, prop : $$string_type, #l : $$object_type, ##NORMALISED_LVAR_1000395 : $$boolean_type, ##NORMALISED_LVAR_1000396 : $$boolean_type, #clsx : $$list_type, throw : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, {{ "d", ##NORMALISED_LVAR_1000394, ##NORMALISED_LVAR_1000395, ##NORMALISED_LVAR_1000396, $$f }}, {{ #l }}, #gp_aux_3, #gp_aux_4) ]]
+[[ (xret == $$f) * types(#desc : $$list_type, #l : $$object_type, #clsx : $$list_type, xret : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) ]]
+error
+
+proc deleteProperty (l, prop, throw) {
+
+			[* unfold Pi (#l, #prop, #clsx, #desc, #g_aux_2, #g_aux_3, #g_aux_4) *]
+			xret := "getOwnProperty" (l, prop) with elab;
+			[* fold Pi (#l, #prop, #clsx, #desc, #g_aux_2, #g_aux_3, #g_aux_4) *]
+			goto [xret = $$undefined] dt cont;
+
+	cont:	c := l-nth (xret, 4);
+			goto [c] del reject;
+	del:	delete (l, prop);
+
+	dt:		xret := $$t;
+			goto rlab;
+
+	df:		xret := $$f;
+	rlab:	skip;
+
+    reject: goto [throw] tt df;
+
+    tt:     xret := "TypeError" ();
+    elab:   skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+spec getOwnProperty(l, prop)
+[[ ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * (l == _$l_#l) * (prop == #prop) * (! (#cls == "String")) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(l : $$object_type, #cls : $$string_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * (xret == $$undefined) * (! (#cls == "String")) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(#cls : $$string_type, xret : $$undefined_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000370, ##NORMALISED_LVAR_1000371, ##NORMALISED_LVAR_1000372, ##NORMALISED_LVAR_1000373 }}) * (l == _$l_#l) * (prop == #prop) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000370 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (#dx == {{ "d", ##NORMALISED_LVAR_1000370, ##NORMALISED_LVAR_1000371, ##NORMALISED_LVAR_1000372, ##NORMALISED_LVAR_1000373 }}) * types(##NORMALISED_LVAR_1000372 : $$boolean_type, l : $$object_type, ##NORMALISED_LVAR_1000371 : $$boolean_type, #cls : $$string_type, prop : $$string_type, ##NORMALISED_LVAR_1000373 : $$boolean_type, #prop : $$string_type, #dx : $$list_type) ]]
+[[ ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> {{ "d", ##NORMALISED_LVAR_1000374, ##NORMALISED_LVAR_1000375, ##NORMALISED_LVAR_1000376, ##NORMALISED_LVAR_1000377 }}) * (xret == {{ "d", ##NORMALISED_LVAR_1000374, ##NORMALISED_LVAR_1000375, ##NORMALISED_LVAR_1000376, ##NORMALISED_LVAR_1000377 }}) * (! (#cls == "String")) * (! (##NORMALISED_LVAR_1000374 == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * (#dx == {{ "d", ##NORMALISED_LVAR_1000374, ##NORMALISED_LVAR_1000375, ##NORMALISED_LVAR_1000376, ##NORMALISED_LVAR_1000377 }}) * types(##NORMALISED_LVAR_1000375 : $$boolean_type, #cls : $$string_type, ##NORMALISED_LVAR_1000377 : $$boolean_type, xret : $$list_type, ##NORMALISED_LVAR_1000376 : $$boolean_type, #prop : $$string_type, #dx : $$list_type) ]]
+normal
+
+proc getOwnProperty (l, prop) {
+
+			class := [l, "@class"];
+
+			goto [class = "String"] sgop ogop;
+
+	sgop:	xret := "s__getOwnProperty" (l, prop) with elab;
+			goto rlab;
+
+	ogop:	xret := "o__getOwnProperty" (l, prop) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__toString(v)
+[[ (v == #v) * types(#v : $$number_type) ]]
+[[ (xret == (num_to_string #v)) * types(#v : $$number_type, xret : $$string_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$string_type) ]]
+[[ (xret == #v) * types(#v : $$string_type, xret : $$string_type) ]]
+normal
+
+proc i__toString (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := "undefined";
+			goto rlab;
+
+	in:		goto [v = $$null] null ib;
+	null:	xret := "null";
+			goto rlab;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	goto [v = $$t] is_t is_f;
+	is_t:	xret := "true";
+			goto rlab;
+	is_f:	xret := "false";
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := num_to_string v;
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := v;
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := "i__toPrimitive" (v, "String") with elab;
+			xret := "i__toString" (xret) with elab;
+			goto rlab;
+
+	oops:	xret := "TypeError" ("ToString: This should not happen.");
+            goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__checkAssignmentErrors(v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$number_type, ##NORMALISED_LVAR_v : $$number_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$boolean_type, ##NORMALISED_LVAR_v : $$boolean_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$string_type, ##NORMALISED_LVAR_v : $$string_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$object_type, ##NORMALISED_LVAR_v : $$object_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == {{ "v", #l, #prop }}) * (! (#prop == "arguments")) * (! (#prop == "eval")) * (#v == {{ "v", #l, #prop }}) * types(v : $$list_type, #v : $$list_type, #l : $$object_type, #prop : $$string_type) ]]
+[[ (xret == $$t) * types(#v : $$list_type, #l : $$object_type, xret : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ (v == {{ "v", #l, "eval" }}) * (#v == {{ "v", #l, "eval" }}) * types(v : $$list_type, #v : $$list_type, #l : $$object_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lserr_proto) * (xret == _$l_xret) * types(#v : $$list_type, #l : $$object_type, xret : $$object_type) ]]
+error;
+
+ [[ (v == {{ "v", #l, "arguments" }}) * (#v == {{ "v", #l, "arguments" }}) * types(v : $$list_type, #v : $$list_type, #l : $$object_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lserr_proto) * (xret == _$l_xret) * types(#v : $$list_type, #l : $$object_type, xret : $$object_type) ]]
+error;
+
+ [[ (v == {{ "o", #base, #field }}) * (#v == {{ "o", #base, #field }}) * types(#field : $$string_type, v : $$list_type, #v : $$list_type, #base : $$object_type) ]]
+[[ (xret == $$t) * types(#field : $$string_type, #v : $$list_type, #base : $$object_type, xret : $$boolean_type) ]]
+normal
+
+proc i__checkAssignmentErrors (v) {
+			tv := typeOf (v);
+			goto [(tv = $$list_type)] isref rlab;
+	isref:	goto [((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] prep rlab;
+
+	prep:	fv := l-nth (v, 2);
+
+	csyn:	goto [(l-nth (v, 0) = "v") and ((fv = "eval") or (fv = "arguments"))] se rlab;
+
+	rlab:	xret := $$t;
+
+	se:		xret := "SyntaxError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__putValue(v, w)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+error;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+error;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$number_type, ##NORMALISED_LVAR_v : $$number_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+error;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$boolean_type, ##NORMALISED_LVAR_v : $$boolean_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+error;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$string_type, ##NORMALISED_LVAR_v : $$string_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+error;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$object_type, ##NORMALISED_LVAR_v : $$object_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+error;
+
+ [[ ((_$l_#obj, #field) -> #oldvalue) * (w == #w) * (v == {{ "v", _$l_#obj, #field }}) * (! (#w == $$empty)) * (! (#field == "")) * (! (s-nth(#field, 0.) == "@")) * types(#field : $$string_type, v : $$list_type) ]]
+[[ ((_$l_#obj, #field) -> #w) * (xret == $$empty) * types(#field : $$string_type, xret : $$empty_type) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$f) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * types(v : $$list_type, #cls : $$list_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$f) * (xret == _$l_xret) * types(#cls : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+error;
+
+ [[ (w == #w) * (v == {{ "o", #l, #prop }}) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000195, $$f, ##NORMALISED_LVAR_1000197, ##NORMALISED_LVAR_1000198 }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (##NORMALISED_LVAR_1000195 == $$empty)) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000197 : $$boolean_type, v : $$list_type, ##NORMALISED_LVAR_1000198 : $$boolean_type, #cls : $$list_type, #l : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #cls, {{ "d", ##NORMALISED_LVAR_1000195, $$f, ##NORMALISED_LVAR_1000197, ##NORMALISED_LVAR_1000198 }}, {{ #l }}, #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #cls : $$list_type, #l : $$object_type, xret : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$f) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000201, ##NORMALISED_LVAR_1000202, ##NORMALISED_LVAR_1000203, ##NORMALISED_LVAR_1000204 }}) * (#g_aux_2 == (_$l_#l :: (#lp :: #other))) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (##NORMALISED_LVAR_1000201 == $$empty)) * types(#g_aux_1 : $$list_type, v : $$list_type, ##NORMALISED_LVAR_1000202 : $$boolean_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, ##NORMALISED_LVAR_1000203 : $$boolean_type, #cls : $$list_type, ##NORMALISED_LVAR_1000204 : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #cls, {{ "d", ##NORMALISED_LVAR_1000201, ##NORMALISED_LVAR_1000202, ##NORMALISED_LVAR_1000203, ##NORMALISED_LVAR_1000204 }}, (_$l_#l :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$f) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, #cls : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000205, $$f, ##NORMALISED_LVAR_1000207, ##NORMALISED_LVAR_1000208 }}) * (#g_aux_2 == (_$l_#l :: (#lp :: #other))) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (##NORMALISED_LVAR_1000205 == $$empty)) * types(#g_aux_1 : $$list_type, v : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, #cls : $$list_type, #prop : $$string_type, ##NORMALISED_LVAR_1000207 : $$boolean_type, ##NORMALISED_LVAR_1000208 : $$boolean_type) * Pi(_$l_#l, #prop, #cls, {{ "d", ##NORMALISED_LVAR_1000205, $$f, ##NORMALISED_LVAR_1000207, ##NORMALISED_LVAR_1000208 }}, (_$l_#l :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$t) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, #cls : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ (($lg, "@extensible") -> $$f) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * types(v : $$list_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (($lg, "@extensible") -> $$f) * (xret == _$l_xret) * types(xret : $$object_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+error;
+
+ [[ (($lg, "@extensible") -> $$f) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000209, $$f, ##NORMALISED_LVAR_1000211, ##NORMALISED_LVAR_1000212 }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (##NORMALISED_LVAR_1000209 == $$empty)) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000212 : $$boolean_type, v : $$list_type, #prop : $$string_type, ##NORMALISED_LVAR_1000211 : $$boolean_type) * Pi($lg, #prop, {{ "Object" }}, {{ "d", ##NORMALISED_LVAR_1000209, $$f, ##NORMALISED_LVAR_1000211, ##NORMALISED_LVAR_1000212 }}, {{ $lg }}, #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (($lg, "@extensible") -> $$f) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, #g_aux_1, {{ $lg }}, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ (($lg, "@extensible") -> $$f) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000213, ##NORMALISED_LVAR_1000214, ##NORMALISED_LVAR_1000215, ##NORMALISED_LVAR_1000216 }}) * (#g_aux_2 == ($lg :: (#lp :: #other))) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (##NORMALISED_LVAR_1000213 == $$empty)) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000215 : $$boolean_type, v : $$list_type, ##NORMALISED_LVAR_1000214 : $$boolean_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, ##NORMALISED_LVAR_1000216 : $$boolean_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, {{ "d", ##NORMALISED_LVAR_1000213, ##NORMALISED_LVAR_1000214, ##NORMALISED_LVAR_1000215, ##NORMALISED_LVAR_1000216 }}, ($lg :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (($lg, "@extensible") -> $$f) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ (($lg, "@extensible") -> $$t) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000217, $$f, ##NORMALISED_LVAR_1000219, ##NORMALISED_LVAR_1000220 }}) * (#g_aux_2 == ($lg :: (#lp :: #other))) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (##NORMALISED_LVAR_1000217 == $$empty)) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000219 : $$boolean_type, v : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, ##NORMALISED_LVAR_1000220 : $$boolean_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, {{ "d", ##NORMALISED_LVAR_1000217, $$f, ##NORMALISED_LVAR_1000219, ##NORMALISED_LVAR_1000220 }}, ($lg :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (($lg, "@extensible") -> $$t) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (! (#cls == "Array")) * types(v : $$list_type, #cls : $$string_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, $$undefined, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@proto") -> $$null) * (xret == $$empty) * types(#cls : $$string_type, xret : $$empty_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #w, $$t, $$t, $$t }}, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (! (#cls == "Array")) * types(#ocls : $$list_type, v : $$list_type, #lllp : $$list_type, #lp : $$object_type, #pv : $$string_type, #cls : $$string_type, #lltf : $$list_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(_$l_#l, #prop, (#cls :: (#pcls :: #ocls)), $$undefined, (_$l_#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@proto") -> #lp) * (xret == $$empty) * types(#ocls : $$list_type, #lllp : $$list_type, #lp : $$object_type, #pv : $$string_type, #cls : $$string_type, #lltf : $$list_type, xret : $$empty_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(#lp, #prop, (#pcls :: #ocls), $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #w, $$t, $$t, $$t }}, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+normal;
+
+ [[ (($lg, "@extensible") -> $$t) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * types(#ocls : $$list_type, v : $$list_type, #lllp : $$list_type, #lp : $$object_type, #pv : $$string_type, #lltf : $$list_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi($lg, #prop, ("Object" :: (#pcls :: #ocls)), $$undefined, ($lg :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) ]]
+[[ (($lg, "@extensible") -> $$t) * (($lg, "@proto") -> #lp) * (xret == $$empty) * types(#ocls : $$list_type, #lllp : $$list_type, #lp : $$object_type, #pv : $$string_type, #lltf : $$list_type, xret : $$empty_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(#lp, #prop, (#pcls :: #ocls), $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) * Pi($lg, #prop, {{ "Object" }}, {{ "d", #w, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ "" }}) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> #ext) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#dval == $$empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * types(#denum : $$boolean_type, v : $$list_type, #cls : $$string_type, #ext : $$boolean_type, #dconf : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #dval, $$t, #denum, #dconf }}, {{ _$l_#l }}, #g_aux_3, #g_aux_4) ]]
+[[ ((_$l_#l, "@extensible") -> #ext) * (xret == $$empty) * types(#denum : $$boolean_type, #cls : $$string_type, #ext : $$boolean_type, xret : $$empty_type, #dconf : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #w, $$t, #denum, #dconf }}, {{ _$l_#l }}, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ (($lg, "@extensible") -> #ext) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#dval == $$empty)) * types(#denum : $$boolean_type, v : $$list_type, #ext : $$boolean_type, #dconf : $$boolean_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, {{ "d", #dval, $$t, #denum, #dconf }}, {{ $lg }}, #g_aux_3, #g_aux_4) ]]
+[[ (($lg, "@extensible") -> #ext) * (xret == $$empty) * types(#denum : $$boolean_type, #ext : $$boolean_type, xret : $$empty_type, #dconf : $$boolean_type, #prop : $$string_type) * Pi($lg, #prop, {{ "Object" }}, {{ "d", #w, $$t, #denum, #dconf }}, {{ $lg }}, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (w == #w) * (v == {{ "o", _$l_#l, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#dcval == $$empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * types(#ocls : $$list_type, v : $$list_type, #lllp : $$list_type, #dcenum : $$boolean_type, #lp : $$object_type, #pv : $$string_type, #cls : $$string_type, #lltf : $$list_type, #dcconf : $$boolean_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(_$l_#l, #prop, (#cls :: (#pcls :: #ocls)), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (_$l_#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@proto") -> #lp) * (xret == $$empty) * types(#ocls : $$list_type, #lllp : $$list_type, #dcenum : $$boolean_type, #lp : $$object_type, #pv : $$string_type, #cls : $$string_type, #lltf : $$list_type, xret : $$empty_type, #dcconf : $$boolean_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(#lp, #prop, (#pcls :: #ocls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #w, $$t, $$t, $$t }}, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+normal;
+
+ [[ (($lg, "@extensible") -> $$t) * (w == #w) * (v == {{ "v", $lg, #prop }}) * (! (#w == $$empty)) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#dcval == $$empty)) * types(#ocls : $$list_type, v : $$list_type, #lllp : $$list_type, #dcenum : $$boolean_type, #lp : $$object_type, #pv : $$string_type, #lltf : $$list_type, #dcconf : $$boolean_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi($lg, #prop, ("Object" :: (#pcls :: #ocls)), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, ($lg :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) ]]
+[[ (($lg, "@extensible") -> $$t) * (($lg, "@proto") -> #lp) * (xret == $$empty) * types(#ocls : $$list_type, #lllp : $$list_type, #dcenum : $$boolean_type, #lp : $$object_type, #pv : $$string_type, #lltf : $$list_type, xret : $$empty_type, #dcconf : $$boolean_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(#lp, #prop, (#pcls :: #ocls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) * Pi($lg, #prop, {{ "Object" }}, {{ "d", #w, $$t, $$t, $$t }}, {{ $lg }}, {{ $$f }}, {{ "" }}) ]]
+normal
+
+proc i__putValue (v, w) {
+
+			goto [(typeOf(v) = $$list_type)] isref throw;
+	isref:	goto [((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init throw;
+
+	init:	rbase := l-nth (v, 1);
+			rfield := l-nth (v, 2);
+			goto [rbase = $$undefined] throw prim;
+
+	prim:	prim := "i__isPrimitive" (rbase);
+            goto [prim] is_pr refr;
+
+	refr:	goto [l-nth (v, 0) = "o"] oref vref;
+
+	oref:	xret := "put" (rbase, rfield, w, $$t) with elab;
+			goto dflt;
+
+	vref:	goto [rbase = $lg] lg er;
+
+	lg:		xret := "put" (rbase, rfield, w, $$t) with elab;
+			goto dflt;
+
+	er:		[rbase, rfield] := w;
+
+	dflt:	xret := $$empty;
+	rlab:	skip;
+
+	throw:  xret := "ReferenceError" ();
+    elab:   skip;
+
+    		(* WHY GOD, WHY THIS? *)
+
+	is_pr:	xret := "i__toObject" (rbase) with elab;
+			l := xret;
+    		xret := "canPut" (l, rfield) with elab;
+            goto [xret] cp reject;
+
+    cp:     xret := "getProperty" (l, rfield) with elab;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] reject is_ad;
+
+   	is_ad: 	ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad reject;
+
+    ad:		s := l-nth (xret, 2);
+    		xsc := [s, "@scope"];
+    		fun := [s, "@call"];
+    		xret := fun (xsc, rbase, w) with elab;
+    		goto dflt;
+
+    reject: xret := "TypeError" ();
+    		goto elab
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec put(l, prop, value, throw)
+[[ ((_$l_#l, "@extensible") -> $$f) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == $$t) * (! (#value == $$empty)) * types(l : $$object_type, throw : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$f) * (xret == _$l_xret) * types(xret : $$object_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$t) * (! (##NORMALISED_LVAR_1000195 == $$empty)) * (! (#value == $$empty)) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000195, $$f, ##NORMALISED_LVAR_1000197, ##NORMALISED_LVAR_1000198 }}) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000197 : $$boolean_type, ##NORMALISED_LVAR_1000198 : $$boolean_type, l : $$object_type, prop : $$string_type, #l : $$object_type, throw : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_1000195, $$f, ##NORMALISED_LVAR_1000197, ##NORMALISED_LVAR_1000198 }}, {{ #l }}, #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #l : $$object_type, xret : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$f) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == $$t) * (! (##NORMALISED_LVAR_1000201 == $$empty)) * (! (#value == $$empty)) * (#g_aux_2 == (_$l_#l :: (#lp :: #other))) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000201, ##NORMALISED_LVAR_1000202, ##NORMALISED_LVAR_1000203, ##NORMALISED_LVAR_1000204 }}) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000202 : $$boolean_type, #lp : $$object_type, #g_aux_2 : $$list_type, l : $$object_type, #other : $$list_type, ##NORMALISED_LVAR_1000203 : $$boolean_type, prop : $$string_type, ##NORMALISED_LVAR_1000204 : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_1000201, ##NORMALISED_LVAR_1000202, ##NORMALISED_LVAR_1000203, ##NORMALISED_LVAR_1000204 }}, (_$l_#l :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$f) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == $$t) * (! (##NORMALISED_LVAR_1000205 == $$empty)) * (! (#value == $$empty)) * (#g_aux_2 == (_$l_#l :: (#lp :: #other))) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000205, $$f, ##NORMALISED_LVAR_1000207, ##NORMALISED_LVAR_1000208 }}) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, l : $$object_type, #other : $$list_type, prop : $$string_type, throw : $$boolean_type, #prop : $$string_type, ##NORMALISED_LVAR_1000207 : $$boolean_type, ##NORMALISED_LVAR_1000208 : $$boolean_type) * Pi(_$l_#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_1000205, $$f, ##NORMALISED_LVAR_1000207, ##NORMALISED_LVAR_1000208 }}, (_$l_#l :: (#lp :: #other)), #g_aux_3, #g_aux_4) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_#l, "@extensible") -> $$t) * (xret == _$l_xret) * types(#g_aux_1 : $$list_type, #lp : $$object_type, #g_aux_2 : $$list_type, #other : $$list_type, xret : $$object_type, #prop : $$string_type) * Pi(_$l_#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+error;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == #throw) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#value == $$empty)) * types(l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, $$undefined, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@proto") -> $$null) * (xret == $$empty) * types(#cls : $$string_type, #throw : $$boolean_type, xret : $$empty_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #value, $$t, $$t, $$t }}, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == #throw) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#value == $$empty)) * types(#lllp : $$list_type, #lp : $$object_type, #pv : $$string_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, #lltf : $$list_type, #ccls : $$string_type, #llcls : $$list_type, #tf : $$boolean_type, throw : $$boolean_type, #prop : $$string_type, #llpv : $$list_type) * Pi(_$l_#l, #prop, (#cls :: (#ccls :: #llcls)), $$undefined, (_$l_#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@proto") -> #lp) * (xret == $$empty) * types(#lllp : $$list_type, #lp : $$object_type, #pv : $$string_type, #cls : $$string_type, #throw : $$boolean_type, #lltf : $$list_type, #ccls : $$string_type, xret : $$empty_type, #llcls : $$list_type, #tf : $$boolean_type, #prop : $$string_type, #llpv : $$list_type) * Pi(#lp, #prop, (#ccls :: #llcls), $$undefined, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #value, $$t, $$t, $$t }}, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> #ext) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == #throw) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#dval == $$empty)) * (! (#value == $$empty)) * types(#denum : $$boolean_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, #dconf : $$boolean_type, throw : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #dval, $$t, #denum, #dconf }}, {{ _$l_#l }}, #g_aux_3, #g_aux_4) ]]
+[[ ((_$l_#l, "@extensible") -> #ext) * (xret == $$empty) * types(#denum : $$boolean_type, #cls : $$string_type, #throw : $$boolean_type, #ext : $$boolean_type, xret : $$empty_type, #dconf : $$boolean_type, #prop : $$string_type) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #value, $$t, #denum, #dconf }}, {{ _$l_#l }}, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ ((_$l_#l, "@extensible") -> $$t) * (l == _$l_#l) * (prop == #prop) * (value == #value) * (throw == #throw) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#dcval == $$empty)) * (! (#value == $$empty)) * types(#ocls : $$list_type, #lllp : $$list_type, #dcenum : $$boolean_type, #lp : $$object_type, #pv : $$string_type, l : $$object_type, #cls : $$string_type, prop : $$string_type, #throw : $$boolean_type, #lltf : $$list_type, #dcconf : $$boolean_type, #tf : $$boolean_type, throw : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(_$l_#l, #prop, (#cls :: (#pcls :: #ocls)), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (_$l_#l :: (#lp :: #lllp)), ($$f :: (#tf :: #lltf)), ("" :: (#pv :: #llpv))) ]]
+[[ ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@proto") -> #lp) * (xret == $$empty) * types(#ocls : $$list_type, #lllp : $$list_type, #dcenum : $$boolean_type, #lp : $$object_type, #pv : $$string_type, #cls : $$string_type, #throw : $$boolean_type, #lltf : $$list_type, xret : $$empty_type, #dcconf : $$boolean_type, #tf : $$boolean_type, #prop : $$string_type, #pcls : $$string_type, #llpv : $$list_type) * Pi(#lp, #prop, (#pcls :: #ocls), {{ "d", #dcval, $$t, #dcenum, #dcconf }}, (#lp :: #lllp), (#tf :: #lltf), (#pv :: #llpv)) * Pi(_$l_#l, #prop, {{ #cls }}, {{ "d", #value, $$t, $$t, $$t }}, {{ _$l_#l }}, {{ $$f }}, {{ "" }}) ]]
+normal
+
+proc put (l, prop, value, throw) {
+            xret := "canPut" (l, prop) with elab;
+            goto [xret] cp reject;
+
+			[* unfold Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+    cp:     xret := "getOwnProperty" (l, prop) with elab;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] dd gp;
+
+    dd:		desc := {{ "g", $$empty, $$empty, value, $$empty, $$empty, $$empty }};
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
+			[* fold Pi (#l, #prop, #g_aux_new_1, {{ "d", #value, $$t, #denum, #dconf }}, {{ #l }}, #g_aux_new_3, #g_aux_new_4) *]
+    		goto remp;
+
+			[* fold Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+    gp:		xret := "getProperty" (l, prop) with elab;
+    		ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad def;
+
+    ad:		s := l-nth (xret, 2);
+    		xsc := [s, "@scope"];
+    		fun := [s, "@call"];
+    		xret := fun (xsc, l, value) with elab;
+    		goto remp;
+
+    def:	desc := {{ "d", value, $$t, $$t, $$t }};
+			[* unfold Pi (#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *]
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
+			[* fold Pi (#l, #prop, #g_aux_new_1, {{ "d", #value, $$t, $$t, $$t }}, {{ #l }}, #g_aux_new_3, #g_aux_new_4) *]
+			skip;
+
+    remp:   xret := $$empty;
+    rlab:   skip;
+
+    reject: xret := $$empty;
+			goto [throw] tt rlab;
+
+    tt:     xret := "TypeError" ();
+    elab:   skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xret, elab;
+};
+
+spec OP_hasOwnProperty(xsc, vthis, v)
+[[ ((_$l_#l, #prop) -> {{ "d", #v, #wr, #en, #co }}) * ((_$l_#l, "@class") -> "Object") * (vthis == _$l_#l) * (v == #prop) * (! (#v == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(vthis : $$object_type, #en : $$boolean_type, v : $$string_type, #wr : $$boolean_type, #prop : $$string_type, #co : $$boolean_type) ]]
+[[ ((_$l_#l, #prop) -> {{ "d", #v, #wr, #en, #co }}) * ((_$l_#l, "@class") -> "Object") * (xret == $$t) * (! (#v == $$empty)) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(#en : $$boolean_type, #wr : $$boolean_type, xret : $$boolean_type, #co : $$boolean_type, #prop : $$string_type) ]]
+normal;
+
+ [[ ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> "Object") * (vthis == _$l_#l) * (v == #prop) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(vthis : $$object_type, #prop : $$string_type) ]]
+[[ ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> "Object") * (xret == $$f) * (! (s-nth(#prop, 0.) == "@")) * (! (#prop == "")) * types(xret : $$boolean_type, #prop : $$string_type) ]]
+normal
+
+proc OP_hasOwnProperty(xsc, vthis, v) {
+			xret := "i__toString" (v) with elab;
+			p := xret;
+
+			xret := "i__toObject" (vthis) with elab;
+			xret := "getOwnProperty" (xret, p) with elab;
+
+			xret := not (xret = $$undefined);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec hasProperty(l, prop)
+[[ (l == #l) * (prop == #prop) * types(#l : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+[[ (xret == (not (#gp_aux_1 = $$undefined))) * types(#l : $$object_type, xret : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+normal
+
+proc hasProperty (l, prop) {
+			xret := "getProperty" (l, prop) with elab;
+
+	rlab:	xret := not (xret = $$undefined);
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+spec create_object_with_call_construct(l, call, construct, len)
+[[ empty_fields(_$l_#l : -{ "@proto" }-) * ((_$l_#l, "@proto") -> $$null) * (call == #call) * (len == #len) * (construct == #construct) * (l == _$l_#l) * types(#construct : $$string_type, #len : $$number_type, l : $$object_type, #call : $$string_type) ]]
+[[ empty_fields(_$l_#l : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "length" }-) * ((_$l_#l, "@construct") -> #construct) * ((_$l_#l, "@call") -> #call) * ((_$l_#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) * ((_$l_#l, "@scope") -> $$empty) * ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@class") -> "Function") * ((_$l_#l, "@proto") -> $lfun_proto) * (xret == _$l_#l) * types(#construct : $$string_type, #len : $$number_type, xret : $$object_type, #call : $$string_type) ]]
+normal;
+
+ [[ empty_fields(_$l_#l : -{  }-) * (call == #call) * (len == #len) * (construct == $$empty) * (l == _$l_#l) * types(construct : $$empty_type, #len : $$number_type, l : $$object_type, call : $$string_type, len : $$number_type, #call : $$string_type) ]]
+[[ empty_fields(_$l_#l : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-) * ((_$l_#l, "@call") -> #call) * ((_$l_#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) * ((_$l_#l, "@scope") -> $$empty) * ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@class") -> "Function") * ((_$l_#l, "@proto") -> $lfun_proto) * (xret == _$l_#l) * types(#len : $$number_type, xret : $$object_type, #call : $$string_type) ]]
+normal;
+
+ [[ empty_fields(_$l_#l : -{  }-) * (call == #call) * (len == #len) * (construct == #construct) * (l == _$l_#l) * types(#construct : $$string_type, #len : $$number_type, l : $$object_type, #call : $$string_type) ]]
+[[ empty_fields(_$l_#l : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "length" }-) * ((_$l_#l, "@construct") -> #construct) * ((_$l_#l, "@call") -> #call) * ((_$l_#l, "length") -> {{ "d", #len, $$f, $$f, $$f }}) * ((_$l_#l, "@scope") -> $$empty) * ((_$l_#l, "@extensible") -> $$t) * ((_$l_#l, "@class") -> "Function") * ((_$l_#l, "@proto") -> $lfun_proto) * (xret == _$l_#l) * types(#construct : $$string_type, #len : $$number_type, xret : $$object_type, #call : $$string_type) ]]
+normal
+
+proc create_object_with_call_construct (l, call, construct, len) {
+
+			xret := "create_default_object" (l, $lfun_proto, "Function", $$t);
+
+			[xret, "@scope"] := $$empty;
+			[xret, "length"] := {{ "d", len, $$f, $$f, $$f }};
+			[xret, "@call"] := call;
+
+			goto [construct = $$empty] rlab cstr;
+
+	cstr:	[xret, "@construct"] := construct;
+
+	rlab:	xret := l
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec i__isPrimitive(v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$number_type, ##NORMALISED_LVAR_v : $$number_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$boolean_type, ##NORMALISED_LVAR_v : $$boolean_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$string_type, ##NORMALISED_LVAR_v : $$string_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$object_type, ##NORMALISED_LVAR_v : $$object_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__isPrimitive (v) {
+			tv := typeOf(v);
+
+	iu:		goto [(v = $$undefined) or (v = $$null) or
+	              (typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
+	              (typeOf(v) = $$string_type)] rt rf;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec copy_object_rec(lf, fields, lt)
+[[ (fields == $$nil) * types(fields : $$list_type) ]]
+[[ (xret == #lt) * types() ]]
+normal;
+
+ [[ ((_$l_#lf, #f) -> #v) * ((_$l_#lt, "@proto") -> $$null) * ((_$l_#lt, #f) -> None) * (lt == _$l_#lt) * (fields == {{ #f }}) * (lf == _$l_#lf) * (! (s-nth(#f, 0.) == "@")) * (! (#f == "")) * (#fields == {{ #f }}) * types(#f : $$string_type, lt : $$object_type, lf : $$object_type, #fields : $$list_type, fields : $$list_type) ]]
+[[ ((_$l_#lf, #f) -> #v) * ((_$l_#lt, "@proto") -> $$null) * ((_$l_#lt, #f) -> #v) * (xret == _$l_#lt) * types(#f : $$string_type, #fields : $$list_type, xret : $$object_type) ]]
+normal;
+
+ [[ ((_$l_#lf, "main") -> #v2) * ((_$l_#lf, #f1) -> #v1) * ((_$l_#lt, "@proto") -> $$null) * ((_$l_#lt, "main") -> None) * ((_$l_#lt, #f1) -> None) * (lt == _$l_#lt) * (fields == {{ #f1, "main" }}) * (lf == _$l_#lf) * (! (s-nth(#f1, 0.) == "@")) * (! (#f1 == "")) * (#fields == {{ #f1, "main" }}) * types(#f1 : $$string_type, lt : $$object_type, lf : $$object_type, #fields : $$list_type, fields : $$list_type) ]]
+[[ ((_$l_#lf, "main") -> #v2) * ((_$l_#lf, #f1) -> #v1) * ((_$l_#lt, "@proto") -> $$null) * ((_$l_#lt, "main") -> #v2) * ((_$l_#lt, #f1) -> #v1) * (xret == _$l_#lt) * types(#f1 : $$string_type, #fields : $$list_type, xret : $$object_type) ]]
+normal
+
+proc copy_object_rec (lf, fields, lt) {
+			goto [fields = {{ }}] rlab next;
+
+	next:	head := l-nth (fields, 0);
+			tail := cdr fields;
+
+			val := [lf, head];
+			[lt, head] := val;
+
+			xret := "copy_object_rec" (lf, tail, lt);
+
+	rlab:	xret := lt
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec i__isGenericDescriptor(desc)
+[[ (desc == $$undefined) * types(desc : $$undefined_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "d", ##NORMALISED_LVAR_1000400, ##NORMALISED_LVAR_1000401, ##NORMALISED_LVAR_1000402, ##NORMALISED_LVAR_1000403 }}) * (! (##NORMALISED_LVAR_1000400 == $$empty)) * types(##NORMALISED_LVAR_1000403 : $$boolean_type, ##NORMALISED_LVAR_1000402 : $$boolean_type, desc : $$list_type, ##NORMALISED_LVAR_1000401 : $$boolean_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000404, ##NORMALISED_LVAR_1000405, $$empty, $$empty, $$empty, $$empty }}) * types(##NORMALISED_LVAR_1000407 : $$empty_type, ##NORMALISED_LVAR_1000409 : $$empty_type, desc : $$list_type, ##NORMALISED_LVAR_1000406 : $$empty_type, ##NORMALISED_LVAR_1000408 : $$empty_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000410, ##NORMALISED_LVAR_1000411, ##NORMALISED_LVAR_1000412, ##NORMALISED_LVAR_1000413, ##NORMALISED_LVAR_1000414, ##NORMALISED_LVAR_1000415 }}) * (! (##NORMALISED_LVAR_1000412 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000416, ##NORMALISED_LVAR_1000417, ##NORMALISED_LVAR_1000418, ##NORMALISED_LVAR_1000419, ##NORMALISED_LVAR_1000420, ##NORMALISED_LVAR_1000421 }}) * (! (##NORMALISED_LVAR_1000419 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000422, ##NORMALISED_LVAR_1000423, ##NORMALISED_LVAR_1000424, ##NORMALISED_LVAR_1000425, ##NORMALISED_LVAR_1000426, ##NORMALISED_LVAR_1000427 }}) * (! (##NORMALISED_LVAR_1000426 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (desc == {{ "g", ##NORMALISED_LVAR_1000428, ##NORMALISED_LVAR_1000429, ##NORMALISED_LVAR_1000430, ##NORMALISED_LVAR_1000431, ##NORMALISED_LVAR_1000432, ##NORMALISED_LVAR_1000433 }}) * (! (##NORMALISED_LVAR_1000433 == $$empty)) * types(desc : $$list_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__isGenericDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+
+	cont:	dd := "i__isDataDescriptor" (desc);
+			ad := "i__isAccessorDescriptor" (desc);
+			xret := not (dd or ad);
+			goto rlab;
+
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+spec i__toDataDescriptor(desc)
+[[ (desc == {{ "d", ##NORMALISED_LVAR_1000378, ##NORMALISED_LVAR_1000379, ##NORMALISED_LVAR_1000380, ##NORMALISED_LVAR_1000381 }}) * (! (##NORMALISED_LVAR_1000378 == $$empty)) * (#desc == {{ "d", ##NORMALISED_LVAR_1000378, ##NORMALISED_LVAR_1000379, ##NORMALISED_LVAR_1000380, ##NORMALISED_LVAR_1000381 }}) * types(##NORMALISED_LVAR_1000381 : $$boolean_type, #desc : $$list_type, ##NORMALISED_LVAR_1000380 : $$boolean_type, desc : $$list_type, ##NORMALISED_LVAR_1000379 : $$boolean_type) ]]
+[[ (xret == #desc) * types(#desc : $$list_type) ]]
+normal
+
+proc i__toDataDescriptor (desc) {
+			d := l-nth (desc, 0);
+			goto [d = "d"] rd cstr;
+
+	cstr:	goto [d = "a"] ra gen;
+
+	ra:		xret := {{ "d", $$undefined, $$f, l-nth (desc, 3), l-nth (desc, 4) }};
+			goto rlab;
+
+	gen:	e := l-nth (desc, 1);
+			c := l-nth (desc, 2);
+			v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+
+			goto [e = $$empty] fixe c;
+	fixe:	e := $$f;
+	c:		goto [c = $$empty] fixc v;
+	fixc:	c := $$f;
+	v:		goto [v = $$empty] fixv w;
+	fixv:	v := $$undefined;
+	w:		goto [w = $$empty] fixw fixed;
+	fixw:	w := $$f;
+
+	fixed:	xret := {{ "d", v, w, e, c }};
+			goto rlab;
+
+	rd:		xret := desc;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+spec i__sameValue(v1, v2)
+[[ (v1 == #v1) * (v2 == #v2) * (#v2 == 0.) * (#v1 == 0.) * types(v2 : $$number_type, #v2 : $$number_type, v1 : $$number_type, #v1 : $$number_type) ]]
+[[ (xret == $$t) * types(#v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (#v2 == -0.) * (#v1 == -0.) * types(v2 : $$number_type, #v2 : $$number_type, v1 : $$number_type, #v1 : $$number_type) ]]
+[[ (xret == $$t) * types(#v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (#v2 == 0.) * (#v1 == -0.) * types(v2 : $$number_type, #v2 : $$number_type, v1 : $$number_type, #v1 : $$number_type) ]]
+[[ (xret == $$f) * types(#v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (#v2 == -0.) * (#v1 == 0.) * types(v2 : $$number_type, #v2 : $$number_type, v1 : $$number_type, #v1 : $$number_type) ]]
+[[ (xret == $$f) * types(#v2 : $$number_type, xret : $$boolean_type, #v1 : $$number_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) * types() ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v1 == #v1) * (v2 == #v2) * (! (#v1 == #v2)) * types() ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__sameValue (v1, v2) {
+			xret := (v1 = v2);
+
+			goto [(typeOf(v1) = $$number_type)] test2 rlab;
+	test2:	goto [(typeOf(v2) = $$number_type)] inan1 rlab;
+
+	inan1:	goto [(not (v1 = v1))] inan2 zero1;
+	inan2:	goto [(not (v2 = v2))] rt    zero1;
+	zero1:	goto [v1 = 0] zero2 rlab;
+	zero2:	goto [v2 = 0] fix   rlab;
+
+	fix:	sv1 := m_sgn (v1);
+			sv2 := m_sgn (v2);
+
+			xret := (sv1 = sv2);
+			goto rlab;
+
+	rt:		xret := $$t;
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec i__toObject(v)
+[[ (v == #v) * types(#v : $$object_type) ]]
+[[ (xret == #v) * types(#v : $$object_type) ]]
+normal
+
+proc i__toObject (v) {
+	iu:		goto [v = $$undefined] throw in;
+
+	in:		goto [v = $$null] throw ib;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := "Boolean_construct" ($$undefined, $$undefined, v);
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	xret := "Number_construct" ($$undefined, $$undefined, v);
+			goto rlab;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	xret := "String_construct" ($$undefined, $$undefined, v);
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := v;
+			goto rlab;
+
+	oops:	xret := "ToObject: This should not happen.";
+
+	rlab:	skip;
+
+	throw:	xret := "Here!";
+			xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec i__toBoolean(v)
+[[ (v == #v) * types(#v : $$boolean_type) ]]
+[[ (xret == #v) * types(#v : $$boolean_type) ]]
+normal;
+
+ [[ (v == 0.) * types(v : $$number_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == #v) * (! (#v == 0.)) * types(#v : $$number_type) ]]
+[[ (xret == $$t) * types(#v : $$number_type, xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$object_type) ]]
+[[ (xret == $$t) * types(#v : $$object_type, xret : $$boolean_type) ]]
+normal;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__toBoolean (v) {
+	iu:		goto [v = $$undefined] undef in;
+	undef:	xret := $$f;
+			goto rlab;
+
+	in:		goto [v = $$null] null ib;
+	null:	xret := $$f;
+			goto rlab;
+
+	ib:		goto [typeOf(v) = $$boolean_type] bool inum;
+	bool:	xret := v;
+			goto rlab;
+
+	inum:	goto [typeOf(v) = $$number_type] num is;
+	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
+
+	is:		goto [typeOf(v) = $$string_type] str io;
+	str:	goto [v = ""] is_f is_t;
+			goto rlab;
+
+	io:		goto [typeOf(v) = $$object_type] obj oops;
+	obj:	xret := $$t;
+			goto rlab;
+
+	is_t:	xret := $$t;
+			goto rlab;
+	is_f:	xret := $$f;
+			goto rlab;
+
+	oops:	xret := "ToBoolean: This should not happen.";
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+spec getProperty(l, prop)
+[[ (l == #l) * (prop == #prop) * types(#l : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+[[ (xret == #gp_aux_1) * types(#l : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) ]]
+normal
+
+proc getProperty (l, prop) {
+
+			[* unfold Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
+	start:	xret := "getOwnProperty" (l, prop) with elab;
+			goto [xret = $$undefined] next rlab;
+
+	next:	proto := [l, "@proto"];
+			goto [proto = $$null] rlab call;
+
+	call:	xret := "getProperty" (proto, prop) with elab;
+
+			[* fold Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};
+
+spec get(l, prop)
+[[ (l == #l) * (prop == #prop) * (! (##NORMALISED_LVAR_1000191 == $$empty)) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_1000191, ##NORMALISED_LVAR_1000192, ##NORMALISED_LVAR_1000193, ##NORMALISED_LVAR_1000194 }}) * types(##NORMALISED_LVAR_1000192 : $$boolean_type, #g_aux_1 : $$list_type, ##NORMALISED_LVAR_1000193 : $$boolean_type, l : $$object_type, prop : $$string_type, #l : $$object_type, ##NORMALISED_LVAR_1000194 : $$boolean_type, #prop : $$string_type) * Pi(#l, #prop, #g_aux_0, {{ "d", ##NORMALISED_LVAR_1000191, ##NORMALISED_LVAR_1000192, ##NORMALISED_LVAR_1000193, ##NORMALISED_LVAR_1000194 }}, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ (xret == l-nth(#g_aux_1, 1.)) * types(#g_aux_1 : $$list_type, #l : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ (l == #l) * (prop == #prop) * (#g_aux_1 == $$undefined) * types(#g_aux_1 : $$undefined_type, l : $$object_type, prop : $$string_type, #l : $$object_type, #prop : $$string_type) * Pi(#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ (xret == $$undefined) * (#g_aux_1 == $$undefined) * types(#g_aux_1 : $$undefined_type, #l : $$object_type, xret : $$undefined_type, #prop : $$string_type) * Pi(#l, #prop, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal
+
+proc get (l, prop) {
+			xret := "getProperty" (l, prop) with elab;
+			goto [xret = $$undefined] rlab def;		(* Does the field exist?    *)
+
+	def:	d := l-nth (xret, 0);					(* Get the descriptor type  *)
+			xret := l-nth (xret, 1);				(* Get the value/getter     *)
+			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+
+	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined?               *)
+	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter          *)
+			fun := [xret, "@call"];					(* Get the name of the getter           *)
+			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xret, elab;
+};
+
+spec i__checkObjectCoercible(v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lterr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$number_type, ##NORMALISED_LVAR_v : $$number_type) ]]
+[[ (xret == $$empty) * types(xret : $$empty_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$boolean_type, ##NORMALISED_LVAR_v : $$boolean_type) ]]
+[[ (xret == $$empty) * types(xret : $$empty_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$string_type, ##NORMALISED_LVAR_v : $$string_type) ]]
+[[ (xret == $$empty) * types(xret : $$empty_type) ]]
+normal;
+
+ [[ (v == ##NORMALISED_LVAR_v) * types(v : $$object_type, ##NORMALISED_LVAR_v : $$object_type) ]]
+[[ (xret == $$empty) * types(xret : $$empty_type) ]]
+normal
+
+proc i__checkObjectCoercible (v) {
+
+			xret := $$empty;
+
+	iu:		goto [v = $$undefined] throw in;
+
+	in:		goto [v = $$null] throw other;
+
+	other:	goto [(typeOf(v) = $$boolean_type) or (typeOf(v) = $$number_type) or
+	              (typeOf(v) = $$string_type) or (typeOf(v) = $$object_type)] rlab oops;
+
+	oops:	xret := "CheckObjectCoercible: This should not happen.";
+
+	rlab:	skip;
+
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec SyntaxError_call(xsc, vthis, v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lserr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal
+
+proc SyntaxError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lserr_proto, "Error", $$t);
+
+			xret := "Error_construct" ($$undefined, xret, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+spec i__getValue(v)
+[[ (v == {{ "o", #obj, #field }}) * (! (##NORMALISED_LVAR_100050 == $$empty)) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_100050, ##NORMALISED_LVAR_100051, ##NORMALISED_LVAR_100052, ##NORMALISED_LVAR_100053 }}) * types(#g_aux_1 : $$list_type, ##NORMALISED_LVAR_100053 : $$boolean_type, #field : $$string_type, v : $$list_type, #obj : $$object_type, ##NORMALISED_LVAR_100051 : $$boolean_type, ##NORMALISED_LVAR_100052 : $$boolean_type) * Pi(#obj, #field, #g_aux_0, {{ "d", ##NORMALISED_LVAR_100050, ##NORMALISED_LVAR_100051, ##NORMALISED_LVAR_100052, ##NORMALISED_LVAR_100053 }}, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ (xret == l-nth(#g_aux_1, 1.)) * types(#g_aux_1 : $$list_type, #field : $$string_type, #obj : $$object_type) * Pi(#obj, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ ((_$l_#obj, #field) -> #value) * (v == {{ "v", _$l_#obj, #field }}) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * types(#field : $$string_type, v : $$list_type) ]]
+[[ ((_$l_#obj, #field) -> #value) * (xret == #value) * types(#field : $$string_type) ]]
+normal;
+
+ [[ (v == {{ "v", $lg, #field }}) * (! (##NORMALISED_LVAR_100054 == $$empty)) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * (#g_aux_1 == {{ "d", ##NORMALISED_LVAR_100054, ##NORMALISED_LVAR_100055, ##NORMALISED_LVAR_100056, ##NORMALISED_LVAR_100057 }}) * types(#g_aux_1 : $$list_type, #field : $$string_type, v : $$list_type, ##NORMALISED_LVAR_100057 : $$boolean_type, ##NORMALISED_LVAR_100055 : $$boolean_type, ##NORMALISED_LVAR_100056 : $$boolean_type) * Pi($lg, #field, #g_aux_0, {{ "d", ##NORMALISED_LVAR_100054, ##NORMALISED_LVAR_100055, ##NORMALISED_LVAR_100056, ##NORMALISED_LVAR_100057 }}, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ (xret == l-nth(#g_aux_1, 1.)) * types(#g_aux_1 : $$list_type, #field : $$string_type) * Pi($lg, #field, #g_aux_0, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ (v == {{ "o", #obj, #field }}) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * (#g_aux_1 == $$undefined) * types(#g_aux_1 : $$undefined_type, #field : $$string_type, v : $$list_type, #obj : $$object_type) * Pi(#obj, #field, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ (xret == $$undefined) * (#g_aux_1 == $$undefined) * types(#g_aux_1 : $$undefined_type, #field : $$string_type, #obj : $$object_type, xret : $$undefined_type) * Pi(#obj, #field, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ (v == {{ "v", $lg, #field }}) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * (#g_aux_1 == $$undefined) * types(#g_aux_1 : $$undefined_type, #field : $$string_type, v : $$list_type) * Pi($lg, #field, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+[[ (xret == $$undefined) * (#g_aux_1 == $$undefined) * types(#g_aux_1 : $$undefined_type, #field : $$string_type, xret : $$undefined_type) * Pi($lg, #field, #g_aux_0, $$undefined, #g_aux_2, #g_aux_3, #g_aux_4) ]]
+normal;
+
+ [[ (v == $$null) * types(v : $$null_type) ]]
+[[ (xret == $$null) * types(xret : $$null_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$object_type) ]]
+[[ (xret == #v) * types(#v : $$object_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$number_type) ]]
+[[ (xret == #v) * types(#v : $$number_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$boolean_type) ]]
+[[ (xret == #v) * types(#v : $$boolean_type) ]]
+normal;
+
+ [[ (v == #v) * types(#v : $$string_type) ]]
+[[ (xret == #v) * types(#v : $$string_type) ]]
+normal;
+
+ [[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ (xret == $$undefined) * types(xret : $$undefined_type) ]]
+normal;
+
+ [[ (v == {{ "o", $$undefined, #field }}) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * types(#field : $$string_type, v : $$list_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(#field : $$string_type, xret : $$object_type) ]]
+error;
+
+ [[ (v == {{ "v", $$undefined, #field }}) * (! (s-nth(#field, 0.) == "@")) * (! (#field == "")) * types(#field : $$string_type, v : $$list_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(#field : $$string_type, xret : $$object_type) ]]
+error
+
+proc i__getValue (v) {
+
+			goto [(typeOf(v) = $$list_type)] rcand dflt;
+
+    rcand:  rtype := l-nth (v, 0);
+            goto [(rtype = "v") or (rtype = "o")] init dflt;
+
+	init:	rbase := l-nth (v, 1);
+			rfield := l-nth (v, 2);
+			goto [rbase = $$undefined] throw prim;
+
+	prim:	prim := "i__isPrimitive" (rbase);
+            goto [prim] is_pr ref;
+
+	is_pr:	xret := "i__toObject" (rbase) with elab;
+			xret := "getProperty" (xret, rfield) with elab;
+			goto [xret = $$undefined] rlab def;
+	def:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			xret := l-nth (xret, 1);				(* Get the value/getter *)
+			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+
+	acc:	goto [xret = $$undefined] rlab get;		(* Is the getter defined? *)
+	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter *)
+			fun := [xret, "@call"];					(* Get the name of the getter *)
+			xret := fun (xsc, rbase) with elab;		(* Call the getter, errors could happen *)
+			goto [xret = $$empty] undef rlab;
+	undef:	xret := $$undefined;
+
+	ref:	goto [l-nth (v, 0) = "o"] oref vref;
+
+	oref:	xret := "get" (rbase, rfield) with elab;
+			goto rlab;
+
+	vref:	goto [rbase = $lg] lg er;
+
+	lg:		xret := "get" (rbase, rfield) with elab;
+			goto rlab;
+
+	er:		xret := [rbase, rfield];
+			goto rlab;
+
+	dflt:	xret := v;
+	rlab:	skip;
+
+	throw:  xret := "ReferenceError" ();
+    elab:   skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+spec ReferenceError_call(xsc, vthis, v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lrferr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal
+
+proc ReferenceError_call (xsc, vthis, v) {
+			xret := new ();
+			xret := "create_default_object" (xret, $lrferr_proto, "Error", $$t);
+
+			xret := "Error_construct" ($$undefined, xret, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+spec SyntaxError(v)
+[[ (v == $$undefined) * types(v : $$undefined_type) ]]
+[[ empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) * ((_$l_xret, "@extensible") -> $$t) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@proto") -> $lserr_proto) * (xret == _$l_xret) * types(xret : $$object_type) ]]
+normal
+
+proc SyntaxError (v) {
+			xret := "SyntaxError_call" ($$undefined, $$undefined, v) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
+spec i__abstractEquality(v1, v2)
+[[ (v1 == $$null) * (v2 == $$null) * types(v2 : $$null_type, v1 : $$null_type) ]]
+[[ (xret == $$t) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v1 == ##NORMALISED_LVAR_v1) * (v2 == $$null) * types(##NORMALISED_LVAR_v1 : $$object_type, ##NORMALISED_LVAR_v2 : $$null_type, v2 : $$null_type, v1 : $$object_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal;
+
+ [[ (v1 == ##NORMALISED_LVAR_v1) * (v2 == ##NORMALISED_LVAR_v2) * (! (##NORMALISED_LVAR_v1 == ##NORMALISED_LVAR_v2)) * types(##NORMALISED_LVAR_v1 : $$number_type, ##NORMALISED_LVAR_v2 : $$number_type, v2 : $$number_type, v1 : $$number_type) ]]
+[[ (xret == $$f) * types(xret : $$boolean_type) ]]
+normal
+
+proc i__abstractEquality (v1, v2) {
+			tv1 := typeOf(v1);
+			tv2 := typeOf(v2);
+
+			goto [(tv1 = tv2)] same diff;
+
+	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
+	              (tv1 = $$boolean_type)   or (tv1 = $$number_type) or
+	              (tv1 = $$string_type)    or (tv1 = $$object_type)] ieq oops;
+	ieq:	xret := (v1 = v2);
+			goto rlab;
+
+	diff:	goto [((tv1 = $$undefined_type) and (tv2 = $$null_type)) or
+			      ((tv1 = $$null_type) and (tv2 = $$undefined_type))] rt dns;
+
+	dns:	goto [(tv1 = $$number_type) and (tv2 = $$string_type)] tn2 dsn;
+	tn2:	xret := "i__toNumber" (v2) with elab;
+			xret := "i__abstractEquality" (v1, xret) with elab;
+			goto rlab;
+
+	dsn:	goto [(tv1 = $$string_type) and (tv2 = $$number_type)] tn1 s1b;
+	tn1:	xret := "i__toNumber" (v1) with elab;
+			xret := "i__abstractEquality" (xret, v2) with elab;
+			goto rlab;
+
+	s1b:	goto [tv1 = $$boolean_type] tn1 s2b;
+	s2b:	goto [tv2 = $$boolean_type] tn2 s2o;
+
+	s2o:	goto [((tv1 = $$number_type) or (tv1 = $$string_type)) and (tv2 = $$object_type)] tp2 s1o;
+	tp2:	xret := "i__toPrimitive" (v2) with elab;
+			xret := "i__abstractEquality" (v1, xret) with elab;
+			goto rlab;
+
+	s1o:	goto [(tv1 = $$object_type) and ((tv2 = $$number_type) or (tv2 = $$string_type))] tp1 rf;
+	tp1:	xret := "i__toPrimitive" (v1) with elab;
+			xret := "i__abstractEquality" (xret, v2) with elab;
+			goto rlab;
+
+	rt:		xret := $$t;
+			goto rlab;
+
+	rf:		xret := $$f;
+			goto rlab;
+
+	oops:	xret := "AbstractEquality: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};

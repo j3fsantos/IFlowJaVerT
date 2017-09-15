@@ -913,14 +913,26 @@ let make_global_axioms list_vars string_vars list_exprs =
 
 	(* forall x. 0 <= llen(x) *)
 	let llen1 = LLessEq (LLit (Num 0.), LUnOp (LstLen, lvar_x)) in
-	let llen1_s = JSIL_Logic_Utils.concretise llen1 x_name list_vars in
+  let llen1_s = JSIL_Logic_Utils.concretise llen1 x_name list_vars in
 
 	(* forall x. (x = nil) \/ (0 < llen(x))
 	(LLess ((LLit (Num 0.), LUnop (LstLen, lvar_x)))) *)
 	let llen2 =
 		LOr (LEq (lvar_x, LLit (LList [])),
 		 	 LLess (LLit (Num 0.), LUnOp (LstLen, lvar_x))) in
-	let llen2_s = JSIL_Logic_Utils.concretise llen2 x_name list_vars in
+ let llen2_s = JSIL_Logic_Utils.concretise llen2 x_name list_vars in
+
+ (* forall x, y. llen(x @ y) = llen(x) + llen(y) *)
+ let llen_3 = LEq ((LUnOp (LstLen, (LBinOp (lvar_x, LstCat, lvar_y)))), (LBinOp ((LUnOp (LstLen, lvar_x)), (Plus), (LUnOp (LstLen, lvar_y))))) in
+ let llen_3_s = JSIL_Logic_Utils.concretise2 llen_3 x_name y_name list_exprs in
+
+ (*
+  (* forall x, y. ((y = nil) /\ (llen(x @ y) = llen(x))) \/ (!(y = nil) /\ llen(x) < llen(x @ y)) *)
+  let llen4_l_disjunct = LAnd ((LEq ((lvar_y), (LLit (LList [])))), (LEq (((LUnOp (LstLen, (LBinOp (lvar_x, LstCat, lvar_y))))), ((LUnOp (LstLen, lvar_x)))))) in
+  let llen4_r_disjunt  = LAnd ((LNot (LEq ((lvar_y), (LLit (LList []))))), LLess ((LUnOp (LstLen, lvar_x)), (LUnOp (LstLen, (LBinOp (lvar_x, LstCat, lvar_y)))))) in
+  let llen4            = LOr (llen3_l_disjunct, llen3_r_disjunt) in
+  let llen4_s          = JSIL_Logic_Utils.concretise2 llen3 x_name y_name list_exprs in
+*)
 
 	(* forall x. (car(x) = l-nth(x, 0) *)
 	let carlnth0 = LEq (LUnOp (Car, lvar_x), LLstNth (lvar_x, LLit (Num 0.))) in
@@ -932,7 +944,7 @@ let make_global_axioms list_vars string_vars list_exprs =
 	let lstcat1    = LOr (l_disjunct, r_disjunct) in
 	let lstcat1_s  = JSIL_Logic_Utils.concretise2 lstcat1 x_name y_name list_exprs in
 
-	slen1_s @ llen1_s @ llen2_s @ carlnth0_s @ lstcat1_s
+	slen1_s @ llen1_s @ llen2_s @ llen_3_s @ carlnth0_s @ lstcat1_s
 
 let make_list_axioms a_list =
 

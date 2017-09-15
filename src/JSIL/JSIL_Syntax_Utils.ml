@@ -176,6 +176,7 @@ let syntax_checks
     -----------------------------------------------------
 *)
 (* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+
 (*
 let check_logic_command_pvars
     (assertion_type : string) (* eg "fold", "unfold", "assert" *)

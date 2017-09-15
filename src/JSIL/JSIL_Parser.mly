@@ -942,9 +942,9 @@ lexpr_target:
 logic_variable_target:
   v = LVAR
 	{
-    let v_imported = Str.replace_first normalised_lvar_r "_lvar" v in
-    (* TODO: build up hashtable of used logic variables, so we don't repeat outselves when generating them *)
-    (* validate_lvar v; *) LVar v_imported }
+    let v_imported = Str.replace_first normalised_lvar_r "_lvar_n" v in
+    (* Prefixed with _n_ to avoid clashes *)
+    LVar v_imported }
 ;
 
 just_logic_variable_target:

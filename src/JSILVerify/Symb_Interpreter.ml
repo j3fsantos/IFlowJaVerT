@@ -1250,10 +1250,11 @@ and pre_symb_evaluate_cmd
 			let len = List.length symb_states_with_spec_vars in
 			List.concat (List.map (fun (symb_state, spec_vars, search_info) ->
 				(* Construct the search info for the next command *)
-				let vis_tbl         = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
-				let info_node       = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
-				let new_search_info = update_search_info search_info info_node vis_tbl in
-				symb_evaluate_cmd s_prog proc spec_vars subst new_search_info symb_state next cur)
+				(* TODO: can replace easily *)
+				let vis_tbl                 = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
+				let new_search_info = Symbolic_Traces.add_info_node_from_cmd search_info symb_state cmd next in
+				let new_search_info_vis_tbl = {new_search_info with vis_tbl = vis_tbl} in
+				symb_evaluate_cmd s_prog proc spec_vars subst new_search_info_vis_tbl symb_state next cur)
 				symb_states_with_spec_vars)))
 
 
@@ -1280,7 +1281,7 @@ let symb_evaluate_proc
 	let sep_str = "----------------------------------\n" in
 	print_normal (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
 
-	let node_info   = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
+	let node_info = Symbolic_Traces.create_new_info_node (Some spec.n_pre) None 0 (Msg "Precondition") in
 	let search_info = make_symb_exe_search_info node_info pruning_info i in
 
 	(* Get the procedure to be symbolically executed *)
@@ -1303,7 +1304,9 @@ let symb_evaluate_proc
 							()
 						) sss
 					| e -> raise e);
-				Symbolic_Traces.create_info_node_from_post search_info spec.n_post ret_flag true; ()) final_symb_states;
+				(* TODO: this can't be correct?? *)
+				Symbolic_Traces.add_info_node_from_post search_info (List.nth spec.n_post 0) ret_flag; ())
+			final_symb_states;
 			true, None
 		with
 		| e ->
@@ -1313,8 +1316,9 @@ let symb_evaluate_proc
 				| Failure msg -> msg
 				| _ -> raise e) in
 			(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
-			Symbolic_Traces.create_info_node_from_error search_info msg;
-			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
+			Symbolic_Traces.add_info_node_from_error search_info msg;
+			(* TODO: is this saving the right post? *)
+			Symbolic_Traces.add_info_node_from_post search_info (List.nth spec.n_post 0) spec.n_ret_flag;
 			false, Some msg)) in
 
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
@@ -1465,18 +1469,6 @@ let check_lemma_recursive_calls
     let check_recursive_call
         (rec_call : lemm_depd_recursive_call) : unit =
 
-      (* Check units *)
-      print_debug (Printf.sprintf "Checking recursive call..");
-
-      (* What do we have.. *)
-      (*
-      print_debug (Printf.sprintf "Lemma params: %s" string_of_lemma_params);
-      let string_of_rec_arguments = String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) rec_call.lemm_depd_args) in
-      print_debug (Printf.sprintf "Rec call args: %s" string_of_rec_arguments);
-      print_debug (Printf.sprintf "Initial symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state rec_call.lemm_debp_rec_init_sym_state));
-      print_debug (Printf.sprintf "Symbolic state at time of call:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state rec_call.lemm_depd_rec_sym_state));
-      *)
-
       (* Substitute the PVars in the variant with their replacement logical expressions in the next call *)
       let variant_subst : ((jsil_var, jsil_logic_expr) Hashtbl.t) = Hashtbl.create 20 in
       List.iteri (fun i param ->
@@ -1484,47 +1476,29 @@ let check_lemma_recursive_calls
         )
         lemma_node.lemm_depd_params;
 
-      (* Make a new second variant with these logical expressions substituted, representing the variant in the called state *)
-      let rec subst_lexpr_pvars
-          (lexpr : jsil_logic_expr) : jsil_logic_expr =
+      (* Make a new second variant with these logical expressions substituted,
+         representing the variant in the called state *)
+      let subst_lexpr_pvars
+          (lexpr : jsil_logic_expr) : (jsil_logic_expr * bool) =
 
-        match lexpr with
-        | LLit _ | LNone | LVar _ | ALoc _ -> lexpr
-        | PVar v -> Hashtbl.find variant_subst v
-        | LBinOp (e1, op, e2) -> LBinOp (subst_lexpr_pvars e1, op, subst_lexpr_pvars e2)
-        | LUnOp (op, e)       -> LUnOp (op, subst_lexpr_pvars e)
-        | LTypeOf e           -> LTypeOf (subst_lexpr_pvars e)
-        | LEList le           -> LEList (List.map subst_lexpr_pvars le)
-        | LCList le           -> LCList (List.map subst_lexpr_pvars le)
-        | LESet le            -> LESet  (List.map subst_lexpr_pvars le)
-        | LSetUnion le        -> LSetUnion  (List.map subst_lexpr_pvars le)
-        | LSetInter le        -> LSetInter  (List.map subst_lexpr_pvars le)
-        | LLstNth (e1, e2)    -> LLstNth (subst_lexpr_pvars e1, subst_lexpr_pvars e2)
-        | LStrNth (e1, e2)    -> LStrNth (subst_lexpr_pvars e1, subst_lexpr_pvars e2)
+          match lexpr with
+            | PVar v -> (Hashtbl.find variant_subst v, false)
+            | e -> (e, true)
       in
-      let new_variant = subst_lexpr_pvars variant in
+      let new_variant = logic_expression_map subst_lexpr_pvars variant in
 
       (* Transform the PVars into LVars for Z3 *)
-      let rec tranform_pvars_lvars
-          (lexpr : jsil_logic_expr) : jsil_logic_expr =
+      let transform_pvars_lvars
+          (lexpr : jsil_logic_expr) : (jsil_logic_expr * bool) =
 
-        match lexpr with
-        | LLit _ | LNone | LVar _ | ALoc _ -> lexpr
-        | PVar v -> LVar ("_lvar_" ^ v)
-        | LBinOp (e1, op, e2) -> LBinOp (tranform_pvars_lvars e1, op, tranform_pvars_lvars e2)
-        | LUnOp (op, e)       -> LUnOp (op, tranform_pvars_lvars e)
-        | LTypeOf e           -> LTypeOf (tranform_pvars_lvars e)
-        | LEList le           -> LEList (List.map tranform_pvars_lvars le)
-        | LCList le           -> LCList (List.map tranform_pvars_lvars le)
-        | LESet le            -> LESet  (List.map tranform_pvars_lvars le)
-        | LSetUnion le        -> LSetUnion  (List.map tranform_pvars_lvars le)
-        | LSetInter le        -> LSetInter  (List.map tranform_pvars_lvars le)
-        | LLstNth (e1, e2)    -> LLstNth (tranform_pvars_lvars e1, tranform_pvars_lvars e2)
-        | LStrNth (e1, e2)    -> LStrNth (tranform_pvars_lvars e1, tranform_pvars_lvars e2)
+          match lexpr with
+            | PVar v -> (LVar ("_lvar_" ^ v), false)
+            | e -> (e, true)
       in
+      let transform_variant_pvars_lvars = logic_expression_map transform_pvars_lvars in
 
       (* Create an assertion var_1 <# var_2 *)
-      let termination_assertion : jsil_logic_assertion = LLess ((tranform_pvars_lvars new_variant), (tranform_pvars_lvars variant)) in
+      let termination_assertion : jsil_logic_assertion = LLess ((transform_variant_pvars_lvars new_variant), (transform_variant_pvars_lvars variant)) in
       print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion false));
 
       (* Check that the store, pfs and gamma entail the termination_assertion *)
@@ -1546,7 +1520,7 @@ let check_lemma_recursive_calls
       | true -> ()
       | false -> raise (Failure (Printf.sprintf "The lemma %s variant %s does not decrease in every recursive call." lemma_node.lemm_depd_lemm_name (JSIL_Print.string_of_logic_expression variant false))));
 
-      print_debug (Printf.sprintf "State on call entails termination assertion? %b" state_entails_termination_assertion);
+      print_debug (Printf.sprintf "State on recursive call entails termination assertion? %b" state_entails_termination_assertion);
     in
     List.map check_recursive_call lemma_node.lemm_depd_recursive_calls;
     ()
@@ -1639,50 +1613,69 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
     )
     lemma_table 0 in
 
-  let prove_lemma (lemma : jsil_lemma) lemma_name post_pruning_info =
+  (* Prooving an individual lemma *)
+  let prove_lemma
+  		(lemma : jsil_lemma)
+  		(lemma_name : string)
+  		(post_pruning_info : pruning_table) : unit =
+
 		print_normal (Printf.sprintf "------------------------------------------");
-    print_normal (Printf.sprintf "Proving a lemma: %s.\n" lemma_name);
-    lemm_depd_graph := {(!lemm_depd_graph) with lemm_depd_curr_lemma = lemma_name};
-		let attempt_proof (proof_body : jsil_logic_command list) =
-    print_debug (Printf.sprintf "Attempting to prove the proof body.");
+    	print_normal (Printf.sprintf "Proving a lemma: %s.\n" lemma_name);
+
+    	lemm_depd_graph := {(!lemm_depd_graph) with lemm_depd_curr_lemma = lemma_name};
+
+    	(* Runs the proof body commands of the lemma *)
+		let attempt_proof
+			(proof_body : jsil_logic_command list) : unit =
+    		print_debug (Printf.sprintf "Attempting to prove the proof body.");
 
 			(* Add this lemma to the pruning info *)
-    let prove_indivdual_pre spec_number (spec : jsil_n_single_spec) (params : jsil_var list) =
-				(* Creating an object of type symbolic_execution_search_info *)
-				(* Guessing you initialise the node here? As each pre-condition is a new "branch"(?) (not 100% sure how the graph works) *)
-				let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
+    		let prove_indivdual_pre
+    			(spec_number : int)
+    			(spec : jsil_n_single_spec)
+    			(params : jsil_var list) : unit =
+
+				(* Initialising the search info *)
+				let node_info = Symbolic_Traces.create_new_info_node (Some spec.n_pre) None 0 (Msg "Precondition") in
 				let symb_exe_search_info = make_symb_exe_search_info node_info post_pruning_info spec_number in
-				(* Can't just make a dummy program as need to supply the imports, predicates and lemmas *)
+
+				(* Need to supply the imports, predicates and lemmas *)
 				let s_prog = {
 					program    = prog;       (* not needed *)
 					which_pred = which_pred; (* only needed for phi commands *)
 					spec_tbl   = spec_tbl;   (* not needed *)
 					lemma_tbl  = lemma_table;   (* not needed *)
 					pred_defs  = n_pred_defs (* needed *)
-        } in
-        let symb_states_with_spec_vars = [((copy_symb_state spec.n_pre), spec.n_lvars, symb_exe_search_info)] in
+		        } in
+
+		        (* Execute each command *)
+        		let symb_states_with_spec_vars = [((copy_symb_state spec.n_pre), spec.n_lvars, symb_exe_search_info)] in
 				let subst = spec.n_subst in
-      let result_states = symb_evaluate_logic_cmds s_prog proof_body symb_states_with_spec_vars true subst (Some lemm_depd_graph) in
+      			let result_states = symb_evaluate_logic_cmds s_prog proof_body symb_states_with_spec_vars true subst (Some lemm_depd_graph) in
+
 				print_debug (Printf.sprintf "Executed proof body commands. Resulting states: %d" (List.length result_states));
-        print_debug (Printf.sprintf "Checking all states.");
+        		print_debug (Printf.sprintf "Checking all states.");
+
+        		(* If we can unify the states, lemma is proven *)
 				let lemma_result = unify_all_sym_states result_states spec.n_post lemma_name in
-				  (match lemma_result with
+				  	(match lemma_result with
 						| true -> print_normal (Printf.sprintf "Lemma %s VERIFIED" lemma_name);
 						          Printf.printf "Lemma %s succeeded\n" lemma_name
 						| false -> print_normal (Printf.sprintf "FAILED to verify lemma %s" lemma_name);
-						          Printf.printf "Lemma %s FAILED\n" lemma_name);
-					()
-					in
-     let lemma_spec = Hashtbl.find spec_tbl lemma_name in
-     print_debug (Printf.sprintf "Lemma specs: %d" (List.length lemma_spec.n_proc_specs));
-						List.iteri (fun spec_number spec -> prove_indivdual_pre spec_number spec lemma_spec.n_spec_params) lemma_spec.n_proc_specs in
-						let proof_outcome =
-							(match lemma.lemma_proof with
-							 | None            -> print_normal (Printf.sprintf "No proof body.")
-							 | Some proof_body -> attempt_proof proof_body) in
-							 proof_outcome
-							 in
-							    let post_pruning_info = init_post_pruning_info() in
-        Hashtbl.iter (fun lemma_name lemma -> prove_lemma lemma lemma_name post_pruning_info) lemma_table;
-        check_lemma_cyclic_dependencies ();
-        check_lemma_recursive_calls ()
+						          Printf.printf "Lemma %s FAILED\n" lemma_name) in
+
+		(* Proving each spec of the lemma *)
+	    let lemma_spec = Hashtbl.find spec_tbl lemma_name in
+	   	print_debug (Printf.sprintf "Lemma specs: %d" (List.length lemma_spec.n_proc_specs));
+		List.iteri (fun spec_number spec -> prove_indivdual_pre spec_number spec lemma_spec.n_spec_params) lemma_spec.n_proc_specs in
+		let proof_outcome =
+			(match lemma.lemma_proof with
+				| None            -> print_normal (Printf.sprintf "No proof body.")
+				| Some proof_body -> attempt_proof proof_body) in
+			proof_outcome
+	in
+
+	(* Calling all the checks *)
+    Hashtbl.iter (fun lemma_name lemma -> prove_lemma lemma lemma_name (init_post_pruning_info ())) lemma_table;
+    check_lemma_cyclic_dependencies ();
+    check_lemma_recursive_calls ()

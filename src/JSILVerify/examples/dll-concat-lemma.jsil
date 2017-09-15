@@ -39,6 +39,7 @@ pred dll_obj(obj, head, head_prev, last, last_next, list):
   dll_seg(head, head_prev, last, last_next, list);
 
 lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
+  variant(l-len(list))
   [[ dll_seg_2(head, head_prev, last, last_next, list) *
      dll_node(new_node, #val, #next, #prev) *
      (#next == head) *
@@ -88,6 +89,7 @@ lemma switch_end_to_right(head, head_prev, last, last_next, list)
   *]
 
 lemma switch_end_to_left(head, head_prev, last, last_next, list)
+  variant(l-len(list))
   [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
   [[ dll_seg(head, head_prev, last, last_next, list) ]]
   [*
@@ -102,7 +104,7 @@ lemma switch_end_to_left(head, head_prev, last, last_next, list)
   *]
 
 lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, head_prev_2, last_2, last_next_2, list_2)
-  variant(l-len(list_1))
+  variant(l-len(list_1) + l-len(list_2))
   [[ (head_1 == #head_1) * (head_prev_1 == #head_prev_1) * (last_1 == #last_1) * (last_next_1 == #last_next_1) * (list_1 == #list_1) *
      (head_2 == #head_2) * (head_prev_2 == #head_prev_2) * (last_2 == #last_2) * (last_next_2 == #last_next_2) * (list_2 == #list_2) *
      dll_seg(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *

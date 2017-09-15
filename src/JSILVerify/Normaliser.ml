@@ -990,7 +990,7 @@ let normalise_normalised_assertion
   let preds : predicate_set      = DynArray.make 0 in
 
   print_debug (Printf.sprintf "PARSING NORMALISED ASSERTION");
-     print_debug (JSIL_Print.string_of_logic_assertion a true);
+  print_debug (JSIL_Print.string_of_logic_assertion a true);
 
   (* Step 2 - Map over assertion, populate gamma, store and heap *)
   let populate_state_from_assertion a =
@@ -1034,7 +1034,10 @@ let normalise_normalised_assertion
     | _ ->
       (a, true)
   in
-  assertion_map (Some populate_state_from_assertion) (fun e -> (e, false)) a;
+  assertion_map
+    (Some populate_state_from_assertion)
+    (fun e -> (e, false))
+    a;
 
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
   print_debug (Symbolic_State_Print.string_of_lexpr_store store);
@@ -1344,8 +1347,6 @@ let print_normaliser_results_to_file
       ) spec_tbl ""
   in
   print_normalisation (Printf.sprintf "----------- NORMALISED SPEC ASSERTIONS -----------\n\n%s" string_of_spec_tbl_assertions);
-  print_normalisation ("----------- NORMALISED SPEC TABLE -----------\n");
-  print_normalisation (Symbolic_State_Print.string_of_n_spec_table spec_tbl);
 
   (** Printing the predicate table *)
   let string_of_normalised_predicate (pred : n_jsil_logic_predicate) : string =

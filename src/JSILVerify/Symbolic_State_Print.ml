@@ -254,24 +254,38 @@ let string_of_bi_symb_exe_results results =
 	else
 		"FAILED to generate specifications for: \n"  ^ failed_specs_str
 
-let dot_of_search_info search_info proof_name =
+let dot_of_search_info
+	(search_info : symbolic_execution_search_info)
+	(proof_name : string) : string =
+	
 	let start_time = Sys.time () in
 	let string_of_search_node node =
-		let cmd_info_str  = if (not (node.cmd_index = (-1))) then
-			Printf.sprintf "CMD %d: %s\n" node.cmd_index node.cmd_str
-			else node.cmd_str in
-		let heap_str  = "HEAP: " ^ node.heap_str ^ "\n" in
-		let store_str = "STORE: " ^ node.store_str ^ "\n" in
-		let pfs_str = "PFs: " ^ node.pfs_str ^ "\n" in
-		let gamma_str = "TYPEs: " ^ node.gamma_str ^ "\n" in
-		let preds_str = "PREDs: " ^ node.preds_str ^ "\n" in
-		let dashes = "-----------------------------------------\n" in
-		heap_str ^ store_str ^ pfs_str ^ gamma_str ^ preds_str ^ dashes ^ cmd_info_str in
 
+		let cmd_info_str =
+			match node.label with
+			| Msg msg -> msg ^ "\n"
+			| LCmd lcmd -> Printf.sprintf "LCMD %s\n" (string_of_lcmd lcmd)
+			| Cmd cmd -> Printf.sprintf "CMD %d: %s\n" node.cmd_index (string_of_cmd_aux cmd node.cmd_index false true "")
+		in
+
+		let string_of_node_symb_state =
+			match node.symb_state with
+			| Some (heap, store, pfs, gamma, preds) ->
+					let heap_str  = "HEAP: " ^ (string_of_shallow_symb_heap heap true) ^ "\n" in
+					let store_str = "STORE: " ^ (string_of_shallow_symb_store store true) in
+					let pfs_str   = "PFs: " ^ (string_of_shallow_p_formulae pfs true) ^ "\n" in
+					let gamma_str = "TYPEs: " ^ (string_of_gamma gamma) ^ "\n" in
+					let preds_str = "PREDs: " ^ (string_of_preds preds true) ^ "\n" in
+					let dashes    = "-----------------------------------------\n" in
+					heap_str ^ store_str ^ pfs_str ^ gamma_str ^ preds_str ^ dashes ^ cmd_info_str
+			| None ->
+				""
+		in
+		string_of_node_symb_state in
 
 	(**
 		return: 0[shape=box, label=cmd_0]; ...;n[shape=box, label=cmd_n];
-	*)
+    *)
 	let dot_of_search_nodes nodes len =
 		let rec loop ac_str i =
 			if (i >= len) then ac_str
@@ -285,10 +299,9 @@ let dot_of_search_info search_info proof_name =
 			end in
 		loop "" 0 in
 
-
 	(**
     node_i -> node_j; where j \in succ(i)
-  *)
+ *)
 	let dot_of_edges edges len =
 		let rec loop ac_str i =
 			(if (i >= len) then ac_str
@@ -303,7 +316,7 @@ let dot_of_search_info search_info proof_name =
 					loop ac_str (i + 1)
 				with _ -> loop ac_str (i + 1)
 				end) in
-		loop "" 0 in
+			loop "" 0 in
 
 	let str = "digraph " ^ proof_name ^ "{\n" in
 	let len = !(search_info.next_node) in
@@ -315,7 +328,11 @@ let dot_of_search_info search_info proof_name =
 	JSIL_Syntax.update_statistics "unify_stores" (end_time -. start_time);
 	str
 
-let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : symbolic_state) : unit =
+let print_symb_state_and_cmd
+	(proc : jsil_procedure)
+	(i : int)
+	(symb_state : symbolic_state) : unit =
+
 	let symb_state_str = string_of_shallow_symb_state symb_state in
 	let cmd = get_proc_cmd proc i in
 	let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
@@ -323,7 +340,6 @@ let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : sym
 	print_normal (Printf.sprintf
 		"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s : %i : %s\n----------------------------------"
 		i time symb_state_str proc.proc_name  i cmd_str)
-
 
 (**
  * ERROR MESSAGES
