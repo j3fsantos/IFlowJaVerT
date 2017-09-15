@@ -1,26 +1,25 @@
 /**
-@pred idGenerator(ig, c_val, prefix, sc_ig) :
-   JSObject(ig) * 
-   DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
-   DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
-   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc) *
-   o_chains(getId : #gni_sc, makeIdGen : sc_ig) *
-   types (c_val: $$number_type, prefix: $$string_type);
+	@pred idGenerator(ig, c, prefix, sc_ig) :
+		JSObject(ig) * 
+		DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #sc, _) *
+		DataProp(ig, "reset", #ri)  * FunctionObject(#ri,  "reset", #sc, _) *
+		sc_scope(getId, count: c, #sc) * sc_scope(getId, prefix: prefix, #sc) *
+		o_chains(getId : #sc, makeIdGen : sc_ig) *
+		types (c: $$number_type, prefix: $$string_type);
 */
 
 /**
 	@toprequires ( initialHeapPre() ) 
 	@topensures 
-	   scope(makeIdGen: #mig) *
-	   scope(ig1: #ig1) *
-	   scope(ig2: #ig2) *
-	   FunctionObject(#mig, "makeIdGen", _, _) *
-	   idGenerator(#ig1, 1, "foo", _) *
-	   idGenerator(#ig2, 0, "bar", _) * 
-	   scope(id1: #id1) *
-	   (#id1 == "foo_id_0")
+		scope(makeIdGen: #mig) *
+		scope(ig1: #ig1) *
+		scope(ig2: #ig2) *
+		FunctionObject(#mig, "makeIdGen", _, _) *
+		idGenerator(#ig1, 1, "foo", _) *
+		idGenerator(#ig2, 0, "bar", _) * 
+		scope(id1: #id1) *
+		(#id1 == "foo_id_0")
 */
-
 
 /**
 	@id   makeIdGen
