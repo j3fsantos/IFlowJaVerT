@@ -1499,7 +1499,7 @@ let check_lemma_recursive_calls
 
       (* Create an assertion var_1 <# var_2 *)
       let termination_assertion : jsil_logic_assertion = LLess ((transform_variant_pvars_lvars new_variant), (transform_variant_pvars_lvars variant)) in
-      print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion false));
+			print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion false));
 
       (* Check that the store, pfs and gamma entail the termination_assertion *)
       let _, state_store, state_pfs, state_gamma, _ = rec_call.lemm_depd_rec_sym_state in

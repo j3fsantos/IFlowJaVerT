@@ -220,7 +220,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
 	
-	(* print_debug (Printf.sprintf "Reduce expression: %s" (print_lexpr e)); *)
+	(* print_debug (Printf.sprintf "Reduce expression: %s" (print_lexpr e)); *) 
 	
 	let f = reduce_expression store gamma pfs in
 	let orig_expr = e in
@@ -440,14 +440,19 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LUnOp (op, e1) ->
 		let re1 = f e1 in
 		(match op with
-		 | LstLen -> (match re1 with
+		 | LstLen ->
+			(match re1 with
 				| LLit (LList list) -> (LLit (Num (float_of_int (List.length list))))
 		    | LEList list -> (LLit (Num (float_of_int (List.length list))))
-			| LBinOp (le, LstCons, list) ->
-				let rlist = f (LUnOp (LstLen, list)) in
-				(match rlist with
-				| LLit (Num n) -> LLit (Num (n +. 1.))
-				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
+  			| LBinOp (le, LstCons, list) ->
+  				let rlist = f (LUnOp (LstLen, list)) in
+  				(match rlist with
+  				| LLit (Num n) -> LLit (Num (n +. 1.))
+  				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
+				| LBinOp (l1, LstCat, l2) ->
+  				let llist = f (LUnOp (LstLen, l1)) in
+					let rlist = f (LUnOp (LstLen, l2)) in
+  				f (LBinOp (llist, Plus, rlist))
 				| _ -> LUnOp (LstLen, e1))
 		 | StrLen -> (match re1 with
 		    | LLit (String str) -> (LLit (Num (float_of_int (String.length str))))
@@ -544,7 +549,7 @@ let rec reduce_assertion store gamma pfs a =
 			| ALoc _, LLit (Loc _) 
 			| LLit (Loc _), ALoc _ -> LFalse
 			
-			| LLit (String str), LVar x 
+			| LLit (String str), LVar x
 			| LVar x, LLit (String str) ->
 				(* Specific string hack:
 				      if we have a string starting with @, and also 

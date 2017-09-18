@@ -28,6 +28,7 @@ type jsil_type =
 	| ListType      (** Type of lists     *)
 	| TypeType      (** Type of types     *)
 	| SetType       (** Type of sets      *)
+	[@@deriving show]
 
 (** {b JSIL constants}. They are mostly inspired by those present in JavaScript's Math
     and Date libraries. *)
@@ -45,9 +46,10 @@ type jsil_constant =
 	| Sqrt2     (** The square root of 2 *)
 	| UTCTime   (** Current UTC time *)
 	| LocalTime (** Current local time *)
+	[@@deriving show]
 
 (** {b JSIL variables}. JSIL variables are internally represented as strings. *)
-type jsil_var = string
+type jsil_var = string [@@deriving show]
 
 (** {b JSIL literals}. The literal values of the JSIL language. Most are standard, some
     are inherited from JavaScript. *)
@@ -64,6 +66,7 @@ type jsil_lit =
 	| Type      of jsil_type     (** JSIL types ({!type:jsil_type}) *)
 	| LList     of jsil_lit list (** Lists of JSIL literals *)
 	| CList     of jsil_lit list (** Lists of JSIL literals converted from String *)
+	[@@deriving show]
 
 (** Maps JSIL literal's to their JSIL types *)
 let evaluate_type_of lit =
@@ -121,6 +124,7 @@ type jsil_unop =
 	| LstLen      (** List length *)
 	(* Strings *)
 	| StrLen      (** String length *)
+	[@@deriving show]
 
 (** {b JSIL binary operators}. JSIL features standard binary operators on numbers,
     booleans, lists, and strings, plus several mathematical operators as well as a
@@ -162,6 +166,7 @@ type jsil_binop =
 	| SetDiff            (** Set difference *)
 	| SetMem             (** Set membership *)
 	| SetSub             (** Subset *)
+	[@@deriving show]
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
@@ -181,6 +186,7 @@ type jsil_binop =
 	| RAssert  of jsil_expr
 	| RNumSymb
 	| RStrSymb
+	[@@deriving show]
 
 (**/**)
 (* Shorthand *)
@@ -224,7 +230,7 @@ type jsil_cmd =
 (** {2 Syntax of JSIL Logic} *)
 
 (** {b JSIL logic variables}. JSIL logic variables are internally represented as strings. *)
-type jsil_logic_var = string
+type jsil_logic_var = string [@@deriving show]
 
 (** {b JSIL logic expressions}. *)
 type jsil_logic_expr =
@@ -243,6 +249,7 @@ type jsil_logic_expr =
 	| LSetUnion of jsil_logic_expr list                          (** Unions *)
 	| LSetInter of jsil_logic_expr list                          (** Intersections *)
 	| LNone                                                      (** Empty field value *)
+	[@@deriving show]
 
 (** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =
