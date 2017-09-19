@@ -104,6 +104,7 @@ let process_file path =
 		let u_preds = Normaliser.auto_unfold_pred_defs ext_prog.predicates in
 		Normaliser.pre_normalise_invariants_prog u_preds prog;
 		let spec_tbl = Normaliser.build_spec_tbl prog u_preds ext_prog.onlyspecs ext_prog.lemmas in
+		Normaliser.check_lemma_cyclic_dependencies ext_prog.lemmas;
 		let n_pred_defs = Normaliser.normalise_predicate_definitions u_preds in
     print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
     Normaliser.print_normaliser_results_to_file spec_tbl n_pred_defs;    

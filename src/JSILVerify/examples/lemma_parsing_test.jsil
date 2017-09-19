@@ -1,13 +1,13 @@
-pred my_rec_pred(x):
-  (types(x: $$object_type)) *
-  ((x, "child")  -> #child) *
-  ((x, "@proto") -> $$null) *
-  my_rec_pred(#child),
+pred val(x):
+  (x == 5);
 
-  (x == $$null);
+pred val_2(x):
+  (x == 10),
 
-lemma my_lemma(x, y, z)
-  [[ (y == 6) * my_rec_pred(x)]]
-  [[ (y == 6) * my_rec_pred(x)]]
-  [* unfold my_rec_pred(x);
-     fold my_rec_pred(x) *]
+  (x == 5);
+
+lemma lemma_a (x, y)
+  variant(x)
+  [[ val(x) ]]
+  [[ val_2(x) ]]
+  [* apply lemma_a(x + 5, y) *]

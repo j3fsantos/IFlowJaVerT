@@ -1,0 +1,18 @@
+pred list_sum (sum, list):
+	types(sum : $$number_type) *
+	(sum == 0) *
+	(list == {{ }}),
+
+	types(sum : $$number_type, list : $$list_type) *
+	(list == (#head :: #tail)) *
+	(sum == (#head + #sum_tail)) *
+	list_sum(#sum_tail, #tail);
+
+
+lemma sum_elements (sum1, sum2, list1, list2)
+	variant(l-len(list1) + l-len(list2))
+  	[[ list_sum(sum1, list1) * list_sum(sum2, list2) ]]
+	[[ list_sum(sum1 + sum2, list1 @ list2) ]]
+	[*
+		apply sum_elements(list1, sum2, list1, list2)
+	*]

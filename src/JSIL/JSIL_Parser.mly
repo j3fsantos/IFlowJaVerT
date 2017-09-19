@@ -735,9 +735,10 @@ jsil_lemma_target:
     let lemma_spec = create_jsil_spec lemma_name lemma_params [(create_single_spec pre post Normal)] false in
 		let lemma =
 		{
+			lemma_name  = lemma_name;
 			lemma_spec  = lemma_spec;
 			lemma_proof = proof;
-      lemma_variant = variant
+      		lemma_variant = variant
 		} in
 		Hashtbl.replace lemma_table lemma_name lemma;
 		lemma

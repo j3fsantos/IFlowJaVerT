@@ -172,11 +172,57 @@ let syntax_checks
   )
 
 (** ----------------------------------------------------
-    Checking logical commands only use program variables they are allowed to
+    Checking logical commands only use program variables they are allowed to,
+    (TODO: and predicates are called with the correct number of arguments)
     -----------------------------------------------------
 *)
-(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+(*
+GRAPH FOR THIS NEEDS TO BE CONSTRUCTED SEPARATELY
 
+let check_logic_command_checks
+    (search_info : symbolic_execution_search_info) : unit =
+
+    (* Perform a BFS to ensure we visit every node in the tree *)
+
+    let rec bfs
+      (curr_node : search_info_node)
+      (bfs_queue : (int Queue.t)) (* Queue of node id's to visit in the bfs *)
+        : unit =
+
+        try
+          let next_node_id = Queue.pop bfs_queue in
+          let next_node = Hashtbl.find search_info.info_nodes next_node_id in
+
+          (* Look for children, add them to the back of the queue *)
+          try
+            (*
+            let children = Hashtbl.find curr_node.node_id search_info.info_edges in
+            List.iter (fun child -> Queue.push child bfs_queue)
+          *)
+          ()
+          with
+          | _ -> ();
+
+          (* Actual syntax checks *)
+          match curr_node.label with
+          | LCmd cmd ->
+            (* Check logical commands only use program variables they are allowed to *)
+            print_debug (JSIL_Print.string_of_lcmd cmd);
+            (* Need to extract each program variable used in the logical command *)
+            ()
+
+          | _ -> ();
+
+
+
+          bfs next_node bfs_queue
+        with
+        | _ -> ()
+      in
+
+  (* TODO: ensure we are being passed in the correct current node *)
+  bfs search_info.cur_node_info (Queue.create ())
+*)
 (*
 let check_logic_command_pvars
     (assertion_type : string) (* eg "fold", "unfold", "assert" *)
@@ -397,12 +443,14 @@ let ext_program_of_path
 
   print_debug (Printf.sprintf "Creating ext_program_of_path %s" path);
 
-  let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.njsil") path 0 in
+  let extension = List.hd (List.rev (Str.split (Str.regexp "\.") path)) in
+  let file_previously_normalised = String.equal "njsil" extension in
+
   print_debug (Printf.sprintf "%s is previously normalised? %b" path file_previously_normalised);
   JSIL_Syntax.previously_normalised := file_previously_normalised;
 
   (* Check that the file is of a valid type *)
-  (match (file_previously_normalised || (Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.jsil") path 0)) with
+  (match (file_previously_normalised || (String.equal "jsil" extension)) with
     | true -> ()
     | false -> raise (Failure (Printf.sprintf "Failed to import %s: not a .jsil or .njsil file." path)));
 

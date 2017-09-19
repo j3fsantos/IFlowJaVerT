@@ -1079,21 +1079,12 @@ let normalise_single_normalised_spec
     (spec_name  : string)
     (spec       : jsil_single_spec) : jsil_n_single_spec list =
 
-  print_debug (Printf.sprintf "BANANAS. SPEC %S ALREADY NORMALISED: %s" spec_name
-                 (JSIL_Print.string_of_single_spec "" spec));
-
   (** Step 1 - "Normalise" precondition                                     *)
-  (* TODO: check: we always only have 1 pre as the specs are already unfolded? *)
   let pre : symbolic_state = normalise_normalised_assertion spec.pre in
 
   (** Step 2 - "Normalise" the posts *)
   let spec_vars = get_assertion_lvars spec.pre in
   let posts : symbolic_state list = List.map normalise_normalised_assertion spec.post in
-
-  print_debug
-    (Printf.sprintf "SAMOSAS. Normalised Pre: %s. Normalised Posts: %s\n"
-      (Symbolic_State_Print.string_of_shallow_symb_state pre)
-      (String.concat "; " (List.map Symbolic_State_Print.string_of_shallow_symb_state posts)));
 
   [{
       n_pre      = pre;
@@ -1193,6 +1184,7 @@ let build_spec_tbl
 		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : specification_table =
 
 	let spec_tbl = Hashtbl.create 511 in
+	(* Collapses a hashtable into a list of values *)
 	let get_tbl_rng tbl = Hashtbl.fold (fun k v ac -> v :: ac) tbl [] in
 
 	(** 1 - Normalise specs from                      *)
@@ -1202,13 +1194,13 @@ let build_spec_tbl
     let proc_tbl_rng = get_tbl_rng prog in
     let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
    	let only_specs     = get_tbl_rng onlyspecs in
+   	(* Build a list of the lemma specs *)
    	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in
    	let non_proc_specs = only_specs @ lemma_specs in
    	List.iter (fun spec ->
    		let n_spec = normalise_spec predicates spec in
 		Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec
    	) (proc_specs @ non_proc_specs);
-
 
    	(** 2 - Dummy procs for only specs and lemmas
    	 *      The point of doing this is to use the find_and_apply_specs for both
@@ -1223,7 +1215,7 @@ let build_spec_tbl
 			error_label = None; error_var = Some "err";
 			spec = Some spec } in
 		Hashtbl.replace prog spec.spec_name dummy_proc in
-	List.iter create_dummy_proc non_proc_specs;
+	List.iter create_dummy_proc (lemma_specs @ only_specs);
 	spec_tbl
 
 (** -----------------------------------------------------
@@ -1416,4 +1408,116 @@ let generate_nsjil_file
          acc ^ "spec " ^ spec_name ^ "(" ^ params_str ^ ")" ^ "\n" ^ (string_of_spec_assertions spec.n_proc_specs) ^ "\n\n"
       ) spec_tbl ""
   in
-  print_njsil_file (string_of_spec_tbl_assertions);
+  print_njsil_file (string_of_spec_tbl_assertions)
+
+(** -----------------------------------------------------
+  * Generates the lemma cyclic dependency graph
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let check_lemma_cyclic_dependencies 
+	(lemmas : ((string, jsil_lemma) Hashtbl.t)) : unit =
+
+	(* Initialise the graph *)
+	let lemm_depd_graph : lemm_depd_graph = {
+		lemm_depd_names_ids = Hashtbl.create 30;
+		lemm_depd_edges     = Hashtbl.create 30
+	} in
+
+	(* Map names to ID's, and intialise the edges lists *)
+	Hashtbl.fold
+		(fun lemma_name lemma count ->
+			Hashtbl.replace lemm_depd_graph.lemm_depd_names_ids lemma_name count;
+			Hashtbl.replace lemm_depd_graph.lemm_depd_edges count [];
+			count + 1
+		) lemmas 0;
+
+	(* Add all the ApplyLemma targets to the edges table *)
+	Hashtbl.iter
+		(fun curr_lemma lemma ->
+			match lemma.lemma_proof with
+			| None -> ()
+			| Some proof ->
+				List.iter
+					(fun lcmd ->
+						print_debug (JSIL_Print.string_of_lcmd lcmd);
+
+						let f_l
+							(lcmd : jsil_logic_command) : jsil_logic_command =
+
+							match lcmd with
+							| ApplyLem (applied_lemma, _) ->
+							   (if (not (applied_lemma = curr_lemma)) then
+							  
+							   		(* Look up the ID's for the current and applied lemmas,
+							   		   and add the applied lemma to the list of edges *)
+							   		let curr_lemma_id = Hashtbl.find lemm_depd_graph.lemm_depd_names_ids curr_lemma in
+							   		let applied_lemma_id = Hashtbl.find lemm_depd_graph.lemm_depd_names_ids applied_lemma in
+							   		let edges = Hashtbl.find lemm_depd_graph.lemm_depd_edges curr_lemma_id in
+							   		Hashtbl.replace lemm_depd_graph.lemm_depd_edges curr_lemma_id (List.cons applied_lemma_id edges));
+							   lcmd
+							| _ -> lcmd
+
+						in
+
+						logic_command_map (Some f_l) None None lcmd;
+						()
+					) proof
+		) lemmas;
+
+	(* Check for cyclic dependencies using a DFS *)
+	let lemma_dfs_search
+	    (lemma_name : string)
+	    (lemma_node_id : int) : unit =
+
+	    print_debug (Printf.sprintf "Checking dependencies of lemma %s (ID %d)" lemma_name lemma_node_id);
+	    print_debug (Printf.sprintf "%d dependencies." (List.length (Hashtbl.find lemm_depd_graph.lemm_depd_edges lemma_node_id)));
+
+	    let visited_nodes : ((int, bool) Hashtbl.t) = Hashtbl.create 50 in
+
+	    (* Get the next node we haven't visited yet *)
+	    (* Pre: the stack is non-empty *)
+	    let rec get_next_node
+	        (dfs_stack : (int Stack.t)) : ((int * (int Stack.t)) option) =
+
+	      let next_node = Stack.pop dfs_stack in
+	      try
+	        (* Nodes are only in the hashtable if we have visited them, so if an error is thrown we have not *)
+	        let visited = Hashtbl.find visited_nodes next_node in
+	        get_next_node dfs_stack
+	      with
+	      | _ -> Some (next_node, dfs_stack)
+	    in
+
+	    let rec dfs
+	        (curr_node : int)
+	        (dfs_stack : (int Stack.t)) : unit =
+
+	      (* Add current node to visited hashtbl *)
+	      Hashtbl.replace visited_nodes curr_node true;
+
+	      (* Get all children of current node *)
+	      let curr_node_children : int list = Hashtbl.find lemm_depd_graph.lemm_depd_edges curr_node in
+	      (* Check they are not equal to the lemma node *)
+	      List.map
+	        (fun child ->
+	           match child = lemma_node_id with
+	           | true -> raise (Failure (Printf.sprintf "Cyclic dependency detected for lemma %s" lemma_name))
+	           | false -> Stack.push child dfs_stack
+	        )
+	      curr_node_children;
+
+	      (* Visit the next item in the stack *)
+	      (match Stack.is_empty dfs_stack with
+	      | true -> ()
+	      | false ->
+	        match get_next_node dfs_stack with
+	        | Some (next_node, new_stack) -> dfs next_node new_stack
+	        | None -> ()
+	      ) in
+
+	    dfs lemma_node_id (Stack.create ())
+	in
+
+	Hashtbl.iter lemma_dfs_search lemm_depd_graph.lemm_depd_names_ids
+	
