@@ -20,3 +20,5 @@ depends: [
   "JS_Parser"
   "ounit"
 ]
+
+available: [ocaml-version >= "4.04.0"]
