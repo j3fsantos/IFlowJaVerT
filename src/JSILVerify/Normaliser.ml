@@ -20,10 +20,10 @@ let new_lvar_name var = lvar_prefix ^ var
 **)
 
 type unfolded_predicate = {
-	name         : string;
-	num_params   : int;
-	params       : jsil_var list;
-	definitions  : ((string option) * jsil_logic_assertion) list;
+  name         : string;
+  num_params   : int;
+  params       : jsil_var list;
+  definitions  : ((string option) * jsil_logic_assertion) list;
   is_recursive : bool;
   previously_normalised_u_pred : bool
 }
