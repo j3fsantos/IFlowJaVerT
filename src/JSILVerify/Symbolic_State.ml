@@ -865,6 +865,7 @@ type symb_jsil_program = {
 (*********************************************************)
 type lemm_depd_graph = {
   lemm_depd_names_ids       : (string, int) Hashtbl.t; (* mapping lemma names to node id's *)
+  lemm_depd_ids_names       : (int, string) Hashtbl.t; (* and the reverse.. *)
   lemm_depd_edges           : (int, int list) Hashtbl.t; (* lemm_depd_edges.find(x) = list of all dependencies of x *)
 }
 

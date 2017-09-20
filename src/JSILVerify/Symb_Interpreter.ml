@@ -842,60 +842,39 @@ let lemma_recursive_call_termination_check
 	(* Check if a variant has been defined *)
 	match lemma.lemma_variant with
 	| None -> Printf.printf "WARNING: No variant defined for lemma %s\n" lemma.lemma_name
-	| Some variant ->
+	| Some variant_expr ->
 
-	    (* Substitute the PVars in the variant with their replacement logical expressions in the next call *)
-	    let variant_subst : ((jsil_var, jsil_logic_expr) Hashtbl.t) = Hashtbl.create 20 in
-	    List.iteri (fun i param ->
-	        Hashtbl.replace variant_subst param (List.nth args i)
-	    )
-	    lemma.lemma_spec.spec_params;
+		(* Convert variant to logical expression, so we can perform operations on it *)
+		let variant = expr_2_lexpr variant_expr in
 
-	    (* Make a new second variant with these logical expressions substituted,
-	       representing the variant in the called state *)
-	    let subst_lexpr_pvars
-	    	(lexpr : jsil_logic_expr) : (jsil_logic_expr * bool) =
+		(* Mapping lemma args -> new logical expressions (in the called state) *)
+		let variant_subst = init_substitution2 lemma.lemma_spec.spec_params args in
 
-	        match lexpr with
-	        	| PVar v -> (Hashtbl.find variant_subst v, false)
-	            | e -> (e, true)
-	    in
-	    let new_state_variant = logic_expression_map subst_lexpr_pvars variant in
+		(* The new variant, in the called state *)
+		let called_variant = lexpr_substitution variant variant_subst false in
 
-	    (* Transform the PVars into LVars for Z3 *)
-	    let transform_pvars_lvars
+		(* Now evaluate each variable in both variants *)
+		let _, store, pfs, gamma, _ = symb_state in
+		let evaulate_vars
 	        (lexpr : jsil_logic_expr) : (jsil_logic_expr * bool) =
 
 	        match lexpr with
-	        	| PVar v -> (LVar ("_lvar_" ^ v), false)
+	        	| PVar v -> (symb_evaluate_expr store gamma pfs (Var v), false)
 	            | e -> (e, true)
 	    in
-	    let transform_variant_pvars_lvars = logic_expression_map transform_pvars_lvars in
+	    let evaulate_variant_pvars = logic_expression_map evaulate_vars in
 
-	    (* Create an assertion var_1 <# var_2 *)
-	    let termination_assertion : jsil_logic_assertion = LLess ((transform_variant_pvars_lvars new_state_variant), (transform_variant_pvars_lvars variant)) in
+	    (* Create an assertion called_variant <# variant *)
+	    let termination_assertion = LLess (evaulate_variant_pvars called_variant, evaulate_variant_pvars variant) in
 		print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion false));
 
-	    (* Check that the store, pfs and gamma entail the termination_assertion *)
-	    let _, state_store, state_pfs, state_gamma, _ = symb_state in
-	    let state_entails_termination_assertion =
-
-	        (* Transform the store into a list of assertions, and add these to the pfs *)
-	        Hashtbl.iter (fun (var : string) (value : jsil_logic_expr) ->
-	           (* Turn PVars into Lvars *)
-	           DynArray.add state_pfs (LEq ((LVar ("_lvar_" ^ var)) , value))
-	        ) state_store;
-
-	    	let pfs : jsil_logic_assertion list = Symbolic_State.pfs_to_list state_pfs in
-	    	Pure_Entailment.check_entailment SS.empty (pfs) [termination_assertion] state_gamma
-	    in
+	    (* Check that the current symb state entails the termination_assertion *)
+	    let state_entails_termination_assertion = Pure_Entailment.check_entailment SS.empty (Symbolic_State.pfs_to_list pfs) [termination_assertion] gamma in
 
 	    (* Throw an error if the assertion is not entailed *)
 	    match state_entails_termination_assertion with
 	    	| true -> ()
 	    	| false -> raise (Failure (Printf.sprintf "Lemma %s: Variant %s does not decrease in every recursive call." lemma.lemma_name (JSIL_Print.string_of_logic_expression variant false)));
-
-	    print_debug (Printf.sprintf "State on recursive call entails termination assertion? %b" state_entails_termination_assertion)
 
 
 (*---------------------------------------------------------------

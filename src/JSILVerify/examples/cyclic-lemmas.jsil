@@ -1,0 +1,20 @@
+lemma magic_lemma(x)
+	[[ ((x, "f") -> 6) ]]
+	[[ ((x, "f") -> 7) ]]
+	[*
+		apply helper_lemma(x)
+	*]
+
+lemma helper_lemma(x)
+	[[ ((x, "f") -> 6) ]]
+	[[ ((x, "f") -> 7) ]]
+	[*
+		apply nobody_saw_me(x)
+	*]
+
+lemma nobody_saw_me(x)
+	[[ ((x, "f") -> 6) ]]
+	[[ ((x, "f") -> 7) ]]
+	[*
+		apply magic_lemma(x)
+	*]

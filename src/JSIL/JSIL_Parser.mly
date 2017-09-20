@@ -752,7 +752,7 @@ jsil_lemma_head_target:
 ;
 
 jsil_lemma_variant_target:
-  VARIANT LBRACE; variant = lexpr_target; RBRACE
+  VARIANT LBRACE; variant = expr_target; RBRACE
 	{
 		variant
 	}

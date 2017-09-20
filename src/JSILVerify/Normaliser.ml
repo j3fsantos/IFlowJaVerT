@@ -1421,6 +1421,7 @@ let check_lemma_cyclic_dependencies
 	(* Initialise the graph *)
 	let lemm_depd_graph : lemm_depd_graph = {
 		lemm_depd_names_ids = Hashtbl.create 30;
+		lemm_depd_ids_names = Hashtbl.create 30;
 		lemm_depd_edges     = Hashtbl.create 30
 	} in
 
@@ -1428,6 +1429,7 @@ let check_lemma_cyclic_dependencies
 	Hashtbl.fold
 		(fun lemma_name lemma count ->
 			Hashtbl.replace lemm_depd_graph.lemm_depd_names_ids lemma_name count;
+			Hashtbl.replace lemm_depd_graph.lemm_depd_ids_names count lemma_name;
 			Hashtbl.replace lemm_depd_graph.lemm_depd_edges count [];
 			count + 1
 		) lemmas 0;
@@ -1451,9 +1453,9 @@ let check_lemma_cyclic_dependencies
 							  
 							   		(* Look up the ID's for the current and applied lemmas,
 							   		   and add the applied lemma to the list of edges *)
-							   		let curr_lemma_id = Hashtbl.find lemm_depd_graph.lemm_depd_names_ids curr_lemma in
-							   		let applied_lemma_id = Hashtbl.find lemm_depd_graph.lemm_depd_names_ids applied_lemma in
-							   		let edges = Hashtbl.find lemm_depd_graph.lemm_depd_edges curr_lemma_id in
+									let curr_lemma_id    = Hashtbl.find lemm_depd_graph.lemm_depd_names_ids curr_lemma in
+									let applied_lemma_id = Hashtbl.find lemm_depd_graph.lemm_depd_names_ids applied_lemma in
+									let edges            = Hashtbl.find lemm_depd_graph.lemm_depd_edges curr_lemma_id in
 							   		Hashtbl.replace lemm_depd_graph.lemm_depd_edges curr_lemma_id (List.cons applied_lemma_id edges));
 							   lcmd
 							| _ -> lcmd
@@ -1465,59 +1467,62 @@ let check_lemma_cyclic_dependencies
 					) proof
 		) lemmas;
 
-	(* Check for cyclic dependencies using a DFS *)
-	let lemma_dfs_search
-	    (lemma_name : string)
-	    (lemma_node_id : int) : unit =
+	(* Store our journey through the graph, and the start/end times for each node *)
+	let visited_nodes    = Hashtbl.create 30 in
+	let start_time_nodes = Hashtbl.create 30 in
+	let end_time_nodes   = Hashtbl.create 30 in
 
-	    print_debug (Printf.sprintf "Checking dependencies of lemma %s (ID %d)" lemma_name lemma_node_id);
-	    print_debug (Printf.sprintf "%d dependencies." (List.length (Hashtbl.find lemm_depd_graph.lemm_depd_edges lemma_node_id)));
+	(* Returns the "clock" time at the end of the traversal *)
+	let rec clockDFS
+		(curr_node : int)
+		(clock : int) : int =
 
-	    let visited_nodes : ((int, bool) Hashtbl.t) = Hashtbl.create 50 in
+		(* Recording start time for this node *)
+		Hashtbl.replace start_time_nodes curr_node clock;
+		let clock = clock + 1 in
+		Hashtbl.replace visited_nodes curr_node true;
 
-	    (* Get the next node we haven't visited yet *)
-	    (* Pre: the stack is non-empty *)
-	    let rec get_next_node
-	        (dfs_stack : (int Stack.t)) : ((int * (int Stack.t)) option) =
+		(* Getting all the children *)
+		let children : (int list) = Hashtbl.find lemm_depd_graph.lemm_depd_edges curr_node in
 
-	      let next_node = Stack.pop dfs_stack in
-	      try
-	        (* Nodes are only in the hashtable if we have visited them, so if an error is thrown we have not *)
-	        let visited = Hashtbl.find visited_nodes next_node in
-	        get_next_node dfs_stack
-	      with
-	      | _ -> Some (next_node, dfs_stack)
-	    in
+		(* Visiting each of the children, keeping track of the time *)
+		let end_clock =	List.fold_left
+			(fun clock child ->
+				if (not (Hashtbl.mem visited_nodes child)) then
+					clockDFS child clock
+				else
+					clock
+			) clock children
+		in
 
-	    let rec dfs
-	        (curr_node : int)
-	        (dfs_stack : (int Stack.t)) : unit =
-
-	      (* Add current node to visited hashtbl *)
-	      Hashtbl.replace visited_nodes curr_node true;
-
-	      (* Get all children of current node *)
-	      let curr_node_children : int list = Hashtbl.find lemm_depd_graph.lemm_depd_edges curr_node in
-	      (* Check they are not equal to the lemma node *)
-	      List.map
-	        (fun child ->
-	           match child = lemma_node_id with
-	           | true -> raise (Failure (Printf.sprintf "Cyclic dependency detected for lemma %s" lemma_name))
-	           | false -> Stack.push child dfs_stack
-	        )
-	      curr_node_children;
-
-	      (* Visit the next item in the stack *)
-	      (match Stack.is_empty dfs_stack with
-	      | true -> ()
-	      | false ->
-	        match get_next_node dfs_stack with
-	        | Some (next_node, new_stack) -> dfs next_node new_stack
-	        | None -> ()
-	      ) in
-
-	    dfs lemma_node_id (Stack.create ())
+		(* Recording the end time for this node *)
+		Hashtbl.replace end_time_nodes curr_node end_clock;
+		end_clock + 1
 	in
 
-	Hashtbl.iter lemma_dfs_search lemm_depd_graph.lemm_depd_names_ids
-	
+	(* Traverses the graph, recording the clock times at each node *)
+	Hashtbl.fold
+		(fun name id clock ->
+			if (not (Hashtbl.mem visited_nodes id)) then
+				clockDFS id clock
+			else
+				clock
+		) lemm_depd_graph.lemm_depd_names_ids 0;
+
+	(* Check all the edges for back-edges *)
+	Hashtbl.iter
+		(fun u vs ->
+			List.iter
+			(fun v ->
+				(* Edge (u, v) is a back-edge if start[u] > start[v] and end[u] < end[v] *)
+				let start_u = Hashtbl.find start_time_nodes u in
+				let end_u   = Hashtbl.find end_time_nodes u in
+				let start_v = Hashtbl.find start_time_nodes v in
+				let end_v   = Hashtbl.find end_time_nodes v in
+				if ((start_u > start_v) && (end_u < end_v)) then
+					let name_u = Hashtbl.find lemm_depd_graph.lemm_depd_ids_names u in
+					let name_v = Hashtbl.find lemm_depd_graph.lemm_depd_ids_names v in
+					raise (Failure (Printf.sprintf "Lemma cyclic dependency detected: %s depends on %s, which depends on %s." name_v name_u name_v))
+		    ) vs
+		) lemm_depd_graph.lemm_depd_edges
+	 

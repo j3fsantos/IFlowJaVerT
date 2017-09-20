@@ -14,5 +14,5 @@ lemma sum_elements (sum1, sum2, list1, list2)
   	[[ list_sum(sum1, list1) * list_sum(sum2, list2) ]]
 	[[ list_sum(sum1 + sum2, list1 @ list2) ]]
 	[*
-		apply sum_elements(list1, sum2, list1, list2)
+		apply sum_elements(sum1, sum2, list1, list2)
 	*]
