@@ -69,7 +69,6 @@ let rec auto_unfold
  *	------------------------------------------------------------------
 **)
 let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicate =
-	print_time_debug "detect_trivia_and_nonsense";
 	let new_definitions = List.map
 		(fun (oc, x) -> oc, (Simplifications.reduce_assertion_no_store_no_gamma_no_pfs x)) u_pred.definitions in
 	let new_definitions = List.filter (fun (oc, x) -> not (x = LFalse)) new_definitions in

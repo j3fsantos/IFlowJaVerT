@@ -1044,8 +1044,8 @@ let rec type_lexpr gamma le =
 			(match op with
 			| Equal ->
 				(
-					Printf.printf "typing the jsil equality. t1: %s. t2: %s.\n"
-						(JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2);
+					(* Printf.printf "typing the jsil equality. t1: %s. t2: %s.\n"
+						(JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2); *)
 					check_valid_type t1 all_types BooleanType []
 				)
 			| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType ] BooleanType []

@@ -4,6 +4,8 @@ open JSIL_Logic_Utils
 open Z3
 open Z3.Set
 
+let _ = print_debug_petar "Entering pure entailment."
+
 type encoding =
  | WithReals
  | WithFPA
@@ -47,44 +49,44 @@ type jsil_type_constructors = {
 }
 
 type z3_basic_jsil_value = {
-    (****************)
-	(* constructors *)
-	(****************)
-	undefined_constructor : FuncDecl.func_decl;
-	null_constructor      : FuncDecl.func_decl;
-	empty_constructor     : FuncDecl.func_decl;
-	boolean_constructor   : FuncDecl.func_decl;
-	number_constructor    : FuncDecl.func_decl;
-	char_constructor      : FuncDecl.func_decl;
-	string_constructor    : FuncDecl.func_decl;
-    loc_constructor       : FuncDecl.func_decl;
-    type_constructor      : FuncDecl.func_decl;
-    list_constructor      : FuncDecl.func_decl;
-    none_constructor      : FuncDecl.func_decl;
-    (*************)
-    (* accessors *)
-    (*************)
-    boolean_accessor      : FuncDecl.func_decl;
-	number_accessor       : FuncDecl.func_decl;
-	char_accessor         : FuncDecl.func_decl;
-    string_accessor       : FuncDecl.func_decl;
-    loc_accessor          : FuncDecl.func_decl;
-    type_accessor         : FuncDecl.func_decl;
-    list_accessor         : FuncDecl.func_decl;
-    (***************)
-	(* recognizers *)
-	(***************)
-	undefined_recognizer  : FuncDecl.func_decl;
-	null_recognizer       : FuncDecl.func_decl;
-	empty_recognizer      : FuncDecl.func_decl;
-	boolean_recognizer    : FuncDecl.func_decl;
-	number_recognizer     : FuncDecl.func_decl;
-	char_recognizer       : FuncDecl.func_decl;
-	string_recognizer     : FuncDecl.func_decl;
-	loc_recognizer        : FuncDecl.func_decl;
-	type_recognizer       : FuncDecl.func_decl;
-	list_recognizer       : FuncDecl.func_decl;
-	none_recognizer       : FuncDecl.func_decl
+  (****************)
+  (* constructors *)
+  (****************)
+  undefined_constructor : FuncDecl.func_decl;
+  null_constructor      : FuncDecl.func_decl;
+  empty_constructor     : FuncDecl.func_decl;
+  boolean_constructor   : FuncDecl.func_decl;
+  number_constructor    : FuncDecl.func_decl;
+  char_constructor      : FuncDecl.func_decl;
+  string_constructor    : FuncDecl.func_decl;
+  loc_constructor       : FuncDecl.func_decl;
+  type_constructor      : FuncDecl.func_decl;
+  list_constructor      : FuncDecl.func_decl;
+  none_constructor      : FuncDecl.func_decl;
+  (*************)
+  (* accessors *)
+  (*************)
+  boolean_accessor      : FuncDecl.func_decl;
+  number_accessor       : FuncDecl.func_decl;
+  char_accessor         : FuncDecl.func_decl;
+  string_accessor       : FuncDecl.func_decl;
+  loc_accessor          : FuncDecl.func_decl;
+  type_accessor         : FuncDecl.func_decl;
+  list_accessor         : FuncDecl.func_decl;
+  (***************)
+  (* recognizers *)
+  (***************) 
+  undefined_recognizer  : FuncDecl.func_decl;
+  null_recognizer       : FuncDecl.func_decl;
+  empty_recognizer      : FuncDecl.func_decl;
+  boolean_recognizer    : FuncDecl.func_decl;
+  number_recognizer     : FuncDecl.func_decl;
+  char_recognizer       : FuncDecl.func_decl;
+  string_recognizer     : FuncDecl.func_decl;
+  loc_recognizer        : FuncDecl.func_decl;
+  type_recognizer       : FuncDecl.func_decl;
+  list_recognizer       : FuncDecl.func_decl;
+  none_recognizer       : FuncDecl.func_decl
 }
 
 type z3_jsil_list = {
@@ -99,7 +101,6 @@ type z3_jsil_list = {
 	cons_recognizer       : FuncDecl.func_decl
 }
 
-
 type extended_jsil_value_constructor = {
 	singular_constructor       : FuncDecl.func_decl;
 	set_constructor            : FuncDecl.func_decl;
@@ -109,8 +110,12 @@ type extended_jsil_value_constructor = {
 	set_recognizer             : FuncDecl.func_decl
 }
 
+let _ = print_debug_petar "Extended JSIL ."
+
 let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")]
 let ctx : Z3.context = (mk_context cfg)
+
+let _ = print_debug_petar "Context defined."
 
 let booleans_sort = Boolean.mk_sort ctx
 let ints_sort     = Arithmetic.Integer.mk_sort ctx
@@ -118,16 +123,20 @@ let reals_sort    = Arithmetic.Real.mk_sort ctx
 let fp_sort       = FloatingPoint.mk_sort_64 ctx
 let numbers_sort  = match_enc "mk_sort" reals_sort fp_sort
 
+let _ = print_debug_petar "Sorts defined."
+
 let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx)
 let mk_string_symb s = Symbol.mk_string ctx s
 
-let mk_int_i = Arithmetic.Integer.mk_numeral_i ctx
+let mk_int_i      = Arithmetic.Integer.mk_numeral_i ctx
+let mk_const_i    = Arithmetic.Integer.mk_const ctx
+
 let mk_const      = match_enc "mk_const" (Arithmetic.Real.mk_const ctx)     (fun (s : Symbol.symbol) -> FloatingPoint.mk_const ctx s fp_sort)
 let mk_num_i      = match_enc "mk_num_i" (Arithmetic.Real.mk_numeral_i ctx) (fun i -> FloatingPoint.mk_numeral_i ctx i fp_sort)
 let mk_num_s      = match_enc "mk_num_s" (Arithmetic.Real.mk_numeral_s ctx) (fun s -> FloatingPoint.mk_numeral_s ctx s fp_sort)
-let mk_lt         = match_enc "mk_lt"    Arithmetic.mk_lt             FloatingPoint.mk_lt
-let mk_le         = match_enc "mk_le"    Arithmetic.mk_le             FloatingPoint.mk_leq
-let mk_ge         = match_enc "mk_ge"    Arithmetic.mk_ge             FloatingPoint.mk_geq
+let mk_lt         = match_enc "mk_lt"    Arithmetic.mk_lt                   FloatingPoint.mk_lt
+let mk_le         = match_enc "mk_le"    Arithmetic.mk_le                   FloatingPoint.mk_leq
+let mk_ge         = match_enc "mk_ge"    Arithmetic.mk_ge                   FloatingPoint.mk_geq
 
 let mk_add = match_enc "mk_add" (fun e1 e2 -> Arithmetic.mk_add ctx [e1; e2]) (fun e1 e2 -> FloatingPoint.mk_add ctx rm e1 e2)
 let mk_sub = match_enc "mk_sub" (fun e1 e2 -> Arithmetic.mk_sub ctx [e1; e2]) (fun e1 e2 -> FloatingPoint.mk_sub ctx rm e1 e2)
@@ -214,7 +223,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 		Datatype.mk_constructor ctx (mk_string_symb "Nil") (mk_string_symb "isNil") [] [] [] in
 	let jsil_list_cons_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Cons") (mk_string_symb "isCons")
-			[ (mk_string_symb "head"); (mk_string_symb "tail") ] [ None; None ] [ 0; 1] in
+			[ (mk_string_symb "head"); (mk_string_symb "tail") ] [ None; None ] [ 0; 1 ] in
 
 	let literal_and_literal_list_sorts =
 		Datatype.mk_sorts
@@ -387,7 +396,7 @@ let mk_singleton_access ele =  Expr.mk_app ctx extended_literal_operations.singu
 let axiomatised_operations =
 
 	let slen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-len")
-							[ numbers_sort ] numbers_sort in
+							[ ints_sort ] numbers_sort in
 	let llen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-len")
 							[ z3_jsil_list_sort ] numbers_sort in
 	let num2str_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2str")
@@ -397,9 +406,9 @@ let axiomatised_operations =
 	let num2int_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2int")
 							[ numbers_sort ] numbers_sort in
 	let snth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-nth")
-							[ numbers_sort; numbers_sort ] numbers_sort in
+							[ ints_sort; ints_sort ] ints_sort in
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
-							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
+							[ z3_jsil_list_sort; ints_sort ] z3_jsil_literal_sort in
 	let lcat_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-cat")
 							[ z3_jsil_list_sort; z3_jsil_list_sort ] z3_jsil_list_sort in
 
@@ -445,11 +454,10 @@ let str_codes = Hashtbl.create 1000
 let str_counter = ref 0
 let encode_string str =
 	try
-		let str_number = Hashtbl.find str_codes str in
+		let str_number : int = Hashtbl.find str_codes str in
 		let z3_code = mk_int_i str_number in
 		z3_code
 	with Not_found ->
-		(* New string: add it to the hashtable *)
 		let z3_code = mk_int_i !str_counter in
 		Hashtbl.add str_codes str (!str_counter);
 		str_counter := !str_counter + 1;
@@ -518,6 +526,7 @@ let typeof_expression x =
 
 
 let rec encode_lit lit =
+
 	let mk_singleton_elem ele = Expr.mk_app ctx extended_literal_operations.singular_constructor [ ele ] in
 
 	try
@@ -678,7 +687,6 @@ let encode_unop op le =
 
 let rec encode_logical_expression le =
 
-	(* print_debug (Printf.sprintf "ELE: %s" (JSIL_Print.string_of_logic_expression e false)); *)
 	let f = encode_logical_expression in
 
 	match le with
@@ -703,15 +711,31 @@ let rec encode_logical_expression le =
 
 	| LLstNth (lst, index)  ->
 	  let lst'   = Expr.mk_app ctx lit_operations.list_accessor  [ mk_singleton_access (f lst) ] in
-	  let index' = Expr.mk_app ctx lit_operations.number_accessor  [ mk_singleton_access (f index) ] in
-		mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.lnth_fun [ lst'; index' ])
+		let msg    = Printf.sprintf "Failure - z3 encoding: Unsupported list indexing: %s" (JSIL_Print.string_of_logic_expression index false) in
+		(match index with
+		| LLit (Num index) ->
+			(match (Utils.is_int index) with
+			| false -> raise (Failure msg)
+			| true -> 
+					let index = int_of_float index in
+					let index' = mk_int_i index in
+					mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.lnth_fun [ lst'; index' ]))
+		| _ -> raise (Failure msg))
 
 	| LStrNth (str, index)  ->
 		let str'   = Expr.mk_app ctx lit_operations.string_accessor  [ mk_singleton_access (f str) ] in
-	  let index' = Expr.mk_app ctx lit_operations.number_accessor  [ mk_singleton_access (f index) ] in
-	  let res    = Expr.mk_app ctx axiomatised_operations.snth_fun [ str'; index' ] in
-	  mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ res ])
-
+		let msg    = Printf.sprintf "Failure - z3 encoding: Unsupported string indexing: %s" (JSIL_Print.string_of_logic_expression index false) in
+		(match index with
+		| LLit (Num index) ->
+			(match (Utils.is_int index) with
+			| false -> raise (Failure msg)
+			| true -> 
+					let index = int_of_float index in
+					let index' = mk_int_i index in
+					let res    = Expr.mk_app ctx axiomatised_operations.snth_fun [ str'; index' ] in
+					mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ res ]))
+		| _ -> raise (Failure msg))
+		
 	| LTypeOf le ->
 		let res = typeof_expression (f le) in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
@@ -759,11 +783,11 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 
 
 
-let global_axioms =
+let global_axioms = []
 
-	(* forall x. slen(x) >= 0 *)
+	(* forall x. slen(x) >= 0 
 	let x    = "x" in
-	let le_x = mk_const (mk_string_symb x) in
+	let le_x = mk_const_i (mk_string_symb x) in
 	let le1  = Expr.mk_app ctx axiomatised_operations.slen_fun [ le_x ] in
 	let le2  = mk_num_i 0 in
 	let slen_assertion = mk_ge ctx le1 le2 in
@@ -786,7 +810,7 @@ let global_axioms =
 	let a         = Boolean.mk_or ctx [a1; a2] in
 	let llen_axiom2 = encode_quantifier true ctx [ x ] [ z3_jsil_list_sort ] a in
 
-	[ slen_axiom; llen_axiom1; llen_axiom2 ]
+	[ slen_axiom; llen_axiom1; llen_axiom2 ] *)
 
 let make_recognizer_assertion x t_x =
 	let le_x = Expr.mk_const ctx (mk_string_symb x) extended_literal_sort in
@@ -926,13 +950,13 @@ let make_global_axioms list_vars string_vars list_exprs =
 	let carlnth0 = LEq (LUnOp (Car, lvar_x), LLstNth (lvar_x, LLit (Num 0.))) in
 	let carlnth0_s = JSIL_Logic_Utils.concretise carlnth0 x_name list_vars in
 
-	(* forall x, y. ((x = nil) /\ (y = nil)) \/ (! (x @ y = nil)) *)
+	(* forall x, y. ((x = nil) /\ (y = nil)) \/ (! (x @ y = nil)) 
 	let l_disjunct = LAnd (LEq (lvar_x, LLit (LList [])), LEq (lvar_y, LLit (LList []))) in
 	let r_disjunct = LNot (LEq (LLit (LList []), LBinOp (lvar_x, LstCat, lvar_y))) in
 	let lstcat1    = LOr (l_disjunct, r_disjunct) in
-	let lstcat1_s  = JSIL_Logic_Utils.concretise2 lstcat1 x_name y_name list_exprs in
+	let lstcat1_s  = JSIL_Logic_Utils.concretise2 lstcat1 x_name y_name list_exprs in *)
 
-	slen1_s @ llen1_s @ llen2_s @ carlnth0_s @ lstcat1_s
+	slen1_s @ llen1_s @ llen2_s @ carlnth0_s 
 
 let make_list_axioms a_list =
 
