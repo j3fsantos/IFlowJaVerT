@@ -17,9 +17,9 @@ type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
-type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
+type symbolic_state       = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
 type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
-
+type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
 (*************************************)
 (** Cached symbolic state           **)
@@ -232,7 +232,7 @@ let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_lis
 	LHeap.iter f heap
 
 (** Returns true if --heap-- is empty *)
-let is_heap_empty (heap : symbolic_heap) (js : bool) : bool =
+let is_heap_empty (heap : symbolic_heap) : bool =
 	LHeap.fold
 		(fun loc (fv_list, dom) ac -> if (not ac) then ac else (fv_list = []) && (dom = None))
 		heap
@@ -355,6 +355,13 @@ let store_projection (store : symbolic_store) (xs : string list) : symbolic_stor
 let asrts_of_store (store : symbolic_store) : jsil_logic_assertion list =
 	Hashtbl.fold (fun x le asrts -> ((LEq (PVar x, le)) :: asrts)) store []
 
+(** Calls --f-- on all variables of --store--; f(x, le_x) *)
+let store_iter (store: symbolic_store) (f : string -> jsil_logic_expr -> unit) : unit =
+	Hashtbl.iter f store
+
+let store_fold (store: symbolic_store) (f : string -> jsil_logic_expr -> 'a  -> 'a) (init : 'a) : 'a =
+	Hashtbl.fold f store init 
+
 
 (*************************************)
 (** Pure Formulae functions         **)
@@ -438,6 +445,9 @@ let preds_find_index (preds : predicate_set) (pred_asrt : predicate_assertion) :
 (** Removes the binding of --pa-- from --preds-- *)
 let preds_remove (preds : predicate_set) (pred_asrt : predicate_assertion) : unit =
 	match preds_find_index preds pred_asrt with Some i -> DynArray.delete preds i | _ -> () 
+
+(** Removes the i-th predicate of --preds-- *)
+let preds_remove_by_index (preds : predicate_set) (i : int) : unit = DynArray.delete preds i  
 
 (** Find predicate_assertion via pred_name. 
     Returns a list with all the predicate assertions whose pred_name is --pred_name-- *)

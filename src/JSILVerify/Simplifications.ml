@@ -202,7 +202,7 @@ let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 				(try (
 					let str = String.concat "" (List.map (fun x -> match x with | LLit (Char c) -> String.make 1 c) l) in
 					(LLit (String str), false) 
-				) with | _ -> print_debug "String representation leftovers."; (se, false))
+				) with | _ -> print_debug_petar "String representation leftovers."; (se, false))
 		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
 		| _ -> (se, true))
 
@@ -468,7 +468,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	if (result <> orig_expr) then (print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
+	if (result <> orig_expr) then (print_debug_petar (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e false)
 		(JSIL_Print.string_of_logic_expression result false)));
 	result
@@ -590,7 +590,7 @@ let rec reduce_assertion store gamma pfs a =
 			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2')
 			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (re2', Plus, LLit (Num n2))
 			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (LLit (Num n2), Plus, re2') ->
-					print_debug "PLUS_ON_BOTH_SIDES";
+					print_debug_petar "PLUS_ON_BOTH_SIDES";
 					let isn1 = Utils.is_normal n1 in
 					let isn2 = Utils.is_normal n2 in
 					if (isn1 && isn2)
@@ -604,7 +604,7 @@ let rec reduce_assertion store gamma pfs a =
 			(* More Plus theory *)
 			| LBinOp (re1', Plus, LLit (Num n1)), LLit (Num n2)
 			| LLit (Num n2), LBinOp (re1', Plus, LLit (Num n1)) ->
-					print_debug "PLUS_ON_ONE, LIT_ON_OTHER";
+					print_debug_petar "PLUS_ON_ONE, LIT_ON_OTHER";
 					let isn1 = Utils.is_normal n1 in
 					let isn2 = Utils.is_normal n2 in
 					if (isn1 && isn2)
@@ -637,7 +637,7 @@ let rec reduce_assertion store gamma pfs a =
 							LOr (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
 			result
 
 	| LSetMem (leb, LSetInter lle) -> 
@@ -651,7 +651,7 @@ let rec reduce_assertion store gamma pfs a =
 							LOr (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
 			result
 
 	| LSetMem (leb, LBinOp(lel, SetDiff, ler)) -> 
@@ -659,20 +659,20 @@ let rec reduce_assertion store gamma pfs a =
 		let rlel = fe lel in
 		let rler = fe ler in
 		let result = f (LAnd (LSetMem (rleb, rlel), LNot (LSetMem (rleb, rler)))) in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
 			result
 
 	| LSetMem (leb, LESet [ le ]) -> 
 		let rleb = fe leb in
 		let rle = fe le in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
 				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)) false)); 
 			f (LEq (rleb, rle))
 
 	| LForAll (bt, a) -> 
 			let ra = f a in
 			if (a <> ra) then
-		  print_debug (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+		  print_debug_petar (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
 				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)) false)); 
 			LForAll (bt, ra)
 
@@ -987,7 +987,7 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 						let lcand = List.length candidates in
 						let sqrtl = sqrt (float_of_int lcand) in
 						if (!interactive) && (not (sqrtl = floor sqrtl)) then (
-							print_debug (Printf.sprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates));
+							print_debug_petar (Printf.sprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates));
 							Printf.eprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates);
 							List.iter (fun (le1, le2, _) -> 
 								Printf.eprintf "%s vs. %s\n%!" (print_lexpr le1) (print_lexpr le2)) candidates;
@@ -1258,7 +1258,7 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 		| LBinOp (_, CharCat,  _), LBinOp (_, CharCat,  _) -> 
 			let (okl, headl, taill) = get_head_and_tail_string se1 in
 			let (okr, headr, tailr) = get_head_and_tail_string se2 in
-			print_debug (Printf.sprintf "Got head and tail: left: %b, right: %b" 
+			print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
 				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr));
 			(match okl, okr with
 			(* We can separate both strings *)
@@ -1883,7 +1883,7 @@ let simplify_symb_state
 	(* let cache_value = simpl_encache_value ss subst ots exs in
 	Hashtbl.replace simpl_cache cache_key cache_value; *)
 
-	print_debug ("symb_state after call to simplification: \n" ^ (Symbolic_State_Print.string_of_shallow_symb_state ss)); 
+	print_debug_petar ("symb_state after call to simplification: \n" ^ (Symbolic_State_Print.string_of_shallow_symb_state ss)); 
 
 	ss, subst, ots, exs
 	
@@ -1952,7 +1952,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	(* print_debug (Printf.sprintf "PFS: %s" (Symbolic_State_Print.string_of_shallow_p_formulae p_formulae false)); *)
 
 	let pfs_false msg =
-		print_debug (msg ^ " Pure formulae false.\n");
+		print_debug_petar (msg ^ " Pure formulae false.\n");
 		DynArray.clear p_formulae;
 		DynArray.add p_formulae LFalse;
 		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
@@ -1971,7 +1971,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-			print_debug (Printf.sprintf "Nonsense test: %s vs. %s" (print_lexpr var) (print_lexpr lst));
+			print_debug_petar (Printf.sprintf "Nonsense test: %s vs. %s" (print_lexpr var) (print_lexpr lst));
 			(match var, lst with
 			 | LVar v, LVar w -> v = w
 			 | LVar _, LEList lst ->
@@ -2232,7 +2232,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 						(* CAREFULLY substitute *)
 						(match lhs with
 						| LVar v when (SS.mem v set_exists) ->
-								print_debug (Printf.sprintf "Managed to instantiate a set existential: %s" v);
+								print_debug_petar (Printf.sprintf "Managed to instantiate a set existential: %s" v);
 								let temp_subst = Hashtbl.create 1 in
 								Hashtbl.add temp_subst v rhs;
 								pfs_substitution_in_place temp_subst rpfs;

@@ -801,20 +801,6 @@ let reverse_type_lexpr gamma le le_type : typing_environment option =
 		else None
 
 
-let is_sensible_subst subst gamma_source gamma_target =
-  try
-	Hashtbl.iter
-		(fun var lexpr ->
-			let lexpr_type, _, _ = type_lexpr gamma_target lexpr in
-			let var_type = gamma_get_type gamma_source var in
-			(match lexpr_type, var_type with
-			| Some le_type, Some v_type ->
-			  if (le_type = v_type) then () else raise (Failure (Printf.sprintf "Type mismatch: %s %s"
-			  	(JSIL_Print.string_of_type le_type) (JSIL_Print.string_of_type v_type)))
-			| _, _ -> ()))
-		subst;
-	true
-	with (Failure msg) -> print_normal (Printf.sprintf "is_sensible_subst threw an exception: %s" msg); false
 
 
 (***************************************************************)
@@ -1009,6 +995,7 @@ let remove_int_duplicates ints =
 	let int_set = SI.of_list ints in
 	SI.elements int_set
 
+(* TO DELETE *)
 let get_subtraction_vars vars subst =
 	SS.filter (fun x -> not (Hashtbl.mem subst x)) vars
 

@@ -326,7 +326,7 @@ let rec normalise_list_expressions (le : jsil_logic_expr) : jsil_logic_expr =
 		(match f tl with 
 		| LEList lst                       -> LEList (hd' :: lst)
 		| LBinOp (LEList lst, LstCat, tl') -> LBinOp (LEList (hd' :: lst), LstCat, tl') 
-		| tl                               -> LBinOp (hd', LstCons, tl))
+		| tl                               -> LBinOp (LEList [ hd' ], LstCat, tl))
 	
 	| LBinOp (lst_l, LstCat, lst_r) ->    
 		(match f lst_l with 
@@ -1176,9 +1176,9 @@ let create_unification_plan (symb_state : symbolic_state) : (jsil_logic_assertio
 					) fv_list in 
  				List.iter (fun (le_f, le_v) -> 
  					Queue.add (LPointsTo (le_loc, le_f, le_v)) unification_plan; 
- 					Option.may (fun le_domain -> Queue.add (LEmptyFields (le_loc, le_domain)) unification_plan) le_domain;
  					search_for_new_alocs_in_lexpr le_v
  				) (fv_list_c @ fv_list_nc); 
+ 				Option.may (fun le_domain -> Queue.add (LEmptyFields (le_loc, le_domain)) unification_plan) le_domain;
  				LHeap.remove heap loc; 
  				true) in 
 

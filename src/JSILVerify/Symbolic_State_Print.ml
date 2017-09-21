@@ -206,11 +206,23 @@ let string_of_substitution substitution =
 		(Hashtbl.fold
 			(fun (var : string) (le : jsil_logic_expr) (ac : string) ->
 				let le_str = string_of_logic_expression le false in
-				let var_le_str = var ^ ": " ^ le_str  in
-				if (ac = "\n\t") then (ac ^ var_le_str) else ac ^ ";\n\t " ^ var_le_str)
+				let var_le_str = "(" ^ var ^ ": " ^ le_str ^ ")" in
+				if (ac = "") then var_le_str else ac ^ ", " ^ var_le_str)
 			substitution
-			"\n\t") in
-	"Substitution: " ^ str ^ "\n"
+			"") in
+	"[" ^ str ^ "]"
+
+let string_of_discharges (discharges : discharge_list) : string = 
+	let discharge_strs = 
+		List.map 
+			(fun (le_pat, le) -> "(" ^ (string_of_logic_expression le_pat false) ^ ", " ^ (string_of_logic_expression le false) ^ ")")
+			discharges in 
+	"[" ^ (String.concat ", " discharge_strs) ^ "]" 
+
+
+let string_of_unification_plan (up : jsil_logic_assertion list) : string = 
+	let up_strs = List.map (fun a -> string_of_logic_assertion a false) up in 
+	"[ " ^ (String.concat "; " up_strs) ^ " ]"
 
 
 let string_of_symb_exe_result result =
@@ -323,6 +335,8 @@ let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : sym
 	print_normal (Printf.sprintf
 		"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------"
 		i time symb_state_str cmd_str)
+
+
 
 
 (**

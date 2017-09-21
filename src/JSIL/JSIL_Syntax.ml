@@ -481,7 +481,7 @@ let get_proc_cmd proc i =
 
 (* STATISTICS *)
 
-let im_petar = ref true
+let im_petar = ref false
 let debug = ref false
 let newencoding = ref false
 
@@ -805,19 +805,6 @@ let filter_gamma_f gamma f =
 		(fun v v_type ->
 			(if (f v) then
 				Hashtbl.replace new_gamma v v_type))
-		gamma;
-	new_gamma
-
-let filter_gamma_with_subst gamma vars subst =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
-		(fun v v_type ->
-			(if (List.mem v vars) then
-				try
-					match (Hashtbl.find subst v) with
-					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
-					| _ -> ()
-				with Not_found -> ()))
 		gamma;
 	new_gamma
 

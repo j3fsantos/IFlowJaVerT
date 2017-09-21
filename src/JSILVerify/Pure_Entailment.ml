@@ -892,9 +892,9 @@ let print_model solver =
 	match model with
 	| Some model ->
 		let str_model = Model.to_string model in
-		print_debug (Printf.sprintf "I found the model: \n\n%s" str_model)
+		print_debug_petar (Printf.sprintf "I found the model: \n\n%s" str_model)
 	| None ->
-		print_debug ("No model found.")
+		print_debug_petar ("No model found.")
 
 let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in
@@ -988,8 +988,8 @@ let make_relevant_axioms a list_vars string_vars list_exprs =
 
 	(*if (List.length l_axioms > 0) then *)
 
-	print_debug_petar (Printf.sprintf "Generated Axioms:\n%s\n"
-	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list (l_axioms @ constant_axioms)) false));
+	(* print_debug_petar (Printf.sprintf "Generated Axioms:\n%s\n"
+	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list (l_axioms @ constant_axioms)) false)); *)
 
 	s_axioms @ l_axioms @ constant_axioms
 
@@ -1005,9 +1005,9 @@ let check_satisfiability assertions gamma =
 	let new_assertions = SA.elements new_assertions_set in
 	let cache_assertion = star_asses new_assertions in
 
-	print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	(* print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
-			(Symbolic_State_Print.string_of_gamma new_gamma));
+			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
 
 	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
 	begin
@@ -1015,7 +1015,7 @@ let check_satisfiability assertions gamma =
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
 		JSIL_Syntax.update_statistics "sat_cache" 0.;
-		print_debug_petar (Printf.sprintf "Found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
+		(* print_debug_petar (Printf.sprintf "Found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache)); *)
 		ret
 	end
 	else
@@ -1024,7 +1024,7 @@ let check_satisfiability assertions gamma =
 		let solver = get_new_solver new_assertions new_gamma in
 		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
 		let ret = Solver.check solver [] in
-		print_debug (Printf.sprintf "The solver returned: %s"
+		print_debug_petar (Printf.sprintf "The solver returned: %s"
 			(match ret with
 			| Solver.SATISFIABLE -> "SAT"
 			| Solver.UNSATISFIABLE -> "UNSAT"
