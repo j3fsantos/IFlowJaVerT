@@ -180,7 +180,8 @@ spec copy_object (l, fields)
 proc copy_object (l, fields) {
 			xret := new ();
 
-	rlab:	xret := "copy_object_rec" (l, fields, xret)
+			xret := "copy_object_rec" (l, fields, xret);
+	rlab:	skip
 }
 with
 {
@@ -211,7 +212,7 @@ spec copy_object_rec (lf, fields, lt)
 	normal
 
 proc copy_object_rec (lf, fields, lt) {
-			goto [fields = {{ }}] rlab next;
+			goto [fields = {{ }}] prlab next;
 
 	next:	head := l-nth (fields, 0);
 			tail := cdr fields;
@@ -221,7 +222,8 @@ proc copy_object_rec (lf, fields, lt) {
 
 			xret := "copy_object_rec" (lf, tail, lt);
 
-	rlab:	xret := lt
+	prlab:	xret := lt;
+	rlab:	skip
 }
 with
 {
@@ -752,8 +754,8 @@ pred initialHeapPre () :
     (($lg,      "@class") -> None) * 
     (($lg, 	    "@proto") -> None) * 
     (($lg, "@extensible") -> None) *
-    empty_fields ($lobj_proto : -{}-) * empty_fields ($lfun_proto : -{ }-) * empty_fields ($lerr : -{ }-) * empty_fields ($lerr_proto : -{ }-) * 
-    empty_fields ( $lop_hasOwnProperty : -{ }-);
+    empty_fields ($lobj_proto : -{}-) * empty_fields ($lfun_proto : -{}-) * empty_fields ($lerr : -{}-) * empty_fields ($lerr_proto : -{}-) * 
+    empty_fields ( $lop_hasOwnProperty : -{}-);
     
 pred initialHeapPost () :
     (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * 

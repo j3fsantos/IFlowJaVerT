@@ -655,12 +655,17 @@ let rec reduce_assertion store gamma pfs a =
 			print_debug (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
 			result
 
-	| LSetMem (leb, LESet [ le ]) -> 
+	| LSetMem (leb, LESet les) -> 
 		let rleb = fe leb in
-		let rle = fe le in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
-				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)) false)); 
-			f (LEq (rleb, rle))
+		let rles = List.map (fun le -> fe le) les in
+		let result = List.map (fun le -> LEq (rleb, le)) rles in
+		let result = List.fold_left (fun ac eq ->
+			(match ac with
+			| LFalse -> eq
+			| _ -> LOr (ac, eq))) LFalse result in  
+			print_debug (Printf.sprintf "SET_MEM: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
+				(JSIL_Print.string_of_logic_assertion result false)); 
+			f result
 
 	| LForAll (bt, a) -> 
 			let ra = f a in
@@ -2104,9 +2109,19 @@ let clean_up_stuff exists left right =
 						DynArray.add left LFalse)
 		 | true -> DynArray.delete right !i
 		)
-	done
+	done;
 	
-
+	i := 0;
+	while (!i < DynArray.length right) do
+		let pf = DynArray.get right !i in
+		(match pf with
+		| LNot (LEq (LVar x, LLit (String s))) when (String.get s 0 = '@') ->
+			let pf = (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) in
+			(match (SA.mem pf sleft) with
+			| true -> DynArray.delete right !i
+			| false -> i := !i + 1)
+		| _ -> i := !i + 1)
+	done
 
 
 (* Set intersections *)

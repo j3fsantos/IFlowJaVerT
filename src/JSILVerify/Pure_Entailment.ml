@@ -39,6 +39,7 @@ type jsil_type_constructors = {
 	empty_type_constructor     : FuncDecl.func_decl;
 	none_type_constructor      : FuncDecl.func_decl;
 	boolean_type_constructor   : FuncDecl.func_decl;
+	int_type_constructor       : FuncDecl.func_decl;
 	number_type_constructor    : FuncDecl.func_decl;
 	char_type_constructor      : FuncDecl.func_decl;
 	string_type_constructor    : FuncDecl.func_decl;
@@ -56,6 +57,7 @@ type z3_basic_jsil_value = {
   null_constructor      : FuncDecl.func_decl;
   empty_constructor     : FuncDecl.func_decl;
   boolean_constructor   : FuncDecl.func_decl;
+	int_constructor       : FuncDecl.func_decl;
   number_constructor    : FuncDecl.func_decl;
   char_constructor      : FuncDecl.func_decl;
   string_constructor    : FuncDecl.func_decl;
@@ -67,6 +69,7 @@ type z3_basic_jsil_value = {
   (* accessors *)
   (*************)
   boolean_accessor      : FuncDecl.func_decl;
+	int_accessor          : FuncDecl.func_decl;
   number_accessor       : FuncDecl.func_decl;
   char_accessor         : FuncDecl.func_decl;
   string_accessor       : FuncDecl.func_decl;
@@ -80,6 +83,7 @@ type z3_basic_jsil_value = {
   null_recognizer       : FuncDecl.func_decl;
   empty_recognizer      : FuncDecl.func_decl;
   boolean_recognizer    : FuncDecl.func_decl;
+	int_recognizer        : FuncDecl.func_decl;
   number_recognizer     : FuncDecl.func_decl;
   char_recognizer       : FuncDecl.func_decl;
   string_recognizer     : FuncDecl.func_decl;
@@ -110,20 +114,14 @@ type extended_jsil_value_constructor = {
 	set_recognizer             : FuncDecl.func_decl
 }
 
-let _ = print_debug_petar "Extended JSIL ."
-
 let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")]
 let ctx : Z3.context = (mk_context cfg)
-
-let _ = print_debug_petar "Context defined."
 
 let booleans_sort = Boolean.mk_sort ctx
 let ints_sort     = Arithmetic.Integer.mk_sort ctx
 let reals_sort    = Arithmetic.Real.mk_sort ctx
 let fp_sort       = FloatingPoint.mk_sort_64 ctx
 let numbers_sort  = match_enc "mk_sort" reals_sort fp_sort
-
-let _ = print_debug_petar "Sorts defined."
 
 let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx)
 let mk_string_symb s = Symbol.mk_string ctx s
@@ -149,7 +147,7 @@ let z3_jsil_type_sort =
 		(mk_string_symb "JSIL_Type")
 		(List.map mk_string_symb
 			[
-				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType";
+				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType"; "IntType";
 				"NumberType"; "CharType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
 			])
 
@@ -161,19 +159,21 @@ let type_operations =
 		let empty_type_constructor     = List.nth z3_jsil_type_constructors 2 in
 		let none_type_constructor      = List.nth z3_jsil_type_constructors 3 in
 		let boolean_type_constructor   = List.nth z3_jsil_type_constructors 4 in
-		let number_type_constructor    = List.nth z3_jsil_type_constructors 5 in
-		let char_type_constructor      = List.nth z3_jsil_type_constructors 6 in
-		let string_type_constructor    = List.nth z3_jsil_type_constructors 7 in
-		let object_type_constructor    = List.nth z3_jsil_type_constructors 8 in
-		let list_type_constructor      = List.nth z3_jsil_type_constructors 9 in
-		let type_type_constructor      = List.nth z3_jsil_type_constructors 10 in
-		let set_type_constructor       = List.nth z3_jsil_type_constructors 11 in
+		let int_type_constructor       = List.nth z3_jsil_type_constructors 5 in
+		let number_type_constructor    = List.nth z3_jsil_type_constructors 6 in
+		let char_type_constructor      = List.nth z3_jsil_type_constructors 7 in
+		let string_type_constructor    = List.nth z3_jsil_type_constructors 8 in
+		let object_type_constructor    = List.nth z3_jsil_type_constructors 9 in
+		let list_type_constructor      = List.nth z3_jsil_type_constructors 10 in
+		let type_type_constructor      = List.nth z3_jsil_type_constructors 11 in
+		let set_type_constructor       = List.nth z3_jsil_type_constructors 12 in
 		{
 			undefined_type_constructor = undefined_type_constructor;
 			null_type_constructor      = null_type_constructor;
 			empty_type_constructor     = empty_type_constructor;
 			none_type_constructor      = none_type_constructor;
 			boolean_type_constructor   = boolean_type_constructor;
+			int_type_constructor       = int_type_constructor;
 			number_type_constructor    = number_type_constructor;
 			char_type_constructor      = char_type_constructor;
 			string_type_constructor    = string_type_constructor;
@@ -197,6 +197,9 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 	let jsil_bool_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Bool") (mk_string_symb "isBool")
 			[ (mk_string_symb "bValue") ] [ Some booleans_sort ] [ 0 ] in
+	let jsil_int_constructor =
+		Datatype.mk_constructor ctx (mk_string_symb "Int") (mk_string_symb "isInt")
+			[ (mk_string_symb "iValue") ] [ Some ints_sort ] [ 0 ] in
 	let jsil_num_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Num") (mk_string_symb "isNum")
 			[ (mk_string_symb "nValue") ] [ Some numbers_sort ] [ 0 ] in
@@ -235,6 +238,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 					jsil_null_constructor;
 					jsil_empty_constructor;
 					jsil_bool_constructor;
+					jsil_int_constructor;
 					jsil_num_constructor;
 					jsil_char_constructor;
 					jsil_string_constructor;
@@ -271,35 +275,38 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 		let null_constructor          = List.nth z3_literal_constructors 1 in
 		let empty_constructor         = List.nth z3_literal_constructors 2 in
 		let boolean_constructor       = List.nth z3_literal_constructors 3 in
-		let number_constructor        = List.nth z3_literal_constructors 4 in
-		let char_constructor          = List.nth z3_literal_constructors 5 in
-		let string_constructor        = List.nth z3_literal_constructors 6 in
-		let loc_constructor           = List.nth z3_literal_constructors 7 in
-		let type_constructor          = List.nth z3_literal_constructors 8 in
-		let list_constructor          = List.nth z3_literal_constructors 9 in
-		let none_constructor          = List.nth z3_literal_constructors 10 in
+		let int_constructor           = List.nth z3_literal_constructors 4 in
+		let number_constructor        = List.nth z3_literal_constructors 5 in
+		let char_constructor          = List.nth z3_literal_constructors 6 in
+		let string_constructor        = List.nth z3_literal_constructors 7 in
+		let loc_constructor           = List.nth z3_literal_constructors 8 in
+		let type_constructor          = List.nth z3_literal_constructors 9 in
+		let list_constructor          = List.nth z3_literal_constructors 10 in
+		let none_constructor          = List.nth z3_literal_constructors 11 in
 
 		let jsil_literal_accessors    = Datatype.get_accessors z3_jsil_literal_sort in
 		let boolean_accessor          = List.nth (List.nth jsil_literal_accessors 3) 0 in
-		let number_accessor           = List.nth (List.nth jsil_literal_accessors 4) 0 in
-		let char_accessor             = List.nth (List.nth jsil_literal_accessors 5) 0 in
-		let string_accessor           = List.nth (List.nth jsil_literal_accessors 6) 0 in
-		let loc_accessor              = List.nth (List.nth jsil_literal_accessors 7) 0 in
-		let type_accessor             = List.nth (List.nth jsil_literal_accessors 8) 0 in
-		let list_accessor             = List.nth (List.nth jsil_literal_accessors 9) 0 in
+		let int_accessor              = List.nth (List.nth jsil_literal_accessors 4) 0 in
+		let number_accessor           = List.nth (List.nth jsil_literal_accessors 5) 0 in
+		let char_accessor             = List.nth (List.nth jsil_literal_accessors 6) 0 in
+		let string_accessor           = List.nth (List.nth jsil_literal_accessors 7) 0 in
+		let loc_accessor              = List.nth (List.nth jsil_literal_accessors 8) 0 in
+		let type_accessor             = List.nth (List.nth jsil_literal_accessors 9) 0 in
+		let list_accessor             = List.nth (List.nth jsil_literal_accessors 10) 0 in
 
 		let jsil_literal_recognizers  = Datatype.get_recognizers z3_jsil_literal_sort in
 		let undefined_recognizer      = List.nth jsil_literal_recognizers 0 in
 		let null_recognizer           = List.nth jsil_literal_recognizers 1 in
 		let empty_recognizer          = List.nth jsil_literal_recognizers 2 in
 		let boolean_recognizer        = List.nth jsil_literal_recognizers 3 in
-		let number_recognizer         = List.nth jsil_literal_recognizers 4 in
-		let char_recognizer           = List.nth jsil_literal_recognizers 5 in
-		let string_recognizer         = List.nth jsil_literal_recognizers 6 in
-		let loc_recognizer            = List.nth jsil_literal_recognizers 7 in
-		let type_recognizer           = List.nth jsil_literal_recognizers 8 in
-		let list_recognizer           = List.nth jsil_literal_recognizers 9 in
-		let none_recognizer           = List.nth jsil_literal_recognizers 10 in
+		let int_recognizer            = List.nth jsil_literal_recognizers 4 in
+		let number_recognizer         = List.nth jsil_literal_recognizers 5 in
+		let char_recognizer           = List.nth jsil_literal_recognizers 6 in
+		let string_recognizer         = List.nth jsil_literal_recognizers 7 in
+		let loc_recognizer            = List.nth jsil_literal_recognizers 8 in
+		let type_recognizer           = List.nth jsil_literal_recognizers 9 in
+		let list_recognizer           = List.nth jsil_literal_recognizers 10 in
+		let none_recognizer           = List.nth jsil_literal_recognizers 11 in
 
 		let jsil_literal_operations   = {
 			(** constructors **)
@@ -307,6 +314,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			null_constructor      = null_constructor;
 			empty_constructor     = empty_constructor;
 			boolean_constructor   = boolean_constructor;
+			int_constructor       = int_constructor;
 			number_constructor    = number_constructor;
 			char_constructor      = char_constructor;
 			string_constructor    = string_constructor;
@@ -316,6 +324,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			none_constructor      = none_constructor;
 			(** accessors **)
 			boolean_accessor      = boolean_accessor;
+			int_accessor          = int_accessor;
 			number_accessor       = number_accessor;
 			char_accessor         = char_accessor;
 			string_accessor       = string_accessor;
@@ -327,6 +336,7 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			null_recognizer       = null_recognizer;
 			empty_recognizer      = empty_recognizer;
 			boolean_recognizer    = boolean_recognizer;
+			int_recognizer        = int_recognizer;
 			number_recognizer     = number_recognizer;
 			char_recognizer       = char_recognizer;
 			string_recognizer     = string_recognizer;
@@ -395,22 +405,14 @@ let mk_singleton_access ele =  Expr.mk_app ctx extended_literal_operations.singu
 
 let axiomatised_operations =
 
-	let slen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-len")
-							[ ints_sort ] numbers_sort in
-	let llen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-len")
-							[ z3_jsil_list_sort ] numbers_sort in
-	let num2str_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2str")
-							[ numbers_sort ] numbers_sort in
-	let str2num_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "str2num")
-							[ numbers_sort ] numbers_sort in
-	let num2int_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2int")
-							[ numbers_sort ] numbers_sort in
-	let snth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-nth")
-							[ ints_sort; ints_sort ] ints_sort in
-	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
-							[ z3_jsil_list_sort; ints_sort ] z3_jsil_literal_sort in
-	let lcat_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-cat")
-							[ z3_jsil_list_sort; z3_jsil_list_sort ] z3_jsil_list_sort in
+	let slen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-len")   [ ints_sort ]                            ints_sort in
+	let llen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-len")   [ z3_jsil_list_sort ]                    ints_sort in
+	let num2str_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2str") [ numbers_sort ]                         numbers_sort in
+	let str2num_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "str2num") [ numbers_sort ]                         ints_sort in
+	let num2int_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2int") [ numbers_sort ]                         ints_sort in
+	let snth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-nth")   [ ints_sort;         ints_sort ]         ints_sort in
+	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")   [ z3_jsil_list_sort; ints_sort ]         z3_jsil_literal_sort in
+	let lcat_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-cat")   [ z3_jsil_list_sort; z3_jsil_list_sort ] z3_jsil_list_sort in
 
 	{
 		slen_fun     = slen_fun;
@@ -481,7 +483,7 @@ let encode_type t =
 	with _ ->
 		raise (Failure (Printf.sprintf "DEATH: encode_type with arg: %s" (JSIL_Print.string_of_type t)))
 
-
+(* TODO: Add integers here *)
 let typeof_expression x =
 	let set_guard       = Expr.mk_app ctx extended_literal_operations.set_recognizer [ x ] in
 	let sing_elem_guard = Expr.mk_app ctx extended_literal_operations.singular_elem_recognizer [ x ] in
@@ -512,7 +514,7 @@ let typeof_expression x =
   	let results =
   		List.map encode_type
   			[ SetType; UndefinedType; NullType; EmptyType; BooleanType;
- 				NumberType; CharType; StringType; ObjectType; TypeType; ListType; NoneType ] in
+ 				  NumberType; CharType; StringType; ObjectType; TypeType; ListType; NoneType ] in
 
  	let rec loop guards results =
  		match guards, results with
@@ -543,9 +545,19 @@ let rec encode_lit lit =
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ b_arg ])
 
 		| Num n ->
-			let sfn = string_of_float n in
-			let n_arg = mk_num_s sfn in
-			mk_singleton_elem (Expr.mk_app ctx lit_operations.number_constructor [ n_arg ])
+			(match Utils.is_int n with
+			| true ->
+					let n = int_of_float n in
+					let n_arg = mk_num_i n in
+					let result = mk_singleton_elem (Expr.mk_app ctx lit_operations.int_constructor [ n_arg ]) in
+						Printf.printf "Constructed number: %s\n" (Expr.to_string n_arg);
+						result
+			| false -> 
+					let sfn = string_of_float n in
+					let n_arg = mk_num_s sfn in
+					let result = mk_singleton_elem (Expr.mk_app ctx lit_operations.number_constructor [ n_arg ]) in
+						Printf.printf "Constructed number: %s\n" (Expr.to_string n_arg);
+						result)
 
 		| Char c ->
 			let s_arg = encode_string (String.make 1 c) in
@@ -629,7 +641,6 @@ let encode_binop op le1 le2 =
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ n_le ])
 
 	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
-
 
 let encode_unop op le =
 	match op with
@@ -1033,9 +1044,9 @@ let check_satisfiability assertions gamma =
 			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
 			(Symbolic_State_Print.string_of_gamma new_gamma));
 
-	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
+	if (Hashtbl.mem JSIL_Syntax.check_sat_cache new_assertions_set) then
 	begin
-		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion in
+		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache new_assertions_set in
 		let end_time = Sys.time() in
 		JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
 		JSIL_Syntax.update_statistics "sat_cache" 0.;
@@ -1054,7 +1065,7 @@ let check_satisfiability assertions gamma =
 			| Solver.UNSATISFIABLE -> "UNSAT"
 			| Solver.UNKNOWN -> "UNKNOWN"));
 		let ret = (ret = Solver.SATISFIABLE) in
-		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
+		Hashtbl.add JSIL_Syntax.check_sat_cache new_assertions_set ret;
 		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
 			(JSIL_Print.string_of_logic_assertion cache_assertion false) (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let end_time = Sys.time () in

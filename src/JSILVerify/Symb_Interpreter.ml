@@ -1231,7 +1231,8 @@ and pre_symb_evaluate_cmd
 	(* Q1: Have we reached the return label? *)
 	if (Some cur = proc.ret_label) then
 		(* YES. Return - normal mode *)
-		[ (symb_state, Normal, spec_vars, search_info) ]
+		(print_debug_petar (Printf.sprintf "Reached return label.\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); 
+		 [ (symb_state, Normal, spec_vars, search_info) ])
 	(* NO. Q2: Have we reached the error label? *)
 	else if (Some cur = proc.error_label) then
 		(* YES. Return - error mode  *)
@@ -1319,7 +1320,10 @@ let symb_evaluate_proc
 			(* Symbolically execute the procedure *)
 			let final_symb_states = pre_symb_evaluate_cmd s_prog proc spec.n_lvars spec.n_subst search_info symb_state (-1) 0 in
 
+			print_debug_petar (Printf.sprintf "Received %d final_symb_states." (List.length final_symb_states));
+
 			List.iter (fun (symb_state, ret_flag, spec_vars, search_info) ->
+				print_debug_petar (Printf.sprintf "%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 				(try Structural_Entailment.unify_symb_state_against_post s_prog proc_name spec symb_state ret_flag search_info !js with
 					| SymbExecRecovery GR (Flash (pn, pp)) ->
 						let flash = [ Unfold (LPred (pn, pp), None); Fold (LPred (pn, pp)) ] in
@@ -1491,7 +1495,7 @@ let prove_all_lemmas
 			all_states)
 	in
 
-	(* Prooving an individual lemma *)
+	(* Proving an individual lemma *)
 	let prove_lemma
 	  	(lemma : jsil_lemma)
 	  	(lemma_name : string)

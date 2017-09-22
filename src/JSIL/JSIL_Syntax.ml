@@ -497,7 +497,7 @@ let output_file_debug = open_out "debugOutput.txt"
 let output_file_normalisation = open_out "normalisationOutput.txt"
 let output_file_njsil = open_out "normalisedSpecsPreds.njsil"
 
-let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
+let print_debug  msg  = Printf.printf "%s\n%!" msg; output_string output_file_debug (msg ^ "\n") 
 let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg 
 let print_normalisation msg  = output_string output_file_normalisation (msg ^ "\n")
 let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n")
@@ -588,12 +588,12 @@ module SFV = Set.Make(MyFieldValueList)
 
 (* Satisfiability cache *)
 (* Maps each assertion to true or false (if it's sasisfiable) *)
-let check_sat_cache : (jsil_logic_assertion, bool) Hashtbl.t = Hashtbl.create 513
+let check_sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create 513
 
 (* Default values *)
 let initialise =
-	Hashtbl.add check_sat_cache LTrue true;
-	Hashtbl.add check_sat_cache LFalse false
+	Hashtbl.add check_sat_cache (SA.singleton LTrue) true;
+	Hashtbl.add check_sat_cache (SA.singleton LFalse) false
 
 let statistics = Hashtbl.create 511
 

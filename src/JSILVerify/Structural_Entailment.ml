@@ -1712,7 +1712,7 @@ let unify_symb_states_fold (pred_name : string) (existentials : SS.t) (pat_symb_
 
 (* get rid of the js flag here ASAP *)
 let fully_unify_symb_state pat_symb_state symb_state lvars (js : bool) =
-	print_debug (Printf.sprintf "Fully_unify_symb_state.\nSymb_state:\n%s.\nPAT symb_state:\n%s"
+	print_debug (Printf.sprintf "fully_unify_symb_state.\nSymb_state:\n%s.\nPAT symb_state:\n%s"
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state)
 		(Symbolic_State_Print.string_of_shallow_symb_state pat_symb_state));
 
@@ -1801,6 +1801,8 @@ let understand_recovery s_prog symb_state recovery_options : recovery list =
 
 (* This is one place to try and do recovery *)
 let unify_symb_state_against_post s_prog proc_name spec symb_state flag symb_exe_info js =
+
+	print_debug_petar "unify_symb_state_against_post";
 
 	let print_error_to_console msg =
 		(if (msg = "")
