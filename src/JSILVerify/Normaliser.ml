@@ -21,12 +21,12 @@ let new_lvar_name var = lvar_prefix ^ var
 **)
 
 type unfolded_predicate = {
-	name         : string;
-	num_params   : int;
-	params       : jsil_var list;
-	definitions  : ((string option) * jsil_logic_assertion) list;
-  is_recursive : bool;
-  previously_normalised_u_pred : bool
+	name                         : string;
+	num_params                   : int;
+	params                       : jsil_var list;
+	definitions                  : ((string option) * jsil_logic_assertion) list;
+  	is_recursive                 : bool;
+  	previously_normalised_u_pred : bool
 }
 
 (* Cross product of two lists, l1 and l2, combining its elements with function f *)
@@ -611,8 +611,7 @@ let normalise_pure_assertions
 			(try
 				let le  = Hashtbl.find pvar_equalities var in
 				let le' = normalise_lexpr ~store:store ~subst:subst gamma le in
-				Hashtbl.replace store var le';
-				Hashtbl.replace subst var le'
+				Hashtbl.replace store var le'
 			with _ ->
 				let msg = Printf.sprintf "DEATH. normalise_pure_assertions ->  normalise_pvar_equalities -> rewrite_assignment. Var: %s\n" var in
 				raise (Failure msg)) in
@@ -1151,14 +1150,14 @@ let create_unification_plan (symb_state : symbolic_state) : (jsil_logic_assertio
 	let heap                    = LHeap.copy heap in 
 	let locs_to_visit           = Queue.create () in 
 	let unification_plan        = Queue.create () in 
-	let marked_alocs            = Hashtbl.create small_tbl_size in 
+	let marked_alocs            = ref SS.empty in 
 	let abs_locs, concrete_locs = List.partition is_abs_loc_name (SS.elements (heap_domain heap)) in 
 
 	let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit = 
 		let alocs = get_lexpr_alocs le in 
 		SS.iter (fun aloc -> 
-			if (not (Hashtbl.mem marked_alocs aloc)) then (
-				Hashtbl.add marked_alocs aloc true; 
+			if (not (SS.mem aloc !marked_alocs)) then (
+				marked_alocs := SS.add aloc !marked_alocs; 
 				Queue.add aloc locs_to_visit; ())) alocs in 
 
 	let inspect_aloc () = 
@@ -1166,7 +1165,9 @@ let create_unification_plan (symb_state : symbolic_state) : (jsil_logic_assertio
 			let loc     = Queue.pop locs_to_visit in 
 			let le_loc  = if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
 			match heap_get heap loc with 
-			| None                      -> raise (Failure "DEATH. create_unification_plan")
+			| None                      -> 
+				(* The aloc does not correspond to any cell - it is an argument for a predicate *)
+				true
 			| Some (fv_list, le_domain) ->
 				let fv_list_c, fv_list_nc = 
 					List.partition (fun (le, _) -> 
@@ -1208,10 +1209,15 @@ let create_unification_plan (symb_state : symbolic_state) : (jsil_logic_assertio
 		Queue.clear unification_plan; 
 		unification_plan_lst
 	) else (
-		let msg = Printf.sprintf "Non-supported precondition - %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state) in 
+		let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
+		let unification_plan_lst = List.rev unification_plan_lst in 
+
+		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:%s\n" 
+			(String.concat ", " (SS.elements !marked_alocs))
+			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
+			(Symbolic_State_Print.string_of_shallow_symb_heap heap false)
+			(Symbolic_State_Print.string_of_shallow_symb_state symb_state) in 
 		raise (Failure msg)) 
-
-
 
 
 (** Normalise Postcondition
@@ -1223,8 +1229,9 @@ let normalise_post
 		(post_gamma_0  : typing_environment)
 		(subst         : substitution)
 		(spec_vars     : SS.t)
+		(params        : SS.t)
 		(post          : jsil_logic_assertion) : symbolic_state option =
-	(match (normalise_assertion (Some post_gamma_0) (Some subst) None post) with
+	(match (normalise_assertion (Some post_gamma_0) (Some subst) (Some params) post) with
 	| None -> None
 	| Some (ss_post, post_subst) ->
 		let post_new_spec_var_alocs =
@@ -1301,7 +1308,7 @@ let normalise_single_spec
 		let post_gamma_0' = filter_gamma_f post_gamma_0 (fun x -> SS.mem x spec_vars) in
 
 		(** Step 3 - Normalise the postconditions associated with each pre           *)
-		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars) posts) in
+		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars params) posts) in
 		{	n_pre              = ss_pre;
 			n_post             = ss_posts;
 			n_ret_flag         = spec.ret_flag;
@@ -1413,7 +1420,7 @@ let normalise_predicate_definitions
               		| false ->
                 		let pred_vars = get_asrt_lvars a in
                 		let a' = JSIL_Logic_Utils.push_in_negations a in
-                		match (normalise_assertion None None None a') with
+                		match (normalise_assertion None None (Some (SS.of_list pred.params)) a') with
                 		| Some (ss, _) ->
                   			let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
                   			[ (os, ss', (create_unification_plan ss')) ]
@@ -1466,9 +1473,10 @@ let normalise_invariant
 	(a         : jsil_logic_assertion)
 	(gamma     : typing_environment)
 	(spec_vars : SS.t)
-	(subst     : substitution) : symbolic_state = 
+	(subst     : substitution)
+	(params    : SS.t) : symbolic_state = 
 	let gamma_inv = filter_gamma_f gamma (fun x -> SS.mem x spec_vars) in
-	let new_symb_state = Option.get (normalise_post gamma_inv subst spec_vars a) in
+	let new_symb_state = Option.get (normalise_post gamma_inv subst spec_vars params a) in
 	new_symb_state
 						
 

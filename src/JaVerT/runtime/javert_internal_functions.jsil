@@ -379,7 +379,8 @@ spec Error_construct (xsc, vthis, v)
     (* Error constructor with message of type string *)
     [[ (v == #m) * (vthis == #vthis) *
 	   types (#vthis : $$object_type, #m : $$string_type) * 
-       ((#vthis, "@class") -> #cls) * ((#vthis, "@extensible") -> #ext) ]]
+       ((#vthis, "@class") -> #cls) * ((#vthis, "@extensible") -> #ext) * 
+       ((#vthis, "message") -> #ignore) ]]
     [[ (ret == #vthis) * ((#vthis, "@class") -> "Error") * ((#vthis, "@extensible") -> $$t) * ((#vthis, "message") -> {{ "d", #m, $$t, $$f, $$t }}) ]]
     normal
 

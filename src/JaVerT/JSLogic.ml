@@ -413,7 +413,7 @@ let rec js2jsil_single_spec
 
 	if (fid = main_fid)
 		then pre', post'
-		else JSIL_Logic_Utils.star_asses [ pre'; a_scope_pre; a_this ], JSIL_Logic_Utils.star_asses [ post'; a_scope_post ]
+		else JSIL_Logic_Utils.star_asses [ pre'; a_scope_pre; a_this ], JSIL_Logic_Utils.star_asses [ post'; a_scope_post; a_this ]
 
 
 let rec js2jsil_tactic_assertion

@@ -75,7 +75,8 @@ var PriorityQueue = (function () {
 	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
 	 	   	((this, "insert") -> None) *
 	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
-	 	   	scope(counter : #c) * types(#c : $$number_type)
+	 	   	scope(counter : #c) * types(#c : $$number_type) * 
+	 	   	(! (#val == $$empty))
 	 	)
 	 	@post (
 	 		initialHeapPost() * 

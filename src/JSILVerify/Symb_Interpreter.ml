@@ -959,7 +959,7 @@ let rec symb_evaluate_logic_cmd
 		let existentials            = SS.diff existentials spec_vars in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
 		let gamma_spec_vars         = filter_gamma_f (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
-		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars a) in
+		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
 		(match (Spatial_Entailment.grab_resources spec_vars existentials (Normaliser.create_unification_plan new_symb_state) new_symb_state symb_state) with
 			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later, search_info ]
 			| None -> raise (Failure "Assert: could not grab resources.")))
@@ -1187,7 +1187,7 @@ and pre_symb_evaluate_cmd
 			(match metadata.invariant with
 			| None   -> raise (Failure "Back edges MUST point to commands with invariants")
 			| Some a ->
-				let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst in 
+				let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst (get_asrt_pvars a) in 
 				let _ = Spatial_Entailment.fully_unify_symb_state spec_vars !js (Normaliser.create_unification_plan symb_state_inv) symb_state_inv symb_state in 
 				[])				
 		) else (
@@ -1206,7 +1206,7 @@ and pre_symb_evaluate_cmd
 							(String.concat ", " (SS.elements spec_vars)));
 					let inv_lvars      = get_asrt_lvars a in
 					let spec_vars_inv  = SS.union inv_lvars spec_vars in
-					let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst in 
+					let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst (get_asrt_pvars a) in 
 					(match (Spatial_Entailment.grab_resources spec_vars inv_lvars (Normaliser.create_unification_plan symb_state_inv) symb_state_inv symb_state) with
 						| Some new_symb_state -> new_symb_state, spec_vars_inv
 						| None -> raise (Failure "Unification with invariant failed"))) in
