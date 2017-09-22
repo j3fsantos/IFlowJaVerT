@@ -122,9 +122,6 @@ let numbers_sort  = match_enc "mk_sort" reals_sort fp_sort
 let rm = FloatingPoint.mk_const ctx (Symbol.mk_string ctx "rm") (FloatingPoint.RoundingMode.mk_sort ctx)
 let mk_string_symb s = Symbol.mk_string ctx s
 
-let mk_int_i      = Arithmetic.Integer.mk_numeral_i ctx
-let mk_const_i    = Arithmetic.Integer.mk_const ctx
-
 let mk_const      = match_enc "mk_const" (Arithmetic.Real.mk_const ctx)     (fun (s : Symbol.symbol) -> FloatingPoint.mk_const ctx s fp_sort)
 let mk_num_i      = match_enc "mk_num_i" (Arithmetic.Real.mk_numeral_i ctx) (fun i -> FloatingPoint.mk_numeral_i ctx i fp_sort)
 let mk_num_s      = match_enc "mk_num_s" (Arithmetic.Real.mk_numeral_s ctx) (fun s -> FloatingPoint.mk_numeral_s ctx s fp_sort)
@@ -196,13 +193,13 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			[ (mk_string_symb "nValue") ] [ Some numbers_sort ] [ 0 ] in
 	let jsil_char_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Char") (mk_string_symb "isChar")
-			[ (mk_string_symb "cValue") ] [ Some ints_sort ] [ 0 ] in
+			[ (mk_string_symb "cValue") ] [ Some numbers_sort ] [ 0 ] in
 	let jsil_string_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "String") (mk_string_symb "isString")
-			[ (mk_string_symb "sValue") ] [ Some ints_sort ] [ 0 ] in
+			[ (mk_string_symb "sValue") ] [ Some numbers_sort ] [ 0 ] in
 	let jsil_loc_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Loc") (mk_string_symb "isLoc")
-			[ (mk_string_symb "locValue") ] [ Some ints_sort ] [ 0 ] in
+			[ (mk_string_symb "locValue") ] [ Some numbers_sort ] [ 0 ] in
 	let jsil_type_constructor =
 		Datatype.mk_constructor ctx (mk_string_symb "Type") (mk_string_symb "isType")
 			[ (mk_string_symb "tValue") ] [ Some z3_jsil_type_sort ] [ 0 ] in
@@ -389,13 +386,13 @@ let mk_singleton_access ele =  Expr.mk_app ctx extended_literal_operations.singu
 
 let axiomatised_operations =
 
-	let slen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-len")   [ ints_sort ]                            numbers_sort in
+	let slen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-len")   [ numbers_sort ]                         numbers_sort in
 	let llen_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-len")   [ z3_jsil_list_sort ]                    numbers_sort in
 	let num2str_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2str") [ numbers_sort ]                         numbers_sort in
 	let str2num_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "str2num") [ numbers_sort ]                         numbers_sort in
 	let num2int_fun     = FuncDecl.mk_func_decl ctx (mk_string_symb "num2int") [ numbers_sort ]                         numbers_sort in
-	let snth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-nth")   [ ints_sort;         ints_sort ]         ints_sort in
-	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")   [ z3_jsil_list_sort; ints_sort ]         z3_jsil_literal_sort in
+	let snth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "s-nth")   [ numbers_sort; numbers_sort ]           numbers_sort in
+	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")   [ z3_jsil_list_sort; numbers_sort ]      z3_jsil_literal_sort in
 	let lcat_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-cat")   [ z3_jsil_list_sort; z3_jsil_list_sort ] z3_jsil_list_sort in
 
 	{
@@ -441,10 +438,10 @@ let str_counter = ref 0
 let encode_string str =
 	try
 		let str_number : int = Hashtbl.find str_codes str in
-		let z3_code = mk_int_i str_number in
+		let z3_code = mk_num_i str_number in
 		z3_code
 	with Not_found ->
-		let z3_code = mk_int_i !str_counter in
+		let z3_code = mk_num_i !str_counter in
 		Hashtbl.add str_codes str (!str_counter);
 		str_counter := !str_counter + 1;
 		z3_code
@@ -708,7 +705,7 @@ let rec encode_logical_expression le =
 			| false -> raise (Failure msg)
 			| true -> 
 					let index = int_of_float index in
-					let index' = mk_int_i index in
+					let index' = mk_num_i index in
 					mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.lnth_fun [ lst'; index' ]))
 		| _ -> raise (Failure msg))
 
@@ -721,7 +718,7 @@ let rec encode_logical_expression le =
 			| false -> raise (Failure msg)
 			| true -> 
 					let index = int_of_float index in
-					let index' = mk_int_i index in
+					let index' = mk_num_i index in
 					let res    = Expr.mk_app ctx axiomatised_operations.snth_fun [ str'; index' ] in
 					mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ res ]))
 		| _ -> raise (Failure msg))
