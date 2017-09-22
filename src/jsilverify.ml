@@ -15,11 +15,10 @@ let arguments () =
 			(* file containing the program to symbolically execute *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			"-o", Arg.String(fun f -> output_folder := f), "output folder";
-      "-syntax", Arg.Unit(fun () -> JSIL_Syntax_Utils.syntax_checks_enabled := true), "syntax checks";
+     		"-syntax", Arg.Unit(fun () -> JSIL_Syntax_Utils.syntax_checks_enabled := true), "syntax checks";
 			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> Symb_Interpreter.js := true; JSIL_Syntax_Utils.js := true)
-									  (* Bi_Symb_Interpreter.js := true *), "js2jsil output";
+			"-js", Arg.Unit (fun () -> Symbolic_Interpreter.js := true; JSIL_Syntax_Utils.js := true), "js2jsil output";
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
@@ -52,7 +51,7 @@ let write_spec_file (file : string ref) =
 
 let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds  =
 	let results_str, dot_graphs, complete_success, results =
-					Symb_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
+					Symbolic_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
 	print_normal (Printf.sprintf "RESULTS\n%s" results_str);
 
 	(if (complete_success) then
@@ -114,7 +113,7 @@ let process_file path =
 		(*     3.2 - specs                                             *)
 		(*  -----------------------------------------------------------*)
    		print_debug "*** Stage 4: Proving lemmas and specifications.\n";
-    	let _ = Symb_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
+    	let _ = Symbolic_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
 		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs in ();
 		close_output_files();
 		exit 0

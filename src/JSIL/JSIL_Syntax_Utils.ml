@@ -569,13 +569,13 @@ let prog_of_ext_prog
     (** Step 4 - Get the succ and pred tables
       * -----------------------------------------------------------------------------------
       *)
-		 let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+		 let succ_table, pred_table = Graph.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
 		 print_debug_petar "succ and pred tables fetched.\n";
 
      (** Step 5 - Compute the which_pred table
        * -----------------------------------------------------------------------------------
      *)
-		 let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+		 let which_pred = Graph.compute_which_preds pred_table in
 		 print_debug_petar "which pred table computed\n";
 
      (** Step 6 - Update the global_which_pred table with the correct indexes
@@ -598,8 +598,8 @@ let extend_which_pred
     (global_which_pred : global_which_pred_type)
     (proc : jsil_procedure) : unit =
 
-	let succ_table, pred_table = JSIL_Utils_Graphs.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	let which_pred = JSIL_Utils_Graphs.compute_which_preds pred_table in
+	let succ_table, pred_table = Graph.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+	let which_pred = Graph.compute_which_preds pred_table in
 	let proc_name = proc.proc_name in
 	Hashtbl.iter
 		(fun (prev_cmd, cur_cmd) i ->
