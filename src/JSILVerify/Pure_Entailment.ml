@@ -140,7 +140,7 @@ let z3_jsil_type_sort =
 		(mk_string_symb "JSIL_Type")
 		(List.map mk_string_symb
 			[
-				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType"; "IntType";
+				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType"; 
 				"NumberType"; "CharType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
 			])
 
