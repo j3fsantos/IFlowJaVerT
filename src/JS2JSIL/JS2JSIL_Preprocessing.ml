@@ -8,7 +8,6 @@ exception CannotHappen
 exception No_Codename
 exception EarlyError of string
 
-
 (********************************************)
 (********************************************)
 (***         Compilation Tables           ***)
@@ -117,7 +116,6 @@ let get_top_level_annot e =
   | _ -> []
 
 
-
 (********************************************)
 (********************************************)
 (***       IDs and CodeNames              ***)
@@ -161,13 +159,11 @@ let rec add_codenames exp =
   js_map f_m exp
 
 
-
 (********************************************)
 (********************************************)
 (***         Closure Clarification        ***)
 (********************************************)
 (********************************************)
-
 
 let closure_clarification
     (cc_tbl       : JS2JSIL_Constants.cc_tbl_type)
@@ -225,28 +221,11 @@ let closure_clarification
   js_fold f_ac f_state (Some (f_id, visited_funs)) exp
 
 
-
 (********************************************)
 (********************************************)
 (***         Folds and Unfolds            ***)
 (********************************************)
 (********************************************)
-
-(*
-
-let rec expand_flashes e =
-  let f_m e =
-    let annots = e.exp_annot in
-    let new_annots = List.concat (List.map
-      (fun annot ->
-        let formula = annot.annot_formula in
-        match annot.annot_type with
-        | Flash -> [ { annot_type = Unfold; annot_formula = formula }; { annot_type = Fold; annot_formula = formula } ]
-        | _     -> [ annot ]) annots) in
-    { e with exp_annot = new_annots } in
-  js_map f_m e
-*)
-
 
 let rec propagate_annotations e =
 
@@ -348,11 +327,18 @@ let parse_annots_formulae annots =
   List.concat lcmds
 
 
-let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e =
+let translate_lannots_in_exp 
+    (cc_tbl                  : cc_tbl_type)
+    (vis_tbl                 : vis_tbl_type)
+    (fun_tbl                 : pre_fun_tbl_type)
+    (fid                     : string) 
+    (scope_var               : string)
+    (inside_stmt_compilation : bool) 
+    e =
   let is_e_expr = not (is_stmt e) in
   if (is_e_expr && inside_stmt_compilation) then ([], []) else (
     let lcmds   = parse_annots_formulae (List.filter is_logic_cmd_annot e.exp_annot) in
-    let t_lcmds = List.concat (List.map (JSLogic.js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl) lcmds) in
+    let t_lcmds = List.concat (List.map (JSLogic.js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl fid scope_var) lcmds) in
 
     if ((List.length t_lcmds) > 0)
       then (
@@ -429,7 +415,7 @@ let translate_single_func_specs
       let post_js = JSIL_Syntax_Utils.js_assertion_of_string post_str in
       (* Printf.printf "I managed to parse the js assertions\n"; *)
 
-      let pre_jsil, post_jsil = JSLogic.js2jsil_single_spec pre_js post_js cc_tbl vis_tbl fun_tbl fid in
+      let pre_jsil, post_jsil = JSLogic.js2jsil_single_spec pre_js post_js cc_tbl vis_tbl fun_tbl fid fun_args in
       let new_spec  = JSIL_Syntax.create_single_spec pre_jsil [ post_jsil ] ret_flag in
       new_spec)
     preconditions
@@ -476,7 +462,7 @@ let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs =
   (fun { JSLogic.js_spec_name; JSLogic.js_spec_params; JSLogic.js_proc_specs } ->
     Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; main_fid ];
     let proc_specs = List.map (fun { JSLogic.js_pre; JSLogic.js_post; JSLogic.js_ret_flag } ->
-      let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+      let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name js_spec_params in
         { JSIL_Syntax.pre = pre; JSIL_Syntax.post = [ post ]; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
     let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs; JSIL_Syntax.previously_normalised = false } in
     Hashtbl.replace only_specs  js_spec_name spec;

@@ -75,8 +75,7 @@ var PriorityQueue = (function () {
 	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
 	 	   	((this, "insert") -> None) *
 	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
-	 	   	scope(counter : #c) * types(#c : $$number_type) * 
-	 	   	(! (#val == $$empty))
+	 	   	scope(counter : #c) * types(#c : $$number_type) 
 	 	)
 	 	@post (
 	 		initialHeapPost() * 
@@ -172,7 +171,7 @@ var PriorityQueue = (function () {
 		@pre (
 			initialHeapPost() * 
 			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
-			(val == #val) *
+			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
 			o_chains(enqueue: #sc, PQLib: $$scope) *
@@ -187,7 +186,7 @@ var PriorityQueue = (function () {
 		@pre (
 			initialHeapPost() * 
 			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
-			(val == #val) *
+			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
 			o_chains(enqueue: #sc, PQLib: $$scope) *

@@ -479,6 +479,25 @@ let substitution_to_list (subst : substitution) : jsil_logic_assertion list =
 
 (***************************************************************)
 (***************************************************************)
+(** Logic Commmands                                           **)
+(***************************************************************)
+(***************************************************************)
+
+(* Map over the logic commands
+	*)
+let rec logic_command_map
+	(f_l : (jsil_logic_command -> jsil_logic_command))
+	(lcmd : jsil_logic_command) : jsil_logic_command =
+
+	(* Functions to map over assertions and expressions *)
+	let map_l                = logic_command_map f_l in
+	match f_l lcmd with
+	| LogicIf (le, lcmds_then, lcmds_else) -> LogicIf (le, (List.map map_l lcmds_then), (List.map map_l lcmds_else))
+	| l_cmd -> l_cmd
+
+
+(***************************************************************)
+(***************************************************************)
 (** JSIL Types                                                **)
 (***************************************************************)
 (***************************************************************)
@@ -957,7 +976,7 @@ let concretise2 (a : jsil_logic_assertion) (x: string) (y: string) (les : jsil_l
 
 (***************************************************************)
 (***************************************************************)
-(** Miscelaneous                                              **)
+(** Miscellaneous                                             **)
 (***************************************************************)
 (***************************************************************)
 

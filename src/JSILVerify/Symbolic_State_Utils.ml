@@ -589,6 +589,12 @@ let compatible_pfs
 	
 	let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
 	let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
+
+	(if (not is_sat) then 
+		print_debug (Printf.sprintf "These pfs are not compatible: %s"
+			(String.concat "\n" (List.map (fun a -> JSIL_Print.string_of_logic_assertion a false) pf_list)))
+	); 
+
 	is_sat 
 
 

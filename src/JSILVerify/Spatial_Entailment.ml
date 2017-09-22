@@ -97,8 +97,8 @@ let unify_lexprs
 		| ALoc x ->
 			(try
 				let le_pat_subst = (Hashtbl.find subst x) in
-				if (Pure_Entailment.is_equal le_pat_subst le pfs gamma)
-					then Some ([], []) else None 
+				if (Pure_Entailment.is_different le_pat_subst le pfs gamma)
+					then None else Some ([], [ (le_pat, le) ])   
 			with _ -> 
 				if (not (is_abs_loc_name x)) then Some ([ (x, le) ], []) else (
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
@@ -161,8 +161,13 @@ let unify_stores
 				| Some (subst_list, new_discharges) -> 
 					if (safe_substitution_extension pfs gamma pat_subst subst_list) 
 						then new_discharges @ discharges
-						else raise (UnificationFailure ())  
-				| None -> raise (UnificationFailure ()))) [] 
+						else (
+							print_debug "store_fold failed due to unsafe substitution extension\n"; 
+							raise (UnificationFailure ()) 
+						) 
+				| None -> 
+					print_debug "unify lexprs failed in store unification\n";
+					raise (UnificationFailure ()))) [] 
 
 
 let unify_cell_assertion 
@@ -187,8 +192,16 @@ let unify_cell_assertion
 			match Hashtbl.find pat_subst pat_loc with 
 			| LLit (Loc loc) -> loc 
 			| ALoc loc       -> loc 
-			| _              -> raise (Failure "DEATH. unify_cell_assertion. wrongly matched pat_loc"))  
-		with _ -> raise (Failure "DEATH. unify_cell_assertion. unmatched pat_loc")) in 
+			| LVar x         -> 
+				let loc = Simplifications.resolve_location x (pfs_to_list pfs) in
+				(match loc with 
+				| Some (ALoc loc) 
+				| Some (LLit (Loc loc)) -> loc
+				| _                     -> raise (Failure ""))
+			| _              -> raise (Failure "")   
+		)  with _ -> 
+			let msg = Printf.sprintf "DEATH. unify_cell_assertion. unmatched pat_loc: %s" pat_loc in 
+			raise (Failure msg)) in 
 
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom = 
@@ -386,8 +399,14 @@ let unify_domains
 			match Hashtbl.find pat_subst pat_loc with 
 			| LLit (Loc loc) -> loc 
 			| ALoc loc       -> loc 
-			| _              -> raise (Failure "DEATH. unify_empty_fields_assertion. wrongly matched pat_loc"))  
-		with _ -> raise (Failure "DEATH. unify_empty_fields_assertion. unmatched pat_loc")) in 
+			| LVar x         -> 
+				let loc = Simplifications.resolve_location x (pfs_to_list pfs) in
+				(match loc with 
+				| Some (ALoc loc) 
+				| Some (LLit (Loc loc)) -> loc
+				| _                     -> raise (Failure ""))
+			| _              -> raise (Failure "")   
+		) with _ -> raise (Failure "DEATH. unify_empty_fields_assertion. unmatched pat_loc")) in 
 
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom = 
@@ -595,14 +614,9 @@ let unify_symb_states
 			| LPred _ :: rest_up 
 			| LEmptyFields _ :: rest_up -> 
 
-				(* B - Unify spatial assertion *)
-				print_debug (Printf.sprintf "Following UP. Unifying the following pat spatial assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\ndischarges:%s\n"
-					(JSIL_Print.string_of_logic_assertion (List.hd up) false)
-					(Symbolic_State_Print.string_of_substitution pat_subst)
-					(Symbolic_State_Print.string_of_shallow_symb_heap heap_frame false)
-					(Symbolic_State_Print.string_of_preds preds_frame false)
-					(Symbolic_State_Print.string_of_discharges discharges)); 				
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
 
+				(* B - Unify spatial assertion *)
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
 				let new_frames : extended_intermediate_frame list = 
 					List.map 
@@ -737,12 +751,8 @@ let unify_symb_states_fold
 			| LPointsTo _ :: rest_up
 			| LEmptyFields _ :: rest_up -> 
 
-				print_debug (Printf.sprintf "Following UP. Unifying the following pat spatial assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\n"
-					(JSIL_Print.string_of_logic_assertion (List.hd up) false)
-					(Symbolic_State_Print.string_of_substitution pat_subst)
-					(Symbolic_State_Print.string_of_shallow_symb_heap heap_frame false)
-					(Symbolic_State_Print.string_of_preds preds_frame false));
-
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				
 				(* B - Unify spatial assertion - no predicate assertion *)
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
 				let new_frames : fold_extended_intermediate_frame list = 
@@ -756,12 +766,8 @@ let unify_symb_states_fold
 
 			| LPred (p_name, largs) :: rest_up -> 
 
-				print_debug (Printf.sprintf "Following UP. Unifying the following pat spatial assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\n"
-					(JSIL_Print.string_of_logic_assertion (List.hd up) false)
-					(Symbolic_State_Print.string_of_substitution pat_subst)
-					(Symbolic_State_Print.string_of_shallow_symb_heap heap_frame false)
-					(Symbolic_State_Print.string_of_preds preds_frame false));
-
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				
 				(* C - Unify pred assertion *)
 				let new_frames : fold_extended_intermediate_frame list =
 					List.map 
@@ -785,7 +791,6 @@ let unify_symb_states_fold
 
 			| _ -> raise (Failure "DEATH")) in
 	search [ initial_frame ]  
-
 
 
 let unify_stores_unfold 
@@ -977,9 +982,7 @@ let unfold_predicate_definition
 	pfs_merge (ss_pfs unfolded_symb_state) (pfs_of_list (pfs_discharges @ pfs_subst));
 	extend_gamma (ss_gamma unfolded_symb_state) gamma;
 	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (pfs_to_list (ss_pfs unfolded_symb_state));
-	
 	Some unfolded_symb_state ) with UnificationFailure _ -> None 
-
 
 let grab_resources 
 		(spec_vars            : SS.t) 

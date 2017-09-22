@@ -13,14 +13,14 @@ let arguments () =
   Arg.parse
     [
 			(* file containing the program to symbolically execute *)
-			"-file", Arg.String(fun f -> file := f), "file to run";
-			"-o", Arg.String(fun f -> output_folder := f), "output folder";
+			"-file",   Arg.String(fun f -> file := f), "file to run";
+			"-o",      Arg.String(fun f -> output_folder := f), "output folder";
      		"-syntax", Arg.Unit(fun () -> JSIL_Syntax_Utils.syntax_checks_enabled := true), "syntax checks";
-			"-specs", Arg.String (fun f -> spec_file := f), "specification file";
+			"-specs",  Arg.String (fun f -> spec_file := f), "specification file";
 			(* *)
-			"-js", Arg.Unit (fun () -> Symbolic_Interpreter.js := true; JSIL_Syntax_Utils.js := true), "js2jsil output";
+			"-js",     Arg.Unit (fun () -> Symbolic_Interpreter.js := true; JSIL_Syntax_Utils.js := true), "js2jsil output";
 			(* *)
-			"-stats", Arg.Unit (fun () -> stats := true), "stats";
+			"-stats",  Arg.Unit (fun () -> stats := true), "stats";
 			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)

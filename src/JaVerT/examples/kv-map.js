@@ -2,7 +2,7 @@
 	***** VALID AND INVALID KEYS *****
 	
 	@pred ValidKey(key) : 
-		isNamedProperty(key) *
+		isNamedProperty(key) *  
 		(! (key == "hasOwnProperty"));
 		
 	@pred InvalidKey(key) :
@@ -55,7 +55,7 @@
 function Map () {
 	this._contents = {};
 	
-	/* @invariant DataProp(this, "_contents", #c)
+	/* @tactic assert( DataProp(this, "_contents", #c) )
 	   @tactic fold KVPairs(#c, -{ }-, -{ }-) */
 	return this;
 }
@@ -86,7 +86,7 @@ Map.prototype.validKey = function (key) {
 	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * initialHeapPost() 
 */
 Map.prototype.get = function (k) {
-	/* @invariant DataProp(this, "_contents", #c) */
+	/* @tactic assert ( DataProp(this, "_contents", #c) ) */
 	if (this.validKey(k)) {
 		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #v)] } */
 	    if (this._contents.hasOwnProperty(k)) { 
@@ -96,7 +96,7 @@ Map.prototype.get = function (k) {
 	    } else { return null }
 	} else
 		throw new Error("Invalid Key")
-}
+	}
 
 /**
 	@id mapPut
@@ -106,15 +106,15 @@ Map.prototype.get = function (k) {
 	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPost() 
 
 	@pre  ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPost() *
-				types(#kvs: $$set_type, #keys: $$set_type))
-	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPost() 
+				types(#kvs: $$set_type, #keys: $$set_type) * (v == #v))
+ 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPost() 
 
 	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
 			(#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPost() * types(#kvs: $$set_type, #keys: $$set_type))
 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPost() 
 */
 Map.prototype.put = function (k, v) {
-	/* @invariant DataProp(this, "_contents", #c) * scope (v : #v) */
+	/* @tactic assert( DataProp(this, "_contents", #c) * scope (v : #v) ) */
 	if (this.validKey(k)) { 
 		/* @tactic if (#k -e- #keys) then { unfold KVPairs(#c, #kvs, #keys) [def2 with (#key := #k) and (#value := #w) and (#rkvs := #rkvs)] } */
 		this._contents[k] = v; 

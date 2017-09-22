@@ -58,7 +58,7 @@ function isValidKey(key) {
     
     @post (
     	initialHeapPost() * 
-    	Map(this, #contents, #hp) * 
+    	Map(this, #contents, #mp) * 
     	MapProto(#mp)
     )
 */

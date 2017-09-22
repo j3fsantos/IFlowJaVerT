@@ -225,6 +225,18 @@ let string_of_unification_plan (up : jsil_logic_assertion list) : string =
 	"[ " ^ (String.concat "; " up_strs) ^ " ]"
 
 
+let string_of_unification_step 
+			(a : jsil_logic_assertion) (pat_subst : substitution) 
+			(heap_frame : symbolic_heap) (preds_frame : predicate_set) 
+			(discharges : discharge_list) : string = 
+	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\ndischarges:%s\n"
+		(JSIL_Print.string_of_logic_assertion a false)
+		(string_of_substitution pat_subst)
+		(string_of_shallow_symb_heap heap_frame false)
+		(string_of_preds preds_frame false)
+		(string_of_discharges discharges)
+
+
 let string_of_symb_exe_result result =
 	let proc_name, i, pre_post, success, msg, dot_graph = result in
 	let str = "Proc " ^ proc_name ^ "  - " ^ (string_of_single_spec pre_post) ^ " -- " in

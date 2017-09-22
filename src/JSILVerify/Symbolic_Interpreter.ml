@@ -568,6 +568,39 @@ let rec fold_predicate
 		ss_extend_pfs symb_state (pfs_of_list new_pfs);
 		symb_state in
 
+
+	let process_missing_pred_assertion
+			(missing_pred_args : jsil_logic_expr list)  (subst : substitution) (existentials : SS.t)
+			(symb_state : symbolic_state) (framed_heap : symbolic_heap) (framed_preds : predicate_set) 
+			(pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : symbolic_state * (jsil_logic_expr list) * SS.t = 
+		
+		let missing_pred_args = List.map (JSIL_Logic_Utils.lexpr_substitution subst false) missing_pred_args in
+				
+		(* 1. Remove from the symb_state the spatial resources corresponding to the folded predicate *)
+		let new_symb_state          = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+				
+		(* 2. After folding, we may be able to determine the exact expressions for some of the
+			existentials. These existentials cease to be existentials. We need to substitute 
+			them on the symb_state and on the arguments for the missing predicate assertion  *)
+		let new_symb_state, e_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in
+		let e_subst                 = filter_substitution (fun v le -> (SS.inter existentials (get_lexpr_lvars le)) = SS.empty) e_subst in 				
+		let e_subst_domain          = get_subst_vars (fun x -> false) e_subst in 
+		let existentials'           = SS.filter (fun v -> (not (SS.mem v e_subst_domain))) existentials in
+		let e_subst'                = filter_substitution_set existentials' e_subst in				
+		let new_symb_state          = ss_substitution e_subst' true new_symb_state in
+		let missing_pred_args       = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution e_subst' true le) missing_pred_args in
+				
+		(* Print useful INFO *)
+		(* print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));
+		print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution e_subst'));
+		print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements existentials')));
+		print_debug (Printf.sprintf "Missing %s(%s)!!!"
+			pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+		print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state)); *)
+		
+		new_symb_state, missing_pred_args, existentials' in 		
+
+
 	(*  Step 0: create a symb_state with the appropriate calling store
 	    --------------------------------------------------------------
 	    * Create the symbolic store mapping the formal arguments of the 
@@ -603,7 +636,6 @@ let rec fold_predicate
 		existentials_str
 		(Symbolic_State_Print.string_of_shallow_symb_state symb_state));
 
-
 	let rec one_step_fold  
 			(index : int) 
 			(search_info : symbolic_execution_search_info) : (symbolic_state * SS.t * symbolic_execution_search_info) option =
@@ -620,52 +652,53 @@ let rec fold_predicate
 		| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), _, None) ->
 		  	(* Fold Complete *)
 
-		  	(* 1. Remove from the symb_state the spatial resources corresponding to the folded predicate *)
+		  	(* Remove from the symb_state the spatial resources corresponding to the folded predicate *)
 		  	let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
 			
 		  	(* Print useful INFO *)
 			print_debug (Printf.sprintf "Folding Complete!");
 			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-			
-			(* 2. Return *)
 			Some (new_symb_state, new_spec_vars, search_info)
 
-		| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) ->
-			let missing_pred_args = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst false le) missing_pred_args in
-			if (not (missing_pred_name = pred_name)) then None else (
-				(* Fold Incomplete - Must recursively fold the predicate *)
+		| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) 
+				when missing_pred_name = pred_name ->
+			
+			print_debug (Printf.sprintf "Folding Incomplete. Missing %s(%s)\n"
+				pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+		
+			(* Fold Incomplete - Must recursively fold the predicate *)
+			let new_symb_state, missing_pred_args, existentials' = 
+				process_missing_pred_assertion missing_pred_args subst existentials symb_state framed_heap framed_preds pf_discharges new_gamma in 
+			fold_predicate pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some existentials') search_info
 
-				print_debug (Printf.sprintf "Folding Incomplete. Missing %s(%s)!!!"
-					missing_pred_name
-					(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
-				
-				(* 1. Remove from the symb_state the spatial resources corresponding to the folded predicate *)
-				let new_symb_state          = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
-				
-				(* 2. After folding, we may be able to determine the exact expressions for some of the
-				   existentials. These existentials cease to be existentials. We need to substitute 
-				   them on the symb_state and on the arguments for the missing predicate assertion  *)
-				let new_symb_state, e_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in
-				let e_subst                 = filter_substitution (fun v le -> (SS.inter existentials (get_lexpr_lvars le)) = SS.empty) e_subst in 				
-				let e_subst_domain          = get_subst_vars (fun x -> false) e_subst in 
-				let existentials'           = SS.filter (fun v -> (not (SS.mem v e_subst_domain))) existentials in
-				let e_subst'                = filter_substitution_set existentials' e_subst in				
-				let new_symb_state          = ss_substitution e_subst' true new_symb_state in
-				let missing_pred_args       = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution e_subst' true le) missing_pred_args in
-				
-				(* Print useful INFO *)
-				print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));
-				print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution e_subst'));
-				print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements existentials')));
-				print_debug (Printf.sprintf "Missing %s(%s)!!!"
-					missing_pred_name
-					(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
-				print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
-				
-				(* 3. Call the recursive folding function *)
-				fold_predicate pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some existentials') search_info)
+		| _ -> 
+			(* Fold Failed - we try to fold again removing a recursive call to the predicate from 
+			   the predicate definition  *)
+			print_debug (Printf.sprintf "Folding Failed."); 	
 
-		| _ -> None) in
+			let preds_pred_def  = (ss_preds pred_def) in 
+			let preds_pred_def' = preds_copy preds_pred_def in 
+			(match preds_remove_by_name preds_pred_def' pred_name with 
+			| None -> None 
+			| Some (_, missing_pred_args) -> (
+				print_debug (Printf.sprintf "Going to remove %s(%s) and try to fold again"
+					pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+
+				let pred_def' = ss_replace_preds pred_def preds_pred_def' in
+				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan pred_def') pred_def' symb_state_caller))
+					with | Spatial_Entailment.UnificationFailure _ -> None in
+
+				(match unifier with
+				| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), new_existentials, None) ->
+		  			(* We were able to fold the predicate up to a recursive call  *)
+		  			(* Now we need to fold the recursive call                     *)
+
+		  			let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+		  			let new_symb_state', missing_pred_args, existentials' = 
+						process_missing_pred_assertion missing_pred_args subst (SS.union existentials new_existentials) new_symb_state framed_heap framed_preds pf_discharges new_gamma in 
+					fold_predicate pred_name pred_defs new_symb_state' params missing_pred_args new_spec_vars (Some existentials') search_info
+
+		  		| _ -> None)))) in
 
 	(* If there is a predicate definition to try first when folding, we do that *)
 	(* If there is no predicate definition to try first or if the one that exists does 

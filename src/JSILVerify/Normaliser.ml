@@ -1448,19 +1448,28 @@ let normalise_predicate_definitions
 let pre_normalise_invariants_proc
 		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(body       : (jsil_metadata * jsil_cmd) array) : unit =
+
 	let f_pre_normalise a_list = List.map (fun a -> push_in_negations a) a_list in
+
+	let f_pre_normalise_with_single_output a msg = 
+		let unfolded_a = f_pre_normalise (auto_unfold predicates a) in
+		match unfolded_a with
+		| []    -> raise (Failure (msg ^ " unfolds to ZERO assertions"))
+		| [ a ] -> a
+		| _     -> raise (Failure (msg ^ " unfolds to MORE THAN ONE assertion")) in 
+
+	let f_rewrite_lcmds lcmd = 
+			match lcmd with 
+			| Assert a -> Assert (f_pre_normalise_with_single_output a "assert")
+			| _        -> lcmd in 
+
 	let len = Array.length body in
 	for i = 0 to (len - 1) do
 		let metadata, cmd = body.(i) in
-		match metadata.invariant with
-		| None -> ()
-		| Some a -> (
-				let unfolded_a = f_pre_normalise (auto_unfold predicates a) in
-				match unfolded_a with
-				| [] -> raise (Failure "invariant unfolds to ZERO assertions")
-				| [ a ] -> body.(i) <- { metadata with invariant = Some a }, cmd
-				| _ -> raise (Failure "invariant unfolds to MORE THAN ONE assertion")
-			)
+		let new_invariant  = Option.map_default (fun a -> Some (f_pre_normalise_with_single_output a "invariant")) None metadata.invariant in 
+		let new_pre_lcmds  = List.map (logic_command_map f_rewrite_lcmds) metadata.pre_logic_cmds in 
+		let new_post_lcmds = List.map (logic_command_map f_rewrite_lcmds) metadata.post_logic_cmds in 
+		body.(i) <- { metadata with invariant = new_invariant; pre_logic_cmds = new_pre_lcmds; post_logic_cmds = new_post_lcmds }, cmd
 	done
 
 let pre_normalise_invariants_prog
@@ -1479,11 +1488,6 @@ let normalise_invariant
 	let new_symb_state = Option.get (normalise_post gamma_inv subst spec_vars params a) in
 	new_symb_state
 						
-
-
-
-
-
 
 (** -----------------------------------------------------
   * Printing the results of the normalisation to a file
