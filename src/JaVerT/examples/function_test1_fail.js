@@ -1,6 +1,6 @@
 /**
 @pred Counter(c, c_val) :
-	JSObject(c) *
+   JSObject(c) *
    DataProp(c, "getCounter", #gc) *
    DataProp(c, "incCounter", #ic) *
    FunctionObject(#gc, "getCounter", #gc_sc, _) *
