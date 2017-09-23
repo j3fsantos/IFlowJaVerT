@@ -648,15 +648,8 @@ let normalise_pure_assertions
 	let fill_store args =
 		let p_vars = Option.default (get_asrt_pvars a) args in 
 		SS.iter
-			(fun var ->
-				if (not (Hashtbl.mem store var))
-					then (
-						print_debug ( Printf.sprintf "ADDING %s to the store." var);
-						let new_l_var = new_lvar_name var in
-						Hashtbl.add store var (LVar new_l_var); ()
-					))
+			(fun var -> if (not (Hashtbl.mem store var)) then (Hashtbl.add store var (LVar (new_lvar_name var)); ()))
 			p_vars in
-
 
 	(**
 	 * Step 6 - Normalise Pure Assertions
@@ -986,8 +979,8 @@ let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : j
 	result
 
 let get_heap_well_formedness_constraints heap =
-	print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n"
-		(Symbolic_State_Print.string_of_shallow_symb_heap heap false));
+	(* print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n"
+		(Symbolic_State_Print.string_of_shallow_symb_heap heap false));*)
 
 	LHeap.fold
 		(fun field (fv_list, _) constraints ->
@@ -1014,7 +1007,7 @@ let normalise_assertion
 		(pvars : SS.t option)
 		(a     : jsil_logic_assertion) : (symbolic_state * substitution) option =
 
-	print_debug_petar (Printf.sprintf "Normalising assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a false));
+	print_debug (Printf.sprintf "Normalising assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a false));
 
 	let falsePFs pfs =
 		match pfs_to_list pfs with
@@ -1144,7 +1137,9 @@ let normalise_normalised_assertion
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let create_unification_plan (symb_state : symbolic_state) : (jsil_logic_assertion list) =
+let create_unification_plan 
+		(symb_state      : symbolic_state)
+		(reachable_alocs : SS.t) : (jsil_logic_assertion list) =
 	let heap, store, pf, gamma, preds = symb_state in 
 	
 	let heap                    = LHeap.copy heap in 
@@ -1183,8 +1178,8 @@ let create_unification_plan (symb_state : symbolic_state) : (jsil_logic_assertio
  				LHeap.remove heap loc; 
  				true) in 
 
-	(** Step 1 -- add concrete locs to locs to visit *)
-	List.iter (fun loc -> Queue.add loc locs_to_visit) concrete_locs; 
+	(** Step 1 -- add concrete locs and the reachable alocs to locs to visit *)
+	List.iter (fun loc -> Queue.add loc locs_to_visit) (concrete_locs @ (SS.elements reachable_alocs)) ; 
 
 	(** Step 2 -- which alocs are directly reachable from the store *)
 	Hashtbl.iter (fun x le ->  search_for_new_alocs_in_lexpr le ) store;
@@ -1266,7 +1261,7 @@ let normalise_single_normalised_spec
     	n_ret_flag         = spec.ret_flag;
     	n_lvars            = spec_vars;
         n_subst            = init_substitution []; 
-        n_unification_plan = (create_unification_plan pre)
+        n_unification_plan = (create_unification_plan pre SS.empty)
     }]
 
 (** -----------------------------------------------------
@@ -1314,7 +1309,7 @@ let normalise_single_spec
 			n_ret_flag         = spec.ret_flag;
 			n_lvars            = spec_vars;
 			n_subst            = subst; 
-			n_unification_plan = (create_unification_plan ss_pre) }) ss_pres' in
+			n_unification_plan = (create_unification_plan ss_pre SS.empty) }) ss_pres' in
 
 	let n_specs' = List.filter (fun n_spec -> (List.length n_spec.n_post) > 0) n_specs in
 	if (n_specs' = []) then (
@@ -1416,14 +1411,14 @@ let normalise_predicate_definitions
           			match pred.previously_normalised_u_pred with
            			| true ->
            				let ss = normalise_normalised_assertion a in  
-                		[os, ss, (create_unification_plan ss) ]
+                		[os, ss, (create_unification_plan ss SS.empty) ]
               		| false ->
                 		let pred_vars = get_asrt_lvars a in
                 		let a' = JSIL_Logic_Utils.push_in_negations a in
                 		match (normalise_assertion None None (Some (SS.of_list pred.params)) a') with
                 		| Some (ss, _) ->
                   			let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
-                  			[ (os, ss', (create_unification_plan ss')) ]
+                  			[ (os, ss', (create_unification_plan ss' SS.empty)) ]
                 		| None -> []
      			) definitions)) in
 			let n_pred = {

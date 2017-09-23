@@ -2053,38 +2053,31 @@ with
 spec deleteProperty (l, prop, throw)
 
     [[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type, #clsx : $$list_type) *
-	   Pi (#l, #prop, #clsx, #desc, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (#desc == $$undefined) ]]
-	[[ Pi (#l, #prop, #clsx, #desc, #gp_aux_2, #gp_aux_3, #gp_aux_4) * (ret == $$t) ]]
+	   types (#l : $$object_type, #prop : $$string_type) *
+	   Cell_o(#l, #prop, None) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+	[[ Cell_o(#l, #prop, None) * ((#l, "@class") -> #cls) * (ret == $$t) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) *
-	   types (#l : $$object_type, #prop : $$string_type, #clsx : $$list_type, #desc : $$list_type) *
-	   Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * DataDescriptor(#desc) * desc_conf(#desc, $$t) ]]
-	[[ Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * (ret == $$t) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
+	   Cell_o(#l, #prop, #desc) * DataDescriptor(#desc) * desc_conf(#desc, $$t) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+	[[ Cell_o(#l, #prop, None) * ((#l, "@class") -> #cls) * (ret == $$t) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) * (throw == $$t) *
-	   types (#l : $$object_type, #prop : $$string_type, #clsx : $$list_type, #desc : $$list_type) *
-	   Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * DataDescriptor(#desc) * desc_conf(#desc, $$f) ]]
-	[[ Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * isTypeError(ret) ]]
-	error;
-	
-	[[ (l == #l) * (prop == #prop) * (throw == $$f) *
-	   types (#l : $$object_type, #prop : $$string_type, #clsx : $$list_type, #desc : $$list_type) *
-	   Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * DataDescriptor(#desc) * desc_conf(#desc, $$f) ]]
-	[[ Pi (#l, #prop, #clsx, #desc, {{ #l }}, #gp_aux_3, #gp_aux_4) * (ret == $$f) ]]
+	   types (#l : $$object_type, #prop : $$string_type, #desc : $$list_type) *
+	   Cell_o(#l, #prop, #desc) * DataDescriptor(#desc) * desc_conf(#desc, $$f) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+	[[ Cell_o(#l, #prop, #desc) * ((#l, "@class") -> #cls) * isTypeError(ret) ]]
 	error
 
 proc deleteProperty (l, prop, throw) {
 
-			[* unfold Pi (#l, #prop, #clsx, #desc, #g_aux_2, #g_aux_3, #g_aux_4) *]
 			xret := "getOwnProperty" (l, prop) with elab;
-			[* fold Pi (#l, #prop, #clsx, #desc, #g_aux_2, #g_aux_3, #g_aux_4) *]
 			goto [xret = $$undefined] dt cont;
 
 	cont:	c := l-nth (xret, 4);
 			goto [c] del reject;
+
 	del:	delete (l, prop);
 
 	dt:		xret := $$t;
@@ -2753,9 +2746,9 @@ spec put (l, prop, value, throw)
 	(* 2. Property is defined in the object, data descriptor that is not writable, throw *)
 	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$t) * (! (#value == $$empty)) *
 	   types (#l : $$object_type, #prop : $$string_type, #throw : $$boolean_type) *
-	   Pi (#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	   Pi (#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) * ((#l, "@extensible") -> #ignore) *
 	   DataDescriptor(#g_aux_1) * desc_writ(#g_aux_1, $$f) ]]
-	[[ Pi (#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
+	[[ Pi (#l, #prop, #g_aux_0, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) * ((#l, "@extensible") -> #ignore) *
 	   isTypeError(err) ]]
 	error;
 
@@ -2958,9 +2951,9 @@ spec i__putValue (v, w)
 	[[ (v == {{ "o", #l, #prop }}) * (w == #w) * (! (#w == $$empty)) * isNamedProperty(#prop) *
 	   types (#l : $$object_type, #prop : $$string_type, #cls : $$list_type) *
 	   Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) * 
-	   DataDescriptor(#g_aux_1) * desc_writ(#g_aux_1, $$f) ]]
+	   DataDescriptor(#g_aux_1) * desc_writ(#g_aux_1, $$f) * ((#l, "@extensible") -> #ignore) ]]
 	[[ Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) * 
-	   isTypeError(err) ]]
+	   isTypeError(err) * ((#l, "@extensible") -> #ignore) ]]
 	error;
 
 	(* Object reference, property is defined in the prototype chain, not in the object, object not extensible, throw *)

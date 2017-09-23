@@ -455,7 +455,7 @@ let find_and_apply_spec
 
 			try (
 				let outcome, (framed_heap, framed_preds, subst, pf_discharges, new_gamma) = 
-					Spatial_Entailment.unify_symb_states SS.empty spec.n_unification_plan spec.n_pre symb_state_caller in
+					Spatial_Entailment.unify_symb_states spec.n_unification_plan None spec.n_pre symb_state_caller in
 				(match outcome with
 				| true ->
 				    (*  Complete Match: Return immediately, ignoring the previous partial matches that we may 
@@ -685,7 +685,7 @@ let rec fold_predicate
 					pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
 
 				let pred_def' = ss_replace_preds pred_def preds_pred_def' in
-				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan pred_def') pred_def' symb_state_caller))
+				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan pred_def' SS.empty) pred_def' symb_state_caller))
 					with | Spatial_Entailment.UnificationFailure _ -> None in
 
 				(match unifier with
@@ -993,7 +993,7 @@ let rec symb_evaluate_logic_cmd
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
 		let gamma_spec_vars         = filter_gamma_f (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
-		(match (Spatial_Entailment.grab_resources spec_vars existentials (Normaliser.create_unification_plan new_symb_state) new_symb_state symb_state) with
+		(match (Spatial_Entailment.grab_resources spec_vars existentials (Normaliser.create_unification_plan new_symb_state SS.empty) new_symb_state symb_state) with
 			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later, search_info ]
 			| None -> raise (Failure "Assert: could not grab resources.")))
 and
@@ -1100,7 +1100,10 @@ let rec symb_evaluate_cmd
 			if (Hashtbl.mem s_prog.spec_tbl proc_name) then (
 				(** If the procedure has an associated specification, then we use it  *)
 				let proc_specs = Hashtbl.find s_prog.spec_tbl proc_name in 
-				List.iter (fun spec -> if (spec.n_post = []) then print_debug "WARNING: Exists spec with no post.") proc_specs.n_proc_specs;
+				List.iter 
+					(fun spec -> if (spec.n_post = []) 
+						then print_debug (Printf.sprintf "WARNING: Exists spec with no post for proc %s." proc_name))
+					proc_specs.n_proc_specs;
 				let _, new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
 				let new_symb_states    = List.map (fun (symb_state, ret_flag, ret_le) -> (symb_state, ret_flag, ret_le, search_info)) new_symb_states in 
 				(if ((List.length new_symb_states) = 0)
@@ -1221,7 +1224,8 @@ and pre_symb_evaluate_cmd
 			| None   -> raise (Failure "Back edges MUST point to commands with invariants")
 			| Some a ->
 				let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst (get_asrt_pvars a) in 
-				let _ = Spatial_Entailment.fully_unify_symb_state spec_vars !js (Normaliser.create_unification_plan symb_state_inv) symb_state_inv symb_state in 
+				let pat_subst      = init_substitution (SS.elements spec_vars) in 
+				let _ = Spatial_Entailment.fully_unify_symb_state !js (Normaliser.create_unification_plan symb_state_inv SS.empty) (Some pat_subst) symb_state_inv symb_state in 
 				[])				
 		) else (
 			(*  New next command *)
@@ -1240,7 +1244,7 @@ and pre_symb_evaluate_cmd
 					let inv_lvars      = get_asrt_lvars a in
 					let spec_vars_inv  = SS.union inv_lvars spec_vars in
 					let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst (get_asrt_pvars a) in 
-					(match (Spatial_Entailment.grab_resources spec_vars inv_lvars (Normaliser.create_unification_plan symb_state_inv) symb_state_inv symb_state) with
+					(match (Spatial_Entailment.grab_resources spec_vars inv_lvars (Normaliser.create_unification_plan symb_state_inv SS.empty) symb_state_inv symb_state) with
 						| Some new_symb_state -> new_symb_state, spec_vars_inv
 						| None -> raise (Failure "Unification with invariant failed"))) in
 			 
@@ -1282,7 +1286,12 @@ let unify_symb_state_against_post
 				
 		| post :: rest_posts ->
 			try (
-				let _ = Spatial_Entailment.fully_unify_symb_state spec.n_lvars intuitionistic (Normaliser.create_unification_plan post) post symb_state in 
+				let spec_les    = substitution_range spec.n_subst in 
+				let spec_alocs  = List.concat (List.map (fun le -> SS.elements (get_lexpr_alocs le)) spec_les) in 
+				let subst_list  = List.map (fun aloc -> (aloc, ALoc aloc)) spec_alocs in 
+				let subst_list' = List.map (fun x -> (x, LVar x)) (SS.elements spec.n_lvars) in 
+				let pat_subst   = init_substitution3 (subst_list @ subst_list') in 
+				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan post (SS.of_list spec_alocs)) (Some pat_subst) post symb_state in 
 				activate_post_in_post_pruning_info symb_exe_info proc_name i;
 				print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name)
 			) with Spatial_Entailment.UnificationFailure _ -> loop rest_posts (i + 1)) in 
@@ -1449,7 +1458,7 @@ let rec unify_all_posts all_posts symb_state lvars lemma_name i =
 				(* Presumably this function throws an error when it fails, so if it succeeds success is assumed *)
         let success =
 					(try  
-						Spatial_Entailment.fully_unify_symb_state lvars false (Normaliser.create_unification_plan post)  symb_state  ;
+						Spatial_Entailment.fully_unify_symb_state false (Normaliser.create_unification_plan post SS.empty) None post symb_state;
 						true
 				  with
 					| _ -> false) in

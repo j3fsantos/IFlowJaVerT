@@ -700,7 +700,7 @@ let fresh_spec_var () : string =
 type substitution      = ((string, jsil_logic_expr) Hashtbl.t)
 type substitution_list = ((string * jsil_logic_expr) list) 
 
-let init_substitution vars =
+let init_substitution (vars : string list) : substitution =
 	let new_subst = Hashtbl.create 1021 in
 	List.iter
 		(fun var -> Hashtbl.replace new_subst var (LVar var))
@@ -731,6 +731,9 @@ let init_substitution3 vars_les =
 
 	loop vars_les;
 	subst
+
+let substitution_range (subst : substitution) : jsil_logic_expr list = 
+	Hashtbl.fold (fun x le ac -> le :: ac) subst [] 
 
 (* creates an expression of equality from the substitution table *)
 let assertions_of_substitution (subst : substitution) =
