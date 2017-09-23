@@ -168,7 +168,9 @@ function remove(v, t)
 		/** @tactic fold BST(#t, #K) */
 		return null;
 
-	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
+	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR)
+		@tactic flash BST(#ir, #KR)
+		@tactic flash BST(#il, #KL) */
 	if (v === t.value) {
 		if (t.left === null) {	
 				/** @tactic unfold BST($$null, #KL) */
@@ -191,6 +193,7 @@ function remove(v, t)
 	else
 		t.right = remove(v, t.right);	
 
-	/** @tactic fold BST(#t, #K -d- -{ #v }-) */
+	/** 
+		@tactic fold BST(#t, #K -d- -{ #v }-) */
   	return t;
 }
