@@ -168,9 +168,9 @@ function remove(v, t)
 		/** @tactic fold BST(#t, #K) */
 		return null;
 
-	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR)
-		@tactic flash BST(#ir, #KR)
-		@tactic flash BST(#il, #KL) */
+	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) 
+	    @tactic flash BST(#il, #KL) 
+		@tactic flash BST(#ir, #KR) */
 	if (v === t.value) {
 		if (t.left === null) {	
 				/** @tactic unfold BST($$null, #KL) */
@@ -182,7 +182,6 @@ function remove(v, t)
 	  			return t.left;
 			}
 		else {
-			/** @tactic flash BST(#ir, #KR) */
 			var min = find_min(t.right);
 			t.right = remove(min, t.right);
 			t.value = min;
@@ -193,7 +192,6 @@ function remove(v, t)
 	else
 		t.right = remove(v, t.right);	
 
-	/** 
-		@tactic fold BST(#t, #K -d- -{ #v }-) */
+	/** @tactic fold BST(#t, #K -d- -{ #v }-) */
   	return t;
 }
