@@ -328,7 +328,6 @@ type jsil_logic_command =
 	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
 	| ApplyLem		   of string * (jsil_logic_expr list)                                               (** Apply lemma *)
 	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
-	| LinearRecUnfold  of string * (jsil_logic_expr list)                                               (** Recursive unfold of everything but this time I will give you the arguments *)
 	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)       (** If-then-else *)
 	| Macro            of string * (jsil_logic_expr list)                                               (** Macro *)
 	| Assert           of jsil_logic_assertion                                                          (** Assert *)

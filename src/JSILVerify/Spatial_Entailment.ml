@@ -607,9 +607,14 @@ let unify_symb_states
 	let initial_frame = pat_unfication_plan, (heap, preds, discharges, pat_subst) in 
 
 	(* 4. SEARCH *)
-	let rec search (frame_list : extended_intermediate_frame list) : bool * symbolic_state_frame = 
+	let rec search 
+			(frame_list            : extended_intermediate_frame list) 
+			(found_partial_matches : symbolic_state_frame list) : bool * symbolic_state_frame = 
 		match frame_list with 
-		| [] -> raise (UnificationFailure ())
+		| [] -> 
+			(match found_partial_matches with 
+			| [] -> raise (UnificationFailure ())
+			| ssf :: _ -> false, ssf)
 		
 		| (up, (heap_frame, preds_frame, discharges, pat_subst)) :: rest_frame_list -> 	
 			(match up with 
@@ -621,7 +626,7 @@ let unify_symb_states
 					(Symbolic_State_Print.string_of_discharges discharges)); 
 
 				(* A.1 - Unify gammas *)
-				if (not (unify_gammas pat_subst pat_gamma gamma)) then search rest_frame_list else (
+				if (not (unify_gammas pat_subst pat_gamma gamma)) then search rest_frame_list found_partial_matches else (
 					(* A.2 - Unify pfs *)
 					let complete_match_b, pfs_existentials, pfs_discharges, new_gamma, existentials = unify_pfs pat_subst [] pat_lvars pat_gamma pat_pfs gamma pfs discharges in 
 					
@@ -630,10 +635,11 @@ let unify_symb_states
 						(String.concat ", " (SS.elements existentials))
 						(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion pfs_existentials)));
 
-					(* A.3 - Return *)
+					(* A.3 - If complete_match -> return
+					         Otherwise, continue searching and register the partial match *)
 					if (complete_match_b) 
-						then complete_match_b, (heap_frame, preds_frame, pat_subst, pfs_existentials, new_gamma)
-						else complete_match_b, (heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma)
+						then complete_match_b, (heap_frame, preds_frame, pat_subst, pfs_existentials, new_gamma) 
+						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches)
 				)
 
 			| LPointsTo _ :: rest_up
@@ -651,10 +657,10 @@ let unify_symb_states
 
 				print_debug (Printf.sprintf "Unfication result: %b\n" ((List.length new_frames) > 0)); 
 
-				search (new_frames @ rest_frame_list)
+				search (new_frames @ rest_frame_list) found_partial_matches
 
 			| _ -> raise (Failure "DEATH")) in 
-	search [ initial_frame ]  
+	search [ initial_frame ] [ ]
 
 
 
@@ -695,7 +701,7 @@ let unify_symb_states_fold
 			(existentials         : SS.t) 
 			(pat_unfication_plan  : jsil_logic_assertion list) 
 			(pat_symb_state       : symbolic_state) 
-			(symb_state           : symbolic_state) : bool * symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option)  =
+			(symb_state           : symbolic_state) : symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option)  =
 	
 	let heap,     store,     pfs,     gamma,     preds     = symb_state in
 	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = ss_copy pat_symb_state in
@@ -751,7 +757,8 @@ let unify_symb_states_fold
 	let initial_frame = pat_unfication_plan, (heap, preds, (discharges @ discharges'), pat_subst), None in 
 
 	(* 5. SEARCH *)
-	let rec search (frame_list : fold_extended_intermediate_frame list) : bool * symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option) = 
+	let rec search 
+			(frame_list : fold_extended_intermediate_frame list) : symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option) = 
 		match frame_list with 
 		| [] -> raise (UnificationFailure ())
 		
@@ -771,7 +778,9 @@ let unify_symb_states_fold
 					let complete_match_b, pfs_existentials, _, new_gamma, new_existentials = unify_pfs pat_subst (SS.elements existentials) pat_lvars pat_gamma pat_pfs gamma pfs discharges in 
 					
 					(* A.3 - Return *)
-					complete_match_b, (heap_frame, preds_frame, pat_subst, pfs_existentials, new_gamma), (SS.union existentials new_existentials), missing_pred
+					if (complete_match_b) 
+						then (heap_frame, preds_frame, pat_subst, pfs_existentials, new_gamma), (SS.union existentials new_existentials), missing_pred
+						else search rest_frame_list
 				)
 
 			| LPointsTo _ :: rest_up

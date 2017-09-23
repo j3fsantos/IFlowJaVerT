@@ -648,7 +648,7 @@ let rec fold_predicate
 			with | Spatial_Entailment.UnificationFailure _ -> None in
 		
 		(match unifier with
-		| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), _, None) ->
+		| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), _, None) ->
 		  	(* Fold Complete *)
 
 		  	(* Remove from the symb_state the spatial resources corresponding to the folded predicate *)
@@ -659,7 +659,7 @@ let rec fold_predicate
 			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_symb_state new_symb_state));
 			Some (new_symb_state, new_spec_vars, search_info)
 
-		| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) 
+		| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) 
 				when missing_pred_name = pred_name ->
 			
 			print_debug (Printf.sprintf "Folding Incomplete. Missing %s(%s)\n"
@@ -688,7 +688,7 @@ let rec fold_predicate
 					with | Spatial_Entailment.UnificationFailure _ -> None in
 
 				(match unifier with
-				| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), new_existentials, None) ->
+				| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), new_existentials, None) ->
 		  			(* We were able to fold the predicate up to a recursive call  *)
 		  			(* Now we need to fold the recursive call                     *)
 
@@ -879,17 +879,6 @@ let rec symb_evaluate_logic_cmd
     	let pred_defs = pred.n_pred_definitions in
 		(params, pred_defs, args) in
 
-	let do_i_already_have_this_predicate_assertion pred_name args =
-		let symb_state_vars : SS.t = ss_lvars symb_state  in
-		let args_vars       : SS.t = JSIL_Logic_Utils.get_lexpr_list_lvars args in
-		let existentials    : SS.t = SS.diff args_vars symb_state_vars in
-		print_debug (Printf.sprintf "New spec vars (check): %s" (String.concat ", " (SS.elements existentials)));
-		let existentials = SS.elements existentials in
-		let subst = Symbolic_State_Utils.subtract_pred pred_name args (ss_preds symb_state) (ss_pfs symb_state) (ss_gamma symb_state) spec_vars existentials false in
-		match subst with
-		| Some subst -> true
-		| None       -> false in
-
 	(match l_cmd with
 	
 	| Fold a ->
@@ -902,16 +891,15 @@ let rec symb_evaluate_logic_cmd
       		print_debug (Printf.sprintf "\nSTATE #2: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
 			let pred_defs = Array.of_list pred_defs in
 
-      		if (do_i_already_have_this_predicate_assertion pred_name args) then [ symb_state, spec_vars, search_info ] else (
-        		let folded_predicate = fold_predicate pred_name pred_defs symb_state params args spec_vars None search_info in
-				(match folded_predicate with
-				| Some (symb_state, new_spec_vars, new_search_info) ->
-					ss_extend_preds symb_state (pred_name, args);
-					[ symb_state, new_spec_vars, new_search_info ]
-				| _ ->
-					print_normal (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
-					let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a) in
-					raise (Failure msg)))
+      		let folded_predicate = fold_predicate pred_name pred_defs symb_state params args spec_vars None search_info in
+			(match folded_predicate with
+			| Some (symb_state, new_spec_vars, new_search_info) ->
+				ss_extend_preds symb_state (pred_name, args);
+				[ symb_state, new_spec_vars, new_search_info ]
+			| _ ->
+				print_normal (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
+				let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a) in
+				raise (Failure msg))
 		| _ ->
 			let msg = Printf.sprintf "Illegal fold command %s" (JSIL_Print.string_of_logic_assertion a) in
 			raise (Failure msg))
