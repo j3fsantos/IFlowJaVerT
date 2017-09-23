@@ -1499,7 +1499,7 @@ let print_normaliser_results_to_file
     let string_of_single_symb_state_assertion
         (symbolic_state : symbolic_state) : string =
 
-      JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state)
+      JSIL_Print.string_of_logic_assertion (assertion_of_symb_state symbolic_state)
     in
     let pre_assrt_str = "Pre:  " ^ string_of_single_symb_state_assertion spec.n_pre in
     let post_assrt_str = "\nPost: " ^ List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post in
@@ -1530,7 +1530,7 @@ let print_normaliser_results_to_file
       "Parameters : " ^ params ^ "\n" ^
       (Printf.sprintf "Recursive : %b\n" pred.n_pred_is_rec) ^
       (Printf.sprintf "Number of definitions: %d\n" (List.length pred.n_pred_definitions)) ^
-      List.fold_left (fun ac (_, x, _) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x)) ^ "\n") "" pred.n_pred_definitions
+      List.fold_left (fun ac (_, x, _) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (assertion_of_symb_state x)) ^ "\n") "" pred.n_pred_definitions
   in
   let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
     Hashtbl.fold (fun pname pred ac -> ac ^ string_of_normalised_predicate pred) preds ""

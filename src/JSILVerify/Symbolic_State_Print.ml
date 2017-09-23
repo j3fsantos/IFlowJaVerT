@@ -303,6 +303,38 @@ let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : sym
 		i time symb_state_str cmd_str)
 
 
+(* INCORRECT!!! -> THESE 3 FUNCTIONS NEED TO BE DELETED ASAP!!!!!! *)
+let string_of_single_spec_table_assertion (single_spec : jsil_n_single_spec) : string =
+	let pre = assertion_of_symb_state single_spec.n_pre in
+	let post = assertion_of_symb_state (List.hd single_spec.n_post) in
+	let flag = (match single_spec.n_ret_flag with | Normal -> "normal" | Error -> "error") in
+	(Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
+	 (JSIL_Print.string_of_logic_assertion pre)
+	 (JSIL_Print.string_of_logic_assertion post)
+	 flag)
+
+let string_of_n_single_spec_assertion (spec : jsil_n_spec) : string = 
+	List.fold_left(
+		fun ac single_spec ->
+			let single_spec_str = string_of_single_spec_table_assertion single_spec in
+			ac ^ single_spec_str
+	) "" spec.n_proc_specs
+
+
+let string_of_n_spec_table_assertions 
+		(spec_table : specification_table) 
+		(procs_to_verify : string list) : string =
+	Hashtbl.fold
+		(fun spec_name spec ac ->
+			if (List.mem spec_name procs_to_verify) then  
+				let spec_str =  string_of_n_single_spec_assertion spec in
+				ac ^ "\n" ^ spec_name ^ "\n----------\n" ^ spec_str
+			else 
+				ac )
+		spec_table
+		""
+
+
 
 
 (**

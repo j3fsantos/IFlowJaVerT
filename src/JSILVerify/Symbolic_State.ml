@@ -238,6 +238,17 @@ let is_heap_empty (heap : symbolic_heap) : bool =
 		heap
 		true
 
+(** conversts a symbolic heap to a list of assertions *)
+let assertions_of_heap (h : symbolic_heap) : jsil_logic_assertion list= 
+	let make_loc_lexpr loc = 
+		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
+	
+	let rec assertions_of_object (loc, (fv_list, set)) =
+	 	let le_loc = make_loc_lexpr loc in
+		let fv_assertions = List.map (fun (field, value) -> LPointsTo (le_loc, field, value)) fv_list in 
+		Option.map_default (fun set -> (LEmptyFields (le_loc, set)) :: fv_assertions) fv_assertions set in 
+
+	List.concat (List.map assertions_of_object (heap_to_list h))
 
 (*************************************)
 (** Abstract Store functions        **)
@@ -362,6 +373,11 @@ let store_iter (store: symbolic_store) (f : string -> jsil_logic_expr -> unit) :
 let store_fold (store: symbolic_store) (f : string -> jsil_logic_expr -> 'a  -> 'a) (init : 'a) : 'a =
 	Hashtbl.fold f store init 
 
+(** conversts a symbolic store to a list of assertions *)
+let assertions_of_store (s : symbolic_store) : jsil_logic_assertion list= 
+	Hashtbl.fold
+		(fun x le assertions -> 
+			(LEq (PVar x, le)) :: assertions) s []
 
 (*************************************)
 (** Pure Formulae functions         **)
@@ -484,6 +500,17 @@ let preds_alocs (preds : predicate_set) : SS.t =
 		SS.empty 
 		preds
 
+(** conversts a predicate set to a list of assertions *)
+let assertions_of_preds (preds : predicate_set) : jsil_logic_assertion list = 
+	let preds = preds_to_list preds in 
+	let rec loop preds assertions = 
+		match preds with 
+		| [] -> assertions 
+		| (pred_name, args) :: rest -> 
+			loop rest ((LPred (pred_name, args)) :: assertions) in 
+	loop preds [] 
+
+
 (*************************************)
 (** Symbolic State functions        **)
 (*************************************)
@@ -591,8 +618,16 @@ let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 	let v_pr = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_sp (SS.union v_pf v_pr)))
 
-
-
+(** conversts a symbolic state to an assertion *)
+let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion = 
+	let heap, store, pfs, gamma, preds = symb_state in
+	let heap_asrts  = assertions_of_heap heap in
+	let store_asrts = assertions_of_store store in
+	let gamma_asrt  = assertion_of_gamma gamma in
+	let pure_asrts  = pfs_to_list pfs in
+	let pred_asrts  = assertions_of_preds preds in 
+	let asrts       = heap_asrts @ store_asrts @ pure_asrts @ [ gamma_asrt ] @ pred_asrts in
+	JSIL_Logic_Utils.star_asses asrts 
 
 (****************************************)
 (** TO REFACTOR                        **)

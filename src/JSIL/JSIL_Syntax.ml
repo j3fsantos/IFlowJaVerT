@@ -857,6 +857,16 @@ let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list
 		gamma
 		[]
 
+(** conversts a symbolic store to a list of assertion *)
+let assertion_of_gamma (gamma : typing_environment) : jsil_logic_assertion = 
+	let le_type_pairs = 
+		Hashtbl.fold
+			(fun x t pairs -> 
+				(if (is_lvar_name x) 
+					then (LVar x, t) :: pairs
+					else (PVar x, t) :: pairs)) gamma [] in 
+	LTypes le_type_pairs 
+
 (* ******* *)
 (* Hashing *)
 (* ******* *)

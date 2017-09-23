@@ -188,21 +188,6 @@ let update_abs_heap_default (heap : symbolic_heap) loc dom =
  	| _ -> raise (Failure "the default value for the fields of a given object cannot be changed once set")
 
 
-let heap_domain_with_subst (heap : symbolic_heap) (subst : substitution) : string list = 
-	
-	let rec loop locs matched_abs_locs free_abs_locs concrete_locs =
-		match locs with
-		| [] -> concrete_locs @ matched_abs_locs @ free_abs_locs
-		| loc :: rest_locs ->
-			if (is_abs_loc_name loc)
-				then (
-					if (Hashtbl.mem subst loc)
-						then loop rest_locs (loc :: matched_abs_locs) free_abs_locs concrete_locs
-						else loop rest_locs matched_abs_locs (loc :: free_abs_locs) concrete_locs)
-				else loop rest_locs matched_abs_locs free_abs_locs (loc :: concrete_locs) in
-
-	loop (SS.elements (heap_domain heap)) [] [] []
-
 
 (*************************************)
 (** Symbolic Heap Functions         **)
@@ -278,6 +263,7 @@ let combine_domains (domain_l : jsil_logic_expr option) (domain_r : jsil_logic_e
 		let set = normalise_lexpr gamma set in  
 		Some set 
 
+
 let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : pure_formulae) 
 			(gamma : typing_environment) =
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
@@ -304,40 +290,14 @@ let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : 
 let rec string_of_logic_assertion a escape_string =
 **)
 
-let assertion_of_abs_heap (h : symbolic_heap) : jsil_logic_assertion list= 
-	let make_loc_lexpr loc = 
-		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
-	
-	let rec assertions_of_object (loc, (fv_list, set)) =
-	 	let le_loc = make_loc_lexpr loc in
-		let fv_assertions = List.map (fun (field, value) -> LPointsTo (le_loc, field, value)) fv_list in 
-		Option.map_default (fun set -> (LEmptyFields (le_loc, set)) :: fv_assertions) fv_assertions set in 
 
-	List.concat (List.map assertions_of_object (heap_to_list h))
 
 			
-(*************************************)
-(** Store functions                 **)
-(*************************************)
-
-let assertions_of_abs_store s : jsil_logic_assertion list= 
-	Hashtbl.fold
-		(fun x le assertions -> 
-			(LEq (PVar x, le)) :: assertions) s []
-
 
 (*************************************)
 (** Gamma functions                 **)
 (*************************************)
 
-let assertions_of_gamma gamma : jsil_logic_assertion= 
-	let le_type_pairs = 
-		Hashtbl.fold
-			(fun x t pairs -> 
-				(if (is_lvar_name x) 
-					then (LVar x, t) :: pairs
-					else (PVar x, t) :: pairs)) gamma [] in 
-	LTypes le_type_pairs 
 
 
 (*************************************)
@@ -405,68 +365,12 @@ let subtract_pred
 		if(delete_pred) then DynArray.delete pred_set index; Some subst
 
 	
-let assertions_of_pred_set pred_set = 
-	let preds = preds_to_list pred_set in 
-	let rec loop preds assertions = 
-		match preds with 
-		| [] -> assertions 
-		| (pred_name, args) :: rest -> 
-			loop rest ((LPred (pred_name, args)) :: assertions) in 
-	loop preds [] 
 
 
 (*************************************)
 (** Symbolic State functions        **)
 (*************************************)
 
-
-let get_symb_state_lvars symb_state =
-	let symb_vars = ss_lvars symb_state in 
-	let symb_lvars = SS.filter(
-						fun var -> 
-							(* print_normal ("Spec Var: " ^ var); *)
-							is_lvar_name var)
-					symb_vars in 
-	symb_lvars 
-
-let remove_abstract_locations (heap : symbolic_heap) (store : symbolic_store) (pfs : pure_formulae) : substitution  =
-	let subst = init_substitution [] in
-	LHeap.iter 
-		(fun loc (fv_list, def) -> 
-			(try 
-				Hashtbl.find subst loc; ()
-			with Not_found -> 
-				(if (is_abs_loc_name loc) then
-					let s_loc = store_get_rev store (ALoc loc) in
-					(match s_loc with
-					| Some l ->
-						Hashtbl.add subst loc (PVar l)
-					| None -> 
-						let p_loc = Simplifications.find_me_in_the_pi pfs (ALoc loc) in
-						match p_loc with 
-						| Some l -> 
-							Hashtbl.add subst loc (LVar l)
-						| None -> 
-							let n_lvar = fresh_lvar () in 
-							Hashtbl.add subst loc (LVar n_lvar))
-				)
-			)
-		) heap;
-	subst
-
-let convert_symb_state_to_assertion (symb_state : symbolic_state) : jsil_logic_assertion = 
-	let heap, store, pfs, gamma, preds = symb_state in
-	let subst = remove_abstract_locations heap store pfs in
-	let heap_assert = assertion_of_abs_heap heap in
-	let store_assert = assertions_of_abs_store store in
-	let gamma_assert = assertions_of_gamma gamma in
-	let pure_assert = DynArray.to_list pfs in
-	let assertions = heap_assert @ store_assert @ pure_assert @ [gamma_assert] in
-	let assertion = List.fold_left (fun ac assertion -> 
-						if (ac = LEmp) then assertion else LStar(ac , assertion)) 
-		LEmp 
-		assertions in
-	asrt_substitution subst true assertion 
 
 
 let merge_symb_states
@@ -566,36 +470,6 @@ let enrich_pure_part
 	(is_sat, new_symb_state)
 
 
-(*************************************)
-(** Spec Table Functions            **)
-(*************************************)
-
-let string_of_single_spec_table_assertion single_spec =
-	let pre = convert_symb_state_to_assertion single_spec.n_pre in
-	let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
-	let flag = (match single_spec.n_ret_flag with | Normal -> "normal" | Error -> "error") in
-	(Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
-	 (JSIL_Print.string_of_logic_assertion pre)
-	 (JSIL_Print.string_of_logic_assertion post)
-	 flag)
-
-let string_of_n_single_spec_assertion spec = 
-	List.fold_left(
-		fun ac single_spec ->
-			let single_spec_str = string_of_single_spec_table_assertion single_spec in
-			ac ^ single_spec_str
-	) "" spec.n_proc_specs
-
-let string_of_n_spec_table_assertions spec_table procs_to_verify =
-	Hashtbl.fold
-		(fun spec_name spec ac ->
-			if (List.mem spec_name procs_to_verify) then  
-				let spec_str =  string_of_n_single_spec_assertion spec in
-				ac ^ "\n" ^ spec_name ^ "\n----------\n" ^ spec_str
-			else 
-				ac )
-		spec_table
-		""
 
 (*************************************)
 (** Normalised Spec functions       **)
