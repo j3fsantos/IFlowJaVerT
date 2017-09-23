@@ -368,10 +368,19 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			(match re1, re2 with
 			(* n1 +J n2 ---> n1 + n2 *) 
 			| LLit (Num n1), LLit (Num n2) -> LLit (Num (n1 +. n2))
+			| re1, LLit (Num 0.) -> re1
+			| LLit (Num 0.), re2 -> re2
 			(* (_ +J n1) +J n2 ---> _ +J (n1 + n2) *)
 			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 +. n2))))
 			(* (n1 +J _) +J n2 ---> _ +J (n1 + n2) *)
 			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 +. n2))))
+			| _, _ -> LBinOp (re1, bop, re2)) 
+		| Minus ->
+			(match re1, re2 with
+			(* n1 -J n2 ---> n1 - n2 *) 
+			| LLit (Num n1), LLit (Num n2) -> LLit (Num (n1 -. n2))
+			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 -. n2))))
+			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 -. n2))))
 			| _, _ -> LBinOp (re1, bop, re2)) 
 		| _ -> LBinOp (re1, bop, re2))
 
@@ -540,6 +549,20 @@ let rec reduce_assertion store gamma pfs a =
 				if ((re1 = e1) && (re2 = e2))
 					then a' else f a' in
 		(match e1, e2 with
+
+			(* The alocs *)
+			| ALoc al1, ALoc al2 -> ite al1 al2
+
+			(* The empty business *)
+			| _, LLit Empty -> (match e1 with
+				| LLit l when (l <> Empty) -> LFalse
+				
+				| LEList _
+				| LBinOp _ 
+				| LUnOp _ -> LFalse
+				
+				| _ -> default e1 e2 re1 re2)
+
 			| LLit l1, LLit l2 -> ite l1 l2
 			| LNone, PVar x
 			| PVar x, LNone
@@ -661,13 +684,18 @@ let rec reduce_assertion store gamma pfs a =
 		let result = f (LAnd (LSetMem (rleb, rlel), LNot (LSetMem (rleb, rler)))) in
 			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
-
-	| LSetMem (leb, LESet [ le ]) -> 
+			
+	| LSetMem (leb, LESet les) -> 
 		let rleb = fe leb in
-		let rle = fe le in
-			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
-				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)))); 
-			f (LEq (rleb, rle))
+		let rles = List.map (fun le -> fe le) les in
+		let result = List.map (fun le -> LEq (rleb, le)) rles in
+		let result = List.fold_left (fun ac eq ->
+			(match ac with
+			| LFalse -> eq
+			| _ -> LOr (ac, eq))) LFalse result in  
+			print_debug (Printf.sprintf "SET_MEM: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
+				(JSIL_Print.string_of_logic_assertion result)); 
+			f result
 
 	| LForAll (bt, a) -> 
 			let ra = f a in
@@ -2127,6 +2155,20 @@ let clean_up_stuff exists left right =
 						DynArray.add left LFalse)
 		 | true -> DynArray.delete right !i
 		)
+	done;
+	
+	i := 0;
+	while (!i < DynArray.length right) do
+		let pf = DynArray.get right !i in
+		(match pf with
+		| LNot (LEq (le, LLit Empty)) ->
+			(match le with
+			| LEList _ 
+			| LBinOp (_, _, _)  
+			| LUnOp (_, _) -> DynArray.delete right !i 
+			| _ -> i := !i + 1
+			)
+		| _ -> i := !i + 1)
 	done
 	
 
@@ -2300,7 +2342,7 @@ let simplify_implication exists lpfs rpfs gamma =
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
 	let rpfs, exists, gamma = find_impossible_unions   lpfs rpfs exists gamma in
 	sanitise_pfs_no_store gamma rpfs;
-	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+	print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(string_of_pfs lpfs)
 		(string_of_pfs rpfs)

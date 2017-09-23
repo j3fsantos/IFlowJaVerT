@@ -997,32 +997,32 @@ let make_relevant_axioms a list_vars string_vars list_exprs =
   * SATISFIABILITY *
 	* **************** **)
 let check_satisfiability assertions gamma =
+
 	let start_time = Sys.time () in
-
 	let new_assertions, new_gamma = Simplifications.simplify_pfs (DynArray.of_list assertions) gamma None in
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "check_satisfiability : simpl" (end_time -. start_time);
 
+	let start_time = Sys.time () in
 	let new_assertions_set = SA.of_list (DynArray.to_list new_assertions) in
 	let new_assertions = SA.elements new_assertions_set in
 	let cache_assertion = star_asses new_assertions in
+	let end_time = Sys.time () in
+		JSIL_Syntax.update_statistics "check_satisfiability : cache_prepare" (end_time -. start_time);
 
-	(* print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(Symbolic_State_Print.string_of_pfs (DynArray.of_list new_assertions) false)
-			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
+
+	print_debug (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+			(Symbolic_State_Print.string_of_pfs (DynArray.of_list new_assertions))
+			(Symbolic_State_Print.string_of_gamma new_gamma)); 
 
 	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
-	begin
-		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion in
-		let end_time = Sys.time() in
-		JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
-		JSIL_Syntax.update_statistics "sat_cache" 0.;
-		(* print_debug_petar (Printf.sprintf "Found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache)); *)
-		ret
-	end
+		(Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion)
 	else
 	begin
-		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
+		print_debug (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let solver = get_new_solver new_assertions new_gamma in
 		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
+		let start_time = Sys.time () in
 		let ret = Solver.check solver [] in
 		print_debug_petar (Printf.sprintf "The solver returned: %s"
 			(match ret with
@@ -1035,7 +1035,7 @@ let check_satisfiability assertions gamma =
 			(JSIL_Print.string_of_logic_assertion cache_assertion) (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
-		JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
+		JSIL_Syntax.update_statistics "check_satisfiability : call" (end_time -. start_time);
 		ret
 	end 
 
@@ -1055,8 +1055,6 @@ let check_entailment (existentials : SS.t)
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
 		   (Symbolic_State_Print.string_of_gamma gamma));
 
-		let start_time = Sys.time () in
-
 		let existentials, left_as, right_as, gamma =
 			Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (gamma_copy gamma) in
 		let right_as = Simplifications.simplify_equalities_between_booleans right_as in
@@ -1065,15 +1063,11 @@ let check_entailment (existentials : SS.t)
 		(* If right is empty, then the left only needs to be satisfiable *)
 		if (DynArray.empty right_as) then (
 			let result = check_satisfiability (DynArray.to_list left_as) gamma in
-			let end_time = Sys.time () in
-				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
 			result
 			) else
 		(* If left or right are directly false, everything is false *)
 		if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then (
 			let result = check_satisfiability (DynArray.to_list left_as) gamma in
-			let end_time = Sys.time () in
-				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
 			false
 		) else (
 		let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
@@ -1094,7 +1088,7 @@ let check_entailment (existentials : SS.t)
 		let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in
 		let solver = (Solver.mk_solver ctx None) in
 		Solver.add solver left_as;
-		print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
+		print_debug (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
 		let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
 		if (ret_left) then (
 			let right_as_axioms = 
@@ -1122,7 +1116,8 @@ let check_entailment (existentials : SS.t)
 
 			Solver.add solver (right_as_or :: right_as_axioms);
 			print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
-
+			
+			let start_time = Sys.time () in
 			let ret = Solver.check solver [ ] in
 			print_debug_petar (Printf.sprintf "The solver returned: %s"
 						(match ret with
