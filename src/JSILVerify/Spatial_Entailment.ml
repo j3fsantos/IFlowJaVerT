@@ -38,7 +38,8 @@ let safe_substitution_extension
 	List.fold_left 
 		(fun ac (x, le) -> 
 			if (not ac) then ac else (
-				try Pure_Entailment.is_equal (Hashtbl.find subst x) le pfs gamma
+				try (
+					Pure_Entailment.is_equal (Hashtbl.find subst x) le pfs gamma)
 				with _ -> Hashtbl.replace subst x le; true)) 
 		true subst_list 
 
@@ -57,12 +58,9 @@ let substitution_extension
 			| Some constraints -> 
 				try 
 					let le_x = Hashtbl.find subst x in 
-					if (Pure_Entailment.is_different le_x le pfs gamma) then (
-						print_debug (Printf.sprintf "%s is different from %s\n" 
-							(JSIL_Print.string_of_logic_expression le) 
-							(JSIL_Print.string_of_logic_expression le_x)); 
+					if (Pure_Entailment.is_different le_x le pfs gamma) then
 						None
-					) else Some ((LEq (le_x, le)) :: constraints)
+					else Some ((LEq (le_x, le)) :: constraints)
 				with _ -> Hashtbl.replace subst x le; ac)
 		(Some []) subst_list 
 
