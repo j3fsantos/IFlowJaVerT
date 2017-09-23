@@ -3,29 +3,6 @@ open Symbolic_State
 open JSIL_Logic_Utils
 
 
-let make_all_different_pure_assertion fv_list_1 fv_list_2 : jsil_logic_assertion list =
-
-	let sle e = JSIL_Print.string_of_logic_expression e false in
-
-	let rec all_different_field_against_fv_list f v fv_list pfs : jsil_logic_assertion list =
-		match fv_list with
-		| [] -> pfs
-		| (f', v') :: rest ->
-			(match f, f' with
-			| LLit _, LLit _ -> all_different_field_against_fv_list f v rest pfs
-			| _, _ ->
-				print_debug_petar (Printf.sprintf "all_different: (%s, %s) (%s, %s)\n" (sle f) (sle v) (sle f') (sle v'));
-				all_different_field_against_fv_list f v rest ((LNot (LEq (f, f'))) :: pfs)) in
-
-	let rec all_different_fv_list_against_fv_list fv_list_1 fv_list_2 pfs : jsil_logic_assertion list =
-		(match fv_list_1 with
-		| [] -> pfs
-		| (f, v) :: rest ->
-			let new_pfs = all_different_field_against_fv_list f v fv_list_2 pfs in
-			all_different_fv_list_against_fv_list rest fv_list_2 new_pfs) in
-
-	all_different_fv_list_against_fv_list fv_list_1 fv_list_2 []
-
 
 (**
 	le -> non - normalised logical expression
@@ -182,58 +159,6 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 (** Substitution Functions          **)
 (*************************************)
 
-let small_tbl_size = 31
-
-let update_subst1 subst unifier =
-	(match unifier with
-	 | Some unifier -> List.iter (fun (var, le) -> Hashtbl.replace subst var le) unifier;
-	 | None -> ());
-	true
-
-let convert_lvars_to_spec_vars symb_vars =
-	let subst = Hashtbl.create big_tbl_size in 
-	SS.iter (fun var ->
-			if (not (is_spec_var_name var) && (is_lvar_name var))
-				then (
-					let new_var = fresh_spec_var () in
-					Hashtbl.add subst var (LVar new_var)
-				);
-				if (is_abs_loc_name var) then (
-					Hashtbl.add subst var (ALoc var)
-				)) symb_vars;
-	subst
-
-let update_subst2 subst (unifier1 : (string * jsil_logic_expr) list option)
-                        (unifier2 : (string * jsil_logic_expr) list option) p_formulae (* solver *) gamma =
-	match unifier1, unifier2 with
-	| None, None -> true
-	| Some _, None -> update_subst1 subst unifier1
-	| None, Some _ -> update_subst1 subst unifier2
-	| Some unifier1, Some unifier2 ->
-	  print_debug_petar (Printf.sprintf "Unifier lengths: %d, %d" (List.length unifier1) (List.length unifier2));
-	  print_debug_petar (Printf.sprintf "U1 : %s\nU2 : %s"
-	  	(List.fold_left (fun ac (s, x) -> ac ^ (Printf.sprintf "(%s: %s) " s (JSIL_Print.string_of_logic_expression x false))) "" unifier1)
-		(List.fold_left (fun ac (s, x) -> ac ^ (Printf.sprintf "(%s: %s) " s (JSIL_Print.string_of_logic_expression x false))) "" unifier2));
-	  let u2vs, u2les = List.split unifier2 in
-	  let inter, diff = List.partition (fun (v, _) -> List.mem v u2vs) unifier1 in
-	  print_debug_petar (Printf.sprintf "Intersection: %d\tDifference: %d" (List.length inter) (List.length diff));
-	  if (List.length inter = 0)
-	  	then update_subst1 subst (Some (unifier1 @ unifier2))
-		else
-		  List.fold_left2 (fun ac (var1, le1) (var2, le2) ->
-			if (var1 = var2)
-				then
-					begin
-						if (Pure_Entailment.is_equal le1 le2 p_formulae (* solver *) gamma)
-							then (Hashtbl.add subst var1 le1; ac)
-							else false
-					end
-				else
-					begin
-						Hashtbl.add subst var1 le1;
-						Hashtbl.add subst var2 le2;
-						ac
-					end) true unifier1 unifier2
 
 (**
   find_field fv_list e p_formulae = fv_list', (e1, e2)
@@ -494,14 +419,6 @@ let assertions_of_pred_set pred_set =
 (** Symbolic State functions        **)
 (*************************************)
 
-
-let symb_state_lvars_to_svars symb_state_pre symb_state_post =
-	let symb_vars_pre = ss_lvars symb_state_pre in 
-	let symb_vars_post = ss_lvars symb_state_post in 
-	let subst = convert_lvars_to_spec_vars (SS.union symb_vars_pre symb_vars_post) in
-	let pre = ss_substitution subst true symb_state_pre in
-	let post = ss_substitution subst true symb_state_post in
-	(pre, post)
 
 let get_symb_state_lvars symb_state =
 	let symb_vars = ss_lvars symb_state in 
