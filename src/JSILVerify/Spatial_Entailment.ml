@@ -488,7 +488,7 @@ let unify_gammas
 		(pat_gamma : typing_environment) 
 		(gamma     : typing_environment) : bool =
 
-	Hashtbl.fold 
+	let ret = Hashtbl.fold 
 		(fun x x_type ac ->
 			if (not ac) then ac else (
 				try 
@@ -496,14 +496,18 @@ let unify_gammas
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
 					(match le_type with
 					| Some le_type ->
-						print_debug_petar (Printf.sprintf "unify_gamma. pat gamma x: %s. le: %s. x_type: %s. le_type: %s"
-							x (JSIL_Print.string_of_logic_expression le_x) (JSIL_Print.string_of_type x_type) (JSIL_Print.string_of_type le_type));
-						if (le_type <> x_type) then false else true 
+						if (le_type <> x_type) then (
+							print_debug (Printf.sprintf "unify_gamma. pat gamma: %s. gamma: %s. pat_type: %s. type: %s"
+								x (JSIL_Print.string_of_logic_expression le_x) (JSIL_Print.string_of_type x_type) (JSIL_Print.string_of_type le_type));
+							false 
+						) else true 
 					| None ->
-						print_debug_petar (Printf.sprintf "failed unify_gamma. pat gamma x: %s. le: %s. x_type: %s. le_type: None"
+						print_debug (Printf.sprintf "failed unify_gamma. pat gamma: %s. gamma: %s. pat_type: %s. type: None"
 							x (JSIL_Print.string_of_logic_expression le_x) (JSIL_Print.string_of_type x_type));
 						false)
-				with Not_found -> true)) pat_gamma true
+				with Not_found -> true)) pat_gamma true in 
+	print_debug (Printf.sprintf "unify_gammas result: %b" ret); 
+	ret
 
 
 let pf_list_of_discharges 
@@ -1091,8 +1095,8 @@ let unfold_predicate_definition
 
 let grab_resources 
 		(spec_vars            : SS.t) 
-		(existentials         : SS.t) 
 		(pat_unfication_plan  : jsil_logic_assertion list) 
+		(pat_subst            : substitution)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : symbolic_state option   =
 	
@@ -1100,8 +1104,6 @@ let grab_resources
 		(Symbolic_State_Print.string_of_symb_state symb_state)
 		(Symbolic_State_Print.string_of_symb_state pat_symb_state));
 	
-	let pat_subst = init_substitution (SS.elements spec_vars) in 
-
 	try (
 		let outcome, (heap_f, preds_f, subst, pf_discharges, _) = unify_symb_states pat_unfication_plan (Some pat_subst) pat_symb_state symb_state in
 		match outcome with
@@ -1113,7 +1115,7 @@ let grab_resources
 			let subst_pfs = assertions_of_substitution subst in
 			ss_extend_pfs symb_state (pfs_of_list subst_pfs);
 			let start_time = Sys.time() in
-			let symb_state = Simplifications.simplify_ss symb_state (Some (Some (SS.union spec_vars existentials))) in
+			let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 			let end_time = Sys.time() in
 			JSIL_Syntax.update_statistics "simplify_ss: grab_resources" (end_time -. start_time);
 			Some symb_state

@@ -852,6 +852,33 @@ let recursive_unfold_predicate
 	[ (loop spec_vars symb_state search_info) ]
 
 
+
+let make_spec_var_subst (subst : substitution) (spec_vars : SS.t) : substitution * SS.t = 	
+	print_debug (Printf.sprintf "make_spec_var_subst with spec_vars %s and subst:\n%s" 
+		(String.concat ", " (SS.elements spec_vars))
+		(JSIL_Print.string_of_substitution subst)); 
+
+	let spec_les    = substitution_range subst in 
+	let spec_alocs  = List.concat (List.map (fun le -> SS.elements (get_lexpr_alocs le)) spec_les) in 
+	let subst_list  = List.map (fun aloc -> (aloc, ALoc aloc)) spec_alocs in 
+	let subst_list' = List.map (fun x -> (x, LVar x)) (SS.elements spec_vars) in 
+	let pat_subst   = init_substitution3 (subst_list @ subst_list') in 
+	pat_subst, (SS.of_list spec_alocs) 
+
+
+let extend_spec_vars_subst 
+		(spec_vars : SS.t) 
+		(pfs       : pure_formulae) 
+		(subst     : substitution) : unit = 
+
+	List.iter (fun x -> 
+		if (not (Hashtbl.mem subst x)) then (
+			match Simplifications.resolve_location x (pfs_to_list pfs) with 
+				| Some le -> Hashtbl.replace subst x le 
+				| _       -> ()
+		)) (SS.elements spec_vars) 
+
+
 (*---------------------------------------------------------------
 	symb_evaluate_logic_cmd. 
 ----------------------------------------------------------------*)
@@ -926,8 +953,6 @@ let rec symb_evaluate_logic_cmd
 		let params    = pred.n_pred_params in
 		recursive_unfold_predicate pred_name pred_defs symb_state params spec_vars search_info
 
-
-  	
   	| ApplyLem (lemma_name, l_args) ->
   		print_time (Printf.sprintf "ApplyLemma %s." lemma_name);
 
@@ -976,13 +1001,14 @@ let rec symb_evaluate_logic_cmd
  	| Assert a ->
    		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a));
 		let existentials            = get_asrt_lvars a in
-		let existentials            = SS.diff existentials spec_vars in
+		let existentials           = SS.diff existentials spec_vars in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
 		let gamma_spec_vars         = filter_gamma_f (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
-		(match (Spatial_Entailment.grab_resources spec_vars existentials (Normaliser.create_unification_plan new_symb_state SS.empty) new_symb_state symb_state) with
+		let pat_subst, spec_alocs   = make_spec_var_subst subst spec_vars in
+		(match (Spatial_Entailment.grab_resources new_spec_vars_for_later (Normaliser.create_unification_plan new_symb_state spec_alocs) pat_subst new_symb_state symb_state) with
 			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later, search_info ]
-			| None -> raise (Failure "Assert: could not grab resources.")))
+			| None -> raise (Failure "Assert: could not grab resources.")))					
 and
 symb_evaluate_logic_cmds s_prog
 	(l_cmds : jsil_logic_command list)
@@ -1181,12 +1207,12 @@ and post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state cu
 	(* For each obtained symbolic state *)
 	List.concat (List.map 
 		(* Get the symbolic state *)
-		(fun (symb_state, spec_vars, search_info) ->
+		(fun (symb_state, spec_vars', search_info) ->
 			let search_info =
 				if (len > 1)
 					then { search_info with vis_tbl = (copy_vis_tbl search_info.vis_tbl) }
-					else search_info in
-				pre_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state cur next)
+					else search_info in 
+			pre_symb_evaluate_cmd s_prog proc spec_vars' subst search_info symb_state cur next)
 		symb_states_with_spec_vars)
 
 and pre_symb_evaluate_cmd 
@@ -1210,9 +1236,9 @@ and pre_symb_evaluate_cmd
 			(match metadata.invariant with
 			| None   -> raise (Failure "Back edges MUST point to commands with invariants")
 			| Some a ->
-				let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst (get_asrt_pvars a) in 
-				let pat_subst      = init_substitution (SS.elements spec_vars) in 
-				let _ = Spatial_Entailment.fully_unify_symb_state !js (Normaliser.create_unification_plan symb_state_inv SS.empty) (Some pat_subst) symb_state_inv symb_state in 
+				let symb_state_inv        = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars (copy_substitution subst) (get_asrt_pvars a) in 
+				let pat_subst, spec_alocs = make_spec_var_subst subst spec_vars in 
+				let _ = Spatial_Entailment.fully_unify_symb_state !js (Normaliser.create_unification_plan symb_state_inv spec_alocs) (Some pat_subst) symb_state_inv symb_state in 
 				[])				
 		) else (
 			(*  New next command *)
@@ -1228,10 +1254,13 @@ and pre_symb_evaluate_cmd
 							(JSIL_Print.string_of_logic_assertion a)
 							(JSIL_Print.string_of_substitution subst)
 							(String.concat ", " (SS.elements spec_vars)));
-					let inv_lvars      = get_asrt_lvars a in
-					let spec_vars_inv  = SS.union inv_lvars spec_vars in
-					let symb_state_inv = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars subst (get_asrt_pvars a) in 
-					(match (Spatial_Entailment.grab_resources spec_vars inv_lvars (Normaliser.create_unification_plan symb_state_inv SS.empty) symb_state_inv symb_state) with
+					extend_spec_vars_subst spec_vars (ss_pfs symb_state) subst; 
+					let inv_lvars             = get_asrt_lvars a in
+					let symb_state_inv        = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars (copy_substitution subst) (get_asrt_pvars a) in 
+					let pat_subst, spec_alocs = make_spec_var_subst subst spec_vars in
+					let spec_vars_inv         = SS.union inv_lvars spec_vars in 
+
+					(match (Spatial_Entailment.grab_resources spec_vars_inv (Normaliser.create_unification_plan symb_state_inv spec_alocs) pat_subst symb_state_inv symb_state) with
 						| Some new_symb_state -> new_symb_state, spec_vars_inv
 						| None -> raise (Failure "Unification with invariant failed"))) in
 			 
@@ -1241,12 +1270,12 @@ and pre_symb_evaluate_cmd
 
 			(* 3. Evaluate the next command in all the possible symb_states *)
 			let len = List.length symb_states_with_spec_vars in
-			List.concat (List.map (fun (symb_state, spec_vars, search_info) ->
+			List.concat (List.map (fun (symb_state, spec_vars', search_info) ->
 				(* Construct the search info for the next command *)
 				let vis_tbl         = if (len > 1) then (copy_vis_tbl search_info.vis_tbl) else search_info.vis_tbl in
 				let info_node       = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
 				let new_search_info = update_search_info search_info info_node vis_tbl in
-				symb_evaluate_cmd s_prog proc spec_vars subst new_search_info symb_state next cur)
+				symb_evaluate_cmd s_prog proc spec_vars' subst new_search_info symb_state next cur)
 				symb_states_with_spec_vars)))
 	
 
@@ -1273,12 +1302,8 @@ let unify_symb_state_against_post
 				
 		| post :: rest_posts ->
 			try (
-				let spec_les    = substitution_range spec.n_subst in 
-				let spec_alocs  = List.concat (List.map (fun le -> SS.elements (get_lexpr_alocs le)) spec_les) in 
-				let subst_list  = List.map (fun aloc -> (aloc, ALoc aloc)) spec_alocs in 
-				let subst_list' = List.map (fun x -> (x, LVar x)) (SS.elements spec.n_lvars) in 
-				let pat_subst   = init_substitution3 (subst_list @ subst_list') in 
-				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan post (SS.of_list spec_alocs)) (Some pat_subst) post symb_state in 
+				let pat_subst, spec_alocs = make_spec_var_subst spec.n_subst spec.n_lvars in 
+				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan post spec_alocs) (Some pat_subst) post symb_state in 
 				activate_post_in_post_pruning_info symb_exe_info proc_name i;
 				print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name)
 			) with Spatial_Entailment.UnificationFailure _ -> loop rest_posts (i + 1)) in 
