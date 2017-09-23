@@ -151,7 +151,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	| Failure msg -> let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
 		print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> Failure" 
-			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false));
+			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le));
 		raise (Failure msg)
 
 
@@ -219,14 +219,14 @@ let update_abs_heap (heap : symbolic_heap) (loc : string) (e_field : jsil_logic_
 		let new_domain = (match domain with 
 		| None -> None 
 		| Some domain -> 
-			print_debug (Printf.sprintf "UAH: My domain is: %s" (JSIL_Print.string_of_logic_expression domain false));
+			print_debug (Printf.sprintf "UAH: My domain is: %s" (JSIL_Print.string_of_logic_expression domain));
 			let new_domain = LSetUnion [ domain; LESet [ e_field ]] in 
 			let new_domain = normalise_lexpr gamma new_domain in
 			let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 
 			Some new_domain) in 
 		LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, new_domain)
 	| None, false ->
-		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field false) loc in
+		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field) loc in
 			raise (Failure msg)			
 
 let abs_heap_find (heap : symbolic_heap) (l : string) (e : jsil_logic_expr) 
@@ -240,11 +240,11 @@ let abs_heap_find (heap : symbolic_heap) (l : string) (e : jsil_logic_expr)
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list p_formulae) [ a_set_inclusion ] gamma) 
 			then LNone
 			else (
-				let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e false) l in
+				let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e) l in
 				raise (Failure msg)
 			)
 	| _ -> 
-		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e false) l in
+		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e) l in
 			raise (Failure msg)
 
 let abs_heap_check_field_existence (heap : symbolic_heap) (l : string) (e : jsil_logic_expr)
@@ -284,9 +284,9 @@ let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : 
 	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
 	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
 
-	print_debug_petar (Printf.sprintf "heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap heap false));
-	print_debug_petar (Printf.sprintf "pat_heap: %s\n" (Symbolic_State_Print.string_of_shallow_symb_heap new_heap false));
-	print_debug_petar (Printf.sprintf "p_formulae: %s\n" (Symbolic_State_Print.string_of_shallow_p_formulae p_formulae false));
+	print_debug_petar (Printf.sprintf "heap: %s\n" (Symbolic_State_Print.string_of_symb_heap heap));
+	print_debug_petar (Printf.sprintf "pat_heap: %s\n" (Symbolic_State_Print.string_of_symb_heap new_heap));
+	print_debug_petar (Printf.sprintf "p_formulae: %s\n" (Symbolic_State_Print.string_of_pfs p_formulae));
 	print_debug_petar (Printf.sprintf "gamma: %s\n" (Symbolic_State_Print.string_of_gamma gamma));
 
 	LHeap.iter
@@ -354,7 +354,7 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 		(match les, pat_les with
 		| [], [] -> Some subst
 		| le :: rest_les, pat_le :: rest_pat_les ->
-			print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression pat_le false));
+			print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression pat_le));
 			let _, sbt = Simplifications.simplify_pfs_with_subst (DynArray.of_list [ LEq (pat_le, le) ]) gamma in
 			(match sbt with
 			| Some sbt ->
@@ -367,7 +367,7 @@ let predicate_assertion_equality pred pat_pred pfs gamma (spec_vars : SS.t) (exi
 					let s_pfs = pfs_substitution subst true pfs in
 					let s_le  = lexpr_substitution subst true le in
 					let s_pat_le = lexpr_substitution subst true pat_le in
-					print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression s_le false) (JSIL_Print.string_of_logic_expression s_pat_le false));
+					print_debug_petar (Printf.sprintf "I am going to test if %s CAN BE equal to %s\n" (JSIL_Print.string_of_logic_expression s_le) (JSIL_Print.string_of_logic_expression s_pat_le));
 					if (Pure_Entailment.is_equal s_le s_pat_le s_pfs gamma) 
 						then unify_pred_args rest_les rest_pat_les
 						else None
@@ -509,7 +509,7 @@ let compatible_pfs
 
 	(if (not is_sat) then 
 		print_debug (Printf.sprintf "These pfs are not compatible: %s"
-			(String.concat "\n" (List.map (fun a -> JSIL_Print.string_of_logic_assertion a false) pf_list)))
+			(String.concat "\n" (List.map (fun a -> JSIL_Print.string_of_logic_assertion a) pf_list)))
 	); 
 
 	is_sat 
@@ -575,8 +575,8 @@ let string_of_single_spec_table_assertion single_spec =
 	let post = convert_symb_state_to_assertion (List.hd single_spec.n_post) in
 	let flag = (match single_spec.n_ret_flag with | Normal -> "normal" | Error -> "error") in
 	(Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n"
-	 (JSIL_Print.string_of_logic_assertion pre false)
-	 (JSIL_Print.string_of_logic_assertion post false)
+	 (JSIL_Print.string_of_logic_assertion pre)
+	 (JSIL_Print.string_of_logic_assertion post)
 	 flag)
 
 let string_of_n_single_spec_assertion spec = 

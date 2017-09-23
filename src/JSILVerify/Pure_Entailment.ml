@@ -560,7 +560,7 @@ let rec encode_lit lit =
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ arg_list ])
 
 	with (Failure msg) ->
-		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (JSIL_Print.string_of_literal lit false) msg))
+		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (JSIL_Print.string_of_literal lit) msg))
 
 
 (** Encode JSIL binary operators *)
@@ -733,7 +733,7 @@ let rec encode_logical_expression le =
 
 	| _                     ->
 		let msg = Printf.sprintf "Failure - z3 encoding: Unsupported logical expression: %s"
-			(JSIL_Print.string_of_logic_expression le false) in
+			(JSIL_Print.string_of_logic_expression le) in
 		raise (Failure msg)
 
 
@@ -852,7 +852,7 @@ let rec encode_assertion a : Expr.expr =
 			encode_quantifier true ctx binders z3_sorts z3_a
 
 	| _ ->
-		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in
+		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a) in
 		raise (Failure msg)
 
 
@@ -989,7 +989,7 @@ let make_relevant_axioms a list_vars string_vars list_exprs =
 	(*if (List.length l_axioms > 0) then *)
 
 	(* print_debug_petar (Printf.sprintf "Generated Axioms:\n%s\n"
-	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list (l_axioms @ constant_axioms)) false)); *)
+	   (Symbolic_State_Print.string_of_pfs (DynArray.of_list (l_axioms @ constant_axioms)) false)); *)
 
 	s_axioms @ l_axioms @ constant_axioms
 
@@ -1006,7 +1006,7 @@ let check_satisfiability assertions gamma =
 	let cache_assertion = star_asses new_assertions in
 
 	(* print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
+			(Symbolic_State_Print.string_of_pfs (DynArray.of_list new_assertions) false)
 			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
 
 	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
@@ -1032,7 +1032,7 @@ let check_satisfiability assertions gamma =
 		let ret = (ret = Solver.SATISFIABLE) in
 		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
 		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
-			(JSIL_Print.string_of_logic_assertion cache_assertion false) (Hashtbl.length JSIL_Syntax.check_sat_cache));
+			(JSIL_Print.string_of_logic_assertion cache_assertion) (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
@@ -1051,8 +1051,8 @@ let check_entailment (existentials : SS.t)
 
 		print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 		   (String.concat ", " (SS.elements existentials))
-		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
-		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
+		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list left_as))
+		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
 		   (Symbolic_State_Print.string_of_gamma gamma));
 
 		let start_time = Sys.time () in

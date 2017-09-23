@@ -4,7 +4,6 @@ open JSIL_Logic_Utils
 
 let js = ref false
 
-let print_le = (fun x -> JSIL_Print.string_of_logic_expression x false)
 
 let domain_from_single_lit lit = Some (LESet [ (LLit (String lit)) ])
 
@@ -206,8 +205,8 @@ let safe_symb_evaluate_expr
 		| LVar _ ->  nle, None, false
 		| _ ->
 				let gamma_str = Symbolic_State_Print.string_of_gamma gamma in
-				let pure_str = Symbolic_State_Print.string_of_shallow_p_formulae pure_formulae false in
-				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (print_le nle) gamma_str pure_str in
+				let pure_str = Symbolic_State_Print.string_of_pfs pure_formulae in
+				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle) gamma_str pure_str in
 				raise (Failure msg))
 
 let member_check heap loc ne2 pure_formulae gamma x store =
@@ -292,8 +291,8 @@ let symb_evaluate_bcmd
 		 		| Some loc ->
 		 			loc
 		 		| None ->
-					raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
-			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+					raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
+			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))) in
 		let ne = Symbolic_State_Utils.abs_heap_find heap l ne2 pure_formulae gamma in
 		let ne_type,_,_ = type_lexpr gamma ne in
 		update_gamma gamma x ne_type;
@@ -321,9 +320,9 @@ let symb_evaluate_bcmd
 		 		| Some loc ->
 		 			Symbolic_State_Utils.update_abs_heap heap loc ne2 ne3 pure_formulae gamma
 		 		| None ->
-					raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+					raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
 		| _ ->
-			raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
+			raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
 		ne3
 
   (* Property deletion: delete(e1, e2)
@@ -345,8 +344,8 @@ let symb_evaluate_bcmd
 		 		| Some loc ->
 		 			loc
 		 		| None ->
-					raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
-			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+					raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
+			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))) in
 		Symbolic_State_Utils.update_abs_heap heap l ne2 LNone pure_formulae gamma;
 		LLit (Bool true)
 
@@ -368,10 +367,10 @@ let symb_evaluate_bcmd
 		 		| Some loc ->
 		 			loc
 		 		| None ->
-					raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
-			| _ -> raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))) in
+					raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
+			| _ -> raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))) in
 		(match (LHeap.mem heap l) with
-		 | false -> raise (Failure (Printf.sprintf "Attempting to delete an inexistent object: %s" (print_le ne1)))
+		 | false -> raise (Failure (Printf.sprintf "Attempting to delete an inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1)))
 		 | true -> LHeap.remove heap l; LLit (Bool true));
 
   (* Property existence: x = hasField(e1, e2);
@@ -396,8 +395,8 @@ let symb_evaluate_bcmd
 		 		| Some loc ->
 		 			member_check heap loc ne2 pure_formulae gamma x store
 		 		| None ->
-					raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1))));
-		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (print_le ne1)))
+					raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
+		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))
 
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 
@@ -450,7 +449,7 @@ let find_and_apply_spec
 			print_debug (Printf.sprintf "Entering find_correct_specs with the spec:");
 			print_debug (Printf.sprintf "------------------------------------------");
 			print_debug (Printf.sprintf "Pre:\n%sPosts:\n%s"
-				(Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre)
+				(Symbolic_State_Print.string_of_symb_state spec.n_pre)
 				(Symbolic_State_Print.string_of_symb_state_list spec.n_post));
 
 			try (
@@ -462,7 +461,7 @@ let find_and_apply_spec
 				        have previously encountered
 				     *)
 					print_debug (Printf.sprintf "COMPLETE match");
-					print_debug (Printf.sprintf "The pre of the spec that completely matches is:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
+					print_debug (Printf.sprintf "The pre of the spec that completely matches is:\n%s" (Symbolic_State_Print.string_of_symb_state spec.n_pre));
 					print_debug (Printf.sprintf "The number of posts is: %d" (List.length spec.n_post));
 					[ (true, spec, (framed_heap, framed_preds, subst, pf_discharges, new_gamma)) ]
 				| false ->
@@ -632,9 +631,9 @@ let rec fold_predicate
 	let existentials_str = print_var_list (SS.elements existentials) in
 	print_debug (Printf.sprintf ("\nFOLDING %s(%s) with the existentials %s in the symbolic state: \n%s\n")
 	  pred_name
-		(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) args))
+		(String.concat ", " (List.map JSIL_Print.string_of_logic_expression args))
 		existentials_str
-		(Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+		(Symbolic_State_Print.string_of_symb_state symb_state));
 
 	let rec one_step_fold  
 			(index : int) 
@@ -643,7 +642,7 @@ let rec fold_predicate
 		print_time_debug ("check_pred_def:");
 		let _, pred_def, pred_def_up = Array.get pred_defs index in
 		print_debug (Printf.sprintf "----------------------------");
-		print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_shallow_symb_state pred_def));
+		print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_symb_state pred_def));
 		
 		let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials pred_def_up pred_def symb_state_caller))
 			with | Spatial_Entailment.UnificationFailure _ -> None in
@@ -657,14 +656,14 @@ let rec fold_predicate
 			
 		  	(* Print useful INFO *)
 			print_debug (Printf.sprintf "Folding Complete!");
-			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state));
+			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_symb_state new_symb_state));
 			Some (new_symb_state, new_spec_vars, search_info)
 
 		| Some (true, (framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) 
 				when missing_pred_name = pred_name ->
 			
 			print_debug (Printf.sprintf "Folding Incomplete. Missing %s(%s)\n"
-				pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+				pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
 		
 			(* Fold Incomplete - Must recursively fold the predicate *)
 			let new_symb_state, missing_pred_args, existentials' = 
@@ -682,7 +681,7 @@ let rec fold_predicate
 			| None -> None 
 			| Some (_, missing_pred_args) -> (
 				print_debug (Printf.sprintf "Going to remove %s(%s) and try to fold again"
-					pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+					pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
 
 				let pred_def' = ss_replace_preds pred_def preds_pred_def' in
 				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan pred_def' SS.empty) pred_def' symb_state_caller))
@@ -761,9 +760,9 @@ let unfold_predicate
 		(unfold_info : (string * ((string * jsil_logic_expr) list)) option) : (symbolic_state * SS.t * symbolic_execution_search_info) list =
 
 	print_debug (Printf.sprintf "UNFOLD_PREDICATE %s with info %s in the symbolic state:\n%s"
-			(JSIL_Print.string_of_logic_assertion (LPred (pred_name, args)) false)
+			(JSIL_Print.string_of_logic_assertion (LPred (pred_name, args)))
 			(JSIL_Print.string_of_unfold_info unfold_info)
-			(Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+			(Symbolic_State_Print.string_of_symb_state symb_state));
 
 	(* Step 1: Find the predicate assertion to be unfolded
 	    --------------------------------------------------------------
@@ -869,7 +868,7 @@ let rec symb_evaluate_logic_cmd
 
 	let get_pred_data pred_name les =
 		print_debug (Printf.sprintf "About to fold %s(%s)" pred_name 
-			(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) les)));
+			(String.concat ", " (List.map JSIL_Print.string_of_logic_expression les)));
 
 		let pred = get_pred s_prog.pred_defs pred_name in
 		let args =
@@ -897,10 +896,10 @@ let rec symb_evaluate_logic_cmd
 		(match a with
 		| LPred	(pred_name, les) ->
 			print_time (Printf.sprintf "Fold %s(%s)." pred_name
-				(String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) les))); 
-			print_debug (Printf.sprintf "\nSTATE #1: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+				(String.concat ", " (List.map JSIL_Print.string_of_logic_expression les))); 
+			print_debug (Printf.sprintf "\nSTATE #1: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
       		let params, pred_defs, args = get_pred_data pred_name les in
-      		print_debug (Printf.sprintf "\nSTATE #2: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
+      		print_debug (Printf.sprintf "\nSTATE #2: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
 			let pred_defs = Array.of_list pred_defs in
 
       		if (do_i_already_have_this_predicate_assertion pred_name args) then [ symb_state, spec_vars, search_info ] else (
@@ -910,11 +909,11 @@ let rec symb_evaluate_logic_cmd
 					ss_extend_preds symb_state (pred_name, args);
 					[ symb_state, new_spec_vars, new_search_info ]
 				| _ ->
-					print_normal (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));
-					let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a false) in
+					print_normal (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
+					let msg = Printf.sprintf "Could not fold: %s " (JSIL_Print.string_of_logic_assertion a) in
 					raise (Failure msg)))
 		| _ ->
-			let msg = Printf.sprintf "Illegal fold command %s" (JSIL_Print.string_of_logic_assertion a false) in
+			let msg = Printf.sprintf "Illegal fold command %s" (JSIL_Print.string_of_logic_assertion a) in
 			raise (Failure msg))
 
 	| Unfold (a, unfold_info) ->
@@ -925,11 +924,11 @@ let rec symb_evaluate_logic_cmd
 			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args spec_vars search_info unfold_info in
 			if ((List.length unfolded_symb_states) = 0) then (
 				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);
-				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a false) in
+				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a) in
 				raise (Failure msg))
 			else unfolded_symb_states
 		| _ ->
-			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a false) in
+			let msg = Printf.sprintf "Illegal unfold command %s" (JSIL_Print.string_of_logic_assertion a) in
 			raise (Failure msg))
 
 	| RecUnfold pred_name ->
@@ -976,10 +975,10 @@ let rec symb_evaluate_logic_cmd
 			| None, None -> LFalse in
 			if (Pure_Entailment.check_entailment SS.empty (ss_pfs_list symb_state) [ a_le_then ] (ss_gamma symb_state))
 				then (
-					print_normal (Printf.sprintf "LIf Guard -- %s ==> $$t" (JSIL_Print.string_of_logic_expression le false));
+					print_normal (Printf.sprintf "LIf Guard -- %s ==> $$t" (JSIL_Print.string_of_logic_expression le));
 					symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst
 				) else (
-					print_normal (Printf.sprintf "If Guard -- %s ==> $$f" (JSIL_Print.string_of_logic_expression le false));
+					print_normal (Printf.sprintf "If Guard -- %s ==> $$f" (JSIL_Print.string_of_logic_expression le));
 					symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst)
 
 	| Macro (name, param_vals) ->
@@ -987,7 +986,7 @@ let rec symb_evaluate_logic_cmd
 		symb_evaluate_logic_cmd s_prog macro_body symb_state subst spec_vars search_info print_symb_states
 
  	| Assert a ->
-   		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a false));
+   		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a));
 		let existentials            = get_asrt_lvars a in
 		let existentials            = SS.diff existentials spec_vars in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
@@ -1009,7 +1008,7 @@ symb_evaluate_logic_cmds s_prog
 			List.concat (List.map (fun (symb_state, spec_vars, search_info) ->
 				if print_symb_states then (
 					print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\n----------------------------------\n" 
-						(Symbolic_State_Print.string_of_shallow_symb_state symb_state) 
+						(Symbolic_State_Print.string_of_symb_state symb_state) 
 						(JSIL_Print.string_of_lcmd l_cmd))); 
 				symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info print_symb_states) symb_states_with_spec_vars) in 
 		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states_with_spec_vars print_symb_states subst)
@@ -1040,12 +1039,12 @@ let rec symb_evaluate_cmd
 	(* symbolically evaluate a guarded goto *)
 	let symb_evaluate_guarded_goto symb_state e j k =
 		let le = symb_evaluate_expr (ss_store symb_state) (ss_gamma symb_state) (ss_pfs symb_state) e in
-		print_debug (Printf.sprintf "Guarded Goto: Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e false) (JSIL_Print.string_of_logic_expression le false));
+		print_debug (Printf.sprintf "Guarded Goto: Evaluated expression: %s --> %s\n" (JSIL_Print.string_of_expression e) (JSIL_Print.string_of_logic_expression le));
 		let e_le, a_le = lift_logic_expr le in
 		let a_le_then, a_le_else =
 			match e_le, a_le with
 			| _, Some (a_le, a_not_le) ->
-				print_debug_petar (Printf.sprintf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le false));
+				print_debug_petar (Printf.sprintf "Lifted assertion: %s\n" (JSIL_Print.string_of_logic_assertion a_le));
 				([ a_le ], [ a_not_le ])
 			| Some e_le, None ->
 				([LEq (e_le, LLit (Bool true))], [LEq (e_le, LLit (Bool false))])
@@ -1089,7 +1088,7 @@ let rec symb_evaluate_cmd
 			(match le_proc_name with
 			| LLit (String proc_name) -> proc_name
 			| _ ->
-				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Print.string_of_logic_expression le_proc_name false) in
+				let msg = Printf.sprintf "Symb Execution Error - Cannot analyse a procedure call without the name of the procedure. Got: %s." (JSIL_Print.string_of_logic_expression le_proc_name) in
 				raise (Failure msg)) in
 
 		(** Step 2 - Symbolically evaluate the arguments given to the procedure call  *)
@@ -1238,8 +1237,8 @@ and pre_symb_evaluate_cmd
 				| Some a  -> 
 					print_normal 
 						(Printf.sprintf "INVARIANT: %s.\nSubst:\n%s\n.SpecVars:%s\n"
-							(JSIL_Print.string_of_logic_assertion a false)
-							(Symbolic_State_Print.string_of_substitution subst)
+							(JSIL_Print.string_of_logic_assertion a)
+							(JSIL_Print.string_of_substitution subst)
 							(String.concat ", " (SS.elements spec_vars)));
 					let inv_lvars      = get_asrt_lvars a in
 					let spec_vars_inv  = SS.union inv_lvars spec_vars in
@@ -1275,7 +1274,7 @@ let unify_symb_state_against_post
 		(if (msg = "")
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
 			else Printf.printf "Failed to verify a spec of proc %s -- %s\n" proc_name msg);
-		let final_symb_state_str = Symbolic_State_Print.string_of_shallow_symb_state symb_state in
+		let final_symb_state_str = Symbolic_State_Print.string_of_symb_state symb_state in
 		let post_symb_state_str = Symbolic_State_Print.string_of_symb_state_list spec.n_post in
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in
@@ -1327,7 +1326,7 @@ let symb_evaluate_proc
 	let proc = get_proc s_prog.program proc_name in
 	let success, failure_msg =
 		(try
-			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state spec.n_pre));
+			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (Symbolic_State_Print.string_of_symb_state spec.n_pre));
 			let symb_state = ss_copy spec.n_pre in
 			(* Symbolically execute the procedure *)
 			let final_symb_states = pre_symb_evaluate_cmd s_prog proc spec.n_lvars spec.n_subst search_info symb_state (-1) 0 in 
@@ -1452,7 +1451,7 @@ let rec unify_all_posts all_posts symb_state lvars lemma_name i =
 		| [] ->
 				Printf.printf "Failed to verify a spec of lemma %s:\n" lemma_name;
 				Printf.printf "Non_unifiable symbolic states.\n";
-				Printf.printf "Final symbolic state: %s\n" (Symbolic_State_Print.string_of_shallow_symb_state symb_state);
+				Printf.printf "Final symbolic state: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state);
 				false
 		| post :: posts ->
 				(* Presumably this function throws an error when it fails, so if it succeeds success is assumed *)

@@ -496,18 +496,6 @@ expr_target:
 (* typeOf *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ TypeOf (e) }
-(* asssume (e) *)
-  | ASSUME; LBRACE; e=expr_target; RBRACE
-	  { RAssume (e) }
-(* assert (e) *)
-  | ASSERT; LBRACE;  e=expr_target; RBRACE
-	  { RAssert (e) }
-(* make_symbol_number() *)
-  | RNUMSYM; LBRACE;  RBRACE
-	  { RNumSymb }
-(* make_symbol_string() *)
-  | RSTRSYM; LBRACE; RBRACE
-	  { RStrSymb }
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
 		{ EList exprlist }

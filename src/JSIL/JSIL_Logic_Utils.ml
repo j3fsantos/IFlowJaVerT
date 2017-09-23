@@ -861,8 +861,8 @@ and lift_binop_logic_expr op le1 le2 =
 		let l_op_fun = lexpr_to_ass_binop op in
 		(match ((f le1), (f le2)) with
 		| ((Some le1, _), (Some le2, _)) -> None, Some ((l_op_fun le1 le2), LNot (l_op_fun le1 le2))
-		| ((None    , _), (Some   _, _)) -> raise (Failure (err_msg ^ " : LEFT : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le1 false)) ^ " : right : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le2 false))))
-		| ((Some   _, _), (None    , _)) -> raise (Failure (err_msg ^ " : left : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le1 false)) ^ " : RIGHT : " ^ (Printf.sprintf "%s" (JSIL_Print.string_of_logic_expression le2 false))))
+		| ((None    , _), (Some   _, _)) -> raise (Failure (err_msg ^ " : LEFT : " ^ (JSIL_Print.string_of_logic_expression le1) ^ " : right : " ^ (JSIL_Print.string_of_logic_expression le2)))
+		| ((Some   _, _), (None    , _)) -> raise (Failure (err_msg ^ " : left : " ^ (JSIL_Print.string_of_logic_expression le1) ^ " : RIGHT : " ^ (JSIL_Print.string_of_logic_expression le2)))
 		| ((None    , _), (None    , _)) -> raise (Failure (err_msg ^ " : left and right.")))
 	| And ->
 		(match ((f le1), (f le2)) with

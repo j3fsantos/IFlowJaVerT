@@ -378,9 +378,9 @@ let string_of_js_error heap err_val =
 					(match eType with
 					| LList list -> List.nth list 1
 					| _ -> eType) in
-				(JSIL_Print.string_of_literal eType false) ^ " : " ^ (JSIL_Print.string_of_literal message false)
+				(JSIL_Print.string_of_literal eType) ^ " : " ^ (JSIL_Print.string_of_literal message)
 		| _ -> (raise (Failure "Prototype object not an object.")))
-	| _ -> JSIL_Print.string_of_literal err_val false
+	| _ -> JSIL_Print.string_of_literal err_val
 
 
 (********************************************)

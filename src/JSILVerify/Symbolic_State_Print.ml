@@ -11,7 +11,7 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 			  let printed_props =
 					(SHeap.fold
 						(fun prop hval printed_obj ->
-							let printed_hval = string_of_literal hval false in
+							let printed_hval = string_of_literal hval in
 							let printed_cell = Printf.sprintf "\n\"%s\": %s" prop printed_hval in
 							if (printed_obj = "") then printed_cell else printed_obj ^ ", " ^ printed_cell)
 						obj
@@ -21,11 +21,11 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 		h
 		""
 
-let string_of_symb_fv_list fv_list escape_string =
+let string_of_fv_list (fv_list : symbolic_field_value_list) : string =
 	List.fold_left
 		(fun ac (field, value) ->
-				let field_str = string_of_logic_expression field escape_string in
-				let value_str = string_of_logic_expression value escape_string in
+				let field_str = string_of_logic_expression field in
+				let value_str = string_of_logic_expression value in
 				let field_value_str = "(" ^ field_str ^ ": " ^ value_str ^ ")"  in
 				if (ac = "")
 					then field_value_str
@@ -33,36 +33,36 @@ let string_of_symb_fv_list fv_list escape_string =
 		""
 		fv_list
 
-let string_of_shallow_symb_heap (heap : symbolic_heap) (escape_string : bool) =
+let string_of_symb_heap (heap : symbolic_heap) : string=
 	LHeap.fold
 		(fun loc (fv_pairs, domain) ac ->
-			let str_fv_pairs = string_of_symb_fv_list fv_pairs escape_string in
-			let domain_str = Option.map_default (fun le -> string_of_logic_expression le escape_string) "" domain in
+			let str_fv_pairs = string_of_fv_list fv_pairs in
+			let domain_str = Option.map_default string_of_logic_expression "" domain in
 			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "]" in
 			if (ac = "\n\t") then (ac ^ symb_obj_str) else ac ^ "\n\t" ^ symb_obj_str)
 		heap
 		"\n\t"
 
 
-let string_of_shallow_symb_store store escape_string =
+let string_of_symb_store (store : symbolic_store) : string =
 	Hashtbl.fold
 		(fun var le ac ->
-			 let le_str = string_of_logic_expression le escape_string in
+			 let le_str = string_of_logic_expression le in
 			 let var_le_str = "(" ^ var ^ ": " ^ le_str ^ ")" in
 			if (ac = "") then var_le_str else ac ^ "\n\t" ^ var_le_str )
 		store
 		"\t"
 
 
-let string_of_shallow_p_formulae p_formulae escape_string =
+let string_of_pfs (p_formulae : pure_formulae) : string =
 	DynArray.fold_left
 		(fun ac cur_ass ->
-			let cur_ass_str = string_of_logic_assertion cur_ass escape_string in
+			let cur_ass_str = string_of_logic_assertion cur_ass in
 			if (ac = "") then cur_ass_str else ac ^ "\n\t" ^ cur_ass_str)
 		"\t"
 		p_formulae
 
-let string_of_gamma (gamma : (string, jsil_type) Hashtbl.t) : string =
+let string_of_gamma (gamma : typing_environment) : string =
 	let gamma_str =
 		Hashtbl.fold
 			(fun var var_type ac ->
@@ -74,12 +74,12 @@ let string_of_gamma (gamma : (string, jsil_type) Hashtbl.t) : string =
 			"\t" in
 	gamma_str
 
-let string_of_pred pred escape_string =
+let string_of_pred (pred : (string * (jsil_logic_expr list))) : string =
 	let cur_pred_name, cur_pred_args = pred in
 	let args_str =
 			List.fold_left
 				(fun ac le ->
-					let le_str = string_of_logic_expression le escape_string in
+					let le_str = string_of_logic_expression le in
 					if (ac = "") then
 						le_str
 					else (ac ^ ", " ^ le_str))
@@ -87,30 +87,30 @@ let string_of_pred pred escape_string =
 				cur_pred_args in
 	cur_pred_name ^ "(" ^ args_str ^ ")"
 
-let string_of_preds preds escape_string =
+let string_of_preds (pred_set : predicate_set) : string =
 	DynArray.fold_left
 		(fun ac pred ->
-			let cur_pred_str = string_of_pred pred escape_string in
+			let cur_pred_str = string_of_pred pred in
 			if (ac = "") then cur_pred_str else ac ^ ", " ^ cur_pred_str)
 		""
-		preds
+		pred_set
 
 
-let string_of_shallow_symb_state (symb_state : symbolic_state) =
+let string_of_symb_state (symb_state : symbolic_state) : string =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)
-	let str_heap       = "Heap: " ^ (string_of_shallow_symb_heap (ss_heap symb_state) true) ^ "\n" in
-	let str_store      = "Store: " ^ (string_of_shallow_symb_store (ss_store symb_state) true) ^ "\n" in
-	let str_p_formulae = "Pure Formulae: " ^ (string_of_shallow_p_formulae (ss_pfs symb_state) true) ^ "\n" in
+	let str_heap       = "Heap: " ^ (string_of_symb_heap (ss_heap symb_state)) ^ "\n" in
+	let str_store      = "Store: " ^ (string_of_symb_store (ss_store symb_state)) ^ "\n" in
+	let str_p_formulae = "Pure Formulae: " ^ (string_of_pfs (ss_pfs symb_state)) ^ "\n" in
 	let str_gamma      = "Gamma: " ^ (string_of_gamma (ss_gamma symb_state)) ^ "\n" in
-	let str_preds      = "Preds: " ^ (string_of_preds (ss_preds symb_state) true) ^ "\n" in
+	let str_preds      = "Preds: " ^ (string_of_preds (ss_preds symb_state)) ^ "\n" in
 	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 
 
-let string_of_symb_state_list symb_states =
+let string_of_symb_state_list (symb_states : symbolic_state list) : string =
 	let ret_str, _ =
 		List.fold_left
 			(fun (ac_str, index) post ->
-				let cur_str = string_of_shallow_symb_state post in
+				let cur_str = string_of_symb_state post in
 				let cur_str = ("Post " ^ (string_of_int index) ^ ": \n" ^ cur_str ^ ";\n") in
 				if (ac_str = "")
 					then (cur_str, (index + 1))
@@ -119,21 +119,21 @@ let string_of_symb_state_list symb_states =
 			symb_states in
 	ret_str
 
-let string_of_specs specs =
+let string_of_specs (specs : jsil_single_spec list) : string =
 	List.fold_left
 		(fun ac x ->
 			let pre = x.pre in
 			let post = x.post in
 			let flag = (match x.ret_flag with | Normal -> "Normal" | Error -> "Error") in
 			ac ^ (Printf.sprintf "[[ %s ]]\n[[ %s ]]\n%s\n\n"
-				 (string_of_logic_assertion pre false)
-				 (String.concat "; " (List.map (fun a -> string_of_logic_assertion a false) post))
+				 (string_of_logic_assertion pre)
+				 (String.concat "; " (List.map string_of_logic_assertion post))
 				 flag
 			))
 		""
 		specs
 
-let string_of_jsil_spec (spec : JSIL_Syntax.jsil_spec) =
+let string_of_jsil_spec (spec : JSIL_Syntax.jsil_spec) : string =
 	let name = spec.spec_name in
 	let params = spec.spec_params in
 	let specs = spec.proc_specs in
@@ -144,9 +144,9 @@ let string_of_jsil_spec (spec : JSIL_Syntax.jsil_spec) =
 	let ret = ret ^ (string_of_specs specs) in
 	ret
 
-let string_of_single_spec s_spec =
+let string_of_single_spec (s_spec : jsil_n_single_spec) : string =
 	let ret_flag = s_spec.n_ret_flag in
-	let pre_str = string_of_shallow_symb_state s_spec.n_pre in
+	let pre_str  = string_of_symb_state s_spec.n_pre in
 	let post_str = string_of_symb_state_list s_spec.n_post in
 	let ret_flag_str =
 		(match ret_flag with
@@ -155,7 +155,7 @@ let string_of_single_spec s_spec =
 	"Single Spec - " ^ ret_flag_str ^ "\n\nPrecondition\n" ^ pre_str ^ "\nPostconditions\n" ^ post_str
 
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
-let string_of_n_spec spec =
+let string_of_n_spec (spec : jsil_n_spec) : string =
 	let spec_name = spec.n_spec_name in
 	let spec_params = spec.n_spec_params in
 	let pre_post_list = spec.n_proc_specs in
@@ -174,7 +174,7 @@ let string_of_n_spec spec =
 			pre_post_list in
 		str ^ pre_post_list_str
 
-let string_of_n_spec_table spec_table =
+let string_of_n_spec_table (spec_table : specification_table) : string =
 	Hashtbl.fold
 		(fun spec_name spec ac ->
 			let spec_str = string_of_n_spec spec in
@@ -182,46 +182,17 @@ let string_of_n_spec_table spec_table =
 		spec_table
 		""
 
-let string_of_store store =
-	Hashtbl.fold
-		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
-			let v_val_str = string_of_literal v_val true in
-			let var_val_str = var ^ ": " ^ v_val_str  in
-			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
-		store
-		"Store: "
-
-let string_of_lexpr_store store =
-  "Store:\n" ^
-  (Hashtbl.fold
-		(fun (var : string) (v_val : jsil_logic_expr) (ac : string) ->
-			let v_val_str = string_of_logic_expression v_val false in
-			let var_val_str = var ^ ": " ^ v_val_str  in
-			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
-		store
-		"")
-
-let string_of_substitution substitution =
-	let str =
-		(Hashtbl.fold
-			(fun (var : string) (le : jsil_logic_expr) (ac : string) ->
-				let le_str = string_of_logic_expression le false in
-				let var_le_str = "(" ^ var ^ ": " ^ le_str ^ ")" in
-				if (ac = "") then var_le_str else ac ^ ", " ^ var_le_str)
-			substitution
-			"") in
-	"[" ^ str ^ "]"
 
 let string_of_discharges (discharges : discharge_list) : string = 
 	let discharge_strs = 
 		List.map 
-			(fun (le_pat, le) -> "(" ^ (string_of_logic_expression le_pat false) ^ ", " ^ (string_of_logic_expression le false) ^ ")")
+			(fun (le_pat, le) -> "(" ^ (string_of_logic_expression le_pat) ^ ", " ^ (string_of_logic_expression le) ^ ")")
 			discharges in 
 	"[" ^ (String.concat ", " discharge_strs) ^ "]" 
 
 
 let string_of_unification_plan (up : jsil_logic_assertion list) : string = 
-	let up_strs = List.map (fun a -> string_of_logic_assertion a false) up in 
+	let up_strs = List.map string_of_logic_assertion up in 
 	"[ " ^ (String.concat "; " up_strs) ^ " ]"
 
 
@@ -230,10 +201,10 @@ let string_of_unification_step
 			(heap_frame : symbolic_heap) (preds_frame : predicate_set) 
 			(discharges : discharge_list) : string = 
 	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\ndischarges:%s\n"
-		(JSIL_Print.string_of_logic_assertion a false)
+		(JSIL_Print.string_of_logic_assertion a)
 		(string_of_substitution pat_subst)
-		(string_of_shallow_symb_heap heap_frame false)
-		(string_of_preds preds_frame false)
+		(string_of_symb_heap heap_frame)
+		(string_of_preds preds_frame)
 		(string_of_discharges discharges)
 
 
@@ -260,23 +231,6 @@ let string_of_symb_exe_results results =
 		results in
  	str_console, dot_graphs
 
-let string_of_bi_symb_exe_results results =
-	let failed_specs_str = List.fold_left
-		(fun ac_console result ->
-			let proc_name, i, pre_post, success, msg, dot_graph = result in
-			if (not success) then
-				let failed_msg_str = (match msg with
-				| None ->  "\n" ^ proc_name ^ "\n----------\n Failed without a message. \n\n"
-				| Some msg -> "\n" ^ proc_name ^ "\n----------\n " ^ msg ^ "\n\n") in
-				ac_console ^ failed_msg_str
-			else
-				ac_console)
-		""
-		results in
-	if (String.length failed_specs_str == 0) then
-		""
-	else
-		"FAILED to generate specifications for: \n"  ^ failed_specs_str
 
 let dot_of_search_info search_info proof_name =
 	let start_time = Sys.time () in
@@ -340,9 +294,9 @@ let dot_of_search_info search_info proof_name =
 	str
 
 let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : symbolic_state) : unit =
-	let symb_state_str = string_of_shallow_symb_state symb_state in
+	let symb_state_str = string_of_symb_state symb_state in
 	let cmd = get_proc_cmd proc i in
-	let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
+	let cmd_str = JSIL_Print.string_of_cmd 0 0 cmd in
 	let time = Sys.time() in
 	print_normal (Printf.sprintf
 		"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------"
@@ -356,12 +310,14 @@ let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : sym
  **)
 
 let string_of_US_error us_error =
+	let print_lexpr = string_of_logic_expression in  
 	match us_error with
 	| VariableNotInStore s ->          Printf.sprintf "Variable %s not found in store" s
 	| ValueMismatch (s, pat_le, le) -> Printf.sprintf "Value mismatch on variable %s: expected %s, got %s" s (print_lexpr pat_le) (print_lexpr le)
 	| NoSubstitution ->                Printf.sprintf "There is no substitution"
 
 let string_of_UH_error uh_error =
+	let print_lexpr = string_of_logic_expression in  
 	match uh_error with
 	| CannotResolvePatLocation s ->                       Printf.sprintf "Cannot find location %s in pattern heap" s
 	| CannotResolveLocation s ->                          Printf.sprintf "Cannot find location %s in symbolic heap" s
@@ -374,6 +330,8 @@ let string_of_UH_error uh_error =
 	| GeneralHeapUnificationFailure ->                    Printf.sprintf "General heap unification failure"
 
 let string_of_UG_error ug_error =
+	let print_lexpr = string_of_logic_expression in  
+	let print_type = string_of_type in 
 	match ug_error with
 	| NoTypeForVariable s         -> Printf.sprintf "No type found for variable %s" s
 	| VariableNotInSubstitution s -> Printf.sprintf "Variable %s not in substitution" s
@@ -407,13 +365,3 @@ let print_failure error =
 		| Impossible s ->  Printf.sprintf "Impossible: %s" s (* MORE INFO *)
 	) in "SYMB_EXEC_FAIL: " ^ error_message
 
-(***************)
-(** Shorthand **)
-(***************)
-
-let print_pfs pfs = string_of_shallow_p_formulae pfs false
-
-
-let print_string_of_discharge pfs =
-	let sofle le = JSIL_Print.string_of_logic_expression le false in
-	String.concat ", " (List.map (fun (le1, le2) -> "(" ^ (sofle le1) ^ ", " ^ (sofle le2) ^ ")") pfs)

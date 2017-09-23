@@ -269,7 +269,7 @@ let rec js2jsil_assertion
 				| [ _; JSLLit (String fid); le_sc; _ ] -> LStar (a', f (JSSChain (fid, le_sc)))
 				| _ ->
 					let les_str = String.concat ", "
-						(List.map (fun le -> JSIL_Print.string_of_logic_expression (fe le) false) les) in
+						(List.map (fun le -> JSIL_Print.string_of_logic_expression (fe le)) les) in
 					raise (Failure ("Illegal FunctionObject Pred Assertion")))
 			) else a'
 
@@ -408,7 +408,7 @@ let js2jsil_predicate_def
 		(cc_tbl     : cc_tbl_type)
 		(vis_tbl    : vis_tbl_type)
 		(fun_tbl    : pre_fun_tbl_type)  =
-		
+
 	let jsil_params = List.map (js2jsil_lexpr None) pred_def.js_params in
 	let jsil_definitions = List.map (fun (os, a) -> os, (js2jsil_assertion None cc_tbl vis_tbl fun_tbl None a)) pred_def.js_definitions in
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions; previously_normalised_pred = false }

@@ -101,7 +101,7 @@ let rec replace_nle_with_lvars pfs nle =
 		| None -> 
 			let lhs = replace_nle_with_lvars pfs le in
 			let rhs = replace_nle_with_lvars pfs le' in
-			let lhs_string = string_of_logic_expression lhs false in
+			let lhs_string = string_of_logic_expression lhs in
 			(LBinOp (lhs, op, rhs)))
 	| LUnOp (op, le) -> 
 		(match find_me_in_the_pi pfs nle with 
@@ -211,7 +211,7 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	let result = (match le with
 		| LESet _ -> true
 		| _ -> false) in
-	(* print_debug (Printf.sprintf "All literals: %s -> %b" (print_lexpr le) result); *)
+	(* print_debug (Printf.sprintf "All literals: %s -> %b" (string_of_logic_expression le) result); *)
 	x && result
 	) true lset 
 
@@ -232,7 +232,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
 	
-	(* print_debug (Printf.sprintf "Reduce expression: %s" (print_lexpr e)); *)
+	(* print_debug (Printf.sprintf "Reduce expression: %s" (string_of_logic_expression e)); *)
 	
 	let f = reduce_expression store gamma pfs in
 	let orig_expr = e in
@@ -414,11 +414,11 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
 
 		| LBinOp (le, LstCons, list), LLit (Num n) ->
-			print_debug_petar (Printf.sprintf "Cons: %s %s %f" (print_lexpr le) (print_lexpr list) n);
+			print_debug_petar (Printf.sprintf "Cons: %s %s %f" (string_of_logic_expression le) (string_of_logic_expression list) n);
 			if (Utils.is_int n) then
 		  let ni = int_of_float n in
 			 (match (ni = 0) with
-		   | true -> print_debug_petar (Printf.sprintf "ni = 0, calling recursively with %s" (print_lexpr le)); f le
+		   | true -> print_debug_petar (Printf.sprintf "ni = 0, calling recursively with %s" (string_of_logic_expression le)); f le
 		   | false -> f (LLstNth (f list, LLit (Num (n -. 1.)))))
 			else
 					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
@@ -469,8 +469,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	(* Everything else *)
 	| _ -> e) in
 	if (result <> orig_expr) then (print_debug_petar (Printf.sprintf "Reduce expression: %s ---> %s"
-		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false)));
+		(JSIL_Print.string_of_logic_expression e)
+		(JSIL_Print.string_of_logic_expression result)));
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -637,7 +637,7 @@ let rec reduce_assertion store gamma pfs a =
 							LOr (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
-			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
 
 	| LSetMem (leb, LSetInter lle) -> 
@@ -651,7 +651,7 @@ let rec reduce_assertion store gamma pfs a =
 							LOr (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
-			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
 
 	| LSetMem (leb, LBinOp(lel, SetDiff, ler)) -> 
@@ -659,21 +659,21 @@ let rec reduce_assertion store gamma pfs a =
 		let rlel = fe lel in
 		let rler = fe ler in
 		let result = f (LAnd (LSetMem (rleb, rlel), LNot (LSetMem (rleb, rler)))) in
-			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
 
 	| LSetMem (leb, LESet [ le ]) -> 
 		let rleb = fe leb in
 		let rle = fe le in
-			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
-				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)) false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
+				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)))); 
 			f (LEq (rleb, rle))
 
 	| LForAll (bt, a) -> 
 			let ra = f a in
 			if (a <> ra) then
-		  print_debug_petar (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
-				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)) false)); 
+		  print_debug_petar (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
+				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)))); 
 			LForAll (bt, ra)
 
 	| _ -> a) in
@@ -856,7 +856,7 @@ let arrange_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : (jsil_logic_
 		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> le1, le2
 		| _, _ -> le2, le1
 	) else
-		let msg = Printf.sprintf "Non-list expressions passed to arrange_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
+		let msg = Printf.sprintf "Non-list expressions passed to arrange_lists : %s, %s" (string_of_logic_expression le1) (string_of_logic_expression le2) in
 		raise (Failure msg)
 
 (* Extracting elements from a list *)
@@ -867,7 +867,7 @@ let rec get_elements_from_list (le : jsil_logic_expr) : jsil_logic_expr list =
 	| LEList l -> l
 	| LBinOp (e, LstCons, le) -> e :: get_elements_from_list le
 	| LBinOp (lel, LstCat, ler) -> get_elements_from_list lel @ get_elements_from_list ler
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (print_lexpr le) in
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (string_of_logic_expression le) in
 		raise (Failure msg))
 
 (* Separating a list into a head and a tail *)
@@ -890,7 +890,7 @@ let rec get_head_and_tail_list (le : jsil_logic_expr) : bool option * jsil_logic
 		| Some true -> Some true, head, LBinOp (tail, LstCat, l2))
 	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
 	| _ -> 
-		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (print_lexpr le) in
+		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (string_of_logic_expression le) in
 		raise (Failure msg))
 
 (* TODO: IMPROVE THIS *)
@@ -947,7 +947,7 @@ let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : boo
 				| _ -> LBinOp (lel, LstCat, lrl)) in
 					true, (left, lrr)
 			| false -> false, (le, LEList [])))
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (print_lexpr le) in
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (string_of_logic_expression le) in
 		raise (Failure msg))
 
 let crossProduct l l' = List.concat (List.map (fun e -> List.map (fun e' -> (e,e')) l') l)
@@ -964,8 +964,8 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 		| _ -> 
 			(* print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
-				(String.concat ", " (List.map (fun x -> print_lexpr x) elems1))	
-				(String.concat ", " (List.map (fun x -> print_lexpr x) elems2))	
+				(String.concat ", " (List.map (fun x -> string_of_logic_expression x) elems1))	
+				(String.concat ", " (List.map (fun x -> string_of_logic_expression x) elems2))	
 			); *)
 			let intersection = List.fold_left (fun ac x -> 
 				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
@@ -990,7 +990,7 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 							print_debug_petar (Printf.sprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates));
 							Printf.eprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates);
 							List.iter (fun (le1, le2, _) -> 
-								Printf.eprintf "%s vs. %s\n%!" (print_lexpr le1) (print_lexpr le2)) candidates;
+								Printf.eprintf "%s vs. %s\n%!" (string_of_logic_expression le1) (string_of_logic_expression le2)) candidates;
 							Printf.eprintf "Choose: ";
 							let n = read_int() in
 							let le1, le2, _ = DynArray.get (DynArray.of_list candidates) n in
@@ -1002,12 +1002,12 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 			(match intersection with
 			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 			| Some (i, j) ->
-				(* print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j)); *)
+				(* print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (string_of_logic_expression i) (string_of_logic_expression j)); *)
 				let ok1, (l1, r1) = split_list_on_element le1 i in
 				let ok2, (l2, r2) = split_list_on_element le2 j in
 				(match ok1, ok2 with
 				| true, true -> true, (l1, r1), (l2, r2), list_unification
-				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (print_lexpr i) (print_lexpr le1) (print_lexpr le2) in
+				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (string_of_logic_expression i) (string_of_logic_expression le1) (string_of_logic_expression le2) in
 						raise (Failure msg)))
 		))
 and
@@ -1020,7 +1020,7 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
 	(* print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
-		(print_lexpr le1) (print_lexpr le2)); *) 
+		(string_of_logic_expression le1) (string_of_logic_expression le2)); *) 
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -1080,7 +1080,7 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
-			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
+			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (string_of_logic_expression le1) (string_of_logic_expression le2) in
 			raise (Failure msg)
 	)
 
@@ -1129,7 +1129,7 @@ let rec get_elements_from_string (se : jsil_logic_expr) : jsil_logic_expr list =
 	| LCList l -> l
 	| LBinOp (e, CharCons, se) -> e :: get_elements_from_string se
 	| LBinOp (sel, CharCat, ser) -> get_elements_from_string sel @ get_elements_from_string ser
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (print_lexpr se) in
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (string_of_logic_expression se) in
 		raise (Failure msg))
 
 (* Splitting an internal string based on an element *)
@@ -1175,7 +1175,7 @@ let rec split_string_on_element (se : jsil_logic_expr) (e : jsil_logic_expr) : b
 				| _ -> LBinOp (sel, CharCat, srl)) in
 					true, (left, srr)
 			| false -> false, (se, LCList [])))
-	| _ -> let msg = Printf.sprintf "Non-string expressions passed to split_string_on_element : %s" (print_lexpr se) in
+	| _ -> let msg = Printf.sprintf "Non-string expressions passed to split_string_on_element : %s" (string_of_logic_expression se) in
 		raise (Failure msg))
 
 (* Unifying strings based on a common literal *)
@@ -1197,7 +1197,7 @@ let match_strings_on_element (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : b
 				let ok2, (l2, r2) = split_string_on_element se2 i in
 				(match ok1, ok2 with
 				| true, true -> true, (l1, r1), (l2, r2) 
-				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both strings: %s, %s is not." (print_lexpr i) (print_lexpr se1) (print_lexpr se2) in
+				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both strings: %s, %s is not." (string_of_logic_expression i) (string_of_logic_expression se1) (string_of_logic_expression se2) in
 						raise (Failure msg)
 				)
 			)
@@ -1224,7 +1224,7 @@ let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_log
 		| Some true -> Some true, head, LBinOp (tail, CharCat, s2))
 	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
 	| _ -> 
-		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (print_lexpr se) in
+		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (string_of_logic_expression se) in
 		raise (Failure msg))
 
 (* String unification *)
@@ -1238,7 +1238,7 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (se1, se2) = if to_swap then (se2, se1) else (se1, se2) in
 	(* print_debug (Printf.sprintf "unify_strings: \n\t%s\n\t\tand\n\t%s" 
-		(print_lexpr se1) (print_lexpr se2)); *)
+		(string_of_logic_expression se1) (string_of_logic_expression se2)); *)
 	(match se1, se2 with
 	  (* Base cases *)
 		| LLit (CList []), LLit (CList []) 
@@ -1292,7 +1292,7 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
-			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr se1) (print_lexpr se2) in
+			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (string_of_logic_expression se1) (string_of_logic_expression se2) in
 			raise (Failure msg)
 	)
 				
@@ -1422,7 +1422,7 @@ let simplify_symb_state
 	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
 
-	print_debug_petar (Printf.sprintf "Symbolic state before simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state));  
+	print_debug_petar (Printf.sprintf "Symbolic state before simplification:\n%s" (Symbolic_State_Print.string_of_symb_state symb_state));  
 
 	(* let cache_key = simpl_encache_key vars_to_save other_pfs existentials symb_state in
 	let cached = Hashtbl.mem simpl_cache cache_key in
@@ -1538,7 +1538,7 @@ let simplify_symb_state
 
 	(* String translation: Use internal representation as Chars *)
 	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_string_to_list None))) pfs in
-	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs)); *)
+	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (string_of_pfs pfs)); *)
 	let symb_state = ss_replace_pfs symb_state pfs in 
 	
 	let changes_made = ref true in
@@ -1626,7 +1626,7 @@ let simplify_symb_state
 								| _, _ -> v, le))
 					| _ -> v, le) in
 					
-					(* print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (print_lexpr le)); *)
+					(* print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (string_of_logic_expression le)); *)
 					
 					let lvars_le = get_lexpr_lvars le in
 					(match (SS.mem v lvars_le) with
@@ -1659,7 +1659,7 @@ let simplify_symb_state
 							(* Add to subst *)
 							if (Hashtbl.mem subst v) then 
 								raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
-									v (Symbolic_State_Print.string_of_substitution subst)));
+									v (JSIL_Print.string_of_substitution subst)));
 							Hashtbl.iter (fun v' le' ->
 								let sb = Hashtbl.create 1 in
 									Hashtbl.add sb v le;
@@ -1748,7 +1748,7 @@ let simplify_symb_state
 				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
+					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (string_of_logic_expression le1) (string_of_logic_expression le2)); *)
 					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
@@ -1760,7 +1760,7 @@ let simplify_symb_state
 						| _ -> 
 							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
+								Printf.sprintf "%s = %s" (string_of_logic_expression x) (string_of_logic_expression y)) subst)); *)
 							raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1795,7 +1795,7 @@ let simplify_symb_state
 						)
 				(* String unification *)
 				| se1, se2 when (isInternalString se1 && isInternalString se2) ->
-					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2)); *)
+					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (string_of_logic_expression se1) (string_of_logic_expression se2)); *)
 					let ok, subst = unify_strings se1 se2 false in
 					(match ok with
 					(* Error while unifying strings *)
@@ -1807,7 +1807,7 @@ let simplify_symb_state
 						| _ -> 
 							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
+								Printf.sprintf "%s = %s" (string_of_logic_expression x) (string_of_logic_expression y)) subst)); *)
 							raise (Failure "Unexpected list obtained from string unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1883,7 +1883,7 @@ let simplify_symb_state
 	(* let cache_value = simpl_encache_value ss subst ots exs in
 	Hashtbl.replace simpl_cache cache_key cache_value; *)
 
-	print_debug_petar ("symb_state after call to simplification: \n" ^ (Symbolic_State_Print.string_of_shallow_symb_state ss)); 
+	print_debug_petar ("symb_state after call to simplification: \n" ^ (Symbolic_State_Print.string_of_symb_state ss)); 
 
 	ss, subst, ots, exs
 	
@@ -1971,7 +1971,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-			print_debug_petar (Printf.sprintf "Nonsense test: %s vs. %s" (print_lexpr var) (print_lexpr lst));
+			print_debug_petar (Printf.sprintf "Nonsense test: %s vs. %s" (string_of_logic_expression var) (string_of_logic_expression lst));
 			(match var, lst with
 			 | LVar v, LVar w -> v = w
 			 | LVar _, LEList lst ->
@@ -2196,7 +2196,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
-		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) intersections)));
+		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) intersections)));
 					
 	let i = ref 0 in
 	while (!i < DynArray.length rpfs) do
@@ -2206,20 +2206,20 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
 				print_debug_petar "Resolve set existentials: I have found a union equality.";
-				print_debug_petar (JSIL_Print.string_of_logic_assertion a false);
+				print_debug_petar (JSIL_Print.string_of_logic_assertion a);
 				
 				(* Trying to cut the union *)
 				let same_parts = SLExpr.inter sul sur in
-				print_debug_petar (Printf.sprintf "Same parts: %s" (String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements same_parts))));
+				print_debug_petar (Printf.sprintf "Same parts: %s" (String.concat ", " (List.map (fun x -> string_of_logic_expression x) (SLExpr.elements same_parts))));
 				if (SLExpr.cardinal same_parts = 1) then (
 					let must_not_intersect = SLExpr.diff (SLExpr.union sul sur) same_parts in
 					print_debug_petar (Printf.sprintf "%s must not intersect any of %s" 
-						(String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements same_parts)))
-						(String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements must_not_intersect))));
+						(String.concat ", " (List.map (fun x -> string_of_logic_expression x) (SLExpr.elements same_parts)))
+						(String.concat ", " (List.map (fun x -> string_of_logic_expression x) (SLExpr.elements must_not_intersect))));
 					let element : jsil_logic_expr = List.hd (SLExpr.elements same_parts) in 
 					let must_not_intersect = List.map (fun s -> List.sort compare [ s; element ]) (SLExpr.elements must_not_intersect) in
 					print_debug_petar (Printf.sprintf "Intersections we need:\n%s"
-							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) must_not_intersect)));
+							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) must_not_intersect)));
 					let must_not_intersect = List.map (fun s -> List.mem s intersections) must_not_intersect in
 					print_debug_petar (Printf.sprintf "And we have: %s" (String.concat ", " (List.map (fun (x : bool) -> if (x = true) then "true" else "false") must_not_intersect)));
 					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
@@ -2258,7 +2258,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
-		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) intersections)));
+		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) intersections)));
 	
 	try (
 	let i = ref 0 in
@@ -2274,7 +2274,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 				SLExpr.iter (fun s1 ->
 					let must_not_intersect = List.map (fun s -> List.sort compare [ s; s1 ]) (SLExpr.elements sur) in
 					print_debug_petar (Printf.sprintf "Intersections we need:\n%s"
-							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) must_not_intersect)));
+							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) must_not_intersect)));
 					let must_not_intersect = List.map (fun s -> List.mem s intersections) must_not_intersect in
 					print_debug_petar (Printf.sprintf "And we have: %s" (String.concat ", " (List.map (fun (x : bool) -> if (x = true) then "true" else "false") must_not_intersect)));
 					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
@@ -2302,8 +2302,8 @@ let simplify_implication exists lpfs rpfs gamma =
 	sanitise_pfs_no_store gamma rpfs;
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
-		(print_pfs lpfs)
-		(print_pfs rpfs)
+		(string_of_pfs lpfs)
+		(string_of_pfs rpfs)
 		(Symbolic_State_Print.string_of_gamma gamma)); 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_implication" (end_time -. start_time);

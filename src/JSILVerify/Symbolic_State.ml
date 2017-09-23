@@ -182,7 +182,7 @@ let heap_substitution (subst : substitution) (partial : bool) (heap : symbolic_h
 						extend_substitution subst [ loc ] [ new_aloc ];
 						new_aloc)) in 
 			let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
-				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc false))) in 
+				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 
 			let s_fv_list = fv_list_substitution subst partial fv_list in
 			let s_domain = Option.map (fun le -> lexpr_substitution subst partial le) domain in
 			LHeap.add new_heap s_loc (s_fv_list, s_domain))			
@@ -196,7 +196,7 @@ let heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) : u
   		let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
 			try Hashtbl.find subst loc with _ -> ALoc loc) in 
   		let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
-			| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc false))) in 		
+			| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 		
   		let s_fv_list = fv_list_substitution subst true fv_list in
   		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst true le) domain in
   		LHeap.replace heap s_loc (s_fv_list, s_domain))

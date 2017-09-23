@@ -179,10 +179,6 @@ type jsil_binop =
 	| CList    of jsil_expr list                     (** Lists of characters *)
 	| SetUnion of jsil_expr list
 	| SetInter of jsil_expr list
-	| RAssume  of jsil_expr
-	| RAssert  of jsil_expr
-	| RNumSymb
-	| RStrSymb
 
 (**/**)
 (* Shorthand *)
