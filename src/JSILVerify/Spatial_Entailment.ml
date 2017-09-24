@@ -2,7 +2,7 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
-exception UnificationFailure of unit 
+exception UnificationFailure of string  
 
 (** 
   *  Checks whether or not a substitution list is consistent. 
@@ -178,7 +178,7 @@ let unify_stores
 	store_fold pat_store 
 		(fun x le_pat discharges -> 
 			match store_get_safe store x with 
-			| None    -> raise (UnificationFailure ())
+			| None    -> raise (UnificationFailure "")
 			| Some le -> 
 				(match unify_lexprs pfs gamma pat_subst le_pat le with 
 				| Some (subst_list, new_discharges) -> 
@@ -186,11 +186,11 @@ let unify_stores
 						then new_discharges @ discharges
 						else (
 							print_debug "store_fold failed due to unsafe substitution extension\n"; 
-							raise (UnificationFailure ()) 
+							raise (UnificationFailure "") 
 						) 
 				| None -> 
 					print_debug "unify lexprs failed in store unification\n";
-					raise (UnificationFailure ()))) [] 
+					raise (UnificationFailure ""))) [] 
 
 
 let unify_cell_assertion 
@@ -338,7 +338,7 @@ let rec find_missing_nones
 			(none_fv_list           : symbolic_field_value_list) 
 			(traversed_none_fv_list : symbolic_field_value_list) : symbolic_field_value_list =
 		match none_fv_list with
-		| []                      -> raise (UnificationFailure ())
+		| []                      -> raise (UnificationFailure "") 
 		| (f_name, f_val) :: rest_none_fv_list ->
 			if (Pure_Entailment.is_equal f_name missing_field pfs gamma)
 				then rest_none_fv_list @ traversed_none_fv_list
@@ -380,7 +380,7 @@ let unify_domains
 	let domain_difference, domain_frame_difference =
 		(match domain_difference, domain_frame_difference with
 			| LESet domain_difference, LESet domain_frame_difference -> domain_difference, domain_frame_difference
-			| dd, dfd -> raise (SymbExecFailure (Impossible (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression dd) (JSIL_Print.string_of_logic_expression dfd))))) in
+			| dd, dfd -> raise (UnificationFailure (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression dd) (JSIL_Print.string_of_logic_expression dfd)))) in
 
 	(*
 	let none_q_v_list_strs = List.map (fun (field, value) -> JSIL_Print.string_of_logic_expression field false) none_q_v_list in
@@ -623,7 +623,7 @@ let unify_symb_states
 	print_debug (Printf.sprintf "unify_stores - done. pat_subst: %s\ndischarges: %s\n"
 		(JSIL_Print.string_of_substitution pat_subst)
 		(Symbolic_State_Print.string_of_discharges discharges)); 
-	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure ()); 
+	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure ""); 
 
 	(* 3. Initial frame for the search *)
 	let initial_frame = pat_unfication_plan, (heap, preds, discharges, pat_subst) in 
@@ -635,7 +635,7 @@ let unify_symb_states
 		match frame_list with 
 		| [] -> 
 			(match found_partial_matches with 
-			| [] -> raise (UnificationFailure ())
+			| [] -> raise (UnificationFailure "")
 			| ssf :: _ -> false, ssf)
 		
 		| (up, (heap_frame, preds_frame, discharges, pat_subst)) :: rest_frame_list -> 	
@@ -702,22 +702,22 @@ let fully_unify_symb_state
 		(Symbolic_State_Print.string_of_symb_state pat_symb_state));
 
 	try (
-	let outcome, (heap_f, preds_f, subst, _, _) = unify_symb_states pat_unfication_plan pat_subst pat_symb_state symb_state in
-	(match outcome, intuitionistic with
-	| true, true -> subst 
+		let outcome, (heap_f, preds_f, subst, _, _) = unify_symb_states pat_unfication_plan pat_subst pat_symb_state symb_state in
+		match outcome, intuitionistic with
+		| true, true -> subst 
 
-	| true, false ->
-		let emp_heap  = is_heap_empty heap_f in
-		let emp_preds = is_preds_empty preds_f in 
-		 if (emp_heap && emp_preds) then subst else
-			let _ = if (emp_heap) then begin print_debug "Quotient heap empty.\n" end
-						else begin print_debug (Printf.sprintf "Quotient heap left: \n%s\n" (Symbolic_State_Print.string_of_symb_heap heap_f)) end in
+		| true, false ->
+			let emp_heap  = is_heap_empty heap_f in
+			let emp_preds = is_preds_empty preds_f in 
+		 	if (emp_heap && emp_preds) then subst else
+				let _ = if (emp_heap) then begin print_debug "Quotient heap empty.\n" end
+							else begin print_debug (Printf.sprintf "Quotient heap left: \n%s\n" (Symbolic_State_Print.string_of_symb_heap heap_f)) end in
 			
-			let _ = if (emp_preds) then begin print_debug "Quotient predicates empty.\n" end
-						else begin print_debug (Printf.sprintf "Quotient predicates left: \n%s\n" (Symbolic_State_Print.string_of_preds preds_f)) end in
-				raise (UnificationFailure ())
-	| false, _ -> raise (UnificationFailure ()))
-	) with UnificationFailure _ -> raise (UnificationFailure ())
+				let _ = if (emp_preds) then begin print_debug "Quotient predicates empty.\n" end
+							else begin print_debug (Printf.sprintf "Quotient predicates left: \n%s\n" (Symbolic_State_Print.string_of_preds preds_f)) end in
+				raise (UnificationFailure "")
+		| false, _ -> raise (UnificationFailure "")
+	) with UnificationFailure _ -> raise (UnificationFailure "")
 	
 
 type fold_extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * ((string * (jsil_logic_expr list)) option)
@@ -756,7 +756,7 @@ let unify_symb_states_fold
 		(fun x -> 
 			match store_get_safe pat_store x, store_get_safe store x with 
 			| Some le_pat_x, Some le_x -> (le_pat_x, le_x)
-			| _, _ -> raise (UnificationFailure ())) filtered_vars in 
+			| _, _ -> raise (UnificationFailure "")) filtered_vars in 
 	let discharges' = (unify_stores pfs gamma pat_subst pat_store' store') in 
 	print_debug (Printf.sprintf "unify_stores - done. pat_subst: %s\ndischarges: %s\n"
 		(JSIL_Print.string_of_substitution pat_subst)
@@ -786,7 +786,7 @@ let unify_symb_states_fold
 	let rec search 
 			(frame_list : fold_extended_intermediate_frame list) : symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option) = 
 		match frame_list with 
-		| [] -> raise (UnificationFailure ())
+		| [] -> raise (UnificationFailure "")
 		
 		| (up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred) :: rest_frame_list -> 	
 			(match up with 
@@ -944,7 +944,7 @@ let unify_stores_unfold
 	store_fold pat_store 
 		(fun x le_pat (constraints, pat_constraints, discharges) -> 
 			match store_get_safe store x with 
-			| None    -> raise (UnificationFailure ())
+			| None    -> raise (UnificationFailure "")
 			| Some le -> 
 				(match unify_lexprs_unfold pfs subst le_pat le with 
 				| Some (subst_list, pat_subst_list, new_discharges) -> 
@@ -960,7 +960,7 @@ let unify_stores_unfold
 							(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion constraints))
 							(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion pat_constraints))
 							(Symbolic_State_Print.string_of_discharges discharges));  
-						raise (UnificationFailure ())) 
+						raise (UnificationFailure "")) 
 
 				| None -> 
 					print_debug (Printf.sprintf "Failed unify_stores_unfold. NO LE. x: %s. le_pat: %s. \nconstraints: %s.\npat_constraints: %s.\ndischarges: %s"
@@ -968,7 +968,7 @@ let unify_stores_unfold
 							(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion constraints))
 							(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion pat_constraints))
 							(Symbolic_State_Print.string_of_discharges discharges));  
-					raise (UnificationFailure ()))) ([], [], []) 
+					raise (UnificationFailure ""))) ([], [], []) 
 
 
 let is_sensible_subst (subst : substitution) (gamma_source : typing_environment) (gamma_target : typing_environment) : bool =
@@ -1044,7 +1044,7 @@ let unfold_predicate_definition
 		| Some t1, Some t2 -> if (not (t1 = t2)) then (
 			print_debug (Printf.sprintf "unfold_predicate_definition. mismatching types for pvar %s. pat_type: %s. type: %s" 
 				x (JSIL_Print.string_of_type t2) (JSIL_Print.string_of_type t1)); 
-			raise (UnificationFailure ()))
+			raise (UnificationFailure ""))
 		| _                -> ()) dom_store (List.combine store_types pat_store_types); 
 
 	print_debug (Printf.sprintf "unfold_predicate_definition. step 2 - done.\n"); 
@@ -1054,7 +1054,7 @@ let unfold_predicate_definition
 	(* forall x \in pat_subst : pat_subst (x) = le /\ pat_gamma(x) = tau => gamma |- le : tau                              *)
 	let subst_is_sensible     = is_sensible_subst subst gamma pat_gamma in
 	let pat_subst_is_sensible = is_sensible_subst pat_subst pat_gamma gamma in
-	if ((not subst_is_sensible) || (not pat_subst_is_sensible)) then raise (UnificationFailure ());  
+	if ((not subst_is_sensible) || (not pat_subst_is_sensible)) then raise (UnificationFailure "");  
 
 	print_debug (Printf.sprintf "unfold_predicate_definition. step 3 - done.\n "); 
 
@@ -1106,7 +1106,7 @@ let unfold_predicate_definition
 	(* Performing the satisfiability check *)
 	if (not (Pure_Entailment.check_satisfiability pfs'' gamma)) then (
 			print_debug("It is NOT satisfiable\n"); 
-			raise (UnificationFailure ())); 
+			raise (UnificationFailure "")); 
 
 	print_debug (Printf.sprintf "unfold_predicate_definition. step 5 - done. all_pfs: %s\n"
 		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion pfs''))); 

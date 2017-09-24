@@ -2,11 +2,8 @@ open JSIL_Syntax
 open JSIL_Logic_Utils
 open Z3
 
-(* Symbolic State Error                                *)
-exception Symb_state_error of string;;
-
 (*************************************)
-(** Symbolic States                 **)
+(** Types                           **)
 (*************************************)
 
 type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
@@ -21,84 +18,64 @@ type symbolic_state       = symbolic_heap * symbolic_store * pure_formulae * typ
 type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
 type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
-(*************************************)
-(** Cached symbolic state           **)
-(*************************************)
+type jsil_n_single_spec = {
+	n_pre              : symbolic_state;
+	n_post             : symbolic_state list;
+	n_ret_flag         : jsil_return_flag;
+	n_lvars            : SS.t; 
+	n_subst            : substitution; 
+	n_unification_plan : jsil_logic_assertion list; 
+}
 
-type cached_symbolic_state =
-	  (string * ((jsil_logic_expr * jsil_logic_expr) list * jsil_logic_expr option)) list
-	* (string * jsil_logic_expr) list
-	* jsil_logic_assertion list
-	* (string * jsil_type) list
-	* (string * jsil_logic_expr list) list
+type jsil_n_spec = {
+	n_spec_name   : string;
+  	n_spec_params : jsil_var list;
+	n_proc_specs  : jsil_n_single_spec list
+}
 
-let cache_ss (ss : symbolic_state) : cached_symbolic_state =
-	let sort = List.sort compare in
-	let heap, store, pfs, gamma, preds = ss in
-	let lheap = lheap_to_list heap in
-	let lstore = hash_to_list store in
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let lpreds = List.sort compare (DynArray.to_list preds) in
-	lheap, lstore, lpfs, lgamma, lpreds
+type n_jsil_logic_predicate = {
+	n_pred_name             : string;
+	n_pred_num_params       : int;
+	n_pred_params           : jsil_logic_var list;
+	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
+	n_pred_is_rec           : bool; 
+}
 
-let uncache_ss (css : cached_symbolic_state) : symbolic_state =
-	let lheap, lstore, lpfs, lgamma, lpreds = css in
-	let heap = lheap_of_list lheap in
-	let store = hash_of_list lstore in
-	let pfs   = DynArray.of_list lpfs in
-	let gamma = hash_of_list lgamma in
-	let preds = DynArray.of_list lpreds in
-	let result = (heap, store, pfs, gamma, preds) in
-	result
+type specification_table = (string, jsil_n_spec) Hashtbl.t
 
-let ss_cache :
-	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state,
-	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
+type pruning_table       = (string, (bool array) list) Hashtbl.t
 
-let ss_encache_key vts ots exs ss =
-	let cots = List.sort compare (DynArray.to_list ots) in
-	let css = cache_ss ss in
-	vts, cots, exs, css
+type symb_jsil_program = {
+	program    	: jsil_program;
+	spec_tbl   	: specification_table;
+	lemma_tbl   : lemma_table;
+	which_pred 	: (string * int * int, int) Hashtbl.t;
+	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
+}
 
-let ss_encache_value ss subst ots exs =
-	let css = cache_ss ss in
-	let csubst = hash_to_list subst in
-	let cots = List.sort compare (DynArray.to_list ots) in
-	css, csubst, cots, exs
+type search_info_node = {
+	heap_str    : string;
+	store_str   : string;
+	pfs_str     : string;
+	gamma_str   : string;
+	preds_str   : string;
+	(* cmd index *)
+	cmd_index   : int;
+	cmd_str     : string;
+	(* node number *)
+	node_number : int
+}
 
-let ss_uncache_value css csubst cots exs =
-	let ss = uncache_ss css in
-	let subst = hash_of_list csubst in
-	let ots = DynArray.of_list cots in
-	ss, subst, ots, exs
-
-(*************************************)
-(** Cached pfs state                **)
-(*************************************)
-
-let pfs_cache :
-	(jsil_logic_assertion list * (string * jsil_type) list * SS.t option option,
-	 jsil_logic_assertion list * (string * jsil_type) list) Hashtbl.t = Hashtbl.create 21019
-
-let pfs_cache_key pfs gamma lexs =
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let result = (lpfs, lgamma, lexs) in
-	result
-
-let pfs_cache_value pfs gamma =
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let result = (lpfs, lgamma) in
-	result
-
-let pfs_uncache_value value =
-	let lpfs, lgamma = value in
-	let pfs   = DynArray.of_list lpfs in
-	let gamma = hash_of_list lgamma in
-	let result = (pfs, gamma) in
-	result
+type symbolic_execution_search_info = {
+	vis_tbl    		    : (int, int) Hashtbl.t;
+	cur_node_info       : search_info_node;
+	info_nodes 		    : (int, search_info_node) Hashtbl.t;
+	info_edges          : (int, int list) Hashtbl.t;
+	next_node           : int ref;
+	post_pruning_info   : pruning_table; 
+	spec_number         : int;
+	pred_info           : (string, int Stack.t) Hashtbl.t
+}
 
 (*************************************)
 (** Field Value Lists               **)
@@ -128,9 +105,15 @@ let heap_init () : symbolic_heap =
 let heap_get (heap : symbolic_heap) (loc : string) =
 	try Some (LHeap.find heap loc) with _ -> None
 
+let heap_get_unsafe (heap : symbolic_heap) (loc : string) =
+	try LHeap.find heap loc with _ -> raise (Failure "DEATH. heap_get_unsafe")
+
 (** Symbolic heap put heap(loc) is assigned to fv_list *)
 let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (dom : jsil_logic_expr option) =
 	LHeap.replace heap loc (fv_list, dom)
+
+let heap_has_loc (heap : symbolic_heap) (loc : string) : bool = 
+	LHeap.mem heap loc 
 
 (** Symbolic heap put heap(loc, field) is assgined to value. 
     The domain remains unchanged *) 
@@ -608,6 +591,24 @@ let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion
 	let asrts       = heap_asrts @ store_asrts @ pure_asrts @ [ gamma_asrt ] @ pred_asrts in
 	JSIL_Logic_Utils.star_asses asrts 
 
+
+(****************************************)
+(** Normalised Predicate Definitions   **)
+(****************************************)
+
+let get_pred (pred_tbl : (string, n_jsil_logic_predicate) Hashtbl.t) (pred_name : string) : n_jsil_logic_predicate =
+	try
+		Hashtbl.find pred_tbl pred_name
+	with _ ->
+		let msg = Printf.sprintf "Predicate %s does not exist" pred_name in
+		raise (Failure msg)
+
+
+
+
+
+
+
 (****************************************)
 (** TO REFACTOR                        **)
 (****************************************)
@@ -645,25 +646,7 @@ let selective_symb_state_substitution_in_place_no_gamma
 (****************************************)
 (** Normalised Specifications          **)
 (****************************************)
-type jsil_n_single_spec = {
-	n_pre              : symbolic_state;
-	n_post             : symbolic_state list;
-	n_ret_flag         : jsil_return_flag;
-	n_lvars            : SS.t; 
-	n_subst            : substitution; 
-	n_unification_plan : jsil_logic_assertion list; 
-}
 
-type jsil_n_spec = {
-	n_spec_name   : string;
-  	n_spec_params : jsil_var list;
-	n_proc_specs  : jsil_n_single_spec list
-}
-
-type specification_table = (string, jsil_n_spec) Hashtbl.t
-type lemma_table         = (string, jsil_lemma) Hashtbl.t
-type pruning_table       = (string, (bool array) list) Hashtbl.t
-type which_predecessor   = (string * int * int, int) Hashtbl.t
 
 let init_post_pruning_info () = Hashtbl.create small_tbl_size
 
@@ -695,62 +678,12 @@ let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
 	with Not_found -> specs
 
 
-(****************************************)
-(** Normalised Predicate Definitions   **)
-(****************************************)
-type n_jsil_logic_predicate = {
-	n_pred_name             : string;
-	n_pred_num_params       : int;
-	n_pred_params           : jsil_logic_var list;
-	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
-	n_pred_is_rec           : bool; 
-}
-
-let get_pred pred_tbl pred_name =
-	try
-		Hashtbl.find pred_tbl pred_name
-	with _ ->
-		let msg = Printf.sprintf "Predicate %s does not exist" pred_name in
-		raise (Failure msg)
-
-(***************************************************)
-(** JSIL Program Annotated for Symbolic Execution **)
-(***************************************************)
-type symb_jsil_program = {
-	program    	: jsil_program;
-	spec_tbl   	: specification_table;
-	lemma_tbl   : lemma_table;
-	which_pred 	: (string * int * int, int) Hashtbl.t;
-	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
-}
 
 
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
 (*********************************************************)
-type search_info_node = {
-	heap_str    : string;
-	store_str   : string;
-	pfs_str     : string;
-	gamma_str   : string;
-	preds_str   : string;
-	(* cmd index *)
-	cmd_index   : int;
-	cmd_str     : string;
-	(* node number *)
-	node_number : int
-}
 
-type symbolic_execution_search_info = {
-	vis_tbl    		    : (int, int) Hashtbl.t;
-	cur_node_info       : search_info_node;
-	info_nodes 		    : (int, search_info_node) Hashtbl.t;
-	info_edges          : (int, int list) Hashtbl.t;
-	next_node           : int ref;
-	post_pruning_info   : pruning_table; 
-	spec_number         : int;
-	pred_info           : (string, int Stack.t) Hashtbl.t
-}
 
 let make_symb_exe_search_info node_info post_pruning_info spec_number =
 	if (not (node_info.node_number = 0)) then
@@ -869,60 +802,85 @@ let compute_verification_statistics
 	
 
 
-(* Hierarchy of failures *)
 
-type unify_stores_fail =
-	| VariableNotInStore of string
-	| ValueMismatch of string * jsil_logic_expr * jsil_logic_expr
-	| NoSubstitution
+(*************************************)
+(** Cached symbolic state           **)
+(*************************************)
 
-type unify_heaps_fail =
-	| CannotResolvePatLocation of string
-	| CannotResolveLocation of string
-	| CannotResolveField of string * jsil_logic_expr
-	| FieldValueMismatch of string * jsil_logic_expr * jsil_logic_expr * string * jsil_logic_expr * jsil_logic_expr
-	| ValuesNotNone of string * (jsil_logic_expr * jsil_logic_expr) list
-	| FloatingLocations of string list
-	| IllegalDefaultValue of jsil_logic_expr
-	| PatternHeapWithDefaultValue
-	| GeneralHeapUnificationFailure
+type cached_symbolic_state =
+	  (string * ((jsil_logic_expr * jsil_logic_expr) list * jsil_logic_expr option)) list
+	* (string * jsil_logic_expr) list
+	* jsil_logic_assertion list
+	* (string * jsil_type) list
+	* (string * jsil_logic_expr list) list
 
-type unify_gamma_fail =
-	| NoTypeForVariable of string
-	| VariableNotInSubstitution of string
-	| TypeMismatch of string * jsil_type * jsil_logic_expr * jsil_type
+let cache_ss (ss : symbolic_state) : cached_symbolic_state =
+	let sort = List.sort compare in
+	let heap, store, pfs, gamma, preds = ss in
+	let lheap = lheap_to_list heap in
+	let lstore = hash_to_list store in
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in
+	let lgamma = hash_to_list gamma in
+	let lpreds = List.sort compare (DynArray.to_list preds) in
+	lheap, lstore, lpfs, lgamma, lpreds
 
-type unify_symb_states_fail =
-	| CannotDischargeSpecVars
-	| CannotUnifyPredicates
-	| ContradictionInPFS
+let uncache_ss (css : cached_symbolic_state) : symbolic_state =
+	let lheap, lstore, lpfs, lgamma, lpreds = css in
+	let heap = lheap_of_list lheap in
+	let store = hash_of_list lstore in
+	let pfs   = DynArray.of_list lpfs in
+	let gamma = hash_of_list lgamma in
+	let preds = DynArray.of_list lpreds in
+	let result = (heap, store, pfs, gamma, preds) in
+	result
 
-type fully_unify_symb_states_fail =
-	| ResourcesRemain
-	| CannotUnifySymbStates
+let ss_cache :
+	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state,
+	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
 
-type unify_symb_states_fold_fail =
-	| CannotSubtractPredicate of string
-	| CannotUnifyPredicates
+let ss_encache_key vts ots exs ss =
+	let cots = List.sort compare (DynArray.to_list ots) in
+	let css = cache_ss ss in
+	vts, cots, exs, css
 
-type symb_exec_fail =
-	| US  of unify_stores_fail
-	| UH  of unify_heaps_fail
-	| UG  of unify_gamma_fail
-	| USS of unify_symb_states_fail
-	| FSS of fully_unify_symb_states_fail
-	| USF of unify_symb_states_fold_fail
-	| Impossible of string
+let ss_encache_value ss subst ots exs =
+	let css = cache_ss ss in
+	let csubst = hash_to_list subst in
+	let cots = List.sort compare (DynArray.to_list ots) in
+	css, csubst, cots, exs
 
-exception SymbExecFailure of symb_exec_fail
+let ss_uncache_value css csubst cots exs =
+	let ss = uncache_ss css in
+	let subst = hash_of_list csubst in
+	let ots = DynArray.of_list cots in
+	ss, subst, ots, exs
 
-(* Hierarchy of recoveries *)
+(*************************************)
+(** Cached pfs state                **)
+(*************************************)
 
-type unify_gamma_recovery =
-	| Flash of string * (jsil_logic_expr list)
+let pfs_cache :
+	(jsil_logic_assertion list * (string * jsil_type) list * SS.t option option,
+	 jsil_logic_assertion list * (string * jsil_type) list) Hashtbl.t = Hashtbl.create 21019
 
-type recovery =
-	| GR of unify_gamma_recovery
-	| NoRecovery
+let pfs_cache_key pfs gamma lexs =
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in
+	let lgamma = hash_to_list gamma in
+	let result = (lpfs, lgamma, lexs) in
+	result
 
-exception SymbExecRecovery of recovery
+let pfs_cache_value pfs gamma =
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in
+	let lgamma = hash_to_list gamma in
+	let result = (lpfs, lgamma) in
+	result
+
+let pfs_uncache_value value =
+	let lpfs, lgamma = value in
+	let pfs   = DynArray.of_list lpfs in
+	let gamma = hash_of_list lgamma in
+	let result = (pfs, gamma) in
+	result
+
+
+

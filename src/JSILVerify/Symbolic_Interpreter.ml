@@ -209,25 +209,6 @@ let safe_symb_evaluate_expr
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle) gamma_str pure_str in
 				raise (Failure msg))
 
-let member_check heap loc ne2 pure_formulae gamma x store =
-	let res = Symbolic_State_Utils.abs_heap_check_field_existence heap loc ne2 pure_formulae gamma in
-	update_gamma gamma x (Some BooleanType);
-	(match res with
-	| _, Some b ->
-		let res_lit = LLit (Bool b) in
-		store_put store x res_lit;
-		res_lit
-
-	| Some f_val, None ->
-		let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in
-		store_put store x ret_lexpr;
-		ret_lexpr
-
-	| None, _ ->
-		let l_x = fresh_lvar () in
-		store_put store x (LVar l_x);
-		update_gamma gamma l_x (Some BooleanType);
-		LVar l_x)
 
 (**********************************************)
 (* Symbolic evaluation of JSIL basic commands *)
@@ -243,7 +224,7 @@ let symb_evaluate_bcmd
 	| SSkip ->
 		LLit Empty
 
-  (* Assignment: x = e;
+  	(* Assignment: x = e;
 			a) Safely evaluate e to obtain nle and its type tle
 			b) Update the abstract store with [x |-> nle]
 			c) Update the typing environment with [x |-> tle]
@@ -251,23 +232,21 @@ let symb_evaluate_bcmd
 	| SAssignment (x, e) ->
 		let nle, tle, _ = ssee e in
 		store_put store x nle;
-		update_gamma gamma x tle;
 		nle
 
 	(* Object creation: x = new ();
 			a) Create fresh object location #l and add it to the heap
 			b) Set (#l, "@proto") -> $$null in the heap
 			c) Update the abstract store with [x |-> #l]
-			d) Update the typing environment with [x |-> $$object_type]
 			e) Add the fact that the new location is not $lg to the pure formulae
 			f) Return the new location
 	*)
 	| SNew x ->
 		let new_loc = fresh_aloc () in
-		Symbolic_State_Utils.update_abs_heap_default heap new_loc (domain_from_single_lit JS2JSIL_Constants.internalProtoFieldName);
-		Symbolic_State_Utils.update_abs_heap heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null) pure_formulae (* solver *) gamma;
+		heap_put heap new_loc []  (domain_from_single_lit JS2JSIL_Constants.internalProtoFieldName);
+		heap_put_fv_pair heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null); 
 		store_put store x (ALoc new_loc);
-		update_gamma gamma x (Some ObjectType);
+		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
 		ALoc new_loc
 
@@ -282,20 +261,13 @@ let symb_evaluate_bcmd
 	| SLookup (x, e1, e2) ->
 		let ne1, te1, _ = ssee e1 in
 		let ne2, te2, _ = ssee e2 in
-		let l =
-			(match ne1 with
-			| LLit (Loc l)
-			| ALoc l -> l
-			| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
-		 		| Some loc ->
-		 			loc
-		 		| None ->
-					raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
-			| _ -> raise (Failure (Printf.sprintf "Lookup: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))) in
-		let ne = Symbolic_State_Utils.abs_heap_find heap l ne2 pure_formulae gamma in
-		let ne_type,_,_ = type_lexpr gamma ne in
-		update_gamma gamma x ne_type;
+		let l = 
+			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			| Some l -> l 
+			| None   -> 
+				let msg = Printf.sprintf "SLookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				raise (Symbolic_State_Utils.SymbExecFailure msg) in
+		let ne = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2  in
 		store_put store x ne;
 		ne
 
@@ -311,21 +283,16 @@ let symb_evaluate_bcmd
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let ne3, _, _ = ssee e3 in
-		(match ne1 with
-		| LLit (Loc l)
-		| ALoc l ->
-			Symbolic_State_Utils.update_abs_heap heap l ne2 ne3 pure_formulae gamma
-		| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
-		 		| Some loc ->
-		 			Symbolic_State_Utils.update_abs_heap heap loc ne2 ne3 pure_formulae gamma
-		 		| None ->
-					raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
-		| _ ->
-			raise (Failure (Printf.sprintf "Mutation: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
+		let l = 
+			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			| Some l -> l 
+			| None   -> 
+				let msg = Printf.sprintf "SMutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				raise (Symbolic_State_Utils.SymbExecFailure msg) in
+		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 ne3; 
 		ne3
 
-  (* Property deletion: delete(e1, e2)
+  	(* Property deletion: delete(e1, e2)
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
 			c) If ne1 is not a literal location or an abstract location, throw an error
@@ -335,43 +302,32 @@ let symb_evaluate_bcmd
 	| SDelete (e1, e2) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
-		let l =
-			(match ne1 with
-			| LLit (Loc l)
-			| ALoc l -> l
-			| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
-		 		| Some loc ->
-		 			loc
-		 		| None ->
-					raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
-			| _ -> raise (Failure (Printf.sprintf "Delete: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))) in
-		Symbolic_State_Utils.update_abs_heap heap l ne2 LNone pure_formulae gamma;
+		let l = 
+			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			| Some l -> l 
+			| None   -> 
+				let msg = Printf.sprintf "SDelete. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				raise (Symbolic_State_Utils.SymbExecFailure msg) in
+		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 LNone; 
 		LLit (Bool true)
 
-  (* Object deletion: deleteObj(e1)
+  	(* Object deletion: deleteObj(e1)
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) If ne1 is not a literal location or an abstract location, throw an error
 			c) If the object at ne1 does not exist in the heap, throw an error
 			c) Delete the entire object ne1 from the heap
-			d) Return true
-	*)
+			d) Return true *)
 	| SDeleteObj e1 ->
 		let ne1, t_le1, _ = ssee e1 in
-		let l =
-			(match ne1 with
-			| LLit (Loc l)
-			| ALoc l -> l
-			| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
-		 		| Some loc ->
-		 			loc
-		 		| None ->
-					raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
-			| _ -> raise (Failure (Printf.sprintf "DeleteObject: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))) in
-		(match (LHeap.mem heap l) with
-		 | false -> raise (Failure (Printf.sprintf "Attempting to delete an inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1)))
-		 | true -> LHeap.remove heap l; LLit (Bool true));
+		let l = 
+			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			| Some l -> l 
+			| None   -> 
+				let msg = Printf.sprintf "SDeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				raise (Symbolic_State_Utils.SymbExecFailure msg) in
+		(match (heap_has_loc heap l) with
+		 | false -> raise (Symbolic_State_Utils.SymbExecFailure (Printf.sprintf "Attempting to delete an inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1)))
+		 | true  -> heap_remove heap l; LLit (Bool true));
 
   (* Property existence: x = hasField(e1, e2);
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
@@ -386,18 +342,24 @@ let symb_evaluate_bcmd
 	| SHasField (x, e1, e2) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
-		match ne1 with
-		| LLit (Loc l)
-		| ALoc l ->
-				member_check heap l ne2 pure_formulae gamma x store
-		| LVar lvar ->
-			 (match Simplifications.find_me_Im_a_loc (pfs_to_list pure_formulae) ne1 with
-		 		| Some loc ->
-		 			member_check heap loc ne2 pure_formulae gamma x store
-		 		| None ->
-					raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1))));
-		| _ -> raise (Failure (Printf.sprintf "HasField: I do not know which location %s denotes in the symbolic heap" (JSIL_Print.string_of_logic_expression ne1)))
-
+		let l = 
+			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			| Some l -> l 
+			| None   -> 
+				let msg = Printf.sprintf "SDeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				raise (Symbolic_State_Utils.SymbExecFailure msg) in
+	
+		let f_val = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2 in
+		(match Symbolic_State_Utils.lexpr_is_none pure_formulae gamma f_val  with
+		| Some b ->
+			let ret_lit = LLit (Bool (not b)) in
+			store_put store x ret_lit;
+			ret_lit
+		| None ->
+			let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in
+			store_put store x ret_lexpr;
+			ret_lexpr)
+	
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 
 
@@ -1338,36 +1300,23 @@ let symb_evaluate_proc
 	(* Get the procedure to be symbolically executed *)
 	let proc = get_proc s_prog.program proc_name in
 	let success, failure_msg =
-		(try
+		try (
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (Symbolic_State_Print.string_of_symb_state spec.n_pre));
 			let symb_state = ss_copy spec.n_pre in
 			(* Symbolically execute the procedure *)
 			let final_symb_states = pre_symb_evaluate_cmd s_prog proc spec.n_lvars spec.n_subst search_info symb_state (-1) 0 in 
 			
 			List.iter (fun (symb_state, ret_flag, spec_vars, search_info) -> 
-				(try unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state with 
-					| SymbExecRecovery GR (Flash (pn, pp)) ->
-						let flash = [ Unfold (LPred (pn, pp), None); Fold (LPred (pn, pp)) ] in
-						let sss = symb_evaluate_logic_cmds s_prog flash [ symb_state, spec_vars, search_info ] false spec.n_subst in
-						List.iter (fun (ss, sv, si) ->
-							let spec = { spec with n_lvars = sv } in
-							let _ = unify_symb_state_against_post !js si proc.proc_name spec ret_flag ss in 
-							()
-						) sss
-					| e -> raise e); 
+				unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state;  
 				Symbolic_Traces.create_info_node_from_post search_info spec.n_post ret_flag true; ()) final_symb_states; 
 			true, None 			
-		with
-		| e -> 
-			(* An error occurred during the symbolic execution *)
-			let msg = (match e with
-				| SymbExecFailure failure -> Symbolic_State_Print.print_failure failure
-				| Failure msg -> msg
-				| _ -> raise e) in
-			(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
-			Symbolic_Traces.create_info_node_from_error search_info msg;
-			Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
-			false, Some msg)) in
+		) with
+			| Spatial_Entailment.UnificationFailure msg 
+			| Failure msg -> 
+				(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
+				Symbolic_Traces.create_info_node_from_error search_info msg;
+				Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
+				false, Some msg) in
 
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
 	(* Create the dot graph of the symbolic execution *)

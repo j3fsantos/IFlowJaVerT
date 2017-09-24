@@ -2,7 +2,7 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
-
+exception SymbExecFailure of string
 
 (**
 	le -> non - normalised logical expression
@@ -140,104 +140,77 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 
 
 (*************************************)
-(** Substitution Functions          **)
+(** Symbolic Heap Functions         **)
 (*************************************)
 
 
 (**
-  find_field fv_list e p_formulae = fv_list', (e1, e2)
+  find_field (pfs, gamma, fv_list, loc, field) = fv_list', (field', val)
 	   st:
-		    fv_list = fv_list' U (e1, e2)
+		    fv_list = fv_list' U (field', val)
 				and
-				pure_formulae |=
-
+				pfs |=_{gamma} field = field' 
 *)
-let find_field loc fv_list e p_formulae gamma =
-	let rec find_field_rec fv_list traversed_fv_list i_am_sure_the_field_does_not_exist =
+let find_field
+		(pfs : pure_formulae) (gamma : typing_environment)
+		(fv_list : symbolic_field_value_list)
+		(loc : string) (field : jsil_logic_expr) : (symbolic_field_value_list * (jsil_logic_expr * jsil_logic_expr)) option  =
+	
+	let rec find_field_rec fv_list traversed_fv_list =
 		match fv_list with
-		| [] -> traversed_fv_list, None, i_am_sure_the_field_does_not_exist
-		| (e_field, e_value) :: rest ->
-			(if (Pure_Entailment.is_equal e e_field p_formulae gamma)
-				then traversed_fv_list @ rest, Some (e_field, e_value), false
-				else
-					(if (i_am_sure_the_field_does_not_exist && (Pure_Entailment.is_different e e_field p_formulae gamma))
-						then find_field_rec rest ((e_field, e_value) :: traversed_fv_list) true
-						else find_field_rec rest ((e_field, e_value) :: traversed_fv_list) false)) in
-	find_field_rec fv_list [] true
-
-let update_abs_heap_default (heap : symbolic_heap) loc dom =
-	let fv_list, domain = try LHeap.find heap loc with _ -> [], None in
-	match domain with
-	| None -> LHeap.replace heap loc (fv_list, dom)
- 	| _ -> raise (Failure "the default value for the fields of a given object cannot be changed once set")
+		| [] -> None
+		| (field', value) :: rest ->
+			(if (Pure_Entailment.is_equal field' field pfs gamma)
+				then Some (traversed_fv_list @ rest, (field', value))
+				else find_field_rec rest ((field', value) :: traversed_fv_list)) in
+	find_field_rec fv_list []
 
 
-
-(*************************************)
-(** Symbolic Heap Functions         **)
-(*************************************)
-
-let update_abs_heap (heap : symbolic_heap) (loc : string) (e_field : jsil_logic_expr) 
-		(e_val : jsil_logic_expr) (p_formulae : pure_formulae) (gamma : typing_environment) =
-	let fv_list, domain = try LHeap.find heap loc with _ -> [], None in
-	let unchanged_fv_list, field_val_pair, i_am_sure_the_field_does_not_exist = find_field loc fv_list e_field p_formulae gamma in
-
-	match field_val_pair, i_am_sure_the_field_does_not_exist with
-	| Some _, _
-	| None, true -> 
-		let new_domain = (match domain with 
-		| None -> None 
-		| Some domain -> 
-			print_debug (Printf.sprintf "UAH: My domain is: %s" (JSIL_Print.string_of_logic_expression domain));
-			let new_domain = LSetUnion [ domain; LESet [ e_field ]] in 
+let sheap_put 
+			(pfs : pure_formulae) (gamma : typing_environment)
+			(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) : unit =
+	
+	let fv_list, domain = heap_get_unsafe heap loc in
+	(match (find_field pfs gamma fv_list loc field), domain with 
+	| Some (framed_fv_list, _), _ -> heap_put heap loc ((field, value) :: framed_fv_list) domain 
+	| None, Some domain -> 
+		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
+		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
+			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
 			let new_domain = normalise_lexpr gamma new_domain in
-			let new_domain = Simplifications.reduce_expression_no_store gamma p_formulae new_domain in 
-			Some new_domain) in 
-		LHeap.replace heap loc ((e_field, e_val) :: unchanged_fv_list, new_domain)
-	| None, false ->
-		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e_field) loc in
-			raise (Failure msg)			
-
-let abs_heap_find (heap : symbolic_heap) (l : string) (e : jsil_logic_expr) 
-		(p_formulae : pure_formulae) (gamma : typing_environment) =
-	let fv_list, domain = try LHeap.find heap l with _ -> [], None in
-	let _, field_val_pair, i_am_sure_the_field_does_not_exist = find_field l fv_list e p_formulae gamma in
-	match field_val_pair, i_am_sure_the_field_does_not_exist, domain with
-	| Some (_, f_val), _, _-> f_val
-	| _, _, Some domain -> 
-		let a_set_inclusion = LNot (LSetMem (e, domain)) in 
-		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list p_formulae) [ a_set_inclusion ] gamma) 
-			then LNone
-			else (
-				let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e) l in
-				raise (Failure msg)
-			)
+			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
+			heap_put heap loc ((field, value) :: fv_list) (Some new_domain) 
+		) else (
+			let msg = Printf.sprintf "sheap_put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
+				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
+				(Symbolic_State_Print.string_of_fv_list fv_list) in 
+			raise (SymbExecFailure msg)
+		)
 	| _ -> 
-		let msg = Printf.sprintf "Cannot decide if %s exists in object %s" (JSIL_Print.string_of_logic_expression e) l in
-			raise (Failure msg)
-
-let abs_heap_check_field_existence (heap : symbolic_heap) (l : string) (e : jsil_logic_expr)
-		(p_formulae : pure_formulae) (gamma : typing_environment) =
-	let f_val = abs_heap_find heap l e p_formulae gamma in
-	match f_val with
-	| LNone -> None, Some false
-	|	_ ->
-		if (Pure_Entailment.is_equal f_val LNone p_formulae gamma) then
-			(Some f_val, Some false)
-			else (if (Pure_Entailment.is_different f_val LNone p_formulae gamma) then
-				(Some f_val, Some true)
-				else (Some f_val, None))
-
-let abs_heap_delete (heap : symbolic_heap) (l : string) (e : jsil_logic_expr) 
-		(p_formulae : pure_formulae) (gamma : typing_environment) =
-	let fv_list, default_val = try LHeap.find heap l with _ -> [], None in
-	let rest_fv_pairs, del_fv_pair, _ = find_field l fv_list e p_formulae gamma in
-	match del_fv_pair with
-	| Some (_, _) -> LHeap.replace heap l (rest_fv_pairs, default_val)
-	| None -> raise (Failure "Trying to delete an inexistent field")
+		let msg = Printf.sprintf "sheap_put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
+				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
+				(Symbolic_State_Print.string_of_fv_list fv_list) in 
+		raise (SymbExecFailure msg))
 
 
-let combine_domains (domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) (gamma : typing_environment) = 
+let sheap_get 
+		(pfs : pure_formulae) (gamma : typing_environment)
+		(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
+
+	let fv_list, domain = heap_get_unsafe heap loc in
+	(match (find_field pfs gamma fv_list loc field), domain with 
+	| Some (_, (_, value)), _ -> value 
+	| None, Some domain -> 
+		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
+		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) 
+			then LNone
+			else raise (SymbExecFailure "sheap_get")
+	| _ -> raise (SymbExecFailure "sheap_get"))
+
+
+let merge_domains 
+		(pfs : pure_formulae) (gamma : typing_environment)
+		(domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) : jsil_logic_expr option = 
 	match domain_l, domain_r with 
 	| None, None -> None
 	| None, Some domain 
@@ -245,42 +218,47 @@ let combine_domains (domain_l : jsil_logic_expr option) (domain_r : jsil_logic_e
 	| Some set1, Some set2 -> 
 		let set = LSetUnion [ set1; set2 ] in
 		let set = normalise_lexpr gamma set in  
+		let set = Simplifications.reduce_expression_no_store gamma pfs set in
 		Some set 
 
 
-let merge_heaps (heap : symbolic_heap) (new_heap : symbolic_heap) (p_formulae : pure_formulae) 
-			(gamma : typing_environment) =
-	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
-	print_debug_petar (Printf.sprintf "-------------INSIDE MERGE HEAPS------------------------------------\n");
-	print_debug_petar (Printf.sprintf "-------------------------------------------------------------------\n");
-
-	print_debug_petar (Printf.sprintf "heap: %s\n" (Symbolic_State_Print.string_of_symb_heap heap));
-	print_debug_petar (Printf.sprintf "pat_heap: %s\n" (Symbolic_State_Print.string_of_symb_heap new_heap));
-	print_debug_petar (Printf.sprintf "p_formulae: %s\n" (Symbolic_State_Print.string_of_pfs p_formulae));
-	print_debug_petar (Printf.sprintf "gamma: %s\n" (Symbolic_State_Print.string_of_gamma gamma));
-
-	LHeap.iter
+let merge_heaps 
+			(pfs : pure_formulae) (gamma : typing_environment)
+			(heap : symbolic_heap) (new_heap : symbolic_heap) : unit =
+	
+	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
+		(Symbolic_State_Print.string_of_symb_heap heap) (Symbolic_State_Print.string_of_symb_heap new_heap)
+		(Symbolic_State_Print.string_of_pfs pfs) (Symbolic_State_Print.string_of_gamma gamma)
+	);
+	
+	heap_iterator new_heap 
 		(fun loc (n_fv_list, n_domain) ->
-			print_debug_petar (Printf.sprintf "Object: %s" loc);
-			try 
-				let fv_list, domain = LHeap.find heap loc in				
-				LHeap.replace heap loc (n_fv_list @ fv_list, (combine_domains domain n_domain gamma))
-			with Not_found -> LHeap.add heap loc (n_fv_list, n_domain))
-		new_heap;
+			match heap_get heap loc with 
+			| Some (fv_list, domain) -> 
+				heap_put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)
+			| None -> 
+				heap_put heap loc n_fv_list n_domain); 
+
 	print_debug "Finished merging heaps."
 
-(** 
-(** JSIL logic assertions *)
-let rec string_of_logic_assertion a escape_string =
-**)
 
+let lexpr_is_none (pfs : pure_formulae) (gamma : typing_environment) (le : jsil_logic_expr) : bool option = 
+	if (Pure_Entailment.is_equal le LNone pfs gamma) then Some true else (
+		if (Pure_Entailment.is_different le LNone pfs gamma) 
+			then Some false 
+			else None)
 
+let resolve_location (pfs : pure_formulae) (le : jsil_logic_expr) : string option = 
+	match le with
+	| LLit (Loc l)
+	| ALoc l -> Some l
+	| LVar x ->
+		(match Simplifications.resolve_location x (pfs_to_list pfs) with
+		| Some (LLit (Loc l)) 
+		| Some (ALoc l) -> Some l
+		| _ -> None)
+	| _ -> None 
 
-			
-
-(*************************************)
-(** Gamma functions                 **)
-(*************************************)
 
 
 
@@ -368,7 +346,7 @@ let merge_symb_states
 	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
 	pfs_merge pf_l pf_r;
 	merge_gammas gamma_l gamma_r;
-	merge_heaps heap_l heap_r pf_l gamma_l;
+	merge_heaps pf_l gamma_l heap_l heap_r;
 	DynArray.append preds_r preds_l;
 	print_debug ("Finished merge_symb_states");
 	(heap_l, store_l, pf_l, gamma_l, preds_l)

@@ -421,6 +421,9 @@ type normalised_predicate = {
   is_recursive : bool
 }
 
+type lemma_table         = (string, jsil_lemma) Hashtbl.t
+type which_predecessor   = (string * int * int, int) Hashtbl.t
+
 
 (*************************************)
 (** JSIL Logic Macros               **)

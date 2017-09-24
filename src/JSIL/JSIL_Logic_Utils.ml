@@ -572,11 +572,6 @@ let rec type_lexpr gamma le =
 
  	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
-		(* Printf.printf "trying to type a not. got the following. te: %s. ite: %s."
-			(match te with
-  					| Some te -> JSIL_Print.string_of_type te
-  					| None    -> "")
-			(string_of_bool ite); *)
 		let tt t1 t2 new_constraints =
 			if_some te
 				(fun t -> if (t = t1)
@@ -643,15 +638,10 @@ let rec type_lexpr gamma le =
 				| Equal -> (Some BooleanType, true, constraints)
 				| LstCons -> check_valid_type t2 [ ListType ] ListType []
 				| SetMem -> check_valid_type t2 [ SetType ] BooleanType []
-				| _     -> Printf.printf "type_lexpr: op: %s, t: none\n"  (JSIL_Print.string_of_binop op); raise (Failure "ERROR"))
+				| _     -> raise (Failure "ERROR"))
 			| true ->
 			(match op with
-			| Equal ->
-				(
-					Printf.printf "typing the jsil equality. t1: %s. t2: %s.\n"
-						(JSIL_Print.string_of_type t1) (JSIL_Print.string_of_type t2);
-					check_valid_type t1 all_types BooleanType []
-				)
+			| Equal -> check_valid_type t1 all_types BooleanType []
 			| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType ] BooleanType []
 			| LessThanString -> check_valid_type t1 [ StringType ] BooleanType []
 			| Plus	| Minus	| Times	| Mod -> check_valid_type t1 [ NumberType ] t1 []
@@ -665,9 +655,7 @@ let rec type_lexpr gamma le =
 			| StrCat -> check_valid_type t1 [ StringType ] StringType []
 			| SetDiff -> check_valid_type t1 [ SetType ] SetType     []
 			| SetSub   -> check_valid_type t1 [ SetType ] BooleanType []
-			| _ ->
-				Printf.printf "type_lexpr: op: %s, t: %s\n"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type t1);
-				raise (Failure "ERROR in type_lexpr")))
+			| _ -> raise (Failure "ERROR in type_lexpr")))
 		| _, ot2 ->
 			match op with
 			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
@@ -694,7 +682,6 @@ let rec type_lexpr gamma le =
 		| Some StringType, Some NumberType ->
 			let new_constraint1 = (LNot (LLess (index, LLit (Num 0.)))) in
 			let new_constraint2 = (LLess (index, LUnOp (StrLen, str))) in
-			(* Printf.printf "Entailment: %b\n" entail; *)
 			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
 		| _, _ -> (None, false, []))
 
@@ -720,7 +707,6 @@ let rec type_lexpr gamma le =
 
 let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	let f = reverse_type_lexpr_aux gamma new_gamma in
-	(* Printf.printf "le: %s\n\n\n" (JSIL_Print.string_of_logic_expression le false); *)
 	(match le with
 	(* Literals are always typable *)
 	| LLit lit -> (evaluate_type_of lit = le_type)
@@ -749,7 +735,6 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 			else false
 
 	| LUnOp (unop, le) ->
-		(* Printf.printf "UNOP\n\n\n"; *)
 		(match unop with
 		| Not        -> if (le_type = BooleanType) then f le BooleanType else false
 		| UnaryMinus -> if (le_type = NumberType)  then f le le_type     else false
@@ -802,7 +787,7 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 				else false
 
 		| _ ->
-			Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type);
+			(* Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type); *)
 			raise (Failure "ERROR"))
 
 		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 NumberType)
