@@ -1182,7 +1182,7 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	(* other *)
 	| _, _ -> None))
 
-let is_equal e1 e2 pure_formulae (* solver *) gamma =
+let is_equal e1 e2 pure_formulae gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 		| Some b -> b
@@ -1190,7 +1190,7 @@ let is_equal e1 e2 pure_formulae (* solver *) gamma =
 	result
 
 
-let is_different e1 e2 pure_formulae (* solver *) gamma =
+let is_different e1 e2 pure_formulae gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 		| Some b -> not b

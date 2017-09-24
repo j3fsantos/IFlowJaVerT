@@ -18,12 +18,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	let subst = Option.default (init_substitution []) subst in 
 
 	let f = normalise_lexpr ~store:store ~subst:subst gamma in
-
-	(* print_debug (Printf.sprintf "Normalising %s" (JSIL_Print.print_lexpr le)); *)
-
-	let start_time = Sys.time() in
 	
-	try (
 	let result = match le with
 	| LLit _
 	| LNone -> le
@@ -141,18 +136,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
 				with _ -> raise (Failure "String index out of bounds"))
 			| _, _ -> LStrNth (nle1, nle2)) in
-		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
-		(* print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> %s" 
-			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le false) 
-			(JSIL_Print.string_of_logic_expression result false)); *)
-		result)
-	with
-	| Failure msg -> let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "normalise_lexpr" (end_time -. start_time);
-		print_debug_petar (Printf.sprintf "normalise_lexpr: %f : %s -> Failure" 
-			(end_time -. start_time) (JSIL_Print.string_of_logic_expression le));
-		raise (Failure msg)
+		result
 
 
 (*************************************)

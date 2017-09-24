@@ -248,7 +248,7 @@ let unify_cell_assertion
 					| _, _                             -> None)))) fv_list in 
 	let frames = List.filter (fun x -> not (x = None)) frames in 
 	let frames = List.map Option.get frames in 
-    let frames = List.map (fun (i, subst_list, discharges) -> 
+  	let frames = List.map (fun (i, subst_list, discharges) -> 
     		let pat_subst     = Hashtbl.copy pat_subst in 
     		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
     			let heap_frame    = heap_copy heap in 
@@ -462,7 +462,9 @@ let unify_spatial_assertion
 		(heap          : symbolic_heap) 
 		(preds         : predicate_set) :  intermediate_frame list =
 
-	match pat_s_asrt with 
+	let start_time = Sys.time() in
+	
+	let result = (match pat_s_asrt with 
 	| LPointsTo _ -> 
 		List.map 
 			(fun (h_f, pat_subst, discharges) -> (h_f, preds_copy preds, discharges, pat_subst)) 
@@ -478,7 +480,12 @@ let unify_spatial_assertion
 			(fun (h_f, pat_subst, discharges) -> (h_f, preds_copy preds, discharges, pat_subst)) 
 			(unify_empty_fields_assertion pfs gamma pat_subst pat_s_asrt heap)  
 
-	| _ -> raise (Failure "DEATH")
+	| _ -> raise (Failure "DEATH")) in
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_spatial_assertion" (end_time -. start_time);
+	
+	result
 
 
 let unify_gammas 
@@ -486,7 +493,9 @@ let unify_gammas
 		(pat_gamma : typing_environment) 
 		(gamma     : typing_environment) : bool =
 
-	let ret = Hashtbl.fold 
+	let start_time = Sys.time() in
+
+	let result = Hashtbl.fold 
 		(fun x x_type ac ->
 			if (not ac) then ac else (
 				try 
@@ -504,8 +513,12 @@ let unify_gammas
 							x (JSIL_Print.string_of_logic_expression le_x) (JSIL_Print.string_of_type x_type));
 						false)
 				with Not_found -> true)) pat_gamma true in 
-	print_debug (Printf.sprintf "unify_gammas result: %b" ret); 
-	ret
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_gammas" (end_time -. start_time);
+	print_debug (Printf.sprintf "unify_gammas result: %b" result); 
+	
+	result
 
 
 let pf_list_of_discharges 
@@ -539,6 +552,8 @@ let unify_pfs
 		(gamma        : typing_environment) 
 		(pfs          : pure_formulae)
 		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment * SS.t =
+
+	let start_time = Sys.time() in
 
 	(* 1. pat_existentials = pat_vars \ dom(pat_subst)                                                  *)
 	let pat_existentials = SS.elements (SS.filter (fun x -> not (Hashtbl.mem pat_subst x)) pat_lvars) in 
@@ -577,7 +592,12 @@ let unify_pfs
 			pfs_to_prove in 
 
 	(* 6. Return                                                                                        *)
-	entailment_check_ret, pfs_existentials, pfs_discharges, gamma', (SS.of_list fresh_names_for_pat_existentials)
+	let result = entailment_check_ret, pfs_existentials, pfs_discharges, gamma', (SS.of_list fresh_names_for_pat_existentials) in
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_pfs" (end_time -. start_time);
+	
+	result
 
 
 type extended_intermediate_frame         = (jsil_logic_assertion list) * intermediate_frame
@@ -589,7 +609,7 @@ let unify_symb_states
 		(symb_state            : symbolic_state) : bool * symbolic_state_frame =
 
 	let heap, store, pfs, gamma, preds                     = symb_state in
-	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = ss_copy pat_symb_state in
+	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = pat_symb_state in
 	let pat_lvars = (ss_lvars pat_symb_state) in 
 
 	print_debug (Printf.sprintf "STARTING: unify_symb_states with UP: %s.\n" 
@@ -662,7 +682,11 @@ let unify_symb_states
 				search (new_frames @ rest_frame_list) found_partial_matches
 
 			| _ -> raise (Failure "DEATH")) in 
-	search [ initial_frame ] [ ]
+	let start_time = Sys.time() in
+	let result = search [ initial_frame ] [] in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_ss : search" (end_time -. start_time);
+	result
 
 
 
@@ -706,7 +730,7 @@ let unify_symb_states_fold
 			(symb_state           : symbolic_state) : symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option)  =
 	
 	let heap,     store,     pfs,     gamma,     preds     = symb_state in
-	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = ss_copy pat_symb_state in
+	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = pat_symb_state in
 	let pat_lvars = (ss_lvars pat_symb_state) in 
 
 	print_debug (Printf.sprintf "STARTING: unify_symb_states_fold with UP: %s.\n" 
@@ -827,7 +851,12 @@ let unify_symb_states_fold
 					)
 
 			| _ -> raise (Failure "DEATH")) in
-	search [ initial_frame ]  
+			
+	let start_time = Sys.time() in
+	let result = search [ initial_frame ] in
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_ss_fold : search" (end_time -. start_time);
+	result
 
 
 let unify_lexprs_unfold
@@ -975,7 +1004,7 @@ let unfold_predicate_definition
 	(* PREAMBLE                                                                                                            *)
 	let symb_state = ss_copy symb_state in
 	let heap,             _,     pfs,     gamma,     preds = symb_state in
-	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = ss_copy pat_symb_state in
+	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = pat_symb_state in
 	let subst     = copy_substitution subst in 
 	let pat_subst = copy_substitution pat_subst in  
 
@@ -1112,10 +1141,7 @@ let grab_resources
 			let new_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state subst in
 			let subst_pfs = assertions_of_substitution subst in
 			ss_extend_pfs symb_state (pfs_of_list subst_pfs);
-			let start_time = Sys.time() in
 			let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
-			let end_time = Sys.time() in
-			JSIL_Syntax.update_statistics "simplify_ss: grab_resources" (end_time -. start_time);
 			Some symb_state
 		| false -> None
 	) with UnificationFailure _ -> None 

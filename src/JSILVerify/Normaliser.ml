@@ -424,8 +424,7 @@ let rec normalise_pure_assertion
 		(assertion : jsil_logic_assertion) : jsil_logic_assertion =
 	let fa = normalise_pure_assertion store gamma subst in
 	let fe = normalise_logic_expression store gamma subst in
-	let start_time = Sys.time() in
-	try (let result = (match assertion with
+	let result = (match assertion with
 	| LEq (le1, le2) -> LEq((fe le1), (fe le2))
 	| LLess (le1, le2) -> LLess((fe le1), (fe le2))
 	| LLessEq (le1, le2) -> LLessEq ((fe le1), (fe le2))
@@ -445,18 +444,7 @@ let rec normalise_pure_assertion
 	| _ ->
 			let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion) in
 			raise (Failure msg)) in
-	let end_time = Sys.time () in
-	JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
-	(* print_debug (Printf.sprintf "normalise_pure_assertion: %f : %s -> %s"
-			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion false)
-			(JSIL_Print.string_of_logic_assertion result false)); *)
-		result)
-	with
-	| Failure msg -> let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "normalise_pure_assertion" (end_time -. start_time);
-		print_debug_petar (Printf.sprintf "normalise_pure_assertion: %f : %s -> Failure"
-			(end_time -. start_time) (JSIL_Print.string_of_logic_assertion assertion));
-		raise (Failure msg)
+		result
 
 (** -------------------------------------------------------------------
   * init_alocs: Generate the abstract locations for the normalised spec
