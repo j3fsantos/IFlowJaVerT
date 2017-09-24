@@ -12,8 +12,8 @@ var y = 3;
 	@id  g
 	@rec false
 
-	@pre  (initialHeapPost() * scope(y : #y) * (z == #z) * types(#y : $$number_type, #z : $$number_type))
-	@post (initialHeapPost() * scope(y : #y) * (ret == (#z + #y)))
+	@pre  (initialHeapPostWeak() * scope(y : #y) * (z == #z) * types(#y : $$number_type, #z : $$number_type))
+	@post (initialHeapPostWeak() * scope(y : #y) * (ret == (#z + #y)))
 */
 var g = function (z) { return z + y };
 

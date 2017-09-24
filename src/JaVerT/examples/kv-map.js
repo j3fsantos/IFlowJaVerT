@@ -37,7 +37,7 @@
     @id  map
 
     @pre (
-    	initialHeapPost() * 
+    	initialHeapPostWeak() * 
     	JSObjWithProto(this, #mp) *
         ((this, "_contents") -> None) *
         ((this, "get") -> None) *
@@ -47,7 +47,7 @@
     )
     
     @post (
-    	initialHeapPost() * 
+    	initialHeapPostWeak() * 
     	Map(this, #mp, #kvs, #keys) * (#kvs == -{ }-) * (#keys == -{ }-) * 
     	MapProto(#mp) * (ret == this)
     )
@@ -76,14 +76,14 @@ Map.prototype.validKey = function (key) {
 /**
 	@id mapGet
 	
-	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPost() 
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPost() 
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak() 
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
 
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPost() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null) * initialHeapPost() 
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() 
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null) * initialHeapPostWeak() 
 	
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * initialHeapPost() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * initialHeapPost() 
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * initialHeapPostWeak() 
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * initialHeapPostWeak() 
 */
 Map.prototype.get = function (k) {
 	/* @tactic assert ( DataProp(this, "_contents", #c) ) */
@@ -101,17 +101,17 @@ Map.prototype.get = function (k) {
 /**
 	@id mapPut
 	
-	@pre    ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPost() *
+	@pre    ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak() *
 	            types(#kvs: $$set_type, #keys: $$set_type))
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPost() 
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
 
-	@pre  ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPost() *
+	@pre  ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() *
 				types(#kvs: $$set_type, #keys: $$set_type) * (v == #v))
- 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPost() 
+ 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPostWeak() 
 
 	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
-			(#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPost() * types(#kvs: $$set_type, #keys: $$set_type))
-	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPost() 
+			(#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPostWeak() * types(#kvs: $$set_type, #keys: $$set_type))
+	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPostWeak() 
 */
 Map.prototype.put = function (k, v) {
 	/* @tactic assert( DataProp(this, "_contents", #c) * scope (v : #v) ) */

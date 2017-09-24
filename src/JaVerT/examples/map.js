@@ -48,7 +48,7 @@ function isValidKey(key) {
     @id  map
 
     @pre (
-    	initialHeapPost() * 
+    	initialHeapPostWeak() * 
     	JSObjWithProto(this, #mp) *
         ((this, "_contents") -> None) *
         ((this, "get") -> None) *
@@ -57,7 +57,7 @@ function isValidKey(key) {
     )
     
     @post (
-    	initialHeapPost() * 
+    	initialHeapPostWeak() * 
     	Map(this, #contents, #mp) * 
     	MapProto(#mp)
     )
@@ -70,7 +70,7 @@ function Map () {
 	@id mapGet
 	
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * ValidKey(#key) * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
@@ -78,7 +78,7 @@ function Map () {
 	)
 	
 	@post (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) * 
 		DataProp(#contents, #key, #v) *
@@ -86,7 +86,7 @@ function Map () {
 	)
 	
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * ValidKey(#key) * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) *
@@ -94,7 +94,7 @@ function Map () {
 	)
 	
 	@post (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) * 
 		EmptyProp(#contents, #key) *
@@ -102,13 +102,13 @@ function Map () {
 	)
 	
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * InvalidKey(#key) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _)
 	)
 	
 	@posterr (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		ErrorObjectWithMessage(err, "Invalid Key") *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _)
 	)
@@ -126,7 +126,7 @@ Map.prototype.get = function getValue (key) {
 	@id mapPut
 
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * ValidKey(#key) * 
 		(value == #value) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
@@ -135,14 +135,14 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@post (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) * 
 		DataProp(#contents, #key, #value)
 	)
 	
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * ValidKey(#key) * 
 		(value == #value) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
@@ -151,14 +151,14 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@post (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) * 
 		DataPropGen(#contents, #key, #value, $$t, #enum, #conf)
 	)
 	
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * ValidKey(#key) * 
 		(value == #value) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
@@ -167,7 +167,7 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@posterr (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _) * 
 		Map(this, #contents, #mp) * MapProto(#mp) * 
 		DataPropGen(#contents, #key, #oldValue, $$f, #enum, #conf) *
@@ -175,13 +175,13 @@ Map.prototype.get = function getValue (key) {
 	)
 	
 	@pre (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(key == #key) * InvalidKey(#key) *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _)
 	)
 	
 	@posterr (
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		ErrorObjectWithMessage(err, "Invalid Key") *
 		scope(isValidKey : #iVK) * FunctionObject(#iVK, "isValidKey", _, _)
 	)

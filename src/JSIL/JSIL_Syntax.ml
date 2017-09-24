@@ -479,7 +479,7 @@ let get_proc_cmd proc i =
 
 (* STATISTICS *)
 
-let im_petar = ref true
+let im_petar = ref false
 let debug = ref false
 let newencoding = ref false
 

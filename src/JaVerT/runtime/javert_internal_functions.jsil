@@ -750,16 +750,14 @@ with
    **************************************** *)
 
 pred initialHeapPre () :
-    (($lg,      "@class") -> None) * 
-    (($lg, 	    "@proto") -> None) * 
-    (($lg, "@extensible") -> None) *
-    empty_fields ($lg : -{ "@class", "@proto", "@extensible" }-) * 
+    empty_fields ($lg : -{}-) * 
     empty_fields ($lobj_proto : -{}-) * empty_fields ($lfun_proto : -{ }-) * empty_fields ($lerr : -{ }-) * empty_fields ($lerr_proto : -{ }-) * 
     empty_fields ( $lop_hasOwnProperty : -{ }-);
     
-pred initialHeapPost () :
-    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) * 
-	empty_fields ( $lg : -{ "@class", "@proto", "@extensible", "Error" }- ) *  
+pred initialHeapPost ( globals ) :
+    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) *
+    empty_fields ( $lg : -u- (-{ "@class", "@proto", "@extensible", "Error" }-, globals) ) *
+    types( globals: $$set_type) * 
 
 	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * 
     (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }}) *
@@ -778,13 +776,33 @@ pred initialHeapPost () :
 	(($lerr_proto, "@class") -> "Error")   * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@extensible") -> $$t) * 
 	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : -{ "@class", "@proto", "@extensible", "message" }-);
 	
+
+pred initialHeapPostWeak ( ) :
+    (($lg,         "@class") -> "Object")   * (($lg,         "@proto") -> $lobj_proto) * (($lg,         "@extensible") -> $$t) * (($lg,         "Error") -> {{ "d", $lerr, $$t, $$f, $$t }}) *
+
+	(($lobj_proto, "@class") -> "Object")   * (($lobj_proto, "@proto") -> $$null)      * (($lobj_proto, "@extensible") -> $$t) * 
+    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, $$t, $$f, $$t }}) *
+    empty_fields ( $lobj_proto : -{ "@class", "@proto", "@extensible", "hasOwnProperty" }- ) * 
 	
+	(($lop_hasOwnProperty, "@class") -> "Function") * (($lop_hasOwnProperty, "@proto") -> $lfun_proto)                 * (($lop_hasOwnProperty, "@extensible") -> $$t) *
+	(($lop_hasOwnProperty, "@scope") -> $$empty)    * (($lop_hasOwnProperty, "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * empty_fields($lop_hasOwnProperty : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call" }-) *
+	
+    (($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> $$t) *
+	(($lfun_proto, "@scope") -> $$empty)    * (($lfun_proto, "length") -> {{ "d", 0, $$f, $$f, $$f }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call" }-) *	
+	
+	(($lerr,       "@class") -> "Function") * (($lerr,       "@proto") -> $lfun_proto) * (($lerr,       "@extensible") -> $$t) *
+	(($lerr,       "@scope") -> $$empty)    * (($lerr,       "length") -> {{ "d", 1, $$f, $$f, $$f }}) * (($lerr,       "@call") -> "Error_call") * 
+	(($lerr, "@construct") -> "Error_construct") * (($lerr,  "prototype") -> {{ "d", $lerr_proto, $$f, $$f, $$f }}) * empty_fields($lerr : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "prototype" }-) *
+	
+	(($lerr_proto, "@class") -> "Error")   * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@extensible") -> $$t) * 
+	(($lerr_proto, "message") -> {{ "d", "", $$t, $$f, $$t }}) * empty_fields ($lerr_proto : -{ "@class", "@proto", "@extensible", "message" }-);
+		
 	
 
 spec setupInitialHeap ()
 
 	[[ initialHeapPre() ]]
-	[[ initialHeapPost() * (ret == $$empty) ]]
+	[[ initialHeapPost( -{ }- ) * (ret == $$empty) ]]
 	normal
 
 proc setupInitialHeap () {

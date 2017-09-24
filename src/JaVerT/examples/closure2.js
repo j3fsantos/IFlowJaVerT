@@ -14,8 +14,8 @@ var w = 666;
 
 /**
    @id  f1
-   @pre  (initialHeapPost() * scope(w: #w) * (x1 == #x1) * types(#w: $$number_type, #x1: $$number_type))
-   @post (initialHeapPost() * scope(w: #w) * 
+   @pre  (initialHeapPostWeak() * scope(w: #w) * (x1 == #x1) * types(#w: $$number_type, #x1: $$number_type))
+   @post (initialHeapPostWeak() * scope(w: #w) * 
             FunctionObject(ret, "f3", #f3_sc, _) * 
             closure(z1: (#x1 + #w), z2: (#x1 + #w + 2); f3: #f3_sc))
 */
@@ -36,9 +36,9 @@ var f1 = function (x1) {
 
       /**
          @id  f3
-         @pre  (initialHeapPost() * scope(w: #w) * scope(z1: #z1) * scope(z2: #z2) * (x3 == #x3) *
+         @pre  (initialHeapPostWeak() * scope(w: #w) * scope(z1: #z1) * scope(z2: #z2) * (x3 == #x3) *
                   types(#w: $$number_type, #z1: $$number_type, #z2: $$number_type, #x3: $$number_type))
-         @post (initialHeapPost() * scope(w: #w) * scope(z1: #z1) * scope(z2: #z2) *
+         @post (initialHeapPostWeak() * scope(w: #w) * scope(z1: #z1) * scope(z2: #z2) *
                   (ret == (#w + #z1 + #z2 + #x3)))
       */
       var f3 = function (x3) {

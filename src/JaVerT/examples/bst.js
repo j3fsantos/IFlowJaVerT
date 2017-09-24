@@ -45,14 +45,14 @@ function make_node(v)
 	@id insert
 
 	@pre
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : $$number_type) *
 		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
 		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
 		
 	@post 
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : $$object_type) *
 		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
 		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
@@ -86,12 +86,12 @@ function insert(v, t)
 	@id find
 	
 	@pre
-		initialHeapPost() *
+		initialHeapPostWeak() *
 		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : $$number_type) * 
 		scope(find : #find) * FunctionObject(#find, "find", _, _)
 
 	@post 
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : $$boolean_type) *
 		scope(find : #find) * FunctionObject(#find, "find", _, _)
 */
@@ -119,12 +119,12 @@ function find (v, t)
 	@id findMin
 	
 	@pre
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * types(#t : $$object_type) * 
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 
 	@post 
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) * 
 		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
@@ -149,14 +149,14 @@ function find_min(t)
 	@id remove
 		
 	@pre
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : $$number_type) *
 		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 
 	@post 
-		initialHeapPost() * 
+		initialHeapPostWeak() * 
 		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) * NullableObject(#t_new) *
 		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)

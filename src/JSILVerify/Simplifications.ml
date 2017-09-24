@@ -693,7 +693,7 @@ let rec reduce_assertion store gamma pfs a =
 			(match ac with
 			| LFalse -> eq
 			| _ -> LOr (ac, eq))) LFalse result in  
-			print_debug (Printf.sprintf "SET_MEM: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
+			print_debug_petar (Printf.sprintf "SET_MEM: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
 				(JSIL_Print.string_of_logic_assertion result)); 
 			f result
 
@@ -2305,7 +2305,7 @@ let simplify_implication exists lpfs rpfs gamma =
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
 	let rpfs, exists, gamma = find_impossible_unions   lpfs rpfs exists gamma in
 	sanitise_pfs_no_store gamma rpfs;
-	print_debug (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
+	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(string_of_pfs lpfs)
 		(string_of_pfs rpfs)

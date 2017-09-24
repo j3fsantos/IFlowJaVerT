@@ -1011,7 +1011,7 @@ let check_satisfiability assertions gamma =
 		JSIL_Syntax.update_statistics "check_satisfiability : cache_prepare" (end_time -. start_time);
 
 
-	print_debug (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
+	print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
 			(Symbolic_State_Print.string_of_pfs (DynArray.of_list new_assertions))
 			(Symbolic_State_Print.string_of_gamma new_gamma)); 
 
@@ -1019,7 +1019,7 @@ let check_satisfiability assertions gamma =
 		(Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion)
 	else
 	begin
-		print_debug (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
+		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
 		let solver = get_new_solver new_assertions new_gamma in
 		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
 		let start_time = Sys.time () in
@@ -1088,7 +1088,7 @@ let check_entailment (existentials : SS.t)
 		let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in
 		let solver = (Solver.mk_solver ctx None) in
 		Solver.add solver left_as;
-		print_debug (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
+		print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
 		let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
 		if (ret_left) then (
 			let right_as_axioms = 
