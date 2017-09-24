@@ -58,8 +58,8 @@
 
 /** 
  	@id PQLib
-    @pre  (initialHeapPost())
-    @post (initialHeapPost() * PriorityQueueModule (ret))
+    @pre  (initialHeapPostWeak())
+    @post (initialHeapPostWeak() * PriorityQueueModule (ret))
 */
 var PriorityQueue = (function () {
 
@@ -69,7 +69,7 @@ var PriorityQueue = (function () {
 	 	@id  Node
 	
 	 	@pre (
-	 		initialHeapPost() * 
+	 		initialHeapPostWeak() * 
 	 	   	(pri == #pri) * types(#pri: $$number_type) * (0 <# #pri) *
 	 	   	(val == #val) *
 	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
@@ -78,7 +78,7 @@ var PriorityQueue = (function () {
 	 	   	scope(counter : #c) * types(#c : $$number_type) 
 	 	)
 	 	@post (
-	 		initialHeapPost() * 
+	 		initialHeapPostWeak() * 
 			Node(this, #pri, #val, $$null, #np) * 
 			NodePrototype(#np) * 
 			scope(counter : #c + 1)
@@ -146,7 +146,7 @@ var PriorityQueue = (function () {
 	    @id  PriorityQueue
 	
 		@pre (
-			initialHeapPost() * 
+			initialHeapPostWeak() * 
 	        ((this, "_head") -> None) *
 	        ((this, "enqueue") -> None) *
 	        ((this, "dequeue") -> None) *
@@ -155,7 +155,7 @@ var PriorityQueue = (function () {
 	        QueuePrototype(#pqp, #np, #c, #sc)
 	    )
 	    @post (
-	    	initialHeapPost() * 
+	    	initialHeapPostWeak() * 
 	    	Queue(this, #pqp, #np, 0, 0) *
 	    	QueuePrototype(#pqp, #np, #c, #sc)
 	    )
@@ -169,7 +169,7 @@ var PriorityQueue = (function () {
 		@id enqueue
 				
 		@pre (
-			initialHeapPost() * 
+			initialHeapPostWeak() * 
 			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
@@ -178,13 +178,13 @@ var PriorityQueue = (function () {
 			(#pri <=# #pri_q)
 		)
 		@post (
-			initialHeapPost() * 
+			initialHeapPostWeak() * 
 			Queue(this, #pqp, #np, #pri_q, #length + 1) *
 			QueuePrototype(#pqp, #np, #c + 1, #sc)
 		)
 		
 		@pre (
-			initialHeapPost() * 
+			initialHeapPostWeak() * 
 			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
@@ -193,7 +193,7 @@ var PriorityQueue = (function () {
 			(#pri_q <# #pri)
 		)
 		@post (
-			initialHeapPost() * 
+			initialHeapPostWeak() * 
 			Queue(this, #pqp, #np, #pri, #length + 1) *
 			QueuePrototype(#pqp, #np, #c + 1, #sc)
 		)
@@ -219,13 +219,13 @@ var PriorityQueue = (function () {
        DataProp(#r, "pri", #pri_q) * DataProp(#r, "val", #some_val)
      )
      @pre (
-       initialHeapPost() * 
+       initialHeapPostWeak() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
        o_chains(enqueue: #sc, dequeue: $$scope)
      )
      @posterr (
-       initialHeapPost() * 
+       initialHeapPostWeak() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
        (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty")
