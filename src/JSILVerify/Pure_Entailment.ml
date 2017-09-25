@@ -1168,7 +1168,6 @@ let check_entailment (existentials : SS.t)
 				(* Entailment check *)
   			let ret = Solver.check masterSolver [ ] in
   			
-				
 				print_debug_petar (Printf.sprintf "The solver returned: %s"
   						(match ret with
   						| Solver.SATISFIABLE -> "SAT"
