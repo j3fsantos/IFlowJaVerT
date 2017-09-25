@@ -14,8 +14,10 @@ let consistent_subst_list
 		(pfs        : pure_formulae)
 		(gamma      : typing_environment) : substitution_list option = 
 
+	let start_time = Sys.time() in
+
 	let subst = Hashtbl.create small_tbl_size in
-	List.fold_left (fun o_subst_list (x, le) -> 
+	let result = List.fold_left (fun o_subst_list (x, le) -> 
 		match o_subst_list with 
 		| None -> None 
 		| Some subst_list -> 
@@ -27,7 +29,11 @@ let consistent_subst_list
 			with _ ->
 				Hashtbl.replace subst x le;
 				Some ((x, le) :: subst_list) 
-	) (Some []) subst_list
+	) (Some []) subst_list in
+		
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "consistent_subst_list" (end_time -. start_time);
+	result 
 
 
 let safe_substitution_extension 
@@ -106,13 +112,10 @@ let unify_lexprs
 	(le_pat      : jsil_logic_expr) 
 	(le          : jsil_logic_expr) : (substitution_list * discharge_list) option =
 
-	let old_le_pat = le_pat in 
-	let old_le     = le in 
+	let start_time = Sys.time() in
+
 	let le_pat     = Normaliser.normalise_list_expressions le_pat in
 	let le         = Normaliser.normalise_list_expressions le in 
-	(* print_debug (Printf.sprintf "old_le: %s. le: %s. old_le_pat: %s. le_pat: %s"
-		(JSIL_Print.string_of_logic_expression old_le false) (JSIL_Print.string_of_logic_expression le false) (JSIL_Print.string_of_logic_expression le_x false)
-		(JSIL_Print.string_of_logic_expression old_le_pat false) (JSIL_Print.string_of_logic_expression le_pat false)); *)
 
 	let rec unify_lexprs_rec le_pat le = 
 		match le_pat with 
@@ -158,14 +161,18 @@ let unify_lexprs
 			let substs, dschrgs = List.split (List.map Option.get ret_somes) in 
 			Some (List.concat substs, List.concat dschrgs)) in 
 
-	try (
+	let result = try (
 		match unify_lexprs_rec le_pat le with 
 		| None -> None 
 		| Some (subst_list, discharges) -> 
 			(match (consistent_subst_list subst_list pfs gamma), (pre_check_discharges discharges) with 
 			| Some subst_list, Some discharges -> Some (subst_list, discharges)
 			| _, _                             -> None)
-	) with _ -> None 
+	) with _ -> None in
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
+	result 
 
 
 let unify_stores 
@@ -202,6 +209,8 @@ let unify_cell_assertion
 
 	let un_les = unify_lexprs pfs gamma pat_subst in 
 
+	let start_time = Sys.time () in
+
 	(* 1. Obtain the cell to unify *)
 	let pat_loc, pat_field, pat_val = 
 		match pat_cell_asrt with 
@@ -233,33 +242,28 @@ let unify_cell_assertion
 		| None                -> raise (Failure "DEATH. unify_cell_assertion. loc not in the heap") in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
-	let frames = 
-		List.mapi (fun i (field, value) -> 
+	let fv_list_set = SFV.of_list fv_list in
+	let fv_list_frames = 
+		List.fold_left (fun ac (field, value) -> 
 			(match un_les pat_field field with 
-			| None     -> None 
+			| None     -> ac 
 			| Some (subst_field, discharges_field) -> 
 				(match un_les pat_val value with 
-				| None -> None 
+				| None -> ac 
 				| Some (subst_val, discharges_val) -> 
 					let subst_list = subst_field @ subst_val in 
 					let discharges = discharges_field @ discharges_val in 
 					(match (consistent_subst_list subst_list pfs gamma), (pre_check_discharges discharges) with 
-					| Some subst_list, Some discharges -> Some (i, subst_list, discharges)
-					| _, _                             -> None)))) fv_list in 
-	let frames = List.filter (fun x -> not (x = None)) frames in 
-	let frames = List.map Option.get frames in 
-  	let frames = List.map (fun (i, subst_list, discharges) -> 
-    		let pat_subst     = Hashtbl.copy pat_subst in 
-    		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
-    			let heap_frame    = heap_copy heap in 
-    			let fv_list_frame = DynArray.of_list fv_list in 
-    			DynArray.delete fv_list_frame i; 
-    			let fv_list_frame = DynArray.to_list fv_list_frame in 
-    			heap_put heap_frame loc fv_list_frame dom; 
-    			Some (heap_frame, pat_subst, discharges)
-    		) else None 
-		) frames in
-	let fv_list_frames = List.map Option.get (List.filter (fun x -> x <> None) frames) in 
+					| Some subst_list, Some discharges -> 
+							let pat_subst     = Hashtbl.copy pat_subst in 
+          		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
+          			let heap_frame    = heap_copy heap in 
+          			let fv_list_frame = SFV.remove (field, value) fv_list_set in 
+          			let fv_list_frame = SFV.elements fv_list_frame in 
+          			heap_put heap_frame loc fv_list_frame dom; 
+          			(heap_frame, pat_subst, discharges) :: ac
+							) else ac					
+					| _, _ -> ac)))) [] fv_list in 
 
 	(* 5. Try to unify the cell assertion using the domain info *)
 	let dom_frame =
@@ -280,8 +284,11 @@ let unify_cell_assertion
 					[ (heap_frame, pat_subst, (discharges_field)) ]
 			))) in 
 
-	dom_frame @ fv_list_frames 
+	let result = dom_frame @ fv_list_frames in
 
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_cell_assertion" (end_time -. start_time);
+	result 
 
 let unify_pred_assertion 
 		(pfs           : pure_formulae) 
@@ -291,6 +298,8 @@ let unify_pred_assertion
 		(preds         : predicate_set) : (predicate_set * substitution * discharge_list) list = 
 
 	let un_les = unify_lexprs pfs gamma pat_subst in 
+
+	let start_time = Sys.time () in
 
 	(* 1. Obtain the pred asrt to unify *)
 	let pat_pname, pat_pargs =
@@ -322,6 +331,9 @@ let unify_pred_assertion
     		) else None 
 		) frames in
 	let frames = List.map Option.get (List.filter (fun x -> x <> None) frames) in
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_pred_assertion" (end_time -. start_time);
 	frames  
 
 
@@ -359,8 +371,6 @@ let unify_domains
 		(pat_dom   : jsil_logic_expr) 
 		(dom       : jsil_logic_expr) 
 		(fv_list   : symbolic_field_value_list) : symbolic_field_value_list =
-
-	print_debug "UNIFY DOMAINS BABYYYYYYYYY\n";
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
 	let none_fv_list, non_none_fv_list = List.partition (fun (field, value) -> (value = LNone)) fv_list in
@@ -409,6 +419,8 @@ let unify_domains
 		(pat_ef_asrt   : jsil_logic_assertion)
 		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list = 
 
+	let start_time = Sys.time () in
+
 	(* 1. Obtain the EF to unify *)
 	let pat_loc, pat_dom = 
 		match pat_ef_asrt with 
@@ -438,7 +450,7 @@ let unify_domains
 		| None                -> print_debug "DEATH 3"; raise (Failure "DEATH") in 
 
 	(* 4. Unifying the domains if they exist *)
-	match dom with
+	let result = (match dom with
 	| None                   -> 
 		(*  i. pat_domain exists but no domain exists -> entailment fails! *)
 		[ ]                       
@@ -449,7 +461,11 @@ let unify_domains
 			let heap_frame     = heap_copy heap in 
 			heap_put heap_frame loc fv_list_frame None;
 			[ (heap_frame, pat_subst, []) ]
-		with _ -> []  
+		with _ -> []) in
+	
+	let end_time = Sys.time() in
+	JSIL_Syntax.update_statistics "unify_empty_fields_assertion" (end_time -. start_time);
+	result
 
 
 type intermediate_frame = symbolic_heap * predicate_set * discharge_list * substitution 

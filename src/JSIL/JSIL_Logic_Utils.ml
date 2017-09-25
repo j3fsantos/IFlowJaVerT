@@ -884,11 +884,9 @@ let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
 
 let rec lift_lit_list_to_logical_expr (lit : jsil_lit) : jsil_logic_expr =
 	let f = lift_lit_list_to_logical_expr in 
-	match lit with 
-	| Undefined  | Null   | Empty     | Constant _ 
-		| Bool _ | Num _  | String _  | Char _         
-		| Loc _  | Type _ | CList _ -> LLit lit    
+	match lit with     
 	| LList lst -> LEList (List.map f lst)
+	| _ -> LLit lit
 
 
 (***************************************************************)
