@@ -479,7 +479,7 @@ let get_proc_cmd proc i =
 
 (* STATISTICS *)
 
-let im_petar = ref false
+let im_petar = ref true
 let debug = ref false
 let newencoding = ref false
 
@@ -578,12 +578,12 @@ module SFV = Set.Make(MyFieldValueList)
 
 (* Satisfiability cache *)
 (* Maps each assertion to true or false (if it's sasisfiable) *)
-let check_sat_cache : (jsil_logic_assertion, bool) Hashtbl.t = Hashtbl.create 513
+let sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create 513
 
 (* Default values *)
 let initialise =
-	Hashtbl.add check_sat_cache LTrue true;
-	Hashtbl.add check_sat_cache LFalse false
+	Hashtbl.add sat_cache (SA.singleton LTrue) true;
+	Hashtbl.add sat_cache (SA.singleton LFalse) false
 
 let statistics = Hashtbl.create 511
 
@@ -596,7 +596,7 @@ let update_statistics (fname : string) (time : float) =
 
 let process_statistics () =
 	print_normal "\n STATISTICS \n ========== \n";
-	print_normal (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length check_sat_cache));
+	print_normal (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length sat_cache));
 	(* Process each item in statistics table *)
 	Hashtbl.iter (fun f lt ->
 		(* Calculate average, min, max *)

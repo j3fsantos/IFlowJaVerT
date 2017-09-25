@@ -310,6 +310,7 @@ let pre_process_list_exprs (a : jsil_logic_assertion) =
  **)
 let rec normalise_list_expressions (le : jsil_logic_expr) : jsil_logic_expr =
 	let f = normalise_list_expressions in 
+	
 	match le with 
 	
 	(** Literals **)

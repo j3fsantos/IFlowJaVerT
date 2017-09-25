@@ -112,6 +112,8 @@ type extended_jsil_value_constructor = {
 let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")]
 let ctx : Z3.context = (mk_context cfg)
 
+let masterSolver = Solver.mk_solver ctx None
+
 let booleans_sort = Boolean.mk_sort ctx
 let ints_sort     = Arithmetic.Integer.mk_sort ctx
 let reals_sort    = Arithmetic.Real.mk_sort ctx
@@ -757,37 +759,6 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		quantified_assertion)
 	else assertion
 
-
-
-let global_axioms =
-
-	(* forall x. slen(x) >= 0 *)
-	let x    = "x" in
-	let le_x = mk_const (mk_string_symb x) in
-	let le1  = Expr.mk_app ctx axiomatised_operations.slen_fun [ le_x ] in
-	let le2  = mk_num_i 0 in
-	let slen_assertion = mk_ge ctx le1 le2 in
-	let slen_axiom     = encode_quantifier true ctx [ x ] [ numbers_sort ] slen_assertion in
-
-	(* forall x. llen(x) >= 0 *)
-	let x    = "x" in
-	let le_x = Expr.mk_const ctx (mk_string_symb x) z3_jsil_list_sort in
-	let le1  = Expr.mk_app ctx axiomatised_operations.llen_fun [ le_x ] in
-	let le2  = mk_num_i 0 in
-	let llen_assertion = mk_ge ctx le1 le2 in
-	let llen_axiom1 = encode_quantifier true ctx [ x ] [ z3_jsil_list_sort ] llen_assertion in
-
-	(* forall x. (x = nil) \/ (llen(x) > 0) *)
-	let x         = "x" in
-	let le_x      = Expr.mk_const ctx (mk_string_symb x) z3_jsil_list_sort in
-	let a1        = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_operations.nil_constructor []) in
-	let le_llen_x = Expr.mk_app ctx axiomatised_operations.llen_fun [ le_x ] in
-	let a2        = mk_lt ctx (mk_num_i 0) le_llen_x in
-	let a         = Boolean.mk_or ctx [a1; a2] in
-	let llen_axiom2 = encode_quantifier true ctx [ x ] [ z3_jsil_list_sort ] a in
-
-	[ slen_axiom; llen_axiom1; llen_axiom2 ]
-
 let make_recognizer_assertion x t_x =
 	let le_x = Expr.mk_const ctx (mk_string_symb x) extended_literal_sort in
 
@@ -878,14 +849,6 @@ let string_of_z3_expr_list exprs =
 			if (ac = "") then e_str else (ac ^ ",\n" ^ e_str))
 		""
 		exprs
-
-let get_new_solver assertions gamma =
-  	(* let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in *)
-	let assertions = List.map encode_assertion_top_level assertions in
-	let assertions = global_axioms @ (encode_gamma gamma) @ assertions in
-	let solver = (Solver.mk_solver ctx None) in
-	Solver.add solver assertions;
-	solver
 
 let print_model solver =
 	let model = Solver.get_model solver in
@@ -1015,24 +978,29 @@ let check_satisfiability assertions gamma =
 			(Symbolic_State_Print.string_of_pfs (DynArray.of_list new_assertions))
 			(Symbolic_State_Print.string_of_gamma new_gamma)); 
 
-	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
-		(Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion)
+	if (Hashtbl.mem JSIL_Syntax.sat_cache new_assertions_set) then
+		(Hashtbl.find JSIL_Syntax.sat_cache new_assertions_set)
 	else
 	begin
-		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
-		let solver = get_new_solver new_assertions new_gamma in
-		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
+		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.sat_cache));
+		
+  	let assertions = List.map encode_assertion_top_level new_assertions in
+  	let assertions = (encode_gamma gamma) @ assertions in
+  	Solver.reset masterSolver;
+  	Solver.add masterSolver assertions;
+		
+		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver masterSolver));
 		let start_time = Sys.time () in
-		let ret = Solver.check solver [] in
+		let ret = Solver.check masterSolver [] in
 		print_debug_petar (Printf.sprintf "The solver returned: %s"
 			(match ret with
 			| Solver.SATISFIABLE -> "SAT"
 			| Solver.UNSATISFIABLE -> "UNSAT"
 			| Solver.UNKNOWN -> "UNKNOWN"));
 		let ret = (ret = Solver.SATISFIABLE) in
-		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
+		Hashtbl.replace JSIL_Syntax.sat_cache new_assertions_set ret;
 		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
-			(JSIL_Print.string_of_logic_assertion cache_assertion) (Hashtbl.length JSIL_Syntax.check_sat_cache));
+			(JSIL_Print.string_of_logic_assertion cache_assertion) (Hashtbl.length JSIL_Syntax.sat_cache));
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_satisfiability : call" (end_time -. start_time);
@@ -1085,11 +1053,11 @@ let check_entailment (existentials : SS.t)
 			List.concat 
 				(List.map (fun a -> make_relevant_axioms a list_vars string_vars list_exprs) left_as) in
 		let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
-		let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in
-		let solver = (Solver.mk_solver ctx None) in
-		Solver.add solver left_as;
-		print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
-		let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
+		let left_as = (encode_gamma gamma_left) @ left_as in
+		Solver.reset masterSolver;
+		Solver.add masterSolver left_as;
+		print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver masterSolver));
+		let ret_left = (Solver.check masterSolver [ ] = Solver.SATISFIABLE) in
 		if (ret_left) then (
 			let right_as_axioms = 
 				List.concat 
@@ -1114,11 +1082,11 @@ let check_entailment (existentials : SS.t)
 						encode_quantifier true ctx existentials existentials_sorts a_right
 					) else right_as_or in
 
-			Solver.add solver (right_as_or :: right_as_axioms);
-			print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
+			Solver.add masterSolver (right_as_or :: right_as_axioms);
+			print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver masterSolver));
 			
 			let start_time = Sys.time () in
-			let ret = Solver.check solver [ ] in
+			let ret = Solver.check masterSolver [ ] in
 			print_debug_petar (Printf.sprintf "The solver returned: %s"
 						(match ret with
 						| Solver.SATISFIABLE -> "SAT"
@@ -1128,7 +1096,7 @@ let check_entailment (existentials : SS.t)
 			JSIL_Syntax.update_statistics "solver_call" 0.;
 			JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
 
-			if (ret = Solver.SATISFIABLE) then print_model solver;
+			if (ret = Solver.SATISFIABLE) then print_model masterSolver;
 			let ret = (ret = Solver.UNSATISFIABLE) in
 			ret)
 		else (
