@@ -579,11 +579,14 @@ module SFV = Set.Make(MyFieldValueList)
 (* Satisfiability cache *)
 (* Maps each assertion to true or false (if it's sasisfiable) *)
 let sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create 513
+let encoding_cache : (SA.t, Z3.Expr.expr list) Hashtbl.t = Hashtbl.create 513
 
 (* Default values *)
-let initialise =
+let initialise_caches =
 	Hashtbl.add sat_cache (SA.singleton LTrue) true;
-	Hashtbl.add sat_cache (SA.singleton LFalse) false
+	Hashtbl.add sat_cache (SA.singleton LFalse) false;
+	Hashtbl.add encoding_cache (SA.singleton LTrue) [];
+  Hashtbl.add encoding_cache (SA.singleton LFalse) []
 
 let statistics = Hashtbl.create 511
 
