@@ -1,7 +1,7 @@
 ---
 # Configuration
 cache:
-  key: "branch-$CI_BUILD_REF_NAME"
+  key: "branch-$CI_COMMIT_REF_NAME"
   paths:
   - .git/modules
   - lib/runtests/env
@@ -12,21 +12,17 @@ stages:
 - integration
 - Git Sync
 
-variables:
-  OPAMYES: "true"
-  OPAMROOT: "/tmp/opam-$CI_BUILD_ID"
-
 # Jobs
 build:
   stage: build
   before_script:
-  - opam init -n
-  - opam update -u
-  - eval `opam config env`
-  - make init_ci
+  - make init_build
   script:
   - make
   - ./setup_environment.sh
+  tags:
+  - docker
+  image: resourcereasoning/javascriptverification:build
   except:
   - triggers
   artifacts:
@@ -34,16 +30,24 @@ build:
     - environment/
     expire_in: 1 day
 
-# test_main.byte isn't yet configured to run automatically
-#test:
-#  stage: test
+#single_machine:
+#  before_script:
+#  - export CI_BUILD_REF_SUBJ="$(git show --pretty=format:%s -s)"
+#  - export TEST262_VERSION="$(git rev-parse --verify HEAD:tests/test262)"
+#  - git submodule update --init --force lib/runtests tests/test262
+#  - make init_parser
+#  - source lib/runtests/scripts/init-env.sh
 #  script:
 #  - cd environment
-#  - ./test_main.byte
+#  - '../lib/runtests/runtests.py --interp generic --interp_path ./jsil.sh --executor sequential --interp_version $CI_COMMIT_SHA --title "$CI_COMMIT_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --tests_version $TEST262_VERSION --timeout 300 ../tests/test262/test'
+#  #- 'runtests/runtests.py --interp generic --interp_path ./run.sh --executor sequential --db postgres --db_pg_schema jsil --interp_version $CI_COMMIT_SHA --title "$CI_COMMIT_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --tests_version $TEST262_VERSION --timeout 300 test262/test'
+#  stage: integration
+#  image: resourcereasoning/javascriptverification:build
+#  tags:
+#  - docker
 #  except:
 #  - triggers
 
-# FIXME: Packaged JS_Parser means that we now need to distribute opam instance to condor runs
 condor:
   before_script:
   - export CI_BUILD_REF_SUBJ="$(git show --pretty=format:%s -s)"
@@ -51,25 +55,26 @@ condor:
   - git submodule update --init --force lib/runtests tests/test262
   - source lib/runtests/scripts/set-voldir.sh JavaScriptVerification
   - "# OPAM initialisation"
-  - export OPAMROOT=$VOLDIR/.opam
-  - opam init -n
-  - opam update -u
+  - export OPAMROOT=$VOLDIR/opam
+  - "test -d $OPAMROOT && opam update -u || opam init -n"
   - eval `opam config env`
-  - make init_parser
   - export OCAMLFIND_CONF=$OPAMROOT/$(opam switch show)/lib/findlib.conf
-  - sed -e "s|/tmp/opam-\d+/|$OPAMROOT/|" -i $OCAMLFIND_CONF
+  - make init_parser
   - "# Runtests initialisation"
   - source lib/runtests/scripts/init-env.sh
-  - cp -R lib/runtests tests/test262 environment run.sh $VOLDIR
+  - cp -R lib/runtests tests/test262 environment/* $VOLDIR
   - cd $VOLDIR
   script:
-  - 'runtests/runtests.py --interp generic --interp_path ./run.sh --executor condor --batch_size 2 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_BUILD_REF --title "$CI_BUILD_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --tests_version $TEST262_VERSION --timeout 300 test262/test'
+  - 'runtests/runtests.py --interp jsil --interp_path environment/jsil.native --executor condor --batch_size 2 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_COMMIT_SHA --title "$CI_COMMIT_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --tests_version $TEST262_VERSION --timeout 300 test262/test'
   - runtests/scripts/condor-wait.sh
   after_script:
   - lib/runtests/scripts/clean-voldir.sh JavaScriptVerification
   stage: integration
   tags:
   - condor
+  only:
+  - js2jsil_definitive
+  - ci-testing
   except:
   - triggers
 

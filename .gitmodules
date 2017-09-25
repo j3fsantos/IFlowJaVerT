@@ -1,6 +1,6 @@
 [submodule "lib/runtests"]
 	path = lib/runtests
-	url = https://github.com/edgemaster/runtests.git
+	url = https://github.com/IgnoredAmbience/runtests.git
 [submodule "tests/test262"]
 	path = tests/test262
 	url = https://github.com/tc39/test262.git

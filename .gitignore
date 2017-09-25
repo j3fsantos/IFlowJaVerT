@@ -52,6 +52,9 @@ racket/compiled
 *.xml
 example.jsil
 output.txt
+debugOutput.txt
+normalOutput.txt
+normalisationOutput.txt
 
 # Environment
 environment
