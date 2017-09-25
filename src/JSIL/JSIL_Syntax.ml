@@ -699,14 +699,14 @@ type substitution      = ((string, jsil_logic_expr) Hashtbl.t)
 type substitution_list = ((string * jsil_logic_expr) list) 
 
 let init_substitution (vars : string list) : substitution =
-	let new_subst = Hashtbl.create 1021 in
+	let new_subst = Hashtbl.create big_tbl_size in
 	List.iter
 		(fun var -> Hashtbl.replace new_subst var (LVar var))
 		vars;
 	new_subst
 
 let init_substitution2 vars les =
-	let subst = Hashtbl.create 1021 in
+	let subst = Hashtbl.create big_tbl_size in
 
 	let rec loop vars les =
 		match vars, les with
@@ -719,7 +719,7 @@ let init_substitution2 vars les =
 	subst
 
 let init_substitution3 vars_les =
-	let subst = Hashtbl.create 1021 in
+	let subst = Hashtbl.create big_tbl_size in
 
 	let rec loop vars_les =
 		match vars_les with
@@ -744,7 +744,6 @@ let copy_substitution (subst : substitution) : substitution = Hashtbl.copy subst
 
 let extend_substitution (subst : substitution) (vars : string list) (les : jsil_logic_expr list) : unit =
 	List.iter2 (fun v le -> Hashtbl.replace subst v le) vars les
-
 
 
 

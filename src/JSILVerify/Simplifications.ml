@@ -2327,18 +2327,7 @@ let aux_find_me_Im_a_loc pfs gamma v =
 				| _ -> None))
 
 (** This function is dramatically incomplete **)
-let resolve_location lvar pfs =
-	let rec loop pfs =
-		match pfs with
-		| [] -> None
-		| LEq (LVar cur_lvar, ALoc loc) :: rest
-		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
-			if (cur_lvar = lvar) then Some (ALoc loc) else loop rest
-		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
-		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
-			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
-		| _ :: rest -> loop rest in
-	loop pfs
+
 	
 (* ******************** *
  * EXPRESSION REDUCTION *

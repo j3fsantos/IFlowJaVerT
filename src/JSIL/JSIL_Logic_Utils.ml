@@ -477,6 +477,7 @@ let substitution_to_list (subst : substitution) : jsil_logic_assertion list =
 		[]
 
 
+
 (***************************************************************)
 (***************************************************************)
 (** Logic Commmands                                           **)

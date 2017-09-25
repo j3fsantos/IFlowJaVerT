@@ -262,7 +262,7 @@ let symb_evaluate_bcmd
 		let ne1, te1, _ = ssee e1 in
 		let ne2, te2, _ = ssee e2 in
 		let l = 
-			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "SLookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -284,7 +284,7 @@ let symb_evaluate_bcmd
 		let ne2, t_le2, _ = ssee e2 in
 		let ne3, _, _ = ssee e3 in
 		let l = 
-			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "SMutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -303,7 +303,7 @@ let symb_evaluate_bcmd
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let l = 
-			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "SDelete. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -320,7 +320,7 @@ let symb_evaluate_bcmd
 	| SDeleteObj e1 ->
 		let ne1, t_le1, _ = ssee e1 in
 		let l = 
-			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "SDeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -343,7 +343,7 @@ let symb_evaluate_bcmd
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let l = 
-			match Symbolic_State_Utils.resolve_location pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "SDeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -835,8 +835,9 @@ let extend_spec_vars_subst
 
 	List.iter (fun x -> 
 		if (not (Hashtbl.mem subst x)) then (
-			match Simplifications.resolve_location x (pfs_to_list pfs) with 
-				| Some le -> Hashtbl.replace subst x le 
+			match Normaliser.resolve_location x (pfs_to_list pfs) with 
+				| Some loc  when is_lit_loc_name loc  -> Hashtbl.replace subst x (LLit (Loc loc)) 
+				| Some aloc when is_abs_loc_name aloc -> Hashtbl.replace subst x (ALoc aloc) 
 				| _       -> ()
 		)) (SS.elements spec_vars) 
 

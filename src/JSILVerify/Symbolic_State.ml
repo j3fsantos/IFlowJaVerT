@@ -458,6 +458,13 @@ let preds_lvars (preds : predicate_set) : SS.t =
 (** Return the set containing all the alocs occurring in --preds-- *)
 let preds_alocs (preds : predicate_set) : SS.t =
 	DynArray.fold_left 
+		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_alocs le)) ac les) 
+		SS.empty 
+		preds
+
+(** Return the set containing all the alocs occurring in --preds-- *)
+let preds_alocs (preds : predicate_set) : SS.t =
+	DynArray.fold_left 
 		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_alocs le)) ac les)
 		SS.empty 
 		preds
@@ -567,6 +574,15 @@ let ss_lvars (symb_state : symbolic_state) : SS.t =
 	let v_g  : SS.t = gamma_lvars gamma in
 	let v_pr : SS.t = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
+
+(** Return the set containing all the lvars occurring in --symb_state-- *)
+let ss_alocs (symb_state : symbolic_state) : SS.t =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  : SS.t = heap_alocs heap in
+	let v_s  : SS.t = store_alocs store in
+	let v_pf : SS.t = pfs_alocs pfs in
+	let v_pr : SS.t = preds_alocs preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
 
 (** Return the set containing all the lvars occurring in --symb_state-- 
     except for those that only appear in the gamma + all the program 

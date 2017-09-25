@@ -84,21 +84,6 @@ let type_check_discharges
 	List.for_all (fun x -> x) rets
 
 
-let reshape_list (le_list : jsil_logic_expr) (len : int) : (jsil_logic_expr list) * jsil_logic_expr = 
-	match le_list with 
-	| LEList lst -> 
-		let lst_l = Array.to_list (Array.sub (Array.of_list lst) 0 len) in 
-		let lst_r = Array.to_list (Array.sub (Array.of_list lst) len ((List.length lst) - len)) in 
-		lst_l, LEList lst_r 
-	| LBinOp (LEList lst_l, LstCat, lst_r) -> 
-		let lst_l'   = Array.to_list (Array.sub (Array.of_list lst_l) 0 len) in 
-		let lst_l''  = Array.to_list (Array.sub (Array.of_list lst_l) len ((List.length lst_l) - len)) in 
-		if ((List.length lst_l'') > 0) 
-			then lst_l', LBinOp (LEList lst_l'', LstCat, lst_r)
-			else lst_l', lst_r 
-	| _ -> raise (Failure "DEATH") 
-
-
 let unify_lexprs
 	(pfs         : pure_formulae) 
 	(gamma       : typing_environment) 
@@ -141,8 +126,8 @@ let unify_lexprs
 			| LEList lst 
 			| LBinOp (LEList lst, LstCat, _) -> 
 				let min_len              = min (List.length lst) (List.length pat_lst) in
-				let pat_lst_l, pat_lst_r = reshape_list le_pat min_len in 
-				let lst_l, lst_r         = reshape_list le min_len in 
+				let pat_lst_l, pat_lst_r = Normaliser.reshape_list le_pat min_len in 
+				let lst_l, lst_r         = Normaliser.reshape_list le min_len in 
 				if ((List.length pat_lst_l) <> (List.length lst_l)) then raise (Failure "DEATH") else (
 					match unify_lexpr_lists_rec pat_lst_l lst_l with 
 					| None -> None 
@@ -212,16 +197,9 @@ let unify_cell_assertion
     (* 2. Find the location corresponding to that cell *) 
 	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
 		try (
-			match Hashtbl.find pat_subst pat_loc with 
-			| LLit (Loc loc) -> loc 
-			| ALoc loc       -> loc 
-			| LVar x         -> 
-				let loc = Simplifications.resolve_location x (pfs_to_list pfs) in
-				(match loc with 
-				| Some (ALoc loc) 
-				| Some (LLit (Loc loc)) -> loc
-				| _                     -> raise (Failure ""))
-			| _              -> raise (Failure "")   
+			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
+			| Some loc -> loc
+			| None     -> raise (Failure "")   
 		)  with _ -> 
 			let msg = Printf.sprintf "DEATH. unify_cell_assertion. unmatched pat_loc: %s" pat_loc in 
 			raise (Failure msg)) in 
@@ -419,16 +397,9 @@ let unify_domains
 	(* 2. Find the location corresponding to that EF assertion *) 
 	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
 		try (
-			match Hashtbl.find pat_subst pat_loc with 
-			| LLit (Loc loc) -> loc 
-			| ALoc loc       -> loc 
-			| LVar x         -> 
-				let loc = Simplifications.resolve_location x (pfs_to_list pfs) in
-				(match loc with 
-				| Some (ALoc loc) 
-				| Some (LLit (Loc loc)) -> loc
-				| _                     -> raise (Failure ""))
-			| _              -> raise (Failure "")   
+			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
+			| Some loc -> loc
+			| None     -> raise (Failure "")
 		) with _ -> raise (Failure "DEATH. unify_empty_fields_assertion. unmatched pat_loc")) in 
 
 	(* 3. Get the fv_list and domain *)
@@ -886,9 +857,10 @@ let unify_lexprs_unfold
 		| ALoc pat_loc, LVar x -> 
 			print_debug (Printf.sprintf 
 					"WE ARE IN THE CASE WE THINK WE ARE IN. pat_loc: %s. lvar: %s\n" pat_loc x); 
-			let loc = Simplifications.resolve_location x (pfs_to_list pfs) in
+			let loc = Normaliser.resolve_location x (pfs_to_list pfs) in
 			(match loc with 
-			| Some loc -> Some ([ ], [ (pat_loc, loc) ], [ ])
+			| Some loc when is_lit_loc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
+			| Some loc when is_abs_loc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])
 			| None     ->
 				if (Hashtbl.mem subst x) then (
 					Some ([ ], [ (pat_loc, Hashtbl.find subst x) ], [])
@@ -910,8 +882,8 @@ let unify_lexprs_unfold
 			| LEList lst 
 			| LBinOp (LEList lst, LstCat, _) -> 
 				let min_len              = min (List.length lst) (List.length pat_lst) in
-				let pat_lst_l, pat_lst_r = reshape_list le_pat min_len in 
-				let lst_l, lst_r         = reshape_list le min_len in 
+				let pat_lst_l, pat_lst_r = Normaliser.reshape_list le_pat min_len in 
+				let lst_l, lst_r         = Normaliser.reshape_list le min_len in 
 				if ((List.length pat_lst_l) <> (List.length lst_l)) then raise (Failure "DEATH") else (
 					match unify_lexpr_lists_rec pat_lst_l lst_l with 
 					| None -> None 

@@ -248,18 +248,6 @@ let lexpr_is_none (pfs : pure_formulae) (gamma : typing_environment) (le : jsil_
 			then Some false 
 			else None)
 
-let resolve_location (pfs : pure_formulae) (le : jsil_logic_expr) : string option = 
-	match le with
-	| LLit (Loc l)
-	| ALoc l -> Some l
-	| LVar x ->
-		(match Simplifications.resolve_location x (pfs_to_list pfs) with
-		| Some (LLit (Loc l)) 
-		| Some (ALoc l) -> Some l
-		| _ -> None)
-	| _ -> None 
-
-
 
 
 (*************************************)

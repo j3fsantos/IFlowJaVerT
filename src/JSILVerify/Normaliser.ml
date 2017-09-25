@@ -387,6 +387,128 @@ let rec normalise_list_expressions (le : jsil_logic_expr) : jsil_logic_expr =
 	| LNone             -> LNone 
 
 
+let reshape_list (le_list : jsil_logic_expr) (len : int) : (jsil_logic_expr list) * jsil_logic_expr = 
+	(match le_list with 
+	| LEList lst -> 
+		let lst_l = Array.to_list (Array.sub (Array.of_list lst) 0 len) in 
+		let lst_r = Array.to_list (Array.sub (Array.of_list lst) len ((List.length lst) - len)) in 
+		lst_l, LEList lst_r 
+	| LBinOp (LEList lst_l, LstCat, lst_r) -> 
+		let lst_l'   = Array.to_list (Array.sub (Array.of_list lst_l) 0 len) in 
+		let lst_l''  = Array.to_list (Array.sub (Array.of_list lst_l) len ((List.length lst_l) - len)) in 
+		if ((List.length lst_l'') > 0) 
+			then lst_l', LBinOp (LEList lst_l'', LstCat, lst_r)
+			else lst_l', lst_r 
+	| _ -> raise (Failure "DEATH"))
+
+
+
+(*  -----------------------------------------------------
+	Resolving locations and lists
+	-----------------------------------------------------
+	_____________________________________________________
+*)
+
+
+let resolve_list (le : jsil_logic_expr) (pfs : jsil_logic_assertion list) : jsil_logic_expr = 
+
+	(* print_debug (Printf.sprintf "resolve_list with lexpr %s and pfs:\n%s\n" 
+		(JSIL_Print.string_of_logic_expression le)
+		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion pfs))); *)
+
+	let rec search x pfs =
+		(match pfs with
+		| [] -> None
+		
+		| LEq (LVar x', le) :: rest
+		| LEq (le, LVar x') :: rest  when x' = x ->
+		    print_debug (Printf.sprintf "I found the equality %s!!!!\n"
+		    	(JSIL_Print.string_of_logic_assertion (List.hd pfs))); 
+			let le' = normalise_list_expressions le in
+			(match le' with 
+			| LEList le_lst  
+			| LBinOp (LEList le_lst, LstCat, _) -> Some le' 
+			| _ -> search x rest)
+
+		| _ :: rest -> search x rest) in 
+
+
+	match normalise_list_expressions le with 
+	| LVar x -> 
+		(match search x pfs with 
+		| Some le -> le 
+		| None    -> LVar x)
+	| le     -> le 
+
+
+let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string option =
+	
+	let original_pfs = 
+		List.map (fun a -> 
+			match a with 
+			| LEq (le1, le2) -> 
+				let le1' = normalise_list_expressions le1 in 
+				(match le1' with 
+				| LEList _ 
+				| LBinOp (LEList _, LstCat, _) -> LEq (le1', le2)
+				| _ -> 
+					let le2' = normalise_list_expressions le2 in
+					LEq (le2', le1'))
+			| _ -> a 
+		) pfs in 
+
+	(* print_debug (Printf.sprintf "resolve_location with var %s and pfs:\n%s\n" lvar
+		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion original_pfs))); *)
+
+	let rec loop pfs traversed_pfs =
+		(match pfs with
+		| [] -> None
+		
+		| LEq (LVar cur_lvar, ALoc loc) :: rest
+		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
+			if (cur_lvar = lvar) then Some loc else loop rest ((List.hd pfs) :: traversed_pfs)
+
+		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
+		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
+			if (cur_lvar = lvar) then Some loc else loop rest ((List.hd pfs) :: traversed_pfs)
+		
+		| LEq (le1, le2) :: rest ->
+			(match le1 with 
+			| LEList le1_lst 
+			| LBinOp (LEList le1_lst, LstCat, _) ->
+				let le2' = resolve_list le2 (traversed_pfs @ rest) in 
+				(match le2' with 
+				| LEList le2_lst 
+				| LBinOp (LEList le2_lst, LstCat, _) -> 
+					let min_len              = min (List.length le2_lst) (List.length le1_lst) in
+					let le1_lst_l, le1_lst_r = reshape_list le1 min_len in 
+					let le2_lst_l, le2_lst_r = reshape_list le2' min_len in 
+					if ((List.length le1_lst_l) <> (List.length le2_lst_l)) then raise (Failure "DEATH") else (
+						match loop_lists le1_lst_l le2_lst_l with 
+						| None -> loop rest ((List.hd pfs) :: traversed_pfs)
+						| Some loc -> Some loc)
+				| _ -> loop rest ((List.hd pfs) :: traversed_pfs))
+			| _ -> loop rest ((List.hd pfs) :: traversed_pfs))
+
+		| _ :: rest -> loop rest ((List.hd pfs) :: traversed_pfs)) 
+	
+	and loop_lists lst_1 lst_2 = 
+		loop (List.map2 (fun le1 le2 -> LEq (le1, le2)) lst_1 lst_2) [] in
+
+	loop original_pfs [] 
+
+
+let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : string option = 
+	match le with
+	| LLit (Loc l)
+	| ALoc l        -> Some l
+	| LVar x        -> resolve_location x (pfs_to_list pfs) 
+	| _             -> None 
+
+
+
+
+
 
 (*  -----------------------------------------------------
 	Normalise Logic Expressions
@@ -1203,6 +1325,61 @@ let create_unification_plan
 		raise (Failure msg)) 
 
 
+let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) : string option =
+
+	let x         = fresh_lvar () in 
+	let subst     = init_substitution3 [ (aloc, LVar x) ] in 
+	let pfs_list' = List.map (asrt_substitution subst true) pfs_list in 
+
+	print_debug (Printf.sprintf "is_overlapping_aloc with aloc: %s. new_var: %s. pfs:\n%s" aloc x
+		(String.concat "; " (List.map JSIL_Print.string_of_logic_assertion pfs_list'))
+	);
+
+	let loc       = resolve_location x pfs_list' in	 
+	match loc with 
+	| Some loc -> print_debug (Printf.sprintf "Found the overlap %s\n" loc); Some loc 
+	| _        -> print_debug "Could NOT find the overlap\n"; None 
+
+
+let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state = 
+	let pfs_pre  = (ss_pfs ss_pre) in 
+	let pfs_post = (ss_pfs ss_post) in 
+	let pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list pfs_post) in 
+	let pfs      = (pfs_of_list pfs_list) in 
+
+	if (Pure_Entailment.check_satisfiability pfs_list (ss_gamma ss_post)) then ss_post else (
+		print_normal (Printf.sprintf "SPEC with inconsistent alocs was found.\npre_pfs:\n%s\npost_pfs:\n%s\n"
+			(Symbolic_State_Print.string_of_pfs pfs_pre) (Symbolic_State_Print.string_of_pfs pfs_post)
+		); 
+
+		let alocs_post         = ss_alocs ss_post in 
+		let alocs_pre          = ss_alocs ss_pre  in 
+		let new_alocs_post     = SS.filter (fun aloc -> (not (SS.mem aloc alocs_pre))) alocs_post in 
+		let constrained_alocs  = pfs_alocs pfs in 
+		let relevant_new_alocs = SS.inter constrained_alocs new_alocs_post in 
+
+		(* print_debug (Printf.sprintf "relevant_new_alocs: %s\n" 
+			(String.concat ", " (SS.elements relevant_new_alocs))); *)
+
+		let aloc_subst = init_substitution [] in 
+		SS.iter (fun aloc -> 
+			match is_overlapping_aloc pfs_list aloc with 
+			| None       -> () 
+			| Some aloc' -> Hashtbl.replace aloc_subst aloc (ALoc aloc'); ()
+		) relevant_new_alocs; 
+
+		let new_pfs_post = pfs_substitution aloc_subst true pfs_post in 
+		let new_pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list new_pfs_post) in 
+
+		if (Pure_Entailment.check_satisfiability new_pfs_list (ss_gamma ss_post)) then (
+			ss_substitution aloc_subst true ss_post 
+		) else (
+			raise (Failure "collapse_alocs FAILED!")
+		)
+	)
+
+
+
 (** Normalise Postcondition
 	-----------------------
 	Each normlised postcondition postcondition may map additional spec vars
@@ -1292,6 +1469,7 @@ let normalise_single_spec
 
 		(** Step 3 - Normalise the postconditions associated with each pre           *)
 		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars params) posts) in
+		let ss_posts = List.map (fun ss_post -> collapse_alocs ss_pre ss_post) ss_posts in 
 		{	n_pre              = ss_pre;
 			n_post             = ss_posts;
 			n_ret_flag         = spec.ret_flag;
