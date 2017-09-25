@@ -1015,11 +1015,11 @@ let check_satisfiability assertions gamma =
 			(Symbolic_State_Print.string_of_pfs (DynArray.of_list new_assertions))
 			(Symbolic_State_Print.string_of_gamma new_gamma)); 
 
-	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
-		(Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion)
+	if (Hashtbl.mem JSIL_Syntax.sat_cache new_assertions_set) then
+		(Hashtbl.find JSIL_Syntax.sat_cache new_assertions_set)
 	else
 	begin
-		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
+		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.sat_cache));
 		let solver = get_new_solver new_assertions new_gamma in
 		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
 		let start_time = Sys.time () in
@@ -1030,9 +1030,9 @@ let check_satisfiability assertions gamma =
 			| Solver.UNSATISFIABLE -> "UNSAT"
 			| Solver.UNKNOWN -> "UNKNOWN"));
 		let ret = (ret = Solver.SATISFIABLE) in
-		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
+		Hashtbl.replace JSIL_Syntax.sat_cache new_assertions_set ret;
 		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
-			(JSIL_Print.string_of_logic_assertion cache_assertion) (Hashtbl.length JSIL_Syntax.check_sat_cache));
+			(JSIL_Print.string_of_logic_assertion cache_assertion) (Hashtbl.length JSIL_Syntax.sat_cache));
 		let end_time = Sys.time () in
 		JSIL_Syntax.update_statistics "solver_call" 0.;
 		JSIL_Syntax.update_statistics "check_satisfiability : call" (end_time -. start_time);
