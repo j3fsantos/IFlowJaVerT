@@ -244,9 +244,9 @@ let unify_cell_assertion
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
 	let fv_list_set = SFV.of_list fv_list in
 	let fv_list_frames = 
-		List.fold_left (fun ac (field, value) -> 
+		SFV.fold (fun (field, value) ac -> 
 			(match un_les pat_field field with 
-			| None     -> ac 
+			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
 				(match un_les pat_val value with 
 				| None -> ac 
@@ -263,7 +263,7 @@ let unify_cell_assertion
           			heap_put heap_frame loc fv_list_frame dom; 
           			(heap_frame, pat_subst, discharges) :: ac
 							) else ac					
-					| _, _ -> ac)))) [] fv_list in 
+					| _, _ -> ac)))) fv_list_set [] in 
 
 	(* 5. Try to unify the cell assertion using the domain info *)
 	let dom_frame =
@@ -271,14 +271,13 @@ let unify_cell_assertion
 		| _, None        
 		| None, _ -> [] 
 		| Some (subst_field, discharges_field), Some le_dom ->
-			let pat_subst     = Hashtbl.copy pat_subst in 
+			let pat_subst = Hashtbl.copy pat_subst in 
     		if (not (safe_substitution_extension pfs gamma pat_subst subst_field)) then [] else (
     			let s_pat_field     = lexpr_substitution pat_subst true pat_field in
 				let a_set_inclusion = LNot (LSetMem (s_pat_field, le_dom)) in 
 				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
 					let heap_frame = heap_copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in
-					let new_domain = Symbolic_State_Utils.normalise_lexpr gamma new_domain in
 					let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
 					heap_put heap_frame loc fv_list (Some new_domain); 
 					[ (heap_frame, pat_subst, (discharges_field)) ]
@@ -378,12 +377,12 @@ let unify_domains
 	(* 2. Find domain_difference = -{ f_1, ..., f_n }- = dom \ subst(pat_dom) 
 	      The fields f_1, ..., f_n MUST be NONE                                           *) 
 	let s_pat_dom         = lexpr_substitution pat_subst true pat_dom in
-	let domain_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (dom, SetDiff, s_pat_dom)) in
+	let domain_difference = LBinOp (dom, SetDiff, s_pat_dom) in
 	let domain_difference = Simplifications.reduce_expression_using_pfs_no_store gamma pfs domain_difference in
 
 	(* 3. Find domain_frame_difference = -{ f_1', ..., f_n' }- = pat_subst(pat_dom)  \ dom  
 	      The fields f_1', ..., f_n' MUST be added to the frame                           *) 
-	let domain_frame_difference = Symbolic_State_Utils.normalise_lexpr gamma (LBinOp (s_pat_dom, SetDiff, dom)) in
+	let domain_frame_difference = LBinOp (s_pat_dom, SetDiff, dom) in
 	let domain_frame_difference = Simplifications.reduce_expression_using_pfs_no_store gamma pfs domain_frame_difference in
 	
 	(* 4. We can only process explicit sets                                               *) 
