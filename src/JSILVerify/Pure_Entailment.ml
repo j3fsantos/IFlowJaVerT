@@ -894,7 +894,11 @@ let make_global_axioms list_vars string_vars list_exprs =
 	let lstcat1    = LOr (l_disjunct, r_disjunct) in 
 	let lstcat1_s  = JSIL_Logic_Utils.concretise2 lstcat1 x_name y_name list_exprs in 
 
-	slen1_s @ llen1_s @ llen2_s @ carlnth0_s @ lstcat1_s
+	(* forall x. x @ nil = x *)
+	let cons_nil_idem_r = LEq (LBinOp (lvar_x, LstCat, LLit (LList [])), lvar_x) in
+	let cons_nil_idem_r_s = JSIL_Logic_Utils.concretise cons_nil_idem_r x_name list_vars in 
+
+	slen1_s @ llen1_s @ llen2_s @ carlnth0_s @ lstcat1_s @ cons_nil_idem_r_s
 
 let make_list_axioms a_list =
 
