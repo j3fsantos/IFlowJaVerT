@@ -265,10 +265,8 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			let s' = List.map f s in
 			LESet (SLExpr.elements (SLExpr.of_list s'))
 	
-	| LSetUnion [ e ] -> f e
-	
 	| LSetUnion s ->
-			let s' = List.map f s in
+			let s' = SLExpr.elements (SLExpr.of_list (List.filter (fun x -> x <> LESet []) (List.map f s))) in
 			(match (all_set_literals s') with
 			| true ->
 					let all_elems = List.fold_left (fun ac le -> 
@@ -506,6 +504,15 @@ let rec reduce_assertion store gamma pfs a =
 	| LOr (_, LTrue) -> LTrue
 	| LOr (LFalse, a1)
 	| LOr (a1, LFalse) -> f a1
+	| LOr (LAnd (a1, a2), a3) ->
+			f (LAnd (LOr (a1, a3), LOr (a2, a3))) 
+	(* | LOr (LNot (LEq (LVar x, e1)), a) ->
+			let subst = Hashtbl.create 1 in
+			Hashtbl.add subst x e1;
+			let a = asrt_substitution subst true a in
+				f a *)
+	| LOr (LOr (a1, a2), a3) -> 
+			f (LOr (a1, LOr (a2, a3)))
 	| LOr (a1, a2) ->
 		let ra1 = f a1 in
 		let ra2 = f a2 in
@@ -515,6 +522,7 @@ let rec reduce_assertion store gamma pfs a =
 
 	| LNot LTrue -> LFalse
 	| LNot LFalse -> LTrue
+	| LNot (LNot a) -> f a
 	| LNot (LOr (al, ar)) ->
 			f (LAnd (LNot al, LNot ar))
 	| LNot (LAnd (al, ar)) -> 
@@ -637,6 +645,7 @@ let rec reduce_assertion store gamma pfs a =
 			
 			(* Very special cases *)
 			| LTypeOf (LBinOp (_, StrCat, _)), LLit (Type t) when (t <> StringType) -> LFalse
+			| LTypeOf (LBinOp (_, SetMem, _)), LLit (Type t) when (t <> BooleanType) -> LFalse
 			
 			| _, _ -> default e1 e2 re1 re2
 		)
@@ -671,7 +680,7 @@ let rec reduce_assertion store gamma pfs a =
 				let rle = fe le in
 					List.fold_left (fun ac le -> 
 						let rle = fe le in 
-							LOr (ac, LSetMem (rleb, rle))
+							LAnd (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
 			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
@@ -699,10 +708,11 @@ let rec reduce_assertion store gamma pfs a =
 
 	| LForAll (bt, a) -> 
 			let ra = f a in
-			if (a <> ra) then
-		  print_debug_petar (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
-				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)))); 
-			LForAll (bt, ra)
+			let vars = get_asrt_lvars a in
+			let bt = List.filter (fun (b, _) -> SS.mem b vars) bt in
+			(match bt with
+			| [] -> ra
+			| _ -> LForAll (bt, ra))
 
 	| _ -> a) in
 	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
@@ -788,8 +798,20 @@ let reduce_pfs_in_place store gamma pfs =
 		DynArray.set pfs i rpf) pfs
 	
 let sanitise_pfs store gamma pfs =
-	reduce_pfs_in_place store gamma pfs;
 	
+	reduce_pfs_in_place store gamma pfs;
+
+	(* let i = ref 0 in
+	while (!i < DynArray.length pfs) do
+		let pf = DynArray.get pfs !i in
+		(match pf with
+		| LAnd (a1, a2) ->
+				DynArray.delete pfs !i;
+				DynArray.add pfs a1;
+				DynArray.add pfs a2;
+		| _ -> i := !i + 1)
+	done; *)
+			
 	let length = DynArray.length pfs in
 	let dindex = DynArray.init length (fun x -> false) in
 	let clc = ref 0 in
@@ -2100,7 +2122,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 let clean_up_stuff exists left right =
 	let sleft = SA.of_list (DynArray.to_list left) in
 	let i = ref 0 in
-	
 	while (!i < DynArray.length right) do
 		let pf = DynArray.get right !i in
 		let pf_sym pf = (match pf with
@@ -2301,10 +2322,10 @@ let find_impossible_unions lpfs rpfs exists gamma =
 let simplify_implication exists lpfs rpfs gamma =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
-	clean_up_stuff exists lpfs rpfs;
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
 	let rpfs, exists, gamma = find_impossible_unions   lpfs rpfs exists gamma in
 	sanitise_pfs_no_store gamma rpfs;
+	clean_up_stuff exists lpfs rpfs;
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
 		(string_of_pfs lpfs)

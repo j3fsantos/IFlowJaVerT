@@ -19,10 +19,6 @@
 */
 
 /**
-	@lemma BST($$null, #x) --> (#x == -{ }-)
-*/
-
-/**
 	@id makeNode
 	
 	@pre 
@@ -168,17 +164,16 @@ function remove(v, t)
 		/** @tactic fold BST(#t, #K) */
 		return null;
 
-	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) 
-	    @tactic flash BST(#il, #KL) 
-		@tactic flash BST(#ir, #KR) */
+	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
 	if (v === t.value) {
+		/** @tactic flash BST(#il, #KL) */
 		if (t.left === null) {	
-				/** @tactic unfold BST($$null, #KL) */
+				/** @tactic flash BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
+		/** @tactic flash BST(#ir, #KR) */
 		if (t.right === null) {
-				/** @tactic unfold BST($$null, #KR) */
 	  			return t.left;
 			}
 		else {
