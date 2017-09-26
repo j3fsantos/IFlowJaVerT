@@ -864,7 +864,7 @@ let rec symb_evaluate_logic_cmd
 		let pred = get_pred s_prog.pred_defs pred_name in
 		let args =
 			List.map
-				(fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le)
+				(fun le -> Normaliser.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le)
 				les in
 		let params = pred.n_pred_params in
     	let pred_defs = pred.n_pred_definitions in
@@ -925,7 +925,7 @@ let rec symb_evaluate_logic_cmd
 			with _ -> raise (Failure (Printf.sprintf "No spec found for lemma %s" lemma_name)) in
 					
       	(* symbolically evaluate the args *)
-      	let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le) l_args in
+      	let le_args = List.map (fun le -> Normaliser.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le) l_args in
 		let _, new_symb_states = find_and_apply_spec s_prog.program lemma_name proc_specs symb_state le_args in
 
 
@@ -941,7 +941,7 @@ let rec symb_evaluate_logic_cmd
 	| LogicIf (le, then_lcmds, else_lcmds) ->
     	print_time "LIf.";
     	
-    	let le' = Symbolic_State_Utils.normalise_lexpr ~store:(ss_store symb_state) (ss_gamma symb_state) le in
+    	let le' = Normaliser.normalise_lexpr ~store:(ss_store symb_state) (ss_gamma symb_state) le in
 
 		let e_le', a_le' = lift_logic_expr le' in
 		let a_le_then =
@@ -1231,8 +1231,8 @@ and pre_symb_evaluate_cmd
 			(* 3. Evaluate the next command in all the possible symb_states *)
 			List.concat (List.map (fun (symb_state, spec_vars', search_info) ->
 				(* Construct the search info for the next command *)
-				let info_node       = Symbolic_Traces.create_info_node_from_cmd search_info symb_state cmd next in
-				let new_search_info = { search_info with cur_node_info = info_node } in
+				let info_node       = Symbolic_Traces.sg_node_from_cmd symb_state next cmd in
+				let new_search_info = sec_create_new_info_node search_info info_node in 
 				symb_evaluate_cmd s_prog proc spec_vars' subst new_search_info symb_state next cur)
 				symb_states_with_spec_vars)))
 	
@@ -1243,7 +1243,7 @@ let unify_symb_state_against_post
 		(proc_name      : string) 
 		(spec           : jsil_n_single_spec)
 		(flag           : jsil_return_flag) 
-		(symb_state     : symbolic_state) : unit =
+		(symb_state     : symbolic_state) : symbolic_state =
 
 	let print_error_to_console msg =
 		(if (msg = "")
@@ -1254,7 +1254,7 @@ let unify_symb_state_against_post
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in
 
-	let rec loop posts i : unit =
+	let rec loop posts i : symbolic_state =
 		(match posts with
 		| [] -> print_error_to_console ""; raise (Failure "Post condition is not unifiable")
 				
@@ -1263,7 +1263,8 @@ let unify_symb_state_against_post
 				let pat_subst, spec_alocs = make_spec_var_subst spec.n_subst spec.n_lvars in 
 				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan post spec_alocs) (Some pat_subst) post symb_state in 
 				turn_on_post i symb_exe_info; 
-				print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name)
+				print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name); 
+				post 
 			) with Spatial_Entailment.UnificationFailure _ -> loop rest_posts (i + 1)) in 
 	loop spec.n_post 0
 
@@ -1291,7 +1292,7 @@ let symb_evaluate_proc
 	let sep_str = "----------------------------------\n" in
 	print_normal (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
 
-	let node_info   = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
+	let node_info = Symbolic_Traces.sg_node_from_pre spec.n_pre in
 	let search_info = sec_init node_info pruning_info proc_name i in
 
 	(* Get the procedure to be symbolically executed *)
@@ -1304,20 +1305,22 @@ let symb_evaluate_proc
 			let final_symb_states = pre_symb_evaluate_cmd s_prog proc spec.n_lvars spec.n_subst search_info symb_state (-1) 0 in 
 			
 			List.iter (fun (symb_state, ret_flag, spec_vars, search_info) -> 
-				unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state;  
-				Symbolic_Traces.create_info_node_from_post search_info spec.n_post ret_flag true; ()) final_symb_states; 
+				let successful_post = unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state in 
+				let node_info       = Symbolic_Traces.sg_node_from_post successful_post in
+				let _               = sec_create_new_info_node search_info node_info in 
+				()) final_symb_states; 
 			true, None 			
 		) with
 			| Spatial_Entailment.UnificationFailure msg 
 			| Failure msg -> 
 				(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
-				Symbolic_Traces.create_info_node_from_error search_info msg;
-				Symbolic_Traces.create_info_node_from_post search_info spec.n_post spec.n_ret_flag false;
+				let node_info = Symbolic_Traces.sg_node_from_err msg in
+				let _         = sec_create_new_info_node search_info node_info in 
 				false, Some msg) in
 
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
 	(* Create the dot graph of the symbolic execution *)
-	let search_dot_graph = Some (Symbolic_State_Print.dot_of_search_info search_info proc_name) in
+	let search_dot_graph = Some (Symbolic_Traces.dot_of_symb_exec_ctxt search_info proc_name) in
 	print_debug (Printf.sprintf "%s" (sep_str ^ sep_str ^ sep_str));
 	(* Return *)
 	search_dot_graph, success, failure_msg
@@ -1447,7 +1450,7 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 			  print_debug (Printf.sprintf "Proving an invididual spec of the lemma %s." lemma_name);
 				(* Creating an object of type symbolic_execution_search_info *)
 				(* Guessing you initialise the node here? As each pre-condition is a new "branch"(?) (not 100% sure how the graph works) *)
-				let node_info = Symbolic_Traces.create_info_node_aux spec.n_pre 0 (-1) "Precondition" in
+				let node_info            = Symbolic_Traces.sg_node_from_pre spec.n_pre in
 				let symb_exe_search_info = sec_init node_info post_pruning_info lemma_name spec_number in
 				(* Can't just make a dummy program as need to supply the imports, predicates and lemmas *)
 				let s_prog = {

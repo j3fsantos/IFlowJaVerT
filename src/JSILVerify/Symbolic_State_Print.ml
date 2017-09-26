@@ -232,64 +232,6 @@ let string_of_symb_exe_results results =
  	str_console, dot_graphs
 
 
-let dot_of_search_info search_info proof_name =
-	let string_of_search_node node =
-		let cmd_info_str  = if (not (node.cmd_index = (-1))) then
-			Printf.sprintf "CMD %d: %s\n" node.cmd_index node.cmd_str
-			else node.cmd_str in
-		let heap_str  = "HEAP: " ^ node.heap_str ^ "\n" in
-		let store_str = "STORE: " ^ node.store_str ^ "\n" in
-		let pfs_str = "PFs: " ^ node.pfs_str ^ "\n" in
-		let gamma_str = "TYPEs: " ^ node.gamma_str ^ "\n" in
-		let preds_str = "PREDs: " ^ node.preds_str ^ "\n" in
-		let dashes = "-----------------------------------------\n" in
-		heap_str ^ store_str ^ pfs_str ^ gamma_str ^ preds_str ^ dashes ^ cmd_info_str in
-
-
-	(**
-		return: 0[shape=box, label=cmd_0]; ...;n[shape=box, label=cmd_n];
-	*)
-	let dot_of_search_nodes nodes len =
-		let rec loop ac_str i =
-			if (i >= len) then ac_str
-			else begin
-				try
-					let node = Hashtbl.find nodes i in
-					let node_str = string_of_search_node node in
-					let ac_str = (ac_str ^ "\t" ^ (string_of_int i) ^ "[shape=box, label=\"" ^ node_str ^ "\"];\n") in
-					loop ac_str (i + 1)
-				with _ -> loop ac_str (i + 1)
-			end in
-		loop "" 0 in
-
-
-	(**
-    node_i -> node_j; where j \in succ(i)
-  *)
-	let dot_of_edges edges len =
-		let rec loop ac_str i =
-			(if (i >= len) then ac_str
-			else begin
-				try
-					let succs = Hashtbl.find edges i in
-					let ac_str = ac_str ^
-						(List.fold_left
-							(fun i_ac_str succ -> i_ac_str ^ "\t" ^ (string_of_int i) ^ " -> " ^ (string_of_int succ) ^ ";\n")
-							""
-							succs) in
-					loop ac_str (i + 1)
-				with _ -> loop ac_str (i + 1)
-				end) in
-		loop "" 0 in
-
-	let str = "digraph " ^ proof_name ^ "{\n" in
-	let len = !(search_info.next_node) in
-	let str_nodes = dot_of_search_nodes search_info.info_nodes len in
-	let str_edges = dot_of_edges search_info.info_edges len in
-	(* Printf.printf "I finish printing the edges\n";  *)
-	let str = str ^ str_nodes ^ str_edges ^ "}" in
-	str
-
 let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : symbolic_state) : unit =
 	let symb_state_str = string_of_symb_state symb_state in
 	let cmd = get_proc_cmd proc i in

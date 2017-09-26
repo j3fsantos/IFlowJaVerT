@@ -4,7 +4,6 @@ open Stack
 open Queue
 open JSIL_Syntax
 open Symbolic_State
-open Symbolic_State_Utils
 open JSIL_Logic_Utils
 
 exception InvalidTypeOfLiteral
@@ -12,6 +11,140 @@ exception InvalidTypeOfLiteral
 let new_abs_loc_name var = abs_loc_prefix ^ var
 
 let new_lvar_name var = lvar_prefix ^ var
+
+(**
+	le -> non - normalised logical expression
+	subst -> table mapping variable and logical variable
+	gamma -> table mapping logical variables + variables to types
+
+	the store is assumed to contain all the program variables in le
+*)
+let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution option) 
+		(gamma : typing_environment) (le : jsil_logic_expr) =
+
+	let store = Option.default (store_init [] []) store in 
+	let subst = Option.default (init_substitution []) subst in 
+
+	let f = normalise_lexpr ~store:store ~subst:subst gamma in
+	
+	let result = match le with
+	| LLit _
+	| LNone -> le
+	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
+	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
+	| PVar pvar ->
+		(try Hashtbl.find store pvar with
+			| _ ->
+				(let new_lvar = fresh_lvar () in 
+				store_put store pvar (LVar new_lvar); 
+				Hashtbl.add subst pvar (LVar new_lvar);
+				LVar new_lvar))
+
+	| LBinOp (le1, bop, le2) ->
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit lit1, LLit lit2 ->
+				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
+					LLit lit
+			| _, _ -> LBinOp (nle1, bop, nle2))
+
+	| LUnOp (uop, le1) ->
+		let nle1 = f le1 in
+		(match nle1 with
+			| LLit lit1 ->
+				let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
+				LLit lit
+			| _ -> LUnOp (uop, nle1))
+
+	| LTypeOf (le1) ->
+		let nle1 = f le1 in
+		(match nle1 with
+			| LLit llit -> LLit (Type (evaluate_type_of llit))
+			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
+			| LVar lvar ->
+				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
+					(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
+			| ALoc _ -> LLit (Type ObjectType)
+			| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
+			| LBinOp (_, _, _)
+			| LUnOp (_, _) -> LTypeOf (nle1)
+			| LTypeOf _ -> LLit (Type TypeType)
+			| LEList _ -> LLit (Type ListType)
+			| LLstNth (list, index) ->
+				(match list, index with
+					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
+						let lit_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						LLit (Type (evaluate_type_of lit_n))
+					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+					| LEList list, LLit (Num n) when (Utils.is_int n) ->
+						let le_n = (try List.nth list (int_of_float n) with _ ->
+							raise (Failure "List index out of bounds")) in
+						f (LTypeOf le_n)
+					| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
+					| _, _ -> LTypeOf (nle1))
+			| LStrNth (str, index) ->
+				(match str, index with
+					| LLit (String s), LLit (Num n) when (Utils.is_int n) ->
+						let _ = (try (String.get s (int_of_float n)) with _ ->
+							raise (Failure "String index out of bounds")) in
+						LLit (Type StringType)
+					| LLit (String s), LLit (Num n) -> raise (Failure "Non-integer string index")
+					| _, _ -> LTypeOf (nle1)))
+
+	| LEList le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		let all_literals, lit_list =
+			List.fold_left
+				(fun (ac, list) le ->
+					match le with
+					| LLit lit -> (ac, (list @ [ lit ]))
+					| _ -> (false, list))
+				(true, [])
+				n_le_list in
+		if (all_literals)
+		then LLit (LList lit_list)
+		else LEList n_le_list
+		
+	| LESet le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LESet n_le_list
+		
+	| LSetUnion le_list ->
+		(* this can be better!!!! *)
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetUnion n_le_list
+		
+		
+	| LSetInter le_list ->
+		let n_le_list = List.map (fun le -> f le) le_list in
+		LSetInter n_le_list
+
+	| LLstNth (le1, le2) ->
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (LList list), LLit (Num n) when (Utils.is_int n) -> 
+					(try LLit (List.nth list (int_of_float n)) with _ ->
+						raise (Failure "List index out of bounds"))
+			| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+			| LEList list, LLit (Num n) when (Utils.is_int n) -> 
+					let le = (try (List.nth list (int_of_float n)) with _ ->
+						raise (Failure "List index out of bounds")) in
+					f le
+			| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
+			| _, _ -> LLstNth (nle1, nle2))
+
+	| LStrNth (le1, le2) ->
+		let nle1 = f le1 in
+		let nle2 = f le2 in
+		(match nle1, nle2 with
+			| LLit (String s), LLit (Num n) ->
+				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
+				with _ -> raise (Failure "String index out of bounds"))
+			| _, _ -> LStrNth (nle1, nle2)) in
+		result
 
 
 (*  ------------------------------------------------------------------

@@ -63,23 +63,29 @@ type symb_jsil_program = {
 	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
 }
 
-type search_info_node = {
+
+type symb_graph_node_type = 
+	| SGCmdNode    of string * int
+	| SGLCmdNode   of string 
+	| SGPreNode 
+	| SGPostNode 
+	| SGErrorNode  of string 
+
+type symb_graph_node = {
 	heap_str    : string;
 	store_str   : string;
 	pfs_str     : string;
 	gamma_str   : string;
 	preds_str   : string;
 	(* cmd index *)
-	cmd_index   : int;
-	cmd_str     : string;
-	(* node number *)
-	node_number : int
+	node_type   : symb_graph_node_type; 
+	node_number : int 
 }
 
 type symbolic_execution_context = {
 	vis_tbl    		    : (int, int) Hashtbl.t;
-	cur_node_info       : search_info_node;
-	info_nodes 		    : (int, search_info_node) Hashtbl.t;
+	cur_node_info       : symb_graph_node;
+	info_nodes 		    : (int, symb_graph_node) Hashtbl.t;
 	info_edges          : (int, int list) Hashtbl.t;
 	next_node           : int ref;
 	post_pruning_info   : pruning_table; 
@@ -672,7 +678,7 @@ let turn_on_post (post_number : int) (sec : symbolic_execution_context) : unit =
 
 (** Returns a new sec node - initialised as the code shows                *)
 let sec_init 
-		(node_info : search_info_node) (pi : pruning_table) 
+		(node_info : symb_graph_node) (pi : pruning_table) 
 		(proc_name : string) (spec_number : int) : symbolic_execution_context = 
 	
 	if (not (node_info.node_number = 0)) then
@@ -705,13 +711,6 @@ let sec_duplicate (sec : symbolic_execution_context) : symbolic_execution_contex
 		Hashtbl.replace new_pred_info pred_name (Stack.copy pred_stack)
 	) sec.pred_info; 
 	{ sec with vis_tbl = new_vis_tbl; pred_info = new_pred_info }
-
-(** Updates --si-- with --info_node-- and --vis_tbl--                  *)
-let sec_update 
-		(sec       : symbolic_execution_context) 
-		(info_node : search_info_node)
-		(vis_tbl   : (int, int) Hashtbl.t) : symbolic_execution_context =
-	{ sec with cur_node_info = info_node; vis_tbl = vis_tbl }
 
 (** Sets --sec.vis_tbl-- to the empty table                            *)
 let sec_reset_vis_tbl (sec : symbolic_execution_context) : symbolic_execution_context = 
@@ -758,6 +757,27 @@ let sec_unfold_pred_def
 		pred_stack 	
 	) in 
 	Stack.push def_index pred_stack; () 	
+
+(** Extends sec with a new node_info, updating all the structures that 
+    maintain the symbolic execution graphy                            *)
+let sec_create_new_info_node 
+		(sec            : symbolic_execution_context)
+		(new_node_info  : symb_graph_node) : symbolic_execution_context = 
+
+	let new_node_number  = !(sec.next_node) in
+	let new_node_info    = { new_node_info with node_number = new_node_number } in 
+	let parent_node_info = sec.cur_node_info in
+	
+	sec.next_node := new_node_number + 1;
+	Hashtbl.add (sec.info_nodes) new_node_number new_node_info;
+	Hashtbl.replace sec.info_edges new_node_number []; 
+
+	(try 
+ 		let parent_children = Hashtbl.find sec.info_edges parent_node_info.node_number in
+ 		Hashtbl.replace sec.info_edges parent_node_info.node_number (new_node_number :: parent_children); 
+	with _ -> Printf.printf "DEATH. sec_create_new_info_node"); 
+
+	{ sec with cur_node_info = new_node_info }
 
 
 (****************************************)
