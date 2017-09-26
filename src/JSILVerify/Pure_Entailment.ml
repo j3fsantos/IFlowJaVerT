@@ -863,7 +863,6 @@ let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in
 	string_of_z3_expr_list exprs
 
-
 let make_global_axioms list_vars string_vars list_exprs = 
 	let x_name = "#x" in 
 	let y_name = "#y" in 

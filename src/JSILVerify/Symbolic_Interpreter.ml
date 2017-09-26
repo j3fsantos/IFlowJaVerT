@@ -842,6 +842,51 @@ let extend_spec_vars_subst
 				| _       -> ()
 		)) (SS.elements spec_vars) 
 
+(*---------------------------------------------------------------
+Checking if recursive calls terminate
+----------------------------------------------------------------*)
+let lemma_recursive_call_termination_check
+	(lemma : jsil_lemma)
+	(symb_state : symbolic_state)
+	(args : jsil_logic_expr list) : unit =
+
+	(* Check if a variant has been defined *)
+	match lemma.lemma_variant with
+	| None -> Printf.printf "WARNING: No variant defined for lemma %s\n" lemma.lemma_name
+	| Some variant_expr ->
+
+		(* Convert variant to logical expression, so we can perform operations on it *)
+		let variant = expr_2_lexpr variant_expr in
+
+		(* Mapping lemma args -> new logical expressions (in the called state) *)
+		let variant_subst = init_substitution2 lemma.lemma_spec.spec_params args in
+
+		(* The new variant, in the called state *)
+		let called_variant = lexpr_substitution variant_subst false variant in
+
+		(* Now evaluate each variable in both variants *)
+		let _, store, pfs, gamma, _ = symb_state in
+		let evaluate_vars
+	        (lexpr : jsil_logic_expr) : (jsil_logic_expr * bool) =
+
+	        match lexpr with
+	        	| PVar v -> (symb_evaluate_expr store gamma pfs (Var v), false)
+	            | e -> (e, true)
+	    in
+	    let evaluate_variant_pvars = logic_expression_map evaluate_vars None in
+
+	    (* Create an assertion called_variant <# variant *)
+	    let termination_assertion = LLess (evaluate_variant_pvars called_variant, evaluate_variant_pvars variant) in
+			print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion));
+
+	    (* Check that the current symb state entails the termination_assertion *)
+	    let state_entails_termination_assertion = Pure_Entailment.check_entailment SS.empty (Symbolic_State.pfs_to_list pfs) [termination_assertion] gamma in
+
+	    (* Throw an error if the assertion is not entailed *)
+	    match state_entails_termination_assertion with
+	    	| true -> ()
+	    	| false -> raise (Failure (Printf.sprintf "Lemma %s: Variant %s does not decrease in every recursive call." lemma.lemma_name (JSIL_Print.string_of_logic_expression variant)))
+
 
 (*---------------------------------------------------------------
 	symb_evaluate_logic_cmd. 
@@ -918,26 +963,31 @@ let rec symb_evaluate_logic_cmd
 		let params    = pred.n_pred_params in
 		recursive_unfold_predicate pred_name pred_defs symb_state params spec_vars search_info
 
-  	| ApplyLem (lemma_name, l_args) ->
-  		print_time (Printf.sprintf "ApplyLemma %s." lemma_name);
+	| ApplyLem (lemma_name, l_args) ->
+		print_time (Printf.sprintf "ApplyLemma %s." lemma_name);
 
-  		(* Look up the lemma specs in the spec table *)
+    (* Check recursive calls terminate, if we are inside a lemma *)
+    (match lemma with
+		| Some l -> (if (lemma_name = l.lemma_name) then lemma_recursive_call_termination_check l symb_state l_args);
+    | None -> ());
+
+		(* Look up the lemma specs in the spec table *)
 		let proc_specs = try Hashtbl.find s_prog.spec_tbl lemma_name
 			with _ -> raise (Failure (Printf.sprintf "No spec found for lemma %s" lemma_name)) in
-					
-      	(* symbolically evaluate the args *)
-      	let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le) l_args in
+
+    (* symbolically evaluate the args *)
+    let le_args = List.map (fun le -> Symbolic_State_Utils.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le) l_args in
 		let _, new_symb_states = find_and_apply_spec s_prog.program lemma_name proc_specs symb_state le_args in
 
-
-      	(* Checking precondition is met *)
+    (* Checking precondition is met *)
 		(if ((List.length new_symb_states) = 0)
 			then raise (Failure (Printf.sprintf "No precondition found for lemma %s." lemma_name)));
 
-      	(* Creating the new symbolic states *)
+    (* Creating the new symbolic states *)
 		List.map (fun (symb_state, _, _) ->
-			let new_symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
-			(new_symb_state, spec_vars, sec_duplicate search_info)) new_symb_states 
+		let new_symb_state : symbolic_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
+		let new_search_info = sec_duplicate search_info in
+		(new_symb_state, spec_vars, new_search_info)) new_symb_states
 
 	| LogicIf (le, then_lcmds, else_lcmds) ->
     	print_time "LIf.";
@@ -1424,12 +1474,12 @@ let prove_all_lemmas
 
   		match all_posts with
 			| [] ->
-				Printf.printf "Failed to verify a spec of lemma %s:\n" lemma_name;
-				Printf.printf "Non_unifiable symbolic states.\n";
-				Printf.printf "Final symbolic state: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state);
+				print_normal (Printf.sprintf "Failed to verify a spec of lemma %s:\n" lemma_name);
+				print_normal (Printf.sprintf "Non_unifiable symbolic states.\n");
+				print_normal (Printf.sprintf "Final symbolic state: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state));
 				false
 			| post :: posts ->
-	       		let success =
+	      let success =
 					try
 						Spatial_Entailment.fully_unify_symb_state false (Normaliser.create_unification_plan post SS.empty) None post symb_state;
 						(* fully_unify_symb_state throws an error when it fails, so if it succeeds success is assumed *)
@@ -1441,7 +1491,8 @@ let prove_all_lemmas
 				match success with
 					| true -> print_normal (Printf.sprintf "Verified one spec of lemma %s" lemma_name);
 							  true
-					| false -> unify_all_posts posts symb_state lvars lemma_name (i + 1)
+					| false -> print_normal ("Failed to verify one postcondition. Moving to next."); 
+							unify_all_posts posts symb_state lvars lemma_name (i + 1)
 	in
 
 	(* Given a list of symb states and a list of post conditions,
