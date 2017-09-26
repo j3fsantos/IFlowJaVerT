@@ -1139,6 +1139,7 @@ let rec symb_evaluate_cmd
 		update_gamma (ss_gamma symb_state) x te;
 		post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i (i+1) in
 	
+	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 	Symbolic_State_Print.print_symb_state_and_cmd proc i symb_state;
 	let metadata, cmd = get_proc_cmd proc i in
