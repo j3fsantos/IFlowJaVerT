@@ -1046,15 +1046,16 @@ let check_satisfiability_core (assertions : SA.t) gamma =
   			| Solver.UNKNOWN -> "UNKNOWN"));
   		let ret = (ret = Solver.SATISFIABLE) in
 			
+			let end_time = Sys.time () in
+  		JSIL_Syntax.update_statistics "solver_call" 0.;
+  		JSIL_Syntax.update_statistics "SOLVER CALL: check_satisfiability" (end_time -. start_time);
+			
 			(* Cache *)
   		Hashtbl.replace JSIL_Syntax.sat_cache assertions ret;
   		
 			print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
   			(JSIL_Print.string_of_logic_assertion (star_asses (SA.elements assertions))) (Hashtbl.length JSIL_Syntax.sat_cache));
-  		let end_time = Sys.time () in
-  		JSIL_Syntax.update_statistics "solver_call" 0.;
-  		JSIL_Syntax.update_statistics "check_satisfiability: call" (end_time -. start_time);
-			
+
 			(* Return *) 
   		ret, false
 	) in
@@ -1102,6 +1103,8 @@ let check_entailment (existentials : SS.t)
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
 		   (Symbolic_State_Print.string_of_gamma gamma));
 
+		let start_time = Sys.time() in
+
 		(* Simplify maximally the implication to be checked *)
 		let existentials, left_as, right_as, gamma = Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) gamma in
 		let right_as = Simplifications.simplify_equalities_between_booleans right_as in
@@ -1112,7 +1115,7 @@ let check_entailment (existentials : SS.t)
 		let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in
 
 		(* If left side is false, return false *)
-		if (DynArray.length left_as > 0 && DynArray.get left_as 0 = LFalse) then false
+		let result = if (DynArray.length left_as > 0 && DynArray.get left_as 0 = LFalse) then false
 		(* If right side is false, return false *)
 		else if (DynArray.length right_as > 0 && DynArray.get right_as 0 = LFalse) then false
 		else 
@@ -1167,22 +1170,27 @@ let check_entailment (existentials : SS.t)
 				
 				(* Entailment check *)
   			let ret = Solver.check masterSolver [ ] in
-  			
-				print_debug_petar (Printf.sprintf "The solver returned: %s"
-  						(match ret with
-  						| Solver.SATISFIABLE -> "SAT"
-  						| Solver.UNSATISFIABLE -> "UNSAT"
-  						| Solver.UNKNOWN -> "UNKNOWN"));
   			let end_time = Sys.time () in
   			JSIL_Syntax.update_statistics "solver_call" 0.;
-  			JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+  			JSIL_Syntax.update_statistics "SOLVER CALL: check_entailment" (end_time -. start_time);
   
+				print_debug_petar (Printf.sprintf "The solver returned: %s"
+  				(match ret with
+  				| Solver.SATISFIABLE -> "SAT"
+  				| Solver.UNSATISFIABLE -> "UNSAT"
+  				| Solver.UNKNOWN -> "UNKNOWN"));
+	
 				(* Print the countermodel, if it is found *)
   			if (ret = Solver.SATISFIABLE) then print_model masterSolver;
+				
+				
 				(* Reframe the result *)
   			let ret = (ret = Solver.UNSATISFIABLE) in
 				(* Return *)
-  			ret)
+  			ret) in
+			let end_time = Sys.time () in
+				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+				result
 
 let is_equal_on_lexprs e1 e2 pfs : bool option =
 (match (e1 = e2) with

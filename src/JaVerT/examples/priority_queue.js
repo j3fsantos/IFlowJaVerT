@@ -47,15 +47,6 @@
 	  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
 */
 
-/**
-	@toprequires (initialHeapPre())
-	@topensures (
-		scope(q : #q) * scope(r : #r) *
-		Queue(#q, #pqp, #np, #pri_q, 2) *
-		JSObject(#r) * DataProp(#r, "pri", #3) * DataProp(#r, "val", _) * (ret == #r)
-	)
-*/
-
 /** 
  	@id PQLib
     @pre  (initialHeapPostWeak())
@@ -246,13 +237,3 @@ var PriorityQueue = (function () {
 
    return PQ;
 })();
-
-var q, r;
-
-q = new PriorityQueue();
-q.enqueue(2, "last");
-q.enqueue(4, "bar");
-q.enqueue(3, "foo");
-r = q.dequeue();
-q.enqueue(1, "baz");
-r = q.dequeue();

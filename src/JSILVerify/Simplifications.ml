@@ -706,9 +706,6 @@ let rec reduce_assertion store gamma pfs a =
 				(JSIL_Print.string_of_logic_assertion result)); 
 			f result
 
-	| LForAll (bt, LAnd (a1, a2)) ->
-			f (LAnd (LForAll (bt, a1), LForAll (bt, a2)))
-
 	| LForAll (bt, a) -> 
 			let ra = f a in
 			let vars = get_asrt_lvars a in

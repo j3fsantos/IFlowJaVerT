@@ -239,6 +239,12 @@ let merge_heaps
 			| None -> 
 				heap_put heap loc n_fv_list n_domain); 
 
+	(* Garbage collection *)
+	heap_iterator heap (fun loc (fv_list, domain) ->
+		(match fv_list, domain with
+		| [], None -> heap_remove heap loc
+		| _, _ -> ()));
+
 	print_debug "Finished merging heaps."
 
 
