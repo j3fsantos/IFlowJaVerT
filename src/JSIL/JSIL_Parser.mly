@@ -9,6 +9,7 @@ let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 51
 let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
 let lemma_table : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511
 let procedure_names  : (string list) ref = ref []
+let normalised_lvar_r = Str.regexp "##NORMALISED_LVAR"
 let copy_and_clear_globals () =
   let lemm' = Hashtbl.copy lemma_table in
 	let pred' = Hashtbl.copy predicate_table in
@@ -155,6 +156,7 @@ let copy_and_clear_globals () =
 %token <string> LVAR
 (* Logical expressions *)
 %token LNONE
+%token <string> ALOC
 (* Logic assertions *)
 %token OASSERT
 %token CASSERT
@@ -192,6 +194,7 @@ let copy_and_clear_globals () =
 %token ONLY
 %token SPEC
 %token LEMMA
+%token VARIANT
 %token NORMAL
 %token ERROR
 (* JS only spec specifics *)
@@ -706,10 +709,12 @@ js_only_spec_target:
 
 jsil_lemma_target:
   (* lemma xpto (x, y)
+     variant(x)
    	 [[ pre ]]
      [[ post ]]
      [* proof_body *] *)
 	LEMMA; lemma_head = jsil_lemma_head_target;
+  variant = option(jsil_lemma_variant_target);
   pre = spec_line;
 	post = mult_spec_line;
 	proof = option(jsil_lemma_proof_target);
@@ -718,8 +723,10 @@ jsil_lemma_target:
     let lemma_spec = create_jsil_spec lemma_name lemma_params [(create_single_spec pre post Normal)] false in
 		let lemma =
 		{
+			lemma_name  = lemma_name;
 			lemma_spec  = lemma_spec;
-			lemma_proof = proof
+			lemma_proof = proof;
+      		lemma_variant = variant
 		} in
 		Hashtbl.replace lemma_table lemma_name lemma;
 		lemma
@@ -729,6 +736,13 @@ jsil_lemma_head_target:
   lemma_name = VAR; LBRACE; lemma_params = separated_list(COMMA, VAR); RBRACE
 	{
 		(lemma_name, lemma_params)
+	}
+;
+
+jsil_lemma_variant_target:
+  VARIANT LBRACE; variant = expr_target; RBRACE
+	{
+		variant
 	}
 ;
 
@@ -874,7 +888,9 @@ lexpr_target:
 (* Logic variable *)
 	| lvar = logic_variable_target
 	  { lvar }
-(* Abstract locations are computed on normalisation *)
+(* Abstract locations are *normally* computed on normalisation *)
+  | ALOC
+    { ALoc $1 }
 (* Program variable (including the special variable "ret") *)
 	| pvar = program_variable_target
 	  { pvar }
@@ -914,7 +930,10 @@ lexpr_target:
 
 logic_variable_target:
   v = LVAR
-	{ (* validate_lvar v; *) LVar v }
+	{
+    let v_imported = Str.replace_first normalised_lvar_r "_lvar_n" v in
+    (* Prefixed with _n_ to avoid clashes *)
+    LVar v_imported }
 ;
 
 just_logic_variable_target:

@@ -334,8 +334,10 @@ type jsil_logic_command =
 
 (** {b JSIL lemmas}. *)
 type jsil_lemma = {
-	lemma_spec  : jsil_spec; (* The lemma spec *)
-	lemma_proof : (jsil_logic_command list) option  (** (Optional) Proof body *)
+	lemma_name    : string; (* Name of the lemma *)
+	lemma_spec    : jsil_spec; (* The lemma spec *)
+  lemma_proof   : (jsil_logic_command list) option;  (** (Optional) Proof body *)
+  lemma_variant : jsil_expr option (* The paramater to treat as the variant. Will trigger termination checks *)
 }
 
 (** {b JSIL logic macro}. *)
@@ -487,9 +489,9 @@ let output_file = open_out "normalOutput.txt"
 let output_file_debug = open_out "debugOutput.txt"
 let output_file_normalisation = open_out "normalisationOutput.txt"
 
-let print_debug  msg  = () (* output_string output_file_debug (msg ^ "\n") *)
-let print_normal msg  = () (* output_string output_file (msg ^ "\n"); print_debug msg *)
-let print_normalisation msg  = () (* output_string output_file_normalisation (msg ^ "\n") *)
+let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
+let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
+let print_normalisation msg = output_string output_file_normalisation (msg ^ "\n")
 
 let close_output_files () =
 	close_out output_file;

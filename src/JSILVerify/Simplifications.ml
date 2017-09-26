@@ -462,12 +462,14 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		 | LstLen -> (match re1 with
 				| LLit (LList list) -> (LLit (Num (float_of_int (List.length list))))
 		    | LEList list -> (LLit (Num (float_of_int (List.length list))))
-			| LBinOp (le, LstCons, list) ->
-				let rlist = f (LUnOp (LstLen, list)) in
-				(match rlist with
-				| LLit (Num n) -> LLit (Num (n +. 1.))
-				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
-				| _ -> LUnOp (LstLen, e1))
+  			| LBinOp (le, LstCons, list) ->
+  				let rlist = f (LUnOp (LstLen, list)) in
+  				(match rlist with
+  				| LLit (Num n) -> LLit (Num (n +. 1.))
+  				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
+				| LBinOp (l1, LstCat, l2) ->
+						LBinOp (f (LUnOp (op, l1)), Plus, f (LUnOp (op, l2)))
+  			| _ -> LUnOp (LstLen, e1))
 		 | StrLen -> (match re1 with
 		    | LLit (String str) -> (LLit (Num (float_of_int (String.length str))))
 		    | _ -> LUnOp (StrLen, e1))
@@ -642,7 +644,11 @@ let rec reduce_assertion store gamma pfs a =
 						then 
 							f (LEq (re1', LLit (Num (n2 -. n1))))
 						else default e1 e2 re1 re2
-			
+
+			(* Nil *)
+			| LBinOp (l1, LstCat, l2), LLit (LList []) ->
+				f (LAnd (LEq (l1, LLit (LList [])), LEq (l2, LLit (LList []))))
+
 			(* Very special cases *)
 			| LTypeOf (LBinOp (_, StrCat, _)), LLit (Type t) when (t <> StringType) -> LFalse
 			| LTypeOf (LBinOp (_, SetMem, _)), LLit (Type t) when (t <> BooleanType) -> LFalse
@@ -1069,8 +1075,8 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 	let to_swap_now = (le1_old <> le1) in
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
-	(* print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
-		(string_of_logic_expression le1) (string_of_logic_expression le2)); *) 
+	print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
+		(string_of_logic_expression le1) (string_of_logic_expression le2)); 
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -1078,6 +1084,12 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 		| LEList [], LEList [] -> Some false, []
 		| LVar _, _ -> Some false, [ swap (le1, le2) ]
 		(* Inductive cases *)
+		| LBinOp (l1, LstCat, LEList [ e1 ]), LBinOp (l2, LstCat, LEList [ e2 ]) ->
+				let ok, rest = unify_lists l1 l2 to_swap in
+				(match ok with
+				| None -> None, []
+				| _ -> Some true, (e1, e2) :: rest)
+		
 		| LLit (LList _), LLit (LList _)
 		| LLit (LList _), LEList _
 		| LEList _, LEList _
