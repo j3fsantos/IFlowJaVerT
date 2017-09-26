@@ -179,7 +179,7 @@ let rec unify_lexprs le_pat (le : jsil_logic_expr) p_formulae (gamma: typing_env
 
 	| le_pat when (isList le_pat && isList le && (match le with | LVar _ -> false | _ -> true)) ->
 			print_debug_petar (Printf.sprintf " ULEXPRLIST: %s %s" (JSIL_Print.print_lexpr le_pat) (JSIL_Print.print_lexpr le)); 
-			let osubst = Simplifications.unify_lists le_pat le false in
+			let osubst = Simplifications.unify_lists gamma le_pat le false in
 			(match osubst with
 			| None, _ 
 			| Some false, _ -> 

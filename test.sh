@@ -21,7 +21,6 @@ do
 		echo "Fail: $f" 
 	fi }
 	echo "----------------"
-	sleep 10
 done
 
 echo "Testing jsil files"

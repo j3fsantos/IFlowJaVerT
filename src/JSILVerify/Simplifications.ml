@@ -8,6 +8,56 @@ exception FoundIt of jsil_logic_expr
 exception UnionInUnion of jsil_logic_expr list
 
 (**
+	Is there a NaN featured anywhere in the expression?
+*)
+let rec is_nanny gamma le =
+	let f = is_nanny gamma in  
+  let result = (match le with
+  	| LLit (Num nan) -> true
+		
+		| LVar v
+  	| PVar v -> (match Hashtbl.mem gamma v with
+			| false -> true
+			| true -> let t = Hashtbl.find gamma v in
+				(match t with
+				| NumberType -> true
+				| _ -> false))
+  	
+		| LUnOp (Not, _) -> false
+		
+  	| LUnOp (_, le) 
+  	| LStrNth (_, le) -> f le
+  
+		| LLstNth (le, i) -> f le || f i
+	
+		| LBinOp (_, StrCat, _) 
+		| LBinOp (_, CharCat, _) 
+		| LBinOp (_, And, _) 
+		| LBinOp (_, Or, _) -> false
+	
+  	| LBinOp (le1, _, le2) -> f le1 || f le2
+	
+  	| LEList    les
+  	| LCList    les
+  	| LESet     les
+  	| LSetUnion les
+  	| LSetInter les -> 
+  		let rec loop les =
+  		(match les with
+  		| [] -> false
+  		| le :: les -> (match (f le) with
+  			| true  -> true
+  			| false -> loop les)) in 
+  		loop les 
+  
+  	| LLit _
+  	| ALoc _ 
+  	| LTypeOf _ 
+  	| LNone -> false) in
+	print_debug_petar (Printf.sprintf "is_nanny: %s -> %b" (JSIL_Print.string_of_logic_expression le false) result);
+	result
+
+(**
 	List simplifications:
 
 	Finding if the given logical expression is equal to a list.
@@ -525,7 +575,7 @@ let rec reduce_assertion store gamma pfs a =
 		let re2 = fe e2 in
 		(* Warning - NaNs, infinities, this and that, this is not good enough *)
 		let eq = (re1 = re2) in
-		if eq then LTrue
+		if (eq && (not (is_nanny gamma re1))) then LTrue (* if eq then LTrue *)
 		else
 		let ite a b = if (a = b) then LTrue else LFalse in
 		let default e1 e2 re1 re2 = 
@@ -938,7 +988,7 @@ let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : boo
 let crossProduct l l' = List.concat (List.map (fun e -> List.map (fun e' -> (e,e')) l') l)
 
 (* Unifying lists based on a common literal *)
-let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
+let rec match_lists_on_element gamma (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : 
 	bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) option =
 	let elems1 = get_elements_from_list le1 in
 	(match elems1 with
@@ -961,7 +1011,7 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 						let result = 
 						(match isList le1, isList le2 with
 						| true, true -> 
-								let unifiable, _ = unify_lists le1 le2 false in
+								let unifiable, _ = unify_lists gamma le1 le2 false in
 								(unifiable <> None)
 						| _, _ -> false) in (le1, le2, result)) candidates in
 					let candidates = List.filter (fun (_, _, b) -> b) candidates in
@@ -996,9 +1046,10 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 						raise (Failure msg)))
 		))
 and
-unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
-	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
-	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
+unify_lists gamma (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
+	let f = unify_lists gamma in
+	let le1 = reduce_expression_no_store gamma (DynArray.create()) le1 in
+	let le2 = reduce_expression_no_store gamma (DynArray.create()) le2 in
 	let le1_old = le1 in
 	let le1, le2 = arrange_lists le1 le2 in
 	let to_swap_now = (le1_old <> le1) in
@@ -1033,7 +1084,7 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 				(* Do we still have lists? *)
 				if (isList taill && isList tailr) then
 					(* Yes, move in recursively *)
-					(let ok, rest = unify_lists taill tailr to_swap in
+					(let ok, rest = f taill tailr to_swap in
 					(match ok with
 					| None -> None, []
 					| _ -> Some true, swap (headl, headr) :: rest))
@@ -1044,19 +1095,19 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 			| Some _, Some _ -> 
 				(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
 				(* Get all literals on both sides, find first match, then split and call again *)
-				let ok, (ll, lr), (rl, rr), more_to_unify = match_lists_on_element le1 le2 in
+				let ok, (ll, lr), (rl, rr), more_to_unify = match_lists_on_element gamma le1 le2 in
 				(match ok with
 					| true -> 
-							let okl, left = unify_lists ll rl to_swap in
+							let okl, left = f ll rl to_swap in
 							(match okl with
 							| None -> None, []
 							| _ -> 
-								let okr, right = unify_lists lr rr to_swap in
+								let okr, right = f lr rr to_swap in
 								(match okr with
 								| None -> None, []
 								| _ -> (match more_to_unify with
 									| None -> Some true, left @ right
-									| Some (lm, rm) -> let okm, more = unify_lists lm rm to_swap in
+									| Some (lm, rm) -> let okm, more = f lm rm to_swap in
 										(match okm with
 										| None -> None, []
 										| _ -> Some true, left @ right @ more))
@@ -1734,7 +1785,7 @@ let simplify_symb_state
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
 					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
-					let ok, subst = unify_lists le1 le2 false in
+					let ok, subst = unify_lists gamma le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
 					| None -> pfs_ok := false; msg := "List error"	
@@ -1855,7 +1906,7 @@ let simplify_symb_state
 
 	let others = ref (DynArray.map (assertion_map None le_list_to_string) !others) in
 
-	(* print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
+	print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); 
 
 	let end_time = Sys.time() in
 	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
