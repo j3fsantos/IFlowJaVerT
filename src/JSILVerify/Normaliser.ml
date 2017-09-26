@@ -507,10 +507,6 @@ let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : s
 	| _             -> None 
 
 
-
-
-
-
 (*  -----------------------------------------------------
 	Normalise Logic Expressions
 	-----------------------------------------------------
@@ -521,16 +517,6 @@ let normalise_logic_expression
 		(le    : jsil_logic_expr) : jsil_logic_expr = 
 	let le'           = normalise_lexpr ~store:store ~subst:subst gamma le in 
 	le' 
-	(*let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le' in
-	match le_type with
-		| Some le_type -> le' 
-		| None ->
-			let new_gamma = JSIL_Logic_Utils.reverse_type_lexpr gamma le t in
-			(match new_gamma with
-				| None ->
-					raise (Failure (Printf.sprintf "Logic expression %s is neither typable nor reverse typable!"
-						(JSIL_Print.string_of_logic_expression le false)))
-				| Some new_gamma ->	extend_gamma gamma new_gamma; le') *)
 
 
 (*  -----------------------------------------------------

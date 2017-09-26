@@ -43,6 +43,16 @@ type n_jsil_logic_predicate = {
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t
 
+(** {b Pruning table}. A table mapping each spec_name to a list of 
+arrays - one per possible precondition. Each precondtion is associated 
+with an array of booleans, one per postcondition, denoting whether or 
+not that postcondition is reachable from the precondition.
+For instance, suppose:
+ pruning_table ("foo") = [ [| false, true |], [| true, true |] ] 
+Then the procedure foo has two pre-conditions, each with two 
+possible postconditions. The first postcondtion associated with 
+the first precondition is unreachable and therefore needs to be 
+eliminated. *)
 type pruning_table       = (string, (bool array) list) Hashtbl.t
 
 type symb_jsil_program = {
@@ -66,7 +76,7 @@ type search_info_node = {
 	node_number : int
 }
 
-type symbolic_execution_search_info = {
+type symbolic_execution_context = {
 	vis_tbl    		    : (int, int) Hashtbl.t;
 	cur_node_info       : search_info_node;
 	info_nodes 		    : (int, search_info_node) Hashtbl.t;
@@ -74,6 +84,7 @@ type symbolic_execution_search_info = {
 	next_node           : int ref;
 	post_pruning_info   : pruning_table; 
 	spec_number         : int;
+	proc_name           : string; 
 	pred_info           : (string, int Stack.t) Hashtbl.t
 }
 
@@ -620,9 +631,133 @@ let get_pred (pred_tbl : (string, n_jsil_logic_predicate) Hashtbl.t) (pred_name 
 		raise (Failure msg)
 
 
+(*********************************************************)
+(** Pruning Info                                        **)
+(*********************************************************)
+
+(** Returns a new (empty) pruning info table *)
+let pruning_info_init () : pruning_table = Hashtbl.create small_tbl_size
+
+(** Extends --pi-- with a new array for each single spec in --n_spec-- *)
+let pruning_info_extend (pi : pruning_table) (spec : jsil_n_spec) : unit =
+	let spec_pi =
+		List.map (fun ss -> Array.make (List.length ss.n_post) false) spec.n_proc_specs in
+	Hashtbl.replace pi spec.n_spec_name spec_pi
+
+(** Removes unreachable posts in --spec-- using --pi_arr-- *)
+let prune_posts_sspec (pi_arr : bool array) (spec : jsil_n_single_spec) : jsil_n_single_spec =
+	let posts = List.filter (fun (post, b) -> b) (List.combine spec.n_post (Array.to_list pi_arr)) in
+	{ spec with n_post = (List.map (fun (post, _) -> post) posts) }
+
+(** Removes unreachable posts in --spec-- using --pi-- *)
+let prune_posts (pi : pruning_table) (spec : jsil_n_spec) (proc_name : string) : jsil_n_spec =
+	try
+		let new_sspecs = List.map2 prune_posts_sspec (Hashtbl.find pi proc_name) (spec.n_proc_specs) in
+		{ spec with n_proc_specs = new_sspecs }
+	with Not_found -> spec
+
+(** Activates the postcondition number --post_number-- in the pruning info 
+    of the spec number --si.spec_number-- of the procedure --si.proc_name--  *)
+let turn_on_post (post_number : int) (sec : symbolic_execution_context) : unit =
+	try
+		let pi     = Hashtbl.find (sec.post_pruning_info) sec.proc_name in
+		let pi_arr = List.nth pi (sec.spec_number) in
+		pi_arr.(post_number) <- true
+	with Not_found -> ()
 
 
+(*********************************************************)
+(** Symbolic Execution Context (SEC)                    **)
+(*********************************************************)
 
+(** Returns a new sec node - initialised as the code shows                *)
+let sec_init 
+		(node_info : search_info_node) (pi : pruning_table) 
+		(proc_name : string) (spec_number : int) : symbolic_execution_context = 
+	
+	if (not (node_info.node_number = 0)) then
+		raise (Failure "the node number of the first node must be 0")
+	else begin
+		let new_sec =
+			{
+				vis_tbl             = Hashtbl.create small_tbl_size;
+				cur_node_info       = node_info;
+				info_nodes          = Hashtbl.create small_tbl_size;
+				info_edges          = Hashtbl.create small_tbl_size;
+				next_node           = ref 1;
+				post_pruning_info   = pi;
+				spec_number         = spec_number;
+				pred_info           = Hashtbl.create small_tbl_size;
+				proc_name           = proc_name 
+			} in
+		Hashtbl.replace new_sec.info_edges 0 [];
+		Hashtbl.replace new_sec.info_nodes 0 node_info;
+		new_sec
+	end
+
+(** Duplicates the current --sec--. Only the elements of --sec-- that 
+    cannot be shared between different symbolic executions are deep 
+    copied                                                             *)
+let sec_duplicate (sec : symbolic_execution_context) : symbolic_execution_context = 
+	let new_vis_tbl   = Hashtbl.copy sec.vis_tbl in 
+	let new_pred_info = Hashtbl.copy sec.pred_info in 	
+	Hashtbl.iter (fun pred_name pred_stack -> 
+		Hashtbl.replace new_pred_info pred_name (Stack.copy pred_stack)
+	) sec.pred_info; 
+	{ sec with vis_tbl = new_vis_tbl; pred_info = new_pred_info }
+
+(** Updates --si-- with --info_node-- and --vis_tbl--                  *)
+let sec_update 
+		(sec       : symbolic_execution_context) 
+		(info_node : search_info_node)
+		(vis_tbl   : (int, int) Hashtbl.t) : symbolic_execution_context =
+	{ sec with cur_node_info = info_node; vis_tbl = vis_tbl }
+
+(** Sets --sec.vis_tbl-- to the empty table                            *)
+let sec_reset_vis_tbl (sec : symbolic_execution_context) : symbolic_execution_context = 
+	{ sec with vis_tbl = Hashtbl.create small_tbl_size }
+
+(** Marks node --i-- has visited in --sec--                            *)
+let sec_visit_node (sec : symbolic_execution_context) (i : int) : unit =
+	let cur_node_info = sec.cur_node_info in
+	Hashtbl.replace sec.vis_tbl i cur_node_info.node_number 
+
+(** Checks if node --i-- has visited using the information in --sec--  *)
+ let sec_is_visited_node (sec : symbolic_execution_context) (i : int) : bool = 
+ 	Hashtbl.mem sec.vis_tbl i
+
+(** Gets the index of the last unfolded definition of --pred_name--    *)
+let sec_fold_pred_def 
+		(sec         : symbolic_execution_context) 
+		(pred_name   : string) : symbolic_execution_context * int =
+	
+	let pred_info = sec.pred_info in
+	(match Hashtbl.mem pred_info pred_name with
+	| false -> sec, -1
+	| true ->
+		let s = Hashtbl.find pred_info pred_name in
+		(match Stack.is_empty s with
+		| true -> sec, -1
+		| false ->
+			let pred_info = Hashtbl.copy pred_info in
+			let s         = Stack.copy s in
+			let cmf       = Stack.pop s in
+			Hashtbl.replace pred_info pred_name s;
+			{ sec with pred_info = pred_info }, cmf)) 
+
+(** Extend --sec-- with the index of definition of --pred_name-- to 
+    be unfolded next                                                   *)
+let sec_unfold_pred_def 
+		(sec         : symbolic_execution_context) 
+		(pred_name   : string)
+		(def_index   : int) : unit = 
+
+	let pred_stack = try Hashtbl.find sec.pred_info pred_name with Not_found -> (
+		let pred_stack = Stack.create () in 
+		Hashtbl.replace sec.pred_info pred_name pred_stack; 
+		pred_stack 	
+	) in 
+	Stack.push def_index pred_stack; () 	
 
 
 (****************************************)
@@ -659,39 +794,6 @@ let selective_symb_state_substitution_in_place_no_gamma
 	selective_heap_substitution_in_place subst heap 
 
 
-(****************************************)
-(** Normalised Specifications          **)
-(****************************************)
-
-
-let init_post_pruning_info () = Hashtbl.create small_tbl_size
-
-let update_post_pruning_info_with_spec pruning_info n_spec =
-	let spec_post_pruning_info =
-		List.map
-			(fun spec ->
-				let number_of_posts = List.length spec.n_post in
-				Array.make number_of_posts false)
-			n_spec.n_proc_specs in
-	Hashtbl.replace pruning_info n_spec.n_spec_name spec_post_pruning_info
-
-let filter_useless_posts_in_single_spec	spec pruning_array =
-	let rec loop posts i processed_posts =
-		(match posts with
-		| [] -> processed_posts
-		| post :: rest_posts ->
-			if (pruning_array.(i))
-				then loop rest_posts (i + 1) (post :: processed_posts)
-				else loop rest_posts (i + 1) processed_posts) in
-	let useful_posts = loop spec.n_post 0 [] in
-	{ spec with n_post = useful_posts }
-
-let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
-	try
-		let pruning_info = Hashtbl.find pruning_info proc_name in
-		let new_specs = List.map2 filter_useless_posts_in_single_spec specs pruning_info in
-		new_specs
-	with Not_found -> specs
 
 
 
@@ -699,97 +801,6 @@ let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
 (*********************************************************)
-
-
-let make_symb_exe_search_info node_info post_pruning_info spec_number =
-	if (not (node_info.node_number = 0)) then
-		raise (Failure "the node number of the first node must be 0")
-	else begin
-		let new_search_info =
-			{
-				vis_tbl             = Hashtbl.create small_tbl_size;
-				cur_node_info       = node_info;
-				info_nodes          = Hashtbl.create small_tbl_size;
-				info_edges          = Hashtbl.create small_tbl_size;
-				next_node           = ref 1;
-				post_pruning_info   = post_pruning_info;
-				spec_number         = spec_number;
-				pred_info           = Hashtbl.create small_tbl_size;
-			} in
-		Hashtbl.replace new_search_info.info_edges 0 [];
-		Hashtbl.replace new_search_info.info_nodes 0 node_info;
-		new_search_info
-	end
-
-let update_search_info search_info info_node vis_tbl =
-	{
-		search_info with cur_node_info = info_node; vis_tbl = vis_tbl
-	}
-
-let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl
-
-let update_vis_tbl search_info vis_tbl =
-	{	search_info with vis_tbl = vis_tbl }
-
-
-let reset_vis_tbl (search_info : symbolic_execution_search_info) : symbolic_execution_search_info = 
-	{ search_info with vis_tbl = Hashtbl.create small_tbl_size }
-
-let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
-	try
-		let post_pruning_info_array_list =
-			Hashtbl.find (symb_exe_info.post_pruning_info) proc_name in
-		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
-		post_pruning_info_array.(post_number) <- true
-	with Not_found -> ()
-
-
-let get_pred_index_from_search_info 
-		(search_info : symbolic_execution_search_info) 
-		(pred_name   : string) : symbolic_execution_search_info * int =
-	
-	let pred_info = search_info.pred_info in
-	(match Hashtbl.mem pred_info pred_name with
-	| false -> search_info, -1
-	| true ->
-		let s = Hashtbl.find pred_info pred_name in
-		(match Stack.is_empty s with
-		| true -> search_info, -1
-		| false ->
-			let pred_info = Hashtbl.copy pred_info in
-			let s         = Stack.copy s in
-			let cmf       = Stack.pop s in
-			Hashtbl.replace pred_info pred_name s;
-			{ search_info with pred_info = pred_info }, cmf)) 
-
-let add_pred_def_index_to_search_info 
-		(search_info    : symbolic_execution_search_info) 
-		(pred_name      : string)
-		(pred_def_index : int) : symbolic_execution_search_info = 
-
-	let s = Hashtbl.copy search_info.pred_info in
-	(* Add the queue to table if necessary *)
-	(match (Hashtbl.mem s pred_name) with
-		| true -> ()
-		| false ->
-			print_debug (Printf.sprintf "Adding %s to the predicate unfolding cache, definition %d." pred_name pred_def_index);
-			Hashtbl.add s pred_name (Stack.create()));
-	
-	(* Add definition to stack *)
-	let stack = Stack.copy (Hashtbl.find s pred_name) in
-	Stack.push pred_def_index stack;
-	Hashtbl.replace s pred_name stack;
-	let stack_str = Stack.fold (fun ac e -> ac ^ (Printf.sprintf "%d " e)) "" stack in
-	print_debug (Printf.sprintf "Current stack for predicate %s: %s" pred_name stack_str);
-	{ search_info with pred_info = s } 
-
-
-let mark_node_as_visited (search_info : symbolic_execution_search_info) (i : int) : unit =
-	let cur_node_info = search_info.cur_node_info in
-	Hashtbl.replace search_info.vis_tbl i cur_node_info.node_number 
-
- let check_if_visited (search_info : symbolic_execution_search_info) (i : int) : bool = 
- 	Hashtbl.mem search_info.vis_tbl i
 
 
 let compute_verification_statistics 
