@@ -1481,3 +1481,4 @@ let prove_all_lemmas lemma_table prog spec_tbl which_pred n_pred_defs =
 							 in
 							    let post_pruning_info = pruning_info_init () in
 										Hashtbl.iter (fun lemma_name lemma -> prove_lemma lemma lemma_name post_pruning_info) lemma_table
+

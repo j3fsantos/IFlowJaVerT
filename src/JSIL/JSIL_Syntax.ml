@@ -334,8 +334,10 @@ type jsil_logic_command =
 
 (** {b JSIL lemmas}. *)
 type jsil_lemma = {
-	lemma_spec  : jsil_spec; (* The lemma spec *)
-	lemma_proof : (jsil_logic_command list) option  (** (Optional) Proof body *)
+	lemma_name    : string; (* Name of the lemma *)
+	lemma_spec    : jsil_spec; (* The lemma spec *)
+  lemma_proof   : (jsil_logic_command list) option;  (** (Optional) Proof body *)
+  lemma_variant : jsil_expr option (* The paramater to treat as the variant. Will trigger termination checks *)
 }
 
 (** {b JSIL logic macro}. *)
