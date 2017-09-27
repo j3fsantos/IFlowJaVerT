@@ -1842,7 +1842,7 @@ let generate_nsjil_file
   let predicate_output
 		(pred : n_jsil_logic_predicate) : string =
     let params_string = String.concat ", " pred.n_pred_params in
-    let definitions_string_list = List.map (fun (_, x, _) ->  (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x false))) pred.n_pred_definitions in
+    let definitions_string_list = List.map (fun (_, x, _) ->  (JSIL_Print.string_of_logic_assertion (assertion_of_symb_state x))) pred.n_pred_definitions in
     let definitions_string = String.concat ",\n " definitions_string_list in
     "pred " ^ pred.n_pred_name ^ " (" ^ params_string ^ "): \n" ^ definitions_string ^ ";\n\n"
   in
@@ -1858,7 +1858,7 @@ let generate_nsjil_file
       (spec : jsil_n_single_spec) : string =
     let string_of_single_symb_state_assertion
         (symbolic_state : symbolic_state) : string =
-			JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state false) 
+			JSIL_Print.string_of_logic_assertion (assertion_of_symb_state symbolic_state) 
     in
     let pre_assrt_str = "[[ " ^ (string_of_single_symb_state_assertion spec.n_pre) ^ " ]]" in
     let post_assrt_str = "\n[[ " ^ (List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post) ^ " ]]" in
