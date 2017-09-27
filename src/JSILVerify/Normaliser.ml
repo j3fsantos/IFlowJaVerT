@@ -1362,7 +1362,7 @@ let normalise_normalised_assertion
   (heap, store, pfs, gamma, preds)
 
 (** -----------------------------------------------------
-  * Unfication Plan
+  * Unification Plan
   *    - build an unification plan from a normalised 
   *      state 
   * -----------------------------------------------------
@@ -1750,8 +1750,8 @@ let pre_normalise_invariants_proc
 	for i = 0 to (len - 1) do
 		let metadata, cmd = body.(i) in
 		let new_invariant  = Option.map_default (fun a -> Some (f_pre_normalise_with_single_output a "invariant")) None metadata.invariant in 
-		let new_pre_lcmds  = List.map (logic_command_map f_rewrite_lcmds) metadata.pre_logic_cmds in 
-		let new_post_lcmds = List.map (logic_command_map f_rewrite_lcmds) metadata.post_logic_cmds in 
+		let new_pre_lcmds  = List.map (logic_command_map (Some f_rewrite_lcmds) None None) metadata.pre_logic_cmds in 
+		let new_post_lcmds = List.map (logic_command_map (Some f_rewrite_lcmds) None None) metadata.post_logic_cmds in 
 		body.(i) <- { metadata with invariant = new_invariant; pre_logic_cmds = new_pre_lcmds; post_logic_cmds = new_post_lcmds }, cmd
 	done
 
@@ -1825,3 +1825,119 @@ let print_normaliser_results_to_file
   in
   print_normalisation (Printf.sprintf "----------- NORMALISED PREDICATE TABLE -----------");
   print_normalisation (string_of_normalised_predicates pred_defs)
+
+(** -----------------------------------------------------
+  * Generates the lemma cyclic dependency graph
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let check_lemma_cyclic_dependencies 
+	(lemmas : ((string, jsil_lemma) Hashtbl.t)) : unit =
+
+	(* Initialise the graph *)
+	let lemma_depd_graph : lemma_depd_graph = {
+		lemma_depd_names_ids = Hashtbl.create 30;
+		lemma_depd_ids_names = Hashtbl.create 30;
+		lemma_depd_edges     = Hashtbl.create 30
+	} in
+
+	(* Map names to ID's, and intialise the edges lists *)
+	Hashtbl.fold
+		(fun lemma_name lemma count ->
+			Hashtbl.replace lemma_depd_graph.lemma_depd_names_ids lemma_name count;
+			Hashtbl.replace lemma_depd_graph.lemma_depd_ids_names count lemma_name;
+			Hashtbl.replace lemma_depd_graph.lemma_depd_edges count [];
+			count + 1
+		) lemmas 0;
+
+	(* Add all the ApplyLemma targets to the edges table *)
+	Hashtbl.iter
+		(fun curr_lemma lemma ->
+			match lemma.lemma_proof with
+			| None -> ()
+			| Some proof ->
+				List.iter
+					(fun lcmd ->
+						print_debug (JSIL_Print.string_of_lcmd lcmd);
+
+						let f_l
+							(lcmd : jsil_logic_command) : jsil_logic_command =
+
+							match lcmd with
+							| ApplyLem (applied_lemma, _) ->
+							   (if (not (applied_lemma = curr_lemma)) then
+							  
+							   		(* Look up the ID's for the current and applied lemmas,
+							   		   and add the applied lemma to the list of edges *)
+									let curr_lemma_id    = Hashtbl.find lemma_depd_graph.lemma_depd_names_ids curr_lemma in
+									let applied_lemma_id = Hashtbl.find lemma_depd_graph.lemma_depd_names_ids applied_lemma in
+									let edges            = Hashtbl.find lemma_depd_graph.lemma_depd_edges curr_lemma_id in
+							   		Hashtbl.replace lemma_depd_graph.lemma_depd_edges curr_lemma_id (List.cons applied_lemma_id edges));
+							   lcmd
+							| _ -> lcmd
+
+						in
+
+						logic_command_map (Some f_l) None None lcmd;
+						()
+					) proof
+		) lemmas;
+
+	(* Store our journey through the graph, and the start/end times for each node *)
+	let visited_nodes    = Hashtbl.create 30 in
+	let start_time_nodes = Hashtbl.create 30 in
+	let end_time_nodes   = Hashtbl.create 30 in
+
+	(* Returns the "clock" time at the end of the traversal *)
+	let rec clockDFS
+		(curr_node : int)
+		(clock : int) : int =
+
+		(* Recording start time for this node *)
+		Hashtbl.replace start_time_nodes curr_node clock;
+		let clock = clock + 1 in
+		Hashtbl.replace visited_nodes curr_node true;
+
+		(* Getting all the children *)
+		let children : (int list) = Hashtbl.find lemma_depd_graph.lemma_depd_edges curr_node in
+
+		(* Visiting each of the children, keeping track of the time *)
+		let end_clock =	List.fold_left
+			(fun clock child ->
+				if (not (Hashtbl.mem visited_nodes child)) then
+					clockDFS child clock
+				else
+					clock
+			) clock children
+		in
+
+		(* Recording the end time for this node *)
+		Hashtbl.replace end_time_nodes curr_node end_clock;
+		end_clock + 1
+	in
+
+	(* Traverses the graph, recording the clock times at each node *)
+	Hashtbl.fold
+		(fun name id clock ->
+			if (not (Hashtbl.mem visited_nodes id)) then
+				clockDFS id clock
+			else
+				clock
+		) lemma_depd_graph.lemma_depd_names_ids 0;
+
+	(* Check all the edges for back-edges *)
+	Hashtbl.iter
+		(fun u vs ->
+			List.iter
+			(fun v ->
+				(* Edge (u, v) is a back-edge if start[u] > start[v] and end[u] < end[v] *)
+				let start_u = Hashtbl.find start_time_nodes u in
+				let end_u   = Hashtbl.find end_time_nodes u in
+				let start_v = Hashtbl.find start_time_nodes v in
+				let end_v   = Hashtbl.find end_time_nodes v in
+				if ((start_u > start_v) && (end_u < end_v)) then
+					let name_u = Hashtbl.find lemma_depd_graph.lemma_depd_ids_names u in
+					let name_v = Hashtbl.find lemma_depd_graph.lemma_depd_ids_names v in
+					raise (Failure (Printf.sprintf "Lemma cyclic dependency detected: %s depends on %s, which depends on %s." name_v name_u name_v))
+		    ) vs
+		) lemma_depd_graph.lemma_depd_edges
