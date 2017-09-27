@@ -256,16 +256,21 @@ let merge_symb_state_with_posts
 	let ret_flag = spec.n_ret_flag in
 	let ret_var  = proc_get_ret_var proc ret_flag in
 
+	print_debug_petar (Printf.sprintf "Procedure is: %s, return variable is: %s" proc.proc_name ret_var);
+
 	let f_post (post : symbolic_state) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 		let post_makes_sense = compatible_pfs symb_state_frame post subst in
 		if (post_makes_sense) then (
 			let new_symb_state = ss_copy symb_state_frame in
 			let new_symb_state = merge_symb_states new_symb_state post subst in
 			ss_extend_pfs new_symb_state (pfs_of_list pf_discharges);
-			let ret_lexpr      = store_get_safe (ss_store post) ret_var in
-			let ret_lexpr      =
-				Option.map_default (fun x -> JSIL_Logic_Utils.lexpr_substitution subst false x)
-					(print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty) ret_lexpr in
+			print_debug_petar (Printf.sprintf "Postcondition is: %s" (Symbolic_State_Print.string_of_symb_state post));
+			let ret_lexpr = store_get_safe (ss_store post) ret_var in
+			let ret_lexpr = (match ret_lexpr with
+			| None -> print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty
+			| Some le -> let result = JSIL_Logic_Utils.lexpr_substitution subst false le in
+			  print_debug_petar (Printf.sprintf "Found return value: %s" (JSIL_Print.string_of_logic_expression le));
+				result) in
 			[ (new_symb_state, ret_flag, ret_lexpr) ]
 		) else [] in 
 

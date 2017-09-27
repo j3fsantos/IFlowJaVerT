@@ -69,9 +69,9 @@ let rec assertion_map
 
 	(* Map recursively to assertions and expressions *)
 	let map_a      = assertion_map f_a_before f_a_after f_e in
-  	let map_e      = Option.default (fun x -> x) f_e in
-  	let f_a_before = Option.default (fun x -> x, true) f_a_before in 
-  	let f_a_after  = Option.default (fun x -> x) f_a_after in 
+  let map_e      = Option.default (fun x -> x) f_e in
+  let f_a_before = Option.default (fun x -> x, true) f_a_before in 
+  let f_a_after  = Option.default (fun x -> x) f_a_after in 
 	let (a', recurse) = f_a_before a in 
 
   	if not recurse then a' else ( 

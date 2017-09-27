@@ -203,7 +203,6 @@ let rec auto_unfold
  *	------------------------------------------------------------------
 **)
 let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicate =
-	print_time_debug "detect_trivia_and_nonsense";
 	let new_definitions = List.map
 		(fun (oc, x) -> oc, (Simplifications.reduce_assertion_no_store_no_gamma_no_pfs x)) u_pred.definitions in
 	let new_definitions = List.filter (fun (oc, x) -> not (x = LFalse)) new_definitions in
@@ -1312,42 +1311,45 @@ let normalise_normalised_assertion
   let pfs   : pure_formulae      = DynArray.make 0 in
   let preds : predicate_set      = DynArray.make 0 in
 
+  print_debug (Printf.sprintf "PARSING NORMALISED ASSERTION");
+  print_debug (JSIL_Print.string_of_logic_assertion a);
+
   (* Step 2 - Map over assertion, populate gamma, store and heap *)
-  let populate_state_from_assertion a =
-    match a with
-    | LTypes type_assertions ->
-      let _ = List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions in 
-      (a, false)
-    | LPointsTo (PVar loc, le2, le3)
-    | LPointsTo (LLit (Loc loc), le2, le3) ->
-      (* TODO: prefix locations with _ ? *)
-      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
-      (a, false)
+  let rec populate_state_from_assertion a : unit =
+	let f = populate_state_from_assertion in
+    (match a with
+    | LStar (a1, a2) 
+		| LAnd  (a1, a2) -> f a1; f a2
+		| LTypes type_assertions ->
+      	List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions; ()
+    | LPointsTo ((PVar loc), le2, le3)
+    | LPointsTo ((LLit (Loc loc)), le2, le3)
+    | LPointsTo ((ALoc loc), le2, le3) ->
+      let field_val_pairs, default_empty_fields = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_empty_fields)
+    | LEmptyFields (obj, domain) ->
+      let loc = JSIL_Print.string_of_logic_expression obj in
+      let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc ((field_val_pairs), (Some domain))
+			
     | LEq ((PVar v), le)
-    | LEq (le, (PVar v)) ->
-      Hashtbl.add store v le;
-      (a, false)
-    | LEq ((PVar _), (PVar _))
-    | LEq ((LVar _), _)
-    | LEq (_, (LVar _)) ->
-      DynArray.add pfs a;
-      (a, false)
+    | LEq (le, (PVar v)) -> Hashtbl.add store v le;
+
     | LNot _
+    | LOr _ 
+		| LEq _
     | LLess _
     | LLessEq _
     | LStrLess _
+    | LForAll _
     | LSetMem _
-    | LSetSub _ ->
-      DynArray.add pfs a;
-      (a, false)
-    | LPred (s, les) ->
-      DynArray.add preds (s, les);
-      (a, false)
-    | _ ->
-      (a, true)
+    | LSetSub _ -> DynArray.add pfs a;
+
+    | LPred (s, les) -> DynArray.add preds (s, les);
+
+		| _ -> Printf.printf "OTHER: %s\n" (JSIL_Print.string_of_logic_assertion a); exit 1)
   in
-  let _ = assertion_map (Some populate_state_from_assertion) None None a in 
+		populate_state_from_assertion a;
 
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
   print_debug (Symbolic_State_Print.string_of_symb_store store);
@@ -1541,13 +1543,13 @@ let normalise_single_normalised_spec
   let posts : symbolic_state list = List.map normalise_normalised_assertion spec.post in
 	
 	[{
-        n_pre              = pre;
-    	n_post             = posts;
-    	n_ret_flag         = spec.ret_flag;
-    	n_lvars            = spec_vars;
-        n_subst            = init_substitution []; 
-        n_unification_plan = (create_unification_plan pre SS.empty)
-    }]
+      n_pre              = pre;
+  		n_post             = posts;
+  		n_ret_flag         = spec.ret_flag;
+  		n_lvars            = spec_vars;
+      n_subst            = init_substitution []; 
+      n_unification_plan = (create_unification_plan pre SS.empty)
+	}]
 
 (** -----------------------------------------------------
   * Normalise Single Spec
@@ -1642,6 +1644,7 @@ let build_spec_tbl
 		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : specification_table =
 
 	let spec_tbl = Hashtbl.create 511 in
+	(* Collapses a hashtable into a list of values *)
 	let get_tbl_rng tbl = Hashtbl.fold (fun k v ac -> v :: ac) tbl [] in
 
 	(** 1 - Normalise specs from                      *)
@@ -1651,6 +1654,7 @@ let build_spec_tbl
     let proc_tbl_rng = get_tbl_rng prog in
     let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
    	let only_specs     = get_tbl_rng onlyspecs in
+   	(* Build a list of the lemma specs *)
    	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in
    	let non_proc_specs = only_specs @ lemma_specs in
    	List.iter (fun spec ->
@@ -1658,21 +1662,20 @@ let build_spec_tbl
 		Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec
    	) (proc_specs @ non_proc_specs);
 
-
    	(** 2 - Dummy procs for only specs and lemmas
    	 *      The point of doing this is to use the find_and_apply_specs for both
    	 *      the symbolic execution of procedure calls and the application of
    	 *      lemmas *)
    	 let create_dummy_proc spec =
-   		let dummy_proc = {
-   	 		proc_name   = spec.spec_name;
+   	  let dummy_proc = {
+   	 	proc_name   = spec.spec_name;
 			proc_body   = Array.make 0 (empty_metadata, SBasic SSkip);
 			proc_params = spec.spec_params;
-			ret_label   = None; ret_var = Some "ret";
-			error_label = None; error_var = Some "err";
+			ret_label   = None; ret_var = Some "xret";
+			error_label = None; error_var = Some "xerr";
 			spec = Some spec } in
 		Hashtbl.replace prog spec.spec_name dummy_proc in
-	List.iter create_dummy_proc non_proc_specs;
+	List.iter create_dummy_proc (lemma_specs @ only_specs);
 	spec_tbl
 
 (** -----------------------------------------------------

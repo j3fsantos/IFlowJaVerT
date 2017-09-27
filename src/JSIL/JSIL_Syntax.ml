@@ -300,8 +300,8 @@ let previously_normalised = ref false;
 type jsil_spec = {
 	spec_name     : string;                (** Procedure/spec name *)
 	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
-  	proc_specs    : jsil_single_spec list; (** List of single specifications *)
-  	previously_normalised : bool                   (** If the spec is already normalised *)
+  proc_specs    : jsil_single_spec list; (** List of single specifications *)
+  previously_normalised : bool           (** If the spec is already normalised *)
 }
 
 (**/**)
