@@ -10,7 +10,10 @@ git-sync:
   - eval `ssh-agent`
   - echo "$PUSH_KEY" | ssh-add -
   - git sync-remote git@github.com:resource-reasoning/JavaScriptVerification.git git@gitlab.doc.ic.ac.uk:resource-reasoning/JavaScriptVerification.git
-  - ssh-agent -k
   stage: Git Sync
+  image:
+  - ignoredambience/github-gitlab-sync
+  tags:
+  - docker
   only:
   - triggers
