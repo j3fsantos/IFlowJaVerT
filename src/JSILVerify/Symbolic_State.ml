@@ -65,34 +65,38 @@ type symb_jsil_program = {
 
 
 type symb_graph_node_type = 
-	| SGCmdNode    of string * int
-	| SGLCmdNode   of string 
+	| SGCmdNode    of jsil_cmd * int
+	| SGLCmdNode   of jsil_logic_command
 	| SGPreNode 
 	| SGPostNode 
 	| SGErrorNode  of string 
 
 type symb_graph_node = {
-	heap_str    : string;
-	store_str   : string;
-	pfs_str     : string;
-	gamma_str   : string;
-	preds_str   : string;
+	symb_state  : symbolic_state option; 
 	(* cmd index *)
 	node_type   : symb_graph_node_type; 
 	node_number : int 
 }
 
+type symbolic_graph = { 
+	root                : symb_graph_node; 
+	info_nodes 		    : (int, symb_graph_node) Hashtbl.t;
+	info_edges          : (int, int list) Hashtbl.t;
+}
+
 type symbolic_execution_context = {
 	vis_tbl    		    : (int, int) Hashtbl.t;
 	cur_node_info       : symb_graph_node;
-	info_nodes 		    : (int, symb_graph_node) Hashtbl.t;
-	info_edges          : (int, int list) Hashtbl.t;
+	symb_graph          : symbolic_graph; 
 	next_node           : int ref;
 	post_pruning_info   : pruning_table; 
 	spec_number         : int;
 	proc_name           : string; 
 	pred_info           : (string, int Stack.t) Hashtbl.t
 }
+
+
+
 
 (*************************************)
 (** Field Value Lists               **)
@@ -676,6 +680,12 @@ let turn_on_post (post_number : int) (sec : symbolic_execution_context) : unit =
 (** Symbolic Execution Context (SEC)                    **)
 (*********************************************************)
 
+let symb_graph_init (root_node : symb_graph_node) : symbolic_graph = 
+	{ 
+	  root         = root_node; 
+	  info_nodes   = Hashtbl.create small_tbl_size;
+	  info_edges   = Hashtbl.create small_tbl_size }
+
 (** Returns a new sec node - initialised as the code shows                *)
 let sec_init 
 		(node_info : symb_graph_node) (pi : pruning_table) 
@@ -688,16 +698,15 @@ let sec_init
 			{
 				vis_tbl             = Hashtbl.create small_tbl_size;
 				cur_node_info       = node_info;
-				info_nodes          = Hashtbl.create small_tbl_size;
-				info_edges          = Hashtbl.create small_tbl_size;
+				symb_graph          = symb_graph_init node_info; 
 				next_node           = ref 1;
 				post_pruning_info   = pi;
 				spec_number         = spec_number;
 				pred_info           = Hashtbl.create small_tbl_size;
 				proc_name           = proc_name 
 			} in
-		Hashtbl.replace new_sec.info_edges 0 [];
-		Hashtbl.replace new_sec.info_nodes 0 node_info;
+		Hashtbl.replace new_sec.symb_graph.info_edges 0 [];
+		Hashtbl.replace new_sec.symb_graph.info_nodes 0 node_info;
 		new_sec
 	end
 
@@ -769,12 +778,12 @@ let sec_create_new_info_node
 	let parent_node_info = sec.cur_node_info in
 	
 	sec.next_node := new_node_number + 1;
-	Hashtbl.add (sec.info_nodes) new_node_number new_node_info;
-	Hashtbl.replace sec.info_edges new_node_number []; 
+	Hashtbl.add (sec.symb_graph.info_nodes) new_node_number new_node_info;
+	Hashtbl.replace sec.symb_graph.info_edges new_node_number []; 
 
 	(try 
- 		let parent_children = Hashtbl.find sec.info_edges parent_node_info.node_number in
- 		Hashtbl.replace sec.info_edges parent_node_info.node_number (new_node_number :: parent_children); 
+ 		let parent_children = Hashtbl.find sec.symb_graph.info_edges parent_node_info.node_number in
+ 		Hashtbl.replace sec.symb_graph.info_edges parent_node_info.node_number (new_node_number :: parent_children); 
 	with _ -> Printf.printf "DEATH. sec_create_new_info_node"); 
 
 	{ sec with cur_node_info = new_node_info }

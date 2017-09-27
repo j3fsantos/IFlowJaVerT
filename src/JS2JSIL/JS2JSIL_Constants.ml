@@ -3,6 +3,9 @@ open JSIL_Syntax
 let small_tbl_size = 31
 let medium_tbl_size = 101
 
+
+let line_numbers_extension = "_line_numbers.txt"
+
 let js2jsil_imports = [
 	"Array";
 	"Boolean";
@@ -80,7 +83,6 @@ let main_fid        = "main"
 let macro_GPVF_name   = "GPVFold"
 let macro_GPVU_name   = "GPVUnfold"
 let pi_predicate_name = "Pi"
-
 
 (**
  *  Fresh identifiers

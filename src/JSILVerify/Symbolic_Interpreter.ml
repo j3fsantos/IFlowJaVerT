@@ -1030,6 +1030,7 @@ symb_evaluate_logic_cmds s_prog
 	(print_symb_states : bool)
 	(subst : substitution) 
 	(lemma : jsil_lemma option) : ((symbolic_state * SS.t * symbolic_execution_context) list) =
+	
 	(match l_cmds with
 	| [] -> symb_states_with_spec_vars
 	| l_cmd :: rest_l_cmds ->
@@ -1038,8 +1039,10 @@ symb_evaluate_logic_cmds s_prog
 				if print_symb_states then (
 					print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\n----------------------------------\n" 
 						(Symbolic_State_Print.string_of_symb_state symb_state) 
-						(JSIL_Print.string_of_lcmd l_cmd))); 
-				symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars search_info print_symb_states lemma) symb_states_with_spec_vars) in 
+						(JSIL_Print.string_of_lcmd l_cmd)));
+					let info_node       = Symbolic_Traces.sg_node_from_lcmd symb_state l_cmd in
+					let new_search_info = sec_create_new_info_node search_info info_node in  
+					symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars new_search_info print_symb_states lemma) symb_states_with_spec_vars) in 
 		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states_with_spec_vars print_symb_states subst lemma)
 
 
@@ -1336,11 +1339,12 @@ let unify_symb_state_against_post
 	@return failure_msg      Error message in case of failure
 *)
 let symb_evaluate_proc 
-		(s_prog       : symb_jsil_program) 
-		(proc_name    : string)
-		(spec         : jsil_n_single_spec)
-		(i            : int)
-		(pruning_info : pruning_table) =
+		(s_prog            : symb_jsil_program) 
+		(proc_name         : string)
+		(spec              : jsil_n_single_spec)
+		(i                 : int)
+		(pruning_info      : pruning_table) 
+		(filter_symb_graph :  ((string * int, int * bool) Hashtbl.t * string array) option) =
 	let sep_str = "----------------------------------\n" in
 	print_normal (Printf.sprintf "%s" (sep_str ^ sep_str ^ "Symbolic execution of " ^ proc_name));
 
@@ -1372,7 +1376,7 @@ let symb_evaluate_proc
 
 	let proc_name = Printf.sprintf "Spec_%d_of_%s" i proc_name in
 	(* Create the dot graph of the symbolic execution *)
-	let search_dot_graph = Some (Symbolic_Traces.dot_of_symb_exec_ctxt search_info proc_name) in
+	let search_dot_graph = Some (Symbolic_Traces.dot_of_symb_exec_ctxt search_info proc_name filter_symb_graph) in 
 	print_debug (Printf.sprintf "%s" (sep_str ^ sep_str ^ sep_str));
 	(* Return *)
 	search_dot_graph, success, failure_msg
@@ -1394,12 +1398,13 @@ let symb_evaluate_proc
 	TODO: Construct call graph, do dfs, do in that order
 *)
 let sym_run_procs 
-		(prog            : jsil_program)
-		(procs_to_verify : string list)
-		(spec_table      : specification_table) 
-		(lemma_table     : lemma_table)
-		(which_pred      : which_predecessor) 
-		(n_pred_defs     : (string, n_jsil_logic_predicate) Hashtbl.t) =
+		(prog              : jsil_program)
+		(procs_to_verify   : string list)
+		(spec_table        : specification_table) 
+		(lemma_table       : lemma_table)
+		(which_pred        : which_predecessor) 
+		(n_pred_defs       : (string, n_jsil_logic_predicate) Hashtbl.t)
+		(filter_symb_graph : ((string * int, int * bool) Hashtbl.t * string array) option) =
 
 	(* Construct corresponding extended JSIL program *)
 	let s_prog = {
@@ -1430,7 +1435,7 @@ let sym_run_procs
 					(fun i pre_post ->
 						let new_pre_post = Symbolic_State_Utils.copy_single_spec pre_post in
 						(* Symbolically execute the procedure given the pre and post *)
-						let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info in
+						let dot_graph, success, failure_msg = symb_evaluate_proc s_prog proc_name new_pre_post i pruning_info filter_symb_graph in
 						(proc_name, i, pre_post, success, failure_msg, dot_graph))
 					pre_post_list in
 				(* Filter the posts that are not reachable *)

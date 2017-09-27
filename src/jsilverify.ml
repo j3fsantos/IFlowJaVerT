@@ -31,16 +31,29 @@ let burn_to_disk path data =
 		output_string oc data;
 		close_out oc
 
-let register_dot_graphs (dot_graphs : (string * int, string option) Hashtbl.t) =
+let load_file f =
+  let ic = open_in f in
+  let n = in_channel_length ic in
+  let s = Bytes.create n in
+  really_input ic s 0 n;
+  close_in ic;
+  s
+
+let register_dot_graphs (dot_graphs : (string * int, (string * string option) option) Hashtbl.t) =
 	let folder_name = !output_folder in
 	if (folder_name = "") then ()
 	else
 		begin
 			Utils.safe_mkdir folder_name;
 			Hashtbl.iter
-				(fun (proc_name, i) dot_graph ->
-					(match dot_graph with
-					| Some dot_graph -> burn_to_disk (folder_name ^ "/" ^ proc_name ^ "_" ^ (string_of_int i) ^ ".dot") dot_graph
+				(fun (proc_name, i) dot_graph_pair ->
+					(match dot_graph_pair with
+					| Some (dot_graph, dot_graph_js) -> 
+						burn_to_disk (folder_name ^ "/" ^ proc_name ^ "_" ^ (string_of_int i) ^ ".dot") dot_graph; 
+						(match dot_graph_js with
+						| Some dot_graph_js -> 
+							burn_to_disk (folder_name ^ "/" ^ proc_name ^ "_" ^ (string_of_int i) ^ "_js.dot") dot_graph_js
+						| None -> ())
 					| None -> ()))
 				dot_graphs
 		end
@@ -49,9 +62,10 @@ let write_spec_file (file : string ref) =
 	let result = "" in
 	burn_to_disk (!file ^ ".spec") result
 
-let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds  =
+let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds
+			(filter_symb_graphs : ((string * int, int * bool)  Hashtbl.t * string array) option)  =
 	let results_str, dot_graphs, complete_success, results =
-					Symbolic_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds in
+					Symbolic_Interpreter.sym_run_procs prog procs_to_verify spec_tbl lemma_tbl which_pred norm_preds filter_symb_graphs in
 	print_normal (Printf.sprintf "RESULTS\n%s" results_str);
 
 	(if (complete_success) then
@@ -70,8 +84,24 @@ let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_pre
 	results
 
 
-
 let process_file path =
+
+		(** Step 0: IF JS Find the line numbers file                   *)
+		(*  -----------------------------------------------------------*)
+			
+		let symb_graph_filter : ((string * int, int * bool) Hashtbl.t * string array) option  =  
+			if (!JSIL_Syntax_Utils.js) then (
+				print_debug "\n***Stage 0: Processing JSIL commands JS metadata. ***\n";
+				let file_name         = Filename.chop_extension path in
+				let ln_file           = file_name ^ JS2JSIL_Constants.line_numbers_extension in 
+				let line_numbers_data = load_file ln_file in
+				let js_program        = load_file (file_name ^ ".js") in
+				let js_lines          = Str.split (Str.regexp_string "\n") js_program in
+				let js_lines          = Array.of_list  (List.map (Str.global_replace (Str.regexp_string "\"") "\\\"") js_lines) in 
+				print_debug (Printf.sprintf "Got the line numbers data:\n%s\n" line_numbers_data); 
+				Some (JSIL_Syntax_Utils.parse_line_numbers line_numbers_data, js_lines)
+			) else None in 
+
 
 		(** Step 1: PARSING                                            *)
 		(*  -----------------------------------------------------------*)
@@ -114,7 +144,7 @@ let process_file path =
 		(*  -----------------------------------------------------------*)
    		print_debug "*** Stage 4: Proving lemmas and specifications.\n";
     	let _ = Symbolic_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
-		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs in ();
+		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs symb_graph_filter in ();
 		close_output_files();
 		exit 0
 

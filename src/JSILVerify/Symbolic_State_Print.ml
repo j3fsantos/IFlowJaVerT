@@ -2,6 +2,8 @@ open JSIL_Syntax
 open Symbolic_State
 open JSIL_Print
 
+let escape_string = ref false
+
 (***
  Generate strings from JSIL memory types
 *)
@@ -12,7 +14,10 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 					(SHeap.fold
 						(fun prop hval printed_obj ->
 							let printed_hval = string_of_literal hval in
-							let printed_cell = Printf.sprintf "\n\"%s\": %s" prop printed_hval in
+							let printed_cell = 
+								if (!escape_string) 
+									then Printf.sprintf "\n\\\"%s\\\": %s" prop printed_hval 
+									else Printf.sprintf "\n\"%s\": %s" prop printed_hval  in
 							if (printed_obj = "") then printed_cell else printed_obj ^ ", " ^ printed_cell)
 						obj
 						"") in

@@ -380,6 +380,7 @@ let parse
     (JPMI.lexer_lexbuf_to_supplier lexer lexbuf)
     (start lexbuf.Lexing.lex_curr_p)
 
+
 (** ----------------------------------------------------
     Open the file given by 'path' and run the parser on its contents.
     Detect previously normalised files.
@@ -404,6 +405,7 @@ let ext_program_of_path
   close_in inx;
   prog
 
+
 (** ----------------------------------------------------
     Run the parser on the given string.
     -----------------------------------------------------
@@ -415,6 +417,7 @@ let ext_program_of_string
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
 	prog
+
 
 (** ----------------------------------------------------
     Run the parser on a string of an assertion.
@@ -428,6 +431,7 @@ Printf.printf "Parsing the following js assertion: %s\n" str;
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
 
+
 (** ----------------------------------------------------
     Run the parser on a string of a predicate definition.
     -----------------------------------------------------
@@ -439,6 +443,7 @@ let js_logic_pred_def_of_string
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_pred_target lexbuf
+
 
 (** ----------------------------------------------------
     Run the parser on a string of an only spec
@@ -463,6 +468,7 @@ let js_logic_commands_of_string
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_logic_cmds_target lexbuf
+
 
 (** ----------------------------------------------------
     Add the declarations in 'program_from' to 'program_to'.
@@ -492,6 +498,7 @@ let extend_declarations
 				then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
 				else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
 		program_from.procedures
+
 
 (** ----------------------------------------------------
   * Load the programs imported in 'program' and add its declarations to 'program' itself.
@@ -532,6 +539,7 @@ let resolve_imports
   Hashtbl.iter (fun k v -> print_debug_petar (Printf.sprintf "\t%s\n" k)) program.procedures;
 
 	resolve_imports_iter program.imports
+
 
 (** ----------------------------------------------------
   * Converts an extended JSIL program into a set of basic procedures.
@@ -590,6 +598,7 @@ let prog_of_ext_prog
 	ext_program.procedures;
 	prog, global_which_pred
 
+
 (** ----------------------------------------------------
     Add the which_pred table to the global_which_pred table
     -----------------------------------------------------
@@ -605,3 +614,45 @@ let extend_which_pred
 		(fun (prev_cmd, cur_cmd) i ->
 			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 		which_pred
+
+
+(** ----------------------------------------------------
+    Parse a line_numbers file. 
+    Proc: proc_name 
+    (0, 0)
+    ...
+    -----------------------------------------------------
+*)
+let parse_line_numbers (ln_str : string) : (string * int, int * bool) Hashtbl.t = 
+  
+  let strs            = Str.split (Str.regexp_string "Proc: ") ln_str in
+  let line_info       = Hashtbl.create big_tbl_size in 
+  List.iter (fun str -> 
+    let memory         = Hashtbl.create small_tbl_size in 
+    let index          = String.index str '\n' in 
+    let proc_name      = String.sub str 0 index in 
+    let proc_line_info = String.sub str (index+1) ((String.length str) - (index+1))  in 
+    let lines          = Str.split (Str.regexp_string "\n") proc_line_info in 
+    List.iter 
+      (fun line -> Scanf.sscanf line "(%d, %d)" 
+        (fun x y -> 
+            if (Hashtbl.mem memory y)
+              then Hashtbl.replace line_info (proc_name, x) (y, false)
+              else (
+                Hashtbl.replace memory y true; 
+                Hashtbl.replace line_info (proc_name, x) (y, true) 
+              )
+        )) lines;  
+  ) strs; 
+
+  let printed_filter = Hashtbl.fold (fun (proc_name, i) (j, b) ac -> 
+    ac ^ (Printf.sprintf "(%s, %d, %d, %b)\n" proc_name i j b)
+  ) line_info "" in 
+
+  Printf.printf "I GOT the following line_info_filter:\n%s\n" printed_filter;
+
+  line_info 
+
+
+
+
