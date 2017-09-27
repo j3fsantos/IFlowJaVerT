@@ -357,7 +357,7 @@ let parse
   in
 
   (** ----------------------------------------------------
-      Start the intetpreter
+      Start the interpreter
       -----------------------------------------------------
   *)
   JPMI.loop_handle
@@ -389,12 +389,16 @@ let parse
 let ext_program_of_path
     (path : string) : jsil_ext_program =
 
-  let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.njsil") path 0 in
+  print_debug (Printf.sprintf "Creating ext_program_of_path %s" path);
+
+  let extension = List.hd (List.rev (Str.split (Str.regexp "\.") path)) in
+  let file_previously_normalised = String.equal "njsil" extension in
+
   print_debug (Printf.sprintf "%s is previously normalised? %b" path file_previously_normalised);
   JSIL_Syntax.previously_normalised := file_previously_normalised;
 
   (* Check that the file is of a valid type *)
-  (match (file_previously_normalised || (Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.jsil") path 0)) with
+  (match (file_previously_normalised || (String.equal "jsil" extension)) with
     | true -> ()
     | false -> raise (Failure (Printf.sprintf "Failed to import %s: not a .jsil or .njsil file." path)));
 
@@ -403,6 +407,8 @@ let ext_program_of_path
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
   let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
   close_in inx;
+
+  print_debug (Printf.sprintf "CREATED ext_program_of_path %s" path);
   prog
 
 
@@ -489,15 +495,25 @@ let extend_declarations
 		  Hashtbl.add program_to.predicates pred_name pred)
    program_from.predicates;
 
- (** Step 1 - Extend the procedures, except where a procedure with the same name already exists
+ (** Step 2 - Extend the procedures, except where a procedure with the same name already exists
    * -----------------------------------------------------------------------------------
    *)
 	Hashtbl.iter
 		(fun proc_name proc ->
 			if (not (Hashtbl.mem program_to.procedures proc_name))
-				then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
+				then (print_debug (Printf.sprintf "*** MESSAGE: Adding onlyspec procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
 				else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
-		program_from.procedures
+		program_from.procedures;
+		
+  (** Step 3 - Extend the onlyspecs
+    * -----------------------------------------------------------------------------------
+    *)
+   Hashtbl.iter
+   	(fun proc_name proc ->
+   		if (not (Hashtbl.mem program_to.onlyspecs proc_name))
+   			then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.onlyspecs proc_name proc)
+   			else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
+   	program_from.onlyspecs
 
 
 (** ----------------------------------------------------
@@ -644,12 +660,6 @@ let parse_line_numbers (ln_str : string) : (string * int, int * bool) Hashtbl.t 
               )
         )) lines;  
   ) strs; 
-
-  let printed_filter = Hashtbl.fold (fun (proc_name, i) (j, b) ac -> 
-    ac ^ (Printf.sprintf "(%s, %d, %d, %b)\n" proc_name i j b)
-  ) line_info "" in 
-
-  Printf.printf "I GOT the following line_info_filter:\n%s\n" printed_filter;
 
   line_info 
 

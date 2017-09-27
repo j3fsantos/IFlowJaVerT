@@ -59,8 +59,7 @@ let filter_symb_graph
 		(symb_graph        : symbolic_graph) 
 		(symb_graph_filter : (string * int, int * bool) Hashtbl.t) : symbolic_graph = 
 
-	Printf.printf "BANANAS Going to filter the symbolic graph %s of %s with the following filter: \n" proof_name proc_name; 
-	
+
 	let is_node_to_keep node = 
 		(match node.node_type with 
 		| SGCmdNode (cmd_str, cmd_index) ->  

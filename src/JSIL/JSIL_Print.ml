@@ -212,7 +212,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
 
 (** JSIL logical expressions *)
-let rec string_of_logic_expression (e : jsil_logic_expr) : string =
+let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
   let sle = string_of_logic_expression in
   match e with
     | LLit llit -> string_of_literal llit

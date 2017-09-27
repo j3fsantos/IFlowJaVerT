@@ -203,7 +203,6 @@ let rec auto_unfold
  *	------------------------------------------------------------------
 **)
 let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicate =
-	print_time_debug "detect_trivia_and_nonsense";
 	let new_definitions = List.map
 		(fun (oc, x) -> oc, (Simplifications.reduce_assertion_no_store_no_gamma_no_pfs x)) u_pred.definitions in
 	let new_definitions = List.filter (fun (oc, x) -> not (x = LFalse)) new_definitions in
@@ -223,6 +222,7 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 			  		(* Get a fresh program variable a add an additional
 			  		   constraint to each definition *)
 			  		let new_pvar = fresh_pvar () in
+						print_debug_petar (Printf.sprintf "Generated fresh PVar: %s" new_pvar); 
 			  		(new_pvar :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts)
 			  	| PVar x         ->
 			  		(* If the parameter is a program variable, add the
@@ -1314,25 +1314,29 @@ let normalise_normalised_assertion
 
   (* Step 2 - Map over assertion, populate gamma, store and heap *)
   let populate_state_from_assertion a =
-    match a with
+    (match a with
     | LTypes type_assertions ->
       let _ = List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions in 
       (a, false)
     | LPointsTo (PVar loc, le2, le3)
+		| LPointsTo (ALoc loc, le2, le3)
     | LPointsTo (LLit (Loc loc), le2, le3) ->
       (* TODO: prefix locations with _ ? *)
       let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
       LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
       (a, false)
+		| LEmptyFields (obj, domain) ->
+      let loc = JSIL_Print.string_of_logic_expression obj in
+      let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc ((field_val_pairs), (Some domain));
+			(a, false)
+			
     | LEq ((PVar v), le)
     | LEq (le, (PVar v)) ->
       Hashtbl.add store v le;
       (a, false)
-    | LEq ((PVar _), (PVar _))
-    | LEq ((LVar _), _)
-    | LEq (_, (LVar _)) ->
-      DynArray.add pfs a;
-      (a, false)
+			
+		| LEq _
     | LNot _
     | LLess _
     | LLessEq _
@@ -1344,24 +1348,22 @@ let normalise_normalised_assertion
     | LPred (s, les) ->
       DynArray.add preds (s, les);
       (a, false)
-    | _ ->
-      (a, true)
+    | LStar _ ->
+      	(a, true)
+		| _ -> Printf.printf "Unsupported: %s" (JSIL_Print.string_of_logic_assertion a); exit 1)
   in
   let _ = assertion_map (Some populate_state_from_assertion) None None a in 
 
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
-  print_debug (Symbolic_State_Print.string_of_symb_store store);
+  print_debug (Printf.sprintf "Store: %s" (Symbolic_State_Print.string_of_symb_store store));
   print_debug (Printf.sprintf "Gamma: %s" (Symbolic_State_Print.string_of_gamma gamma));
   print_debug (Printf.sprintf "Heap: %s" (Symbolic_State_Print.string_of_symb_heap heap));
   print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_pfs pfs));
   print_debug (Printf.sprintf "Preds: %s" (Symbolic_State_Print.string_of_preds preds));
   (heap, store, pfs, gamma, preds)
 
-
-
-
 (** -----------------------------------------------------
-  * Unfication Plan
+  * Unification Plan
   *    - build an unification plan from a normalised 
   *      state 
   * -----------------------------------------------------
@@ -1541,13 +1543,13 @@ let normalise_single_normalised_spec
   let posts : symbolic_state list = List.map normalise_normalised_assertion spec.post in
 	
 	[{
-        n_pre              = pre;
-    	n_post             = posts;
-    	n_ret_flag         = spec.ret_flag;
-    	n_lvars            = spec_vars;
-        n_subst            = init_substitution []; 
-        n_unification_plan = (create_unification_plan pre SS.empty)
-    }]
+      n_pre              = pre;
+  		n_post             = posts;
+  		n_ret_flag         = spec.ret_flag;
+  		n_lvars            = spec_vars;
+      n_subst            = init_substitution []; 
+      n_unification_plan = (create_unification_plan pre SS.empty)
+	}]
 
 (** -----------------------------------------------------
   * Normalise Single Spec
@@ -1642,6 +1644,7 @@ let build_spec_tbl
 		(lemmas     : (string, JSIL_Syntax.jsil_lemma) Hashtbl.t) : specification_table =
 
 	let spec_tbl = Hashtbl.create 511 in
+	(* Collapses a hashtable into a list of values *)
 	let get_tbl_rng tbl = Hashtbl.fold (fun k v ac -> v :: ac) tbl [] in
 
 	(** 1 - Normalise specs from                      *)
@@ -1651,6 +1654,7 @@ let build_spec_tbl
     let proc_tbl_rng = get_tbl_rng prog in
     let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
    	let only_specs     = get_tbl_rng onlyspecs in
+   	(* Build a list of the lemma specs *)
    	let lemma_specs    = List.map (fun lemma -> lemma.lemma_spec) (get_tbl_rng lemmas) in
    	let non_proc_specs = only_specs @ lemma_specs in
    	List.iter (fun spec ->
@@ -1658,21 +1662,20 @@ let build_spec_tbl
 		Hashtbl.replace spec_tbl n_spec.n_spec_name n_spec
    	) (proc_specs @ non_proc_specs);
 
-
    	(** 2 - Dummy procs for only specs and lemmas
    	 *      The point of doing this is to use the find_and_apply_specs for both
    	 *      the symbolic execution of procedure calls and the application of
    	 *      lemmas *)
    	 let create_dummy_proc spec =
-   		let dummy_proc = {
-   	 		proc_name   = spec.spec_name;
+   	  let dummy_proc = {
+   	 	proc_name   = spec.spec_name;
 			proc_body   = Array.make 0 (empty_metadata, SBasic SSkip);
 			proc_params = spec.spec_params;
-			ret_label   = None; ret_var = Some "ret";
-			error_label = None; error_var = Some "err";
+			ret_label   = None; ret_var = Some "xret";
+			error_label = None; error_var = Some "xerr";
 			spec = Some spec } in
 		Hashtbl.replace prog spec.spec_name dummy_proc in
-	List.iter create_dummy_proc non_proc_specs;
+	List.iter create_dummy_proc (lemma_specs @ only_specs);
 	spec_tbl
 
 (** -----------------------------------------------------
@@ -1748,8 +1751,8 @@ let pre_normalise_invariants_proc
 	for i = 0 to (len - 1) do
 		let metadata, cmd = body.(i) in
 		let new_invariant  = Option.map_default (fun a -> Some (f_pre_normalise_with_single_output a "invariant")) None metadata.invariant in 
-		let new_pre_lcmds  = List.map (logic_command_map f_rewrite_lcmds) metadata.pre_logic_cmds in 
-		let new_post_lcmds = List.map (logic_command_map f_rewrite_lcmds) metadata.post_logic_cmds in 
+		let new_pre_lcmds  = List.map (logic_command_map (Some f_rewrite_lcmds) None None) metadata.pre_logic_cmds in 
+		let new_post_lcmds = List.map (logic_command_map (Some f_rewrite_lcmds) None None) metadata.post_logic_cmds in 
 		body.(i) <- { metadata with invariant = new_invariant; pre_logic_cmds = new_pre_lcmds; post_logic_cmds = new_post_lcmds }, cmd
 	done
 
@@ -1823,3 +1826,178 @@ let print_normaliser_results_to_file
   in
   print_normalisation (Printf.sprintf "----------- NORMALISED PREDICATE TABLE -----------");
   print_normalisation (string_of_normalised_predicates pred_defs)
+
+(** -----------------------------------------------------
+  * Generate a .njsil file from the normalised specs (normalisedSpecsPreds.njsil)
+  * NB - This does not print the procs, just the preds and the specs, so the result will not be a syntactically valid output
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let generate_nsjil_file
+		ext_prog
+    (spec_tbl : specification_table)
+    (pred_defs : (string, n_jsil_logic_predicate) Hashtbl.t) : unit =
+
+  (* Printing the predicates *)
+  let predicate_output
+		(pred : n_jsil_logic_predicate) : string =
+    let params_string = String.concat ", " pred.n_pred_params in
+    let definitions_string_list = List.map (fun (_, x, _) ->  (JSIL_Print.string_of_logic_assertion (assertion_of_symb_state x))) pred.n_pred_definitions in
+    let definitions_string = String.concat ",\n " definitions_string_list in
+    "pred " ^ pred.n_pred_name ^ " (" ^ params_string ^ "): \n" ^ definitions_string ^ ";\n\n"
+  in
+
+  let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
+    Hashtbl.fold (fun pname pred ac -> ac ^ predicate_output pred) preds ""
+  in
+
+  print_njsil_file (string_of_normalised_predicates pred_defs);
+
+  (* Printing the specs - NOT THE PROCS *)
+  let string_of_single_spec_assertions
+      (spec : jsil_n_single_spec) : string =
+    let string_of_single_symb_state_assertion
+        (symbolic_state : symbolic_state) : string =
+			JSIL_Print.string_of_logic_assertion (assertion_of_symb_state symbolic_state) 
+    in
+    let pre_assrt_str = "[[ " ^ (string_of_single_symb_state_assertion spec.n_pre) ^ " ]]" in
+    let post_assrt_str = "\n[[ " ^ (List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post) ^ " ]]" in
+    let ret_flag_str = (match spec.n_ret_flag with
+                        | Normal -> "normal"
+                        | Error -> "error") in
+    pre_assrt_str ^ post_assrt_str ^ "\n" ^ ret_flag_str
+  in
+  let string_of_spec_assertions
+      (specs: jsil_n_single_spec list) : string =
+    let string_of_spec_assertions_list = List.map string_of_single_spec_assertions specs in
+    String.concat ";\n\n " string_of_spec_assertions_list
+  in
+  let string_of_spec_tbl_assertions =
+    Hashtbl.fold
+      (fun spec_name (spec : jsil_n_spec) acc ->
+				let spec_type, string_of_proc = (match Hashtbl.mem ext_prog.procedures spec_name with
+				| false -> print_debug_petar (Printf.sprintf "Unable to find procedure: %s. Going with only spec." spec_name); "only spec ", ""
+				| true -> 
+					let proc = Hashtbl.find ext_prog.procedures spec_name in
+					"spec ", JSIL_Print.string_of_ext_procedure_body proc) in  
+				let params_str = String.concat ", " spec.n_spec_params in
+				acc ^ spec_type ^ spec_name ^ "(" ^ params_str ^ ")" ^ "\n" ^ (string_of_spec_assertions spec.n_proc_specs) ^ "\n\n" ^ string_of_proc ^ "\n\n"
+		) spec_tbl ""
+  in
+  print_njsil_file (string_of_spec_tbl_assertions)
+
+(** -----------------------------------------------------
+  * Generates the lemma cyclic dependency graph
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let check_lemma_cyclic_dependencies 
+	(lemmas : ((string, jsil_lemma) Hashtbl.t)) : unit =
+
+	(* Initialise the graph *)
+	let lemma_depd_graph : lemma_depd_graph = {
+		lemma_depd_names_ids = Hashtbl.create 30;
+		lemma_depd_ids_names = Hashtbl.create 30;
+		lemma_depd_edges     = Hashtbl.create 30
+	} in
+
+	(* Map names to ID's, and intialise the edges lists *)
+	Hashtbl.fold
+		(fun lemma_name lemma count ->
+			Hashtbl.replace lemma_depd_graph.lemma_depd_names_ids lemma_name count;
+			Hashtbl.replace lemma_depd_graph.lemma_depd_ids_names count lemma_name;
+			Hashtbl.replace lemma_depd_graph.lemma_depd_edges count [];
+			count + 1
+		) lemmas 0;
+
+	(* Add all the ApplyLemma targets to the edges table *)
+	Hashtbl.iter
+		(fun curr_lemma lemma ->
+			match lemma.lemma_proof with
+			| None -> ()
+			| Some proof ->
+				List.iter
+					(fun lcmd ->
+						print_debug (JSIL_Print.string_of_lcmd lcmd);
+
+						let f_l
+							(lcmd : jsil_logic_command) : jsil_logic_command =
+
+							match lcmd with
+							| ApplyLem (applied_lemma, _) ->
+							   (if (not (applied_lemma = curr_lemma)) then
+							  
+							   		(* Look up the ID's for the current and applied lemmas,
+							   		   and add the applied lemma to the list of edges *)
+									let curr_lemma_id    = Hashtbl.find lemma_depd_graph.lemma_depd_names_ids curr_lemma in
+									let applied_lemma_id = Hashtbl.find lemma_depd_graph.lemma_depd_names_ids applied_lemma in
+									let edges            = Hashtbl.find lemma_depd_graph.lemma_depd_edges curr_lemma_id in
+							   		Hashtbl.replace lemma_depd_graph.lemma_depd_edges curr_lemma_id (List.cons applied_lemma_id edges));
+							   lcmd
+							| _ -> lcmd
+
+						in
+
+						logic_command_map (Some f_l) None None lcmd;
+						()
+					) proof
+		) lemmas;
+
+	(* Store our journey through the graph, and the start/end times for each node *)
+	let visited_nodes    = Hashtbl.create 30 in
+	let start_time_nodes = Hashtbl.create 30 in
+	let end_time_nodes   = Hashtbl.create 30 in
+
+	(* Returns the "clock" time at the end of the traversal *)
+	let rec clockDFS
+		(curr_node : int)
+		(clock : int) : int =
+
+		(* Recording start time for this node *)
+		Hashtbl.replace start_time_nodes curr_node clock;
+		let clock = clock + 1 in
+		Hashtbl.replace visited_nodes curr_node true;
+
+		(* Getting all the children *)
+		let children : (int list) = Hashtbl.find lemma_depd_graph.lemma_depd_edges curr_node in
+
+		(* Visiting each of the children, keeping track of the time *)
+		let end_clock =	List.fold_left
+			(fun clock child ->
+				if (not (Hashtbl.mem visited_nodes child)) then
+					clockDFS child clock
+				else
+					clock
+			) clock children
+		in
+
+		(* Recording the end time for this node *)
+		Hashtbl.replace end_time_nodes curr_node end_clock;
+		end_clock + 1
+	in
+
+	(* Traverses the graph, recording the clock times at each node *)
+	Hashtbl.fold
+		(fun name id clock ->
+			if (not (Hashtbl.mem visited_nodes id)) then
+				clockDFS id clock
+			else
+				clock
+		) lemma_depd_graph.lemma_depd_names_ids 0;
+
+	(* Check all the edges for back-edges *)
+	Hashtbl.iter
+		(fun u vs ->
+			List.iter
+			(fun v ->
+				(* Edge (u, v) is a back-edge if start[u] > start[v] and end[u] < end[v] *)
+				let start_u = Hashtbl.find start_time_nodes u in
+				let end_u   = Hashtbl.find end_time_nodes u in
+				let start_v = Hashtbl.find start_time_nodes v in
+				let end_v   = Hashtbl.find end_time_nodes v in
+				if ((start_u > start_v) && (end_u < end_v)) then
+					let name_u = Hashtbl.find lemma_depd_graph.lemma_depd_ids_names u in
+					let name_v = Hashtbl.find lemma_depd_graph.lemma_depd_ids_names v in
+					raise (Failure (Printf.sprintf "Lemma cyclic dependency detected: %s depends on %s, which depends on %s." name_v name_u name_v))
+		    ) vs
+		) lemma_depd_graph.lemma_depd_edges

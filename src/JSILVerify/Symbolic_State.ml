@@ -63,6 +63,15 @@ type symb_jsil_program = {
 	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
 }
 
+(*********************************************************)
+(** Lemma Dependency Graph **)
+(** Used for detecting cyclic dependencies **)
+(*********************************************************)
+type lemma_depd_graph = {
+  lemma_depd_names_ids       : (string, int) Hashtbl.t; (* mapping lemma names to node id's *)
+  lemma_depd_ids_names       : (int, string) Hashtbl.t; (* and the reverse.. *)
+  lemma_depd_edges           : (int, int list) Hashtbl.t; (* lemma_depd_edges.find(x) = list of all dependencies of x *)
+}
 
 type symb_graph_node_type = 
 	| SGCmdNode    of jsil_cmd * int
