@@ -11,8 +11,7 @@ git-sync:
   - echo "$PUSH_KEY" | ssh-add -
   - git sync-remote git@github.com:resource-reasoning/JavaScriptVerification.git git@gitlab.doc.ic.ac.uk:resource-reasoning/JavaScriptVerification.git
   stage: Git Sync
-  image:
-  - ignoredambience/github-gitlab-sync
+  image: ignoredambience/github-gitlab-sync
   tags:
   - docker
   only:
