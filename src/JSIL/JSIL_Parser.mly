@@ -530,6 +530,7 @@ pred_target:
   	{
   		(* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
+		print_debug_petar (Printf.sprintf "Parsing Predicate %s" name);
     let previously_normalised_pred = !previously_normalised in
 		let pred = { name; num_params; params; definitions; previously_normalised_pred } in
 		Hashtbl.add predicate_table name pred;
@@ -592,7 +593,7 @@ pred_param_target:
 	  { LNone }
 (* Program variable *)
 	| v = VAR
-	  { PVar v }
+	  { print_debug (Printf.sprintf "Pred_param_target: PVAR %s" v); PVar v }
 ;
 
 
@@ -933,7 +934,8 @@ logic_variable_target:
 	{
     let v_imported = Str.replace_first normalised_lvar_r "_lvar_n" v in
     (* Prefixed with _n_ to avoid clashes *)
-    LVar v_imported }
+    print_debug (Printf.sprintf "Found LVAR %s" v);
+		LVar v_imported }
 ;
 
 just_logic_variable_target:
@@ -942,7 +944,7 @@ just_logic_variable_target:
 
 program_variable_target:
   | v = VAR
-	  { (* let _ = validate_pvar v in *) PVar v }
+	  { (* let _ = validate_pvar v in *) print_debug (Printf.sprintf "Found PVAR %s" v); PVar v }
 	| RET
 	  { (* let _ = validate_pvar "ret" in *) PVar "ret" }
 	| ERR
@@ -1176,7 +1178,7 @@ js_lexpr_target:
 	  { JSPVar pvar }
 (* Logic variable *)
 	| lvar = LVAR
-	  { JSLVar lvar }
+	  { print_debug (Printf.sprintf "Found LVAR %s" lvar); JSLVar lvar }
 (* e binop e *)
 	| e1=js_lexpr_target; bop=binop_target; e2=js_lexpr_target
 		{ JSLBinOp (e1, bop, e2) }

@@ -222,6 +222,7 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 			  		(* Get a fresh program variable a add an additional
 			  		   constraint to each definition *)
 			  		let new_pvar = fresh_pvar () in
+						print_debug_petar (Printf.sprintf "Generated fresh PVar: %s" new_pvar); 
 			  		(new_pvar :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts)
 			  	| PVar x         ->
 			  		(* If the parameter is a program variable, add the
@@ -1354,7 +1355,7 @@ let normalise_normalised_assertion
   let _ = assertion_map (Some populate_state_from_assertion) None None a in 
 
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
-  print_debug (Symbolic_State_Print.string_of_symb_store store);
+  print_debug (Printf.sprintf "Store: %s" (Symbolic_State_Print.string_of_symb_store store));
   print_debug (Printf.sprintf "Gamma: %s" (Symbolic_State_Print.string_of_gamma gamma));
   print_debug (Printf.sprintf "Heap: %s" (Symbolic_State_Print.string_of_symb_heap heap));
   print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_pfs pfs));
@@ -1825,6 +1826,65 @@ let print_normaliser_results_to_file
   in
   print_normalisation (Printf.sprintf "----------- NORMALISED PREDICATE TABLE -----------");
   print_normalisation (string_of_normalised_predicates pred_defs)
+
+(** -----------------------------------------------------
+  * Generate a .njsil file from the normalised specs (normalisedSpecsPreds.njsil)
+  * NB - This does not print the procs, just the preds and the specs, so the result will not be a syntactically valid output
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+ **)
+let generate_nsjil_file
+		ext_prog
+    (spec_tbl : specification_table)
+    (pred_defs : (string, n_jsil_logic_predicate) Hashtbl.t) : unit =
+
+  (* Printing the predicates *)
+  let predicate_output
+		(pred : n_jsil_logic_predicate) : string =
+    let params_string = String.concat ", " pred.n_pred_params in
+    let definitions_string_list = List.map (fun (_, x, _) ->  (JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion x false))) pred.n_pred_definitions in
+    let definitions_string = String.concat ",\n " definitions_string_list in
+    "pred " ^ pred.n_pred_name ^ " (" ^ params_string ^ "): \n" ^ definitions_string ^ ";\n\n"
+  in
+
+  let string_of_normalised_predicates (preds : (string, n_jsil_logic_predicate) Hashtbl.t) : string =
+    Hashtbl.fold (fun pname pred ac -> ac ^ predicate_output pred) preds ""
+  in
+
+  print_njsil_file (string_of_normalised_predicates pred_defs);
+
+  (* Printing the specs - NOT THE PROCS *)
+  let string_of_single_spec_assertions
+      (spec : jsil_n_single_spec) : string =
+    let string_of_single_symb_state_assertion
+        (symbolic_state : symbolic_state) : string =
+			JSIL_Print.string_of_logic_assertion (Symbolic_State_Utils.convert_symb_state_to_assertion symbolic_state false) 
+    in
+    let pre_assrt_str = "[[ " ^ (string_of_single_symb_state_assertion spec.n_pre) ^ " ]]" in
+    let post_assrt_str = "\n[[ " ^ (List.fold_left (fun acc ss -> acc ^ (string_of_single_symb_state_assertion ss)) "" spec.n_post) ^ " ]]" in
+    let ret_flag_str = (match spec.n_ret_flag with
+                        | Normal -> "normal"
+                        | Error -> "error") in
+    pre_assrt_str ^ post_assrt_str ^ "\n" ^ ret_flag_str
+  in
+  let string_of_spec_assertions
+      (specs: jsil_n_single_spec list) : string =
+    let string_of_spec_assertions_list = List.map string_of_single_spec_assertions specs in
+    String.concat ";\n\n " string_of_spec_assertions_list
+  in
+  let string_of_spec_tbl_assertions =
+    Hashtbl.fold
+      (fun spec_name (spec : jsil_n_spec) acc ->
+				let spec_type, string_of_proc = (match Hashtbl.mem ext_prog.procedures spec_name with
+				| false -> print_debug_petar (Printf.sprintf "Unable to find procedure: %s. Going with only spec." spec_name); "only spec ", ""
+				| true -> 
+					let proc = Hashtbl.find ext_prog.procedures spec_name in
+					"spec ", JSIL_Print.string_of_ext_procedure_body proc) in  
+				let params_str = String.concat ", " spec.n_spec_params in
+				acc ^ spec_type ^ spec_name ^ "(" ^ params_str ^ ")" ^ "\n" ^ (string_of_spec_assertions spec.n_proc_specs) ^ "\n\n" ^ string_of_proc ^ "\n\n"
+		) spec_tbl ""
+  in
+  print_njsil_file (string_of_spec_tbl_assertions)
 
 (** -----------------------------------------------------
   * Generates the lemma cyclic dependency graph

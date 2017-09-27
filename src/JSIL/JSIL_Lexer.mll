@@ -5,7 +5,8 @@ open Lexing
 let digit = ['0'-'9']
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
-let var = (letter|'_')(letter|digit|'_')*
+let var = letter(letter|digit|'_')*
+let var2 = "_pvar_" (letter|digit|'_')*
 let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
 let lvar = '#' (letter|digit|'_'|'$')*
 let lvar2 = "_lvar_" (letter|digit|'_')*
@@ -228,6 +229,7 @@ rule read = parse
   | filename             { JSIL_Parser.FILENAME (Lexing.lexeme lexbuf) }
 (* Variables *)
 	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
+	| var2                 { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* Logic variables *)
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 	| lvar2                { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }

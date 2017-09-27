@@ -44,7 +44,7 @@ let sheap_put
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
-			let new_domain = Normaliser.normalise_lexpr gamma new_domain in
+			(* let new_domain = Normaliser.normalise_lexpr gamma new_domain in *)
 			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
 			heap_put heap loc ((field, value) :: fv_list) (Some new_domain) 
 		) else (
@@ -84,7 +84,7 @@ let merge_domains
 	| Some domain, None -> Some domain 
 	| Some set1, Some set2 -> 
 		let set = LSetUnion [ set1; set2 ] in
-		let set = Normaliser.normalise_lexpr gamma set in  
+		(* let set = Normaliser.normalise_lexpr gamma set in *)  
 		let set = Simplifications.reduce_expression_no_store gamma pfs set in
 		Some set 
 
@@ -348,3 +348,88 @@ let collect_garbage (symb_state : symbolic_state) =
 		print_debug (Printf.sprintf "GCOL: Collectable locations: %s"
 			(String.concat ", " (SS.elements collectable_locs)));
 	symb_state)
+
+(*************************************)
+(** Symbolic state to assertion     **)
+(*************************************)
+
+let assertion_of_abs_heap (h : symbolic_heap) : jsil_logic_assertion list=
+	let make_loc_lexpr loc =
+		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in
+
+	let rec assertions_of_object (loc, (fv_list, set)) =
+	 	let le_loc = make_loc_lexpr loc in
+		let fv_assertions = List.map (fun (field, value) -> LPointsTo (le_loc, field, value)) fv_list in
+		Option.map_default (fun set -> (LEmptyFields (le_loc, set)) :: fv_assertions) fv_assertions set in
+
+	List.concat (List.map assertions_of_object (heap_to_list h))
+
+let assertions_of_abs_store s : jsil_logic_assertion list =
+	Hashtbl.fold
+		(fun x le assertions ->
+			if (is_lvar_name x) 
+				then LEq (LVar x, le) :: assertions
+				else LEq (PVar x, le) :: assertions)
+				s []
+
+let assertions_of_gamma gamma : jsil_logic_assertion=
+	let le_type_pairs =
+		Hashtbl.fold
+			(fun x t pairs ->
+				(if (is_lvar_name x)
+					then (LVar x, t) :: pairs
+					else (PVar x, t) :: pairs)) gamma [] in
+	LTypes le_type_pairs
+
+let assertions_of_pred_set pred_set =
+	let preds = preds_to_list pred_set in
+	let rec loop preds assertions =
+		match preds with
+		| [] -> assertions
+		| (pred_name, args) :: rest ->
+			loop rest ((LPred (pred_name, args)) :: assertions) in
+	loop preds []
+
+let remove_abstract_locations (heap : symbolic_heap) (store : symbolic_store) (pfs : pure_formulae) : substitution  =
+	let subst = init_substitution [] in
+	LHeap.iter
+		(fun loc (fv_list, def) ->
+			(try
+				Hashtbl.find subst loc; ()
+			with Not_found ->
+				(if (is_abs_loc_name loc) then
+					let s_loc = store_get_rev store (ALoc loc) in
+					(match s_loc with
+					| Some l ->
+						Hashtbl.add subst loc (PVar l)
+					| None ->
+						let p_loc = Simplifications.find_me_in_the_pi pfs (ALoc loc) in
+						match p_loc with
+						| Some l ->
+							Hashtbl.add subst loc (LVar l)
+						| None ->
+							let n_lvar = fresh_lvar () in
+							Hashtbl.add subst loc (LVar n_lvar))
+				)
+			)
+		) heap;
+	subst
+	
+let convert_symb_state_to_assertion
+    (symb_state : symbolic_state)
+    (remove_alocs : bool) : jsil_logic_assertion =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let subst = remove_abstract_locations heap store pfs in
+	let heap_assert = assertion_of_abs_heap heap in
+	let store_assert = assertions_of_abs_store store in
+  let gamma_assert = assertions_of_gamma gamma in
+  let preds_assert = assertions_of_pred_set preds in
+	let pure_assert = DynArray.to_list pfs in
+	let assertions = heap_assert @ store_assert @ pure_assert @ [gamma_assert] @ preds_assert in
+	let assertion = List.fold_left (fun ac assertion ->
+						if (ac = LEmp) then assertion else LStar(ac , assertion))
+		LEmp
+  assertions in
+   match remove_alocs with
+   | true -> asrt_substitution subst true assertion
+   | false -> assertion

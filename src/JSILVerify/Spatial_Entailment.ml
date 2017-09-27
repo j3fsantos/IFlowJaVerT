@@ -609,7 +609,7 @@ let unify_symb_states
 	print_debug (Printf.sprintf "unify_stores - done. pat_subst: %s\ndischarges: %s\n"
 		(JSIL_Print.string_of_substitution pat_subst)
 		(Symbolic_State_Print.string_of_discharges discharges)); 
-	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure ""); 
+	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure "");
 
 	(* 3. Initial frame for the search *)
 	let initial_frame = pat_unfication_plan, (heap, preds, discharges, pat_subst) in 

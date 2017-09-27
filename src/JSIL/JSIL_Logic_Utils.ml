@@ -408,7 +408,10 @@ let lexpr_substitution (subst : substitution) (partial : bool) (le : jsil_logic_
 	let f_before le = match le with 
 		| LVar x    -> find_in_subst x le (fun () -> LVar (fresh_lvar ())), false 
 		| ALoc x    -> find_in_subst x le (fun () -> ALoc (fresh_aloc ())), false
-		| PVar x    -> find_in_subst x le (fun () -> PVar (fresh_pvar ())), false 
+		| PVar x    -> find_in_subst x le (fun () ->
+				let pvar = fresh_pvar () in
+				print_debug_petar (Printf.sprintf "Unable to find PVar %s in subst, generating fresh: %s" x pvar); 
+				PVar (fresh_pvar ())), false 
 		| _         -> le, true in 
 
 	logic_expression_map f_before None le 		
