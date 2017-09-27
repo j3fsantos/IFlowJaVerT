@@ -1363,6 +1363,7 @@ let print_normaliser_results_to_file
   * -----------------------------------------------------
  **)
 let generate_nsjil_file
+		ext_prog
     (spec_tbl : specification_table)
     (pred_defs : (string, n_jsil_logic_predicate) Hashtbl.t) : unit =
 
@@ -1404,9 +1405,14 @@ let generate_nsjil_file
   let string_of_spec_tbl_assertions =
     Hashtbl.fold
       (fun spec_name (spec : jsil_n_spec) acc ->
-         let params_str = String.concat ", " spec.n_spec_params in
-         acc ^ "spec " ^ spec_name ^ "(" ^ params_str ^ ")" ^ "\n" ^ (string_of_spec_assertions spec.n_proc_specs) ^ "\n\n"
-      ) spec_tbl ""
+				let spec_type, string_of_proc = (match Hashtbl.mem ext_prog.procedures spec_name with
+				| false -> print_debug_petar (Printf.sprintf "Unable to find procedure: %s. Going with only spec." spec_name); "only spec ", ""
+				| true -> 
+					let proc = Hashtbl.find ext_prog.procedures spec_name in
+					"spec ", JSIL_Print.string_of_ext_procedure_body proc) in  
+				let params_str = String.concat ", " spec.n_spec_params in
+				acc ^ spec_type ^ spec_name ^ "(" ^ params_str ^ ")" ^ "\n" ^ (string_of_spec_assertions spec.n_proc_specs) ^ "\n\n" ^ string_of_proc ^ "\n\n"
+		) spec_tbl ""
   in
   print_njsil_file (string_of_spec_tbl_assertions)
 

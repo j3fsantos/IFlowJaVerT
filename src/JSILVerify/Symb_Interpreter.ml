@@ -874,7 +874,7 @@ let lemma_recursive_call_termination_check
 	    (* Throw an error if the assertion is not entailed *)
 	    match state_entails_termination_assertion with
 	    	| true -> ()
-	    	| false -> raise (Failure (Printf.sprintf "Lemma %s: Variant %s does not decrease in every recursive call." lemma.lemma_name (JSIL_Print.string_of_logic_expression variant false)));
+	    	| false -> raise (Failure (Printf.sprintf "Lemma %s: Variant %s does not decrease in every recursive call." lemma.lemma_name (JSIL_Print.string_of_logic_expression variant false)))
 
 
 (*---------------------------------------------------------------

@@ -119,7 +119,7 @@ let process_file path =
      let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs in ();
 
      (* Step 5: Generating/saving the normalised specs after pruning (disabled for speed) *)
-     	(* Normaliser.generate_nsjil_file spec_tbl n_pred_defs; *)
+    Normaliser.generate_nsjil_file ext_prog spec_tbl n_pred_defs;
 		close_output_files();
 		exit 0
 
