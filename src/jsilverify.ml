@@ -5,6 +5,7 @@ let spec_file = ref ""
 let output_folder = ref ""
 let stats = ref false
 let interactive = ref false
+let output_normalised_specs = ref false
 
 let str_bar = "-----------------------------"
 
@@ -23,6 +24,7 @@ let arguments () =
 			(* *)
 			"-stats", Arg.Unit (fun () -> stats := true), "stats";
 			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
+			"-njsil", Arg.Unit (fun () -> output_normalised_specs := true), "output normalised specs"
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -119,7 +121,7 @@ let process_file path =
      let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs in ();
 
      (* Step 5: Generating/saving the normalised specs after pruning (disabled for speed) *)
-    Normaliser.generate_nsjil_file ext_prog spec_tbl n_pred_defs;
+    if (!output_normalised_specs) then Normaliser.generate_nsjil_file ext_prog spec_tbl n_pred_defs;
 		close_output_files();
 		exit 0
 
