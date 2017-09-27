@@ -1329,6 +1329,7 @@ let normalise_normalised_assertion
       let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
       LHeap.replace heap loc ((field_val_pairs), (Some domain));
 			(a, false)
+			
     | LEq ((PVar v), le)
     | LEq (le, (PVar v)) ->
       Hashtbl.add store v le;
