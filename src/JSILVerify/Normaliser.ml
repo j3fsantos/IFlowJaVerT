@@ -1311,45 +1311,46 @@ let normalise_normalised_assertion
   let pfs   : pure_formulae      = DynArray.make 0 in
   let preds : predicate_set      = DynArray.make 0 in
 
-  print_debug (Printf.sprintf "PARSING NORMALISED ASSERTION");
-  print_debug (JSIL_Print.string_of_logic_assertion a);
-
   (* Step 2 - Map over assertion, populate gamma, store and heap *)
-  let rec populate_state_from_assertion a : unit =
-	let f = populate_state_from_assertion in
+  let populate_state_from_assertion a =
     (match a with
-    | LStar (a1, a2) 
-		| LAnd  (a1, a2) -> f a1; f a2
-		| LTypes type_assertions ->
-      	List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions; ()
-    | LPointsTo ((PVar loc), le2, le3)
-    | LPointsTo ((LLit (Loc loc)), le2, le3)
-    | LPointsTo ((ALoc loc), le2, le3) ->
-      let field_val_pairs, default_empty_fields = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_empty_fields)
-    | LEmptyFields (obj, domain) ->
+    | LTypes type_assertions ->
+      let _ = List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions in 
+      (a, false)
+    | LPointsTo (PVar loc, le2, le3)
+		| LPointsTo (ALoc loc, le2, le3)
+    | LPointsTo (LLit (Loc loc), le2, le3) ->
+      (* TODO: prefix locations with _ ? *)
+      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
+      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+      (a, false)
+		| LEmptyFields (obj, domain) ->
       let loc = JSIL_Print.string_of_logic_expression obj in
       let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc ((field_val_pairs), (Some domain))
-			
+      LHeap.replace heap loc ((field_val_pairs), (Some domain));
+			(a, false)
     | LEq ((PVar v), le)
-    | LEq (le, (PVar v)) -> Hashtbl.add store v le;
-
-    | LNot _
-    | LOr _ 
+    | LEq (le, (PVar v)) ->
+      Hashtbl.add store v le;
+      (a, false)
+			
 		| LEq _
+    | LNot _
     | LLess _
     | LLessEq _
     | LStrLess _
-    | LForAll _
     | LSetMem _
-    | LSetSub _ -> DynArray.add pfs a;
-
-    | LPred (s, les) -> DynArray.add preds (s, les);
-
-		| _ -> Printf.printf "OTHER: %s\n" (JSIL_Print.string_of_logic_assertion a); exit 1)
+    | LSetSub _ ->
+      DynArray.add pfs a;
+      (a, false)
+    | LPred (s, les) ->
+      DynArray.add preds (s, les);
+      (a, false)
+    | LStar _ ->
+      	(a, true)
+		| _ -> Printf.printf "Unsupported: %s" (JSIL_Print.string_of_logic_assertion a); exit 1)
   in
-		populate_state_from_assertion a;
+  let _ = assertion_map (Some populate_state_from_assertion) None None a in 
 
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
   print_debug (Symbolic_State_Print.string_of_symb_store store);
@@ -1358,9 +1359,6 @@ let normalise_normalised_assertion
   print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_pfs pfs));
   print_debug (Printf.sprintf "Preds: %s" (Symbolic_State_Print.string_of_preds preds));
   (heap, store, pfs, gamma, preds)
-
-
-
 
 (** -----------------------------------------------------
   * Unfication Plan

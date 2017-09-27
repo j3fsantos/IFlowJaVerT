@@ -495,7 +495,7 @@ let extend_declarations
 	Hashtbl.iter
 		(fun proc_name proc ->
 			if (not (Hashtbl.mem program_to.procedures proc_name))
-				then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
+				then (print_debug (Printf.sprintf "*** MESSAGE: Adding onlyspec procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
 				else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
 		program_from.procedures;
 		
