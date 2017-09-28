@@ -9,7 +9,7 @@
 (define success #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 2)
+(define max-depth 5)
 
 (define (generate-tabs n)
   (let ((tab "    "))

@@ -1,0 +1,237 @@
+\documentclass{llncs}
+%
+
+%External Packages
+\usepackage{makeidx}  % allows for indexgeneration
+\usepackage[table]{xcolor}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{xspace}
+\usepackage{amssymb,amsfonts,latexsym,wasysym,mathrsfs,textcomp,stmaryrd}
+\usepackage{mathpartir}
+\usepackage{url}
+
+\usepackage{upgreek}
+
+
+%JavaScript 
+\definecolor{SkyBlue}{rgb}{0.20,0.39,0.64}
+\definecolor{Plum}{rgb}{0.46,0.31,0.48}
+\definecolor{Chocolate}{rgb}{0.75,0.49,0.07}
+\definecolor{Aluminium5}{rgb}{0.33,0.34,0.32}
+\definecolor{DarkGreen}{rgb}{0.2,0.5,0.2}
+\definecolor{ltblue}{rgb}{0,0.4,0.4}
+\definecolor{dkblue}{rgb}{0,0.2,0.7}
+\definecolor{dkgreen}{rgb}{0,0.4,0}
+\definecolor{dkviolet}{rgb}{0.3,0,0.5}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{talkred}{rgb}{0.69,.20,0.22}
+\definecolor{talkblue}{rgb}{0.04,0.40,0.80}
+\definecolor{talkgreen}{rgb}{0.34,.81,0.10}
+\definecolor{oldtalkblue}{rgb}{0.22,.20,0.69}
+\definecolor{greenish}{rgb}{.0,.65,.0}
+
+\lstdefinelanguage{JavaScript}{
+  morekeywords=[1]{typeof, new, true, false, catch,
+    function, return, null, catch, switch, var,
+    if, in, while, do, else, case, break, continue},
+  morekeywords=[2]{class, export, boolean, throw, implements, import, this},
+  numbers=left,
+  numbersep=4pt,
+  numberstyle=\tiny\color{dkblue},
+  columns=fullflexible,
+  sensitive=false,
+  comment=[l]{//},
+  captionpos=b,   
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  basicstyle=\scriptsize\texttt,
+  identifierstyle=\ttfamily\color{Aluminium5},
+  keywordstyle=[1]\ttfamily\color{Plum},
+  keywordstyle=[2]\ttfamily\color{SkyBlue},
+  stringstyle=\ttfamily\color{DarkGreen},
+  commentstyle=\ttfamily
+}[keywords,comments,strings]
+
+\lstnewenvironment{lstjs}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}}}{}
+\def\jsinline{\lstinline[language=JavaScript, basicstyle=\small]}
+
+
+% The Acronyms of the project and some other stuff
+\newcommand{\jsil}{JSIL\xspace}
+\newcommand{\jsverify}{JSVerify\xspace}
+\newcommand{\JSComp}{JS-2-JSIL\xspace}
+\newcommand{\javert}[0]{JaVerT\xspace}
+\newcommand{\jsilverify}{JSILVerify\xspace}
+
+
+% Tikz 
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning,arrows,shapes,decorations.pathmorphing}
+\usetikzlibrary{arrows,positioning} 
+\tikzset{
+    %Define standard arrow tip
+    >=stealth',
+    % Define arrow style
+    pil/.style={
+           ->,
+           shorten <=2pt,
+           shorten >=2pt,}
+}
+
+\newcommand{\runpic}{\includegraphics[width=0.06\picwidth]{running.pdf}}
+\newcommand{\tickpic}{\resizebox{0.06\picwidth}{!}{\(\color{greenish} \checkmark \)}}
+\tikzset{
+  box/.style = {rectangle, draw=black,align=center,font=\scriptsize},
+  sbox/.style = {rectangle,draw=black,align=left,font=\scriptsize,text width=1.7cm},
+  p/.style = {-latex},
+  dp/.style = {latex-latex},
+  sz/.style n args={2}{minimum width=#2, minimum height=#1},
+  m/.style = {midway,inner sep=0pt,fill=white},
+  ll/.style = {font=\scriptsize,anchor=south west}
+}
+
+
+
+% Polishing...
+\newcommand{\polish}[1]{{\color{red}#1}}
+
+% macros_js as for Jose Santos
+\usepackage{macros_js}
+\usepackage{gdshojs}
+
+\newcommand{\jilette}{Jilette\xspace}
+
+
+%
+\title{\jilette: Symbolic Execution for JavaScript}
+
+\author{}
+
+\institute{Imperial College London}
+
+\begin{document}
+%
+
+\maketitle 
+
+\begin{abstract}
+
+\end{abstract}
+
+
+\section{Introduction}
+
+JavaScript is the most widespread
+dynamic language: it is the de facto language for client-side Web
+applications (used by 94.8\% of
+websites\footnote{w3techs.com/technologies/details/cp-javascript/all/all.});
+it is used for server-side scripting via Node.js; and it is even run on
+small embedded devices with limited memory. It is the most active
+language in both GitHub and StackOverflow\footnote{JavaScript  has most active
+  repos on GitHub, http://githut.info; JavaScript has most questions on
+  StackOverflow, \\https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628.}.
+The dynamic nature of
+JavaScript and its complex semantics make it a difficult target for
+symbolic analysis and verification. 
+% 
+The most commonly used 
+approach to obtaining trust in JavaScript code is running it against 
+adhoc test batteries---given inputs, the code produces the expected
+output. The main drawback of this approach is that tests, in general,
+cannot guarantee exhaustiveness.
+
+To tackle this issue, we present Jilette, a symbolic execution tool for 
+JavaScript whose main purpose is to facilitate exhaustive symbolic 
+testing of JavaScript programs. Jilette leverages on the
+\JSComp compiler and Rosette \cite{Rosette1}, a solver-aided programming
+language with support for symbolic values and first-order
+assertions. The core of Jilette comprises a JSIL interpreter
+written in Rosette. By piggybacking on Rosette and JS-2-JSIL, we 
+are able to execute JavaScript programs on symbolic values. 
+We show how to use Jilette
+for the symbolic testing of JavaScript programs: instead of using concrete 
+inputs in tests, the developer uses symbolic inputs and states the 
+constraints that the output needs to satisfy as simple, intuitive 
+first-order assertions over these inputs. 
+This approach guarantees exhaustiveness. Moreover, due to the
+solver-aided facilities of Rosette, if a test fails, 
+Jilette provides the concrete inputs that do not satisfy the
+constraints, immediately revealing bugs in the tested code.
+
+We show how  to use Jilette for writing symbolic tests for client side 
+JavaScript code calling Web APIs. In particular, we demonstrate how to 
+checking the conformance of Web API requests with their specified signatures. 
+The existing solutions for this problem are still imprecise due to the 
+dynamicity of JavaScript combined with the difficulty of reasoning about
+operations on symbolic strings \cite{Idontknow}. Jilette is an excellent fit for
+this task as it leverages on Rosette's back-end
+constraint solver, Z3, which supports reasoning on symbolic strings
+and regular expressions, whereas JS-2-JSIL successfully
+contains the complexity of JavaScript itself.
+
+Finally, we show how to use Jilette as an auxiliary mechanism for debugging 
+separation logic specifications of JavaScript programs. Verification tools for  
+JavaScript code are still very rare and often require heavily annotating the 
+original code for helping the solver prove entailments involving user-defined 
+predicates, as well as coping with loops and recursion. Furthermore, when these 
+tools cannot prove that a given function does not satisfy its specification, the 
+user needs to go through a  proof trace and understand it in detail. 
+Here, we demonstrate how to use \jilette to find errors in specifications by generating 
+symbolic tests from these specifications and running these tests using \jilette. 
+Then, if a symbolic test generated from a given specification fails, the code to 
+be verified does not satisfy that specification. This approach has the advantage that,
+ in case of failure, it  generates a concrete counter-model that invalidates the 
+ specification. This information greatly simplifies the debugging of both specifications and code. 
+
+
+\section{Related Work} 
+
+The existing literature covers a wide range of analysis techniques for JavaScript programs, including: 
+type systems~\cite{thiemann:esop:2005,anderson:ecoop:2005,jensen:sas:2009,typescript:toot:2014,feldthaus:oopsla:2014,bierman:ecoop:2014,rastogi:popl:2015},
+control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang2009points,sridharan:ecoop:12} and abstract
+interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
+Here, we focused on the existing work on logic-based analysis and symbolic execution for JavaScript. 
+
+\myparagraph{Symbolic Execution} 
+
+
+
+
+\myparagraph{Logic-based Analysis} 
+%
+\cite{gardner:popl:2012} have developed a separation logic for a small fragment of ECMAScript 3, to reason about the variable store emulated in the JavaScript heap.
+%
+\cite{rosu-serbanuta-2010-jlap} have developed $\mathbb{K}$, a term-rewriting framework  for  formalising the operational
+semantics of programming languages.
+ In particular, they have developed KJS~\cite{Park:2015} which provides a $\mathbb{K}$-interpretation of the core language and part of the built-in libraries of the ES5 standard. KJS has been tested against the official ECMAScript Test262 test suite and passed all 2782 tests for the core language; the testing results for the built-in libraries are not reported. 
+\cite{stefanescu-park-yuwen-li-rosu-2016-oopsla} introduce a language-independent verification infrastructure 
+that can be instantiated with a $\mathbb{K}$-interpretation of a  language to automatically generate a symbolic verification tool for that language based on the $\mathbb{K}$ reachability logic. They apply this infrastructure to KJS to generate a verification tool for JavaScript, which they use to verify functional correctness properties of operations for manipulating data structures such as binary search trees, AVL trees, and lists.
+
+
+
+
+\section{\jilette: Design and Implentation}
+\input{sections/jilette}
+
+
+\section{Parameterised Testing with \jilette}
+\input{sections/testing}
+
+\section{Validating Separation Logic with \jilette}
+\input{sections/specs}
+
+\section{Evaluation}
+\input{sections/evaluation}
+
+\section{Conclusions}\label{conclusions}
+
+\newpage
+\bibliographystyle{abbrv}
+\bibliography{esop18}
+
+\end{document}
