@@ -1,9 +1,296 @@
 %!TEX root = ../main.tex
 
-\subsection{Architecture}
+\begin{itemize}
+  \item diagram Jilette - explain the basic ideas 
+  \item Symbolic Execution for  \jsil -  introduces \jsil + defines symbolic for jsil + soundness lemma  
+  \item Implementation - encoding \jsil state in Rosette + snippet of the interpreter (1 bcmd + 1 cmd) + discussion of why this is sound
+\end{itemize}
 
-\subsection{Rosette}
+\subsection{Symbolic Execution for  \jsil}
 
-\subsection{\jsil Interpreter}
+We formalise the symbolic execution for \jsil basic commands in. 
 
-\subsection{Design Principles}  
+%\begin{display}{}
+\begin{figure}[ht!]
+{\scriptsize
+\begin{mathpar} 
+%
+\inferrule[\textsc{Skip}]{}
+	{ \symbtrans{\sheap, \sstore, \pc, \jsilskip}{\sheap, \sstore, \pc}} 
+ \and
+ %
+\inferrule[\textsc{Assignment}]
+  {
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+      \quad
+      \sstore' = \sstore[\jvar \mapsto \sexpr]
+  }{\symbtrans{\sheap, \sstore, \pc, \jvar := \jsilexpr}{\sheap, \sstore', \pc}} 
+%
+\and 
+%
+\inferrule[\textsc{Object Creation}]
+  { 
+    \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
+    \and (\loc,-) \notin \domain (\jsilheap)
+  }{\symbtrans{\sheap, \sstore, \pc, \jvar := \jsilnew()}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
+\\
+%
+\inferrule[\textsc{Property Access}]
+  { 
+ 	\symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \quad
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+        \\\\
+        \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+  }{ \symbtrans{\sheap, \sstore, \pc, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
+ %
+\\
+%
+\inferrule[\textsc{Property Assignment - Found}]
+  {     \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \quad
+        \symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+        \\
+          \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+         \quad
+         \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
+  }{\symbtrans{\sheap, \sstore, \pc,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sheap'', \sstore, \pc'}} 
+\\
+%
+\inferrule[\textsc{Property Assignment - Not Found}]
+  {     \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \quad
+        \symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+        \\
+          \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
+         \quad
+         \sheap' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
+  }{\symbtrans{\sheap, \sstore, \pc,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sheap', \sstore, \pc'}}   
+%
+\\
+%
+\inferrule[\textsc{Property Deletion}]
+  { 
+        \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+     \\ 
+      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+     \quad 
+      \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
+   }{\symbtrans{\sheap, \sstore, \pc, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\sheap'', \sstore, \pc'}}
+ \\
+ %
+\inferrule[\textsc{Member Check - True}]
+  { 
+      \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+     \\ 
+     \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+  }{\symbtrans{\sheap, \sstore, \pc, \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
+%
+\\
+%
+\inferrule[\textsc{Member Check - False}]
+  { 
+      \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+     \\ 
+     \pc' = \pc \ \wedge \,  \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p) \big)
+  }{\symbtrans{\sheap, \sstore, \pc, \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
+\\
+%
+\inferrule[\textsc{Assert - True}]
+  { 
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+     \quad 
+     \pc \vdash \sexpr 
+  }{\symbtrans{\sheap, \sstore, \pc, \assert(\jsilexpr_1)}{\sheap, \sstore, \pc}} 
+\quad
+\inferrule[\textsc{Assert - False}]
+  { 
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+     \quad 
+     \pc \not\vdash \sexpr 
+  }{\symbtranserr{\sheap, \sstore, \pc, \assert(\jsilexpr_1)}} 
+\end{mathpar}}
+\caption{Symbolic Execution for Basic Commands: $\symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap, \sstore, \pc}$} 
+\end{figure}
+%\end{display}  
+
+
+\begin{figure}[ht!]
+{\scriptsize
+\begin{mathpar} 
+\inferrule[\textsc{Basic Command}]
+   { 
+     \prog_{\pid}(i) = \bcmd 
+     \quad
+     \symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap', \sstore', \pc'} 
+   }{\symbtrans{\sheap, \sstore, \pc, \ctx[i]}{\sheap', \sstore', \pc', \ctx[i+1]}}
+%
+   \qquad
+  %
+  \inferrule[\textsc{Basic Command - Fail}]
+   { 
+     \prog_{\pid}(i) = \bcmd 
+     \quad
+     \symbtranserr{\sheap, \sstore, \pc, \bcmd} 
+   }{\symbtranserr{\sheap, \sstore, \pc, \ctx[i]}}
+ %
+   \qquad
+  %
+  \inferrule[\textsc{Goto}]
+   { \prog_{\pid}(i) = \goto \, j \quad}
+   {\symbtrans{\sheap, \sstore, \pc, \ctx[i]}{\sheap, \sstore, \pc, \ctx[j]}}
+  \\ 
+  \inferrule[\textsc{Cond. Goto - True}]
+   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
+     \symbeval{\jsilexpr}{\sstore} =  \sexpr
+   }
+   {\symbtrans{\sheap, \sstore, \pc, \ctx[i]}{\sheap, \sstore, \pc \, \wedge \, \sexpr, \ctx[j]}}
+  \and 
+    \inferrule[\textsc{Cond. Goto - False}]
+   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
+     \symbeval{\jsilexpr}{\sstore} =  \sexpr
+   }
+   {\symbtrans{\sheap, \sstore, \pc, \ctx[i]}{\sheap, \sstore, \pc \, \wedge \, \neg\sexpr, \ctx[k]}}
+   \\
+    \inferrule[\textsc{Procedure Call}]
+   { 
+    \prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+     \quad
+    \symbeval{\jsilexpr}{\sstore} =  \pid' 
+    \quad
+      \symbeval{\jsilexpr_i}{\sstore} =  \sexpr_i \mid_{i = 0}^{n} 
+     \quad
+     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+     \quad 
+      \sexpr_i = \jsundefined \mid_{i = n+1}^{m}  
+   }
+   {\symbtrans{\sheap, \sstore, \pc, \ctx[i]}{\sheap, [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}] , \pc, ((\pid', \sstore, \jvar, i+1, j)::C)[0]}}
+    \\ 
+  \inferrule[\textsc{Normal Return}]
+   {
+       \ctx = (-, \sstore', \jvar, i, -) :: \ctx' 
+       \quad 
+       \sstore(\procretvar) = \sexpr
+   }  
+   {\symbtrans{\sheap, \sstore, \pc, \ctx[\procretlab]}{\sheap, \sstore'[\jvar \mapsto \sexpr], \pc, \ctx'[i]}}
+   \and 
+     \inferrule[\textsc{Error Return}]
+   {
+       \ctx = (-, \sstore', \jvar, -, j) :: \ctx' 
+       \quad 
+       \sstore(\procretvar) = \sexpr
+   }  
+   {\symbtrans{\sheap, \sstore, \pc, \ctx[\procretlab]}{\sheap, \sstore'[\jvar \mapsto \sexpr], \pc, \ctx'[j]}}
+ \end{mathpar}}
+\caption{Symbolic Execution for Control Flow Commands: $\symbtrans{\sheap, \sstore, \pc, i}{\sheap, \sstore, \pc, \sexpr}$} 
+\end{figure}
+
+
+
+
+
+
+%
+%
+%\qquad \quad \ 
+%%
+%%
+
+%%
+%%
+%\\[3mm]
+%%
+%%
+%%
+%{\small 
+%\stateaxiom{\textsc{Normal Return}}
+%   {\semtrans{}{\jsilheap, \ivlstore, \_, \procretlab}{\jsilheap, \ivlstore, \jsilonormal{\ivlstore(\procretvar)}}{\pid}}  
+%%
+%\hspace{1.73cm}
+%%
+%\stateaxiom{\textsc{Error Return}}
+%   {\semtrans{}{\jsilheap, \ivlstore, \_, \procexlab}{\jsilheap, \ivlstore, \jsiloerror{\ivlstore(\procerrvar)}}{\pid}}  }
+%\\[8pt]
+%{\small
+%%
+%\staterule{\textsc{Procedure Call - Normal}}
+%   { \ivlprog_{\pid}(i) = \ivlcall{\xivar}{\ivlexpr}{\ivlexpr_1, ..., \ivlexpr_{n_1}}{j}
+%     \quad
+%     \ivlsemexpr{\ivlexpr}{\ivlstore} = \pid'
+%     \\[2pt]
+%     \ivlprog(\pid') = \procedure{\pid'}{\yivar_1, ..., \yivar_{n_2}}{\jvec{\ivlcmd}} 
+%     \\[2pt]
+%     \forall_{1 \leq n \leq n_1} \ivllit_n = \ivlsemexpr{\ivlexpr_n}{\ivlstore}
+%     \quad
+%     \forall_{n_1 < n \leq n_2} \ivllit_n = \jsundefined
+%     \\[2pt]
+%     \semtrans{\ivlprog}{\jsilheap, \emptyset[\yivar_i \mapsto \ivllit_i |_{i=1}^{n_2}], 0, 0}{\jsilheap', \ivlstore', \jsilonormal{\ivllit}}{\pid'}
+%     \\[2pt]
+%     \semtrans{\ivlprog}{\jsilheap', \ivlstore[\xivar \mapsto \ivllit], i, i+1}{\jsilheap'', \ivlstore'', \outcomejsil}{\pid}   
+%  }{\semtrans{\ivlprog}{\jsilheap, \ivlstore, \_, i}{\jsilheap'', \ivlstore'', \outcomejsil}{\pid}}
+%\ \ 
+%\staterule{\textsc{Procedure Call - Error}}
+%   { \ivlprog_{\pid}(i) = \ivlcall{\xivar}{\ivlexpr}{\ivlexpr_1, ..., \ivlexpr_{n_1}}{j}
+%     \quad
+%     \ivlsemexpr{\ivlexpr}{\ivlstore} = \pid'
+%     \\[2pt]
+%     \ivlprog(\pid') = \procedure{\pid'}{\yivar_1, ..., \yivar_{n_2}}{\jvec{\ivlcmd}} 
+%     \\[2pt]
+%     \forall_{1 \leq n \leq n_1} \ivllit_n = \ivlsemexpr{\ivlexpr_n}{\ivlstore}
+%     \quad
+%     \forall_{n_1 < n \leq n_2} \ivllit_n = \jsundefined
+%     \\[2pt]
+%     \semtrans{\ivlprog}{\jsilheap, \emptyset[\yivar_i \mapsto \ivllit_i |_{i=1}^{n_2}], 0, 0}{\jsilheap', \ivlstore', \jsiloerror{\ivllit}}{\pid'}
+%     \\[2pt]
+%     \semtrans{\ivlprog}{\jsilheap', \ivlstore[\xivar \mapsto \ivllit], i, j}{\jsilheap'', \ivlstore'', \outcomejsil}{\pid}   
+%  }{\semtrans{\ivlprog}{\jsilheap, \ivlstore, \_, i}{\jsilheap'', \ivlstore'', \outcomejsil}{\pid}}}
+
+
+\subsection{Implementation}
+
