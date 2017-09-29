@@ -1,14 +1,31 @@
 %!TEX root = ../main.tex
 
 \begin{itemize}
-  \item diagram Jilette - explain the basic ideas 
-  \item Symbolic Execution for  \jsil -  introduces \jsil + defines symbolic for jsil + soundness lemma  
-  \item Implementation - encoding \jsil state in Rosette + snippet of the interpreter (1 bcmd + 1 cmd) + discussion of why this is sound
+  \item 2.0  - intro - explain the basic ideas of Jilette (use a diagram) - 
+ 
+  \item 2.1 - describe the jsil language. give its formal syntax (extended with assert and solve). 
+                   formally define symbolic execution for JSIL commands. soundness lemma. 
+ 
+  \item 2.2 Implementation:  
+               - encoding \jsil heaps in Rosette 
+               - explain the \jsil interpreter implemented in Rosette and its connection to the \jsil semantics (as defined in appendix) 
+               - give snippets of the interpreter 
+               - discuss soundness, trust, and other issues
+ 
+  \item 2.3 Symbolic execution for JavaScript 
+              - explain that we have to extend the syntax of JavaScript with asserts  as well as constructs for creating symbolic values
+              - give the example 
+              - discuss challenges: abstraction level of the generated code needs to match the abstraction level of Rosette 
 \end{itemize}
 
 \subsection{Symbolic Execution for  \jsil}
 
-We formalise the symbolic execution for \jsil basic commands in. 
+
+Figure~\ref{fig:symbex:basic:commands} presents the symbolic execution rules for \jsil basic commands. 
+Rules have the form $\symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap', \sstore', \pc'}$, 
+where: \dtag{1} $\sheap$ and $\sstore$ are the symbolic heap and store on which to evaluate $\bcmd$, 
+\dtag{2} $\pc$ the current \emph{path condition}, and \dtag{3} $\sheap'$, $\sstore'$, and $\pc'$
+the resulting symbolic heap, store, and path condition. 
 
 %\begin{display}{}
 \begin{figure}[ht!]
@@ -156,7 +173,7 @@ We formalise the symbolic execution for \jsil basic commands in.
      \pc \not\vdash \sexpr 
   }{\symbtranserr{\sheap, \sstore, \pc, \assert(\jsilexpr_1)}} 
 \end{mathpar}}
-\caption{Symbolic Execution for Basic Commands: $\symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap, \sstore, \pc}$} 
+\caption{Symbolic Execution for Basic Commands: $\symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap, \sstore, \pc}$\label{fig:symbex:basic:commands}}
 \end{figure}
 %\end{display}  
 
@@ -293,4 +310,36 @@ We formalise the symbolic execution for \jsil basic commands in.
 
 
 \subsection{Implementation}
+
+
+\subsection{Symbolic Execution for JavaScript}
+
+
+ \begin{figure}[th!]
+ \begin{lstjs}[firstnumber=1]
+function Map () { this._contents = {} }
+
+Map.prototype.get = function (k) {
+    if (this._contents.hasOwnProperty(k)) {  return this._contents[k] } 
+    	else { return null }  
+}
+
+Map.prototype.put = function (k, v) {
+   var contents = this._contents;
+   if (this.validKey(k)) {  contents[k] = v   } 
+   	else { throw new Error("Invalid Key") } 
+} 
+
+Map.prototype.validKey = function (k) { ... }
+\end{lstjs}
+\caption{Map Implementation in JavaScript}
+\end{figure}
+
+ \begin{figure}[th!]
+ \begin{lstjs}[firstnumber=1]
+var m = new Map();  m.put (__s1, __n1); var r = m.get(__s1);  
+assert(__n1 = r)
+\end{lstjs}
+\caption{Symbolic Test for the Map Library}
+\end{figure}
 

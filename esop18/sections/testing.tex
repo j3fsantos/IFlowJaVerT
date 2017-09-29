@@ -1,21 +1,2 @@
 %!TEX root = ../main.tex
  
- 
- \begin{lstjs}[firstnumber=1]
-function Map () { this._contents = {} }
-
-Map.prototype.get = function (k) {
-    if (this._contents.hasOwnProperty(k)) { 
-        return this._contents[k] 
-    } else { return null }  
-}
-
-Map.prototype.put = function (k, v) {
-   var contents = this._contents;
-   if (this.validKey(k)) { 
-       contents[k] = v; 
-   } else { throw new Error("Invalid Key") } 
-} 
-
-Map.prototype.validKey = function (k) { ... }
-\end{lstjs}
