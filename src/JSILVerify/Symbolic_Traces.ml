@@ -59,7 +59,6 @@ let filter_symb_graph
 		(symb_graph        : symbolic_graph) 
 		(symb_graph_filter : (string * int, int * bool) Hashtbl.t) : symbolic_graph = 
 
-
 	let is_node_to_keep node = 
 		(match node.node_type with 
 		| SGCmdNode (cmd_str, cmd_index) ->  
@@ -141,7 +140,6 @@ let dot_of_symb_graph
 	let str_nodes = dot_of_search_nodes symb_graph.info_nodes in
 	let str_edges = dot_of_edges symb_graph.info_edges in
 	str ^ str_nodes ^ str_edges ^ "}" 
-
 
 
 let dot_of_symb_exec_ctxt 

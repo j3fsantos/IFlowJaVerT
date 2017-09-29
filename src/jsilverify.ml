@@ -146,12 +146,12 @@ let process_file path =
 		(*     4.1 - lemmas                                            *)
 		(*     3.2 - specs                                             *)
 		(*  -----------------------------------------------------------*)
-   	print_debug "*** Stage 4: Proving lemmas and specifications.\n";
-    let _ = Symbolic_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
+   		print_debug "*** Stage 4: Proving lemmas and specifications.\n";
+   		 let _ = Symbolic_Interpreter.prove_all_lemmas ext_prog.lemmas prog spec_tbl which_pred n_pred_defs in ();
 		let _ = symb_interpreter prog ext_prog.procedure_names spec_tbl ext_prog.lemmas which_pred n_pred_defs symb_graph_filter in ();
 		
 		(* Step 5: Generating/saving the normalised specs after pruning *)
-    if (!output_normalised_specs) then 
+    	if (!output_normalised_specs) then 
 			let _ = Printf.printf "Generating .njsil file\n"; in
 			Normaliser.generate_nsjil_file ext_prog spec_tbl n_pred_defs;
 
