@@ -126,55 +126,38 @@
 
 \section{Introduction}
 
-JavaScript is the most widespread
-dynamic language: it is the de facto language for client-side Web
-applications (used by 94.8\% of
-websites\footnote{w3techs.com/technologies/details/cp-javascript/all/all.});
-it is used for server-side scripting via Node.js; and it is even run on
-small embedded devices with limited memory. It is the most active
-language in both GitHub and StackOverflow\footnote{JavaScript  has most active
-  repos on GitHub, http://githut.info; JavaScript has most questions on
-  StackOverflow, \\https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628.}.
-The dynamic nature of
-JavaScript and its complex semantics make it a difficult target for
-symbolic analysis and verification. 
-% 
-The most commonly used 
+JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web
+applications (used by 94.8\% of websites\footnote{w3techs.com/technologies/details/cp-javascript/all/all.});
+it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
+memory. It is the most active language in both GitHub and StackOverflow\footnote{JavaScript  has most active
+ repos on GitHub, http://githut.info; JavaScript has most questions on 
+ StackOverflow, \\https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628.}.
+The dynamic nature of JavaScript and its complex semantics make it a difficult target for
+symbolic analysis and logic-based verification. 
+This paper presents \jilette, a symbolic execution tool for JavaScript that improves existing solutions
+in two ways: \dtag{1} it is grounded on the real semantics of the language and 
+\dtag{2} it supports reasoning about symbolic strings and regular expressions. 
+%
+Furthermore, we present two possible uses for \jilette. It can both be used as \dtag{i} a tool for
+ running symbolic tests for JavaScript programs and \dtag{ii} a debugging mechanism for separation 
+ logic specifications of JavaScript programs. 
+
+\myparagraph{Symbolic Testing} The most commonly used 
 approach to obtaining trust in JavaScript code is running it against 
 adhoc test batteries---given inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
-cannot guarantee exhaustiveness.
-
-To tackle this issue, we present Jilette, a symbolic execution tool for 
-JavaScript whose main purpose is to facilitate exhaustive symbolic 
-testing of JavaScript programs. Jilette leverages on the
-\JSComp compiler and Rosette \cite{Rosette1}, a solver-aided programming
-language with support for symbolic values and first-order
-assertions. The core of Jilette comprises a JSIL interpreter
-written in Rosette. By piggybacking on Rosette and JS-2-JSIL, we 
-are able to execute JavaScript programs on symbolic values. 
-We show how to use Jilette
+cannot guarantee exhaustiveness. We show how to use \jilette
 for the symbolic testing of JavaScript programs: instead of using concrete 
 inputs in tests, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
 first-order assertions over these inputs. 
-This approach guarantees exhaustiveness. Moreover, due to the
-solver-aided facilities of Rosette, if a test fails, 
-Jilette provides the concrete inputs that do not satisfy the
-constraints, immediately revealing bugs in the tested code.
+%This approach guarantees exhaustiveness.  Moreover, due to the
+Furthermore, if a test fails, Jilette provides the concrete inputs that cause it 
+to fail, immediately revealing bugs in the tested code.
 
-We show how  to use Jilette for writing symbolic tests for client side 
-JavaScript code calling Web APIs. In particular, we demonstrate how to 
-checking the conformance of Web API requests with their specified signatures. 
-The existing solutions for this problem are still imprecise due to the 
-dynamicity of JavaScript combined with the difficulty of reasoning about
-operations on symbolic strings \cite{Idontknow}. Jilette is an excellent fit for
-this task as it leverages on Rosette's back-end
-constraint solver, Z3, which supports reasoning on symbolic strings
-and regular expressions, whereas JS-2-JSIL successfully
-contains the complexity of JavaScript itself.
 
-Finally, we show how to use Jilette as an auxiliary mechanism for debugging 
+\myparagraph{Debugging Separation Logic Specifications}
+We show how to use \jilette as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs. Verification tools for  
 JavaScript code are still very rare and often require heavily annotating the 
 original code for helping the solver prove entailments involving user-defined 
@@ -182,11 +165,48 @@ predicates, as well as coping with loops and recursion. Furthermore, when these
 tools cannot prove that a given function does not satisfy its specification, the 
 user needs to go through a  proof trace and understand it in detail. 
 Here, we demonstrate how to use \jilette to find errors in specifications by generating 
-symbolic tests from these specifications and running these tests using \jilette. 
-Then, if a symbolic test generated from a given specification fails, the code to 
-be verified does not satisfy that specification. This approach has the advantage that,
- in case of failure, it  generates a concrete counter-model that invalidates the 
- specification. This information greatly simplifies the debugging of both specifications and code. 
+symbolic tests from these specifications and running the tests using \jilette. 
+Then, if a symbolic test generated from a given specification fails, we can 
+be sure that the code to be verified does not satisfy its specification. 
+More importantly, in case of failure, \jilette generates a concrete counter-model that 
+invalidates the specification. This information greatly simplifies the debugging of 
+both specifications and code. 
+
+\myparagraph{Architecture}
+\jilette leverages on the \JSComp compiler and Rosette \cite{Rosette1}. 
+\JSComp is a thoroughly tested compiler from JavaScript to \jsil, a simple 
+intermediate language well suited for verification. Rosette is a 
+solver-aided programming language with support for symbolic values 
+and first-order assertions. The core of Jilette comprises a JSIL interpreter
+written in Rosette. By piggybacking on Rosette and JS-2-JSIL, we 
+are able to execute JavaScript programs on symbolic values, effectively 
+obtaining a symbolic execution tool for JavaScript. 
+This combination is non-trivial because \polish{many many things...} 
+
+
+%We show how  to use Jilette for writing symbolic tests for client side 
+%JavaScript code calling Web APIs. In particular, we demonstrate how to 
+%checking the conformance of Web API requests with their specified signatures. 
+%The existing solutions for this problem are still imprecise due to the 
+%dynamicity of JavaScript combined with the difficulty of reasoning about
+%operations on symbolic strings \cite{Idontknow}. Jilette is an excellent fit for
+%this task as it leverages on Rosette's back-end
+%constraint solver, Z3, which supports reasoning on symbolic strings
+%and regular expressions, whereas JS-2-JSIL successfully
+%contains the complexity of JavaScript itself.
+
+\section{\jilette: Design and Implementation}
+\input{sections/jilette}
+
+
+\section{Parameterised Testing with \jilette}
+\input{sections/testing}
+
+\section{Validating Separation Logic with \jilette}
+\input{sections/specs}
+
+\section{Evaluation}
+\input{sections/evaluation}
 
 
 \section{Related Work} 
@@ -212,21 +232,6 @@ semantics of programming languages.
 \cite{stefanescu-park-yuwen-li-rosu-2016-oopsla} introduce a language-independent verification infrastructure 
 that can be instantiated with a $\mathbb{K}$-interpretation of a  language to automatically generate a symbolic verification tool for that language based on the $\mathbb{K}$ reachability logic. They apply this infrastructure to KJS to generate a verification tool for JavaScript, which they use to verify functional correctness properties of operations for manipulating data structures such as binary search trees, AVL trees, and lists.
 
-
-
-
-\section{\jilette: Design and Implentation}
-\input{sections/jilette}
-
-
-\section{Parameterised Testing with \jilette}
-\input{sections/testing}
-
-\section{Validating Separation Logic with \jilette}
-\input{sections/specs}
-
-\section{Evaluation}
-\input{sections/evaluation}
 
 \section{Conclusions}\label{conclusions}
 
