@@ -122,9 +122,6 @@
 \newcommand{\yvar}[0]{y}
 \newcommand{\vars}[0]{\sortstyle{X}_\jssuffix}
 % Values
-\newcommand{\val}[0]{v}
-\newcommand{\vals}[0]{\sortstyle{V}}
-% Values
 \newcommand{\jsval}[0]{v}
 \newcommand{\jsvals}[0]{\sortstyle{V_{\jssuffix}}}
 
@@ -132,17 +129,7 @@
 \newcommand{\jshvals}[0]{\sortstyle{\vals}^{h}_{\jssuffix}}
 
 % literals
-\newcommand{\lit}[0]{\lambda}
-\newcommand{\lits}[0]{\sortstyle{L}it}
-% booleans
-\newcommand{\jbool}[0]{b}
-\newcommand{\bools}[0]{\sortstyle{B}ool}
-% strings
-\newcommand{\jstring}[0]{m}
-\newcommand{\strings}[0]{{\mathcal S}tr}
-% numbers
-\newcommand{\jnumber}[0]{n}
-\newcommand{\numbers}[0]{\sortstyle{N}um}
+
 % property names
 \newcommand{\pn}[0]{pn}
 \newcommand{\pns}[0]{\sortstyle{P}}
@@ -158,8 +145,6 @@
 \newcommand\aheap[0]{H}
 
 \newcommand\jsheaps[0]{{\mathcal H_\jssuffix}}
-\newcommand\jsheap[0]{h}
-\newcommand\jsilheaps[0]{{\mathcal H_\jsilsuffix}}
 %\newcommand\ajsilheaps[0]{{\mathcal H_\jsilsuffix^{\diameter}}}
 \newcommand\jsilheap[0]{\mathtt{h}}
 
@@ -179,15 +164,12 @@
 \newcommand{\lochop}{\loc_{hop}}
 % Heap Cell
 % Read operation
-\newcommand{\hread}[3]{#1(#2, #3)}
 % Update operation
-\newcommand{\hupdate}[3]{#1[#2 \mapsto #3]}
 % Disjoint union
-\newcommand{\dunion}[0]{\, \uplus \,}
 % Disjoint union
 \newcommand{\jobj}[2]{#1 \mapsto \{ #2 \}}
 % Empty heap
-\newcommand{\emp}{{\sf emp}}
+
 % Cell deallocation
 \newcommand{\celldealloc}[2]{#1\backslash#2}
 
@@ -288,7 +270,6 @@
 \newcommand\outcomejsil{\mathtt{o}}
 \newcommand\outcomesjsil{{\mathcal O}_{\jsilsuffix}}
 \newcommand{\conf}[1]{\langle #1 \rangle}
-\newcommand{\semtrans}[4]{#1\vdash\conf{#2}\Downarrow_{#4} \conf{#3}}
 \newcommand{\semtransstmt}[7]{#1 \vdash \conf{#2, #3 \mid #4} \, \Downarrow_{s} \conf{#5, #6 \mid #7}}
 \newcommand{\semtransval}[3]{#1 \vdash \conf{#2} \, \Downarrow^{\getvalue}_{e} \conf{#3}}
 \newcommand{\semtransv}[4]{#1 \vdash \conf{#2} \, \Downarrow^{\getvalue}_{#4} \conf{#3}}
@@ -358,7 +339,6 @@
 \newcommand\instr[2]{#1: \, #2}
 \newcommand\xivar{\mathtt{x}}
 \newcommand\yivar{\mathtt{y}}
-\newcommand\xivars{\sortstyle{X}_\jsilsuffix}
 \newcommand\xilvars{\sortstyle{X}_\jsilsuffix^L}
 \newcommand\ivlprogs{\mathtt{P}}
 
@@ -570,10 +550,11 @@
 
 %% JILETTE PAPER FROM HERE!!!!!
 %%
-
+%%%%%%%%%%%%%%%%
 % syntax
+%%%%%%%%%%%%%%%%
 \newcommand\jsilexpr{\mathtt{e}}
-\newcommand\jvar{\mathtt{x}}
+\newcommand\jvar{x}
 \newcommand{\loc}{l}
 \newcommand\jtrue[0]{{\sf true}}
 \newcommand\jfalse[0]{{\sf false}}
@@ -591,6 +572,7 @@
 \newcommand\cmds{\mathtt{Cmd}}
 \newcommand\bcmds{\mathtt{BCmd}}
 \newcommand\args{\mathtt{args}}
+\newcommand\jvars{\sortstyle{X}}
 %basic commands
 \newcommand{\jsillist}[1]{ [ #1 ]}
 \newcommand\jsilskip[0]{\darkmath{\textsf {skip}}}
@@ -598,26 +580,63 @@
 \newcommand\jsildelete{\darkmath{\textsf {delete}}}
 \newcommand\hasfield{\darkmath{\textsf {hasField}}}
 \newcommand\assert{\darkmath{\textsf {assert}}}
+%control flow commands
 \newcommand\goto{\darkmath{\textsf {goto}}}
 \newcommand\ifgoto[3]{\darkmath{\textsf {goto}} \ [#1] \ #2, \ #3}
 \newcommand\jsilcall[4]{#1 := #2(#3) \, \darkmath{\textsf {with}} #4}
+%%%%%%%%%%%%%%%
+% Semantics
+%%%%%%%%%%%%%%%
+\newcommand\ctx{C}
+\newcommand{\semtrans}[2]{\tuple{#1} \rightarrow \tuple{#2}}
+\newcommand{\semtranserr}[1]{\tuple{#1} \rightarrow \bot}
+%%%%%%%%%%%%%%%
 % Symbolic Execution
+%%%%%%%%%%%%%%%
+\newcommand\sstate{\sigma}
 \newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
 \newcommand{\symbtrans}[2]{ \tuple{#1} \leadsto \tuple{#2}}
 \newcommand{\symbtranserr}[1]{ \tuple{#1} \leadsto \bot}
 \newcommand\pc{\pi}
-\newcommand\sexpr{\hat{\mathtt{e}}}
+\newcommand\sexpr{\hat{e}}
 \newcommand\sexprp{\hat{\mathtt{p}}}
 \newcommand\sexprv{\hat{\mathtt{v}}}
 \newcommand\func{\mathtt{fun}}
-\newcommand\ctx{C}
-\newcommand\explode{}
+\newcommand\sctx{\hat{C}}
+\newcommand\sstring{\hat{s}}
+\newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
+\newcommand\snumber{\hat{n}}
+\newcommand{\snumbers}[0]{\hat{\mathcal{N}}}
+%%%%%%%%%%%
 % memory model
+%%%%%%%%%%%
+\newcommand\heap[0]{h}
+\newcommand\heaps[0]{{\mathcal H}}
+\newcommand\store[0]{\rho}
 \newcommand\sheap[0]{\hat{h}}
 \newcommand\sstore[0]{\hat\rho}
 \newcommand{\jsilempty}{{\sf empty}}
 \newcommand{\hcell}[3]{(#1, #2) \mapsto #3}
 \newcommand{\hmulticell}[2]{#1 \mapsto \{ #2 \}}
+\newcommand{\lit}[0]{\lambda}
+\newcommand{\lits}[0]{\sortstyle{L}it}
+%Heap operations
+\newcommand{\hread}[3]{#1(#2, #3)}
+\newcommand{\hupdate}[3]{#1[#2 \mapsto #3]}
+\newcommand{\dunion}[0]{\, \uplus \,}
+\newcommand{\hemp}{\emptyset}
+% booleans
+\newcommand{\jbool}[0]{b}
+\newcommand{\bools}[0]{\sortstyle{B}}
+% strings
+\newcommand{\jstring}[0]{s}
+\newcommand{\strings}[0]{{\mathcal S}}
+% numbers
+\newcommand{\jnumber}[0]{n}
+\newcommand{\numbers}[0]{\sortstyle{N}}
+% Values
+\newcommand{\val}[0]{v}
+\newcommand{\vals}[0]{\sortstyle{V}}
 
 
 
