@@ -41,14 +41,6 @@
 
 \newcommand{\todo}{\textbf{TODO~\ }}
 
-% Lists
-\newcommand{\lstcons}[0]{::}
-\newcommand{\lcons}[2]{\text{$#1$\,::\,$#2$}}
-\newcommand{\lstconcat}[0]{\cdot}
-\newcommand{\lstempty}[0]{[ \ ]}
-\newcommand\lst[0]{L}
-\newcommand\lstindex[2]{#1_{#2}}
-\newcommand\lstsize[1]{\vert #1 \vert}
 
 \newcommand\scpchain[0]{L}
 \newcommand\scpchains[0]{\sortstyle{S}ch_\jssuffix}
@@ -547,6 +539,13 @@
 \newcommand{\domain}{\command{dom}}
 \newcommand{\range}{\command{rng}}
 \newcommand{\fv}{\command{fv}}
+% Lists
+\newcommand{\lstcons}[0]{::}
+\newcommand{\lstconcat}[0]{\cdot}
+\newcommand{\lstemp}[0]{[ \ ]}
+\newcommand\lst[0]{L}
+\newcommand\lstindex[2]{#1_{#2}}
+\newcommand\lstsize[1]{\vert #1 \vert}
 %%%%%%%%%%%%%%%%
 % syntax
 %%%%%%%%%%%%%%%%
@@ -649,7 +648,10 @@
 %%
 \newcommand\ltrue{\command{True}}
 \newcommand\lfalse{\command{False}}
-
-
-% Outcomes 
-
+% %
+%% Rosette
+%% 
+\newcommand\roscomp[1]{\langle \vert #1 \vert \rangle}
+\newcommand\racketlist[0]{\text{\bf list}}
+\newcommand\racketcons[0]{\text{\bf cons} \ }
+\newcommand\racketquote[0]{\text{\bf quote} \ }

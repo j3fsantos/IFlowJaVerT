@@ -34,7 +34,13 @@ Transitions have the form:  $\semtrans{\heap, \store, \ctx[i]}{\heap', \store', 
 meaning that the evaluation of the $i$-th command of the current procedure in 
 the heap $\heap$ and store $\store$ generates the heap $\heap'$ and store $\store'$ 
 and $j$ is the next command to be evaluated. 
-\polish{I have to talk about contexts here...} 
+A context $\ctx$ is  a list of tuples of form $(\pid, \sstore, \jvar, i, j)$, where: 
+\dtag{1} $\pid$ is the identifier of a procedure whose code is currently being executed, 
+\dtag{2} $\sstore$ is the store of the procedure that called $\pid$, \dtag{3} $\jvar$ is 
+the variable to which the return of $\pid$ must be assigned, \dtag{4} $i$ is the index 
+of the command to which the control must jump after the execution of $\pid$ in 
+case of normal return, and \dtag{5} $j$ the index to which it must jump in case of 
+error return. 
 
 
 \myparagraph{\jsil: Symbolic Evaluation}
@@ -61,14 +67,18 @@ symbolic heap $\sheap$, a symbolic store $\sstore$, and a path condition $\pc$.
 The path condition is a first order quantifier free formula over symbolic strings and 
 numbers, which accumulates constraints on the given symbolic inputs that trigger 
 the execution to follow the path that led to the current symbolic state. 
+Path conditions are given by the following grammar: 
+\begin{equation}
+\pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc
+\end{equation}
 
 Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for \jsil basic commands. 
-Rules have the form $\symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap', \sstore', \pc'}$, 
+Rules have the form $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
 where: \dtag{1} $\sheap$ and $\sstore$ are the symbolic heap and store on which to evaluate $\bcmd$, 
 \dtag{2} $\pc$ the current \emph{path condition}, and \dtag{3} $\sheap'$, $\sstore'$, and $\pc'$
 the resulting symbolic heap, store, and path condition. 
 Figure~\ref{fig:symbexe:cmds} presents the symbolic execution rules for \jsil commands. 
-Rules have the form $\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap, \sstore, \pc, \sctx'[j]}$; 
+Rules have the form $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'}$; 
 they differ from the rules for basic commands in that: \dtag{i} instead of the basic command to 
 be executed on the left, they have the index of the command to be executed paired up 
 with its associated execution context, and, \dtag{ii} on the right, they additionally have the 
@@ -80,7 +90,7 @@ index of the next command to be executed paired with the resulting execution con
 \begin{mathpar} 
 %
 \inferrule[\textsc{Skip}]{}
-	{ \symbtrans{\sheap, \sstore, \pc, \jsilskip}{\sheap, \sstore, \pc}} 
+	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
  \and
  %
 \inferrule[\textsc{Assignment}]
@@ -88,7 +98,7 @@ index of the next command to be executed paired with the resulting execution con
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
       \quad
       \sstore' = \sstore[\jvar \mapsto \sexpr]
-  }{\symbtrans{\sheap, \sstore, \pc, \jvar := \jsilexpr}{\sheap, \sstore', \pc}} 
+  }{\symbtrans{\sheap, \sstore, \jvar := \jsilexpr, \pc}{\sheap, \sstore', \pc}} 
 %
 \and 
 %
@@ -96,7 +106,7 @@ index of the next command to be executed paired with the resulting execution con
   { 
     \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
     \and (\loc,-) \notin \domain (\sheap)
-  }{\symbtrans{\sheap, \sstore, \pc, \jvar := \jsilnew()}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
+  }{\symbtrans{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
 \\
 %
 \inferrule[\textsc{Property Access}]
@@ -112,7 +122,7 @@ index of the next command to be executed paired with the resulting execution con
         0 \leq k \leq n
         \\\\
         \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{ \symbtrans{\sheap, \sstore, \pc, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
+  }{ \symbtrans{\sheap, \sstore, \jvar := [\jsilexpr_1, \jsilexpr_2], \pc}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
  %
 \\
 %
@@ -132,7 +142,7 @@ index of the next command to be executed paired with the resulting execution con
           \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
          \quad
          \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore, \pc,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sheap'', \sstore, \pc'}} 
+  }{\symbtrans{\sheap, \sstore,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}} 
 \\
 %
 \inferrule[\textsc{Property Assignment - Not Found}]
@@ -151,7 +161,7 @@ index of the next command to be executed paired with the resulting execution con
           \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
          \quad
          \sheap' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore, \pc,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sheap', \sstore, \pc'}}   
+  }{\symbtrans{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap', \sstore, \pc'}}   
 %
 \\
 %
@@ -170,7 +180,7 @@ index of the next command to be executed paired with the resulting execution con
       \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
      \quad 
       \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
-   }{\symbtrans{\sheap, \sstore, \pc, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\sheap'', \sstore, \pc'}}
+   }{\symbtrans{\sheap, \sstore, \jsildelete(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap'', \sstore, \pc'}}
  \\
  %
 \inferrule[\textsc{Member Check - True}]
@@ -186,7 +196,7 @@ index of the next command to be executed paired with the resulting execution con
         0 \leq k \leq n
      \\ 
      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{\symbtrans{\sheap, \sstore, \pc, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
+  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
 %
 \\
 %
@@ -203,7 +213,7 @@ index of the next command to be executed paired with the resulting execution con
         0 \leq k \leq n
      \\ 
      \pc' = \pc \ \wedge \,  \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{\symbtrans{\sheap, \sstore, \pc, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
+  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
 \\
 %
 \inferrule[\textsc{Assert - True}]
@@ -211,29 +221,29 @@ index of the next command to be executed paired with the resulting execution con
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      \pc \vdash \sexpr 
-  }{\symbtrans{\sheap, \sstore, \pc, \assert(\jsilexpr)}{\sheap, \sstore, \pc}} 
+  }{\symbtrans{\sheap, \sstore, \assert(\jsilexpr), \pc}{\sheap, \sstore, \pc}} 
 \quad
 \inferrule[\textsc{Assert - False}]
   { 
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      \pc \not\vdash \sexpr 
-  }{\symbtranserr{\sheap, \sstore, \pc, \assert(\jsilexpr)}} 
+  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}} 
 \end{mathpar}}
-\caption{Symbolic Execution for Basic Commands: {\scriptsize$\symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
+\caption{Symbolic Execution for Basic Commands: {\scriptsize$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
 \end{figure}
 %\end{display}  
 
 
-\begin{figure}[ht!]
+\begin{figure}[ht]
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Basic Command}]
    { 
      \prog_{\pid}(i) = \bcmd 
      \quad
-     \symbtrans{\sheap, \sstore, \pc, \bcmd}{\sheap', \sstore', \pc'} 
-   }{\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap', \sstore', \pc', \sctx[i+1]}}
+     \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'} 
+   }{\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx[i+1], \pc'}}
 %
    \qquad
   %
@@ -241,26 +251,26 @@ index of the next command to be executed paired with the resulting execution con
    { 
      \prog_{\pid}(i) = \bcmd 
      \quad
-     \symbtranserr{\sheap, \sstore, \pc, \bcmd} 
-   }{\symbtranserr{\sheap, \sstore, \pc, \sctx[i]}}
+     \symbtranserr{\sheap, \sstore, \bcmd, \pc} 
+   }{\symbtranserr{\sheap, \sstore, \sctx[i], \pc}}
  %
    \qquad
   %
   \inferrule[\textsc{Goto}]
    { \prog_{\pid}(i) = \goto \, j \quad}
-   {\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap, \sstore, \pc, \sctx[j]}}
+   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[j], \pc}}
   \\ 
   \inferrule[\textsc{Cond. Goto - True}]
    { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
      \symbeval{\jsilexpr}{\sstore} =  \sexpr
    }
-   {\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap, \sstore, \pc \, \wedge \, \sexpr, \sctx[j]}}
+   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[j],  \pc \, \wedge \, \sexpr}}
   \and 
     \inferrule[\textsc{Cond. Goto - False}]
    { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
      \symbeval{\jsilexpr}{\sstore} =  \sexpr
    }
-   {\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap, \sstore, \pc \, \wedge \, \neg\sexpr, \sctx[k]}}
+   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[k], \pc \, \wedge \, \neg\sexpr}}
    \\
     \inferrule[\textsc{Procedure Call}]
    { 
@@ -274,7 +284,7 @@ index of the next command to be executed paired with the resulting execution con
      \quad 
       \sexpr_i = \jsundefined \mid_{i = n+1}^{m}  
    }
-   {\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap, [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}] , \pc, ((\pid', \sstore, \jvar, i+1, j)::\sctx)[0]}}
+   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}], ((\pid', \sstore, \jvar, i+1, j)::\sctx)[0], \pc}}
     \\ 
   \inferrule[\textsc{Normal Return}]
    {
@@ -282,7 +292,7 @@ index of the next command to be executed paired with the resulting execution con
        \quad 
        \sstore(\procretvar) = \sexpr
    }  
-   {\symbtrans{\sheap, \sstore, \pc, \sctx[\procretlab]}{\sheap, \sstore'[\jvar \mapsto \sexpr], \pc, \sctx'[i]}}
+   {\symbtrans{\sheap, \sstore, \sctx[\procretlab], \pc}{\sheap, \sstore'[\jvar \mapsto \sexpr], \sctx'[i], \pc}}
    \and 
      \inferrule[\textsc{Error Return}]
    {
@@ -290,22 +300,17 @@ index of the next command to be executed paired with the resulting execution con
        \quad 
        \sstore(\procerrvar) = \sexpr
    }  
-   {\symbtrans{\sheap, \sstore, \pc, \sctx[\procerrlab]}{\sheap, \sstore'[\jvar \mapsto \sexpr], \pc, \sctx'[j]}}
+   {\symbtrans{\sheap, \sstore, \sctx[\procerrlab], \pc}{\sheap, \sstore'[\jvar \mapsto \sexpr], \sctx'[j], \pc}}
  \end{mathpar}}
-\caption{Symbolic Execution for Control Flow Commands: {\scriptsize$\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap, \sstore, \pc, \sctx'[j]}$}\label{fig:symbexe:cmds}}
+\caption{Symbolic Execution for Control Flow Commands: {\scriptsize$\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'}$}\label{fig:symbexe:cmds}}
 \end{figure}
 
-
-\myparagraph{Soundness} To establish the soundness of symbolic execution we need to relate 
-symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
-$\senv : \svars \rightharpoonup \lits$ mapping symbolic values to \jsil literals. 
-A symbolic environment is said to be \emph{consistent} if it maps symbolic 
-values to concrete values of the appropriate type. In the following, we will always 
-assume consistent symbolic environments. 
-%
-Given a symbolic environment $\senv$, we define the interpretation of a symbolic 
-expression $\sexpr$ under $\senv$ as follows: 
-\begin{equation}
+\begin{figure}[ht!]
+{
+\begin{tabular}{l}
+$\quad${\bf Symbolic Expressions:}  \\
+$
+\quad
 \semexpr{\lit}{\senv} \semeq \lit
 \quad 
 \semexpr{\svar}{\senv} \semeq \senv(\svar)
@@ -313,12 +318,8 @@ expression $\sexpr$ under $\senv$ as follows:
 \semexpr{\unoper\ \sexpr}{\senv} \semeq \unoper (\semexpr{\sexpr}{\senv})
 \quad 
 \semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \binoper(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
-\end{equation}
-We extend the interpretation function to symbolic states as defined below. 
-
-\begin{display}{Interpretation of Symbolic States}
-{
-\begin{tabular}{l}
+$
+\\[3pt]
 $\quad${\bf Symbolic Heaps:}  \\
 $
 \quad
@@ -339,12 +340,35 @@ $
  \semexpr{(\jvar: \sexpr) \dunion \sstore}{\senv} \semeq (\jvar: \semexpr{\sheap_1}{\senv}) \dunion \semexpr{\sstore}{\senv}
 $%
 \\[3pt]
-$\quad$ {\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq (\semexpr{\sheap}{\senv}, \semexpr{\sstore}{\senv}, \semexpr{\sctx}{\senv})$
+$\quad${\bf Symbolic Contexts:}  \\
+$
+\quad
+ \semexpr{\lstemp}{\senv} \semeq \lstemp
+\quad 
+ \semexpr{(\pid, \sstore, \jvar, i, j) \lstcons \sctx}{\senv} \semeq (\pid, \semexpr{\sstore}{\senv}, \jvar, i, j) \lstcons \semexpr{\sctx}{\senv}
+$%
+
+\\[3pt]
+$\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq (\semexpr{\sheap}{\senv}, \semexpr{\sstore}{\senv}, \semexpr{\sctx}{\senv})$
 \end{tabular}
 }
-\end{display} 
+\caption{Interpretation of symbolic expressions, heaps, stores, and contexts.\label{fig:symbolic:interp}}
+\end{figure}
 
-In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} \Leftrightarrow \ltrue$. 
+\myparagraph{Soundness} To establish the soundness of symbolic execution we need to relate 
+symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
+$\senv : \svars \rightharpoonup \lits$ mapping symbolic values to \jsil literals. 
+A symbolic environment is said to be \emph{consistent} if it maps symbolic 
+values to concrete values of the appropriate type (e.g. symbolic strings are mapped to strings 
+and symbolic numbers are mapped to numbers). In the following, we will always 
+assume consistent symbolic environments. 
+%
+Given a symbolic environment $\senv$, we define the interpretation of a symbolic 
+expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
+
+
+
+In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} = \ltrue$. 
 For convenience, we define: 
 \begin{equation}
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
@@ -368,14 +392,76 @@ $$
 
 \subsection{Implementation}
 
-The point here is to explain how writing a correct concrete \jsil interpreter in Rosette
-yields the symbolic environments presented in the previous subsection. 
+
+\polish{The point here is to explain how writing a correct concrete \jsil interpreter in Rosette
+yields the symbolic environments presented in the previous subsection.} 
 
 
+\begin{display}{Rosette implementation of \jsil symbolic state}
+{\scriptsize
+\begin{mathpar}
+\inferrule[\textsc{Empty Heap}]
+  {}{\roscomp{\hemp} \semeq (\racketlist)} 
+\and 
+\inferrule[\textsc{Non-empty Heap}]
+  {
+  	 \sheap_1 = \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+	 \quad 
+	 (\loc, -) \not\in \domain(\sheap_2)
+  }{\roscomp{\sheap_1 \dunion \sheap_2} \semeq  (\racketcons (\racketcons \loc \, (\racketlist \, (\racketcons \sexprp_0 \, \sexprv_0) \cdots   (\racketcons \sexprp_n \, \sexprv_n)))  \ \roscomp{\sheap_2})} 
+ \\
+\inferrule[\textsc{Empty Store}]
+  {}{\roscomp{\storeemp} \semeq (\racketlist)} 
+\and 
+\inferrule[\textsc{Non-Empty Store}]
+  {}{\roscomp{(\jvar: \sexpr) \dunion \sstore} \semeq (\racketcons \, (\racketcons \, (\racketquote \jvar) \ \sexpr) \,  \roscomp{\sstore})} 
+\end{mathpar}}
+\end{display}
+
+\lstset{language=Scheme}
+
+\begin{figure}
+\begin{lstlisting}
+(define (mutate-prop-val-list prop-val-list prop new-val)
+  (cond
+    [(null? prop-val-list)
+     (list (cons prop new-val))]
+    [(equal? (car (car prop-val-list)) prop)
+     (cons (cons prop new-val) (cdr prop-val-list))]
+    [ else
+     (cons (car prop-val-list) (mutate-prop-val-list (cdr prop-val-list) prop new-val))]))
+
+(define (mutate-heap heap loc prop val)
+  (define (mutate-heap-pulp h-pulp loc prop val)
+    (cond
+      [(null? h-pulp)
+       (list (cons loc (list (cons prop val))))]
+      [(equal? (car (car h-pulp)) loc)
+       (cons (cons loc (mutate-prop-val-list (cdr (car h-pulp)) prop val)) (cdr h-pulp))]
+      [ else
+       (cons (car h-pulp) (mutate-heap-pulp (cdr h-pulp) loc prop val))]))
+  (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
+    (set-box! heap new-heap-pulp)))
 
 
-\subsection{Symbolic Execution for JavaScript}
+(define (run-bcmd bcmd heap store)
+  (let ((cmd-type (first bcmd)))
+    (cond
+    	[(eq? cmd-type 'h-assign)
+      	 (let* ((loc-val (run-expr (second bcmd) store))
+                (prop-val (run-expr (third bcmd) store))
+                (rhs-val (run-expr  (fourth bcmd) store)))
+            (mutate-heap heap loc-val prop-val rhs-val)
+            rhs-val)]
+         ...)))
+\end{lstlisting}
+\caption{Fragment of \jsil Interpreter in Rosette}
+\end{figure}
 
+
+\section{Symbolic Execution for JavaScript}
+
+\subsection{Motivating Example} 
 
  \begin{figure}[th!]
  \begin{lstjs}[firstnumber=1]
