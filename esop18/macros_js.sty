@@ -26,10 +26,7 @@
 \newcommand{\command}[1]{\ensuremath{\mathsf{#1}}\xspace}
 \newcommand\defeq{{{::}=}}
 \newcommand\jvec[1]{\overline{#1}}
-\newcommand\semeq{\,\triangleq\,}
-\newcommand{\domain}{\command{dom}}
-\newcommand{\range}{\command{rng}}
-\newcommand{\fv}{\command{fv}}
+
 \newcommand{\notcare}{-}
 \definecolor{light-gray}{gray}{0.6}
 \newcommand{\lightmath}[1]{{\color{light-gray}#1 \, }}
@@ -232,8 +229,6 @@
 \newcommand\SelectThis{\command{SelectThis}}
 \newcommand\parse{\command{parse}}
 \newcommand{\refctxt}{\command{Ref}}
-\newcommand\istrue{\command{True}}
-\newcommand\isfalse{\command{False}}
 \newcommand\heaplocs{\command{locs}}
 
 
@@ -409,7 +404,6 @@
 % LOGIC
 \newcommand\deabstract[1]{\lfloor #1 \rfloor}
 \newcommand\suffix{\preceq}
-\newcommand\lenv[0]{\epsilon}
 \newcommand\lenvs[0]{{\mathcal E}nv}
 %\newcommand\lvars[0]{{\mathcal X}}
 \newcommand\lvar[1]{\mathrm{#1}}
@@ -491,8 +485,7 @@
 \newcommand{\jsassertions}{\assertions_\jssuffix}
 \newcommand{\jsilassertions}{\assertions_\jsilsuffix}
 
-\newcommand\unoper{\ominus}
-\newcommand\binoper{\oplus}
+
 
 \newcommand\jslgval{V}
 \newcommand\jsillgval{V}
@@ -502,7 +495,6 @@
 \newcommand\jslexpr{E}
 \newcommand\jsillexpr{E}
 \newcommand\jslexprs{\lexprs_\jssuffix}
-\newcommand\jsillexprs{\lexprs_\jsilsuffix}
 
 
 \newcommand{\jslenvs}{\lenvs_\jssuffix}
@@ -550,17 +542,25 @@
 
 %% JILETTE PAPER FROM HERE!!!!!
 %%
+%% Auxiliary
+\newcommand\semeq{\,\triangleq\,}
+\newcommand{\domain}{\command{dom}}
+\newcommand{\range}{\command{rng}}
+\newcommand{\fv}{\command{fv}}
 %%%%%%%%%%%%%%%%
 % syntax
 %%%%%%%%%%%%%%%%
-\newcommand\jsilexpr{\mathtt{e}}
+\newcommand\jsilexpr{e}
+\newcommand{\lit}[0]{\lambda}
 \newcommand\jvar{x}
 \newcommand{\loc}{l}
 \newcommand\jtrue[0]{{\sf true}}
 \newcommand\jfalse[0]{{\sf false}}
-\newcommand\bcmd{\mathtt{bc}}
+\newcommand\bcmd{bc}
 \newcommand\prog{\mathtt{p}}
 \newcommand\pid{f}
+\newcommand\unoper{\ominus}
+\newcommand\binoper{\oplus}
 % indexes
 \newcommand\procretlab[0]{i_{\fnormal}}
 \newcommand\procerrlab[0]{i_{\ferror}}
@@ -599,14 +599,20 @@
 \newcommand{\symbtranserr}[1]{ \tuple{#1} \leadsto \bot}
 \newcommand\pc{\pi}
 \newcommand\sexpr{\hat{e}}
-\newcommand\sexprp{\hat{\mathtt{p}}}
-\newcommand\sexprv{\hat{\mathtt{v}}}
+\newcommand\sexprp{\hat{p}}
+\newcommand\sexprv{\hat{v}}
 \newcommand\func{\mathtt{fun}}
 \newcommand\sctx{\hat{C}}
 \newcommand\sstring{\hat{s}}
 \newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
 \newcommand\snumber{\hat{n}}
 \newcommand{\snumbers}[0]{\hat{\mathcal{N}}}
+\newcommand\sheaps[0]{\hat{\mathcal H}}
+\newcommand\semexpr[2]{\llbracket #1 \rrbracket_{#2}}
+\newcommand\senv[0]{\varepsilon}
+\newcommand\svar[0]{\hat{x}} 
+\newcommand\svars[0]{\hat{\sortstyle{X}}} 
+\newcommand\smodels[2]{\sortstyle{M}_{#2}(#1)}
 %%%%%%%%%%%
 % memory model
 %%%%%%%%%%%
@@ -615,11 +621,12 @@
 \newcommand\store[0]{\rho}
 \newcommand\sheap[0]{\hat{h}}
 \newcommand\sstore[0]{\hat\rho}
+\newcommand\sstores[0]{\hat{{\mathcal S}to}}
 \newcommand{\jsilempty}{{\sf empty}}
 \newcommand{\hcell}[3]{(#1, #2) \mapsto #3}
 \newcommand{\hmulticell}[2]{#1 \mapsto \{ #2 \}}
-\newcommand{\lit}[0]{\lambda}
 \newcommand{\lits}[0]{\sortstyle{L}it}
+\newcommand{\storeemp}[0]{\emptyset}
 %Heap operations
 \newcommand{\hread}[3]{#1(#2, #3)}
 \newcommand{\hupdate}[3]{#1[#2 \mapsto #3]}
@@ -637,7 +644,11 @@
 % Values
 \newcommand{\val}[0]{v}
 \newcommand{\vals}[0]{\sortstyle{V}}
-
+%%
+%% Logic
+%%
+\newcommand\ltrue{\command{True}}
+\newcommand\lfalse{\command{False}}
 
 
 % Outcomes 

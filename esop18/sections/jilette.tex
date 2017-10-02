@@ -40,11 +40,25 @@ and $j$ is the next command to be evaluated.
 \myparagraph{\jsil: Symbolic Evaluation}
 In order to symbolically execute \jsil programs, we extend the syntax of \jsil expressions with 
 symbolic strings $\sstring \in \sstrings$ and symbolic numbers $\snumber \in \snumbers$. 
-\polish{Heaps, stores, and contexts are extended accordingly, giving rise to symbolic 
-heaps, stores, and contexts, respectively ranged by $\sheap$, $\sstore$, and $\sctx$.}
+For convenience, we use $\svars$ to denote the union of $\sstrings$ and $\snumbers$ 
+and $\svar$ to range over $\svars$. 
+A symbolic expression $\sexpr$ is a \jsil expression with no program variables. 
+\begin{equation}
+\jsilexpr \triangleq \lit \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \jsilexpr \mid \jsilexpr \binoper \jsilexpr
+\qquad 
+\sexpr \triangleq \lit \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr
+\end{equation}
+
+We extend heaps, stores, and contexts with symbolic values, obtaining symbolic 
+heaps, stores, and contexts, respectively ranged by $\sheap$, $\sstore$, and $\sctx$. 
+A symbolic heap, $\sheap \in \sheaps$, is a partial function mapping pairs of  
+object locations, and symbolic expressions to symbolic expressions. 
+A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
+$\jvar \in \jvars$ to symbolic expressions.
+%
 A \emph{symbolic state} $\sstate = (\sheap, \sstore, \pc)$ is a triple consisting of a 
 symbolic heap $\sheap$, a symbolic store $\sstore$, and a path condition $\pc$. 
-The path condition is a first order \polish{(quantifier free?)} formula over symbolic strings and 
+The path condition is a first order quantifier free formula over symbolic strings and 
 numbers, which accumulates constraints on the given symbolic inputs that trigger 
 the execution to follow the path that led to the current symbolic state. 
 
@@ -282,10 +296,81 @@ index of the next command to be executed paired with the resulting execution con
 \end{figure}
 
 
+\myparagraph{Soundness} To establish the soundness of symbolic execution we need to relate 
+symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
+$\senv : \svars \rightharpoonup \lits$ mapping symbolic values to \jsil literals. 
+A symbolic environment is said to be \emph{consistent} if it maps symbolic 
+values to concrete values of the appropriate type. In the following, we will always 
+assume consistent symbolic environments. 
+%
+Given a symbolic environment $\senv$, we define the interpretation of a symbolic 
+expression $\sexpr$ under $\senv$ as follows: 
+\begin{equation}
+\semexpr{\lit}{\senv} \semeq \lit
+\quad 
+\semexpr{\svar}{\senv} \semeq \senv(\svar)
+\quad 
+\semexpr{\unoper\ \sexpr}{\senv} \semeq \unoper (\semexpr{\sexpr}{\senv})
+\quad 
+\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \binoper(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
+\end{equation}
+We extend the interpretation function to symbolic states as defined below. 
+
+\begin{display}{Interpretation of Symbolic States}
+{
+\begin{tabular}{l}
+$\quad${\bf Symbolic Heaps:}  \\
+$
+\quad
+ \semexpr{\hemp}{\senv} \semeq \hemp
+\quad
+\semexpr{\hcell{\loc}{\sexpr_p}{\sexpr_v}}{\senv} \semeq  \hcell{\loc}{\semexpr{\sexpr_p}{\senv}}{\semexpr{\sexpr_v}{\senv}}
+\quad
+\semexpr{\sheap_1 \dunion \sheap_2}{\senv} \semeq  \semexpr{\sheap_1}{\senv} \dunion \semexpr{\sheap_2}{\senv}
+$%
+%%
+%%
+\\[3pt]
+$\quad${\bf Symbolic Stores:}  \\
+$
+\quad
+ \semexpr{\storeemp}{\senv} \semeq \storeemp
+\quad 
+ \semexpr{(\jvar: \sexpr) \dunion \sstore}{\senv} \semeq (\jvar: \semexpr{\sheap_1}{\senv}) \dunion \semexpr{\sstore}{\senv}
+$%
+\\[3pt]
+$\quad$ {\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq (\semexpr{\sheap}{\senv}, \semexpr{\sstore}{\senv}, \semexpr{\sctx}{\senv})$
+\end{tabular}
+}
+\end{display} 
+
+In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} \Leftrightarrow \ltrue$. 
+For convenience, we define: 
+\begin{equation}
+\smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
+\end{equation}
+
+\begin{theorem}[Soundess]
+$$
+\begin{array}{l}
+\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap', \sstore', \pc', \sctx'[j]} 
+   \ \wedge \ 
+      (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
+      	 \ \Rightarrow \ \exists (\heap', \store', \ctx') \, . \, 
+	 	 \semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx'[j]}
+		\, \wedge \, 
+		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
+\end{array}
+$$
+\end{theorem}
+
+
+
 \subsection{Implementation}
 
 The point here is to explain how writing a correct concrete \jsil interpreter in Rosette
-yields the symbolic execution presented in the previous subsection. 
+yields the symbolic environments presented in the previous subsection. 
+
 
 
 
