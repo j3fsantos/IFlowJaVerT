@@ -507,3 +507,6 @@ module LHeap = Hashtbl.Make(
 		let equal = (=)
 		let hash = Hashtbl.hash
 	end)
+
+(* JS2JSIL *)
+let for_verification = ref false

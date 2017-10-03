@@ -13,6 +13,10 @@ let vis_tbl     : vis_tbl_type     = Hashtbl.create medium_tbl_size
 
 let annot = ref true
 
+let if_verification a b = 
+	let cond = !for_verification in
+	 	if cond then a else b
+
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
@@ -4477,17 +4481,18 @@ let generate_proc offset_converter e fid params vis_fid spec =
 			x_argList_act := cdr (cdr (x_argList_pre));
 			x_args := "create_arguments_object" (x_argList_act) with err;
 			[x_er, "arguments"] := x_args;
+	*)
 
-			let x_argList_pre = fresh_var () in
-			let x_argList_act = fresh_var () in
-			let x_args = fresh_var () in
-			let cmds_arg_obj =
-				[
-					(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
-					(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
-					(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], Some new_ctx.tr_err));
-					(empty_metadata, None, SLBasic (SMutation (Var x_er, Literal (String "arguments"), Var x_args)))
-				] in *)
+	let x_argList_pre = fresh_var () in
+	let x_argList_act = fresh_var () in
+	let x_args = fresh_var () in
+	let cmds_arg_obj =
+		[
+			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
+			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
+			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], None));
+			(empty_metadata, None, SLBasic (SMutation (Var var_er, Literal (String "arguments"), Var x_args)))
+		] in 
 
 	(* x_sc_0 = x_scope @ {{ x_er }} *)
 	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
@@ -4529,6 +4534,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let fid_cmds =
 		[ cmd_er_creation; cmd_er_flag ] @
 		cmds_decls @ cmds_params @
+		(if_verification [] cmds_arg_obj) @
 		[ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @ cmds_e @
 		[ cmd_dr_ass; cmd_return_phi; cmd_del_te; cmd_del_se; cmd_xscope_final; cmd_ret_final; cmd_error_phi; cmd_xscope_final; cmd_err_final ] in

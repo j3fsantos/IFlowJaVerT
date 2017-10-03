@@ -10,8 +10,6 @@ let harnessing = ref false
 let line_numbers = ref false
 let sep_procs = ref false
 let sexpr = ref false
-let for_verification = ref false
-
 
 let arguments () =
   let usage_msg="Usage: -file <path>" in
