@@ -2,12 +2,15 @@
  SJSIL - Interpreter
 *)
 open Batteries
-
-open Common
 open JSIL_Syntax
+
+let string_of_literal lit = JSIL_Print.string_of_literal lit false
+
 
 let larguments = "$largs"
 let largvals = "args"
+
+let verbose = ref false
 let proto_f = "@proto"
 
 let fresh_int =
@@ -23,7 +26,7 @@ let fresh_loc () : string =
 
 let evaluate_constant c =
 	match c with
-	| Min_float -> Num (5e-324)
+  | Min_float -> Num (5e-324)
 	| Max_float -> Num (max_float)
 	| Random -> Num (Random.float (1.0 -. epsilon_float))
 	| E -> Num (exp 1.0)
@@ -35,21 +38,21 @@ let evaluate_constant c =
 	| Sqrt1_2 -> Num (sqrt 0.5)
 	| Sqrt2 -> Num (sqrt 2.0)
 	| UTCTime ->
-		let t = Unix.gettimeofday() in
-		let (usec, _) = Float.modf t in
-		let gct = Unix.gmtime t in
-		let (gctime, _) = Unix.mktime gct in
-		let gctime = gctime +. usec in
-		let (_, tg) = Float.modf (gctime *. 1e+3) in
-			Num (float_of_int (int_of_float tg))
+			let t = Unix.gettimeofday() in
+			let (usec, _) = Float.modf t in
+			let gct = Unix.gmtime t in
+			let (gctime, _) = Unix.mktime gct in
+			let gctime = gctime +. usec in
+			let (_, tg) = Float.modf (gctime *. 1e+3) in
+				Num (float_of_int (int_of_float tg))
 	| LocalTime ->
-		let t = Unix.gettimeofday() in
-		let (usec, _) = Float.modf t in
-		let lct = Unix.localtime t in
-		let (lctime, _) = Unix.mktime lct in
-		let lctime = lctime +. usec in
-		let (_, tl) = Float.modf (lctime *. 1e+3) in
-			Num (float_of_int (int_of_float tl))
+		  let t = Unix.gettimeofday() in
+			let (usec, _) = Float.modf t in
+			let lct = Unix.localtime t in
+			let (lctime, _) = Unix.mktime lct in
+			let lctime = lctime +. usec in
+			let (_, tl) = Float.modf (lctime *. 1e+3) in
+				Num (float_of_int (int_of_float tl))
 
 (* Taken from jscert *)
 let to_int = fun n ->
@@ -191,7 +194,7 @@ let unary_int_thing lit (f : float -> float) emsg =
 	let num =
 		(match lit with
  		  | Num n -> n
-			| _ -> raise (Failure (Printf.sprintf "%s : %s" emsg (JSIL_Print.string_of_literal lit false)))) in
+			| _ -> raise (Failure (Printf.sprintf "%s : %s" emsg (string_of_literal lit)))) in
 	let res = f num in
 		Num res
 
@@ -200,7 +203,7 @@ let evaluate_unop op lit =
   | Not ->
 		(match lit with
 		| Bool b -> (Bool (not b))
-		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (JSIL_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-bool argument to Not: %s" (string_of_literal lit))))
 	| UnaryMinus -> unary_int_thing lit (fun x -> (-. x)) "unary minus called with something other than a number"
 	| BitwiseNot -> unary_int_thing lit int32_bitwise_not "bitwise not called with something other than a number"
 	| M_abs   -> unary_int_thing lit abs_float "bitwise not called with something other than a number"
@@ -219,7 +222,7 @@ let evaluate_unop op lit =
 										then (-0.0)
 										else (floor (n +. 0.5))
 									 )
-		| _ -> raise (Failure (Printf.sprintf "round function called with %s instead of a number." (JSIL_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "round function called with %s instead of a number." (string_of_literal lit))))
 	| M_sgn  -> unary_int_thing lit (fun x -> copysign 1.0 x) "sgn called with something other than a number"
 	| M_sin  -> unary_int_thing lit sin "sin called with something other than a number"
 	| M_sqrt -> unary_int_thing lit sqrt "sqrt called with something other than a number"
@@ -235,7 +238,7 @@ let evaluate_unop op lit =
 	| ToStringOp ->
 		(match lit with
 		| Num n -> String (Utils.float_to_string_inner n)
-		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (JSIL_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-number argument to ToStringOp: %s" (string_of_literal lit))))
 	| ToIntOp    -> unary_int_thing lit to_int "to_int called with something other than a number"
 	| ToUint16Op -> unary_int_thing lit to_uint16 "to_uint16 called with something other than a number"
 	| ToInt32Op  -> unary_int_thing lit to_int32 "to_int32 called with something other than a number"
@@ -265,11 +268,11 @@ let evaluate_unop op lit =
 	| LstLen ->
 		(match lit with
 		| LList l -> Num (float_of_int (List.length l))
-		| _ -> raise (Failure (Printf.sprintf "Non-list argument to LstLen: %s" (JSIL_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-list argument to LstLen: %s" (string_of_literal lit))))
 	| StrLen ->
 		(match lit with
 		| String s -> Num (float_of_int (String.length s))
-		| _ -> raise (Failure (Printf.sprintf "Non-string argument to StrLen: %s" (JSIL_Print.string_of_literal lit false))))
+		| _ -> raise (Failure (Printf.sprintf "Non-string argument to StrLen: %s" (string_of_literal lit))))
 
 (*
 			xret := "create_object_with_body" ($lmath_max, "M_max", 2);
@@ -291,7 +294,7 @@ let unary_bin_thing_num lit1 lit2 (f : float -> float -> float) emsg =
 	let num1, num2 =
 		(match lit1, lit2 with
  		  | Num n1, Num n2 -> n1, n2
-			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (string_of_literal lit1) (string_of_literal lit2)))) in
 	let res = f num1 num2 in
 		Num res
 
@@ -299,7 +302,7 @@ let unary_bin_thing_bool lit1 lit2 (f : float -> float -> bool) emsg =
 	let num1, num2 =
 		(match lit1, lit2 with
  		  | Num n1, Num n2 -> n1, n2
-			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (string_of_literal lit1) (string_of_literal lit2)))) in
 	Bool (f num1 num2)
 
 let rec evaluate_binop op e1 e2 store =
@@ -372,7 +375,7 @@ let rec evaluate_binop op e1 e2 store =
 	| StrCat ->
 		(match lit1, lit2 with
 		| String s1, String s2 -> (String (s1 ^ s2))
-		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (JSIL_Print.string_of_literal lit1 false) (JSIL_Print.string_of_literal lit2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (string_of_literal lit1) (string_of_literal lit2))))
     | _ -> Printf.printf "Unsupported binary operator: %s\n" (JSIL_Print.string_of_binop op); exit 1)
 and
 evaluate_expr (e : jsil_expr) store =
@@ -387,7 +390,7 @@ evaluate_expr (e : jsil_expr) store =
 		| None ->
 			let err_msg = Printf.sprintf "Variable %s not found in the store" x in
 			let store_str = JSIL_Print.string_of_store store in
-			print_normal (Printf.sprintf "The current store is: \n%s" store_str);
+			if (!verbose) then Printf.printf "The current store is: \n%s" store_str;
 			raise (Failure err_msg)
 		| Some v -> v)
 
@@ -419,7 +422,7 @@ evaluate_expr (e : jsil_expr) store =
 		| LList list, Num n when (Utils.is_int n) ->
 				List.nth list (int_of_float n)
 		| LList list, Num -0. -> List.nth list 0
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LstNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LstNth: %s, %s" (string_of_literal v) (string_of_literal n))))
 
 	| StrNth (e1, e2) ->
 		let v = evaluate_expr e1 store in
@@ -429,7 +432,7 @@ evaluate_expr (e : jsil_expr) store =
 				String (String.make 1 (String.get s (int_of_float n)))
 		| String s, Num -0. ->
 				String (String.make 1 (String.get s 0))
-		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to StrNth: %s, %s" (JSIL_Print.string_of_literal v false) (JSIL_Print.string_of_literal n false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to StrNth: %s, %s" (string_of_literal v) (string_of_literal n))))
 
 	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (JSIL_Print.string_of_expression e false)))
 
@@ -466,6 +469,7 @@ let rec evaluate_bcmd bcmd heap store =
 
 	| SAssignment (x, e) ->
 		let v_e = evaluate_expr e store in
+		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (string_of_literal v_e);
 		Hashtbl.replace store x v_e;
 		v_e
 
@@ -483,16 +487,17 @@ let rec evaluate_bcmd bcmd heap store =
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (string_of_literal v_e1)))) in
 			let v = (try SHeap.find obj f with
 				| _ ->
 					(* let final_heap_str = JSIL_Print.sexpr_of_heap heap in
 					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
-					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false)))) in
+					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (string_of_literal v_e1) (string_of_literal v_e2)))) in
 
 			Hashtbl.replace store x v;
+			if (!verbose) then Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (string_of_literal v_e1) (string_of_literal v_e2) (string_of_literal v);
 			v
-		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (JSIL_Print.string_of_literal v_e1 false) (JSIL_Print.string_of_literal v_e2 false))))
+		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (string_of_literal v_e1) (string_of_literal v_e2))))
 
 	| SMutation (e1, e2, e3) ->
 		let v_e1 = evaluate_expr e1 store in
@@ -504,12 +509,14 @@ let rec evaluate_bcmd bcmd heap store =
 			then
 				let obj = SHeap.find heap l in ();
 				SHeap.replace obj f v_e3;
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (string_of_literal v_e1) (string_of_literal v_e2) (string_of_literal v_e3);
 				v_e3
 			else
 				let obj = SHeap.create 1021 in
 				SHeap.add obj proto_f Null;
 				SHeap.add heap l obj;
 				SHeap.replace obj f v_e3;
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (string_of_literal v_e1) (string_of_literal v_e2) (string_of_literal v_e3);
 				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 
@@ -519,10 +526,11 @@ let rec evaluate_bcmd bcmd heap store =
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (string_of_literal v_e1)))) in
 			if (SHeap.mem obj f)
 			then
-				(SHeap.remove obj f;
+				(if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (string_of_literal v_e1) (string_of_literal v_e2);
+				SHeap.remove obj f;
 				Bool true)
 			else raise (Failure "Deleting inexisting field")
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -532,21 +540,22 @@ let rec evaluate_bcmd bcmd heap store =
 		(match v_e1 with
 		| Loc l ->
 		  (match (SHeap.mem heap l) with
-		   | false -> raise (Failure (Printf.sprintf "Attempting to delete inexistent object: %s" (JSIL_Print.string_of_literal v_e1 false)))
+		   | false -> raise (Failure (Printf.sprintf "Attempting to delete inexistent object: %s" (string_of_literal v_e1)))
 		   | true -> SHeap.remove heap l; Bool true)
-		| _ -> raise (Failure (Printf.sprintf "Attempting to delete something that's not an object: %s" (JSIL_Print.string_of_literal v_e1 false))))
+		| _ -> raise (Failure (Printf.sprintf "Attempting to delete something that's not an object: %s" (string_of_literal v_e1))))
 
 	| SHasField (x, e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
-		let pv_e1 = JSIL_Print.string_of_literal v_e1 false in
-		let pv_e2 = JSIL_Print.string_of_literal v_e2 false in
+		let pv_e1 = string_of_literal v_e1 in
+		let pv_e2 = string_of_literal v_e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
 			let obj = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" pv_e1))) in
 			let v = Bool (SHeap.mem obj f) in
 			Hashtbl.replace store x v;
+			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x pv_e1 pv_e2 (string_of_literal v);
 			v
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal Field Check: [%s, %s]" pv_e1 pv_e2)))
 
@@ -555,7 +564,7 @@ let rec evaluate_bcmd bcmd heap store =
 		(match v_e with
 		| Loc l ->
 			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e false)))) in
+			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (string_of_literal v_e)))) in
 			let fields =
 				SHeap.fold
 				(fun field value acc ->
@@ -567,6 +576,7 @@ let rec evaluate_bcmd bcmd heap store =
 					) obj [] in
 			let v = LList (List.sort compare fields) in
 			Hashtbl.replace store x v;
+			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (string_of_literal v_e) (string_of_literal v);
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
@@ -576,11 +586,23 @@ let rec evaluate_bcmd bcmd heap store =
 		let v = (try SHeap.find arg_obj "args" with
 		| _ -> raise (Failure "The arguments are not available.")) in
 			Hashtbl.replace store x v;
+			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (string_of_literal v);
 			v
 
 let init_store params args =
 	let number_of_params = List.length params in
 	let new_store = Hashtbl.create (number_of_params + 1) in
+
+	if (!verbose) then
+		begin
+			Printf.printf "I am initializing a store! Number of args: %d, Number of params: %d\n" (List.length args) (List.length params);
+			Printf.printf "Params: ";
+			List.iter (fun x -> Printf.printf "%s " x) params;
+			Printf.printf "\n";
+			Printf.printf "Args: ";
+			List.iter (fun x -> Printf.printf "%s " (string_of_literal x)) args;
+			Printf.printf "\n"
+		end;
 
 	let rec loop params args =
 		match params with
@@ -596,6 +618,7 @@ let init_store params args =
 	loop params args;
 
 	let str_store = JSIL_Print.string_of_store new_store in
+	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store;
 	new_store
 
 let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl =
@@ -607,7 +630,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			let args n = (evaluate_expr (List.nth e_args n) store) in
 			Printf.printf "Arguments: ";
 			for i = 0 to (len - 1) do
-				Printf.printf "%d: %s " i (JSIL_Print.string_of_literal (args i) false);
+				Printf.printf "%d: %s " i (string_of_literal (args i) false);
 			done;
 			Printf.printf "\n";  *)
 
@@ -639,6 +662,10 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
+						if (!verbose) then
+						  begin
+							  Printf.printf "FC: Body: i__toString with %s.\n" (string_of_literal ebd);
+						  end;
         		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with
         		| Normal, v -> (match v with
 						                 | String bd -> body := bd
@@ -648,6 +675,10 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 			  	let firstArg = List.nth e_args 2 in
 					let evalFirstArg = evaluate_expr firstArg store in
 					let new_store = init_store ["v"] [evalFirstArg] in
+					if (!verbose) then
+						begin
+							Printf.printf "FC: Params: 1: i__toString with %s.\n" (string_of_literal evalFirstArg);
+						end;
         	(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with
         		| Normal, v -> (match v with
 						                 | String efa -> params := efa
@@ -659,6 +690,10 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
 					  let new_store = init_store ["v"] [evalArg] in
+						if (!verbose) then
+						  begin
+							  Printf.printf "FC: Params: %d: i__toString with %s.\n" (i-2) (string_of_literal evalArg);
+						  end;
         		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with
         			| Normal, v -> (match v with
 						   	              | String efa -> params := !params ^ ", " ^ efa
@@ -671,10 +706,14 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
+						if (!verbose) then
+						  begin
+							  Printf.printf "FC: Body: i__toString with %s.\n" (string_of_literal ebd);
+						  end;
         		(match evaluate_cmd prog "i__toString" which_pred heap new_store 0 0 cc_tbl vis_tbl with
         		| Normal, v -> (match v with
 						                 | String bd -> body := bd
-      					             | _ -> Printf.printf "Body toString fail: %s\n" (JSIL_Print.string_of_literal v false);
+      					             | _ -> Printf.printf "Body toString fail: %s\n" (string_of_literal v);
 														        message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
         		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true)
 					end;
@@ -747,8 +786,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		let call_proc_name_val = evaluate_expr e store in
 		let call_proc_name = (match call_proc_name_val with
 		| String call_proc_name ->
+				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name;
 				call_proc_name
-		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in
+		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (string_of_literal call_proc_name_val)))) in
 		let arg_vals = List.map
 			(fun e_arg -> evaluate_expr e_arg store)
 			e_args in
@@ -764,36 +804,20 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		end;
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
 		| Normal, v ->
-				print_normal (Printf.sprintf "Procedure %s normal return: %s := %s\n" call_proc_name x (JSIL_Print.string_of_literal v false));
+				if (!verbose) then Printf.printf "Procedure %s normal return: %s := %s\n" call_proc_name x (string_of_literal v);
 				Hashtbl.replace store x v;
 	 			evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 		| Error, v ->
 			(match j with
 			| None -> raise (Failure ("Procedure "^ call_proc_name ^" just returned an error, but no error label was provided. Bad programmer."))
 			| Some j ->
-					print_normal (Printf.sprintf "Procedure %s error return: %s := %s\n" call_proc_name x (JSIL_Print.string_of_literal v false));
+					if (!verbose) then Printf.printf "Procedure %s error return: %s := %s\n" call_proc_name x (string_of_literal v);
 					Hashtbl.replace store x v;
 					evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))) in
 
 	let proc = try Hashtbl.find prog cur_proc_name with
 		| _ -> raise (Failure (Printf.sprintf "The procedure %s you're trying to call doesn't exist. Ew." cur_proc_name)) in
 	let cmd = proc.proc_body.(cur_cmd) in
-
-	let cmd_str = JSIL_Print.string_of_cmd cmd 0 0 false false false in
-
-	print_normal (Printf.sprintf "
-----------------------------------------------
-CURRENT STATE: \n
-%s\n
-Heap:  \n%s
-CMD: %s : %s
-----------------------------------------------"
-
-		(JSIL_Print.string_of_store store)
-		"" (* (JSIL_Print.legible_string_of_heap heap) *)
-		cur_proc_name 
-		cmd_str
-	);
 
 	let metadata, cmd = cmd in
 	match cmd with
@@ -809,7 +833,7 @@ CMD: %s : %s
 		(match v_e with
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
-		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e false))))
+		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (string_of_literal v_e))))
 
 	| SCall (x, e, e_args, j)
 		when  evaluate_expr e store = String "Object_eval" ->
@@ -856,7 +880,7 @@ CMD: %s : %s
 
 	| SCall (x, e, e_args, j)
 	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
-			(* Printf.printf "Call: Entering FC from %s\n"  (JSIL_Print.string_of_literal (evaluate_expr e store) false); *)
+			(* Printf.printf "Call: Entering FC from %s\n"  (string_of_literal (evaluate_expr e store) false); *)
 			execute_function_constructor proc x e_args j
 
 	| SCall (x, e, e_args, j) ->
@@ -882,7 +906,7 @@ CMD: %s : %s
 				let len = List.length fargs in
 				for i = 0 to (len - 1) do
 					let lit = List.nth fargs i in
-					Printf.printf "%s " (JSIL_Print.string_of_literal lit false);
+					Printf.printf "%s " (string_of_literal lit false);
 				done;
 				Printf.printf "\n"; *)
 				fargs
@@ -892,8 +916,9 @@ CMD: %s : %s
   		| call_proc_name_val :: arg_vals ->
 			  let e_args = List.tl e_args in
 				let call_proc_name = (match call_proc_name_val with
-  		                         | String call_proc_name -> call_proc_name
-  		                         | _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in
+  		                         | String call_proc_name ->
+  				                       if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name; call_proc_name
+  		                         | _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (string_of_literal call_proc_name_val)))) in
 				let new_args = ((List.map (fun x -> (Literal x))) (List.tl args)) in
 				if ((call_proc_name = "Function_call") || (call_proc_name = "Function_construct"))
 				then
@@ -909,7 +934,7 @@ CMD: %s : %s
   		| String call_proc_name ->
   				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name;
   				call_proc_name
-  		| _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (JSIL_Print.string_of_literal call_proc_name_val false)))) in
+  		| _ -> raise (Failure (Printf.sprintf "No. You can't call a procedure %s." (string_of_literal call_proc_name_val false)))) in
   		let call_proc = try Hashtbl.find prog call_proc_name with
   		| _ -> raise (Failure (Printf.sprintf "APPLY: The procedure %s you're trying to call doesn't exist." call_proc_name)) in
   		let new_store = init_store call_proc.proc_params arg_vals in
@@ -954,7 +979,7 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 												| Some ret_var -> ret_var) in
 				  (try (Hashtbl.find store ret_var) with
 			| _ -> raise (Failure (Printf.sprintf "Cannot find return variable.")))) in
-			print_normal (Printf.sprintf ("Procedure %s returned: Normal, %s\n") cur_proc_name (JSIL_Print.string_of_literal ret_value false));
+			if (!verbose) then Printf.printf ("Procedure %s returned: Normal, %s\n") cur_proc_name (string_of_literal ret_value);
 			Normal, ret_value)
 		else
 			(if (Some cur_cmd = proc.error_label)
@@ -964,8 +989,8 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 					                      | None -> raise (Failure "No no!")
 																| Some err_var -> err_var) in
 				         (try (Hashtbl.find store err_var) with
-				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd)  0 0 false false false))))) in
-			print_normal (Printf.sprintf ("Procedure %s returned: Error, %s\n") cur_proc_name (JSIL_Print.string_of_literal err_value false));
+				| _ -> raise (Failure (Printf.sprintf "Cannot find error variable in proc %s, err_lab = %d, err_var = %s, cmd = %s" proc.proc_name cur_cmd err_var (JSIL_Print.string_of_cmd proc.proc_body.(prev_cmd) 0 0 false false false))))) in
+			if (!verbose) then Printf.printf ("Procedure %s returned: Error, %s\n") cur_proc_name (string_of_literal err_value);
 			Error, err_value)
 		else (
 			let next_cmd =
@@ -985,8 +1010,8 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d %d" cur_proc_name prev_cmd cur_cmd ac_cur_cmd)) in
 		let expr = x_arr.(cur_which_pred) in
 		let v = evaluate_expr expr store in
-		print_normal (Printf.sprintf "PHI-Assignment: %s : %d/%d : %s := %s\n"
-		   (JSIL_Print.string_of_expression expr false) cur_which_pred (Array.length x_arr - 1) x (JSIL_Print.string_of_literal v false));
+		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n"
+		   (JSIL_Print.string_of_expression expr false) cur_which_pred (Array.length x_arr - 1) x (string_of_literal v);
 		Hashtbl.replace store x v;
 		evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 
