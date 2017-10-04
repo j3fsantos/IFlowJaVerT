@@ -4556,8 +4556,11 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 	let offset_converter x = 0 in
 
 	let cc_tbl, vis_tbl =
-		try  (Option.get cc_tbl), (Option.get vis_tbl)
-			with Option.No_value -> raise (Failure "Wrong call to eval/function constructor.") in
+		(match cc_tbl, vis_tbl with
+		| None, None -> raise (Failure "Wrong call to eval: both cc_table and vis_tbl undefined")
+		| None, _ -> raise (Failure "Wrong call to eval: cc_table undefined")
+		| _, None -> raise (Failure "Wrong call to eval: vis_tbl undefined")
+		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
 	let e, fid_eval, vislist_eval, eval_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e fid_parent [] in
 
@@ -4592,8 +4595,11 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	let offset_converter x = 0 in
 
 	let cc_tbl, vis_tbl =
-		try  (Option.get cc_tbl), (Option.get vis_tbl)
-			with Option.No_value -> raise (Failure "Wrong call to eval/function constructor.") in
+		(match cc_tbl, vis_tbl with
+		| None, None -> raise (Failure "Wrong call to function constructor: both cc_table and vis_tbl undefined")
+		| None, _ -> raise (Failure "Wrong call to function constructor: cc_table undefined")
+		| _, None -> raise (Failure "Wrong call to function constructor: vis_tbl undefined")
+		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
 	let e, new_fid, vislist, new_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e fid_parent params in
 
