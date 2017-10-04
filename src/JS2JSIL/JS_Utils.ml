@@ -407,7 +407,7 @@ let rec var_decls_inner exp =
   js_fold f_ac f_state true exp
 
 
-let var_decls exp = (List.unique (var_decls_inner exp))
+let var_decls exp = (List.unique (var_decls_inner exp)) @ [ "arguments" ]
 
 
 let rec get_fun_decls exp =
