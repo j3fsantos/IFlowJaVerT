@@ -69,7 +69,7 @@ numbers, which accumulates constraints on the given symbolic inputs that trigger
 the execution to follow the path that led to the current symbolic state. 
 Path conditions are given by the following grammar: 
 \begin{equation}
-\pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc
+\pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc \mid \ltrue \mid \lfalse
 \end{equation}
 
 Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for \jsil basic commands. 
@@ -366,18 +366,18 @@ assume consistent symbolic environments.
 Given a symbolic environment $\senv$, we define the interpretation of a symbolic 
 expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
 
-
-
 In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} = \ltrue$. 
 For convenience, we define: 
-\begin{equation}
+\begin{align}
+\smodels{\sheap, \sstore}{\pc} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore)}{\senv} = (\heap, \store) \, \wedge \,  \senv \vdash \pc  \right\}  
+\\
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
-\end{equation}
+\end{align}
 
 \begin{theorem}[Soundess]
 $$
 \begin{array}{l}
-\symbtrans{\sheap, \sstore, \pc, \sctx[i]}{\sheap', \sstore', \pc', \sctx'[j]} 
+\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'} 
    \ \wedge \ 
       (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
       	 \ \Rightarrow \ \exists (\heap', \store', \ctx') \, . \, 
@@ -392,10 +392,15 @@ $$
 
 \subsection{Implementation}
 
-
 \polish{The point here is to explain how writing a correct concrete \jsil interpreter in Rosette
 yields the symbolic environments presented in the previous subsection.} 
 
+Ideally I would like to talk about: 
+\begin{itemize}
+   \item how do we represent the \jsil state in Rosette? why did we choose this representation? 
+   \item how do we represent \jsil programs as s-expressions? 
+   \item ...
+\end{itemize}
 
 \begin{display}{Rosette implementation of \jsil symbolic state}
 {\scriptsize
@@ -415,6 +420,12 @@ yields the symbolic environments presented in the previous subsection.}
 \and 
 \inferrule[\textsc{Non-Empty Store}]
   {}{\roscomp{(\jvar: \sexpr) \dunion \sstore} \semeq (\racketcons \, (\racketcons \, (\racketquote \jvar) \ \sexpr) \,  \roscomp{\sstore})} 
+\\ 
+\inferrule[\textsc{Empty Context}]
+  {}{\roscomp{\lstemp} \semeq (\racketlist)} 
+\quad 
+\inferrule[\textsc{Non-Empty Context}]
+  {}{\roscomp{(\fid, \sstore, \jvar, i, j) \lstcons \sctx} \semeq  (\racketcons \,  (\racketlist \, (\racketquote \fid) \, \roscomp{\sstore} \, (\racketquote \jvar) \, i \, j) \, \roscomp{\sctx})} 
 \end{mathpar}}
 \end{display}
 
@@ -460,6 +471,8 @@ yields the symbolic environments presented in the previous subsection.}
 
 
 \section{Symbolic Execution for JavaScript}
+
+\subsection{Symbolic Execution by Compilation} 
 
 \subsection{Motivating Example} 
 

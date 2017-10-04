@@ -1,7 +1,6 @@
 %!TEX root = main.tex
 
 %frame inference
-\newcommand{\sass}[0]{\Sigma}
 \newcommand{\pass}[0]{\Pi}
 \newcommand{\gfrinference}[3]{#1 \vdash #2 * [ #3 ]}
 \newcommand{\frinference}[4]{#1 \mid #2 \vdash #3 * [ #4 ]}
@@ -143,7 +142,6 @@
 \newcommand{\refrcons}[2]{#1.#2}
 \newcommand{\refrconstype}[3]{#1{\sv_{#3}}#2}
 % Locations 
-\newcommand{\locs}{{\mathcal L}}
 \newcommand{\erlocs}{{\mathcal L}_{var}}
 \newcommand{\objlocs}{{\mathcal L}ocs_{obj}}
 \newcommand\locsnull{\locs_{\jsnull}}
@@ -398,7 +396,6 @@
 \newcommand\suffix{\preceq}
 \newcommand\lenvs[0]{{\mathcal E}nv}
 %\newcommand\lvars[0]{{\mathcal X}}
-\newcommand\lvar[1]{\mathrm{#1}}
 \newcommand\lgvar[0]{X}
 \newcommand\lgvars[0]{{\mathcal X}^L}
 \newcommand{\V}[1]{{\ensuremath{\mathrm{#1}}}}
@@ -407,7 +404,6 @@
 \newcommand\lgvallist[0]{Ls}
 \newcommand\lgvals[0]{{\mathcal V}^{L}}
 \newcommand\ivals[0]{{\mathcal V}^{IVL}}
-\newcommand\lexpr[0]{\ensuremath{E}}
 \newcommand\lexprs[0]{{\mathcal E}^{L}}
 \newcommand\ispec[0]{spec}
 \newcommand\ispecs[0]{\mathtt{SE}}
@@ -417,8 +413,7 @@
 \newcommand{\typeof}[0]{\command{Type}}
 \newcommand{\emptyfields}[2]{\command{emptyFields}(#1 \mid #2)}
 
-\newcommand{\emptyfieldsp}[1]{\textsf{emptyFields}(#1)}
-\newcommand{\typesp}[1]{\textsf{types}(#1)}
+
 \newcommand{\upredname}[0]{pred}
 \newcommand{\upred}[2]{{#1}(#2)}
 
@@ -428,7 +423,6 @@
 \newcommand{\stores}{\sortstyle{S}to}
 \newcommand{\init}{\command{init}}
 \newcommand{\flatten}{\command{flatten}}
-\newcommand{\sfscope}{\varphi}
 \newcommand{\sproofrule}[2]{{\langle \, #1 \, \rangle} \leadsto { \langle \, #2 \, \rangle}}
 \newcommand{\proofrule}[3]{#1 \vdash {\langle \, #2 \, \rangle} \leadsto { \langle \, #3 \, \rangle}}
 \newcommand{\derivation}{\mathtt{pd}}
@@ -539,6 +533,8 @@
 \newcommand{\domain}{\command{dom}}
 \newcommand{\range}{\command{rng}}
 \newcommand{\fv}{\command{fv}}
+\newcommand{\optionsome}[1]{\texttt{Some} \, #1}
+\newcommand{\optionnone}[0]{\texttt{None}}
 % Lists
 \newcommand{\lstcons}[0]{::}
 \newcommand{\lstconcat}[0]{\cdot}
@@ -552,7 +548,6 @@
 \newcommand\jsilexpr{e}
 \newcommand{\lit}[0]{\lambda}
 \newcommand\jvar{x}
-\newcommand{\loc}{l}
 \newcommand\jtrue[0]{{\sf true}}
 \newcommand\jfalse[0]{{\sf false}}
 \newcommand\bcmd{bc}
@@ -643,6 +638,9 @@
 % Values
 \newcommand{\val}[0]{v}
 \newcommand{\vals}[0]{\sortstyle{V}}
+% Locations
+\newcommand{\loc}{l}
+\newcommand{\locs}{{\mathcal L}}
 %%
 %% Logic
 %%
@@ -655,3 +653,26 @@
 \newcommand\racketlist[0]{\text{\bf list}}
 \newcommand\racketcons[0]{\text{\bf cons} \ }
 \newcommand\racketquote[0]{\text{\bf quote} \ }
+%%
+%% Sep Logic 
+%%
+\newcommand\sloc[0]{\hat{\loc}}
+\newcommand\slocs[0]{\hat{\locs}}
+\newcommand{\emptyfieldsp}[1]{\textsf{emptyFields}(#1)}
+\newcommand{\typesp}[1]{\textsf{typeOf}(#1)}
+\newcommand\lvar[0]{\mathrm{X}}
+\newcommand\lexpr[0]{\ensuremath{E}}
+\newcommand\sepmodels[1]{\sortstyle{M}_{*}(#1)}
+\newcommand\sepassert{\darkmath{\textsf {assert}_*}}
+\newcommand\sfs[0]{\sigma}
+\newcommand\pfs[0]{\pi}
+\newcommand\existentials[0]{X}
+\newcommand{\sass}[0]{sa}
+%%
+%% Sep Logic - Unification
+%%
+\newcommand{\subst}[0]{\theta}
+\newcommand{\unification}[4]{{\cal U}_{#4}((#1), #2, #3)}
+
+
+
