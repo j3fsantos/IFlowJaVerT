@@ -966,7 +966,7 @@ proc AP_indexOf() {
 			xret := "i__toInteger" (fi) with elab;
 			n := xret;
 
-	nlen:	goto [not (len <= n)] neg1 next2;
+	nlen:	goto [(len <= n)] neg1 next2;
 
 	next2:	goto [n < 0] lelse lif;
 
