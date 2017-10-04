@@ -144,7 +144,9 @@ let get_codename exp =
 
 
 let rec add_codenames exp =
+
   let f_m e =
+
     match e.exp_stx with
     | FunctionExp _ ->
       let new_annot = update_codename_annotation e.exp_annot fresh_anonymous in

@@ -85,7 +85,7 @@ let rec js_map f_m expr =
     | Array leo                   -> Array (List.map fo leo)     
     (* statement *) 
     | Label (lab, s)              -> Label (lab, f s)  
-    | If (e, s1, s2)              -> If (e, f s1, fo s2)
+    | If (e, s1, s2)              -> If (f e, f s1, fo s2)
     | While (e, s)                -> While (e, f s)
     | DoWhile (s, e)              -> DoWhile (e, f s) 
     | Skip | Break _ |  Continue _ | Debugger   -> e_stx
