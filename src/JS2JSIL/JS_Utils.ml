@@ -86,8 +86,8 @@ let rec js_map f_m expr =
     (* statement *) 
     | Label (lab, s)              -> Label (lab, f s)  
     | If (e, s1, s2)              -> If (f e, f s1, fo s2)
-    | While (e, s)                -> While (e, f s)
-    | DoWhile (s, e)              -> DoWhile (e, f s) 
+    | While (e, s)                -> While (f e, f s)
+    | DoWhile (s, e)              -> DoWhile (f e, f s) 
     | Skip | Break _ |  Continue _ | Debugger   -> e_stx
     | Throw e                     -> Throw (f e)
     | Return eo                   -> Return (fo eo) 
