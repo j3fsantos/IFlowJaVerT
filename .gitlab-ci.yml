@@ -65,7 +65,7 @@ condor:
   - cp -R lib/runtests tests/test262 environment/* $VOLDIR
   - cd $VOLDIR
   script:
-  - 'runtests/runtests.py --interp jsil --interp_path environment/jsil.native --executor condor --batch_size 2 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_COMMIT_SHA --title "$CI_COMMIT_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --tests_version $TEST262_VERSION --timeout 300 test262/test'
+  - 'runtests/runtests.py --interp jsil --interp_path environment/jsil.native --executor condor --batch_size 2 --condor_log --db postgres --db_pg_schema jsil --interp_version $CI_COMMIT_SHA --title "$CI_COMMIT_REF_NAME autobuild: $CI_BUILD_REF_SUBJ" --tests_version $TEST262_VERSION --timeout 900 test262/test'
   - runtests/scripts/condor-wait.sh
   after_script:
   - lib/runtests/scripts/clean-voldir.sh JavaScriptVerification
