@@ -3334,8 +3334,8 @@ and translate_statement tr_ctx e  =
 
 		let new_loop_list = (Some cont, end_loop, tr_ctx.tr_js_lab, true) :: tr_ctx.tr_loop_list in
 		let new_ctx = update_tr_ctx ~previous:None ~lab:None ~loop_list:new_loop_list tr_ctx in
-		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx e1 in
-		let cmds2, x2, errs2 = fe e2 in
+		let cmds1, x1, errs1, rets1, breaks1, conts1 = translate_statement new_ctx e2 in
+		let cmds2, x2, errs2 = fe e1 in
 		let cmds2 = add_initial_label cmds2 guard metadata in
 
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 tr_ctx.tr_js_lab true in
