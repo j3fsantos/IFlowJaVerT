@@ -321,8 +321,6 @@ let rec js_map_with_state f_transform f_state init_state state exp =
 
 
 let test_func_decl_in_block exp =
-
-  Printf.printf "Testing early errors: \n%s\n" (Pretty_print.string_of_exp false exp);
   
   let rec f in_block exp =
     let fo f e = match e with None -> false | Some e -> f e in

@@ -10,7 +10,7 @@ let string_of_literal lit = JSIL_Print.string_of_literal lit false
 let larguments = "$largs"
 let largvals = "args"
 
-let verbose = ref true
+let verbose = ref false
 let proto_f = "@proto"
 
 let fresh_int =
