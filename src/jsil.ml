@@ -81,7 +81,7 @@ let main () =
    		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog in
       run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
     with
-    		Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
+      | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
       | Parser.JS_To_XML_parser_failure
       | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1
       | JS2JSIL_Preprocessing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1)
