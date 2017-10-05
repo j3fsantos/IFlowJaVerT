@@ -61,8 +61,9 @@ Below, we give the syntax and semantics of \jsil logic assertions.
 For convenience, we define: {\small $\sepmodels{P} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \heap, \store, \senv \satisfies P  \right\}$}. 
 Given a symbolic heap $\sheap$, a symbolic store $\sstore$, a path condition $\pc$, and 
 an assertion $P$, we say that  $(\sheap, \sstore, \pc)$ \emph{satisfies} $P$, 
-written $\sheap, \sstore, \pc \satisfies P$ if and only if there is an assertion $F$ (the frame)
-such that:  $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P \lstar F}$. 
+written $\sheap, \sstore, \pc \satisfies P$ if and only if there are two symbolic heaps 
+$\sheap'$ and $\sheap_f$ such that: $\sheap = \sheap' \dunion \sheap_f$ and 
+$\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{P}$. 
 %
 We can now extend \jsil symbolic execution with separation logic assertions. 
 To this end, we introduce a new \emph{assert} command, $\sepassert(P)$ which checks
@@ -80,19 +81,6 @@ The formal semantics of $\sepassert(P)$ is as follows:
   }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}} 
 \end{mathpar}}
 
-Deciding whether or not a symbolic heap is consistent with a formula $P$ is, in general, 
-undecidable. In the following, we present a partial decision procedure that we  
-implement as part of the \jsil symbolic interpreter. 
-We represent a formula $P$ as a triple 
-$(\existentials, \sfs, \pfs)$, consisting of: 
-\dtag{1} the set $\existentials$ of existentially quantified symbolic values, 
-\dtag{2} the set $\sfs$ containing the spatial assertions in $P$, and 
-\dtag{3} a pure assertion $\pfs$. 
-Put formally we have that: 
-\begin{equation}
-P = \exists \svar_1, ..., \svar_k \, . \bigoast_{0 \leq i \leq n} \sass_i \ \wedge \ \pfs
-\end{equation}
-where $\existentials = \{ \svar_1, ..., \svar_k \}$ and $\sfs = \{ \sass_i \mid_{i = 0}^n \}$. 
 
 
 \begin{figure}[t!]
@@ -170,6 +158,73 @@ where $\existentials = \{ \svar_1, ..., \svar_k \}$ and $\sfs = \{ \sass_i \mid_
 \caption{Unification of spatial assertions:
  {\scriptsize$\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap_f)$}\label{fig:unification}}}
 \end{figure}
+
+
+Determining whether or not a symbolic heap is consistent with a formula $P$ is, in general, 
+undecidable. In the following, we present a partial decision procedure that we  
+implement as part of the \jsil symbolic interpreter. 
+We represent a formula $P$ as a triple 
+$(\existentials, \sfs, \pfs)$, consisting of: 
+\dtag{1} the set $\existentials$ of existentially quantified symbolic values, 
+\dtag{2} the set $\sfs$ containing the spatial assertions in $P$, and 
+\dtag{3} a pure assertion $\pfs$. 
+Put formally we have that: 
+\begin{equation}
+P = \exists \svar_1, ..., \svar_k \, . \bigoast_{0 \leq i \leq n} \sass_i \ \wedge \ \pfs
+\end{equation}
+where $\existentials = \{ \svar_1, ..., \svar_k \}$ and $\sfs = \{ \sass_i \mid_{i = 0}^n \}$. 
+
+Figure~\ref{fig:unification} shows the unification rules for spatial assertions and logical 
+expressions. Given a set of existentially quantified variables $\existentials$, 
+symbolic state $(\sheap, \sstore, \pc)$, a spatial assertion $\sass$, and a substitution 
+$\subst$ mapping the existentially quantified variables that were already matched, 
+the unification rules compute a new substitution $\subst'$ and a new symbolic 
+heap $\sheap'$ coincides with $\sheap$ except that it does not contain the footprint 
+of $\sass$. 
+
+\begin{lemma}[Soundness of Unification for Spatial Assertions]
+$$
+\begin{array}{l}
+\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap_f) \\
+	\qquad \implies 
+		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)}  \, \wedge \, 
+		\subst' \geq \subst 
+\end{array}
+$$
+\end{lemma}
+
+\begin{display}{Unification of \jsil assertions: $\unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst}$}
+{\scriptsize
+\begin{mathpar} 
+\inferrule[\textsc{Spatial Assertion}]
+	{  
+	   \sfs = \{ \sass \} \cup \sfs'
+	   \and
+            \unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap')
+            \\\\
+            \unificationfull{\sheap', \sstore, \pc}{\existentials, \sfs', \pfs'}{\sheap_f}{\subst'}
+	}{\unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst}} 
+\and 
+\inferrule[\textsc{Pure Assertions}]
+	{  
+	   \pc \vdash \subst(\pfs')
+	}{\unificationfull{\sheap, \sstore, \pc}{\existentials, \emptyset, \pfs'}{\sheap}{\subst}} 
+\end{mathpar}}
+\end{display}
+
+\begin{theorem}[Soundness of Unification]
+$$
+\begin{array}{l}
+P \equiv (\existentials, \sfs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst} \\ 
+   \qquad \implies 
+		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(P)}  \, \wedge \, 
+		\subst' \geq \subst 
+\end{array}
+$$ 
+
+\end{theorem}
 
 \subsection{Compiling Specifications to Symbolic Tests}
 
