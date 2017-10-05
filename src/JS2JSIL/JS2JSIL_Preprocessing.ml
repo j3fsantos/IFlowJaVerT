@@ -565,7 +565,7 @@ let preprocess_eval
   (* HACK WARNING *)
   let hacked_e = (match e.exp_stx with
   | Block les -> { e with exp_stx = Script (true, les) }
-  | _ -> raise (Failure "Function body not parsed as a block")) in
+  | _ -> e) in
   test_early_errors hacked_e;
 
   (* 1 - Add unique ids to function literals       *)
