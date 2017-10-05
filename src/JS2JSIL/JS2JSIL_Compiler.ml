@@ -4319,7 +4319,7 @@ let generate_main offset_converter e spec =
 
 	let new_var = fresh_var () in
 	let setup_heap_ass =  annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None in
-	let sc_var_main = fresh_scope_chain_var () in
+	let sc_var_main = JS2JSIL_Constants.var_scope in
 
 	(* x_sc := {{ $lg }} *)
 	let init_scope_chain_ass = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
@@ -4391,7 +4391,7 @@ let generate_proc_eval new_fid e vis_fid =
 	let var_sc_proc = fresh_scope_chain_var () in
 
 	(* x_er := new () *)
-	let x_er = fresh_var () in
+	let x_er = JS2JSIL_Constants.var_er in
 	let cmd_er_creation = annotate_cmd (SLBasic (SNew x_er)) None in
 
 	(* [x_er, "@er"] := $$t *)
@@ -4595,8 +4595,10 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 								(* Remove the x__scope and x__this *)
 	  							let f_params = List.tl (List.tl f_params) in
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
-					(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in
-		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+
+					(* let proc_eval_str = JSIL_Print.string_of_ext_procedure proc in
+		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;  *)
+
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.add prog f_id proc;
 					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)

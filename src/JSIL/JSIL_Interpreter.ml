@@ -833,9 +833,10 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
 		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (string_of_literal v_e))))
 
+	(* EVAL *)
 	| SCall (x, e, e_args, j)
 		when  evaluate_expr e store = String "Object_eval" ->
-		(* Printf.printf "I intercepted something!!!\n";  *)
+		if (!verbose) then Printf.printf "Call to eval intercepted!\n";  
 		let e_args =
 			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
 		let str_e = List.nth e_args 2 in
@@ -847,7 +848,9 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				let x_scope, x_this =
 					(match Utils.try_find store (JS2JSIL_Constants.var_scope), Utils.try_find store (JS2JSIL_Constants.var_this)  with
 					| Some x_scope, Some x_this -> x_scope, x_this
-					| _, _ -> raise (Failure "No var_scope or var_this to give to eval")) in
+					| None, None -> raise (Failure "No var_scope AND no var_this to give to eval")
+					| None, _ -> raise (Failure "No var_scope to give to eval") 
+					| _, None -> raise (Failure "No var_this to give to eval")) in
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
 					Some (JS2JSIL_Compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
