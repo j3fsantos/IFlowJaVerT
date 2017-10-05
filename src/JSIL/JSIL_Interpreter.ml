@@ -856,7 +856,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
 					Some (JS2JSIL_Compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
-					with _ -> None) with
+					with e -> raise e) with
 				| Some proc_eval ->
 					(let new_store = init_store [ JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this ] [ x_scope; x_this ] in
 					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
@@ -871,6 +871,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 							Hashtbl.replace store x v;
 							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
 				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
+					if (!verbose) then print_endline "Could not quite parse the eval body.";
 					(match Utils.try_find store (JS2JSIL_Constants.var_se), j with
 					| Some v, Some j ->
 						Hashtbl.replace store x v;

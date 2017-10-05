@@ -4324,6 +4324,11 @@ let generate_main offset_converter e spec =
 	(* x_sc := {{ $lg }} *)
 	let init_scope_chain_ass = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
 
+	let sc_var_main = JS2JSIL_Constants.var_sc_first in
+
+	(* x_sc_fst := {{ $lg }} *)
+	let init_scope_chain_ass_again = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
+
 	(* __this := $lg *)
 	let this_ass = annotate_cmd (SLBasic (SAssignment (var_this, Literal (Loc locGlobName)))) None in
 
@@ -4363,7 +4368,7 @@ let generate_main offset_converter e spec =
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_err ctx.tr_error_var in
 
 	let main_cmds =
-		[ setup_heap_ass; init_scope_chain_ass; this_ass] @
+		[ setup_heap_ass; init_scope_chain_ass; init_scope_chain_ass_again; this_ass] @
 		global_var_asses @
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
@@ -4577,8 +4582,6 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 		| _, None -> raise (Failure "Wrong call to eval: vis_tbl undefined")
 		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
-	(* Printf.printf "The parent of the eval is %s\n" fid_parent; *)
-
 	let e, fid_eval, vislist_eval, eval_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e fid_parent [] in
 
 	Hashtbl.iter
@@ -4594,12 +4597,11 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 										with _ ->
 											(let msg = Printf.sprintf "EV: Function %s not found in visibility table" f_id in
 											raise (Failure msg)) in
-								(* Remove the x__scope and x__this *)
-	  							let f_params = List.tl (List.tl f_params) in
+
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
 
 					(* let proc_eval_str = JSIL_Print.string_of_ext_procedure proc in
-		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;  *)
 
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.add prog f_id proc;
