@@ -1,0 +1,177 @@
+%!TEX root = ../main.tex
+
+\section{\jsil Syntax and Semantics}
+
+
+\begin{figure}[ht!]
+{\scriptsize
+\begin{mathpar} 
+%
+\inferrule[\textsc{Skip}]{}
+	{ \semtrans{\heap, \store, \jsilskip}{\heap, \store}} 
+ \qquad
+ %
+\inferrule[\textsc{Assignment}]
+  {
+      \symbeval{\jsilexpr}{\store} =  \val
+      \quad
+      \store' = \store[\jvar \mapsto \val]
+  }{\semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store'}} 
+%
+\qquad 
+%
+\inferrule[\textsc{Object Creation}]
+  { 
+    \heap = \heap \dunion \hcell{\loc}{\protop}{\jsnull}
+    \quad (\loc,-) \notin \domain (\heap)
+  }{\semtrans{\heap, \store, \jvar := \jsilnew()}{\heap, \store[\jvar \mapsto \loc]}}
+\\
+%
+\inferrule[\textsc{Property Access}]
+  { 
+ 	\symbeval{\jsilexpr_1}{\store} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\store} =  \jstring
+        \quad
+        \heap = - \dunion \hcell{\loc}{\jstring}{\val}
+  }{ \semtrans{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \val]}}
+ \and 
+ \inferrule[\textsc{Property Deletion}]
+  { 
+        \symbeval{\jsilexpr_1}{\store} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\store} =  \jstring
+        \quad
+        \heap = \heap' \dunion \hcell{\loc}{\jstring}{-}
+  }{\semtrans{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\heap', \store}}
+ %
+\\
+%
+\inferrule[\textsc{Property Assignment - Found}]
+  {     \symbeval{\jsilexpr_1}{\store} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\store} =  \jstring
+        \quad
+        \symbeval{\jsilexpr_3}{\store} =  \val
+       \\\\
+        \heap = \heap' \dunion  \hcell{\loc}{\jstring}{-}
+  }{\semtrans{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap' \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
+ \and 
+ \inferrule[\textsc{Property Assignment - Not Found}]
+  {     \symbeval{\jsilexpr_1}{\store} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\store} =  \jstring
+        \quad
+        \symbeval{\jsilexpr_3}{\store} =  \val
+       \\\\
+        \heap = \heap' 
+        \quad 
+        (\loc, \jstring) \not\in \domain(\heap)
+  }{\semtrans{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
+\\
+%
+\inferrule[\textsc{Member Check - True}]
+  { 
+      \symbeval{\jsilexpr_1}{\store} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\store} =  \jstring
+       \quad 
+   	(\loc, \jstring) \in \domain(\heap) 
+  }{\semtrans{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jtrue]}}
+  \and 
+ \inferrule[\textsc{Member Check - False}]
+  { 
+      \symbeval{\jsilexpr_1}{\store} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\store} =  \jstring
+       \quad 
+   	(\loc, \jstring) \not\in \domain(\heap) 
+  }{\semtrans{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jfalse]}}
+%
+\\
+%
+\inferrule[\textsc{Assert - True}]
+  { 
+      \symbeval{\jsilexpr}{\store} =  \jtrue
+  }{\semtrans{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
+\and
+\inferrule[\textsc{Assert - False}]
+  { 
+      \symbeval{\jsilexpr}{\store} \neq \jtrue
+  }{\semtranserr{\heap, \store, \assert(\jsilexpr)}} 
+\end{mathpar}}
+\caption{Symbolic Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\end{figure}
+
+
+
+
+\begin{figure}[ht!]
+{\scriptsize
+\begin{mathpar} 
+\inferrule[\textsc{Basic Command}]
+   { 
+     \prog_{\pid}(i) = \bcmd 
+     \quad
+     \semtrans{\heap, \store, \bcmd}{\heap', \store'} 
+   }{\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx[i+1]}}
+%
+   \qquad
+  %
+  \inferrule[\textsc{Basic Command - Fail}]
+   { 
+     \prog_{\pid}(i) = \bcmd 
+     \quad
+     \semtranserr{\heap, \store, \bcmd} 
+   }{\semtranserr{\heap, \store, \ctx[i]}}
+ %
+   \qquad
+  %
+  \inferrule[\textsc{Goto}]
+   { \prog_{\pid}(i) = \goto \, j \quad}
+   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[j]}}
+  \\ 
+  \inferrule[\textsc{Cond. Goto - True}]
+   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
+     \symbeval{\jsilexpr}{\store} =  \jtrue
+   }
+   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[j]}}
+  \and 
+    \inferrule[\textsc{Cond. Goto - False}]
+   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
+     \symbeval{\jsilexpr}{\store} =  \jfalse
+   }
+   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[k]}}
+   \\
+    \inferrule[\textsc{Procedure Call}]
+   { 
+    \prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+     \quad
+    \symbeval{\jsilexpr}{\sstore} =  \pid' 
+        \quad
+     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+      \quad
+      \val_i = \symbeval{\jsilexpr_i}{\sstore} \mid_{i = 0}^{n} 
+     \ 
+      \val_i = \jsundefined \mid_{i = n+1}^{m}  
+   }
+   {\semtrans{\heap, \store, \ctx[i]}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , ((\pid', \store, \jvar, i+1, j)::\ctx)[0]}}
+    \\ 
+  \inferrule[\textsc{Normal Return}]
+   {
+       \ctx = (-, \store', \jvar, i, -) :: \ctx' 
+       \quad 
+       \store(\procretvar) = \val
+   }  
+   {\semtrans{\heap, \store, \ctx[\procretlab]}{\heap, \store'[\jvar \mapsto \val], \ctx'[i]}}
+   \and 
+     \inferrule[\textsc{Error Return}]
+   {
+       \ctx = (-, \store', \jvar, -, j) :: \sctx' 
+       \quad 
+       \sstore(\procerrvar) = \val
+   }
+   {\semtrans{\heap, \store, \ctx[\procerrlab]}{\sheap, \store'[\jvar \mapsto \val], \ctx'[j]}}
+ \end{mathpar}}
+\caption{Symbolic Execution for Control Flow Commands: {\scriptsize$\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx'[j]}$}} 
+\end{figure}
