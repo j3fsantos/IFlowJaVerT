@@ -71,6 +71,7 @@ let var_scope_final = "x__scope_f"
 let var_se          = "x__se"
 let var_te          = "x__te"
 let var_er          = "x__er"
+let var_sc_first    = "x__sc_fst"
 let var_main        = "main"
 let main_fid        = "main"
 

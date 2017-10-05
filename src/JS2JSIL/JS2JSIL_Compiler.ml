@@ -4388,7 +4388,7 @@ let generate_proc_eval new_fid e vis_fid =
 				(empty_metadata, lab, cmd))
 		cmds in
 	let offset_converter x = 0 in
-	let var_sc_proc = fresh_scope_chain_var () in
+	let var_sc_proc = JS2JSIL_Constants.var_sc_first (* fresh_scope_chain_var () *) in
 
 	(* x_er := new () *)
 	let x_er = JS2JSIL_Constants.var_er in
@@ -4463,7 +4463,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 				(empty_metadata, lab, cmd))
 		cmds in
 
-	let var_sc_proc = fresh_scope_chain_var () in
+	let var_sc_proc = JS2JSIL_Constants.var_sc_first (* fresh_scope_chain_var () *) in
 	let ctx = make_translation_ctx offset_converter fid vis_fid var_sc_proc in
 
 	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_err = ("pre_" ^ ctx.tr_err) } in
@@ -4577,6 +4577,8 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 		| _, None -> raise (Failure "Wrong call to eval: vis_tbl undefined")
 		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
+	(* Printf.printf "The parent of the eval is %s\n" fid_parent; *)
+
 	let e, fid_eval, vislist_eval, eval_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e fid_parent [] in
 
 	Hashtbl.iter
@@ -4597,7 +4599,7 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
 
 					(* let proc_eval_str = JSIL_Print.string_of_ext_procedure proc in
-		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;  *)
+		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.add prog f_id proc;

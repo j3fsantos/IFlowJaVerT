@@ -837,6 +837,8 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	| SCall (x, e, e_args, j)
 		when  evaluate_expr e store = String "Object_eval" ->
 		if (!verbose) then Printf.printf "Call to eval intercepted!\n";  
+		if (!verbose) then print_endline (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_expression x false) e_args)));
+		if (!verbose) then print_endline (Printf.sprintf "The store is: %s" (JSIL_Print.string_of_store store));
 		let e_args =
 			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
 		let str_e = List.nth e_args 2 in
@@ -844,13 +846,13 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		(match str_e with
 		| String code ->
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-				(* Printf.printf "\n%s\n" code; *)
 				let x_scope, x_this =
-					(match Utils.try_find store (JS2JSIL_Constants.var_scope), Utils.try_find store (JS2JSIL_Constants.var_this)  with
+					(match Utils.try_find store (JS2JSIL_Constants.var_sc_first), Utils.try_find store (JS2JSIL_Constants.var_this)  with
 					| Some x_scope, Some x_this -> x_scope, x_this
 					| None, None -> raise (Failure "No var_scope AND no var_this to give to eval")
 					| None, _ -> raise (Failure "No var_scope to give to eval") 
 					| _, None -> raise (Failure "No var_this to give to eval")) in
+				if (!verbose) then Printf.printf "Scope: %s\nThis: %s\n" (string_of_literal x_scope) (string_of_literal x_this);
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
 					Some (JS2JSIL_Compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
