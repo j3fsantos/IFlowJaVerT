@@ -10,7 +10,7 @@ let string_of_literal lit = JSIL_Print.string_of_literal lit false
 let larguments = "$largs"
 let largvals = "args"
 
-let verbose = ref false
+let verbose = ref true
 let proto_f = "@proto"
 
 let fresh_int =
@@ -159,19 +159,22 @@ let create_object_with_call_construct call construct len =
 		SHeap.replace obj "@scope" Empty;
 		obj
 
-(* Function objects - with heap addition *)
+(* Function objects - with heap addition - WATCH OUT FOR THE SCOPE! *)
 let create_anonymous_function_object heap call construct params =
 	let loc = fresh_loc () in
 	let len = float_of_int (List.length params) in
 	let obj = create_object_with_call_construct call construct len in
 
+		(*)
 		let loc_scope = fresh_loc () in
 		let scope_obj = SHeap.create 1021 in
 			 SHeap.add scope_obj call (Loc loc);
 		   SHeap.add scope_obj "main" (Loc "$lg");
 			 SHeap.add scope_obj "@proto" Null;
 			 SHeap.add heap loc_scope scope_obj;
-		   SHeap.replace obj "@scope" (Loc loc_scope);
+		   SHeap.replace obj "@scope" (Loc loc_scope); *)
+
+		SHeap.replace obj "@scope" (LList [ Loc "$lg" ]);
 
 		SHeap.replace obj "@formalParameters" (LList (List.map (fun x -> String x) params));
 		SHeap.add obj "caller"    (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
@@ -371,7 +374,7 @@ let rec evaluate_binop op e1 e2 store =
 	| LstCat ->
 		(match lit1, lit2 with
 		| LList l1, LList l2 -> (LList (List.append l1 l2))
-		| _, _ -> raise (Failure "Non-list argument to LstCat"))
+		| _, _ -> raise (Failure (Printf.sprintf "Non-list argument to LstCat: %s @ %s" (string_of_literal lit1) (string_of_literal lit2))))
 	| StrCat ->
 		(match lit1, lit2 with
 		| String s1, String s2 -> (String (s1 ^ s2))
@@ -735,48 +738,43 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   			(match parsed_params with
   			| None -> throw_syntax_error "Parameters not parseable."
   			| Some parsed_params ->
-  				let len = List.length parsed_params in
 
-  				(* Printf.printf "\tParsed parameters: ";
-  				for i = 0 to (len - 1) do
-  					let elem = List.nth parsed_params i in
-  					Printf.printf "%s " elem;
-  				done;
-  				Printf.printf "\n"; *)
+  				let string_of_parsed_params = String.concat ", " parsed_params in
+  				Printf.printf "Parsed parameters: %s\n" string_of_parsed_params;
 
   				(* Parsing the body as a FunctionBody *)
   				let e_body = (evaluate_expr (Literal (String !body)) store) in
   				(match e_body with
   				| String code ->
   					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-  					let code = "function THISISANELABORATENAME (" ^ !params ^ ") {" ^ code ^ "}" in
+  					let code = "function THISISANELABORATENAME (" ^ string_of_parsed_params ^ ") {" ^ code ^ "}" in
 
-  					(* Printf.printf "\n\tParsing body: %s\n\n" code; *)
+  					Printf.printf "\n\tParsing body: %s\n\n" code;
 
-  					let e_js =
-  						(try (Some (Parser_main.exp_from_string ~force_strict:true code)) with
-  					   | _ -> None) in
-  					(match e_js with
-  					| None -> throw_syntax_error "Body not parsable."
-      			| Some e_js ->
-  							(match e_js.Parser_syntax.exp_stx with
-  							  | Script (_, le) ->
-  									(match le with
-  									| e :: [] ->
-  										(match e.Parser_syntax.exp_stx with
-  										| Parser_syntax.Function (_, Some "THISISANELABORATENAME", params, body) ->
-  												let new_proc = JS2JSIL_Compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params body in
-  												let fun_name = new_proc.proc_name in
-  												let vis_tbl = (match vis_tbl with
-  												                | Some t -> t
-  																| None -> raise (Failure "No visibility table")) in
-  												let new_loc = create_anonymous_function_object heap fun_name fun_name params in
-  												Hashtbl.replace store x (Loc new_loc);
-  					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
+  					let e_js = (try (Some (Parser_main.exp_from_string ~force_strict:true code)) with _ -> None) in
 
-  										| _ -> throw_syntax_error "Body not an anonymous function.")
-  									| _ -> throw_syntax_error "More than a function body in the string.")
-  								| _ -> throw_syntax_error "Not a script."))
+	  				(match e_js with
+	  				| None -> throw_syntax_error "Body not parsable."
+	      			| Some e_js ->
+	  							(match e_js.Parser_syntax.exp_stx with
+	  							  | Script (_, le) ->
+	  									(match le with
+	  									| e :: [] ->
+	  										(match e.Parser_syntax.exp_stx with
+	  										| Parser_syntax.Function (_, Some "THISISANELABORATENAME", params, body) ->
+
+	  												let new_proc = JS2JSIL_Compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params body in
+	  												let fun_name = new_proc.proc_name in
+	  												let vis_tbl = (match vis_tbl with
+	  												                | Some t -> t
+	  																| None -> raise (Failure "No visibility table")) in
+	  												let new_loc = create_anonymous_function_object heap fun_name fun_name params in
+	  												Hashtbl.replace store x (Loc new_loc);
+	  					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
+
+	  										| _ -> throw_syntax_error "Body not an anonymous function.")
+	  									| _ -> throw_syntax_error "More than a function body in the string.")
+	  								| _ -> throw_syntax_error "Not a script."))
 
   				| _ -> throw_syntax_error "Body not a string.")
         )

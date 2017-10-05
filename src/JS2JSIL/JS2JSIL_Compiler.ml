@@ -4592,6 +4592,8 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 										with _ ->
 											(let msg = Printf.sprintf "EV: Function %s not found in visibility table" f_id in
 											raise (Failure msg)) in
+								(* Remove the x__scope and x__this *)
+	  							let f_params = List.tl (List.tl f_params) in
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
 					(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in
 		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
@@ -4620,6 +4622,8 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _) ->
+		  Printf.printf "Function constructor: %s with params: %s\n"
+		  	f_id (String.concat ", " f_params);
 		  Option.may
 		  	(function f_body ->
 				let proc =
@@ -4627,9 +4631,14 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	  					with _ ->
 	  						(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
 	  						raise (Failure msg)) in
+	  				(* Remove the x__scope and x__this *)
+	  				let f_params = List.tl (List.tl f_params) in
 	  				generate_proc offset_converter f_body f_id f_params vis_fid None) in
-			  		(* let proc_str = JSIL_Print.string_of_ext_procedure proc in
-			  		Printf.printf "FC:\n %s\n" proc_str; *)
+			  		
+			  		(* PRINT! *)
+			  		let proc_str = JSIL_Print.string_of_ext_procedure proc in
+			  		Printf.printf "FC:\n %s\n" proc_str; 
+					
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.replace prog f_id proc;
 					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)
