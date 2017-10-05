@@ -562,7 +562,11 @@ let preprocess_eval
       with _ -> raise (Failure (Printf.sprintf "Function %s not found in visibility table" fid_parent)) in
 
   (* 0 - testing early errors                      *)
-  test_early_errors e;
+  (* HACK WARNING *)
+  let hacked_e = (match e.exp_stx with
+  | Block les -> { e with exp_stx = Script (true, les) }
+  | _ -> raise (Failure "Function body not parsed as a block")) in
+  test_early_errors hacked_e;
 
   (* 1 - Add unique ids to function literals       *)
   let e : Parser_syntax.exp = add_codenames e in

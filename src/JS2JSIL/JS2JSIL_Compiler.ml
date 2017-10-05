@@ -4293,7 +4293,7 @@ let make_final_cmd vars final_lab final_var =
 
 
 let translate_fun_decls (top_level : bool) (sc_var : string) (cur_index : int) e  =
-	let f_decls = get_fun_decls e in
+	let f_decls = get_fun_decls_top_level e in
 	let hoisted_fdecls =
 		List.fold_left (fun ac f_decl ->
 			let f_name, f_params =
@@ -4635,8 +4635,15 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	  					with _ ->
 	  						(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
 	  						raise (Failure msg)) in
+	  				
+	  				(* Printf.printf "Parameters: %s\n" (String.concat ", " f_params); *)
+
 	  				(* Remove the x__scope and x__this *)
-	  				let f_params = List.tl (List.tl f_params) in
+	  				let f_params = 
+	  					(match f_params with
+	  					| "x__scope" :: "x__this" :: rest -> rest
+	  					| "x__scope" :: rest -> rest
+	  					| _ -> f_params) in
 	  				generate_proc offset_converter f_body f_id f_params vis_fid None) in
 			  		
 			  		(* PRINT! 

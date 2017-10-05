@@ -321,7 +321,7 @@ let rec js_map_with_state f_transform f_state init_state state exp =
 
 
 let test_func_decl_in_block exp =
-  
+
   let rec f in_block exp =
     let fo f e = match e with None -> false | Some e -> f e in
     match exp.exp_stx with
@@ -409,6 +409,15 @@ let rec var_decls_inner exp =
 
 
 let var_decls exp = (List.unique (var_decls_inner exp)) @ [ "arguments" ]
+
+
+let rec get_fun_decls_top_level exp =
+  let f_ac exp state prev_state ac = 
+    match exp.exp_stx with 
+    | Function (_, _, _, _) -> [ exp ]   
+    | _ -> ac in 
+  js_fold f_ac (fun x y -> y) true exp
+
 
 
 let rec get_fun_decls exp =
