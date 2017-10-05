@@ -4622,8 +4622,6 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _) ->
-		  Printf.printf "Function constructor: %s with params: %s\n"
-		  	f_id (String.concat ", " f_params);
 		  Option.may
 		  	(function f_body ->
 				let proc =
@@ -4635,9 +4633,9 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	  				let f_params = List.tl (List.tl f_params) in
 	  				generate_proc offset_converter f_body f_id f_params vis_fid None) in
 			  		
-			  		(* PRINT! *)
+			  		(* PRINT! 
 			  		let proc_str = JSIL_Print.string_of_ext_procedure proc in
-			  		Printf.printf "FC:\n %s\n" proc_str; 
+			  		Printf.printf "FC:\n %s\n" proc_str; *)
 					
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.replace prog f_id proc;

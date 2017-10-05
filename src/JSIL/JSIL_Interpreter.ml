@@ -10,7 +10,7 @@ let string_of_literal lit = JSIL_Print.string_of_literal lit false
 let larguments = "$largs"
 let largvals = "args"
 
-let verbose = ref true
+let verbose = ref false
 let proto_f = "@proto"
 
 let fresh_int =
@@ -740,7 +740,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   			| Some parsed_params ->
 
   				let string_of_parsed_params = String.concat ", " parsed_params in
-  				Printf.printf "Parsed parameters: %s\n" string_of_parsed_params;
+  				(* Printf.printf "Parsed parameters: %s\n" string_of_parsed_params; *)
 
   				(* Parsing the body as a FunctionBody *)
   				let e_body = (evaluate_expr (Literal (String !body)) store) in
@@ -749,7 +749,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
   					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
   					let code = "function THISISANELABORATENAME (" ^ string_of_parsed_params ^ ") {" ^ code ^ "}" in
 
-  					Printf.printf "\n\tParsing body: %s\n\n" code;
+  					(* Printf.printf "\n\tParsing body: %s\n\n" code; *)
 
   					let e_js = (try (Some (Parser_main.exp_from_string ~force_strict:true code)) with _ -> None) in
 
