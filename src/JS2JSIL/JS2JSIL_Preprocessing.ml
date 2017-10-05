@@ -558,7 +558,7 @@ let preprocess_eval
   let fun_tbl            = Hashtbl.create small_tbl_size in
 
   let vislist =
-    try fid :: (Hashtbl.find vis_tbl fid_parent)
+    try (Hashtbl.find vis_tbl fid_parent) @ [ fid ] 
       with _ -> raise (Failure (Printf.sprintf "Function %s not found in visibility table" fid_parent)) in
 
   (* 0 - testing early errors                      *)
@@ -569,7 +569,7 @@ let preprocess_eval
 
   (* 2 - Adding the eval body to the translation tables *)
   update_cc_tbl cc_tbl fid_parent fid (get_all_vars_f e params);
-  Hashtbl.add pre_fun_tbl fid (fid, [var_scope; var_this], Some e, ([], vislist, Hashtbl.create small_tbl_size));
+  Hashtbl.add pre_fun_tbl fid (fid, [var_scope; var_this] @ params, Some e, ([], vislist, Hashtbl.create small_tbl_size));
   Hashtbl.add vis_tbl fid vislist;
 
   (* 3 - Closure clarification                     *)

@@ -763,14 +763,14 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	  										(match e.Parser_syntax.exp_stx with
 	  										| Parser_syntax.Function (_, Some "THISISANELABORATENAME", params, body) ->
 
-	  												let new_proc = JS2JSIL_Compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params body in
-	  												let fun_name = new_proc.proc_name in
-	  												let vis_tbl = (match vis_tbl with
-	  												                | Some t -> t
-	  																| None -> raise (Failure "No visibility table")) in
-	  												let new_loc = create_anonymous_function_object heap fun_name fun_name params in
-	  												Hashtbl.replace store x (Loc new_loc);
-	  					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
+  												let new_proc = JS2JSIL_Compiler.js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl cur_proc_name params body in
+  												let fun_name = new_proc.proc_name in
+  												let vis_tbl = (match vis_tbl with
+  												                | Some t -> t
+  																| None -> raise (Failure "No visibility table")) in
+  												let new_loc = create_anonymous_function_object heap fun_name fun_name params in
+  												Hashtbl.replace store x (Loc new_loc);
+  					 							evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl (Some vis_tbl)
 
 	  										| _ -> throw_syntax_error "Body not an anonymous function.")
 	  									| _ -> throw_syntax_error "More than a function body in the string.")

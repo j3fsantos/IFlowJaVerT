@@ -4618,7 +4618,7 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 		| _, None -> raise (Failure "Wrong call to function constructor: vis_tbl undefined")
 		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
-	let e, new_fid, vislist, new_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e fid_parent params in
+	let e, new_fid, vislist, new_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e "main" params in
 
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, _) ->
