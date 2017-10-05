@@ -199,7 +199,7 @@ $$
 \begin{mathpar} 
 \inferrule[\textsc{Spatial Assertion}]
 	{  
-	   \sfs = \{ \sass \} \cup \sfs'
+	   \sfs = \{ \sass \} \dunion \sfs'
 	   \and
             \unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap')
             \\\\
@@ -223,7 +223,6 @@ P \equiv (\existentials, \sfs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstor
 		\subst' \geq \subst 
 \end{array}
 $$ 
-
 \end{theorem}
 
 \subsection{Compiling \jsil Specifications to Symbolic Tests}
@@ -242,6 +241,72 @@ $$
 \end{array}
 $$
 \end{definition}
+
+\noindent Given a \jsil program $\prog$ containing a procedure $\fid$ with spec {\small $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$}, 
+our goal is to construct a symbolic test for checking whether or not $\fid$ behaves as its specification mandates.
+A symbolic test is a pair $(\prog', \sheap)$ consisting of a \jsil program and a symbolic heap. The new program $\prog'$ 
+differs from $\prog$ in that it has a new \jsilmain procedure with the code of the test, and $\sheap$ is the initial 
+symbolic heap on which to execute $\prog'$. 
+
+\begin{display}{Concretisation of \jsil assertions: $\concretise{\sass}{\subst} = \sheap, \subst'$ and $\concretise{(\existentials, \sfs, \pfs)}{\subst} = \sheap, \pfs', \subst'$}
+{\scriptsize
+\begin{mathpar} 
+\inferrule[\textsc{Spatial Assertion - Lit Loc}]
+	{
+	  \concretise{\lexpr_p}{\subst} = \sexpr_p, \subst' 
+	  \quad 
+	  \concretise{\lexpr_v}{\subst'} = \sexpr_v, \subst''
+	}{\concretise{(\loc,\lexpr_p)\pointsto \lexpr_v}{\subst} = (\loc,\sexpr_p)\pointsto \sexpr_v, \subst''}  
+\and 
+\inferrule[\textsc{Spatial Assertion - Var Loc}]
+	{
+	  \concretise{\lexpr_p}{\subst[\sloc \mapsto \loc]} = \sexpr_p, \subst' 
+	  \quad 
+	  \concretise{\lexpr_v}{\subst'} = \sexpr_v, \subst''
+	  	  \quad 
+	  \loc \ \cfresh
+	}{\concretise{(\sloc,\lexpr_p)\pointsto \lexpr_v}{\subst} = (\loc,\sexpr_p)\pointsto \sexpr_v, \subst''}  
+\and 
+\inferrule[\textsc{EmptyFileds}]
+	{}{\concretise{\emptyfields{-}{-}}{\subst} = \hemp, \subst}  
+\and 
+\inferrule[\textsc{Spatial Assertion}]
+	{
+	    \sfs = \{ \sass \} \dunion \sfs'
+	    \quad 
+	    \concretise{\sass}{\subst} = \sheap, \subst' 
+	    \\\\
+	    \concretise{(-, \sfs', \pfs)}{\subst'} = \sheap', \pfs', \subst''
+	}{\concretise{(-, \sfs, \pfs)}{\subst} = \sheap \dunion \sheap', \pfs', \subst''}  
+\and 
+\inferrule[\textsc{Spatial Assertion}]
+	{
+	}{\concretise{(-, \emptyset, \pfs)}{\subst} = \hemp, \subst(\pfs), \subst}  
+\end{mathpar}}
+\end{display}
+
+\begin{algorithm}
+\caption{Synthesising a symbolic test for: $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$}\label{infer:specs:algo}
+\begin{algorithmic}[1]
+\State $(\existentials, \sfs, \pfs) := \normalise(P)$ 
+\State $\sheap_0, \pfs_0, \theta := \concretise{(\existentials, \sfs, \pfs)}{[ \ ]}$
+\State $\subst' := \subst\mid_{\domain(\subst) \backslash \existentials}$
+\State Return: 
+%\ForAll{$XXX$}
+%\If{$XXX$}
+  %\State $\{ P \} \, \pid() \, \{ Q \} = \ispecs(\pid, \_)$
+%\Else
+  %\State $P,Q :=$
+%\EndIf
+%\State $ := InferSpec, \ispecs', \pid, P) $
+%\ForAll{$(Q_f,,\flag) \in $}
+%\If{$Q_f \sep Q_M \vdash Q \sep \true$}
+  %\State $\ispecs' := \ispecs' \cup \{(\pid, \flag) \mapsto {P \sep _f \sep Q_M}{\pid(\jvec{\xivar})}{Q_f \sep Q_M}\}$
+%\EndIf
+%\EndFor
+%\EndFor
+\end{algorithmic}
+\end{algorithm}
 
 
 \subsection{Example} 

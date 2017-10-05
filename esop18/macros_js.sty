@@ -319,7 +319,6 @@
 \newcommand\ivland{\darkmath{\textsf {and}}}
 \newcommand\ivlor{\darkmath{\textsf {or}}}
 \newcommand\ivlnot{\darkmath{\textsf {not}}}
-\newcommand\ivlmain{\darkmath{\textsf {main}}}
 \newcommand\instr[2]{#1: \, #2}
 \newcommand\xivar{\mathtt{x}}
 \newcommand\yivar{\mathtt{y}}
@@ -364,7 +363,7 @@
 \newcommand\finalcompile[0]{\overline{\mathcal C}}
 \newcommand\icompile[0]{{\mathcal W}}
 
-\newcommand\cfresh[0]{{\sf fresh}}
+
 \newcommand\dspc[0]{\phantom{xx}}
 
 \newcommand\typejudge[4]{#1 \vdash_e #2 \, \{ #3 \} \, #4}
@@ -527,6 +526,7 @@
 %% JILETTE PAPER FROM HERE!!!!!
 %%
 %% Auxiliary
+\newcommand\cfresh[0]{{\sf fresh}}
 \newcommand\semeq{\,\triangleq\,}
 \newcommand{\domain}{\command{dom}}
 \newcommand{\range}{\command{rng}}
@@ -573,6 +573,7 @@
 \newcommand\hasfield{\darkmath{\textsf {hasField}}}
 \newcommand\assert{\darkmath{\textsf {assert}}}
 % flags and return modes
+\newcommand\jsilmain{\darkmath{\textsf{main}}}
 \newcommand{\flag}[0]{\ensuremath{\mathit{fl}}\xspace}
 %control flow commands
 \newcommand\goto{\darkmath{\textsf {goto}}}
@@ -675,6 +676,10 @@
 \newcommand{\subst}[0]{\theta}
 \newcommand{\unification}[4]{{\cal U}_{#4}((#1), #2, #3)}
 \newcommand{\unificationfull}[4]{\lconf{(#1), (#2)} \ \stackrel{#4}{\leadsto}_{\cal U} #3}
-
+%%
+%% Specs - test generation
+%%
+\newcommand{\concretise}[2]{\llfloor #1 \rrfloor_{#2}}
+\newcommand{\normalise}[0]{Normalise}
 
 
