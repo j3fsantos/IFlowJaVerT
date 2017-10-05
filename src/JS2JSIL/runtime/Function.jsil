@@ -34,6 +34,8 @@ proc FP_call () {
 	body:	body   := [vthis, "@call"];
 			xscope := [vthis, "@scope"];
 
+			x__se := "SyntaxError" ();
+
 			xret := apply (body, {{ xscope }}, xthis, pars) with elab;
 
 			goto [xret = $$empty] undef rlab;
