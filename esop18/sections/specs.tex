@@ -228,6 +228,20 @@ $$
 
 \subsection{Compiling \jsil Specifications to Symbolic Tests}
 
+\polish{Explain \jsil specs} 
+
+\begin{definition}[Validity of \jsil Logic Specifications]
+A \jsil logic specification $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$ for return mode $\flag$ is valid with respect to a program 
+$\prog$, written $\prog, \flag \vDash \lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$,  if and only if, for all logical 
+contexts $(\aheap, \store, \senv)$, heaps $\heap_f$, stores $\store_f$, and flags $\flag'$, it holds that: 
+$$
+\begin{array}{l}
+    \aheap, \store, \senv \satisfies P \ \wedge \ \tuple{\deabstract{\aheap}, \store, \ctx[0]} \rightarrow^* \tuple{\heap_f, \store_f, \ctx[i_{\flag'}]} \\
+       \quad \implies
+            \flag' = \flag \ \wedge \ \exists \aheap_f \, . \, \aheap_f, \store_f, \senv \satisfies Q \ \wedge \ \deabstract{\aheap_f} = \heap_f
+\end{array}
+$$
+\end{definition}
 
 
 \subsection{Example} 

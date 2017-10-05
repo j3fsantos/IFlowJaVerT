@@ -130,7 +130,6 @@
 \newcommand\oheaps[0]{{\mathcal H}}
 \newcommand\aheaps[0]{{\mathcal H}^{\emptyset}}
 \newcommand\oheap[0]{h}
-\newcommand\aheap[0]{H}
 
 \newcommand\jsheaps[0]{{\mathcal H_\jssuffix}}
 %\newcommand\ajsilheaps[0]{{\mathcal H_\jsilsuffix^{\diameter}}}
@@ -514,7 +513,6 @@
 \newcommand{\jsilheaptr}[2]{\langle #1 \rangle_{JS}^{#2}}
 
 \newcommand{\lctx}[0]{C}
-\newcommand{\flag}[0]{\ensuremath{\mathit{fl}}\xspace}
 \newcommand{\flagset}[0]{\mathcal{F}lag}
 
 \newcommand{\bigord}{{\mathcal O}rd}
@@ -574,6 +572,8 @@
 \newcommand\jsildelete{\darkmath{\textsf {delete}}}
 \newcommand\hasfield{\darkmath{\textsf {hasField}}}
 \newcommand\assert{\darkmath{\textsf {assert}}}
+% flags and return modes
+\newcommand{\flag}[0]{\ensuremath{\mathit{fl}}\xspace}
 %control flow commands
 \newcommand\goto{\darkmath{\textsf {goto}}}
 \newcommand\ifgoto[3]{\darkmath{\textsf {goto}} \ [#1] \ #2, \ #3}
@@ -668,6 +668,7 @@
 \newcommand\pfs[0]{\pi}
 \newcommand\existentials[0]{X}
 \newcommand{\sass}[0]{sa}
+\newcommand\aheap[0]{\underline{h}}
 %%
 %% Sep Logic - Unification
 %%
