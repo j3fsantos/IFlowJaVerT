@@ -4293,7 +4293,7 @@ let make_final_cmd vars final_lab final_var =
 
 
 let translate_fun_decls (top_level : bool) (sc_var : string) (cur_index : int) e  =
-	let f_decls = get_fun_decls_top_level e in
+	let f_decls = func_decls_in_exp e in
 	let hoisted_fdecls =
 		List.fold_left (fun ac f_decl ->
 			let f_name, f_params =
