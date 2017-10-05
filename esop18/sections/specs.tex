@@ -285,28 +285,28 @@ symbolic heap on which to execute $\prog'$.
 \end{mathpar}}
 \end{display}
 
-\begin{algorithm}
-\caption{Synthesising a symbolic test for: $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$}\label{infer:specs:algo}
-\begin{algorithmic}[1]
-\State $(\existentials, \sfs, \pfs) := \normalise(P)$ 
-\State $\sheap_0, \pfs_0, \theta := \concretise{(\existentials, \sfs, \pfs)}{[ \ ]}$
-\State $\subst' := \subst\mid_{\domain(\subst) \backslash \existentials}$
-\State Return: 
-%\ForAll{$XXX$}
-%\If{$XXX$}
-  %\State $\{ P \} \, \pid() \, \{ Q \} = \ispecs(\pid, \_)$
-%\Else
-  %\State $P,Q :=$
-%\EndIf
-%\State $ := InferSpec, \ispecs', \pid, P) $
-%\ForAll{$(Q_f,,\flag) \in $}
-%\If{$Q_f \sep Q_M \vdash Q \sep \true$}
-  %\State $\ispecs' := \ispecs' \cup \{(\pid, \flag) \mapsto {P \sep _f \sep Q_M}{\pid(\jvec{\xivar})}{Q_f \sep Q_M}\}$
-%\EndIf
-%\EndFor
-%\EndFor
-\end{algorithmic}
-\end{algorithm}
+%\begin{algorithm}
+%\caption{Synthesising a symbolic test for: $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$}\label{infer:specs:algo}
+%\begin{algorithmic}[1]
+%\State $(\existentials, \sfs, \pfs) := \normalise(P)$ 
+%\State $\sheap_0, \pfs_0, \theta := \concretise{(\existentials, \sfs, \pfs)}{[ \ ]}$
+%\State $\subst' := \subst\mid_{\domain(\subst) \backslash \existentials}$
+%\State Return: 
+%%\ForAll{$XXX$}
+%%\If{$XXX$}
+%  %\State $\{ P \} \, \pid() \, \{ Q \} = \ispecs(\pid, \_)$
+%%\Else
+%  %\State $P,Q :=$
+%%\EndIf
+%%\State $ := InferSpec, \ispecs', \pid, P) $
+%%\ForAll{$(Q_f,,\flag) \in $}
+%%\If{$Q_f \sep Q_M \vdash Q \sep \true$}
+%  %\State $\ispecs' := \ispecs' \cup \{(\pid, \flag) \mapsto {P \sep _f \sep Q_M}{\pid(\jvec{\xivar})}{Q_f \sep Q_M}\}$
+%%\EndIf
+%%\EndFor
+%%\EndFor
+%\end{algorithmic}
+%\end{algorithm}
 
 
 \subsection{Example} 
