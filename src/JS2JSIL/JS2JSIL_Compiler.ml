@@ -1402,7 +1402,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_ibt = fresh_var () in
 		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var x_f_val, Literal (String "@boundThis"))) in
 
-		let call = fresh_then_label () in
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_ibt) in
 		let cmd_bind_test = SLGuardedGoto (goto_guard_expr, bind, call) in
