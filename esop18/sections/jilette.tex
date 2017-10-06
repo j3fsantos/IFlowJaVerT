@@ -18,7 +18,7 @@
               - discuss challenges: abstraction level of the generated code needs to match the abstraction level of Rosette 
 \end{itemize}
 
-\subsection{Symbolic Execution for  \jsil}
+\subsection{Formalisation}
 
 \myparagraph{\jsil: Formal Semantics}
 The basic memory model of \jsil is straightforward. 
@@ -476,7 +476,20 @@ Ideally I would like to talk about:
 
 \subsection{Motivating Example} 
 
- \begin{figure}[th!]
+We illustrate how Jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
+of a  \emph{key-value map} given in Figure~\ref{map:example} (left). 
+It contains four functions: 
+\jsinline|Map|, for constructing an empty map;
+\jsinline|get|, for retrieving the value associated with the key given as input;
+\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating existing keys; and
+\jsinline|validKey|, for deciding whether a key is valid.
+This library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object used to store the map contents.  
+The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
+As the functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
+objects, they are defined as properties of \jsinline|Map.prototype|, which is the prototype 
+of the objects that are created using \jsinline|Map| as a constructor (e.g.~using~\jsinline|new Map()|). 
+
+ \begin{figure}[t!]
  \begin{lstjs}[firstnumber=1]
 function Map () { this._contents = {} }
 
@@ -496,11 +509,14 @@ Map.prototype.validKey = function (k) { ... }
 \caption{Map Implementation in JavaScript}
 \end{figure}
 
- \begin{figure}[th!]
+Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
+By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
+\jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
+Running the symbolic test below reveals this bug. In fact, \jilette gives 
+\jsinline|__s1 = "hasOwnProperty"| as a failing model for the symbolic tetst below. 
+%
  \begin{lstjs}[firstnumber=1]
 var m = new Map();  m.put (__s1, __n1); var r = m.get(__s1);  
 assert(__n1 = r)
 \end{lstjs}
-\caption{Symbolic Test for the Map Library}
-\end{figure}
 
