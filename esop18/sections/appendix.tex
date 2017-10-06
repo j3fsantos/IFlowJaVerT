@@ -1,5 +1,8 @@
 %!TEX root = ../main.tex
 
+\newtheorem{lemmax}{}
+\newtheorem{temax}{}
+
 \section{\jsil Syntax and Semantics}
 
 
@@ -175,3 +178,189 @@
  \end{mathpar}}
 \caption{Symbolic Execution for Control Flow Commands: {\scriptsize$\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx'[j]}$}} 
 \end{figure}
+
+
+\section{Proofs - Section~\ref{sec:jsil:symb:exec}}
+
+\begin{lemma}[Soundess of symbolic execution for \jsil basic commands]
+$$
+\begin{array}{l}
+\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
+   \ \wedge \ 
+      (\heap, \store) \in \smodels{\sheap, \sstore}{\pc'} \\ \quad \quad
+      	 \ \implies \ \exists (\heap', \store') \, . \, 
+	 	 \semtrans{\heap, \store, \bcmd}{\heap', \store'}
+		\, \wedge \, 
+		(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}  
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+We proceed by case analysis on $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$. 
+\vspace{5pt}
+
+\noindent\prooflab{Skip} 
+We conclude that $\bcmd = \jsilskip$. 
+It follows that $\sheap' = \sheap$, $\sstore' = \sstore$, and $\pc' = \pc$. 
+If we pick $\heap' = \heap$, $\store' = \store$, the result follows. 
+\vspace{6pt}
+
+\noindent\prooflab{Assignment} 
+We conclude that $\bcmd = \jvar := \jsilexpr$, for some variable $\jvar$ and expression $\jsilexpr$.  
+It follows that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$, and $\pc' = \pc$. 
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment 
+$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+Noting that: 
+$$
+ \semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}
+% \qquad 
+ %\semexpr{\sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}{\senv} = \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\jsilexpr}{\store, \senv}]
+$$
+we pick $\heap' = \heap$ and $\store' =  \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$. We 
+now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc}$.
+Observing that: 
+$$
+\heap' =  \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} 
+\quad 
+\store' = \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\jsilexpr}{\semexpr{\sstore}{\senv}}]
+   = \semexpr{\sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}{\senv} 
+   = \semexpr{\sstore'}{\senv}
+$$
+%
+the result follows. 
+\vspace{6pt}
+
+\noindent\prooflab{Object Creation}
+We conclude that $\bcmd = \jvar := \jsilnew()$, for some variable $\jvar$.
+ It follows that $\sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}$, $\sstore' = \sstore[\jvar \mapsto \loc]$, and $\pc' = \pc$, 
+ where  $(\loc,-) \notin \domain (\sheap)$. 
+ From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+Noting that: 
+$$
+\semtrans{\heap, \store, \jvar := \jsilnew()}{\heap \dunion \hcell{\loc}{\protop}{\jsnull}, \store[\jvar \mapsto \loc]}
+$$
+where: $(\loc,-) \notin \domain (\heap)$, we pick $\heap' = \semexpr{\sheap}{\senv} \dunion \hcell{\loc}{\protop}{\jsnull}$ 
+and $\store' = \semexpr{\sstore}{\senv}[\jvar \mapsto \loc]$. 
+We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc}$.
+Noting that: 
+$$
+\begin{array}{l}
+\heap' = \semexpr{\sheap}{\senv} \dunion \hcell{\loc}{\protop}{\jsnull} = \semexpr{\sheap \dunion \hcell{\loc}{\protop}{\jsnull}}{\senv}   
+     = \semexpr{\sheap'}{\senv}  \\
+%
+\store' = \semexpr{\sstore}{\senv}[\jvar \mapsto \loc] = \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\loc}{\senv}] = 
+      \semexpr{\sstore[\jvar \mapsto \loc]}{\senv} = \semexpr{\sstore'}{\senv} 
+\end{array}
+$$
+the result follows. 
+\vspace{6pt}
+
+\noindent\prooflab{Property Access}
+We conclude that $\bcmd = \jvar := [\jsilexpr_1, \jsilexpr_2]$, for some variable $\jvar$, and expressions $\jsilexpr_1$ and $\jsilexpr_2$. 
+ It follows that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \sexprv_k]$, and: 
+ $$\pc' =  \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)$$
+ where 
+ $\symbeval{\jsilexpr_1}{\sstore} =  \loc$, $\symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p$, 
+ $\sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$, 
+ $(l, -) \not\in \domain(\sheap')$, and $0 \leq k \leq n$. 
+%
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+$\senv \vdash \pc'$. 
+Noting that: 
+$$
+ \semtrans{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \val]}
+$$
+where: $\symbeval{\jsilexpr_1}{\store} =  \loc'$, $\symbeval{\jsilexpr_2}{\store} =  \jstring$, 
+and $\heap = - \dunion \hcell{\loc'}{\jstring}{\val}$, we pick $\heap' = \semexpr{\sheap}{\senv}$ 
+and $\store' =  \semexpr{\sstore}{\senv}[\jvar \mapsto \val]$. 
+We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc}$.
+Observe that: 
+$$
+\begin{array}{l}
+\heap' = \heap = \semexpr{\sheap}{\senv}   = \semexpr{\sheap'}{\senv} 
+\\
+\loc' = \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
+    = \symbeval{\loc}{\senv} = \loc
+%
+\\ 
+ \jstring = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\jsilexpr_2}{\sstore}}{\senv}
+   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \pc'$)} 
+\end{array}
+$$
+%Furthermore, because , we have that:  $\symbeval{\sexprp_k}{\senv} = \symbeval{\sexpr_p}{\senv}$. 
+Because $\symbeval{\sexprp_k}{\senv} = s$, $\loc = \loc'$, and: 
+$$
+\heap = \semexpr{\sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
+\quad
+\heap = \heap = - \dunion \hcell{\loc'}{\jstring}{\val}
+$$
+we conclude that $\symbeval{\sexprv_k}{\senv} = \val$. Hence, we have that: 
+$$
+ \store' =  \semexpr{\sstore}{\senv}[\jvar \mapsto \val] 
+    =  \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\sexprv_k}{\senv}] 
+    =  \semexpr{\sstore[\jvar \mapsto \sexprv_k]}{\senv} 
+    =  \semexpr{\sstore'}{\senv}
+ $$
+ which concludes the proof. 
+\vspace{6pt}
+
+\noindent\prooflab{Property Deletion}
+We conclude that $\bcmd = \jsildelete(\jsilexpr_1, \jsilexpr_2)$, for some expressions $\jsilexpr_1$ and $\jsilexpr_2$. 
+It follows that: 
+$$
+\begin{array}{l}
+\sheap' = \sheap'' \, \uplus \,  \big((\loc, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
+\quad 
+\sstore' = \sstore
+\\ 
+ \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+\end{array}
+$$
+where $\loc = \symbeval{\jsilexpr_1}{\sstore}$ and $\sexpr_p = \symbeval{\jsilexpr_2}{\sstore}$
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+$\senv \vdash \pc'$. 
+
+
+\end{proof}
+
+
+
+%\inferrule[\textsc{Property Deletion}]
+%  { 
+%       
+%  	\quad 
+%        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+%       \quad 
+%        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+%        \quad
+%        (l, -) \not\in \domain(\sheap')
+%        \quad 
+%        0 \leq k \leq n
+%     \\ 
+%      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+%     \quad 
+%      %   }{\symbtrans{\sheap, \sstore, \jsildelete(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap'', \sstore, \pc'}}
+
+
+
+\begin{temax}[Theorem~\ref{teo:soundness:jsil:symb:exe} - Soundess of \jsil symbolic execution]
+$$
+\begin{array}{l}
+\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'} 
+   \ \wedge \ 
+      (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
+      	 \ \implies \ \exists (\heap', \store', \ctx') \, . \, 
+	 	 \semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx'[j]}
+		\, \wedge \, 
+		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
+\end{array}
+$$
+\end{temax}
+%
+\begin{proof}
+We proceed by case analysis on $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'}$. 
+
+\end{proof}

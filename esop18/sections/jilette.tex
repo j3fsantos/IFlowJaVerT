@@ -374,7 +374,7 @@ For convenience, we define:
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
 \end{align}
 
-\begin{theorem}[Soundess]
+\begin{theorem}[Soundess of \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
 \symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'} 
