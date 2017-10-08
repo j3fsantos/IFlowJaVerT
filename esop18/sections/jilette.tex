@@ -21,10 +21,10 @@
 \subsection{Formalisation}
 
 \myparagraph{\jsil: Formal Semantics}
-The basic memory model of \jsil is straightforward. 
+The basic memory model of \jsil is as follows. 
 \jsil values contain: numbers, $\jnumber$; booleans, $\jbool$; strings, $\jstring$;  the special values \jsinline|undefined| and \jsinline|null|; and object locations,  $\loc \in \locs$.
 A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations, and strings to heap values. 
- Given a heap $\heap$, we denote a heap cell by $\hcell{\loc}{\jstring}{\val}$ when $h(\loc,\jstring) = \val$, the union of two disjoint heaps by $\oheap_1 \dunion \oheap_2$,  a heap lookup by $\hread{\oheap}{\loc}{\jstring}$, and the empty heap by $\hemp$.
+ Given a heap $\heap$, we denote: a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $h(\loc,\jstring) = \val$; the union of two disjoint heaps by $\oheap_1 \dunion \oheap_2$; heap lookup by $\hread{\oheap}{\loc}{\jstring}$; and the empty heap by $\hemp$.
  Finally, a \jsil variable store, $\store \in \stores$, is a mapping from JSIL program variables $\jvar \in \jvars$ to JSIL values.
 
 We introduce the \jsil semantic judgement for program behaviour; %needed to state our soundness result. 
@@ -41,6 +41,8 @@ the variable to which the return of $\pid$ must be assigned, \dtag{4} $i$ is the
 of the command to which the control must jump after the execution of $\pid$ in 
 case of normal return, and \dtag{5} $j$ the index to which it must jump in case of 
 error return. 
+
+\pmax{If I understood correctly, 2,3,4,5 are all related to the procedure that called $f$. Not to overload, the $i$ and $j$ should probably be different, like $r_n$ and $r_e$ or whatever. What is the initial context when executing top-level code, which is not called by anything? $C$ is not affected by anything, and the $i$ is not substituted anywhere inside, it should be out of the triple and implicit}
 
 
 \myparagraph{\jsil: Symbolic Evaluation}
@@ -71,6 +73,9 @@ Path conditions are given by the following grammar:
 \begin{equation}
 \pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc \mid \ltrue \mid \lfalse
 \end{equation}
+
+\pmax{How is the path condition used? Should it be an ordered list? It feels like a loss of information that we can have same path conditions for different branchings. No, not really, since this is not just gotos, it's a lot more than that.
+}
 
 Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for \jsil basic commands. 
 Rules have the form $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
@@ -160,8 +165,8 @@ index of the next command to be executed paired with the resulting execution con
         \\
           \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
          \quad
-         \sheap' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap', \sstore, \pc'}}   
+         \sheap'' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
+  }{\symbtrans{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}}   
 %
 \\
 %

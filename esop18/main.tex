@@ -15,6 +15,7 @@
 \usepackage{mathpartir}
 \usepackage{url}
 \usepackage{upgreek}
+\usepackage{xparse}
 %\usepackage{algorithm}
 %\usepackage{algpseudocode}
 
@@ -134,14 +135,58 @@
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
 
+% COMMENTS
 
+\newcommand{\pginline}[1]{ {\color{red} *** PG : #1 ***} }
+\newcommand{\pmaxinline}[1]{ {\color{blue} *** PM : #1 ***} }
+\newcommand{\jfsinline}[1]{ {\color{green} *** JFS : #1 ***} }
+\newcommand{\jdinline}[1]{ {\color{purple} *** JD : #1 ***} }
+
+\newif\ifComments
+\Commentstrue
+
+\newcommand{\pg}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{red}
+{\rm PG: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\pmax}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{blue}
+{\rm PM: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\jfs}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{green}
+{\rm JFS: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\jd}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{purple}
+{\rm JD: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
 
 %
 \title{\jilette: Symbolic Execution for JavaScript}
 
 \author{}
 
-\institute{Imperial College London, IBM New York}
+\institute{}
 
 \begin{document}
 %
@@ -149,46 +194,47 @@
 \maketitle 
 
 \begin{abstract}
-
+Very. Always.
 \end{abstract}
 
 
 \section{Introduction}
 
-JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web
-applications (used by 94.8\% of websites\footnote{w3techs.com/technologies/details/cp-javascript/all/all.});
+JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications (used by 94.8\% of websites \cite{JS948percent});
 it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
-memory. It is the most active language in both GitHub and StackOverflow\footnote{JavaScript  has most active
- repos on GitHub, http://githut.info; JavaScript has most questions on 
- StackOverflow, \\https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628.}.
+memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
 The dynamic nature of JavaScript and its complex semantics make it a difficult target for
 symbolic analysis and logic-based verification. 
 This paper presents \jilette, a symbolic execution tool for JavaScript that improves existing solutions
-in two ways: \dtag{1} it is grounded on the real semantics of the language and 
-\dtag{2} it supports reasoning about symbolic strings and regular expressions. 
+in two ways: \dtag{1} it is grounded on the real semantics of the language \pmaxinline{We have to be very careful with phrasing this. K is symbolic execution that is based on the real semantics of the language. They don't do built-in libraries, though. We can claim substantially greater coverage, which is very important since, well, all programs use the built-in libraries. Writing assumes and asserts is incomparably simpler and more intuitive in Jilette, also.} and 
+\dtag{2} it supports reasoning about symbolic strings and regular expressions.
 %
-Furthermore, we present two possible uses for \jilette. It can both be used as \dtag{i} a tool for
- running symbolic tests for JavaScript programs and \dtag{ii} a debugging mechanism for separation 
- logic specifications of JavaScript programs. 
+Furthermore, we present two possible uses for \jilette. It can both be used as \dtag{i}~a tool for
+ running symbolic tests for JavaScript programs and \dtag{ii} a debugging tool for specifications of JavaScript programs written in separation logic. \pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL. Also, we need to say at some point why we care about specifications written in separation logic.} 
 
 \myparagraph{Symbolic Testing} The most commonly used 
-approach to obtaining trust in JavaScript code is running it against 
-adhoc test batteries---given inputs, the code produces the expected
+approach \pmaxinline{citations?} to obtaining trust in JavaScript code is running it against 
+adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
 cannot guarantee exhaustiveness. We show how to use \jilette
 for the symbolic testing of JavaScript programs: instead of using concrete 
 inputs in tests, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
-first-order assertions over these inputs. 
+first-order assertions over these inputs. \pmaxinline{This approach is 
+not novel. Who else has done this?}
 %This approach guarantees exhaustiveness.  Moreover, due to the
 Furthermore, if a test fails, Jilette provides the concrete inputs that cause it 
-to fail, immediately revealing bugs in the tested code.
+to fail, immediately revealing bugs in the code being tested.
 
 
 \myparagraph{Debugging Separation Logic Specifications}
 We show how to use \jilette as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs. Verification tools for  
-JavaScript code are still very rare and often require heavily annotating the 
+JavaScript code \pmaxinline{Careful phrasing. Verification doesn't mean separation
+logic. We must cite JaVerT here, we're the only ones doing this. It feels
+like deliberate obfuscation.} are still 
+very rare and often \pmaxinline{If they're rare, how can they do anything often?} 
+require heavily annotating the 
 original code for helping the solver prove entailments involving user-defined 
 predicates, as well as coping with loops and recursion. Furthermore, when these 
 tools cannot prove that a given function does not satisfy its specification, the 
