@@ -609,8 +609,20 @@
 %%%%%%%%%%%%%%%
 \newcommand\sstate{\sigma}
 \newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
-\newcommand{\symbtrans}[2]{ \tuple{#1} \leadsto \tuple{#2}}
+
+\DeclareDocumentCommand{\symbtrans}{ o m m o o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#4}
+	{\tuple{#2} \leadsto \tuple{#3} }
+	{ \IfNoValueTF{#5}
+		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#4}}
+		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#5}} } }
+
 \newcommand{\symbtranserr}[1]{ \tuple{#1} \leadsto \bot}
+
+
+
 \newcommand\pc{\pi}
 \newcommand\sexpr{\hat{e}}
 \newcommand\sexprp{\hat{p}}
