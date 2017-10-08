@@ -909,17 +909,55 @@ the result follows.
 \vspace{6pt}
 
 
+\noindent\prooflab{Procedure Call} 
+We conclude that $\prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}$
+for some variable $\jvar$, expressions $\jsilexpr$, $\jsilexpr_0$, ..., $\jsilexpr_n$, and 
+index $j$, and that:
+$$
+\sheap' = \sheap
+%
+\qquad
+% 
+\sstore' = [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] 
+%
+\qquad 
+%
+\ctx' = ((\pid', \sstore, \jvar, i+1, j)::\sctx
+%
+\qquad
+\pc' = \pc
+$$
+where $\pid' = \symbeval{\jsilexpr}{\sstore}$,  
+$\jsillist{\jvar_1, ..., \jvar_{m}} = \args(\pid')$, and: 
+$$
+\sexpr_i = \left\lbrace{\begin{array}{ll}
+\symbeval{\jsilexpr_i}{\sstore} & \text{if } 0 \leq i \leq n \\
+\jsundefined                            & \text{otherwise}
+\end{array}}\right.
+$$
+Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, we conclude that 
+there is a symbolic environment $\senv$ such that: $\senv \vdash \pc'$, 
+$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
+and $\ctx = \semexpr{\sctx}{\senv}$.
 
-%  \inferrule[\textsc{Cond. Goto - True}]
-%   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
-%     \symbeval{\jsilexpr}{\store} =  \jtrue
-%   }
-%   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[j]}}
 
-%  \inferrule[\textsc{Cond. Goto - True}]
-%   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
-%     \symbeval{\jsilexpr}{\sstore} =  \sexpr
+
+
+
+%    \inferrule[\textsc{Procedure Call}]
+%   { 
+%    \prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+%     \quad
+%    \symbeval{\jsilexpr}{\sstore} =  \pid' 
+%    \quad
+%      \symbeval{\jsilexpr_i}{\sstore} =  \sexpr_i \mid_{i = 0}^{n} 
+%     \quad
+%     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+%     \quad 
+%      \sexpr_i = \jsundefined \mid_{i = n+1}^{m}  
 %   }
-%   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[j],  \pc \, \wedge \, \sexpr}}
+%   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}], ((\pid', \sstore, \jvar, i+1, j)::\sctx)[0], \pc}}
+
+
 
 \end{proof}
