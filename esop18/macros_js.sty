@@ -583,8 +583,27 @@
 % Semantics
 %%%%%%%%%%%%%%%
 \newcommand\ctx{C}
-\newcommand{\semtrans}[2]{\tuple{#1} \rightarrow \tuple{#2}}
-\newcommand{\semtranserr}[1]{\tuple{#1} \rightarrow \bot}
+\DeclareDocumentCommand{\semtrans}{ o m m o o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#4}
+	{\tuple{#2} \rightarrow \tuple{#3} }
+	{ \IfNoValueTF{#5}
+		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#4}}
+		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#5}} } }
+
+\DeclareDocumentCommand{\semtranserr}{ o m o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#3}
+	{\tuple{#2} \rightarrow \bot}
+	{\tuple{#2}_#3 \rightarrow \bot} }
+\DeclareDocumentCommand{\ccmd}{ o o m }
+{
+  \IfNoValueTF{#1}
+  	{\textsf{cmd}(#3)}
+	{\textsf{cmd}(#1, #2, #3)} }
+
 %%%%%%%%%%%%%%%
 % Symbolic Execution
 %%%%%%%%%%%%%%%
