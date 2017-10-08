@@ -182,7 +182,7 @@
 
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
-\begin{lemma}[Soundess of symbolic execution for \jsil basic commands]
+\begin{lemma}[Soundess of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
 $$
 \begin{array}{l}
 \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
@@ -693,5 +693,90 @@ $$
 %
 \begin{proof}
 We proceed by case analysis on $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'}$. 
+\vspace{5pt}
+
+\noindent\prooflab{Basic Command} 
+We conclude that $\prog_{\pid}(i) = \bcmd$ for some basic command $\bcmd$,  
+$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
+$\sctx' = \sctx$, and $j = i + 1$. 
+Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, we conclude 
+that $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$. 
+Applying Lemma~\ref{soundness:basic:commands} to: 
+$$ 
+\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'} 
+\qquad 
+(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}
+$$
+we conclude that there is a concrete heap $\heap'$ and store $\store'$ such 
+that: 
+$$
+\semtrans{\heap, \store, \bcmd}{\heap', \store'}
+\qquad 
+(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}  
+$$
+Using $\prog_{\pid}(i) = \bcmd$ and $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, 
+we can apply the \prooflab{Basic Command} rule of \jsil semantics to conclude 
+that: $\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx[i+1]}$. 
+From $\sctx' = \sctx$, $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$, 
+and $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, it follows
+that $(\heap', \store', \ctx') \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, 
+which concludes the proof. 
+\vspace{6pt}
+
+
+\noindent\prooflab{Goto} 
+We conclude that $\prog_{\pid}(i) = \goto \, k$ for some program index $k$ and 
+that $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[k], \pc}$, 
+meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
+and $\pc' = \pc$. 
+From $\prog_{\pid}(i) = \goto \, k$, we conclude that 
+$\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[k]}$. 
+Noting that: 
+$$
+(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore}{\pc}  = \smodels{\sheap', \sstore'}{\pc'}
+$$
+the result follows. 
+\vspace{6pt}
+
+
+\noindent\prooflab{Cond. Goto - True} 
+We conclude that $\prog_{\pid}(i) = \ifgoto{\jsilexpr}{k_1}{k_2}$ for some expression 
+$\jsilexpr$ and indexes $k_1$ and $k_2$ and 
+that $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[k_1], \pc \, \wedge \, \sexpr}$, 
+meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
+and $\pc' = \pc \, \wedge \, \sexpr$, where $\semexpr{\jsilexpr}{\sstore} = \sexpr$. 
+Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, we conclude that 
+there is a symbolic environment $\senv$ such that: $\senv \vdash \pc'$, 
+$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
+and $\ctx = \semexpr{\sctx}{\senv}$.
+From  $\senv \vdash \pc' = \pc \ \wedge \ \sexpr$, it follows that $\symbeval{\sexpr}{\senv} = \jtrue$. 
+Noting that: 
+$$
+\semexpr{\jsilexpr}{\store} = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\jsilexpr}{\sstore}}{\senv} 
+    = \semexpr{\sexpr}{\senv}
+    = \jtrue
+$$
+we conclude that $\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[k_1]}$. 
+Noting that: 
+$$
+(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore}{\pc}  = \smodels{\sheap', \sstore'}{\pc'}
+$$
+the result follows. 
+\vspace{6pt}
+
+
+
+%  \inferrule[\textsc{Cond. Goto - True}]
+%   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
+%     \symbeval{\jsilexpr}{\store} =  \jtrue
+%   }
+%   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[j]}}
+
+%  \inferrule[\textsc{Cond. Goto - True}]
+%   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
+%     \symbeval{\jsilexpr}{\sstore} =  \sexpr
+%   }
+%   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[j],  \pc \, \wedge \, \sexpr}}
 
 \end{proof}
