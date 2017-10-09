@@ -302,7 +302,7 @@
      \ 
       \val_i = \jsundefined \mid_{i = n+1}^{m}  
    }
-   {\semtrans{\heap, \store, i}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , 0}[C][(\pid', \store, \jvar, i+1, j) :: \ctx]}
+   {\semtrans{\heap, \store, i}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]}
     \\ 
   \inferrule[\textsc{Normal Return}]
    {
@@ -821,26 +821,26 @@ $\symbeval{\jsilexpr}{\store} = \jfalse$, from which the result follows.
 \end{proof}
 
 
-\begin{temax}[Theorem~\ref{teo:soundness:jsil:symb:exe} - Soundess of \jsil symbolic execution]
+\begin{lemma}[Soundess of \jsil symbolic execution - Single Step]\label{lemma:soundness:single:step}
 $$
 \begin{array}{l}
-\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'} 
+\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx'] 
    \ \wedge \ 
       (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
       	 \ \implies \ \exists (\heap', \store', \ctx') \, . \, 
-	 	 \semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx'[j]}
+	 	 \semtrans{\heap, \store, i}{\heap', \store', j}[\ctx][\ctx']
 		\, \wedge \, 
 		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
 \end{array}
 $$
-\end{temax}
+\end{lemma}
 %
 \begin{proof}
-We proceed by case analysis on $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'}$. 
+We proceed by case analysis on $\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\ctx][\ctx']$. 
 \vspace{5pt}
 
 \noindent\prooflab{Basic Command} 
-We conclude that $\prog_{\pid}(i) = \bcmd$ for some basic command $\bcmd$,  
+We conclude that $\ccmd{i} = \bcmd$ for some basic command $\bcmd$,  
 $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
 $\sctx' = \sctx$, and $j = i + 1$. 
 Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, we conclude 
@@ -858,9 +858,9 @@ $$
 \qquad 
 (\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}  
 $$
-Using $\prog_{\pid}(i) = \bcmd$ and $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, 
+Using $\ccmd{i} = \bcmd$ and $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, 
 we can apply the \prooflab{Basic Command} rule of \jsil semantics to conclude 
-that: $\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx[i+1]}$. 
+that: $\semtrans{\heap, \store, i}{\heap', \store', i+1}[\ctx][\ctx']$. 
 From $\sctx' = \sctx$, $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$, 
 and $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, it follows
 that $(\heap', \store', \ctx') \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, 
@@ -869,24 +869,24 @@ which concludes the proof.
 
 
 \noindent\prooflab{Goto} 
-We conclude that $\prog_{\pid}(i) = \goto \, k$ for some program index $k$ and 
-that $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[k], \pc}$, 
+We conclude that $\ccmd{i} = \goto \, k$ for some program index $k$ and 
+that $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore, k, \pc}[\sctx][\sctx]$, 
 meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
 and $\pc' = \pc$. 
-From $\prog_{\pid}(i) = \goto \, k$, we conclude that 
-$\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[k]}$. 
+From $\ccmd{i} = \goto \, k$, we conclude that 
+$\semtrans{\heap, \store, i}{\heap, \store, k}[\ctx][\ctx]$. 
 Noting that: 
 $$
-(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore}{\pc}  = \smodels{\sheap', \sstore'}{\pc'}
+(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc}  = \smodels{\sheap', \sstore', \sctx'}{\pc'}
 $$
 the result follows. 
 \vspace{6pt}
 
 
 \noindent\prooflab{Cond. Goto - True} 
-We conclude that $\prog_{\pid}(i) = \ifgoto{\jsilexpr}{k_1}{k_2}$ for some expression 
+We conclude that $\ccmd{i} = \ifgoto{\jsilexpr}{k_1}{k_2}$ for some expression 
 $\jsilexpr$ and indexes $k_1$ and $k_2$ and 
-that $\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, \sstore, \sctx[k_1], \pc \, \wedge \, \sexpr}$, 
+that $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore, k_1, \pc \, \wedge \, \sexpr}[\sctx][\sctx]$, 
 meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
 and $\pc' = \pc \, \wedge \, \sexpr$, where $\semexpr{\jsilexpr}{\sstore} = \sexpr$. 
 Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, we conclude that 
@@ -901,62 +901,207 @@ $$
     = \semexpr{\sexpr}{\senv}
     = \jtrue
 $$
-we conclude that $\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[k_1]}$. 
+we conclude that $\semtrans{\heap, \store, i}{\heap, \store, k_1}[\ctx][\ctx]$. 
 Noting that: 
 $$
-(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore}{\pc}  = \smodels{\sheap', \sstore'}{\pc'}
+(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc}  = \smodels{\sheap', \sstore', \sctx'}{\pc'}
 $$
 the result follows. 
 \vspace{6pt}
 
 
 \noindent\prooflab{Procedure Call} 
-We conclude that $\prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}$
+We conclude that $\ccmd{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}$
 for some variable $\jvar$, expressions $\jsilexpr$, $\jsilexpr_0$, ..., $\jsilexpr_n$, and 
-index $j$, and that:
+index $j$, and $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore', 0, \pc}[\sctx][\sctx']$
+where: 
 $$
+\begin{array}{l}
 \sheap' = \sheap
 %
 \qquad
 % 
-\sstore' = [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] 
+\sstore' = [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}] 
 %
 \qquad 
 %
 \ctx' = ((\pid', \sstore, \jvar, i+1, j)::\sctx
+\\
+%
+\pid' = \symbeval{\jsilexpr}{\sstore}
+%
+\qquad 
+%
+\jsillist{\jvar_1, ..., \jvar_{m}} = \args(\pid')
 %
 \qquad
-\pc' = \pc
-$$
-where $\pid' = \symbeval{\jsilexpr}{\sstore}$,  
-$\jsillist{\jvar_1, ..., \jvar_{m}} = \args(\pid')$, and: 
-$$
+%
 \sexpr_i = \left\lbrace{\begin{array}{ll}
 \symbeval{\jsilexpr_i}{\sstore} & \text{if } 0 \leq i \leq n \\
 \jsundefined                            & \text{otherwise}
 \end{array}}\right.
+\end{array}
 $$
 Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$, we conclude that 
 there is a symbolic environment $\senv$ such that: $\senv \vdash \pc'$, 
 $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
 and $\ctx = \semexpr{\sctx}{\senv}$.
 Noting that: 
+$$
+%\begin{array}{l}
+\semexpr{\jsilexpr}{\store} = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\jsilexpr}{\sstore}}{\senv} 
+    = \semexpr{\pid'}{\senv}
+    = \pid'   
+ \qquad
+\semexpr{\jsilexpr_i}{\store} = \semexpr{\jsilexpr_i}{\semexpr{\sstore}{\senv}}
+    = \semexpr{\semexpr{\jsilexpr_i}{\sstore}}{\senv}
+    = \semexpr{\sexpr_i}{\senv}
+%\end{array}
+$$
+we conclude that 
+$\semtrans{\heap, \store, i}{\heap, [ \jvar_i \mapsto \semexpr{\sexpr_i}{\senv} \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]$. 
+From: 
+$$
+\begin{array}{l}
+\heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\
+%
+\store' =  [ \jvar_i \mapsto \semexpr{\sexpr_i}{\senv} \mid_{i = 0}^{m}] = \semexpr{[ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}]}{\senv} = \semexpr{\sstore'}{\senv} \\
+%
+\ctx' = (\pid', \store, \jvar, i+1, j) :: \ctx = (\pid', \semexpr{\sstore}{\senv}, \jvar, i+1, j) :: \semexpr{\sctx}{\senv} = \semexpr{\sctx'}{\senv} 
+\end{array}
+$$
+the result follows. 
+\vspace{6pt}
 
 
-%    \inferrule[\textsc{Procedure Call}]
-%   { 
-%    \prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
-%     \quad
-%    \symbeval{\jsilexpr}{\sstore} =  \pid' 
-%    \quad
-%      \symbeval{\jsilexpr_i}{\sstore} =  \sexpr_i \mid_{i = 0}^{n} 
-%     \quad
-%     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
-%     \quad 
-%      \sexpr_i = \jsundefined \mid_{i = n+1}^{m}  
-%   }
-%   {\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap, [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}], ((\pid', \sstore, \jvar, i+1, j)::\sctx)[0], \pc}}
+\noindent\prooflab{Normal Return} 
+We conclude that $i =  \procretlab$, and 
+$$\symbtrans{\sheap, \sstore, \procretlab, \pc}{\sheap, \sstore''[\jvar \mapsto \sexpr], i, \pc}[\sctx][\sctx'']$$
+where: 
+$\sctx = (-, \sstore'', \jvar, i, -) :: \sctx''$ and $\sexpr = \sstore(\procretvar)$. 
+Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$ and $\pc' = \pc$, we conclude that 
+there is a symbolic environment $\senv$ such that: $\senv \vdash \pc$, 
+$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
+and $\ctx = \semexpr{\sctx}{\senv}$.
+From $\ctx = \semexpr{\sctx}{\senv}$ and $\sctx = (-, \sstore'', \jvar, i, -) :: \sctx''$, we conclude 
+that: $\ctx =  (-, \semexpr{\sstore''}{\senv}, \jvar, i, -) :: \semexpr{\sctx''}{\senv}$.
+Hence, since $i =  \procretlab$, 
+we conclude that: $\semtrans{\heap, \store, \procretlab}{\heap, \semexpr{\sstore''}{\senv}[\jvar \mapsto \val], i}[C][\semexpr{\sctx''}{\senv}]$, 
+where $\val =  \store(\procretvar) = \semexpr{\sstore}{\senv}(\procretvar)$.
+Noting that: 
+$$ 
+ \begin{array}{l}
+  \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\ 
+  %
+  \store' = \semexpr{\sstore''}{\senv}[\jvar \mapsto \val] = 
+       \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore}{\senv}(\procretvar)] = 
+        \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore(\procretvar)}{\senv}] = \\
+       \qquad  \semexpr{\sstore''[\jvar \mapsto \sstore(\procretvar)]}{\senv}  = 
+       \semexpr{\sstore''[\jvar \mapsto \sexpr]}{\senv}  = 
+       \semexpr{\sstore'}{\senv}  \\ 
+ %
+ \ctx' = \semexpr{\sctx''}{\senv} = \semexpr{\sctx'}{\senv} 
+\end{array}
+$$
+the result follows. 
+\vspace{6pt}
+
+\noindent\prooflab{Error Return} 
+We conclude that $i =  \procerrlab$, and 
+$$\symbtrans{\sheap, \sstore, \procerrlab, \pc}{\sheap, \sstore''[\jvar \mapsto \sexpr], j, \pc}[\sctx][\sctx']$$
+where: 
+$\sctx = (-, \sstore'', \jvar, -, j) :: \sctx''$ and $\sexpr = \sstore(\procerrvar)$. 
+Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$ and $\pc' = \pc$, we conclude that 
+there is a symbolic environment $\senv$ such that: $\senv \vdash \pc$, 
+$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
+and $\ctx = \semexpr{\sctx}{\senv}$.
+From $\ctx = \semexpr{\sctx}{\senv}$ and $\sctx = (-, \sstore'', \jvar, -, j) :: \sctx''$, we conclude 
+that: $\ctx =  (-, \semexpr{\sstore''}{\senv}, \jvar, -, j) :: \semexpr{\sctx''}{\senv}$.
+Hence, since $i =  \procerrlab$, 
+we conclude that: $\semtrans{\heap, \store, \procerrlab}{\heap, \semexpr{\sstore''}{\senv}[\jvar \mapsto \val], i}[C][\semexpr{\sctx''}{\senv}]$, 
+where $\val =  \store(\procerrvar) = \semexpr{\sstore}{\senv}(\procerrvar)$.
+Noting that: 
+$$ 
+ \begin{array}{l}
+  \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\ 
+  %
+  \store' = \semexpr{\sstore''}{\senv}[\jvar \mapsto \val] = 
+       \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore}{\senv}(\procerrvar)] = 
+        \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore(\procerrvar)}{\senv}] = \\
+       \qquad  \semexpr{\sstore''[\jvar \mapsto \sstore(\procerrvar)]}{\senv}  = 
+       \semexpr{\sstore''[\jvar \mapsto \sexpr]}{\senv}  = 
+       \semexpr{\sstore'}{\senv}  \\ 
+ %
+ \ctx' = \semexpr{\sctx''}{\senv} = \semexpr{\sctx'}{\senv} 
+\end{array}
+$$
+the result follows. 
+\end{proof}
+
+\begin{lemma}[Monotonicity of Path Condition]\label{lemma:pc:monotonocity}
+$$
+\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']  
+   \implies \pc' \vdash \pc
+$$
+\end{lemma}
+\begin{proof}
+By induction on the length of the symbolic trace $$\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$$ 
+using case analysis for each step. 
+\end{proof}
 
 
+\begin{temax}[Theorem~\ref{teo:soundness:jsil:symb:exe} - Soundess of \jsil symbolic execution]
+$$
+\begin{array}{l}
+\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx'] 
+   \ \wedge \ 
+      (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
+      	 \ \implies \ \exists (\heap', \store', \ctx') \, . \, 
+	 	 \semtranstrans{\heap, \store, i}{\heap', \store', j}[\ctx][\ctx']
+		\, \wedge \, 
+		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
+\end{array}
+$$
+\end{temax}
+\begin{proof}
+Suppose $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$ (\hyp{1}) 
+and $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$ (\hyp{2}). 
+We have to prove that there is a concrete heap $\heap'$, store $\store'$, and context 
+$\ctx'$ such that $\semtranstrans{\heap, \store, i}{\heap', \store', j}[\ctx][\ctx']$
+and $(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}$. 
+We proceed by induction on the length of the symbolic trace 
+$$\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$$ 
+using case analysis for each step. Suppose the symbolic trace has length $n$. 
+\vspace{6pt}
+
+\prooflab{Base} $n = 0$. It follows that $\sheap' = \sheap$, $\sstore' = \sstore$, 
+$\sctx' = \sctx$, $\pc' = \pc$, and $j = i$. Noting that: 
+$\semtranstrans{\heap, \store, i}{\heap, \store, i}[\ctx][\ctx]$
+and 
+$(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} = \smodels{\sheap', \sstore', \sctx'}{\pc'}$, 
+the result follows. 
+\vspace{6pt}
+
+\prooflab{Inductive Case} $n = m + 1$. It follows that there is a symbolic heap $\sheap''$, 
+store $\sstore''$, context $\sctx''$, and path condition $\pc''$ such that: 
+$$
+\symbtrans{\sheap, \sstore, i, \pc}{\sheap'', \sstore'', k, \pc''}[\sctx][\sctx''] (\ieq{1})
+\qquad 
+\symbtranstrans{\sheap'', \sstore'', k, \pc''}{\sheap', \sstore', j, \pc'}[\sctx''][\sctx'] (\ieq{2})
+$$
+Applying Lemma~\ref{lemma:pc:monotonocity} to \ieq{2}, we conclude that 
+$\pc' \vdash \pc''$ (\ieq{3}). From \ieq{3} and \hyp{2}, we conclude that 
+$(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$ (\ieq{4}).  
+Applying Lemma~\ref{lemma:soundness:single:step} to \ieq{1} and \ieq{4}, 
+we conclude that there is a heap $\heap''$, store $\store''$, and 
+context $\ctx''$, such that: 
+$$
+ \semtrans{\heap, \store, i}{\heap'', \store'', k}[\ctx][\ctx'']
+\, \wedge \, 
+(\heap'', \store'', \ctx'') \in \smodels{\sheap'', \sstore'', \sctx''}{\pc''}  
+$$
 
 \end{proof}
+
+

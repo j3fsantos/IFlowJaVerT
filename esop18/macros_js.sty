@@ -593,12 +593,32 @@
 		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#4}}
 		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#5}} } }
 
+\DeclareDocumentCommand{\semtranstrans}{ o m m o o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#4}
+	{\tuple{#2} \rightarrow^* \tuple{#3} }
+	{ \IfNoValueTF{#5}
+		{\tuple{#2}_{#4} \rightarrow^* \tuple{#3}_{#4}}
+		{\tuple{#2}_{#4} \rightarrow^* \tuple{#3}_{#5}} } }
+
+
 \DeclareDocumentCommand{\semtranserr}{ o m o }
 { 
   \IfNoValueTF{#1}{}{#1: }
   \IfNoValueTF{#3}
 	{\tuple{#2} \rightarrow \bot}
 	{\tuple{#2}_#3 \rightarrow \bot} }
+
+\DeclareDocumentCommand{\semtranstranserr}{ o m o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#3}
+	{\tuple{#2} \rightarrow^* \bot}
+	{\tuple{#2}_#3 \rightarrow^* \bot} }
+
+
+
 \DeclareDocumentCommand{\ccmd}{ o o m }
 {
   \IfNoValueTF{#1}
@@ -620,9 +640,20 @@
 		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#4}}
 		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#5}} } }
 
+
+\DeclareDocumentCommand{\symbtranstrans}{ o m m o o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#4}
+	{\tuple{#2} \leadsto^* \tuple{#3} }
+	{ \IfNoValueTF{#5}
+		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#4}}
+		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#5}} } }
+
+
 \newcommand{\symbtranserr}[1]{ \tuple{#1} \leadsto \bot}
 
-
+\newcommand{\symbtranstranserr}[1]{ \tuple{#1} \leadsto^* \bot}
 
 \newcommand\pc{\pi}
 \newcommand\sexpr{\hat{e}}

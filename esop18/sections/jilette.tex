@@ -406,7 +406,7 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
    {\symbtrans{\sheap, \sstore, \procerrlab, \pc}{\sheap, \sstore'[\jvar \mapsto \sexpr], j, \pc}[\sctx][\sctx']}
  \end{mathpar}}
  \vspace*{-0.4cm}
-\caption{Symbolic Execution for \jsil Commands: {$\symbtrans{\sheap, \sstore, \sctx[i], \pc}{\sheap', \sstore', \sctx'[j], \pc'}$}\label{fig:symbexe:cmds}}
+\caption{Symbolic Execution for \jsil Commands: {$\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:symbexe:cmds}}
 \end{figure}
 
 \begin{figure}[ht!]
@@ -476,11 +476,11 @@ In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\se
 \begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
-\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
+\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
    \ \wedge \ 
       (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
       	 \ \Rightarrow \ \exists (\heap', \store', \ctx') \, . \, 
-	 	 \semtrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+	 	 \semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
 		\, \wedge \, 
 		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
 \end{array}
