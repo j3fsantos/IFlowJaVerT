@@ -103,6 +103,7 @@
       \symbeval{\jsilexpr}{\store} \neq \jtrue
   }{\semtranserr{\heap, \store, \assert(\jsilexpr)}} 
 \end{mathpar}}
+\vspace*{-0.5cm}
 \caption{Symbolic Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \end{figure}
 
@@ -247,7 +248,7 @@
    }
    {\semtrans[\prog]{\heap, \store, \procerrlab}{\heap, \store'[\jvar \mapsto \val], j}[C][C']}
  \end{mathpar}}
- \pmax{What happens when we exit from main, how do we stop? Basically, cmd, returns nothing and we can't reduce?}
+ \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.4cm}
 \caption{Symbolic Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
 \end{figure}
