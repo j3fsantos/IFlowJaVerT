@@ -27,22 +27,20 @@ A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object
  Given a heap $\heap$, we denote: a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $h(\loc,\jstring) = \val$; the union of two disjoint heaps by $\oheap_1 \dunion \oheap_2$; heap lookup by $\hread{\oheap}{\loc}{\jstring}$; and the empty heap by $\hemp$.
  Finally, a \jsil variable store, $\store \in \stores$, is a mapping from JSIL program variables $\jvar \in \jvars$ to JSIL values.
 
-\jsil semantics is defined in small-step style. Transitions for basic commands, given in Figure \ref{fig:sem:basic:commands}, are of the form $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, meaning that the execution of the basic command $\bcmd$ in the heap $\heap$ and store $\store$ results in the heap $\heap'$ and $\store'$. 
+\jsil semantics is defined in small-step style. Transitions for basic commands, given in Figure \ref{fig:sem:basic:commands}, are of the form $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, meaning that the execution of the basic command $\bcmd$ in the heap $\heap$ and store $\store$ results in the heap $\heap'$ and $\store'$. We also allow a transition of a basic command to fail, denoted by $\semtranserr{\sheap, \sstore, \bcmd}$.
 
 \begin{figure}[ht!]
 {\scriptsize
 \begin{mathpar} 
 %
-{\normalsize\textsc{Interpretation of expressions}}
-\vspace*{-0.2cm}
-\\
+\inferrule[Interpretation of expressions]{}{
 \semexpr{\lit}{\store} \semeq \lit
 \quad 
 \semexpr{\jvar}{\store} \semeq \store(\jvar)
 \quad 
 \semexpr{\unoper\ \jexpr}{\store} \semeq \unoper (\semexpr{\jexpr}{\store})
 \quad 
-\semexpr{\jexpr_1 \binoper \jexpr_2}{\store} \semeq \binoper(\semexpr{\jexpr_1}{\store}, \semexpr{\jexpr_2}{\store}) 
+\semexpr{\jexpr_1 \binoper \jexpr_2}{\store} \semeq \binoper(\semexpr{\jexpr_1}{\store}, \semexpr{\jexpr_2}{\store})}
 \\
 
 \inferrule[\textsc{Skip}]{}
@@ -180,7 +178,7 @@ Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for \jsil b
 Rules have the form $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
 where: \dtag{1} $\sheap$ and $\sstore$ are the symbolic heap and store on which to evaluate $\bcmd$, 
 \dtag{2} $\pc$ the current \emph{path condition}, and \dtag{3} $\sheap'$, $\sstore'$, and $\pc'$
-the resulting symbolic heap, store, and path condition. It is also possible for the symbolic execution of a basic command to fail, which we denote by $\symbtranserr{\sheap, \sstore, \bcmd, \pc}$. Notice that the rules are non-deterministic.
+the resulting symbolic heap, store, and path condition. Notice that the rules are non-deterministic.
 
 Figure~\ref{fig:symbexe:cmds} presents the symbolic execution rules for \jsil commands. 
 Rules have the form $\symbtrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$; 
@@ -330,9 +328,11 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      \pc \not\vdash \sexpr 
-  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}} 
+  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}} \\
+  \inferrule[\textsc{Assume}]
+  {}{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \jsilexpr}} 
 \end{mathpar}}
-\vspace*{-0.4cm}
+\vspace*{-0.6cm}
 \caption{Symbolic Execution for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
 \end{figure}
 %\end{display}  
