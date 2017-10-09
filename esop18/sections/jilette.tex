@@ -330,7 +330,7 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
      \pc \not\vdash \sexpr 
   }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}} \\
   \inferrule[\textsc{Assume}]
-  {}{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \jsilexpr}} 
+  {\symbeval{\jsilexpr}{\sstore} =  \sexpr}{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
 \end{mathpar}}
 \vspace*{-0.6cm}
 \caption{Symbolic Execution for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
