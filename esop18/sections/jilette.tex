@@ -1,24 +1,21 @@
 %!TEX root = ../main.tex
 
 \begin{itemize}
-  \item 2.0  - intro - explain the basic ideas of Jilette (use a diagram) - 
  
-  \item 2.1 - describe the jsil language. give its formal syntax (extended with assert and solve). 
-                   formally define symbolic execution for JSIL commands. soundness lemma. 
+  \item 2.1 - describe the jsil language. give its formal syntax  and semantics (extended with assert). 
+                   formally define symbolic execution for JSIL commands. soundness result and its corollaries.  
  
   \item 2.2 Implementation:  
-               - encoding \jsil heaps in Rosette 
-               - explain the \jsil interpreter implemented in Rosette and its connection to the \jsil semantics (as defined in appendix) 
-               - give snippets of the interpreter 
-               - discuss soundness, trust, and other issues
- 
-  \item 2.3 Symbolic execution for JavaScript 
-              - explain that we have to extend the syntax of JavaScript with asserts  as well as constructs for creating symbolic values
-              - give the example 
-              - discuss challenges: abstraction level of the generated code needs to match the abstraction level of Rosette 
+               - describe the Rosette approach to the implementation of symbolic analysis 
+               - describe the encoding of \jsil concrete/symbolic states in Rosette 
+               - explain the \jsil interpreter implemented in Rosette and its connection to the \jsil concrete semantics  and symbolic semantics 
+               		- give snippets of the interpreter 
+	       		- discuss implementation strategies that enable Rosette to work properly
 \end{itemize}
 
 \subsection{Formalisation}
+
+\myparagraph{\jsil Syntax} \polish{PETAR TODO}
 
 \myparagraph{\jsil: Formal Semantics}
 The basic memory model of \jsil is as follows. 
@@ -33,7 +30,7 @@ A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object
 {\scriptsize
 \begin{mathpar} 
 %
-\inferrule[Interpretation of expressions]{}{
+\inferrule[Semantics of expressions]{}{
 \semexpr{\lit}{\store} \semeq \lit
 \quad 
 \semexpr{\jvar}{\store} \semeq \store(\jvar)
@@ -140,10 +137,10 @@ A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object
 \caption{Semantics of \jsil Basic Commands: {$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \end{figure}
 
-To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$. Call stacks are lists of tuples of the form $(\pid, \sstore, \jvar, i, j)$, where: 
+To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$. Call stacks are lists of tuples of the form $(\pid, \store, \jvar, i, j)$, where: 
 \dtag{1}~$\pid$~is a procedure identifier, 
-\dtag{2}~$\sstore$~is the store of the procedure that called $\pid$, \dtag{3}~$\jvar$~is 
-the variable to which the return of $\pid$ must be assigned, \dtag{4} $i$ is the index 
+\dtag{2}~$\store$~is the store of the procedure that called $\pid$, \dtag{3}~$\jvar$~is 
+the variable to which the return of $\pid$ must be assigned in $\store$, \dtag{4} $i$ is the index 
 of the command to which the control must jump after the execution of $\pid$ in 
 case of normal return, and \dtag{5} $j$ the index to which it must jump in case of 
 error return. Transitions for control flow commands have the form:  $\semtrans[\prog]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$, meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the call stack $\ctx$, in
@@ -157,15 +154,17 @@ For convenience, we use $\svars$ to denote the union of $\sstrings$ and $\snumbe
 and $\svar$ to range over $\svars$. 
 The syntax of symbolic expressions $\sexpr$ is as follows: $\sexpr \triangleq \lit \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
 
-We extend heaps, stores, and contexts with symbolic values, obtaining symbolic 
-heaps, stores, and contexts, respectively ranged over by $\sheap$, $\sstore$, and $\sctx$. 
+We extend heaps, stores, and call stacks with symbolic values, obtaining symbolic 
+heaps, stores, and call stacks, respectively ranged over by $\sheap$, $\sstore$, and $\sctx$. 
 A symbolic heap, $\sheap \in \sheaps$, is a partial function mapping pairs of  
 object locations, and symbolic expressions to symbolic expressions. 
 A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
 $\jvar \in \jvars$ to symbolic expressions.
+A symbolic call stack $\sctx$ differs from a concrete call stack in that it contains 
+symbolic stores instead of concrete stores.
 %
-A \emph{symbolic state} $\sstate = (\sheap, \sstore, \pc)$ is a triple consisting of a 
-symbolic heap $\sheap$, a symbolic store $\sstore$, and a path condition $\pc$. 
+A \emph{symbolic state} $\sstate = (\sheap, \sstore, \sctx, \pc)$ is a 4-tuple consisting of a 
+symbolic heap $\sheap$, a symbolic store $\sstore$, a symbolic call stack $\sctx$, and a path condition $\pc$. 
 The path condition is a first-order quantifier-free formula over symbolic strings and 
 numbers, which accumulates constraints on the given symbolic inputs that trigger 
 the execution to follow the path that led to the current symbolic state. 
@@ -456,7 +455,7 @@ $\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq
 
 \myparagraph{Soundness} To establish the soundness of symbolic execution, we need to relate 
 symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
-$\senv : \svars \rightharpoonup \lits$ mapping symbolic values to \jsil literals. 
+$\senv : \svars \rightharpoonup \lits$ mapping symbolic values to concrete values. 
 A symbolic environment is said to be \emph{consistent} if it maps symbolic 
 values to concrete values of the appropriate type (e.g. symbolic strings are mapped to strings 
 and symbolic numbers are mapped to numbers). In the following, we will always 
@@ -465,11 +464,10 @@ assume consistent symbolic environments.
 Given a symbolic environment $\senv$, we define the interpretation of symbolic 
 expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
 In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} = \ltrue$. For convenience, we define: 
-\begin{align}
-\smodels{\sheap, \sstore}{\pc} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore)}{\senv} = (\heap, \store) \, \wedge \,  \senv \vdash \pc  \right\}  
-\\
+\begin{equation}
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
-\end{align}
+\end{equation}
+
 
 \begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
 $$
@@ -590,6 +588,13 @@ Ideally I would like to talk about:
 
 
 \section{Symbolic Execution for JavaScript}
+
+\begin{itemize}
+   \item 2.3 Symbolic execution for JavaScript 
+              - explain that we have to extend the syntax of JavaScript with asserts  as well as constructs for creating symbolic values
+              - give the example 
+              - discuss challenges: abstraction level of the generated code needs to match the abstraction level of Rosette 
+\end{itemize}
 
 \subsection{Symbolic Execution by Compilation} 
 
