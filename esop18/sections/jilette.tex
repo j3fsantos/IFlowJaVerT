@@ -688,7 +688,53 @@ Below we show the extension of $\compile$ for the constructs introduced above.
      \jcmd_{n+1} = \jvar' := \jsilempty 
      \quad
      \jcmd_{n+2} = \assert(\jvar) 
-  }{\compile(\jsassert(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'}  
+  }{\compile(\jsassert(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'}
+  %
+  \\
+  %
+  \inferrule[\textsc{Symbolic String}]
+  {
+    \sstring \text{ fresh} 
+    \and 
+    \jvar \text{ fresh}
+  }{\compile(\jssymbstring()) \semeq [ \jvar := \sstring ], \jvar}   
+  %
+  \and
+  %
+  \inferrule[\textsc{Symbolic Number}]
+  {
+    \snumber \text{ fresh} 
+    \and 
+    \jvar \text{ fresh}
+  }{\compile(\jssymbnumber()) \semeq [ \jvar := \snumber ], \jvar}    
+   %
+  \and
+  %
+  \inferrule[\textsc{Literal}]
+  {}{\compilel(\jslit) \semeq [], \jslit}   
+  %
+ \and
+  %
+  \inferrule[\textsc{JS Var}]
+  {
+     \compile(\jsvar) = [ \jcmd_1, ..., \jcmd_n ], \jvar
+  }{\compilel(\jsvar) \semeq [ \jcmd_1, ..., \jcmd_n ], \jvar }    
+   %
+  \\
+  %
+  \inferrule[\textsc{Unary Operator}]
+  {
+     \compilel(\jslexpr) = [ \jcmd_1, ..., \jcmd_n ], \jvar
+  }{\compilel(\unoper\ \jslexpr) \semeq [ \jcmd_1, ..., \jcmd_n ], \unoper\ \jvar }     
+   %
+  \and
+  %
+  \inferrule[\textsc{Binary Operator}]
+  {
+     \compilel(\jslexpr_1) = [ \jcmd_1, ..., \jcmd_n ], \jvar_1 
+     \quad
+     \compilel(\jslexpr_2) = [ \jcmd_1', ..., \jcmd_n'], \jvar_2
+  }{\compilel(\jslexpr \binoper \jslexpr) \semeq [ \jcmd_1, ..., \jcmd_n, \jcmd_1', ..., \jcmd_n' ], \jvar_1 \binoper\ \jvar_2 }     
 \end{mathpar}}
 \end{display}
 
