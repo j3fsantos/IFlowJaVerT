@@ -1086,9 +1086,9 @@ the result follows.
 \prooflab{Inductive Case} $n = m + 1$. It follows that there is a symbolic heap $\sheap''$, 
 store $\sstore''$, context $\sctx''$, and path condition $\pc''$ such that: 
 $$
-\symbtrans{\sheap, \sstore, i, \pc}{\sheap'', \sstore'', k, \pc''}[\sctx][\sctx''] (\ieq{1})
+\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap'', \sstore'', k, \pc''}[\sctx][\sctx''] (\ieq{1})
 \qquad 
-\symbtranstrans{\sheap'', \sstore'', k, \pc''}{\sheap', \sstore', j, \pc'}[\sctx''][\sctx'] (\ieq{2})
+\symbtrans{\sheap'', \sstore'', k, \pc''}{\sheap', \sstore', j, \pc'}[\sctx''][\sctx'] (\ieq{2})
 $$
 Applying Lemma~\ref{lemma:pc:monotonocity} to \ieq{2}, we conclude that 
 $\pc' \vdash \pc''$ (\ieq{3}). From \ieq{3} and \hyp{2}, we conclude that 
@@ -1101,7 +1101,6 @@ $$
 \, \wedge \, 
 (\heap'', \store'', \ctx'') \in \smodels{\sheap'', \sstore'', \sctx''}{\pc''}  
 $$
-
 \end{proof}
 
 
