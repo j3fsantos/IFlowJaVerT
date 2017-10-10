@@ -93,15 +93,13 @@
 
 %abstract syntax and semantic sets
 
-\newcommand{\jssuffix}{\mathtt{JS}}
-\newcommand{\jsilsuffix}{\mathtt{JSIL}}
 
 % programs
 \newcommand{\jsprog}[0]{p}
 \newcommand{\jsprogs}[0]{\sortstyle{P}}
 % statements
 \newcommand{\jstmt}[0]{s}
-\newcommand{\jstmts}[0]{\sortstyle{S}_{\jssuffix}}
+
 % expressions
 \newcommand{\jexpr}[0]{e}
 \newcommand{\jexprs}[0]{\sortstyle{E}_{\jssuffix}}
@@ -172,7 +170,7 @@
 \newcommand{\ivlvrefrs}[0]{\mathtt{Ref}_{\ermarker}}
 \newcommand{\ivlorefrs}[0]{\mathtt{Ref}_{\objmarker}} 
 \newcommand{\ivlobjs}[0]{\mathtt{Obj}}
-\newcommand{\ivllists}[0]{\mathtt{List}}
+
 
 % Reference markers
 %\newcommand{\ermarker}{\diamond}
@@ -358,7 +356,6 @@
 \newcommand{\unop}[0]{\ominus}
 
 % translation
-\newcommand\compile[0]{{\mathcal C}}
 \newcommand\auxcompile[0]{\hat{\mathcal C}}
 \newcommand\finalcompile[0]{\overline{\mathcal C}}
 \newcommand\icompile[0]{{\mathcal W}}
@@ -533,6 +530,8 @@
 \newcommand{\fv}{\command{fv}}
 \newcommand{\optionsome}[1]{\texttt{Some} \, #1}
 \newcommand{\optionnone}[0]{\texttt{None}}
+\newcommand{\jssuffix}{\mathtt{JS}}
+\newcommand{\jsilsuffix}{\mathtt{JSIL}}
 % Lists
 \newcommand{\lstcons}[0]{::}
 \newcommand{\lstconcat}[0]{\cdot}
@@ -540,6 +539,7 @@
 \newcommand\lst[0]{L}
 \newcommand\lstindex[2]{#1_{#2}}
 \newcommand\lstsize[1]{\vert #1 \vert}
+\newcommand{\lists}[0]{\mathtt{List}}
 %%%%%%%%%%%%%%%%
 % syntax
 %%%%%%%%%%%%%%%%
@@ -549,6 +549,7 @@
 \newcommand\jtrue[0]{{\sf true}}
 \newcommand\jfalse[0]{{\sf false}}
 \newcommand\bcmd{bc}
+\newcommand\jcmd{c}
 \newcommand\prog{\mathtt{p}}
 \newcommand\pid{f}
 \newcommand\unoper{\ominus}
@@ -744,5 +745,16 @@
 %%
 \newcommand{\concretise}[2]{\llfloor #1 \rrfloor_{#2}}
 \newcommand{\normalise}[0]{Normalise}
-
-
+%%
+%% Jilette - JS extended syntax
+%%
+\newcommand{\jsassert}[0]{\mathtt{assert}}
+\newcommand{\jsassume}[0]{\mathtt{assume}}
+\newcommand{\jssymbstring}[0]{\_\_{\mathtt{s}}}
+\newcommand{\jssymbnumber}[0]{\_\_{\mathtt{n}}}
+\newcommand{\jsexpr}[0]{\mathtt{E}}
+\newcommand{\jslit}[0]{\mathtt{l}}
+\newcommand{\jsvar}[0]{\mathtt{x}}
+\newcommand\compile[0]{{\mathcal C}}
+\newcommand\compilel[0]{{\mathcal C}_l}
+\newcommand{\jstmts}[0]{\sortstyle{S}_{\jssuffix}}

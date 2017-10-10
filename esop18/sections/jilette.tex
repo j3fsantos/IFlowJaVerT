@@ -590,18 +590,114 @@ Ideally I would like to talk about:
 \section{Symbolic Execution for JavaScript}
 
 \begin{itemize}
-   \item 2.3 Symbolic execution for JavaScript 
-              - explain that we have to extend the syntax of JavaScript with asserts  as well as constructs for creating symbolic values
-              - give the example 
-              - discuss challenges: abstraction level of the generated code needs to match the abstraction level of Rosette 
+   \item 2.0 Intro - Initial bla bla - the diagram 
+   \item 2.1 Symbolic execution for JavaScript 
+              - Extending ES5 Strict with asserts, assumes, and symbolic values
+              - Extending JS2JSIL with the compilation of the new constructs 
+              - Extensible Interpreter 
+                   - an easy way to have more coverage 
+                   - match the abstraction level of the generated code to the abstraction level of Rosette 
+    \item 2.2 - the example 
 \end{itemize}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/jilette.pdf}
+\caption{Jilette: Symbolic execution for JavaScript}
+\label{fig:jilette:diagram}
+\end{figure}
+
+The ES5 standard spans over more than 200 pages describing the language syntax, semantics, 
+and runtime environment~\cite{ecma}. The current version of the standard is described in a document with 
+more than 800 pages. Clearly, designing a sound symbolic analysis targeting JavaScript directly 
+is not the way to go. 
+\jilette is a symbolic analysis for ES5 Strict that works by first compiling ES5 Strict programs to \jsil 
+using the \JSComp compiler. 
+The obtained \jsil program is then given to the \jsil symbolic interpreter described in \S\ref{sec:jsil:symb:exec}. 
+The symbolic interpreter is extensible in that it allows the addition of Rosette implementations of 
+ES5 built-in libraries on the fly.  
+These implementations are both an easy way to get a better coverage of the standard and 
+make sure that we make proper use of the solver-aided facilities of Rosette.    
+
+
 \subsection{Symbolic Execution by Compilation} 
+
+\myparagraph{Extending JavaScript Syntax}
+We extend the syntax of JavaScript with special logical expressions $\jslexpr$, 
+and the following constructs: %(corresponding to JavaScript normal expressions): 
+\dtag{1} $\jsassert(\jslexpr)$ stating that whenever the \emph{assert} is reached, 
+the logical expression $\jslexpr$ must evaluate to $\jtrue$; 
+\dtag{2} $\jsassume(\jslexpr)$ stating that we \emph{assume} $\jslexpr$ to hold along the
+current program path; 
+\dtag{3} $\jssymbstring()$ for creating a fresh symbolic string; and
+\dtag{4} $\jssymbnumber()$ for creating a fresh symbolic number. 
+The \emph{assert} and \emph{assume} constructs expect as an argument 
+a logical expression. 
+Logical expressions $\jsexpr$ are given by the grammar 
+$\jslexpr \triangleq \jslit \mid \jsvar \mid \unoper\ \jslexpr \mid \jslexpr \binoper \jslexpr$, 
+where $\jslit$ ranges over JavaScript literals, $\jsvar$ over JavaScript variables, 
+$\unoper$ over the \jsil unary operators, and $\binoper$ over the \jsil binary operators.
+It is important to note that JavaScript binary and unary operators have a special 
+semantics that most of times includes several implicit type coercions performed
+in a specific, and often counter-intuitive, order. 
+Hence, instead of allowing for arbitrary JavaScript expressions (using JavaScript 
+binary and unary operators) as the arguments for the \emph{assume} and 
+the \emph{assert} constructs, we define a simple and restricted syntax for logical expressions.
+\polish{The punchline is that the unary and binary operators in the assume and assert 
+constructs are not the JavaScript ones but the \jsil ones with a very clear and 
+simple semantics (no coercions! no side-effects! nothing!).}
+
+\myparagraph{Extending \JSComp}
+Instead of giving a formal semantics for the newly introduced constructs, we explain 
+their meaning by showing their compilation to \jsil. 
+Importantly, the JavaScript variable store is emulated in the heap. 
+Hence, a JavaScript variable $\jsvar$ is not compiled to a \jsil variable $\jvar$, but to a sequence  
+of \jsil commands for retrieving the value of $\jsvar$ from the heap cell in which it is stored. 
+A full description of the compiler is out of the scope of this paper; c.f.~\cite{javert}
+for further details. 
+%
+In the following, we will assume given a function $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$ mapping JavaScript expressions 
+and statements to lists of \jsil commands paired up with \jsil variables. 
+In a nutshell, $\compile(\jstmt) = ([ \jcmd_1, ..., \jcmd_n], \jvar)$ means that the compilation 
+of the JavaScript statement $\jstmt$ results in the list of \jsil commands $[ \jcmd_1, ..., \jcmd_n]$, 
+and that after the execution of these commands, the value to which $\jstmt$ evaluates in the 
+JavaScript semantics is stored in the \jsil variable $\jvar$. 
+%
+Below we show the extension of $\compile$ for the constructs introduced above. 
+
+\begin{display}{Extension of $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$}
+{\scriptsize
+\begin{mathpar}
+\inferrule[\textsc{Assume}]
+  {
+     \compilel(\jslexpr) = [\jcmd_1, ..., \jcmd_n], \jvar
+     \and 
+     \jvar' \text{ fresh} 
+     \\\\ 
+     \jcmd_{n+1} = \jvar' := \jsilempty 
+     \quad
+     \jcmd_{n+2} = \assume(\jvar) 
+  }{\compile(\jsassert(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'} 
+\and
+\inferrule[\textsc{Assert}]
+  {
+     \compilel(\jslexpr) = [\jcmd_1, ..., \jcmd_n], \jvar
+     \and 
+     \jvar' \text{ fresh} 
+     \\\\ 
+     \jcmd_{n+1} = \jvar' := \jsilempty 
+     \quad
+     \jcmd_{n+2} = \assert(\jvar) 
+  }{\compile(\jsassert(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'}  
+\end{mathpar}}
+\end{display}
+
+
 
 \subsection{Motivating Example} 
 
 We illustrate how Jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
-of a  \emph{key-value map} given in Figure~\ref{map:example} (left). 
+of a  \emph{key-value map} given in Figure~\ref{map:example}. 
 It contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with the key given as input;
@@ -630,7 +726,7 @@ Map.prototype.put = function (k, v) {
 
 Map.prototype.validKey = function (k) { ... }
 \end{lstjs}
-\caption{Map Implementation in JavaScript}
+\caption{Map Implementation in JavaScript\label{map:example}}
 \end{figure}
 
 Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
