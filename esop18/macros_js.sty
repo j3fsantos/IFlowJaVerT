@@ -651,9 +651,9 @@
 		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#5}} } }
 
 
-\newcommand{\symbtranserr}[1]{ \tuple{#1} \leadsto \bot}
+\newcommand{\symbtranserr}[3]{ \tuple{#1}_{#2} \leadsto \tuple{\bot, #3}}
 
-\newcommand{\symbtranstranserr}[1]{ \tuple{#1} \leadsto^* \bot}
+\newcommand{\symbtranstranserr}[3]{ \tuple{#1}_{#2} \leadsto^* \tuple{\bot, #3}}
 
 \newcommand\pc{\pi}
 \newcommand\sexpr{\hat{e}}

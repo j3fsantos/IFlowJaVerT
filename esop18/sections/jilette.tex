@@ -328,9 +328,7 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      \pc \not\vdash \sexpr 
-  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}} \\
-  \inferrule[\textsc{Assume}]
-  {\symbeval{\jsilexpr}{\sstore} =  \sexpr}{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
+  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{\pc}}
 \end{mathpar}}
 \vspace*{-0.6cm}
 \caption{Symbolic Execution for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
@@ -354,8 +352,8 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
    { 
      \ccmd{i} = \bcmd 
      \quad
-     \symbtranserr{\sheap, \sstore, \bcmd, \pc} 
-   }{\symbtranserr{\sheap, \sstore, i, \pc}}
+     \symbtranserr{\sheap, \sstore, \bcmd, \pc}{}{\pc}
+   }{\symbtranserr{\sheap, \sstore, i, \pc}{}{\pc}}
  %
    \qquad
   %
@@ -486,6 +484,28 @@ $$
 \end{array}
 $$
 \end{theorem}
+
+\begin{corollary}[Bug Finding]
+Suppose $\symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}$ for 
+a given symbolic heap $\sheap$, store $\sstore$, index $i$, context $\sctx$, and path 
+conditions $\pc$ and $\pc'$. Then, if $\pc'$ is satisfiable, there is a concrete heap 
+$\heap$, store $\store$, context $\ctx$ such that: 
+$\semtranstranserr{\heap, \store, i}[\ctx]$.
+\end{corollary}
+
+\begin{corollary}[Verification]
+$$
+\begin{array}{l}
+   \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+      \ \wedge \ \vdash \pc \Rightarrow \bigvee_{k=1}^n \pc_k \\ 
+      \quad \implies 
+         \forall k, \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
+          \qquad \implies \exists \heap', \store', \ctx' \, . \, 
+                  \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
+                  (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
+\end{array}   
+$$ 
+\end{corollary}
 
 
 

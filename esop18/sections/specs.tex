@@ -78,7 +78,7 @@ The formal semantics of $\sepassert(P)$ is as follows:
 \inferrule[\textsc{Assert - False}]
   { 
           \sheap, \sstore, \pc \not\satisfies P
-  }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}} 
+  }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}{}{\pc}} 
 \end{mathpar}}
 
 
