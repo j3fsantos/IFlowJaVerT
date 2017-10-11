@@ -554,7 +554,8 @@ $\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq
 \begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
-\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
+\forall \, \sheap, \sheap', \heap, \sstore, \sstore', \store, i, i', \sctx, \sctx', \ctx, \pc, \pc' \, . \,  \\  
+\quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
    \ \wedge \ 
       (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
       	 \ \Rightarrow \ \exists (\heap', \store', \ctx') \, . \, 
@@ -566,21 +567,25 @@ $$
 \end{theorem}
 
 \begin{corollary}[Bug Finding]\label{bug:finding}
-Suppose $\symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}$ for 
-a given symbolic heap $\sheap$, store $\sstore$, index $i$, context $\sctx$, and path 
-conditions $\pc$ and $\pc'$. Then, if $\pc'$ is satisfiable, there is a concrete heap 
-$\heap$, store $\store$, context $\ctx$ such that: 
-$\semtranstranserr{\heap, \store, i}[\ctx]$.
-\end{corollary}
-
-\begin{corollary}[Verification]
 $$
 \begin{array}{l}
-   \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
-      \ \wedge \ \vdash \pc \Rightarrow \bigvee_{k=1}^n \pc_k \\ 
-      \quad \implies 
-         \forall k, \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
-          \qquad \implies \exists \heap', \store', \ctx' \, . \, 
+\forall \, \sheap, \sstore, \sctx, i, \pc, \pc' \, . \,  
+ \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}  \ \wedge \  \pc' \text{ is satisfiable} \\ 
+   \quad \implies 
+     \exists \heap, \store, \ctx \, . \, \semtranstranserr{\heap, \store, i}[\ctx]
+\end{array}
+$$
+\end{corollary}
+
+\begin{corollary}[Verification]\label{corollary:verification}
+$$
+\begin{array}{l}
+\forall \, \sheap, \sheap_1, ..., \sheap_k, \sstore, \sstore_1, ..., \sstore_k, \sctx, \sctx_1, ..., \sctx_k, i, j_1, ..., j_k, \pc, \pc_1, ..., \pc_k \, . \,  \\
+  \quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+      \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
+      \quad \quad \implies 
+         \forall \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
+          \quad \qquad \implies \exists \heap', \store', \ctx' \, . \, 
                   \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
                   (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
 \end{array}   
@@ -752,7 +757,7 @@ Below we show the extension of $\compile$ for the constructs introduced above.
 The definition of $\compile$ makes use of an auxiliary compiler $\compilel : \jlexprs \rightharpoonup \lists(\cmds) * \exprs$, 
 for compiling JavaScript logical expressions.
 
-\begin{display}{Extension of $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$}
+\begin{display}{Extension $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$ and $\compilel : \jlexprs \rightharpoonup \lists(\cmds) * \exprs$}
 {\scriptsize
 \begin{mathpar}
 \inferrule[\textsc{Assume}]
@@ -834,8 +839,29 @@ of a  \emph{key-value map} given in Figure~\ref{map:example}.
 It contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with the key given as input;
-\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating existing keys; and
+\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values associated with existing keys; and
 \jsinline|validKey|, for deciding whether a key is valid.
+
+In order to better understand the implementation of the map library as well as its possible bugs, 
+one must first understand the \emph{prototype-based inheritance} mechanism of JavaScript. 
+Every JavaScript object has a prototype, which (for presentation purposes) we assume to 
+be stored  in an internal property \jsinline|@proto|. In order to determine the value of a property
+\jsinline|p| of an object \jsinline|o|, the semantics first checks if \jsinline|o| has a 
+property named \jsinline|p|, in which case the property look-up yields its value. Otherwise, the 
+semantics checks if \jsinline|p| belongs to the properties of the prototype of \jsinline|o| and so 
+forth. Hence, in the example, when looking up the value of the property \jsinline|hasOwnProperty|
+of the object \jsinline|contents|, one gets the value associated with the property  \jsinline|hasOwnProperty|
+of its prototype.
+The sequence of objects that can be accessed from a given object through the inspection 
+of the respective prototypes is called a \emph{prototype chain}.
+Prototype chains typically finish with the object \jsinline|Object.prototype| from which JavaScript 
+programs can access several built-in functions, which are part of the language runtime environment.
+An example of such a function is \jsinline|hasOwnProperty|, which checks whether or not the object 
+on which it is invoked has the property given as input (e.g. \jsinline|map.hasOwnProperty("_contents")| 
+evaluates to \jsinline|true|, because the object \jsinline|map| has a property named \jsinline|"_contents"|). 
+
+
+
 This library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object used to store the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 As the functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
@@ -843,24 +869,34 @@ objects, they are defined as properties of \jsinline|Map.prototype|, which is th
 of the objects that are created using \jsinline|Map| as a constructor (e.g.~using~\jsinline|new Map()|). 
 
  \begin{figure}[t!]
+ \begin{minipage}{0.6\textwidth}
  \begin{lstjs}[firstnumber=1]
 function Map () { this._contents = {} }
 
 Map.prototype.get = function (k) {
-    if (this._contents.hasOwnProperty(k)) {  return this._contents[k] } 
-    	else { return null }  
+    if (this._contents.hasOwnProperty(k)) { 
+      return this._contents[k] 
+    } else { return null }  
 }
 
 Map.prototype.put = function (k, v) {
    var contents = this._contents;
-   if (this.validKey(k)) {  contents[k] = v   } 
-   	else { throw new Error("Invalid Key") } 
+   if (this.validKey(k)) {  
+     contents[k] = v   
+   } else {
+     throw new Error("Invalid Key") 
+   } 
 } 
 
 Map.prototype.validKey = function (k) { ... }
 \end{lstjs}
-\caption{Map Implementation in JavaScript\label{map:example}}
+\end{minipage}
+ \begin{minipage}{0.4\textwidth}
+ \includegraphics[width=1.1\textwidth]{figures/mapDiagram.pdf}
+ \end{minipage}
+\caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
 \end{figure}
+
 
 Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
 By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of

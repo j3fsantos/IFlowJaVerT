@@ -1093,7 +1093,6 @@ It follows immediately from Lemma~\ref{lemma:soundness:single:step} noting that 
 \end{proof}
 
 
-
 \begin{cormax}[Corollary~\ref{bug:finding} - Bug-finding]
 $$
 \begin{array}{l}
@@ -1106,8 +1105,31 @@ $$
 \end{cormax}
 \begin{proof}
 Since $\pc'$ is satisfiable we conclude that there there exist a concrete heap $\heap$, 
-store $\store$, and context $\ctx$, such that 
+store $\store$, and context $\ctx$, such that $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$ 
 \end{proof}
+
+
+\begin{cormax}[Corollary~\ref{corollary:verification} - Verification]
+$$
+\begin{array}{l}
+\forall \, \sheap, \sheap_1, ..., \sheap_k, \sstore, \sstore_1, ..., \sstore_k, \sctx, \sctx_1, ..., \sctx_k, i, j_1, ..., j_k, \pc, \pc_1, ..., \pc_k \, . \,  \\
+  \quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+      \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
+      \quad \quad \implies 
+         \forall \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
+          \quad \qquad \implies \exists \heap', \store', \ctx' \, . \, 
+                  \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
+                  (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
+\end{array}
+$$
+\end{cormax}
+\begin{proof}
+Suppose $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc}$. Then, since $\pc \vdash \bigvee_{k=1}^n \pc_k$, 
+we conclude that there is $1 \leq k \leq n$ such that:
+ $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc_k}$. 
+ Observing that $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]$, we can 
+ apply Theorem~\ref{teo:soundness:jsil:symb:exe} and conclude the result. 
+ \end{proof}
 
 
 
