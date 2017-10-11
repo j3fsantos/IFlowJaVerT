@@ -197,15 +197,15 @@
 \begin{abstract}
 We present \jilette: a symbolic execution tool for ES5 Strict that supports 
 string reasoning and precisely follows the standard of the language. 
-\jilette builds on \JSComp, a well-tested compiler from ES5 Strict to \jsil, an 
-intermediate language well-suited for verification and analysis, and Rosette 
+\jilette leverages on \JSComp, a well-tested compiler from ES5 Strict to an 
+intermediate language well-suited for verification and analysis, and Rosette,
 a solver aided host language developed to facilitate the design of new 
 solver-aided domain-specific languages. 
-We show how to use \jilette for \dtag{1} writing symbolic tests for JavaScript code 
-and \dtag{2} debugging separation logic specifications. 
-We show how to synthesise symbolic tests from separation logic specifications
-and how to execute them with \jilette in order to find bugs both in specifications 
-and in code. 
+We study two complementary uses of \jilette. 
+First, we show how to use \jilette for the symbolic testing of JavaScript programs. 
+Second, building on \jilette, we develop a tool for debugging separation logic specifications
+by compiling them to symbolic tests in order to find bugs in both specifications 
+and code. 
 \end{abstract}
 
 
