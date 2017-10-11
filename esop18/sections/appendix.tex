@@ -309,15 +309,15 @@ the result follows.
 We conclude that $\bcmd = \jvar := \jsilnew()$, for some variable $\jvar$, and that
 $\sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}$, $\sstore' = \sstore[\jvar \mapsto \loc]$, and $\pc' = \pc$, 
  where  $(\loc,-) \notin \domain (\sheap)$. 
- From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+ From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
+$\senv$ such that $\senv \vdash \pc''$, $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
 Noting that: 
 $$
 \semtrans{\heap, \store, \jvar := \jsilnew()}{\heap \dunion \hcell{\loc}{\protop}{\jsnull}, \store[\jvar \mapsto \loc]}
 $$
 where: $(\loc,-) \notin \domain (\heap)$, we pick $\heap' = \semexpr{\sheap}{\senv} \dunion \hcell{\loc}{\protop}{\jsnull}$ 
 and $\store' = \semexpr{\sstore}{\senv}[\jvar \mapsto \loc]$. 
-We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc}$.
+We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that: 
 $$
 \begin{array}{l}
@@ -335,14 +335,14 @@ the result follows.
 We conclude that $\bcmd = \jvar := [\jsilexpr_1, \jsilexpr_2]$, for some variable $\jvar$, and expressions $\jsilexpr_1$ and $\jsilexpr_2$, 
 and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \sexprv_k]$, and: 
  $$\pc' =  \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)$$
- where 
+ where:
  $\symbeval{\jsilexpr_1}{\sstore} =  \loc$, $\symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p$, 
  $\sheap = \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$, 
  $(l, -) \not\in \domain(\sheap')$, and $0 \leq k \leq n$. 
 %
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc'$. 
+$\senv \vdash \pc''$. 
 We now have to prove that we can apply the \prooflab{Property Access} rule in the concrete state.
 To this end, we have to show that there is a concrete heap $\heap''$ such that:
 $\heap = \heap'' \dunion \hcell{\symbeval{\jsilexpr_1}{\store}}{\symbeval{\jsilexpr_2}{\store}}{\symbeval{\jsilexpr_3}{\store}}$. 
@@ -350,11 +350,13 @@ Note that:
 $$
 \begin{array}{l}
 %
+\senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
+%
  \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
   \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\jsilexpr_2}{\sstore}}{\senv}
-   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \pc'$ and $\pc' \vdash \sexprp_k = \sexpr_p$)} \\
+   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
        =  \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n}{\senv} \dunion \semexpr{(l, \sexprp_k) \mapsto \sexprv_k}{\senv} \\
@@ -367,7 +369,7 @@ $$
    \semtrans{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \semexpr{\sexprv_k}{\senv}]}
 $$
 meaning that: $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \semexpr{\sexprv_k}{\senv}]$.
-We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Observe that: 
 $$
 \begin{array}{l}
@@ -387,28 +389,30 @@ and that:
 $$
 \begin{array}{l}
 \sheap' = \sheap'' \, \uplus \,  \big((\loc, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
-\quad 
+\\ 
 \sstore' = \sstore
 \\ 
  \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
 \end{array}
 $$
-where $\loc = \symbeval{\jsilexpr_1}{\sstore}$ and $\sexpr_p = \symbeval{\jsilexpr_2}{\sstore}$
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+where $\loc = \symbeval{\jsilexpr_1}{\sstore}$ and $\sexpr_p = \symbeval{\jsilexpr_2}{\sstore}$.
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc'$. 
-We now have to prove that we can apply the \prooflab{Property Deletion} rule in the concrete state.
+$\senv \vdash \pc''$. 
+Now, we have to prove that we can apply the \prooflab{Property Deletion} rule in the concrete state.
 To this end, we have to show that:
 $\heap = \heap' \dunion \hcell{\symbeval{\jsilexpr_1}{\store}}{\symbeval{\jsilexpr_2}{\store}}{-}$. 
 Note that: 
 $$
 \begin{array}{l}
 %
+\senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
+%
  \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
   \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\jsilexpr_2}{\sstore}}{\senv}
-   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \pc'$ and $\pc' \vdash \sexprp_k = \sexpr_p$)} \\
+   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $$ and $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
        =  \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n}{\senv} \dunion \semexpr{(l, \sexprp_k) \mapsto \sexprv_k}{\senv} \\
@@ -422,7 +426,7 @@ $$
    \semtrans{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\semexpr{\sheap'}{\senv},  \store}
 $$
 meaning that: $\heap' = \semexpr{\sheap'}{\senv}$ and $\store' = \store$.
-We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+Now, we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that $\heap' = \semexpr{\sheap'}{\senv}$ and $\store' = \store = \semexpr{\sstore}{\senv} = \semexpr{\sstore'}{\senv}$, 
 the result follows. 
 \vspace{6pt}
@@ -445,19 +449,21 @@ where $\symbeval{\jsilexpr_1}{\sstore} =  \loc$, $\symbeval{\jsilexpr_2}{\sstore
 $\symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v$.
 From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc'$. 
-We now have to prove that we can apply the \prooflab{Property Assignment - Found} rule in the concrete state.
+$\senv \vdash \pc''$. 
+Now, we have to prove that we can apply the \prooflab{Property Assignment - Found} rule in the concrete state.
 To this end, we have to show that there is a concrete heap $\heap''$ such that:
 $\heap = \heap'' \dunion \hcell{\symbeval{\jsilexpr_1}{\store}}{\symbeval{\jsilexpr_2}{\store}}{-}$. 
 Note that: 
 $$
 \begin{array}{l}
 %
+\senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
+%
  \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
   \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\jsilexpr_2}{\sstore}}{\senv}
-   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \pc'$ and $\pc' \vdash \sexprp_k = \sexpr_p$)} \\
+   =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
   \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\jsilexpr_3}{\sstore}}{\senv}
    =  \symbeval{\sexpr_v}{\senv} \\
@@ -476,7 +482,7 @@ $$
 meaning that: 
 $\heap' = \symbeval{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n}{\senv} \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto \symbeval{\jsilexpr_3}{\store}$ and 
 $\store' = \store$.
-We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -505,18 +511,21 @@ $$
     \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
 \end{array}
 $$ 
-where $\symbeval{\jsilexpr_1}{\sstore} =  \loc$, $\symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p$, 
+where: $\symbeval{\jsilexpr_1}{\sstore} =  \loc$, $\symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p$, 
 $\symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v$,  $(\loc, -) \not\in \domain(\sheap'')$, 
 and $0 \leq k \leq n$. 
 From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc'$. 
-We have now to prove that we can apply the \prooflab{Property Assignment - Found} rule in the concrete state.
+$\senv \vdash \pc''$. 
+We have to prove that we can apply the \prooflab{Property Assignment - Found} rule in the concrete state.
 To this end, we have to show that:
 $(\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \not\in \domain(\heap)$. 
 Note that: 
 $$
 \begin{array}{l}
+%
+\senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \forall_{0 \leq i \leq n}  \, \pc' \vdash \sexprp_i \neq \sexpr_p  
+      \implies \forall_{0 \leq i \leq n}  \, \senv \vdash \sexprp_i \neq \sexpr_p  \\
 %
  \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
@@ -527,15 +536,16 @@ $$
   \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\jsilexpr_3}{\sstore}}{\senv}
    =  \symbeval{\sexpr_v}{\senv} \\
  %
- \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} \\
-    \qquad = \semexpr{\sheap''}{\senv} \dunion \biguplus_{0 \leq i \leq n} ((l, \symbeval{\sexprp_i}{\senv}) \mapsto \symbeval{\sexprv_i}{\senv})
+ \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
+     = \semexpr{\sheap''}{\senv} \dunion \biguplus_{0 \leq i \leq n} ((l, \symbeval{\sexprp_i}{\senv}) \mapsto \symbeval{\sexprv_i}{\senv})
 \end{array}
 $$
 From  $(\loc, -) \not\in \domain(\sheap'')$, we conclude that $(\loc, -) \not\in \domain(\semexpr{\sheap''}{\senv})$. 
-Since $\senv \vdash \pc'$, we additionally conclude that: 
-$
+Since  for $0 \leq i \leq n$, it holds that $\senv \vdash \senv \vdash \sexprp_i \neq \sexpr_p$, 
+we additionally conclude that: 
+$$
   \forall_{0 \leq i \leq n}  \, \symbeval{\sexprp_i}{\senv} \neq \symbeval{\sexpr_p}{\senv} 
-$
+$$
 Recalling that $\symbeval{\jsilexpr_2}{\store} = \symbeval{\sexpr_p}{\senv}$, we conclude that  
 $
   \forall_{0 \leq i \leq n}  \, \symbeval{\sexprp_i}{\senv} \neq \symbeval{\jsilexpr_2}{\store}
@@ -549,7 +559,7 @@ $$
 meaning that $\heap' = \heap \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto \symbeval{\jsilexpr_3}{\store}$ 
 and $\store' = \store$. 
 %
-We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+Now, we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -582,16 +592,18 @@ $$
 where $\symbeval{\jsilexpr_1}{\sstore} =  \loc$, $\symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p$, 
 $(\loc, -) \not\in \domain(\sheap'')$, and $0 \leq k \leq n$. 
 %
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc'$. 
-We have now to prove that we can apply the \prooflab{Member Check - True} rule in the concrete state.
+$\senv \vdash \pc''$. 
+Now we have to prove that we can apply the \prooflab{Member Check - True} rule in the concrete state.
 To this end, we have to show that:
 $\heap = \heap'' \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto -$, for 
 some concrete heap $\heap''$. 
 Note that: 
 $$
 \begin{array}{l}
+%
+\senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
  \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
@@ -604,17 +616,17 @@ $$
     \qquad = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i\neq k}^n}{\senv} \dunion \semexpr{(l, \sexprp_k) \mapsto \sexprv_k}{\senv} \\
     \qquad = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i\neq k}^n}{\senv} \dunion (l, \semexpr{\sexprp_k}{\senv}) \mapsto \semexpr{\sexprv_k}{\senv} \\ 
      \qquad = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i\neq k}^n}{\senv} \dunion (l, \semexpr{\sexpr_p}{\senv}) \mapsto \semexpr{\sexprv_k}{\senv}
-      			\text{ (using $\senv \vdash \pc$)} \\ 
+      			\text{ (using $\senv \vdash \sexprp_k = \sexpr_p$)} \\ 
      \qquad = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i\neq k}^n}{\senv} \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto - \\
 \end{array}
 $$
-We can now apply the \prooflab{Member Check - True} rule of \jsil semantics, concluding: 
+We can now apply the \prooflab{Member Check - True} rule of \jsil semantics, concluding that:  
 $$
    \semtrans{\heap, \store, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap,  \store[\jvar \mapsto \jtrue]}
 $$
-meaning that $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \jtrue]$. 
+which means that $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \jtrue]$. 
 %
-We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -645,12 +657,15 @@ $(\loc, -) \not\in \domain(\sheap'')$, and $0 \leq k \leq n$.
 %
 From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc'$. 
-We have now to prove that we can apply the \prooflab{Member Check - False} rule in the concrete state.
+$\senv \vdash \pc''$. 
+We now have to prove that we can apply the \prooflab{Member Check - False} rule in the concrete state.
 To this end, we have to show that: $(\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \not\in \domain(\heap)$. 
 Note that: 
 $$
 \begin{array}{l}
+%
+\senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \forall_{0 \leq i \leq n}  \, \pc' \vdash \sexprp_i \neq \sexpr_p  
+      \implies \forall_{0 \leq i \leq n}  \, \senv \vdash \sexprp_i \neq \sexpr_p  \\
 %
  \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\jsilexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
@@ -664,10 +679,10 @@ $$
 $$
 Since $(\loc, -) \not\in \domain(\sheap'')$, we conclude that $(\loc, -) \not\in \semexpr{\sheap''}{\senv}$. 
 %
-Since $\senv \vdash \pc'$, we additionally conclude that: 
-$
+Since for all ${0 \leq i \leq n}$, it holds that $\senv \vdash \sexprp_i \neq \sexpr_p$, we additionally conclude that: 
+$$
   \forall_{0 \leq i \leq n}  \, \symbeval{\sexprp_i}{\senv} \neq \symbeval{\sexpr_p}{\senv} 
-$
+$$
 Recalling that $\symbeval{\jsilexpr_2}{\store} = \symbeval{\sexpr_p}{\senv}$, we conclude that  
 $
   \forall_{0 \leq i \leq n}  \, \symbeval{\sexprp_i}{\senv} \neq \symbeval{\jsilexpr_2}{\store}
@@ -680,7 +695,7 @@ $$
 $$
 meaning that $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \jfalse]$. 
 %
-Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -704,10 +719,10 @@ $$
   \quad
   \pc \vdash  \symbeval{\jsilexpr}{\sstore}
 $$ 
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
 $\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc$. 
-We have now to prove that we can apply the \prooflab{Assert - True} rule in the concrete state.
+$\senv \vdash \pc''$. Because $\pc'' \vdash \pc' = \pc$, we conclude that $\senv \vdash \pc$. 
+We now have to prove that we can apply the \prooflab{Assert - True} rule in the concrete state.
 To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jtrue$. 
 Noting that:
 $
@@ -721,7 +736,7 @@ $$
 $$
 meaning that $\heap' = \heap$ and $\store' = \store$. 
 %
-Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}$.
+Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
