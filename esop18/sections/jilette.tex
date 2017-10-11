@@ -607,18 +607,21 @@ Ideally I would like to talk about:
 \label{fig:jilette:diagram}
 \end{figure}
 
-The ES5 standard spans over more than 200 pages describing the language syntax, semantics, 
+The JavaScript standard spans over more than 200 pages describing the language syntax, semantics, 
 and runtime environment~\cite{ecma}. The current version of the standard is described in a document with 
 more than 800 pages. Clearly, designing a sound symbolic analysis targeting JavaScript directly 
-is not the way to go. 
-\jilette is a symbolic analysis for ES5 Strict that works by first compiling ES5 Strict programs to \jsil 
-using the \JSComp compiler. 
+is not the way to go. Besides being error-prone, such a task would require a great amount of engineering effort, 
+which would scarcely pay off given the continuous releases of new versions of the standard. 
+
+In order to be able to symbolically execute JavaScript programs, we first extend the language 
+with solver-aided facilities for the creation of symbolic values and the checking of assertions. 
+For the symbolic execution itself, instead of targeting JavaScript directly, \jilette works by by first 
+compiling JavaScript programs to \jsil using the \JSComp compiler.
 The obtained \jsil program is then given to the \jsil symbolic interpreter described in \S\ref{sec:jsil:symb:exec}. 
 The symbolic interpreter is extensible in that it allows the addition of Rosette implementations of 
-ES5 built-in libraries on the fly.  
+JavaScript built-in libraries in a streamlined manner.  
 These implementations are both an easy way to get a better coverage of the standard and 
-make sure that we make proper use of the solver-aided facilities of Rosette.    
-
+to make sure that we make proper use of the solver-aided facilities of Rosette.    
 
 \subsection{Symbolic Execution by Compilation} 
 
@@ -643,9 +646,9 @@ in a specific, and often counter-intuitive, order.
 Hence, instead of allowing for arbitrary JavaScript expressions (using JavaScript 
 binary and unary operators) as the arguments for the \emph{assume} and 
 the \emph{assert} constructs, we define a simple and restricted syntax for logical expressions.
-\polish{The punchline is that the unary and binary operators in the assume and assert 
-constructs are not the JavaScript ones but the \jsil ones with a very clear and 
-simple semantics (no coercions! no side-effects! nothing!).}
+\polish{The punchline is that the unary and binary operators in the \emph{assume} and 
+\emph{assert} constructs are \underline{not} the JavaScript ones but the the \jsil ones with a very clear and 
+simple semantics, involving no coercions or side-effects.}
 
 \myparagraph{Extending \JSComp}
 Instead of giving a formal semantics for the newly introduced constructs, we explain 
@@ -664,6 +667,8 @@ and that after the execution of these commands, the value to which $\jstmt$ eval
 JavaScript semantics is stored in the \jsil variable $\jvar$. 
 %
 Below we show the extension of $\compile$ for the constructs introduced above. 
+The definition of $\compile$ makes use of an auxiliary compiler $\compilel : \jlexprs \rightharpoonup \lists(\cmds) * \exprs$, 
+for compiling JavaScript logical expressions.
 
 \begin{display}{Extension of $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$}
 {\scriptsize

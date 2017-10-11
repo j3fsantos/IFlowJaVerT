@@ -102,7 +102,7 @@
 
 % expressions
 \newcommand{\jexpr}[0]{e}
-\newcommand{\jexprs}[0]{\sortstyle{E}_{\jssuffix}}
+
 % Identifiers
 \newcommand{\xvar}[0]{x}
 \newcommand{\yvar}[0]{y}
@@ -279,7 +279,7 @@
 \newcommand\cl{\mathtt{cl}}
 \newcommand\ivlcalls{\mathtt{Calls}}
 % expressions
-\newcommand\ivlexprs{\sortstyle{E}_{\jsilsuffix}}
+
 % literals
 \newcommand\ivllit{\mathtt{v}}
 \newcommand\ivllits{{\mathcal V}_{\jsilsuffix}}
@@ -562,8 +562,9 @@
 \newcommand\procretvar[0]{\mathtt{ret}}
 \newcommand\procerrvar[0]{\mathtt{err}}
 % syntactic sets
-\newcommand\cmds{\mathtt{Cmd}}
-\newcommand\bcmds{\mathtt{BCmd}}
+\newcommand\exprs{\sortstyle{E}_{\jsilsuffix}}
+\newcommand\cmds{\sortstyle{C}md}
+\newcommand\bcmds{\sortstyle{B}cmd}
 \newcommand\args{\mathtt{args}}
 \newcommand\jvars{\sortstyle{X}}
 %basic commands
@@ -758,3 +759,5 @@
 \newcommand\compile[0]{{\mathcal C}}
 \newcommand\compilel[0]{{\mathcal C}_l}
 \newcommand{\jstmts}[0]{\sortstyle{S}_{\jssuffix}}
+\newcommand{\jexprs}[0]{\sortstyle{E}_{\jssuffix}}
+\newcommand{\jlexprs}[0]{\sortstyle{E}_{\jssuffix}^L}

@@ -115,77 +115,6 @@
 \begin{mathpar} 
 \inferrule[\textsc{Basic Command}]
    { 
-     \prog_{\pid}(i) = \bcmd 
-     \quad
-     \semtrans{\heap, \store, \bcmd}{\heap', \store'} 
-   }{\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx[i+1]}}
-%
-   \qquad
-  %
-  \inferrule[\textsc{Basic Command - Fail}]
-   { 
-     \prog_{\pid}(i) = \bcmd 
-     \quad
-     \semtranserr{\heap, \store, \bcmd} 
-   }{\semtranserr{\heap, \store, \ctx[i]}}
- %
-   \qquad
-  %
-  \inferrule[\textsc{Goto}]
-   { \prog_{\pid}(i) = \goto \, j \quad}
-   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[j]}}
-  \\ 
-  \inferrule[\textsc{Cond. Goto - True}]
-   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
-     \symbeval{\jsilexpr}{\store} =  \jtrue
-   }
-   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[j]}}
-  \and 
-    \inferrule[\textsc{Cond. Goto - False}]
-   { \prog_{\pid}(i) =  \ifgoto{\jsilexpr}{j}{k} \quad
-     \symbeval{\jsilexpr}{\store} =  \jfalse
-   }
-   {\semtrans{\heap, \store, \ctx[i]}{\heap, \store, \ctx[k]}}
-   \\
-    \inferrule[\textsc{Procedure Call}]
-   { 
-    \prog_{\pid}(i) =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
-     \quad
-    \symbeval{\jsilexpr}{\sstore} =  \pid' 
-        \quad
-     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
-      \quad
-      \val_i = \symbeval{\jsilexpr_i}{\sstore} \mid_{i = 0}^{n} 
-     \ 
-      \val_i = \jsundefined \mid_{i = n+1}^{m}  
-   }
-   {\semtrans{\heap, \store, \ctx[i]}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , ((\pid', \store, \jvar, i+1, j)::\ctx)[0]}}
-    \\ 
-  \inferrule[\textsc{Normal Return}]
-   {
-       \ctx = (-, \store', \jvar, i, -) :: \ctx' 
-       \quad 
-       \store(\procretvar) = \val
-   }  
-   {\semtrans{\heap, \store, \ctx[\procretlab]}{\heap, \store'[\jvar \mapsto \val], \ctx'[i]}}
-   \and 
-     \inferrule[\textsc{Error Return}]
-   {
-       \ctx = (-, \store', \jvar, -, j) :: \sctx' 
-       \quad 
-       \sstore(\procerrvar) = \val
-   }
-   {\semtrans{\heap, \store, \ctx[\procerrlab]}{\sheap, \store'[\jvar \mapsto \val], \ctx'[j]}}
- \end{mathpar}}
-\caption{Symbolic Execution for Control Flow Commands: {\scriptsize$\semtrans{\heap, \store, \ctx[i]}{\heap', \store', \ctx'[j]}$}} 
-\end{figure}
-
-
-\begin{figure}[ht!]
-{\scriptsize
-\begin{mathpar} 
-\inferrule[\textsc{Basic Command}]
-   { 
      \ccmd[\prog][\ctx]{i} = \bcmd 
      \quad
      \semtrans{\heap, \store, \bcmd}{\heap', \store'} 
@@ -248,94 +177,96 @@
    }
    {\semtrans[\prog]{\heap, \store, \procerrlab}{\heap, \store'[\jvar \mapsto \val], j}[C][C']}
  \end{mathpar}}
- \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
+% \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.4cm}
 \caption{Symbolic Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
 \end{figure}
-
-\begin{figure}[ht!]
-{\scriptsize
-\begin{mathpar} 
-\inferrule[\textsc{Basic Command}]
-   { 
-     \ccmd{i} = \bcmd 
-     \quad
-     \semtrans{\heap, \store, \bcmd}{\heap', \store'} 
-   }{\semtrans{\heap, \store, i}{\heap', \store', i+1}}
 %
-   \qquad
-  %
-  \inferrule[\textsc{Basic Command - Fail}]
-   { 
-     \ccmd{i} = \bcmd 
-     \quad
-     \semtranserr{\heap, \store, \bcmd} 
-   }{\semtranserr{\heap, \store, i}}
- %
-   \qquad
-  %
-  \inferrule[\textsc{Goto}]
-   { \ccmd{i} = \goto \, j \quad}
-   {\semtrans{\heap, \store, i}{\heap, \store, j}}
-  \\ 
-  \inferrule[\textsc{Cond. Goto - True}]
-   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
-     \symbeval{\jsilexpr}{\store} =  \jtrue
-   }
-   {\semtrans{\heap, \store, i}{\heap, \store, j}}
-  \and 
-    \inferrule[\textsc{Cond. Goto - False}]
-   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
-     \symbeval{\jsilexpr}{\store} =  \jfalse
-   }
-   {\semtrans{\heap, \store, i}{\heap, \store, k}}
-   \\
-    \inferrule[\textsc{Procedure Call}]
-   { 
-    \ccmd{i} = \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
-     \quad
-    \symbeval{\jsilexpr}{\sstore} =  \pid' 
-        \quad
-     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
-      \quad
-      \val_i = \symbeval{\jsilexpr_i}{\sstore} \mid_{i = 0}^{n} 
-     \ 
-      \val_i = \jsundefined \mid_{i = n+1}^{m}  
-   }
-   {\semtrans{\heap, \store, i}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]}
-    \\ 
-  \inferrule[\textsc{Normal Return}]
-   {
-       \ctx = (-, \store', \jvar, i, -) :: \ctx' 
-       \quad 
-       \store(\procretvar) = \val
-   }  
-   {\semtrans{\heap, \store, \procretlab}{\heap, \store'[\jvar \mapsto \val], i}[C][C']}
-   \and 
-     \inferrule[\textsc{Error Return}]
-   {
-       \ctx = (-, \store', \jvar, -, j) :: \ctx' 
-       \quad 
-       \store(\procerrvar) = \val
-   }
-   {\semtrans{\heap, \store, \procerrlab}{\heap, \store'[\jvar \mapsto \val], j}[C][C']}
- \end{mathpar}}
- \vspace*{-0.4cm}
-\caption{Symbolic Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
-\end{figure}
+%\begin{figure}[ht!]
+%{\scriptsize
+%\begin{mathpar} 
+%\inferrule[\textsc{Basic Command}]
+%   { 
+%     \ccmd{i} = \bcmd 
+%     \quad
+%     \semtrans{\heap, \store, \bcmd}{\heap', \store'} 
+%   }{\semtrans{\heap, \store, i}{\heap', \store', i+1}}
+%%
+%   \qquad
+%  %
+%  \inferrule[\textsc{Basic Command - Fail}]
+%   { 
+%     \ccmd{i} = \bcmd 
+%     \quad
+%     \semtranserr{\heap, \store, \bcmd} 
+%   }{\semtranserr{\heap, \store, i}}
+% %
+%   \qquad
+%  %
+%  \inferrule[\textsc{Goto}]
+%   { \ccmd{i} = \goto \, j \quad}
+%   {\semtrans{\heap, \store, i}{\heap, \store, j}}
+%  \\ 
+%  \inferrule[\textsc{Cond. Goto - True}]
+%   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
+%     \symbeval{\jsilexpr}{\store} =  \jtrue
+%   }
+%   {\semtrans{\heap, \store, i}{\heap, \store, j}}
+%  \and 
+%    \inferrule[\textsc{Cond. Goto - False}]
+%   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
+%     \symbeval{\jsilexpr}{\store} =  \jfalse
+%   }
+%   {\semtrans{\heap, \store, i}{\heap, \store, k}}
+%   \\
+%    \inferrule[\textsc{Procedure Call}]
+%   { 
+%    \ccmd{i} = \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+%     \quad
+%    \symbeval{\jsilexpr}{\sstore} =  \pid' 
+%        \quad
+%     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+%      \quad
+%      \val_i = \symbeval{\jsilexpr_i}{\sstore} \mid_{i = 0}^{n} 
+%     \ 
+%      \val_i = \jsundefined \mid_{i = n+1}^{m}  
+%   }
+%   {\semtrans{\heap, \store, i}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]}
+%    \\ 
+%  \inferrule[\textsc{Normal Return}]
+%   {
+%       \ctx = (-, \store', \jvar, i, -) :: \ctx' 
+%       \quad 
+%       \store(\procretvar) = \val
+%   }  
+%   {\semtrans{\heap, \store, \procretlab}{\heap, \store'[\jvar \mapsto \val], i}[C][C']}
+%   \and 
+%     \inferrule[\textsc{Error Return}]
+%   {
+%       \ctx = (-, \store', \jvar, -, j) :: \ctx' 
+%       \quad 
+%       \store(\procerrvar) = \val
+%   }
+%   {\semtrans{\heap, \store, \procerrlab}{\heap, \store'[\jvar \mapsto \val], j}[C][C']}
+% \end{mathpar}}
+% \vspace*{-0.4cm}
+%\caption{Symbolic Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
+%\end{figure}
 
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
-\begin{lemma}[Soundess of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
+\begin{lemma}[Soundness of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
 $$
 \begin{array}{l}
-\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
+\forall \sheap, \sheap', \sstore, \sstore', \bcmd, \pc, \pc', \pc'' \, . \,  \\
+\qquad \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
    \ \wedge \ 
-      (\heap, \store) \in \smodels{\sheap, \sstore}{\pc'} \\ \quad \quad
+      (\heap, \store) \in \smodels{\sheap, \sstore}{\pc''} 
+            \ \wedge \ \pc'' \vdash \pc' \\ \qquad \quad
       	 \ \implies \ \exists (\heap', \store') \, . \, 
 	 	 \semtrans{\heap, \store, \bcmd}{\heap', \store'}
 		\, \wedge \, 
-		(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc'}  
+		(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}  
 \end{array}
 $$
 \end{lemma}
@@ -352,8 +283,8 @@ By picking $\heap' = \heap$, $\store' = \store$, the result follows.
 \noindent\prooflab{Assignment} 
 We conclude that $\bcmd = \jvar := \jsilexpr$, for some variable $\jvar$ and expression $\jsilexpr$, 
 and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$, and $\pc' = \pc$. 
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment 
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment 
+$\senv$ such that, $\senv \vdash \pc''$,  $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
 Noting that: 
 $$
  \semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}
@@ -361,7 +292,7 @@ $$
  %\semexpr{\sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}{\senv} = \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\jsilexpr}{\store, \senv}]
 $$
 we pick $\heap' = \heap$ and $\store' =  \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$. We 
-now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc}$.
+now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
 Observing that: 
 $$
 \heap' =  \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} 
@@ -821,7 +752,7 @@ $\symbeval{\jsilexpr}{\store} = \jfalse$, from which the result follows.
 \end{proof}
 
 
-\begin{lemma}[Soundess of \jsil symbolic execution - Single Step]\label{lemma:soundness:single:step}
+\begin{lemma}[Soundness of \jsil symbolic execution - Single Step]\label{lemma:soundness:single:step}
 $$
 \begin{array}{l}
 \symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx'] 
@@ -1051,7 +982,7 @@ using case analysis for each step.
 \end{proof}
 
 
-\begin{temax}[Theorem~\ref{teo:soundness:jsil:symb:exe} - Soundess of \jsil symbolic execution]
+\begin{temax}[Theorem~\ref{teo:soundness:jsil:symb:exe} - Soundness of \jsil symbolic execution]
 $$
 \begin{array}{l}
 \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx'] 
