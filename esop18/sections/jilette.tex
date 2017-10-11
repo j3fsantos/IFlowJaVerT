@@ -15,62 +15,62 @@
 
 \subsection{Formalisation}
 
-\myparagraph{\jsil Syntax} \jsil is a goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls.
+\myparagraph{\jsil: Syntax} \jsil is a goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. 
 
 %\pg{When talking about JSIL Logic, how are you going to explain the difficulty associated with a dynamci goto language v a static one, I don't think your work is a boring adaptation of reasoning about a staitc goto language. You need to grab at some of this is you can. We've have not paid ebough attention on this, so people jsut think this is a variant of previous work..} 
  
-\smallskip
 \begin{display}{Syntax of the \jsil Language}\label{def:jsil-types}
 \begin{minipage}{\textwidth}
 \begin{tabular}{lllll}
-	 Numbers: $\jnumber \in \numbers$ & \quad Booleans: $\jbool \in \bools$ & \quad \ Strings: $\jstring \in \strings$ & \quad \ Locs: $\loc \in \locs$ & \quad Vars: $\xivar \in \jvars$ \\[0.1cm]
-	Types: $\ivltype \in \ivltypes$ & \multicolumn{4}{l}{\quad Literals: $\lit \in \lits$ \defeq \ $\jnumber \mid \jbool \mid \jstring \mid  \jsundefined \mid \jsnull \mid \loc \mid \ivltype \mid \fid \mid \jsilempty$} \\[0.1cm]
-\multicolumn{5}{l}{Expressions: $\jsilexpr \in \exprs$ \defeq \ $\lit \mid \xivar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
-	\multicolumn{5}{l}{Basic Commands: $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \xivar := \jsilexpr  \mid \xivar := \jsilnew() \mid \xivar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
-	\multicolumn{5}{l}{\hspace{1.35cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \xivar := \hasfield(\jsilexpr, \jsilexpr) \mid \xivar := \getfields(\jsilexpr) \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
+	 Numbers: $\jnumber \in \numbers$ & \quad Booleans: $\jbool \in \bools$ & \quad \ Strings: $\jstring \in \strings$ & \quad \ Locs: $\loc \in \locs$ & \quad Vars: $\jvar \in \jvars$ \\[0.1cm]
+	Types: $\ivltype \in \ivltypes$ & \multicolumn{4}{l}{\quad Values: $\val \in \vals$ \defeq \ $\jnumber \mid \jbool \mid \jstring \mid  \jsundefined \mid \jsnull \mid \loc \mid \ivltype \mid \fid \mid \jsilempty$} \\[0.1cm]
+\multicolumn{5}{l}{Expressions: $\jsilexpr \in \exprs$ \defeq \ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
+	\multicolumn{5}{l}{Basic Commands: $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
+	\multicolumn{5}{l}{\hspace{1.35cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
 	% Commands
-	\multicolumn{5}{l}{Commands: $\ivlcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\xivar}{\jsilexpr}{\jvec{\jsilexpr}}{j} \mid \xivar := \phi(\overline{\xivar})$} 
+	\multicolumn{5}{l}{Commands: $\ivlcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$} 
  \end{tabular} \\[0.1cm]
  \begin{tabular}{rcrclcl}
- 	Procedures & : & $\proc$ & $\in$ & $\procset$ &\defeq& $\procedure{\fid}{\jvec{\xivar}}{\jvec{\ivlcmd}}$ \\[0.1cm]
-	%Notation & : & \multicolumn{5}{l}{$\jvec{\xivar}$,  $\jlist{\lit}$,  $\overline{\jsilexpr}$, and $\overline{\ivlcmd}$, respectively, denote lists of variables, literals, expressions, and commands. } && \multicolumn{5}{l}{$\set{\lit}$ denotes a set of literals.}
+ 	Procedures & : & $\proc$ & $\in$ & $\procset$ &\defeq& $\procedure{\fid}{\jvec{\jvar}}{\jvec{\ivlcmd}}$ \\[0.1cm]
+	%Notation & : & \multicolumn{5}{l}{$\jvec{\jvar}$,  $\jlist{\val}$,  $\overline{\jsilexpr}$, and $\overline{\ivlcmd}$, respectively, denote lists of variables, literals, expressions, and commands. } && \multicolumn{5}{l}{$\set{\val}$ denotes a set of literals.}
  \end{tabular}
  \end{minipage}
  \end{display}
  
 %Most syntactic constructs of JSIL either come directly from JavaScript or are useful for JavaScript analysis. 
-\jsil literals, $\lit \in \lits$, include numbers, booleans, strings, the special values $\jsundefined$ and $\jsnull$, as well as types~$\ivltype$, procedure identifiers $\fid$, and the special value $\jsilempty$. 
-\jsil~expressions, $\jsilexpr \in \exprs$, include \jsil literals, \jsil program variables $\xivar$, and various of unary and binary operators, which, for instance, provide support for sets and lists. 
+\jsil values, $\val \in \vals$, include numbers, booleans, strings, the special values $\jsundefined$ and $\jsnull$, as well as types~$\ivltype$, procedure identifiers $\fid$, and the special value $\jsilempty$. 
+\jsil~expressions, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, and various unary and binary operators, which, for instance, provide support for sets and lists. 
 
 
 
 Basic \jsil commands enable the management of extensible objects and do not affect control flow. 
 They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check, property collection, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.
 
-\jsil commands include basic \jsil commands and a number of commands related to control flow: conditional gotos, unconditional gotos and dynamic procedure calls.\footnote{\jsil also has $\phi$-node commands, which allow the \JSComp compiler to produce code directly in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit the $\phi$-nodes from this formalisation; they do not impact the reasoning in any way.} 
+\jsil commands include basic \jsil commands and several commands related to control flow: conditional gotos, unconditional gotos and dynamic procedure calls.\footnote{\jsil also has $\phi$-node commands, which allow the \JSComp compiler to produce code directly in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit the $\phi$-nodes from this formalisation; they do not impact the reasoning in any way. The details can be seen in \cite{javert}.} 
 The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to \jsinline|true|, and to the $j$-th otherwise. 
-The dynamic procedure call $\jsilcall{\xivar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure name and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\xivar$.
+The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure name and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
 If the procedure raises an error, control is transferred to the $j$-th command, and to the next otherwise. 
 
-A \jsil program $\prog \in \ivlprogs$ can be seen as a set of top-level procedures $\procedure{\fid}{\jvec{\xivar}}{\jvec{\ivlcmd}}$, where $\fid$ is the procedure name , $\jvec{\xivar}$ its formal parameters, and its body ${\jvec{\ivlcmd}}$  is a \emph{command list} consisting of a numbered sequence of \jsil commands.
-Every \jsil program contains a special procedure $\jsilmain$, which denotes the entry point of the program. 
-\jsil procedures return via two dedicated indexes, $\procretlab$ and $\procerrlab$. If a procedure reaches the $\procretlab$ index, it returns normally with the return value $\procretvar$; when it reaches $\procerrlab$, it returns an error, with the error value $\procerrvar$
+A \jsil program $\prog \in \ivlprogs$ can be seen as a set of top-level procedures of the form $\procedure{\fid}{\jvec{\jvar}}{\jvec{\jcmd}}$, where $\fid$ is the procedure name, $\jvec{\jvar}$ its formal parameters, and its body ${\jvec{\jcmd}}$  is a \emph{command list} consisting of a numbered sequence of \jsil commands.
+Every \jsil program contains a special procedure $\jsilmain$, denoting the entry point of the program. 
+\jsil procedures return via two dedicated indexes, $\procretlab$ and $\procerrlab$, using two dedicated variables, $\procretvar$ and $\procerrvar$. If a procedure reaches the $\procretlab$ index, it returns normally with the return value denoted by $\procretvar$; when it reaches $\procerrlab$, it returns an error, with the error value denoted by $\procerrvar$.
 
-\myparagraph{\jsil Semantics}
+\myparagraph{\jsil: Semantics}
 The basic memory model of \jsil is as follows. 
-\jsil values contain: numbers, $\jnumber$; booleans, $\jbool$; strings, $\jstring$;  the special values \jsinline|undefined| and \jsinline|null|; and object locations,  $\loc \in \locs$.
+%\jsil values contain: numbers, $\jnumber$; booleans, $\jbool$; strings, $\jstring$;  the special values \jsinline|undefined| and \jsinline|null|; and object locations,  $\loc \in \locs$.
 A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations, and strings to heap values. 
  Given a heap $\heap$, we denote: a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $h(\loc,\jstring) = \val$; the union of two disjoint heaps by $\oheap_1 \dunion \oheap_2$; heap lookup by $\hread{\oheap}{\loc}{\jstring}$; and the empty heap by $\hemp$.
  Finally, a \jsil variable store, $\store \in \stores$, is a mapping from JSIL program variables $\jvar \in \jvars$ to JSIL values.
 
 \jsil semantics is defined in small-step style. Transitions for basic commands, given in Figure \ref{fig:sem:basic:commands}, are of the form $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, meaning that the execution of the basic command $\bcmd$ in the heap $\heap$ and store $\store$ results in the heap $\heap'$ and $\store'$. We also allow a transition of a basic command to fail, denoted by $\semtranserr{\sheap, \sstore, \bcmd}$.
 
+\vspace*{-0.6cm}
 \begin{figure}[ht!]
 {\scriptsize
 \begin{mathpar} 
 %
 \inferrule[Semantics of expressions]{}{
-\semexpr{\lit}{\store} \semeq \lit
+\semexpr{\val}{\store} \semeq \val
 \quad 
 \semexpr{\jvar}{\store} \semeq \store(\jvar)
 \quad 
@@ -179,6 +179,7 @@ A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object
 \end{mathpar}}
 \vspace*{-0.5cm}
 \caption{Semantics of \jsil Basic Commands: {$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\vspace*{-0.5cm}
 \end{figure}
 
 To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$. Call stacks are lists of tuples of the form $(\pid, \store, \jvar, i, j)$, where: 
@@ -189,14 +190,15 @@ of the command to which the control must jump after the execution of $\pid$ in
 case of normal return, and \dtag{5} $j$ the index to which it must jump in case of 
 error return. Transitions for control flow commands have the form:  $\semtrans[\prog]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$, meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the call stack $\ctx$, in
 the heap $\heap$ and store $\store$, generates the heap $\heap'$, store $\store'$, call stack $\ctx'$,   
-and the next command to be evaluated is the $i'$-th command of the first procedure of the call stack~$\ctx'$. Due to space constraints and as the transitions for JSIL symbolic execution are  similar, we give the full semantics for JSIL control flow commands in the Appendix.
+and the next command to be evaluated is the $i'$-th command of the first procedure of the call stack~$\ctx'$. Due to space constraints and as the transitions for JSIL symbolic execution are  similar, we give the full semantics for JSIL control flow commands in the Appendix. 
+% So far, so boring.
 
 \myparagraph{\jsil: Symbolic Evaluation}
 In order to symbolically execute \jsil programs, we extend the syntax of \jsil expressions with 
 symbolic strings $\sstring \in \sstrings$ and symbolic numbers $\snumber \in \snumbers$. 
 For convenience, we use $\svars$ to denote the union of $\sstrings$ and $\snumbers$ 
 and $\svar$ to range over $\svars$. 
-The syntax of symbolic expressions $\sexpr$ is as follows: $\sexpr \triangleq \lit \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
+The syntax of symbolic expressions $\sexpr$ is as follows: $\sexpr \triangleq \val \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
 
 We extend heaps, stores, and call stacks with symbolic values, obtaining symbolic 
 heaps, stores, and call stacks, respectively ranged over by $\sheap$, $\sstore$, and $\sctx$. 
@@ -227,11 +229,39 @@ Figure~\ref{fig:symbexe:cmds} presents the symbolic execution rules for \jsil co
 Rules have the form $\symbtrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$; 
 they are analogous to the semantic rules for \jsil commands, except that the heap, store, and call stack are symbolic, there is the additional path condition, and their execution can fail. For clarity, we keep the program and the context implicit wherever possible, and make use of a function $\ccmd{\prog, \ctx, i}$, which returns the $i$-th command of the procedure that is first in $\ctx$. We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
+
+\begin{wrapfigure}{R}{0.4\textwidth}
+\vspace*{-0.7cm}
+{\small
+\hspace*{0.25cm} $\mathtt{0\quad o := new\ ()}$ \\
+\hspace*{0.25cm} $\mathtt{1\quad o[\hat{s}] := 42};$ \\
+\hspace*{0.25cm} $\mathtt{2\quad x := getFields(o);}$ \\
+\hspace*{0.25cm} $\mathtt{3\quad assert\ (llen \ x == 2)}$
+}
+\vspace*{-0.5cm}
+\end{wrapfigure}
+The rules for skip, the assignment, object creation, assume, and assert are straightforward. The remaining rules follow a specific pattern. To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
+This code: 
+	0)~creates a new object $\mathtt{o}$;
+	1)~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
+	2)~collects all the properties of $\mathtt{o}$ into a list and assigns this list to $\mathtt{x}$; and
+	3)~asserts that the length of the list in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will fail. Let us understand why.
+
 %\begin{display}{}
 \begin{figure}[ht!]
 {\scriptsize
 \begin{mathpar} 
 %
+\inferrule[Interpretation of Symbolic Expressions:]
+{
+\semexpr{\val}{\senv} \semeq \val
+\quad 
+\semexpr{\svar}{\senv} \semeq \senv(\svar)
+\quad 
+\semexpr{\unoper\ \sexpr}{\senv} \semeq \unoper (\semexpr{\sexpr}{\senv})
+\quad 
+\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \binoper(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
+}{} \quad 
 \inferrule[\textsc{Skip}]{}
 	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
  \and
@@ -372,6 +402,14 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
      \quad 
      \pc \vdash \neg\sexpr 
   }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{\pc}}
+  \\
+%
+\inferrule[\textsc{Assume}]
+  { 
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+     \quad 
+     \pc \vdash \sexpr 
+  }{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
 \end{mathpar}}
 \vspace*{-0.6cm}
 \caption{Symbolic Execution for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
@@ -448,23 +486,38 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
  \end{mathpar}}
  \vspace*{-0.4cm}
 \caption{Symbolic Execution for \jsil Commands: {$\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:symbexe:cmds}}
+ \vspace*{-0.4cm}
 \end{figure}
+
+Without loss of generality, we can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$
+
+
+
+
+
+
+
+
+
+
+\myparagraph{Soundness} To establish the soundness of symbolic execution, we need to relate 
+symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
+$\senv : \svars \rightharpoonup \vals$ mapping symbolic values to concrete values. 
+A symbolic environment is said to be \emph{consistent} if it maps symbolic 
+values to concrete values of the appropriate type (e.g. symbolic strings are mapped to strings 
+and symbolic numbers are mapped to numbers). In the following, we will always 
+assume consistent symbolic environments. 
+%
+Given a symbolic environment $\senv$, we define the interpretation of symbolic 
+expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
+In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} = \ltrue$. For convenience, we define: 
+\begin{equation}
+\smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
+\end{equation}
 
 \begin{figure}[ht!]
 {
 \begin{tabular}{l}
-$\quad${\bf Symbolic Expressions:}  \\
-$
-\quad
-\semexpr{\lit}{\senv} \semeq \lit
-\quad 
-\semexpr{\svar}{\senv} \semeq \senv(\svar)
-\quad 
-\semexpr{\unoper\ \sexpr}{\senv} \semeq \unoper (\semexpr{\sexpr}{\senv})
-\quad 
-\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \binoper(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
-$
-\\[3pt]
 $\quad${\bf Symbolic Heaps:}  \\
 $
 \quad
@@ -496,21 +549,6 @@ $\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq
 }
 \caption{Interpretation of symbolic expressions, heaps, stores, and contexts.\label{fig:symbolic:interp}}
 \end{figure}
-
-\myparagraph{Soundness} To establish the soundness of symbolic execution, we need to relate 
-symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
-$\senv : \svars \rightharpoonup \lits$ mapping symbolic values to concrete values. 
-A symbolic environment is said to be \emph{consistent} if it maps symbolic 
-values to concrete values of the appropriate type (e.g. symbolic strings are mapped to strings 
-and symbolic numbers are mapped to numbers). In the following, we will always 
-assume consistent symbolic environments. 
-%
-Given a symbolic environment $\senv$, we define the interpretation of symbolic 
-expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
-In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} = \ltrue$. For convenience, we define: 
-\begin{equation}
-\smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
-\end{equation}
 
 
 \begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
