@@ -15,9 +15,48 @@
 
 \subsection{Formalisation}
 
-\myparagraph{\jsil Syntax} \polish{PETAR TODO}
+\myparagraph{\jsil Syntax} \jsil is a goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls.
 
-\myparagraph{\jsil: Formal Semantics}
+%\pg{When talking about JSIL Logic, how are you going to explain the difficulty associated with a dynamci goto language v a static one, I don't think your work is a boring adaptation of reasoning about a staitc goto language. You need to grab at some of this is you can. We've have not paid ebough attention on this, so people jsut think this is a variant of previous work..} 
+ 
+\smallskip
+\begin{display}{Syntax of the \jsil Language}\label{def:jsil-types}
+\begin{minipage}{\textwidth}
+\begin{tabular}{lllll}
+	 Numbers: $\jnumber \in \numbers$ & \quad Booleans: $\jbool \in \bools$ & \quad \ Strings: $\jstring \in \strings$ & \quad \ Locs: $\loc \in \locs$ & \quad Vars: $\xivar \in \jvars$ \\[0.1cm]
+	Types: $\ivltype \in \ivltypes$ & \multicolumn{4}{l}{\quad Literals: $\lit \in \lits$ \defeq \ $\jnumber \mid \jbool \mid \jstring \mid  \jsundefined \mid \jsnull \mid \loc \mid \ivltype \mid \fid \mid \jsilempty$} \\[0.1cm]
+\multicolumn{5}{l}{Expressions: $\jsilexpr \in \exprs$ \defeq \ $\lit \mid \xivar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
+	\multicolumn{5}{l}{Basic Commands: $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \xivar := \jsilexpr  \mid \xivar := \jsilnew() \mid \xivar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
+	\multicolumn{5}{l}{\hspace{1.35cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \xivar := \hasfield(\jsilexpr, \jsilexpr) \mid \xivar := \getfields(\jsilexpr) \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
+	% Commands
+	\multicolumn{5}{l}{Commands: $\ivlcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\xivar}{\jsilexpr}{\jvec{\jsilexpr}}{j} \mid \xivar := \phi(\overline{\xivar})$} 
+ \end{tabular} \\[0.1cm]
+ \begin{tabular}{rcrclcl}
+ 	Procedures & : & $\proc$ & $\in$ & $\procset$ &\defeq& $\procedure{\fid}{\jvec{\xivar}}{\jvec{\ivlcmd}}$ \\[0.1cm]
+	%Notation & : & \multicolumn{5}{l}{$\jvec{\xivar}$,  $\jlist{\lit}$,  $\overline{\jsilexpr}$, and $\overline{\ivlcmd}$, respectively, denote lists of variables, literals, expressions, and commands. } && \multicolumn{5}{l}{$\set{\lit}$ denotes a set of literals.}
+ \end{tabular}
+ \end{minipage}
+ \end{display}
+ 
+%Most syntactic constructs of JSIL either come directly from JavaScript or are useful for JavaScript analysis. 
+\jsil literals, $\lit \in \lits$, include numbers, booleans, strings, the special values $\jsundefined$ and $\jsnull$, as well as types~$\ivltype$, procedure identifiers $\fid$, and the special value $\jsilempty$. 
+\jsil~expressions, $\jsilexpr \in \exprs$, include \jsil literals, \jsil program variables $\xivar$, and various of unary and binary operators, which, for instance, provide support for sets and lists. 
+
+
+
+Basic \jsil commands enable the management of extensible objects and do not affect control flow. 
+They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check, property collection, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.
+
+\jsil commands include basic \jsil commands and a number of commands related to control flow: conditional gotos, unconditional gotos and dynamic procedure calls.\footnote{\jsil also has $\phi$-node commands, which allow the \JSComp compiler to produce code directly in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit the $\phi$-nodes from this formalisation; they do not impact the reasoning in any way.} 
+The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to \jsinline|true|, and to the $j$-th otherwise. 
+The dynamic procedure call $\jsilcall{\xivar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure name and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\xivar$.
+If the procedure raises an error, control is transferred to the $j$-th command, and to the next otherwise. 
+
+A \jsil program $\prog \in \ivlprogs$ can be seen as a set of top-level procedures $\procedure{\fid}{\jvec{\xivar}}{\jvec{\ivlcmd}}$, where $\fid$ is the procedure name , $\jvec{\xivar}$ its formal parameters, and its body ${\jvec{\ivlcmd}}$  is a \emph{command list} consisting of a numbered sequence of \jsil commands.
+Every \jsil program contains a special procedure $\jsilmain$, which denotes the entry point of the program. 
+\jsil procedures return via two dedicated indexes, $\procretlab$ and $\procerrlab$. If a procedure reaches the $\procretlab$ index, it returns normally with the return value $\procretvar$; when it reaches $\procerrlab$, it returns an error, with the error value $\procerrvar$
+
+\myparagraph{\jsil Semantics}
 The basic memory model of \jsil is as follows. 
 \jsil values contain: numbers, $\jnumber$; booleans, $\jbool$; strings, $\jstring$;  the special values \jsinline|undefined| and \jsinline|null|; and object locations,  $\loc \in \locs$.
 A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations, and strings to heap values. 
@@ -123,6 +162,11 @@ A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object
 %
 \\
 %
+\inferrule[\textsc{Assume}]
+  { 
+      \symbeval{\jsilexpr}{\store} =  \jtrue
+  }{\semtrans{\heap, \store, \assume(\jsilexpr)}{\heap, \store}} 
+\and
 \inferrule[\textsc{Assert - True}]
   { 
       \symbeval{\jsilexpr}{\store} =  \jtrue
