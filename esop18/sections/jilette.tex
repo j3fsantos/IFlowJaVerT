@@ -489,8 +489,21 @@ This code:
  \vspace*{-0.4cm}
 \end{figure}
 
-Without loss of generality, we can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$
+Without loss of generality, we can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$, illustrated at the top of the figure below.
 
+\vspace*{-0.6cm}
+\begin{figure*}[!h]
+\centering
+\includegraphics[width=0.83\textwidth]{symbSemEx.png}
+\vspace*{-0.5cm}
+\end{figure*}
+
+The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The strategy is to non-deterministically allow the targeted property of the object, (in our case, the symbolic property $\hat{s}$ of object $\mathtt{l_o}$), to be equal to any of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), and also allow it to be different from them all, adding the appropriate condition to the path condition, and proceeding to the next command. \polish{I stopped here.}
+
+
+
+
+$\symbeval{\jsilexpr_1}{\sstore} = \mathtt{l_o}$, $\symbeval{\jsilexpr_2}{\sstore} = \hat{s}$, and $\symbeval{\jsilexpr_3}{\sstore} = 42$. We also have that $\sheap' = \hemp$, $n = 0$, $\sexprp_0 = \mathtt{``proto"}$, and $\sexprv_0 = \jsnull$.   
 
 
 
