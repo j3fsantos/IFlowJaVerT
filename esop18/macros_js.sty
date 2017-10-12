@@ -587,6 +587,7 @@
 % Semantics
 %%%%%%%%%%%%%%%
 \newcommand\ctx{C}
+\newcommand\semop[1]{\overline{#1}}
 \DeclareDocumentCommand{\semtrans}{ o m m o o }
 { 
   \IfNoValueTF{#1}{}{#1: }
@@ -674,6 +675,7 @@
 \newcommand\svar[0]{\hat{x}} 
 \newcommand\svars[0]{\hat{\sortstyle{X}}} 
 \newcommand\smodels[2]{\sortstyle{M}_{#2}(#1)}
+\newcommand\symbop[1]{\hat{#1}}
 %%%%%%%%%%%
 % memory model
 %%%%%%%%%%%
@@ -750,6 +752,7 @@
 %%
 %% Jilette - JS extended syntax
 %%
+\newcommand\sexprs{\hat{\sortstyle{E}}_{\jsilsuffix}}
 \newcommand{\jsassert}[0]{\mathtt{assert}}
 \newcommand{\jsassume}[0]{\mathtt{assume}}
 \newcommand{\jssymbstring}[0]{\_\_{\mathtt{s}}}
@@ -762,3 +765,4 @@
 \newcommand{\jstmts}[0]{\sortstyle{S}_{\jssuffix}}
 \newcommand{\jexprs}[0]{\sortstyle{E}_{\jssuffix}}
 \newcommand{\jlexprs}[0]{\sortstyle{E}_{\jssuffix}^L}
+

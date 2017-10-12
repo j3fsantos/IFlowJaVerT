@@ -193,12 +193,11 @@ the heap $\heap$ and store $\store$, generates the heap $\heap'$, store $\store'
 and the next command to be evaluated is the $i'$-th command of the first procedure of the call stack~$\ctx'$. Due to space constraints and as the transitions for JSIL symbolic execution are  similar, we give the full semantics for JSIL control flow commands in the Appendix. 
 % So far, so boring.
 
-\myparagraph{\jsil: Symbolic Evaluation}
+\myparagraph{\jsil: Symbolic Semantics}
 In order to symbolically execute \jsil programs, we extend the syntax of \jsil expressions with 
 symbolic strings $\sstring \in \sstrings$ and symbolic numbers $\snumber \in \snumbers$. 
 For convenience, we use $\svars$ to denote the union of $\sstrings$ and $\snumbers$ 
 and $\svar$ to range over $\svars$. 
-The syntax of symbolic expressions $\sexpr$ is as follows: $\sexpr \triangleq \val \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
 
 We extend heaps, stores, and call stacks with symbolic values, obtaining symbolic 
 heaps, stores, and call stacks, respectively ranged over by $\sheap$, $\sstore$, and $\sctx$. 
@@ -209,6 +208,47 @@ $\jvar \in \jvars$ to symbolic expressions.
 A symbolic call stack $\sctx$ differs from a concrete call stack in that it contains 
 symbolic stores instead of concrete stores.
 %
+Symbolic expressions $\sexpr \in \sexprs$ are \jsil expressions that do not contain 
+any program variables. Put formally, the syntax of symbolic expressions is as follows: 
+$\sexpr \triangleq \val \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
+The symbolic evaluation of a \jsil expression $\jsilexpr$ in a symbolic store $\sstore$ yields a 
+symbolic expression $\sexpr$. Below, we show the rules for evaluating a given \jsil expression with 
+respect to a given symbolic store. 
+
+\begin{display}{Symbolic Semantics of Expressions}
+\begin{mathpar}
+\inferrule[]{}{\semexpr{\val}{\sstore} \semeq \val}
+\and
+\inferrule[]{}{\semexpr{\svar}{\sstore} \semeq \svar}
+\and 
+\inferrule[]
+	{\semexpr{\jsilexpr}{\sstore} = \val \quad \val' = \semop{\unoper} \val}
+	{\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \val'}
+\and
+\inferrule[]
+	{\semexpr{\jsilexpr}{\sstore} = \sexpr \not\in \vals}
+	{\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \unoper \ \sexpr}
+\and 
+\inferrule[]
+	{\semexpr{\jsilexpr_1}{\sstore} = \val_1 
+	  \quad 
+	  \semexpr{\jsilexpr_2}{\sstore} = \val_2
+	}
+	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \semop{\binoper}(\val_1, \val_2)}
+\and 
+\inferrule[]
+	{\semexpr{\jsilexpr_1}{\sstore} = \sexpr_1 
+	  \quad 
+	  \semexpr{\jsilexpr_2}{\sstore} = \sexpr_2
+	  \quad 
+	  \sexpr_1 \not\in \vals \ \vee \ \sexpr_2 \not\in \vals 
+	}
+	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val_1 \, {\binoper} \, \val_2}
+\end{mathpar}
+\end{display}
+
+
+%
 A \emph{symbolic state} $\sstate = (\sheap, \sstore, \sctx, \pc)$ is a 4-tuple consisting of a 
 symbolic heap $\sheap$, a symbolic store $\sstore$, a symbolic call stack $\sctx$, and a path condition $\pc$. 
 The path condition is a first-order quantifier-free formula over symbolic strings and 
@@ -216,7 +256,7 @@ numbers, which accumulates constraints on the given symbolic inputs that trigger
 the execution to follow the path that led to the current symbolic state. 
 Path conditions are given by the following grammar: 
 \begin{equation*}
-\pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc \mid \ltrue \mid \lfalse
+\pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc \mid \jtrue \mid \jfalse
 \end{equation*}
 
 Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for \jsil basic commands. 
@@ -252,32 +292,23 @@ This code:
 {\scriptsize
 \begin{mathpar} 
 %
-\inferrule[Interpretation of Symbolic Expressions:]
-{
-\semexpr{\val}{\senv} \semeq \val
-\quad 
-\semexpr{\svar}{\senv} \semeq \senv(\svar)
-\quad 
-\semexpr{\unoper\ \sexpr}{\senv} \semeq \unoper (\semexpr{\sexpr}{\senv})
-\quad 
-\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \binoper(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
-}{} \quad 
 \inferrule[\textsc{Skip}]{}
 	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
- \and
+ \quad
  %
 \inferrule[\textsc{Assignment}]
   {
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
-      \quad
+      \\\\
       \sstore' = \sstore[\jvar \mapsto \sexpr]
   }{\symbtrans{\sheap, \sstore, \jvar := \jsilexpr, \pc}{\sheap, \sstore', \pc}} 
 %
-\and 
+\quad 
 %
 \inferrule[\textsc{Object Creation}]
   { 
     \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
+    \\\\
     \and (\loc,-) \notin \domain (\sheap)
   }{\symbtrans{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
 \\
@@ -402,7 +433,7 @@ This code:
      \quad 
      \pc \vdash \neg\sexpr 
   }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{\pc}}
-  \\
+  \quad
 %
 \inferrule[\textsc{Assume}]
   { 
@@ -489,13 +520,14 @@ This code:
  \vspace*{-0.4cm}
 \end{figure}
 
+
 Without loss of generality, we can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$, illustrated at the top of the figure below.
 
-\vspace*{-0.6cm}
-\begin{figure*}[!h]
+%\vspace*{-0.3cm}
+\begin{figure*}[h!]
 \centering
 \includegraphics[width=0.83\textwidth]{symbSemEx.png}
-\vspace*{-0.5cm}
+%\vspace*{-0.3cm}
 \end{figure*}
 
 The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The strategy is to non-deterministically allow the targeted property of the object, (in our case, the symbolic property $\hat{s}$ of object $\mathtt{l_o}$), to be equal to any of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), and also allow it to be different from them all, adding the appropriate condition to the path condition, and proceeding to the next command. \polish{I stopped here.}
@@ -516,21 +548,38 @@ $\symbeval{\jsilexpr_1}{\sstore} = \mathtt{l_o}$, $\symbeval{\jsilexpr_2}{\sstor
 \myparagraph{Soundness} To establish the soundness of symbolic execution, we need to relate 
 symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
 $\senv : \svars \rightharpoonup \vals$ mapping symbolic values to concrete values. 
-A symbolic environment is said to be \emph{consistent} if it maps symbolic 
+A symbolic environment is said to be \emph{well-formed} if it maps symbolic 
 values to concrete values of the appropriate type (e.g. symbolic strings are mapped to strings 
 and symbolic numbers are mapped to numbers). In the following, we will always 
-assume consistent symbolic environments. 
+assume well-formed symbolic environments. 
 %
 Given a symbolic environment $\senv$, we define the interpretation of symbolic 
 expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
-In the following, we write $\senv \vdash \pc$  if and only if $\semexpr{\pc}{\senv} = \ltrue$. For convenience, we define: 
+We say that a symbolic environment is \emph{consistent} with a path condition 
+$\pc$, written $\senv \vdash \pc$,  if and only if $\semexpr{\pc}{\senv} = \jtrue$. 
+Given a symbolic state $(\sheap, \sstore, \sctx)$ and a path condition $\pc$, we define 
+the models of the symbolic state under $\pc$, written $\smodels{\sheap, \sstore, \sctx}{\pc}$, 
+as the set of concrete states that can be obtained from $(\sheap, \sstore, \sctx)$ using 
+logical environments that are consistent with $\pc$. Formally:
 \begin{equation}
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
 \end{equation}
 
-\begin{figure}[ht!]
+\begin{figure}[!h]
 {
 \begin{tabular}{l}
+$\quad${\bf Interpretation of Symbolic Expressions:}  \\
+$
+\quad
+\semexpr{\val}{\senv} \semeq \val
+\quad 
+\semexpr{\svar}{\senv} \semeq \senv(\svar)
+\quad 
+\semexpr{\unoper\ \sexpr}{\senv} \semeq \unoper (\semexpr{\sexpr}{\senv})
+\quad 
+\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \binoper(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
+$
+\\[3pt]
 $\quad${\bf Symbolic Heaps:}  \\
 $
 \quad
@@ -562,6 +611,8 @@ $\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq
 }
 \caption{Interpretation of symbolic expressions, heaps, stores, and contexts.\label{fig:symbolic:interp}}
 \end{figure}
+
+The theorem of soundness states that if we have a symbolic trace $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
 
 
 \begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
