@@ -280,12 +280,12 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
 }
 \vspace*{-0.5cm}
 \end{wrapfigure}
-The rules for skip, the assignment, object creation, assume, and assert are straightforward. The remaining rules follow a specific pattern. To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
+The rules for skip, assignment, object creation, property collection, assume, and assert are straightforward. The remaining rules follow a specific pattern. To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
 This code: 
 	0)~creates a new object $\mathtt{o}$;
 	1)~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
 	2)~collects all the properties of $\mathtt{o}$ into a list and assigns this list to $\mathtt{x}$; and
-	3)~asserts that the length of the list in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will fail. Let us understand why.
+	3)~asserts that the length of the list in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will cause the symbolic execution to fail. Let us understand why.
 
 %\begin{display}{}
 \begin{figure}[ht!]
@@ -521,21 +521,21 @@ This code:
 \end{figure}
 
 
-Without loss of generality, we can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$, illustrated at the top of the figure below.
+We can assume to start from an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$, illustrated at the top of Figure~\ref{fig:sexecexample}.
 
 %\vspace*{-0.3cm}
 \begin{figure*}[h!]
 \centering
 \includegraphics[width=0.83\textwidth]{symbSemEx.png}
-%\vspace*{-0.3cm}
+\vspace*{-0.25cm}
+\caption{Example of a Jilette symbolic execution}
+\label{fig:sexecexample}
+\vspace*{-0.7cm}
 \end{figure*}
 
-The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The strategy is to non-deterministically allow the targeted property of the object, (in our case, the symbolic property $\hat{s}$ of object $\mathtt{l_o}$), to be equal to any of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), and also allow it to be different from them all, adding the appropriate condition to the path condition, and proceeding to the next command. \polish{I stopped here.}
+The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding to the next command. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jsnull$; and $\hat{s}$, with value 42. 
 
-
-
-
-$\symbeval{\jsilexpr_1}{\sstore} = \mathtt{l_o}$, $\symbeval{\jsilexpr_2}{\sstore} = \hat{s}$, and $\symbeval{\jsilexpr_3}{\sstore} = 42$. We also have that $\sheap' = \hemp$, $n = 0$, $\sexprp_0 = \mathtt{``proto"}$, and $\sexprv_0 = \jsnull$.   
+The execution then continues in both branches with the field collection command $\mathtt{x := getFields(o)}$, which assigns the list of properties of the object $\mathtt{o}$ to variable $\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (llen \ x == 2)}$, asserting that the object $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left. Therefore, following the \textsc{Assert - False} rule, the assertion and the entire symbolic execution will fail.
 
 
 
@@ -612,9 +612,16 @@ $\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq
 \caption{Interpretation of symbolic expressions, heaps, stores, and contexts.\label{fig:symbolic:interp}}
 \end{figure}
 
-The theorem of soundness states that if we have a symbolic trace $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
-
-
+The theorem of soundness (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
+$\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
+and a concrete state $(\heap, \store, \ctx)$ in the models of the initial symbolic state under 
+the final path condition $\pc'$, then there is a concrete symbolic state $(\heap', \store', \ctx')$ 
+in the models of the final symbolic state under $\pc'$ such that: 
+$\semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$. 
+ We use the final path condition $\pc'$ for both the models of initial and final 
+symbolic states because we only care about the initial concrete states for which 
+the concrete execution will follow the same path as the symbolic execution. 
+%
 \begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
@@ -629,7 +636,13 @@ $$
 \end{array}
 $$
 \end{theorem}
-
+%
+The \emph{bug-finding} corollary (Corollary~\ref{bug:finding}) states that if 
+we find a symbolic trace that results in a failed assertion with a satisfiable final path-condition, 
+then there also exists a concrete execution that will cause that assertion to fail.
+Observe that the analysis is designed in such a way that there are no false positives, 
+meaning that 
+%
 \begin{corollary}[Bug Finding]\label{bug:finding}
 $$
 \begin{array}{l}
@@ -640,7 +653,10 @@ $$
 \end{array}
 $$
 \end{corollary}
-
+%
+Finally, the \emph{verification} corollary (Corollary~\ref{corollary:verification})
+states that if we have symbolically explored all the possible paths
+%
 \begin{corollary}[Verification]\label{corollary:verification}
 $$
 \begin{array}{l}
