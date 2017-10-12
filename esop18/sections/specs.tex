@@ -84,6 +84,7 @@ The formal semantics of $\sepassert(P)$ is as follows:
 
 
 \begin{figure}[t!]
+\centering
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{New Existential}]
@@ -106,7 +107,7 @@ The formal semantics of $\sepassert(P)$ is as follows:
      { 
          \subst(\svar) = \sexpr' 
          \quad 
-         \pc \not\vdash \sexpr = \sexpr' 
+         \pc \vdash \sexpr \neq \sexpr' 
      }
      {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionnone}
 \\
@@ -122,7 +123,7 @@ The formal semantics of $\sepassert(P)$ is as follows:
      { 
          \fv(\subst(\sexpr')) \cap \existentials = \emptyset
          \quad 
-          \pc  \not\vdash  \sexpr = \subst(\sexpr') 
+          \pc  \vdash  \sexpr \neq \subst(\sexpr') 
      }
      {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone}
 %
@@ -130,18 +131,35 @@ The formal semantics of $\sepassert(P)$ is as follows:
 \inferrule[\textsc{Cell Assertion}]
 	{  
 	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
-	   \\\\
-	   \symbeval{\lexpr_p}{\sstore} = \sexprp'
+	   \quad 
+	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
 	   \quad
 	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
 	   \quad
 	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
-	   \\\\
+	   \\
 	   \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionsome{\subst'} 
 	   \quad
 	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionsome{\subst''} 
-	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = (\subst'', \sheap_f)} 
-\and
+	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionsome{(\subst'', \sheap_f)}} 
+\\
+\inferrule[\textsc{Cell Assertion - Fail}]
+	{  
+	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
+	   \quad
+	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
+	   \quad
+	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	   \quad
+	     \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+  	   \\
+	    (l, -) \not\in \domain(\sheap') 
+	    \quad 
+	   \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionnone 
+	   \ \vee \
+	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionnone
+	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionsome{(\subst'', \sheap_f)}} 
+\\
 \inferrule[\textsc{EmptyFields Assertion}]
 	{  
 	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
