@@ -848,7 +848,7 @@ for compiling JavaScript logical expressions.
 \subsection{Motivating Example} 
 
 We illustrate how Jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
-of a  \emph{key-value map} given in Figure~\ref{map:example}. 
+of a  \emph{key-value map} given in Figure~\ref{map:example}-(left). 
 It contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with the key given as input;
@@ -871,15 +871,9 @@ Prototype chains typically finish with the object \jsinline|Object.prototype| fr
 programs can access several built-in functions, which are part of the language runtime environment.
 An example of such a function is \jsinline|hasOwnProperty|, which checks whether or not the object 
 on which it is invoked has the property given as input (e.g. \jsinline|map.hasOwnProperty("_contents")| 
-evaluates to \jsinline|true|, because the object \jsinline|map| has a property named \jsinline|"_contents"|). 
+evaluates to \jsinline|true| when evaluated in the heap shown in Figure~\ref{map:example}-(right), 
+because the object \jsinline|map| has a property named \jsinline|"_contents"|). 
 
-
-
-This library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object used to store the map contents.  
-The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
-As the functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
-objects, they are defined as properties of \jsinline|Map.prototype|, which is the prototype 
-of the objects that are created using \jsinline|Map| as a constructor (e.g.~using~\jsinline|new Map()|). 
 
  \begin{figure}[t!]
  \begin{minipage}{0.6\textwidth}
@@ -910,15 +904,21 @@ Map.prototype.validKey = function (k) { ... }
 \caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
 \end{figure}
 
-
+The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object used to store the map contents.  
+The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
+As the functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
+objects, they are defined as properties of \jsinline|Map.prototype|, which is the prototype 
+of the objects that are created using \jsinline|Map| as a constructor (e.g.~using~\jsinline|new Map()|). 
+%
 Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
 By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
 \jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
-Running the symbolic test below reveals this bug. In fact, \jilette gives 
-\jsinline|__s1 = "hasOwnProperty"| as a failing model for the symbolic tetst below. 
+Consider the following symbolic test:
 %
  \begin{lstjs}[firstnumber=1]
-var m = new Map();  m.put (__s1, __n1); var r = m.get(__s1);  
-assert(__n1 = r)
+ var s1 = __s(); var n1 = __n(); 
+var m = new Map();  m.put (s1, n1); var r = m.get(s1);  
+assert(n1 = r)
 \end{lstjs}
-
+The symbolic test above reveals the bug. In fact, \jilette outputs 
+\jsinline|s1 = "hasOwnProperty"| as a failing model for the symbolic test. 
