@@ -197,17 +197,13 @@
 \maketitle 
 
 \begin{abstract}
-We present \jilette: a symbolic execution tool for ES5 Strict. Jilette supports 
-string reasoning and precisely follows the language standard, leveraging
-on \underline{\JSComp}, a well-tested compiler from ES5 Strict to an 
-intermediate language well-suited for verification and analysis; and \underline{Rosette},
-a solver-aided host language developed to facilitate the design of new 
-solver-aided domain-specific languages. 
+We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, a symbolic virtual machine that enables the design of new solver-aided languages. 
+\jilette works by first compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
 We study two complementary uses of \jilette. 
 First, we show how \jilette can be used for symbolic testing of JavaScript programs. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
 by compiling them to symbolic tests in order to find bugs in both specifications 
-and code. 
+and code. \polish{sound, no false positives}
 \end{abstract}
 
 
@@ -217,24 +213,33 @@ JavaScript is the most widespread dynamic language: it is the de facto language 
 it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
 The dynamic nature of JavaScript and its complex semantics make it a difficult target for
-symbolic analysis and logic-based verification.
-This paper presents \jilette, a symbolic execution tool for ES5 Strict. Jilette has the following benefits: \dtag{1} it is grounded on the real semantics of the language and does not simplify the memory model in any way; \dtag{2} it has extensive coverage, supporting the entire core language and almost all built-in libraries; \dtag{3} it supports advanced string reasoning, critical for reasoning about \polish{everyday} JavaScript code; \dtag{4} it provides \polish{intuitive assertion/debugging mechanisms} accessible to the general JavaScript programmer, with minimal annotation overhead.
+symbolic analysis and logic-based verification. 
+This paper presents \jilette, a symbolic execution tool for ES5 Strict. Jilette has the following benefits: 
+\dtag{1} it is grounded on the real semantics of the language and does not simplify the memory model in any way; 
+\dtag{2} it is provably sound, with no false positives;
+\dtag{3} it has extensive coverage, supporting the entire core language and almost all built-in libraries; 
+\dtag{4} it supports advanced string reasoning, critical for reasoning about \polish{everyday} JavaScript code; 
+\dtag{5} it provides \polish{intuitive assertion/debugging mechanisms} accessible to the general JavaScript programmer, with minimal annotation overhead. 
 %
-We highlight two possible, relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. \pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL. Also, we need to say at some point why we care about specifications written in separation logic.}
+We highlight two possible, relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
-\myparagraph{Symbolic Testing} The most commonly used 
-approach \pmaxinline{citations?} to obtaining trust in JavaScript code is running it against 
+\myparagraph{Symbolic Testing} A commonly used 
+approach to obtaining trust in JavaScript code is running it against 
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
 cannot guarantee exhaustiveness. We show how to use \jilette
 for the symbolic testing of JavaScript programs: instead of using concrete 
 inputs in tests, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
-first-order assertions over these inputs. \pmaxinline{This approach is 
-not novel. Who else has done this?}
-%This approach guarantees exhaustiveness.  Moreover, due to the
+first-order assertions over these inputs. 
 Furthermore, if a test fails, Jilette provides the concrete inputs that cause it 
-to fail, immediately revealing bugs in the code being tested.
+to fail, immediately revealing bugs in the code being tested. The
+symbolic execution of Jilette comes with a soundness proof that
+guarantees the absence of false positives.
+
+\pmax{This approach is not novel. Who else has done this?}
+
+\pmax{This approach is not novel. Who else has done this?}
 
 
 \myparagraph{Debugging Separation Logic Specifications}
@@ -268,8 +273,21 @@ are able to execute JavaScript programs on symbolic values, effectively
 obtaining a symbolic execution tool for JavaScript. 
 This combination is non-trivial because \polish{many many things...} 
 
+\myparagraph{Trustworthiness} \polish{formal development, trustworthiness, soundness}
+
+\myparagraph{State of the Art}
+Verification tools for JavaScript programs come few and far between. 
+JaVerT~\cite{} targets the specialist developer wanting rich, 
+mechanically verified specifications of critical JavaScript code.
+It comes with 
+Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
+
+\myparagraph{What's in the paper}
+
 \bigskip
 \polish{TO GO IN SOMEWHERE \\
+
+Clarify ES5 Strict
 
 JaVerT targets the specialist
 developer wanting rich, mechanically verified specifications of critical JavaScript code.
@@ -330,6 +348,8 @@ that can be instantiated with a $\mathbb{K}$-interpretation of a  language to au
 
 
 \section{Conclusions}\label{conclusions}
+
+\pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL, or even some version of PL. Also, we need to say at some point why we care about specifications written in separation logic.}
 
 \newpage
 \bibliographystyle{abbrv}
