@@ -489,21 +489,21 @@ This code:
  \vspace*{-0.4cm}
 \end{figure}
 
-Without loss of generality, we can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$, illustrated at the top of the figure below.
+We can assume to start with an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we will have the state $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$, illustrated at the top of Figure~\ref{fig:sexecexample}.
 
 \vspace*{-0.6cm}
 \begin{figure*}[!h]
 \centering
 \includegraphics[width=0.83\textwidth]{symbSemEx.png}
-\vspace*{-0.5cm}
+\vspace*{-0.25cm}
+\caption{Example of a Jilette symbolic execution}
+\label{fig:sexecexample}
+\vspace*{-0.7cm}
 \end{figure*}
 
-The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The strategy is to non-deterministically allow the targeted property of the object, (in our case, the symbolic property $\hat{s}$ of object $\mathtt{l_o}$), to be equal to any of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), and also allow it to be different from them all, adding the appropriate condition to the path condition, and proceeding to the next command. \polish{I stopped here.}
+The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding to the next command. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jsnull$; and $\hat{s}$, with value 42. 
 
-
-
-
-$\symbeval{\jsilexpr_1}{\sstore} = \mathtt{l_o}$, $\symbeval{\jsilexpr_2}{\sstore} = \hat{s}$, and $\symbeval{\jsilexpr_3}{\sstore} = 42$. We also have that $\sheap' = \hemp$, $n = 0$, $\sexprp_0 = \mathtt{``proto"}$, and $\sexprv_0 = \jsnull$.   
+The execution then continues in both branches with the straightforward field collection command $\mathtt{x := getFields(o)}$, which assigns the list of properties of the object $\mathtt{o}$ to variable $\mathtt{x}$. Finally, we execute $\mathtt{assert\ (llen \ x == 2)}$, asserting that $\mathtt{o}$ has exactly two properties, which holds in the right branch, but fails in the left. 
 
 
 
