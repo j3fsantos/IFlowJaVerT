@@ -198,9 +198,9 @@
 
 \begin{abstract}
 We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, a symbolic virtual machine that enables the design of new solver-aided languages. 
-\jilette works by first compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
 We study two complementary uses of \jilette. 
-First, we show how \jilette can be used for symbolic testing of JavaScript programs. 
+First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding witnesses (i.e. executions) for assertion- and test- failures. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
 by compiling them to symbolic tests in order to find bugs in both specifications 
 and code. \polish{sound, no false positives}
