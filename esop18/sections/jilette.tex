@@ -276,7 +276,7 @@ they are analogous to the semantic rules for \jsil commands, except that the hea
 \hspace*{0.25cm} $\mathtt{0\quad o := new\ ()}$ \\
 \hspace*{0.25cm} $\mathtt{1\quad o[\hat{s}] := 42};$ \\
 \hspace*{0.25cm} $\mathtt{2\quad x := getFields(o);}$ \\
-\hspace*{0.25cm} $\mathtt{3\quad assert\ (llen \ x == 2)}$
+\hspace*{0.25cm} $\mathtt{3\quad assert\ (card \ x == 2)}$
 }
 \vspace*{-0.5cm}
 \end{wrapfigure}
@@ -285,7 +285,7 @@ This code:
 	0)~creates a new object $\mathtt{o}$;
 	1)~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
 	2)~collects all the properties of $\mathtt{o}$ into a list and assigns this list to $\mathtt{x}$; and
-	3)~asserts that the length of the list in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will cause the symbolic execution to fail. Let us understand why.
+	3)~asserts that the length of the list in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will produce a failing symbolic execution. Let us understand why.
 
 %\begin{display}{}
 \begin{figure}[ht!]
@@ -307,9 +307,9 @@ This code:
 %
 \inferrule[\textsc{Object Creation}]
   { 
+    (\loc,-) \notin \domain (\sheap) \\\\
     \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
-    \\\\
-    \and (\loc,-) \notin \domain (\sheap)
+    \and 
   }{\symbtrans{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
 \\
 %
@@ -533,9 +533,8 @@ We can assume to start from an empty heap, empty store, and an empty path condit
 \vspace*{-0.7cm}
 \end{figure*}
 
-The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding to the next command. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jsnull$; and $\hat{s}$, with value 42. 
-
-The execution then continues in both branches with the field collection command $\mathtt{x := getFields(o)}$, which assigns the list of properties of the object $\mathtt{o}$ to variable $\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (llen \ x == 2)}$, asserting that the object $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left. Therefore, following the \textsc{Assert - False} rule, the assertion and the entire symbolic execution will fail.
+The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jsnull$; and $\hat{s}$, with value 42. 
+The execution then continues in both branches with the property collection command $\mathtt{x := getFields(o)}$, which assigns the set of properties of the object $\mathtt{o}$ to variable~$\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (card \ x = 2)}$, asserting that the object $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left. Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbolic execution trace, from which a concrete counter-model (essentially, $\hat{s} = \mathtt{``@proto"}$) can be derived.
 
 
 
