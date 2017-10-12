@@ -622,7 +622,7 @@ $\semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$.
 symbolic states because we only care about the initial concrete states for which 
 the concrete execution will follow the same path as the symbolic execution. 
 %
-\begin{theorem}[Soundness of the \jsil symbolic execution]\label{teo:soundness:jsil:symb:exe}
+\begin{theorem}[Soundness]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
 \forall \, \sheap, \sheap', \heap, \sstore, \sstore', \store, i, i', \sctx, \sctx', \ctx, \pc, \pc' \, . \,  \\  
@@ -638,40 +638,49 @@ $$
 \end{theorem}
 %
 The \emph{bug-finding} corollary (Corollary~\ref{bug:finding}) states that if 
-we find a symbolic trace that results in a failed assertion with a satisfiable final path-condition, 
+we find a symbolic trace that results in a failed assertion, 
 then there also exists a concrete execution that will cause that assertion to fail.
 Observe that the analysis is designed in such a way that there are no false positives, 
-meaning that 
+meaning that if we find a failing symbolic trace,
+we can always instantiate its symbolic values obtaining a concrete counter-model for the 
+failing assertion. As \jilette is meant to be a \emph{bug-finding} tool, it is essential 
+not to generate false positives, only reporting to the user errors that do in fact  exist. 
 %
-\begin{corollary}[Bug Finding]\label{bug:finding}
+\begin{corollary}[Bug-finding]\label{bug:finding}
 $$
 \begin{array}{l}
 \forall \, \sheap, \sstore, \sctx, i, \pc, \pc' \, . \,  
- \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}  \ \wedge \  \pc' \text{ is satisfiable} \\ 
-   \quad \implies 
+ \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}   \implies 
      \exists \heap, \store, \ctx \, . \, \semtranstranserr{\heap, \store, i}[\ctx]
 \end{array}
 $$
 \end{corollary}
 %
 Finally, the \emph{verification} corollary (Corollary~\ref{corollary:verification})
-states that if we have symbolically explored all the possible paths
+states that if we have symbolically explored all the possible execution paths
+starting from a given symbolic state $(\sheap, \sstore, \sctx)$,  
+then all concrete states in the models of the initial symbolic state (under the 
+initial path condition) will result in final concrete states in the models of 
+one of the final symbolic states (under its associated path condition).  
+Clearly, if a \jsil program contains loops that are not possible to unroll 
+statically, we will never be in the case of the verification corollary. 
 %
 \begin{corollary}[Verification]\label{corollary:verification}
 $$
 \begin{array}{l}
 \forall \, \sheap, \sheap_1, ..., \sheap_k, \sstore, \sstore_1, ..., \sstore_k, \sctx, \sctx_1, ..., \sctx_k, i, j_1, ..., j_k, \pc, \pc_1, ..., \pc_k \, . \,  \\
-  \quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+  \ \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
-      \quad \quad \implies 
+      \quad \implies 
          \forall \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
-          \quad \qquad \implies \exists \heap', \store', \ctx' \, . \, 
+          \ \qquad \implies \exists \heap', \store', \ctx' \, . \, 
                   \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
                   (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
 \end{array}   
 $$ 
 \end{corollary}
-
+%
+The proofs of all the results are given in the Appendix. 
 
 
 \subsection{Implementation}
