@@ -197,14 +197,14 @@
 \maketitle 
 
 \begin{abstract}
-We present \jilette: a symbolic execution tool for ES5 Strict that supports 
-string reasoning and precisely follows the standard of the language. 
-\jilette leverages on \underline{\JSComp}, a well-tested compiler from ES5 Strict to an 
-intermediate language well-suited for verification and analysis, and \underline{Rosette},
-a solver aided host language developed to facilitate the design of new 
+We present \jilette: a symbolic execution tool for ES5 Strict. Jilette supports 
+string reasoning and precisely follows the language standard, leveraging
+on \underline{\JSComp}, a well-tested compiler from ES5 Strict to an 
+intermediate language well-suited for verification and analysis; and \underline{Rosette},
+a solver-aided host language developed to facilitate the design of new 
 solver-aided domain-specific languages. 
 We study two complementary uses of \jilette. 
-First, we show how to use \jilette for the symbolic testing of JavaScript programs. 
+First, we show how \jilette can be used for symbolic testing of JavaScript programs. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
 by compiling them to symbolic tests in order to find bugs in both specifications 
 and code. 
@@ -217,13 +217,10 @@ JavaScript is the most widespread dynamic language: it is the de facto language 
 it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
 The dynamic nature of JavaScript and its complex semantics make it a difficult target for
-symbolic analysis and logic-based verification. 
-This paper presents \jilette, a symbolic execution tool for JavaScript that improves existing solutions
-in two ways: \dtag{1} it is grounded on the real semantics of the language \pmaxinline{We have to be very careful with phrasing this. K is symbolic execution that is based on the real semantics of the language. They don't do built-in libraries, though. We can claim substantially greater coverage, which is very important since, well, all programs use the built-in libraries. Writing assumes and asserts is incomparably simpler and more intuitive in Jilette, also.} and 
-\dtag{2} it supports reasoning about symbolic strings and regular expressions.
+symbolic analysis and logic-based verification.
+This paper presents \jilette, a symbolic execution tool for ES5 Strict. Jilette has the following benefits: \dtag{1} it is grounded on the real semantics of the language and does not simplify the memory model in any way; \dtag{2} it has extensive coverage, supporting the entire core language and almost all built-in libraries; \dtag{3} it supports advanced string reasoning, critical for reasoning about \polish{everyday} JavaScript code; \dtag{4} it provides \polish{intuitive assertion/debugging mechanisms} accessible to the general JavaScript programmer, with minimal annotation overhead.
 %
-Furthermore, we present two possible uses for \jilette. It can both be used as \dtag{i}~a tool for
- running symbolic tests for JavaScript programs and \dtag{ii} a debugging tool for specifications of JavaScript programs written in separation logic. \pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL. Also, we need to say at some point why we care about specifications written in separation logic.} 
+We highlight two possible, relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. \pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL. Also, we need to say at some point why we care about specifications written in separation logic.}
 
 \myparagraph{Symbolic Testing} The most commonly used 
 approach \pmaxinline{citations?} to obtaining trust in JavaScript code is running it against 
