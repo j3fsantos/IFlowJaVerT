@@ -556,7 +556,7 @@ This code:
  \end{mathpar}}
  \vspace*{-0.4cm}
 \caption{Symbolic Semantics for \jsil Commands: {$\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:symbexe:cmds}}
- \vspace*{-0.4cm}
+ \vspace*{-0.2cm}
 \end{figure}
 
 
@@ -645,7 +645,7 @@ $\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq
 \vspace{-0.5cm}
 \end{figure}
 
-The theorem of soundness (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
+The soundness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
 $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
 and a concrete state $(\heap, \store, \ctx)$ in the models of the initial symbolic state under 
 the final path condition $\pc'$, then there is a concrete symbolic state $(\heap', \store', \ctx')$ 
@@ -656,10 +656,11 @@ symbolic states because we only care about the initial concrete states for which
 the concrete execution will follow the same path as the symbolic execution. 
 %
 \begin{theorem}[Soundness]\label{teo:soundness:jsil:symb:exe}
-\vspace{-0.3cm}
+$\forall \, \sheap, \sheap', \heap, \sstore, \sstore', \store, i, i', \sctx, \sctx', \ctx, \pc, \pc' \, . \,$
+\vspace*{-0.65cm}
 $$
 \begin{array}{l}
-\forall \, \sheap, \sheap', \heap, \sstore, \sstore', \store, i, i', \sctx, \sctx', \ctx, \pc, \pc' \, . \,  \\  
+  \\  
 \quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
    \ \wedge \ 
       (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
@@ -677,14 +678,13 @@ then there also exists a concrete execution that will cause that assertion to fa
 Observe that the analysis is designed in such a way that there are no false positives, 
 meaning that if we find a failing symbolic trace,
 we can always instantiate its symbolic values obtaining a concrete counter-model for the 
-failing assertion. As \jilette is meant to be a \emph{bug-finding} tool, it is essential 
-not to generate false positives, only reporting to the user errors that do in fact  exist. 
+failing assertion. This is essential, as \jilette is meant to be a \emph{bug-finding} tool.
 %
 \begin{corollary}[Bug-finding]\label{bug:finding}
-\vspace{-0.3cm}
+$\forall \, \sheap, \sstore, \sctx, i, \pc, \pc' \, . \,$
+\vspace*{-0.2cm}
 $$
 \begin{array}{l}
-\forall \, \sheap, \sstore, \sctx, i, \pc, \pc' \, . \,  \\ 
  \quad \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}  \ \wedge \ \pc' \ \text{satisfiable} \implies 
      \exists \heap, \store, \ctx \, . \, \semtranstranserr{\heap, \store, i}[\ctx]
 \end{array}
@@ -697,14 +697,14 @@ starting from a given symbolic state $(\sheap, \sstore, \sctx)$,
 then the execution of the program starting from  any concrete state in the models 
 of the initial symbolic state (under the initial path condition) will result in a final concrete state
 in the models of one of the final symbolic states (under its associated path condition).  
-As \jilette does not infer loop invariants, if a \jsil program contains loops that are 
-not possible to unroll statically, we will never be in the case of the verification corollary. 
+As \jilette does not infer loop invariants, if a \jsil program contains loops that cannot be unrolled statically, we will never be in the case of the verification corollary. 
 
 \begin{corollary}[Verification]\label{corollary:verification}
-%\vspace{-0.1cm}
+$\forall \, \sheap, \sheap_i|_{i=1}^k, \sstore, \sstore_i|_{i=1}^k, 
+\sctx, \sctx_i|_{i=1}^k, i, j_i|_{i=1}^k, \pc, \pc_i|_{i=1}^k \, . \,$
+\vspace{-0.25cm}
 $$
 \begin{array}{l}
-\forall \, \sheap, \sheap_1, ..., \sheap_k, \sstore, \sstore_1, ..., \sstore_k, \sctx, \sctx_1, ..., \sctx_k, i, j_1, ..., j_k, \pc, \pc_1, ..., \pc_k \, . \,  \\
   \ \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
       \quad \implies 
@@ -716,7 +716,7 @@ $$
 $$ 
 \end{corollary}
 %
-The {\bf proofs} of the results above are given in the Appendix. 
+The {\bf proofs} of the above results are given in the Appendix. 
 
 
 \subsection{Implementation}
