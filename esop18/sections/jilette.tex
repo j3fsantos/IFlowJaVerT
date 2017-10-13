@@ -6,16 +6,16 @@
 %                   formally define symbolic execution for JSIL commands. soundness result and its corollaries.  
 % 
 %  \item 2.2 Implementation:  
-%               - describe the Rosette approach to the implementation of symbolic analysis 
-%               - describe the encoding of \jsil concrete/symbolic states in Rosette 
-%               - explain the \jsil interpreter implemented in Rosette and its connection to the \jsil concrete semantics  and symbolic semantics 
+%               - describe the \rosette approach to the implementation of symbolic analysis 
+%               - describe the encoding of \jsil concrete/symbolic states in \rosette 
+%               - explain the \jsil interpreter implemented in \rosette and its connection to the \jsil concrete semantics  and symbolic semantics 
 %               		- give snippets of the interpreter 
-%	       		- discuss implementation strategies that enable Rosette to work properly
+%	       		- discuss implementation strategies that enable \rosette to work properly
 %\end{itemize}
 
 We introduce our symbolic execution engine for \jsil~\cite{javert}. In~\S\ref{subsec:jsil:analysis:formalism}, we present 
 the theoretical underpinnings of the symbolic analysis, whereas, in \S\ref{subsec:jsil:analysis:implementation}, 
-we describe its implementation in Rosette~\cite{Rosette1}.
+we describe its implementation in \rosette~\cite{Rosette1,Rosette2}.
 
 \vspace{-10pt}
 \subsection{Formalisation}\label{subsec:jsil:analysis:formalism}
@@ -577,12 +577,6 @@ The execution then continues in both branches with the property collection comma
 
 
 
-
-
-
-
-
-
 \myparagraph{Soundness} To establish the soundness of symbolic execution, we need to relate 
 symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
 $\senv : \svars \rightharpoonup \vals$ mapping symbolic values to concrete values. 
@@ -691,7 +685,7 @@ not to generate false positives, only reporting to the user errors that do in fa
 $$
 \begin{array}{l}
 \forall \, \sheap, \sstore, \sctx, i, \pc, \pc' \, . \,  \\ 
- \quad \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}  \ \wedge \ \pc' {satisfiable} \implies 
+ \quad \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'}  \ \wedge \ \pc' \ \text{satisfiable} \implies 
      \exists \heap, \store, \ctx \, . \, \semtranstranserr{\heap, \store, i}[\ctx]
 \end{array}
 $$
@@ -715,30 +709,70 @@ $$
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
       \quad \implies 
          \forall \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
-          \ \qquad \implies \exists \heap', \store', \ctx' \, . \, 
+          \ \quad \implies \exists \heap', \store', \ctx' \, . \, 
                   \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
                   (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
 \end{array}   
 $$ 
 \end{corollary}
 %
-The proofs of the results above are given in the Appendix. 
+The {\bf proofs} of the results above are given in the Appendix. 
 
 
 \subsection{Implementation}
 \label{subsec:jsil:analysis:implementation}
 
-\polish{The point here is to explain how writing a correct concrete \jsil interpreter in Rosette
-yields the symbolic environments presented in the previous subsection.} 
-
-Ideally I would like to talk about: 
+Implementing a symbolic execution engine for \jsil is a non-trivial 
+task, requiring a substantial engineering effort. 
+%
+%Since it is possible for more than one transition of the symbolic 
+%semantics to be applicable, the symbolic execution may 
+%give rise to an intractable number of possible symbolic states. 
+%
+%Keeping this number under control requires the use of sophisticated merging algorithms. 
+% 
+Hence, instead of implementing the symbolic semantics of \jsil from scratch, we leverage on 
+\rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine designed to 
+enable swift development of new 
+solver-aided languages. 
+%
+\rosette is a small extension of Racket~\cite{racket} equipped with a symbolic compiler with support 
+for symbolic values and first order assertions. Because \rosette is itself solver-aided, languages 
+implemented in \rosette can also make use of the solver-aided facilities provided by \rosette. 
+Hence, by implementing a \emph{concrete} \jsil interpreter in \rosette, we obtain \emph{for free} a symbolic 
+interpreter for \jsil. %consistent with the symbolic semantics described in  \S\ref{subsec:jsil:analysis:formalism}. 
+%The idea of turning a concrete interpreter into a symbolic interpreter by embedding it in 
+%
+The implementation of the concrete interpreter in \rosette must fulfil the following criteria:
 \begin{itemize}
-   \item how do we represent the \jsil state in Rosette? why did we choose this representation? 
-   \item how do we represent \jsil programs as s-expressions? 
-   \item ...
+   \item \emph{Consistency:} the symbolic execution of the concrete interpreter in \rosette 
+            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}; 
+            
+   \item \emph{Efficiency:} the implementation must promote \rosette's efficient behaviour;
+   
+   \item \emph{Termination:} the user must be given a way to establish a bound for the symbolic execution 
+            of programs that loop on symbolic values.
 \end{itemize}
 
-\begin{display}{Rosette implementation of \jsil symbolic state}
+%- describe the \rosette approach to the implementation of symbolic analysis 
+% - describe the encoding of \jsil concrete/symbolic states in \rosette 
+% - explain the \jsil interpreter implemented in \rosette and its connection to the \jsil concrete semantics  and symbolic semantics 
+%- give snippets of the interpreter 
+%- discuss implementation strategies that enable \rosette to work properly
+
+\myparagraph{Implementing \jsil in \rosette}
+We first show
+how to model the concrete \jsil state. Below are our \rosette encodings of \jsil heaps, stores, 
+and call stacks. 
+Heaps are modelled as pairs of locations and lists of property-value pairs, 
+stores as lists of variable-value pairs, and call stacks as lists of lists, each of which
+contains the \rosette encoding of the appropriate four elements. 
+\jsil variables and function identifiers are modelled 
+as Racket symbols.\footnote{Racket symbols are uninterpreted values and can be viewed as immutable strings.} 
+\jsil values with \rosette correspondents are mapped accordingly; the remaining 
+ones are modelled as Racket symbols (e.g. \jsil types, $\jsundefined$, $\jsnull$, and $\jsilempty$). 
+
+\begin{display}{\rosette implementation of \jsil symbolic state}
 {\scriptsize
 \begin{mathpar}
 \inferrule[\textsc{Empty Heap}]
@@ -765,9 +799,14 @@ Ideally I would like to talk about:
 \end{mathpar}}
 \end{display}
 
+The implementation of \jsil commands precisely follows their concrete semantics as 
+described in \S\ref{subsec:jsil:analysis:formalism}. 
+To show this, let us consider the fragment of the \jsil interpreter that implements 
+the \prooflab{Property Assignment} rule, shown in Figure~\ref{rosette:interpreter:fragment}.
+
 \lstset{language=Scheme}
 
-\begin{figure}
+\begin{figure}[t!]
 \begin{lstlisting}
 (define (mutate-prop-val-list prop-val-list prop new-val)
   (cond
@@ -779,13 +818,12 @@ Ideally I would like to talk about:
      (cons (car prop-val-list) (mutate-prop-val-list (cdr prop-val-list) prop new-val))]))
 
 (define (mutate-heap heap loc prop val)
-  (define (mutate-heap-pulp h-pulp loc prop val)
-    (cond
-      [(null? h-pulp)
-       (list (cons loc (list (cons prop val))))]
-      [(equal? (car (car h-pulp)) loc)
-       (cons (cons loc (mutate-prop-val-list (cdr (car h-pulp)) prop val)) (cdr h-pulp))]
-      [ else
+  (cond
+    [(null? heap)
+     (list (cons loc (list (cons prop val))))]
+    [(equal? (car (car heap)) loc)
+     (cons (cons loc (mutate-prop-val-list (cdr (car heap)) prop val)) (cdr h-pulp))]
+    [ else
        (cons (car h-pulp) (mutate-heap-pulp (cdr h-pulp) loc prop val))]))
   (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
     (set-box! heap new-heap-pulp)))
@@ -802,7 +840,7 @@ Ideally I would like to talk about:
             rhs-val)]
          ...)))
 \end{lstlisting}
-\caption{Fragment of \jsil Interpreter in Rosette}
+\caption{Fragment of \jsil Interpreter in \rosette}\label{rosette:interpreter:fragment}
 \end{figure}
 
 
@@ -815,7 +853,7 @@ Ideally I would like to talk about:
               - Extending JS2JSIL with the compilation of the new constructs 
               - Extensible Interpreter 
                    - an easy way to have more coverage 
-                   - match the abstraction level of the generated code to the abstraction level of Rosette 
+                   - match the abstraction level of the generated code to the abstraction level of \rosette 
     \item 2.2 - the example 
 \end{itemize}
 
@@ -837,10 +875,10 @@ with solver-aided facilities for the creation of symbolic values and the checkin
 For the symbolic execution itself, instead of targeting JavaScript directly, \jilette works by by first 
 compiling JavaScript programs to \jsil using the \JSComp compiler.
 The obtained \jsil program is then given to the \jsil symbolic interpreter described in \S\ref{sec:jsil:symb:exec}. 
-The symbolic interpreter is extensible in that it allows the addition of Rosette implementations of 
+The symbolic interpreter is extensible in that it allows the addition of \rosette implementations of 
 JavaScript built-in libraries in a streamlined manner.  
 These implementations are both an easy way to get a better coverage of the standard and 
-to make sure that we make proper use of the solver-aided facilities of Rosette.    
+to make sure that we make proper use of the solver-aided facilities of \rosette.    
 
 \subsection{Symbolic Execution by Compilation} 
 
