@@ -2,6 +2,7 @@
 %
 
 %External Packages
+%\usepackage{amsthm}
 \usepackage{makeidx}  % allows for indexgeneration
 \usepackage[table]{xcolor}
 \usepackage{amsmath}
@@ -203,9 +204,8 @@ We study two complementary uses of \jilette.
 First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
 by compiling them to symbolic tests in order to find witnesses for both specification
-and code bugs. %\polish{sound, no false positives}
+and code bugs.
 \end{abstract}
-
 
 \section{Introduction}
 
@@ -316,7 +316,7 @@ Facilitates exhaustive symbolic testing of JavaScript programs.}
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jilette}
 
-\section{Debugging Separation Logic Specifications}
+\section{Debugging Separation Logic Specifications}\label{sec:specs}
 \input{sections/specs}
 
 \section{Evaluation}
