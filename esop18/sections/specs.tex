@@ -155,10 +155,10 @@ The formal semantics of $\sepassert(P)$ is as follows:
   	   \\
 	    (l, -) \not\in \domain(\sheap') 
 	    \quad 
-	   \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionnone 
+	   \forall_{0 \leq i \leq n} \, \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionnone 
 	   \ \vee \
 	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionnone
-	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionsome{(\subst'', \sheap_f)}} 
+	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionnone} 
 \\
 \inferrule[\textsc{EmptyFields Assertion}]
 	{  
@@ -171,7 +171,20 @@ The formal semantics of $\sepassert(P)$ is as follows:
              (l, -) \not\in \domain(\sheap')
 	    \quad 
 	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
-	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = (\subst, \sheap)} 
+	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionsome{(\subst, \sheap)}} 
+\\
+\inferrule[\textsc{EmptyFields Assertion - Failing}]
+	{  
+	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
+	   \quad 
+	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
+	   \\\\
+	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+              \quad
+             (l, -) \not\in \domain(\sheap')
+	    \quad 
+	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \not\subseteq \sexprv' \big)
+	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionnone} 
 \end{mathpar}
 \hrule
 \caption{Unification of spatial assertions:
@@ -201,16 +214,29 @@ the unification rules compute a new substitution $\subst'$ and a new symbolic
 heap $\sheap'$ coincides with $\sheap$ except that it does not contain the footprint 
 of $\sass$. 
 
-\begin{lemma}[Soundness of Unification for Spatial Assertions]
+\begin{lemma}[Soundness of Unification for Spatial Assertions]\label{lemma:unification:spatial:assertions}
+\begin{enumerate}
+\item Successful termination: 
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap_f) \\
+\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)} \\
 	\qquad \implies 
 		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
 		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)}  \, \wedge \, 
 		\subst' \geq \subst 
 \end{array}
 $$
+\item Unsuccessful termination: 
+$$
+\begin{array}{l}
+\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = {\optionnone} \\
+	\qquad \implies 
+		\neg\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)}  \, \wedge \, 
+		\subst' \geq \subst 
+\end{array}
+$$
+\end{enumerate}
 \end{lemma}
 
 \begin{display}{Unification of \jsil assertions: $\unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst}$}

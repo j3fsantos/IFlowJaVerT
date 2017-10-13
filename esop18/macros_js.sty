@@ -449,7 +449,6 @@
 \newcommand{\sch}[2]{\mathtt{SC}_{#1}(#2)}
 \newcommand{\initsch}[0]{\mathtt{SC}_0}
 
-\newcommand{\jsilset}[1]{ \{ \, #1 \, \} }
 
 %PETAR
 %\newcommand{\fids}{{\sf fids}}
@@ -529,8 +528,8 @@
 \newcommand{\domain}{\command{dom}}
 \newcommand{\range}{\command{rng}}
 \newcommand{\fv}{\command{fv}}
-\newcommand{\optionsome}[1]{\texttt{Some} \, #1}
-\newcommand{\optionnone}[0]{\texttt{None}}
+\newcommand{\optionsome}[1]{\mathtt{Some} \, #1}
+\newcommand{\optionnone}[0]{\mathtt{None}}
 \newcommand{\jssuffix}{\mathtt{JS}}
 \newcommand{\jsilsuffix}{\mathtt{JSIL}}
 % Lists
@@ -555,6 +554,7 @@
 \newcommand\pid{f}
 \newcommand\unoper{\ominus}
 \newcommand\binoper{\oplus}
+\newcommand{\jsilset}[1]{ \{ \, #1 \, \} }
 % indexes
 \newcommand\procretlab[0]{i_{\fnormal}}
 \newcommand\procerrlab[0]{i_{\ferror}}
@@ -577,7 +577,7 @@
 \newcommand\assert{\darkmath{\textsf {assert}}}
 \newcommand\assume{\darkmath{\textsf {assume}}}
 % flags and return modes
-\newcommand\jsilmain{\darkmath{\textsf{main}}}
+\newcommand\jsilmain{\darkmath{\textsf{main}\xspace}}
 \newcommand{\flag}[0]{\ensuremath{\mathit{fl}}\xspace}
 %control flow commands
 \newcommand\goto{\darkmath{\textsf {goto}}}
@@ -706,7 +706,7 @@
 \newcommand{\numbers}[0]{\sortstyle{N}}
 % Values
 \newcommand{\val}[0]{v}
-\newcommand{\vals}[0]{\sortstyle{V}}
+\newcommand{\vals}[0]{\sortstyle{V}_\jsilsuffix}
 % Locations
 \newcommand{\loc}{l}
 \newcommand{\locs}{{\mathcal L}}
@@ -718,7 +718,7 @@
 % %
 %% Rosette
 %% 
-\newcommand\roscomp[1]{\langle \vert #1 \vert \rangle}
+\newcommand\roscomp[1]{{\cal R}(#1)}
 \newcommand\racketlist[0]{\text{\bf list}}
 \newcommand\racketcons[0]{\text{\bf cons} \ }
 \newcommand\racketquote[0]{\text{\bf quote} \ }

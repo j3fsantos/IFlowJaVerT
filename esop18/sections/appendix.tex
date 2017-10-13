@@ -1130,6 +1130,240 @@ we conclude that there is $1 \leq k \leq n$ such that:
  Observing that $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]$, we can 
  apply Theorem~\ref{teo:soundness:jsil:symb:exe} and conclude the result. 
  \end{proof}
+ 
+ \newpage
+ 
+ \section{Proofs of Section~\ref{sec:specs}}
+ 
+ \begin{lemma}[Soundness of unification for symbolic expressions]\label{lemma:unification:exprs}
+\begin{enumerate}
+\item Successful unification: 
+$$
+ \unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionsome{\subst'}
+      \implies \pc \vdash \sexpr = \subst'(\sexpr')
+ $$
+ \item Unsuccessful unification:
+ $$
+ \begin{array}{l}
+ \unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone \\
+     \quad \implies \forall \, \subst' . \, \domain(\subst') \subseteq \existentials \ \wedge \
+            \subst' \geq \subst \ \wedge \ \pc \vdash \sexpr \neq \subst'(\sexpr')
+ \end{array}
+ $$
+ \end{enumerate}
+ \end{lemma}
+ \begin{proof}
+We start with the proof of the lemma for the case of \underline{successful unification}. 
+Hence, suppose it holds that: 
+$\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionsome{\subst'}$ (\hyp{1}). 
+We proceed by case analysis on the rule used to derive \hyp{1}.
+\vspace{6pt}
+
+\noindent\prooflab{New Existential} We conclude that $\sexpr' = \svar$ and 
+$\subst' = \subst[\svar \mapsto \sexpr]$, for some logical variable $\svar$, 
+such that $\svar \in \existentials$ and $\svar \not\in \domain(\subst)$. 
+We conclude that:
+$$
+\subst'(\sexpr') = \subst[\svar \mapsto \sexpr](\svar) = \sexpr
+$$
+from which the result follows. 
+\vspace{6pt}
+
+\noindent\prooflab{Matched Existential} We conclude that $\sexpr' = \svar$ 
+for some me logical variable $\svar$, $\subst' = \subst$, $\svar \in \existentials$, and
+$\pc \vdash \sexpr = \subst(\svar)$. The result immediately holds. 
+\vspace{6pt}
+
+\noindent\prooflab{Grounded Expression} We conclude that 
+$\subst' = \subst$, $\fv(\subst(\sexpr')) \cap \existentials = \emptyset$, 
+$\pc \vdash  \sexpr = \subst(\sexpr')$. The result immediately holds. 
+\vspace{6pt}
+
+\noindent We now have to prove the lemma for the case of  
+\underline{unsuccessful unification}. 
+Hence, suppose it holds that: 
+$ \unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone$ (\hyp{2}). 
+We have to prove that for all substitutions $\subst'$ that extend $\subst$, 
+it holds that: $\pc \vdash \sexpr \neq \subst'(\sexpr')$. 
+We prove this by contradiction. More concretely, suppose that
+there is a substitution $\subst'$ such that 
+$\subst' \geq \subst$ (\hyp{3}) and $\pc \not\vdash \sexpr \neq \subst'(\sexpr')$ (\hyp{4}).
+We now proceed by case analysis on the rule used to derive \hyp{2}. 
+\vspace{6pt}
+
+\noindent\prooflab{Existential - None} We conclude that $\sexpr' = \svar$, for some 
+logical variable $\svar$, that $\subst(\svar) = \sexpr''$, and 
+$\pc \vdash \sexpr \neq \sexpr''$.  From \hyp{3} and $\subst(\svar) = \sexpr''$, 
+we conclude that $\subst'(\svar) = \sexpr''$, thereby obtaining a contradiction 
+between $\pc \vdash \sexpr \neq \sexpr''$ and \hyp{4}.
+\vspace{6pt}
+
+\noindent\prooflab{Grounded Expression - Fail} We conclude that 
+$ \fv(\subst(\sexpr')) \cap \existentials = \emptyset$ 
+and $\pc  \vdash  \sexpr \neq \subst(\sexpr')$. 
+Since $ \fv(\subst(\sexpr')) \cap \existentials = \emptyset$, we 
+conclude, using \hyp{3}, that $\subst'(\sexpr') = \sexpr'$, 
+thereby obtaining a contradiction 
+between $\pc \vdash \sexpr \neq \sexpr''$ and \hyp{4}.
+ \end{proof}
+ 
+ 
+ \begin{lemmax}[Lemma~\ref{lemma:unification:spatial:assertions} - Soundness of unification for spatial assertions] 
+ $\phantom{x}$\\\vspace{-15pt}
+\begin{enumerate}
+\item Successful unification: 
+$$
+\begin{array}{l}
+\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)} \\
+	\qquad \implies 
+		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)} 
+\end{array}
+$$
+\item Unsuccessful unification: 
+$$
+\begin{array}{l}
+\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = {\optionnone} \\
+	\qquad \implies \forall \subst' \geq \subst  \, . \, 
+		\neg\exists \sheap' . \, \sheap = \sheap' \dunion -  \, \wedge \, 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)} 
+		
+\end{array}
+$$
+\end{enumerate}
+ \end{lemmax}
+ \begin{proof}
+%
+ We start with the proof of the lemma for the case of \underline{successful unification}. 
+ Hence, suppose it holds that: 
+$\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)}$ (\hyp{1}). 
+We proceed by case analysis on the rule used to derive \hyp{1}.
+\vspace{6pt}
+
+\noindent\prooflab{Cell Assertion} We conclude that $\sass = (\lexpr_l,\lexpr_p)\pointsto \lexpr_v$  and 
+that there are symbolic expressions $\sexprp$, $\sexprp'$, $\sexprv$, and $\sexprv'$ and a substitution $\subst''$ such that:  
+$$ 
+\begin{array}{l}
+\loc = \symbeval{\lexpr_l}{\sstore}  \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \ \text{ (\ieq{1})}
+\qquad 
+ \symbeval{\lexpr_p}{\sstore} = \sexprp' \  \text{ (\ieq{2})}
+ %
+ \\
+ \symbeval{\lexpr_v}{\sstore} = \sexprv' \ \text{ (\ieq{3})}
+ \qquad 
+    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv)\ \text{ (\ieq{4})}
+  \\[5pt]
+   \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionsome{\subst''} \ \text{ (\ieq{5})}
+   \qquad \quad 
+    \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionsome{\subst'} \ \text{ (\ieq{6})}
+\end{array}
+$$
+We have to prove that there is a symbolic heap $\sheap'$ such that 
+for all symbolic environments $\senv$ such that $\senv \vdash \pc$, it holds that: 
+$$
+(\symbeval{\sheap'}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst'(\lexpr_l), \subst'(\lexpr_p))\pointsto \subst'(\lexpr_v)}
+$$
+Suppose that  $\senv \vdash \pc$ (\ieq{7}).
+If we pick $\sheap' = ((l, \sexprp) \mapsto \sexprv)$, we now have to show that: 
+$$
+(\symbeval{((l, \sexprp) \mapsto \sexprv)}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst'(\lexpr_l), \subst'(\lexpr_p))\pointsto \subst'(\lexpr_v)}
+$$
+Noting that $\symbeval{((l, \sexprp) \mapsto \sexprv)}{\senv} = (l, \symbeval{\sexprp}{\senv}) \mapsto \symbeval{\sexprv}{\senv}$ (\ieq{8}), 
+we now have prove that: 
+$$
+\begin{array}{l}
+ ((l, \symbeval{\sexprp}{\senv}) \mapsto \symbeval{\sexprv}{\senv}, \symbeval{\sstore}{\senv}, \senv) \satisfies (\subst'(\lexpr_l), \subst'(\lexpr_p))\pointsto \subst'(\lexpr_v) 
+  \\[3pt]
+ %
+ \Leftrightarrow l = \symbeval{\subst'(\lexpr_l)}{\symbeval{\sstore}{\senv}, \senv} 
+     \ \wedge \ \symbeval{\sexprp}{\senv} = \symbeval{\subst'(\lexpr_p)}{\symbeval{\sstore}{\senv}, \senv}
+     \ \wedge \ \symbeval{\sexprv}{\senv} = \symbeval{\subst'(\lexpr_v)}{\symbeval{\sstore}{\senv}, \senv}
+\end{array}
+$$
+Applying Lemma~\ref{lemma:unification:exprs} to \ieq{5} and \ieq{6}, we conclude that $\subst' \geq \subst'' \geq \subst$ (\ieq{9}).
+%
+Noting that: 
+$$
+\begin{array}{l}
+\symbeval{\subst'(\lexpr_l)}{\symbeval{\sstore}{\senv}, \senv} = 
+	\symbeval{\subst'(\symbeval{\lexpr_l}{\sstore})}{\senv} = 
+	\loc \text{ (using \ieq{1} and \ieq{9}) - (\ieq{10})} \\
+%
+\symbeval{\subst'(\lexpr_p)}{\symbeval{\sstore}{\senv}, \senv} = 
+	\symbeval{\subst'(\symbeval{\lexpr_p}{\sstore})}{\senv} = 
+	\symbeval{\subst'(\sexprp')}{\senv} \text{ (using \ieq{2} and \ieq{9}) - (\ieq{11})} \\
+%
+\symbeval{\subst'(\lexpr_v)}{\symbeval{\sstore}{\senv}, \senv} = 
+	\symbeval{\subst'(\symbeval{\lexpr_v}{\sstore})}{\senv} = 
+	\symbeval{\subst'(\sexprv')}{\senv} \text{ (using \ieq{3} and \ieq{9}) - (\ieq{12})}
+\end{array}
+$$
+Applying Lemma~\ref{lemma:unification:exprs} to \ieq{5} and \ieq{6}, respectively, 
+we conclude that: 
+$$
+\pc \vdash \sexprp = \subst''(\sexprp')  \text{ (\ieq{13})} 
+\qquad \quad
+\pc \vdash \sexprv = \subst'(\sexprv')  \text{ (\ieq{14})} 
+$$
+From Equations \ieq{9} and \ieq{13}, it follows that $\pc \vdash \sexprp = \subst'(\sexprp')$ (\ieq{15}). 
+ From \ieq{7}, \ieq{11}, \ieq{12}, \ieq{14}, and \ieq{15}, we conclude that: 
+ $$
+ \symbeval{\subst'(\lexpr_p)}{\symbeval{\sstore}{\senv}, \senv} = \symbeval{\subst'(\sexprp')}{\senv} = \symbeval{\sexprp}{\senv} \text{ (\ieq{16})} 
+ \qquad 
+  \symbeval{\subst'(\lexpr_v)}{\symbeval{\sstore}{\senv}, \senv} = \symbeval{\subst'(\sexprv')}{\senv} = \symbeval{\sexprv}{\senv} \text{ (\ieq{17})} 
+ $$
+ The results follows from \ieq{10}, \ieq{16}, and \ieq{17}.
+ \vspace{6pt}
+ 
+ 
+ 
+\noindent\prooflab{EmptyFields Assertion} We conclude that $\sass = \emptyfields{\lexpr_l}{\lexpr_d}$  and 
+that there is a location $\loc$, a symbolic heap $\sheap''$, and symbolic expressions $\sexprv'$, $\sexprp_0$, 
+..., $\sexpr_n$, such that: 
+$$
+\begin{array}{l}
+  \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big) \text{ (\ieq{1})}
+  %
+  \qquad 
+  % 
+  \symbeval{\lexpr_d}{\sstore} = \sexprv'  \text{ (\ieq{2})}
+  %
+  \qquad
+    %
+      (l, -) \not\in \domain(\sheap'') \text{ (\ieq{3})}
+  %
+  \\[3pt]
+  % 
+    \sheap = \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n \text{ (\ieq{4})}
+    % 
+     \qquad 
+     %
+     \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big) \text{ (\ieq{5})}
+  \end{array}
+$$
+We have to prove that there is a symbolic heap $\sheap'$ such that 
+for all symbolic environments $\senv$ such that $\senv \vdash \pc$, it holds that: 
+$$
+(\symbeval{\sheap'}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst'(\lexpr_l), \subst'(\lexpr_p))\pointsto \subst'(\lexpr_v)}
+$$
+Suppose that  $\senv \vdash \pc$ (\ieq{6}).
+If we pick $\sheap' = \hemp$, we now have to show that: 
+$$
+(\symbeval{\hemp}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst'(\lexpr_l), \subst'(\lexpr_p))\pointsto \subst'(\lexpr_v)}
+$$
+ 
+ 
+ 
+ 
+  
+ \end{proof}
 
 
-
+%
+%\inferrule[\textsc{EmptyFields Assertion}]
+%	{  
+%	         \quad
+%             (l, -) \not\in \domain(\sheap')
+%	    \quad 
+%	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
+%	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionsome{(\subst, \sheap)}} 

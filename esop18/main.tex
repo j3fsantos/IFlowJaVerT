@@ -2,6 +2,7 @@
 %
 
 %External Packages
+%\usepackage{amsthm}
 \usepackage{makeidx}  % allows for indexgeneration
 \usepackage[table]{xcolor}
 \usepackage{amsmath}
@@ -134,6 +135,7 @@
 \usepackage{gdshojs}
 
 \newcommand{\jilette}{Jilette\xspace}
+\newcommand{\rosette}{Rosette\xspace}
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
 \newcommand{\myparagraphq}[1]{\smallskip\noindent {\bf #1?}\hspace{1pt}}
@@ -199,14 +201,13 @@
 
 \begin{abstract}
 We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}~\cite{Rosette2,Rosette1}, a symbolic virtual machine that enables the design of new solver-aided languages. 
-\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}~\cite{JaVerT}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}~\cite{javert}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
 We study two complementary uses of \jilette. 
 First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
 by compiling them to symbolic tests in order to find witnesses for both specification
-and code bugs. %\polish{sound, no false positives}
+and code bugs.
 \end{abstract}
-
 
 \section{Introduction}
 
@@ -227,7 +228,7 @@ We highlight two relevant use cases for \jilette. First, we show how \jilette ca
 \myparagraph{Architecture}
 \jilette leverages on the \JSComp compiler and Rosette \cite{Rosette2,Rosette1}. 
 \JSComp is a thoroughly tested compiler from JavaScript to \jsil, a simple 
-intermediate language well suited for verification. It is part of \javert~\cite{JaVerT}, a
+intermediate language well suited for verification. It is part of \javert~\cite{javert}, a
 verification toolchain for proving functional correctness properties of JavaScript programs.
 Rosette is a 
 solver-aided programming language with support for symbolic values 
@@ -324,10 +325,12 @@ Facilitates exhaustive symbolic testing of JavaScript programs.}
 %and regular expressions, whereas JS-2-JSIL successfully
 %contains the complexity of JavaScript itself.
 
+\newpage
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jilette}
 
-\section{Debugging Separation Logic Specifications}
+\newpage
+\section{Debugging Separation Logic Specifications}\label{sec:specs}
 \input{sections/specs}
 
 \section{Evaluation}
