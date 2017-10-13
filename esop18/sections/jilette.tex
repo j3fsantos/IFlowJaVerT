@@ -721,7 +721,6 @@ The {\bf proofs} of the above results are given in the Appendix.
 
 \subsection{Implementation}
 \label{subsec:jsil:analysis:implementation}
-\lstset{language=Scheme}
 
 Implementing a symbolic execution engine for \jsil is a non-trivial 
 task, requiring a substantial engineering effort. 
@@ -804,62 +803,74 @@ The implementation of \jsil commands precisely follows their concrete semantics 
 described in \S\ref{subsec:jsil:analysis:formalism}. 
 To show this, let us consider the fragment of the \jsil interpreter that implements 
 the \prooflab{Property Assignment} rule, shown in Figure~\ref{rosette:interpreter:fragment}.
-The figure shows three functions: \dtag{1} \schemeinline|(run-bcmd bcmd heap store)| for 
-executing basic commands, \dtag{2}\schemeinline|(update-heap heap loc prop val)| for 
+The figure shows three functions: \dtag{1} \schemeinline|(run-bcmd bcmd heap store)|, for 
+executing basic commands, \dtag{2} \schemeinline|(update-heap heap loc prop val)|, for 
 updating the heap \schemeinline|heap| by setting the value of the 
 the property \schemeinline|prop| of the object denoted by \schemeinline|loc| to \schemeinline|val|, 
-and \dtag{3} \schemeinline|(update-pv-list pv-list prop new-val)|
+and \dtag{3} \schemeinline|(update-pv-list pv-list prop new-val)|,
 for updating the property-value list \schemeinline|pv-list| by setting \schemeinline|prop|
 to \schemeinline|new-val|. 
 
+\lstset{language=Scheme, numbers = left}
+
 \begin{figure}[t!]
+\centering
 \begin{lstlisting}
-(define (update-pv-list pv-list prop new-val)
-  (cond
-    [(null? pv-list)
-     (list (cons prop new-val))]
-    [(equal? (car (car pv-list)) prop)
-     (cons (cons prop new-val) (cdr pv-list))]
-    [ else (cons (car pv-list) 
-              (update-pv-list (cdr pv-list) prop new-val))]))
-
-(define (update-heap heap loc prop val)
-  (cond
-    [(null? heap)
-     (list (cons loc (list (cons prop val))))]
-    [(equal? (car (car heap)) loc)
-     (cons (cons loc (update-pv-list (cdar heap) prop val)) (cdr heap))]
-    [ else (cons (car heap) (update-heap (cdr heap) loc prop val))]))
-
 (define (run-bcmd bcmd heap store)
   (let ((cmd-type (first bcmd)))
     (cond
     	[(eq? cmd-type 'p-assign)
-      	 (let* ((loc-val (run-expr (second bcmd) store))
-                (prop-val (run-expr (third bcmd) store))
-                (rhs-val (run-expr  (fourth bcmd) store)))
+      	 (let* ((loc-val  (run-expr (second bcmd) store))
+                (prop-val (run-expr (third bcmd)  store))
+                (rhs-val  (run-expr (fourth bcmd) store)))
             (cons (update-heap heap loc-val prop-val rhs-val) store))]
          ...)))
 \end{lstlisting}
-\caption{Fragment of \jsil Interpreter in \rosette}\label{rosette:interpreter:fragment}
+
+\begin{lstlisting}
+(define (update-heap heap loc prop val)
+  (cond
+    [(null? heap) (error "Inexistent object")]
+    [(equal? (caar heap)) loc)
+     (cons (cons loc (update-pv-list (cdar heap) prop val)) (cdr heap))]
+    [ else (cons (car heap) (update-heap (cdr heap) loc prop val))]))
+\end{lstlisting}
+
+\begin{lstlisting}         
+(define (update-pv-list pv-list prop new-val)
+  (cond
+    [(null? pv-list)
+     (list (cons prop new-val))]
+    [(equal? (caar pv-list)) prop)
+     (cons (cons prop new-val) (cdr pv-list))]
+    [ else (cons (car pv-list) 
+              (update-pv-list (cdr pv-list) prop new-val))]))
+\end{lstlisting}
+\vspace*{-0.3cm}
+\caption{Fragment of the \jsil Interpreter in \rosette}\label{rosette:interpreter:fragment}
+\vspace*{-0.5cm}
 \end{figure}
 
 
 \jsil commands are represented in \rosette as \emph{s-expressions}. 
  For instance, the property assignment basic command $[\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$
  is represented as: 
-$$
-(\racketlist \ (\racketquote \text{p-assign}) \ \roscomp{\jsilexpr_1} \ \roscomp{\jsilexpr_2} \ \roscomp{\jsilexpr_3})
-$$
-Hence, the interpreter of basic commands first checks if the first element of the 
+
+\vspace*{-0.2cm}
+{\small $$
+\mathtt{(list \ (quote\ {p\text{--}assign}) \ \roscomp{\jsilexpr_1} \ \roscomp{\jsilexpr_2} \ \roscomp{\jsilexpr_3})}
+$$}
+\vspace*{-0.4cm}
+
+\noindent Therefore, the interpreter of basic commands first checks if the first element of the 
 list representing the command is equal to \schemeinline|p-assign|. If it is, 
 it uses the function \schemeinline|run-expr| to evaluate the three \jsil expressions 
 comprising the property-assignment in the appropriate order. Then, it invokes the 
 function \schemeinline|update-heap| to perform the actual update. 
-The function \schemeinline|update-heap| recursively iterates over all the objects
-in the heap to find the object whose property is to be updated and, when it finds it, 
+The function \schemeinline|update-heap| recursively iterates over all heap objects
+to find the object whose property is to be updated and, when it finds it, 
 uses the function \schemeinline|update-pv-list| to update the corresponding 
-field-value list. If it does not find it, it simply creates a new object with that property. 
+field-value list. If it does not find it, it will raise an error. However, due to the concrete semantics of \jsil, this case is never triggered.
 
 
 
