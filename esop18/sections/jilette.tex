@@ -725,12 +725,7 @@ The {\bf proofs} of the above results are given in the Appendix.
 
 Implementing a symbolic execution engine for \jsil is a non-trivial 
 task, requiring a substantial engineering effort. 
-%
-%Since it is possible for more than one transition of the symbolic 
-%semantics to be applicable, the symbolic execution may 
-%give rise to an intractable number of possible symbolic states. 
-%
-%Keeping this number under control requires the use of sophisticated merging algorithms. 
+% 
 % 
 Hence, instead of implementing the symbolic semantics of \jsil from scratch, we leverage on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine designed to 
@@ -862,6 +857,12 @@ uses the function \schemeinline|update-pv-list| to update the corresponding
 field-value list. If it does not find it, it simply creates a new object with that property. 
 
 
+\myparagraph{Efficiency}
+Since it is possible for more than one transition of the symbolic 
+semantics to be applicable, the symbolic execution may quickly 
+give rise to an intractable number of possible symbolic states. 
+To counter this problem \rosette makes use of a sophisticated 
+symbolic state merging algorithm.
 
 
 \section{Symbolic Execution for JavaScript}
