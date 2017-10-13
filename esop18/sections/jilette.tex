@@ -826,7 +826,7 @@ to \schemeinline|new-val|.
 (define (update-heap heap loc prop val)
   (cond
     [(null? heap) (error "Inexistent object")]
-    [(equal? (caar heap)) loc)
+    [(equal? (caar heap) loc)
      (cons (cons loc (update-pv-list (cdar heap) prop val)) (cdr heap))]
     [ else (cons (car heap) (update-heap (cdr heap) loc prop val))]))
 \end{lstlisting}
@@ -836,7 +836,7 @@ to \schemeinline|new-val|.
   (cond
     [(null? pv-list)
      (list (cons prop new-val))]
-    [(equal? (caar pv-list)) prop)
+    [(equal? (caar pv-list) prop)
      (cons (cons prop new-val) (cdr pv-list))]
     [ else (cons (car pv-list) 
               (update-pv-list (cdr pv-list) prop new-val))]))
@@ -869,11 +869,53 @@ field-value list. If it does not find it, it will raise an error. However, due t
 
 
 \myparagraph{Efficiency}
-Since it is possible for more than one transition of the symbolic 
-semantics to be applicable, the symbolic execution may quickly 
-give rise to an intractable number of possible symbolic states. 
-To counter this problem \rosette makes use of a sophisticated 
-symbolic state merging algorithm.
+It is often possible for more than one transition of the symbolic 
+semantics to be applicable during symbolic execution, likely 
+giving rise to an intractable number of possible symbolic states. 
+To counter this problem, \rosette makes use of a sophisticated 
+symbolic state merging algorithm, which factors out the common 
+part between multiple symbolic states  in order to expose more 
+opportunities for concrete evaluation. The portions of the state 
+that are not mergeable are represented as \emph{guarded symbolic unions}. 
+Our goal is to write the interpreter code in a way that helps 
+\rosette merge sets of possible symbolic states, yielding minimal 
+guarded symbolic unions.
+To illustrate this point, let us consider the symbolic execution 
+of the property assignment $\mathtt{o[\hat{s}] := 42}$ in the 
+symbolic heap represented in \rosette as follows: 
+%
+\begin{lstlisting}
+(lo (("@proto" null) ("a" 0) ("b" 1)))
+\end{lstlisting}
+%
+with a symbolic store mapping \schemeinline|o| to \schemeinline|lo| and 
+the path condition $\mathtt{\hat{s} = \text{\texttt{"a"}} \ \vee \hat{s} = \text{\texttt{"b"}}}$.
+The two resulting symbolic heaps are represented in \rosette as :  
+%
+\begin{lstlisting}
+(lo (("@proto" null) ("a" (?(s="a") 42 0)) (?(s="b") 42 1)))
+\end{lstlisting}
+%
+One can see that \rosette manages to push the guarded unions to 
+the object cells that may be affected by the property assignment, maintaining a common 
+property-value list for both resulting symbolic states. 
+%
+Now, suppose we change the code of line 6 of \schemeinline|update-pv-list| 
+(in Figure~\ref{rosette:interpreter:fragment}) to:  
+\begin{lstlisting}
+(append (cdr pv-list) (cons prop new-val))
+\end{lstlisting}
+This change in the interpreter makes the order of the cells in the property-value 
+list change depending on which property gets updated. 
+Now, \rosette needs to create a single guarded union 
+with the two possible resulting property-value lists: 
+\begin{lstlisting}
+(lo (?(s="a") 
+       (("@proto" null) ("a" 42) ("b" 1)) 
+       (("@proto" null) ("a" 0) ("b" 42))))
+\end{lstlisting}
+
+
 
 
 \section{Symbolic Execution for JavaScript}

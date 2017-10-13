@@ -3,6 +3,9 @@
 
 %External Packages
 %\usepackage{amsthm}
+%\usepackage[utf8x]{inputenc}
+  \usepackage[utf8x]{inputenc}
+  \usepackage{fancyvrb}
 \usepackage{makeidx}  % allows for indexgeneration
 \usepackage[table]{xcolor}
 \usepackage{amsmath}
@@ -17,6 +20,7 @@
 \usepackage{url}
 \usepackage{upgreek}
 \usepackage{xparse}
+
 %\usepackage{algorithm}
 %\usepackage{algpseudocode}
 
@@ -59,7 +63,8 @@
   keywordstyle=[1]\ttfamily\color{Plum},
   keywordstyle=[2]\ttfamily\color{SkyBlue},
   stringstyle=\ttfamily\color{DarkGreen},
-  commentstyle=\ttfamily
+  commentstyle=\ttfamily, 
+%  commandchars=\$\{\}
 }[keywords,comments,strings]
 
 \lstdefinelanguage{Scheme}{
