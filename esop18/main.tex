@@ -136,6 +136,7 @@
 \newcommand{\jilette}{Jilette\xspace}
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
+\newcommand{\myparagraphq}[1]{\smallskip\noindent {\bf #1?}\hspace{1pt}}
 
 % COMMENTS
 
@@ -197,8 +198,8 @@
 \maketitle 
 
 \begin{abstract}
-We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, a symbolic virtual machine that enables the design of new solver-aided languages. 
-\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}~\cite{Rosette2,Rosette1}, a symbolic virtual machine that enables the design of new solver-aided languages. 
+\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}~\cite{JaVerT}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
 We study two complementary uses of \jilette. 
 First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
@@ -216,14 +217,27 @@ The dynamic nature of JavaScript and its complex semantics make it a difficult t
 symbolic analysis and logic-based verification. 
 This paper presents \jilette, a symbolic execution tool for ES5 Strict. Jilette has the following benefits: 
 \dtag{1} it is grounded on the real semantics of the language and does not simplify the memory model in any way; 
-\dtag{2} it is provably sound, with no false positives;
+\dtag{2} \polish{it is provably sound, guaranteeing no false positives};
 \dtag{3} it has extensive coverage, supporting the entire core language and almost all built-in libraries; 
 \dtag{4} it supports advanced string reasoning, critical for reasoning about \polish{everyday} JavaScript code; 
 \dtag{5} it provides \polish{intuitive assertion/debugging mechanisms} accessible to the general JavaScript programmer, with minimal annotation overhead. 
 %
-We highlight two possible, relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
-\myparagraph{Symbolic Testing} A commonly used 
+\myparagraph{Architecture}
+\jilette leverages on the \JSComp compiler and Rosette \cite{Rosette2,Rosette1}. 
+\JSComp is a thoroughly tested compiler from JavaScript to \jsil, a simple 
+intermediate language well suited for verification. It is part of \javert~\cite{JaVerT}, a
+verification toolchain for proving functional correctness properties of JavaScript programs.
+Rosette is a 
+solver-aided programming language with support for symbolic values 
+and first-order assertions. The core of Jilette comprises a JSIL interpreter
+written in Rosette. By piggybacking on Rosette and JS-2-JSIL, we 
+are able to execute JavaScript programs on symbolic values, effectively 
+obtaining a symbolic execution tool for JavaScript. 
+This combination is non-trivial because \polish{many many things...} 
+
+\myparagraph{Application: Symbolic Testing} A commonly used 
 approach to obtaining trust in JavaScript code is running it against 
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
@@ -233,16 +247,11 @@ inputs in tests, the developer uses symbolic inputs and states the
 constraints that the output needs to satisfy as simple, intuitive 
 first-order assertions over these inputs. 
 Furthermore, if a test fails, Jilette provides the concrete inputs that cause it 
-to fail, immediately revealing bugs in the code being tested. The
-symbolic execution of Jilette comes with a soundness proof that
-guarantees the absence of false positives.
+to fail, exposing bugs in the tested code. 
 
 \pmax{This approach is not novel. Who else has done this?}
 
-\pmax{This approach is not novel. Who else has done this?}
-
-
-\myparagraph{Debugging Separation Logic Specifications}
+\myparagraph{Application: Debugging Separation Logic Specifications}
 We show how to use \jilette as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs. Verification tools for  
 JavaScript code \pmaxinline{Careful phrasing. Verification doesn't mean separation
@@ -262,20 +271,22 @@ More importantly, in case of failure, \jilette generates a concrete counter-mode
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code. 
 
-\myparagraph{Architecture}
-\jilette leverages on the \JSComp compiler and Rosette \cite{Rosette1}. 
-\JSComp is a thoroughly tested compiler from JavaScript to \jsil, a simple 
-intermediate language well suited for verification. Rosette is a 
-solver-aided programming language with support for symbolic values 
-and first-order assertions. The core of Jilette comprises a JSIL interpreter
-written in Rosette. By piggybacking on Rosette and JS-2-JSIL, we 
-are able to execute JavaScript programs on symbolic values, effectively 
-obtaining a symbolic execution tool for JavaScript. 
-This combination is non-trivial because \polish{many many things...} 
+\myparagraphq{Why \jilette} 
 
-\myparagraph{Trustworthiness} \polish{formal development, trustworthiness, soundness}
+\jilette is \emph{I want to say it has actual applications}, because something. 
 
-\myparagraph{State of the Art}
+\jilette is \emph{approachable}, in that it can easily be used by JavaScript developers. 
+
+
+\jilette is \emph{trustworthy}, as its components come with correctness guarantees: the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript, whereas the soundness result for the \jsil symbolic execution in \jilette guarantees absence of false positives.
+
+\pmax{How do we know that we get OUR symbolic execution in Rosette?}
+
+% Switch in C1 for strict mode
+% Something in C1 has to connected to JSIL
+
+Few tools. Functional correctness - JaVerT, K, but too many annotations. There are others, this and that. Symbolic execution? Very few have theory or correctness results, they are critical. \jilette is: useful, approachable, and correct.
+
 Verification tools for JavaScript programs come few and far between. 
 JaVerT~\cite{} targets the specialist developer wanting rich, 
 mechanically verified specifications of critical JavaScript code.
