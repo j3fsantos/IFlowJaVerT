@@ -808,26 +808,22 @@ the \prooflab{Property Assignment} rule, shown in Figure~\ref{rosette:interprete
 
 \begin{figure}[t!]
 \begin{lstlisting}
-(define (mutate-prop-val-list prop-val-list prop new-val)
+(define (mutate-pv-list pv-list prop new-val)
   (cond
-    [(null? prop-val-list)
+    [(null? pv-list)
      (list (cons prop new-val))]
-    [(equal? (car (car prop-val-list)) prop)
-     (cons (cons prop new-val) (cdr prop-val-list))]
-    [ else
-     (cons (car prop-val-list) (mutate-prop-val-list (cdr prop-val-list) prop new-val))]))
+    [(equal? (car (car pv-list)) prop)
+     (cons (cons prop new-val) (cdr pv-list))]
+    [ else (cons (car pv-list) 
+              (mutate-pv-list (cdr pv-list) prop new-val))]))
 
 (define (mutate-heap heap loc prop val)
   (cond
     [(null? heap)
      (list (cons loc (list (cons prop val))))]
     [(equal? (car (car heap)) loc)
-     (cons (cons loc (mutate-prop-val-list (cdr (car heap)) prop val)) (cdr h-pulp))]
-    [ else
-       (cons (car h-pulp) (mutate-heap-pulp (cdr h-pulp) loc prop val))]))
-  (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
-    (set-box! heap new-heap-pulp)))
-
+     (cons (cons loc (mutate-pv-list (cdar heap) prop val)) (cdr heap))]
+    [ else (cons (car heap) (mutate-heap (cdr heap) loc prop val))]))
 
 (define (run-bcmd bcmd heap store)
   (let ((cmd-type (first bcmd)))
