@@ -1209,18 +1209,33 @@ not ignoring any corner cases or making any simplifying assumptions.
 However, for some of these built-in library functions, there are direct \rosette correspondents. 
 %
 In order to minimize the chances of infinite branching during symbolic execution, one 
-should avoid looping on symbolic values whenever it is possible to use operations 
-natively supported by \rosette instead. Hence, we state the second challenge as follows: 
+should avoid looping on symbolic values whenever it is instead possible to use operations 
+natively supported by \rosette. Hence, we state the second challenge as follows: 
 \begin{quote}
 \emph{Challenge 2:} The design of \jilette should promote the matching of the 
 abstraction level of the \rosette operations used by the compiled JavaScript code to 
 the abstraction level of the operations natively supported by \rosette.  
 \end{quote}
 
-To solve challenges 1 and 2, \jilette supports the on-the-fly addition of \rosette  
-implementations of JavaScript internal functions. Hence, every time the interpreter 
-evaluates a procedure call
+\myparagraph{\rosette models of JavaScript built-in functions}
+To solve challenges 1 and 2, \jilette supports the on-the-fly extension of the \jsil interpreter 
+with \rosette implementations of JavaScript built-in functions, which we call \rosette \emph{models}. 
+Hence, every time the interpreter evaluates a procedure call, it first checks whether or 
+not it corresponds to a built-in function for which there is a \rosette model. If it does, 
+instead of executing the standard procedure call rule, the interpreter will instead 
+execute the appropriate rosette model. 
 
+Below, we show the \rosette model for \jsinline|String.replace| (c.f. Ch.15.5.4.11~\cite{ecma}).
+Observe that this \rosette code makes use of the natively supported function 
+\lstset{language=Scheme, numbers=none, backgroundcolor=\color{mygray}}
+\begin{lstlisting}
+(define (replace str from to)
+  (if (and (string? str) (string? from) (string? to))
+      (list (quote normal) (string-replace str from to #:all? #f))
+      (error "illegal call to replace")))
+
+(register-js-builtin-method "String" "replace" replace hp)
+\end{lstlisting}
  
 
 %Furthermore, the \jsil language itself does not feature regular expressions or native arrays, 
