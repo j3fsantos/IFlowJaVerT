@@ -986,19 +986,19 @@ current program path;
 \dtag{4} $\jssymbnumber()$ for creating a fresh symbolic number. 
 The \emph{assert} and \emph{assume} constructs expect as an argument 
 a logical expression. 
-Logical expressions $\jsexpr$ are given by the grammar 
+Logical expressions $\jslexpr$ are given by the grammar 
 $\jslexpr \triangleq \jslit \mid \jsvar \mid \unoper\ \jslexpr \mid \jslexpr \binoper \jslexpr$, 
 where $\jslit$ ranges over JavaScript literals, $\jsvar$ over JavaScript variables, 
 $\unoper$ over the \jsil unary operators, and $\binoper$ over the \jsil binary operators.
-It is important to note that JavaScript binary and unary operators have a special 
-semantics that most of times includes several implicit type coercions performed
-in a specific, and often counter-intuitive, order. 
+Note that the JavaScript binary and unary operators may have side effects; furthermore,  
+the semantics of these operators often includes several implicit type coercions 
+performed in a specific (and counter-intuitive) order. 
 Hence, instead of allowing for arbitrary JavaScript expressions (using JavaScript 
 binary and unary operators) as the arguments for the \emph{assume} and 
 the \emph{assert} constructs, we define a simple and restricted syntax for logical expressions.
-\polish{The punchline is that the unary and binary operators in the \emph{assume} and 
-\emph{assert} constructs are \underline{not} the JavaScript ones but the the \jsil ones with a very clear and 
-simple semantics, involving no coercions or side-effects.}
+The punchline is that the unary and binary operators in the \emph{assume} and 
+\emph{assert} constructs are \underline{not} the JavaScript ones but the the \jsil ones 
+with a very clear and simple semantics, involving no coercions or side-effects.
 
 \myparagraph{Extending \JSComp}
 Instead of giving a formal semantics for the newly introduced constructs, we explain 
@@ -1017,8 +1017,8 @@ and that after the execution of these commands, the value to which $\jstmt$ eval
 JavaScript semantics is stored in the \jsil variable $\jvar$. 
 %
 Below we show the extension of $\compile$ for the constructs introduced above. 
-The definition of $\compile$ makes use of an auxiliary compiler $\compilel : \jlexprs \rightharpoonup \lists(\cmds) * \exprs$, 
-for compiling JavaScript logical expressions.
+The definition of $\compile$ relies on an auxiliary compiler $\compilel : \jlexprs \rightharpoonup \lists(\cmds) * \exprs$, 
+for translating JavaScript logical expressions.
 
 \begin{display}{Extension $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$ and $\compilel : \jlexprs \rightharpoonup \lists(\cmds) * \exprs$}
 {\scriptsize
@@ -1098,6 +1098,9 @@ for compiling JavaScript logical expressions.
 \subsection{Symbolic Testing by Example} 
 \label{symbolic:testing}
 
+\lstnewenvironment{lstjsex}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}, numbers=none, backgroundcolor=\color{mygray}}}{}
+
+
 We illustrate how Jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
 of a  \emph{key-value map} given in Figure~\ref{map:example}-(left). 
 It contains four functions: 
@@ -1106,6 +1109,7 @@ It contains four functions:
 \jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values associated with existing keys; and
 \jsinline|validKey|, for deciding whether a key is valid.
 
+\myparagraph{Prototype chains and \jsinline|Object.prototype|}
 In order to better understand the implementation of the map library as well as its possible bugs, 
 one must first understand the \emph{prototype-based inheritance} mechanism of JavaScript. 
 Every JavaScript object has a prototype, which (for presentation purposes) we assume to 
@@ -1119,12 +1123,12 @@ of its prototype.
 The sequence of objects that can be accessed from a given object through the inspection 
 of the respective prototypes is called a \emph{prototype chain}.
 Prototype chains typically finish with the object \jsinline|Object.prototype| from which JavaScript 
-programs can access several built-in functions, which are part of the language runtime environment.
+programs can access several built-in functions, which 
+are part of the language runtime environment.
 An example of such a function is \jsinline|hasOwnProperty|, which checks whether or not the object 
-on which it is invoked has the property given as input (e.g. \jsinline|map.hasOwnProperty("_contents")| 
-evaluates to \jsinline|true| when evaluated in the heap shown in Figure~\ref{map:example}-(right), 
-because the object \jsinline|map| has a property named \jsinline|"_contents"|). 
-
+on which it is invoked has the property given as input (e.g. {\small \jsinline|map.hasOwnProperty("_contents")|}
+evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:example}-(right), 
+because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
 
  \begin{figure}[t!]
  \begin{minipage}{0.6\textwidth}
@@ -1155,6 +1159,7 @@ Map.prototype.validKey = function (k) { ... }
 \caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
 \end{figure}
 
+\myparagraph{Bug-finding}
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object used to store the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 As the functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
@@ -1165,14 +1170,14 @@ Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a 
 By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
 \jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
 Consider the following symbolic test:
-%
- \begin{lstjs}[firstnumber=1]
- var s1 = __s(); var n1 = __n(); 
-var m = new Map();  m.put (s1, n1); var r = m.get(s1);  
+\begin{lstjsex}
+var s1 = __s(); var n1 = __n(); 
+var m = new Map();  m.put(s1, n1); var r = m.get(s1);  
 assert(n1 = r)
-\end{lstjs}
-The symbolic test above reveals the bug. In fact, \jilette outputs 
-\jsinline|s1 = "hasOwnProperty"| as a failing model for the symbolic test. 
+\end{lstjsex}
+%
+The symbolic test above reveals the bug. In fact, \jilette generates
+the failing model: \jsinline|s1 = "hasOwnProperty"|. 
 
 
 %- Extensible Interpreter 
@@ -1181,6 +1186,50 @@ The symbolic test above reveals the bug. In fact, \jilette outputs
 
 \subsection{Supporting JavaScript Built-in Libraries}
 \label{builtins}
+
+JavaScript comes equipped with a rich runtime environment (described in Chapter 15 of the 
+ES5 standard~\cite{ecma}) comprising a set of \emph{built-in libraries} for operating on 
+objects, arrays, strings, regular expressions, date objects, among others. 
+Here, we identify two important challenges related to supporting the symbolic execution of
+JavaScript programs that interact with built-in libraries and explain how we solve them in \jilette. 
+
+\JSComp models built-in library functions as \jsil procedures, which can be called from within the
+ compiled JavaScript code. However, the current runtime environment of \JSComp only supports a subset 
+of the built-in libraries described in the standard. \polish{In particular, it supports... Petar...}
+The partiality of \JSComp when it comes to supporting JavaScript built-in libraries 
+gives rise to the first challenge:  
+\begin{quote}
+\emph{Challenge 1:} The design of \jilette should allow for the swift addition of  
+implementations of built-in libraries not yet covered by \JSComp.  
+\end{quote}
+
+Most of the JavaScript library functions are described in the language standard in terms of 
+more elementary operations. For instance, operations on strings are often described in terms 
+of operations on the characters that comprise the string (c.f. \jsinline|String.lastIndexOf|, Ch.15.5.4.8~\cite{ecma}). 
+The \jsil implementations of the JavaScript built-in libraries follow the standard line-by-line. 
+This is meant to emphasise that the compiler does in fact adhere to the language standard, 
+not ignoring any corner cases or making any simplifying assumptions. 
+However, for some of these built-in library functions, there are direct \rosette correspondents. 
+%
+In order to minimize the chances of infinite branching during symbolic execution, one 
+should avoid looping on symbolic values whenever it is possible to use operations 
+natively supported by \rosette instead. Hence, we state the second challenge as follows: 
+\begin{quote}
+\emph{Challenge 2:} The design of \jilette should promote the matching of the 
+abstraction level of the \rosette operations used by the compiled JavaScript code to 
+the abstraction level of the operations natively supported by \rosette.  
+\end{quote}
+
+
+
+%Furthermore, the \jsil language itself does not feature regular expressions or native arrays, 
+%and has very few operators on strings. 
+%This means that, for instance, more advanced operations on strings (such as 
+%\jsinline|lastIndexOf|) need to be implemented as loops over the characters that comprise 
+%the string. 
+%
+
+
 
 
 
