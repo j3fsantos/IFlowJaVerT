@@ -1240,7 +1240,7 @@ the following naive JavaScript implementation of a string sanitiser meant to rem
 all occurrences of \emph{script tags} inside untrusted strings (for instance, those coming 
 from user input or untrusted servers).
 To this end, the programmer chooses to 
-replace the all occurrences of the the string \jsinline|"script"| in the string given 
+replace all occurrences of the string \jsinline|"script"| in the string given 
 as input with \jsinline|"s"|. 
 \begin{lstjsex}
 function sanitise (str) { return str.replace("script", "s") }
