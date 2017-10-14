@@ -1237,30 +1237,25 @@ This example illustrates an important point about the difference between JavaScr
 By using the appropriate \rosette models for string operations, \jilette can find bugs in  
 non-trivial JavaScript programs that manipulate strings. For instance, consider 
 the following naive JavaScript implementation of a string sanitiser meant to remove 
-all the occurrences \emph{script tags} inside untrusted strings (for instance, those coming 
-from user input or untrusted servers).\footnote{
-Despite its simplicity, this example illustrates the complexities underpinning the 
-design and implementation of robust string sanitisers,  which are a commonly  
-used defense mechanism against XSS attacks~\cite{song}. 
-}
+all occurrences of \emph{script tags} inside untrusted strings (for instance, those coming 
+from user input or untrusted servers).
 To this end, the programmer chooses to 
 replace the all occurrences of the the string \jsinline|"script"| in the string given 
 as input with \jsinline|"s"|. 
 \begin{lstjsex}
 function sanitise (str) { return str.replace("script", "s") }
 \end{lstjsex}
-Clearly, this program does not achieve what it is meant to do, since one can 
-give it the input \jsinline|"scriptcript"|. 
-Consider the following test for the sanitiser function above. 
+Now, we can use \jilette to test if the sanitiser meets its purpose, that is, that all
+strings, after being sanitised, do not contain the substring \jsinline|"script"|:
 \begin{lstjsex}
-var s = sanitise(_s()); 
-var x = !(s.contains("script")); 
+var s = sanitise(__s()); 
+var x = ! (s.contains("script")); 
 assert(x) 
 \end{lstjsex}
-The symbolic test above checks for a desired property of the function \jsinline|sanitise|---if we
-were to sanitise a string, then the obtained string should not contain any occurrence of 
-\jsinline|"script"|. We can run Jilette on this test to reveal the bug. Indeed, Jilette 
-generates the failing model: \jsinline|s1 = "scriptcript"|. 
+\jilette will, in fact, be able to come up with a counter-model for this assertion. Concretely, \jsinline|s1 = "scriptcript"|. Despite its simplicity, this example illustrates the complexities underpinning the 
+design and implementation of robust string sanitisers, a commonly  
+used defense mechanism against XSS attacks~\cite{song}. 
+ 
  
 
  
