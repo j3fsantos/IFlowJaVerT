@@ -971,27 +971,24 @@ of Rosette, maximising the use of Rosette's native solver-aided facilities.
 \myparagraph{Extending JavaScript Syntax}
 We extend the syntax of JavaScript with special logical expressions $\jslexpr$, 
 and the following constructs: %(corresponding to JavaScript normal expressions): 
-\dtag{1} $\jsassert(\jslexpr)$ stating that whenever the \emph{assert} is reached, 
+\dtag{1} $\jsassert(\jslexpr)$, stating that whenever the \emph{assert} is reached, 
 the logical expression $\jslexpr$ must evaluate to $\jtrue$; 
-\dtag{2} $\jsassume(\jslexpr)$ stating that we \emph{assume} $\jslexpr$ to hold along the
+\dtag{2} $\jsassume(\jslexpr)$, stating that we \emph{assume} $\jslexpr$ to hold along the
 current program path; 
-\dtag{3} $\jssymbstring()$ for creating a fresh symbolic string; and
-\dtag{4} $\jssymbnumber()$ for creating a fresh symbolic number. 
+\dtag{3} $\jssymbstring()$, for creating a fresh symbolic string; and
+\dtag{4} $\jssymbnumber()$, for creating a fresh symbolic number. 
 The \emph{assert} and \emph{assume} constructs expect as an argument 
 a logical expression. 
 Logical expressions $\jslexpr$ are given by the grammar 
 $\jslexpr \triangleq \jslit \mid \jsvar \mid \unoper\ \jslexpr \mid \jslexpr \binoper \jslexpr$, 
-where $\jslit$ ranges over JavaScript literals, $\jsvar$ over JavaScript variables, 
+where $\jslit$ ranges over JavaScript literal values (numbers, booleans, strings, \jsinline|undefined|, and \jsinline|null|), $\jsvar$ over JavaScript variables, 
 $\unoper$ over the \jsil unary operators, and $\binoper$ over the \jsil binary operators.
 Note that the JavaScript binary and unary operators may have side effects; furthermore,  
 the semantics of these operators often includes several implicit type coercions 
 performed in a specific (and counter-intuitive) order. 
-Hence, instead of allowing for arbitrary JavaScript expressions (using JavaScript 
+Hence, we do not allow arbitrary JavaScript expressions (using JavaScript 
 binary and unary operators) as the arguments for the \emph{assume} and 
-the \emph{assert} constructs, we define a simple and restricted syntax for logical expressions.
-The punchline is that the unary and binary operators in the \emph{assume} and 
-\emph{assert} constructs are \underline{not} the JavaScript ones but the the \jsil ones 
-with a very clear and simple semantics, involving no coercions or side-effects.
+the \emph{assert} constructs. Instead, we use the \jsil unary and binary operators, which have a very clear and simple semantics, without coercions or side-effects.
 
 \myparagraph{Extending \JSComp}
 Instead of giving a formal semantics for the newly introduced constructs, we explain 
@@ -999,8 +996,8 @@ their meaning by showing their compilation to \jsil.
 Importantly, the JavaScript variable store is emulated in the heap. 
 Hence, a JavaScript variable $\jsvar$ is not compiled to a \jsil variable $\jvar$, but to a sequence  
 of \jsil commands for retrieving the value of $\jsvar$ from the heap cell in which it is stored. 
-A full description of the compiler is out of the scope of this paper; c.f.~\cite{javert}
-for further details. 
+A full description of \JSComp is out of the scope of this paper; see~\cite{Daiva2017}
+for further details.
 %
 In the following, we will assume given a function $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$ mapping JavaScript expressions 
 and statements to lists of \jsil commands paired up with \jsil variables. 
@@ -1018,24 +1015,24 @@ for translating JavaScript logical expressions.
 \begin{mathpar}
 \inferrule[\textsc{Assume}]
   {
-     \compilel(\jslexpr) = [\jcmd_1, ..., \jcmd_n], \jvar
+     \compilel(\jslexpr) = [\jcmd_1, ..., \jcmd_n], \jsilexpr
      \and 
      \jvar' \text{ fresh} 
      \\\\ 
      \jcmd_{n+1} = \jvar' := \jsilempty 
      \quad
-     \jcmd_{n+2} = \assume(\jvar) 
-  }{\compile(\jsassert(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'} 
+     \jcmd_{n+2} = \assume(\jsilexpr) 
+  }{\compile(\jsassume(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'} 
 \and
 \inferrule[\textsc{Assert}]
   {
-     \compilel(\jslexpr) = [\jcmd_1, ..., \jcmd_n], \jvar
+     \compilel(\jslexpr) = [\jcmd_1, ..., \jcmd_n], \jsilexpr
      \and 
      \jvar' \text{ fresh} 
      \\\\ 
      \jcmd_{n+1} = \jvar' := \jsilempty 
      \quad
-     \jcmd_{n+2} = \assert(\jvar) 
+     \jcmd_{n+2} = \assert(\jsilexpr) 
   }{\compile(\jsassert(\jslexpr)) \semeq [\jcmd_1, ..., \jcmd_n, \jcmd_{n+1}, \jcmd_{n+2}], \jvar'}
   %
   \\
@@ -1082,7 +1079,7 @@ for translating JavaScript logical expressions.
      \compilel(\jslexpr_1) = [ \jcmd_1, ..., \jcmd_n ], \jvar_1 
      \quad
      \compilel(\jslexpr_2) = [ \jcmd_1', ..., \jcmd_n'], \jvar_2
-  }{\compilel(\jslexpr \binoper \jslexpr) \semeq [ \jcmd_1, ..., \jcmd_n, \jcmd_1', ..., \jcmd_n' ], \jvar_1 \binoper\ \jvar_2 }     
+  }{\compilel(\jslexpr \binoper \jslexpr) \semeq [ \jcmd_1, ..., \jcmd_n, \jcmd_1', ..., \jcmd_n' ], \jvar_1\binoper \jvar_2 }     
 \end{mathpar}}
 \end{display}
 
@@ -1095,14 +1092,14 @@ for translating JavaScript logical expressions.
 
 
 We illustrate how Jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
-of a  \emph{key-value map} given in Figure~\ref{map:example}-(left). 
-It contains four functions: 
+of a  \emph{key-value map} given in Figure~\ref{map:example}~(left). 
+This implementation contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with the key given as input;
 \jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values associated with existing keys; and
 \jsinline|validKey|, for deciding whether a key is valid.
 
-\myparagraph{Prototype chains and \jsinline|Object.prototype|}
+\myparagraph{Prototype chains and $\mathtt{Object.prototype}$}
 In order to better understand the implementation of the map library as well as its possible bugs, 
 one must first understand the \emph{prototype-based inheritance} mechanism of JavaScript. 
 Every JavaScript object has a prototype, which (for presentation purposes) we assume to 
@@ -1116,10 +1113,9 @@ of its prototype.
 The sequence of objects that can be accessed from a given object through the inspection 
 of the respective prototypes is called a \emph{prototype chain}.
 Prototype chains typically finish with the object \jsinline|Object.prototype| from which JavaScript 
-programs can access several built-in functions, which 
-are part of the language runtime environment.
-An example of such a function is \jsinline|hasOwnProperty|, which checks whether or not the object 
-on which it is invoked has the property given as input (e.g. {\small \jsinline|map.hasOwnProperty("_contents")|}
+programs can access a number of built-in functions, which are part of the language runtime environment and are used for inspecting and manipulating objects.
+An example of such a function is \jsinline|hasOwnProperty(p)|, which checks whether or not the object 
+on which it is invoked has the property \jsinline|p| (e.g. {\small \jsinline|map.hasOwnProperty("_contents")|}
 evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:example}-(right), 
 because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
 
@@ -1173,7 +1169,7 @@ var m = new Map();  m.put(s1, n1); var r = m.get(s1);
 assert(n1 = r)
 \end{lstjsex}
 %
-The symbolic test above reveals the bug. In fact, \jilette generates
+The symbolic test above checks for a desired property of the library---if we were to put a key/value pair \jsinline|(k, v)| into the map, then we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. We can run \jilette on this test to reveal the bug. Indeed, \jilette generates
 the failing model: \jsinline|s1 = "hasOwnProperty"|. 
 
 
