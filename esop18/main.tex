@@ -282,17 +282,16 @@ to fail, exposing bugs in the tested code.
 \pmax{This approach is not novel. Who else has done this?}
 
 \myparagraph{Application: Debugging Separation Logic Specifications}
-We show how to use \jilette as an auxiliary mechanism for debugging 
-separation logic specifications of JavaScript programs. Verification tools for  
-JavaScript code \pmaxinline{Careful phrasing. Verification doesn't mean separation
-logic. We must cite JaVerT here, we're the only ones doing this. It feels
-like deliberate obfuscation.} are still 
-very rare and often \pmaxinline{If they're rare, how can they do anything often?} 
-require heavily annotating the 
-original code for helping the solver prove entailments involving user-defined 
-predicates, as well as coping with loops and recursion. Furthermore, when these 
-tools cannot prove that a given function does not satisfy its specification, the 
-user needs to go through a  proof trace and understand it in detail. 
+\polish{Some people want FCSpecs of JS. They are bananas.}
+Much like the semantics of JavaScript, functional correctness 
+specifications of JavaScript programs are highly intricate. 
+There are only a few tools (for example, \javert \cite{javert} and KJS \cite{kjs}) with support for such expressivity.
+However, when these 
+tools cannot prove that a given function satisfies a specification, to discover the error, 
+the user needs to go through a complicated proof trace and understand it in detail (\javert), or even act without any proof trace at all (KJS).
+
+We show how \jilette can be used as an auxiliary mechanism for debugging 
+separation logic specifications of JavaScript programs used by \javert. \polish{stopped here.} 
 Here, we demonstrate how to use \jilette to find errors in specifications by generating 
 symbolic tests from these specifications and running the tests using \jilette. 
 Then, if a symbolic test generated from a given specification fails, we can 
