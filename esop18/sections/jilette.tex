@@ -745,7 +745,7 @@ The implementation of the concrete interpreter in \rosette must fulfil the follo
    \item \emph{Termination:} the user must be given a way to establish a bound for the symbolic execution 
             of programs that loop on symbolic values; 
   
-   \item \emph{Consistency:} the symbolic execution of the concrete interpreter in \rosette 
+   \item \emph{Adequacy:} the symbolic execution of the concrete interpreter in \rosette 
             must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
 \end{itemize}
 
@@ -867,7 +867,7 @@ to find the object whose property is to be updated and, when it finds it,
 uses the function \schemeinline|update-pv-list| to update the corresponding 
 field-value list. If it does not find it, it will raise an error. However, due to the concrete semantics of \jsil, this case is never triggered.
 
-
+\lstset{language=Scheme, numbers=none, backgroundcolor=\color{mygray}}
 \myparagraph{Efficiency}
 It is often possible for more than one transition of the symbolic 
 semantics to be applicable during symbolic execution, likely 
@@ -918,26 +918,26 @@ with the two possible resulting property-value lists:
 \myparagraph{Termination} The \jsil symbolic execution engine does not 
 include the abstraction mechanisms which would allow it to finitise the symbolic 
 execution of loops depending on symbolic values~\cite{abstract:symbolic:exec}. 
-Hence, the user is allowed to specify an upper bound on the number of times
+Hence, the user is asked to specify an upper bound on the number of times
 the symbolic execution is allowed to branch depending on symbolic values. 
 Once that upper bound is reached, if a conditional goto that branches 
 on a symbolic value is encountered, the symbolic execution simply stops.  
 
 
+\myparagraph{Adequacy} 
+We maintain that the symbolic execution of the concrete interpreter 
+in \rosette is consistent with the \jsil symbolic semantics. Due to its 
+complexity and scale, a formal proof would require mechanisation.
+ 
+%Hence, the user is asked to specify an upper bound on the number of times
+%the symbolic execution is allowed to branch depending on symbolic values. 
+%Once that upper bound is reached, if a conditional goto that branches 
+%on a symbolic value is encountered, the symbolic execution simply stops.  
+
+\lstset{backgroundcolor=\color{white}}
 
 \section{Symbolic Execution for JavaScript}
 \label{sec:sym:exec:js}
-
-\begin{itemize}
-   \item 2.0 Intro - Initial bla bla - the diagram 
-   \item 2.1 Symbolic execution for JavaScript 
-              - Extending ES5 Strict with asserts, assumes, and symbolic values
-              - Extending JS2JSIL with the compilation of the new constructs 
-              - Extensible Interpreter 
-                   - an easy way to have more coverage 
-                   - match the abstraction level of the generated code to the abstraction level of \rosette 
-    \item 2.2 - the example 
-\end{itemize}
 
 \begin{figure}[t]
 \centering
@@ -1162,3 +1162,14 @@ assert(n1 = r)
 \end{lstjs}
 The symbolic test above reveals the bug. In fact, \jilette outputs 
 \jsinline|s1 = "hasOwnProperty"| as a failing model for the symbolic test. 
+
+
+%- Extensible Interpreter 
+% - an easy way to have more coverage 
+% - match the abstraction level of the generated code to the abstraction level of \rosette 
+
+\subsection{Supporting JavaScript Built-in Libraries}
+
+
+
+

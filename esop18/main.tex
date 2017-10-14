@@ -42,6 +42,7 @@
 \definecolor{talkgreen}{rgb}{0.34,.81,0.10}
 \definecolor{oldtalkblue}{rgb}{0.22,.20,0.69}
 \definecolor{greenish}{rgb}{.0,.65,.0}
+\definecolor{mygray}{gray}{0.9}
 
 \lstdefinelanguage{JavaScript}{
   morekeywords=[1]{typeof, new, true, false, catch,
@@ -241,7 +242,7 @@ The core of \jilette consists of a sound symbolic interpreter for
 for verification. We obtain this symbolic interpreter \emph{for free}, 
 by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1}, 
 a symbolic virtual machine that facilitates generation of solver-aided languages.
-By design, Rosette lifts all 
+By design, Rosette lifts all %it is not rosette that lifts -- it is the design of the interpreter
 of its natively supported solver-aided
 features, such as advanced string reasoning, 
 to this \jsil symbolic interpreter. 
@@ -256,7 +257,9 @@ then symbolically executing the compiled code in the
 involves extending JavaScript syntax and the \JSComp compiler to support symbolic values and 
 constructs for reasoning about them. These constructs are intuitive
 and allow the general developer to easily write assertions about the behaviour
-of their program. Moreover, we adjust \JSComp so that the abstraction level 
+of their program. 
+% it's not really js2jsil - it is the extensible symbolic interpreter
+Moreover, we adjust \JSComp so that the abstraction level 
 of the generated \jsil code precisely matches the abstraction level of Rosette, 
  maximising the use of Rosette's native reasoning capabilities.
 
@@ -266,7 +269,8 @@ of the generated \jsil code precisely matches the abstraction level of Rosette,
 approach to obtaining trust in JavaScript code is running it against 
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
-cannot guarantee exhaustiveness. In \S\ref{sec:sym:exec:js}, we show how to use \jilette
+cannot guarantee exhaustiveness. % we also cant guarantee exhaustiveness 
+In \S\ref{sec:sym:exec:js}, we show how to use \jilette
 for symbolic testing of JavaScript code: instead of 
 tests with concrete 
 inputs, the developer uses symbolic inputs and states the 
