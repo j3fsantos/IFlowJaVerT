@@ -206,6 +206,7 @@
 
 \maketitle 
 
+\vspace*{-1cm}
 \begin{abstract}
 We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
 a symbolic virtual machine that enables the design of new solver-aided languages. 
@@ -244,7 +245,8 @@ By design, Rosette lifts all
 of its natively supported solver-aided
 features, such as advanced string reasoning, 
 to this \jsil symbolic interpreter. 
-We discuss the details of the implementation in \S\ref{sec:jsil:symb:exec}.
+In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide 
+important insights on how to correctly implement the concrete interpreter in Rosette.
 
 The second component that \jilette uses is \JSComp~\cite{javert}, 
 a well-tested, standard-compliant compiler from JavaScript to \jsil.
@@ -253,10 +255,10 @@ then symbolically executing the compiled code in the
 \jsil symbolic interpreter. This process, described in \S\ref{symb:exec:comp},
 involves extending JavaScript syntax and the \JSComp compiler to support symbolic values and 
 constructs for reasoning about them. These constructs are intuitive
-and allow the general developer to write assertions about the behaviour
+and allow the general developer to easily write assertions about the behaviour
 of their program. Moreover, we adjust \JSComp so that the abstraction level 
 of the generated \jsil code precisely matches the abstraction level of Rosette, 
-thereby maximising the use of Rosette's native reasoning capabilities.
+ maximising the use of Rosette's native reasoning capabilities.
 
 
 
@@ -264,9 +266,10 @@ thereby maximising the use of Rosette's native reasoning capabilities.
 approach to obtaining trust in JavaScript code is running it against 
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
-cannot guarantee exhaustiveness. We show how to use \jilette
-for the symbolic testing of JavaScript programs: instead of using concrete 
-inputs in tests, the developer uses symbolic inputs and states the 
+cannot guarantee exhaustiveness. In \S\ref{sec:sym:exec:js}, we show how to use \jilette
+for symbolic testing of JavaScript code: instead of 
+tests with concrete 
+inputs, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
 first-order assertions over these inputs. 
 Furthermore, if a test fails, Jilette provides the concrete inputs that cause it 
