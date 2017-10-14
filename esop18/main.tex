@@ -261,7 +261,7 @@ and allow the general developer to easily write assertions about the behaviour
 of their program. 
 % it's not really js2jsil - it is the extensible symbolic interpreter
 % This we fix when you get here
-Moreover, we adjust \JSComp so that the abstraction level 
+Moreover, we adjust the \jsil symbolic interpreter so that the abstraction level 
 of the generated \jsil code precisely matches the abstraction level of Rosette, 
  maximising the use of Rosette's native reasoning capabilities.
 
@@ -295,15 +295,15 @@ the developer needs to understand in detail a complicated proof trace (\javert),
 In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs in \javert. 
 Our approach consists of: translating the separation logic specifications 
-into the \polish{first-order assertion language} of Rosette; 
-generating symbolic tests from these translated specifications; 
-and running the tests using \jilette. 
+into symbolic test 
+and running these tests using \jilette. 
 Then, if a symbolic test generated from a given specification fails, we can 
 be sure that the code to be verified does not satisfy its specification. 
-More importantly, \jilette then generates a concrete counter-model that 
+More importantly, \jilette then generates a concrete witness that 
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code. 
 
+\newpage
 \myparagraphq{Why \jilette} 
 
 \jilette is \emph{I want to say it has actual applications}, because something. 
@@ -313,7 +313,6 @@ both specifications and code.
 
 \jilette is \emph{trustworthy}, as its components come with correctness guarantees: the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript, whereas the soundness result for the \jsil symbolic execution in \jilette guarantees absence of false positives.
 
-\pmax{How do we know that we get OUR symbolic execution in Rosette?}
 
 % Switch in C1 for strict mode
 % Something in C1 has to connected to JSIL

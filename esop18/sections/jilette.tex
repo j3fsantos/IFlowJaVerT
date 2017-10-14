@@ -915,10 +915,11 @@ with the two possible resulting property-value lists:
 \end{lstlisting}
 
 \myparagraph{Termination} The \jsil symbolic execution engine does not 
-include the abstraction mechanisms which would allow it to finitise \polish{[This word feels very Futamuric]"} the symbolic 
+include the abstraction mechanisms which would allow it to finitise the symbolic 
 execution of loops depending on symbolic values~\cite{abstract:symbolic:exec}. 
 Hence, the user is asked to specify an upper bound on the number of times
-the symbolic execution is allowed to branch on symbolic values. 
+the symbolic execution is allowed to branch on symbolic values by using
+conditional gotos. 
 Once that upper bound is reached, if a conditional goto that branches 
 on a symbolic value is encountered, the symbolic execution stops.  
 
@@ -927,9 +928,9 @@ on a symbolic value is encountered, the symbolic execution stops.
 We strongly believe that the symbolic execution of the concrete interpreter 
 in \rosette is consistent with respect to the \jsil symbolic semantics. 
 In fact, we have ``reverse-engineered'' our \jsil symbolic execution by 
-observing in detial the guarded unions produced by Rosette for each of 
-the \jsil commands. Due to the its complexity and scale, 
-\polish{a formal proof would require
+observing in detail the guarded unions produced by Rosette for each of 
+the \jsil commands. Due to its complexity and scale, 
+{a formal proof would require
 mechanisation}, which is, unfortunately, beyond our manpower.
  
 %Hence, the user is asked to specify an upper bound on the number of times
@@ -944,8 +945,10 @@ mechanisation}, which is, unfortunately, beyond our manpower.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.7\textwidth]{figures/jilette.pdf}
+\includegraphics[width=0.7\textwidth]{figures/jilette.png}
+\vspace*{-0.3cm}
 \caption{Jilette: Symbolic execution for JavaScript}
+\vspace*{-0.3cm}
 \label{fig:jilette:diagram}
 \end{figure}
 
