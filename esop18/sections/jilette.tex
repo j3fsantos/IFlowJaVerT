@@ -936,7 +936,7 @@ complexity and scale, a formal proof would require mechanisation.
 
 \lstset{backgroundcolor=\color{white}}
 
-\section{Symbolic Execution for JavaScript}
+\section{Symbolic Testing for JavaScript}
 \label{sec:sym:exec:js}
 
 \begin{figure}[t]
@@ -948,19 +948,29 @@ complexity and scale, a formal proof would require mechanisation.
 
 The JavaScript standard spans over more than 200 pages describing the language syntax, semantics, 
 and runtime environment~\cite{ecma}. The current version of the standard is described in a document with 
-more than 800 pages. Clearly, designing a sound symbolic analysis targeting JavaScript directly 
-is not the way to go. Besides being error-prone, such a task would require a great amount of engineering effort, 
-which would scarcely pay off given the continuous releases of new versions of the standard. 
+more than 800 pages~\cite{ecma:new}. Hence, a symbolic analysis targeting JavaScript 
+directly would be extremely difficult to design, implement, and prove correct. 
+Instead, we symbolically analyse JavaScript code by first compiling it to \jsil using~\JSComp~\cite{javert}.
+
+%t the way to go as that would require great engineering effort.
+%which would scarcely pay off given the continuous releases of new versions of the standard. 
 
 In order to be able to symbolically execute JavaScript programs, we first extend the language 
-with solver-aided facilities for the creation of symbolic values and the checking of assertions. 
-For the symbolic execution itself, instead of targeting JavaScript directly, \jilette works by by first 
-compiling JavaScript programs to \jsil using the \JSComp compiler.
+with new constructs for the creation of symbolic values and the checking of assertions. 
+For the symbolic execution itself,  \jilette works by first compiling JavaScript programs to \jsil.
 The obtained \jsil program is then given to the \jsil symbolic interpreter described in \S\ref{sec:jsil:symb:exec}. 
 The symbolic interpreter is extensible in that it allows the addition of \rosette implementations of 
 JavaScript built-in libraries in a streamlined manner.  
 These implementations are both an easy way to get a better coverage of the standard and 
-to make sure that we make proper use of the solver-aided facilities of \rosette.    
+match the abstraction level of the generated JSIL code precisely with the abstraction level 
+of Rosette, maximising the use of Rosette's native solver-aided facilities.
+%
+In \S\ref{symb:exec:comp}, we explain the functioning of the symbolic execution for 
+JavaScript. In \S\ref{symbolic:testing}, we explain how it can be used for the symbolic 
+testing of JavaScript code. Finally, in \S\ref{builtins}, we conclude with the presentation 
+of a general approach for handling the symbolic execution of JavaScript built-in libraries. 
+
+%to make sure that we make proper use of theof \rosette.    
 
 \subsection{Symbolic Execution by Compilation} 
 \label{symb:exec:comp}
@@ -1085,7 +1095,8 @@ for compiling JavaScript logical expressions.
 
 
 
-\subsection{Motivating Example} 
+\subsection{Symbolic Testing by Example} 
+\label{symbolic:testing}
 
 We illustrate how Jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
 of a  \emph{key-value map} given in Figure~\ref{map:example}-(left). 
@@ -1169,6 +1180,7 @@ The symbolic test above reveals the bug. In fact, \jilette outputs
 % - match the abstraction level of the generated code to the abstraction level of \rosette 
 
 \subsection{Supporting JavaScript Built-in Libraries}
+\label{builtins}
 
 
 
