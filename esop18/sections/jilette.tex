@@ -1185,61 +1185,53 @@ burden of verification tools.
 \label{builtins}
 
 JavaScript comes equipped with a rich runtime environment (described in Chapter 15 of the 
-ES5 standard~\cite{ecma}) comprising a set of \emph{built-in libraries} for operating on 
-objects, arrays, strings, regular expressions, date objects, among others. 
-Here, we identify two important challenges related to supporting the symbolic execution of
+ES5 standard~\cite{ecma}), which consists of \emph{built-in libraries} that support advanced manipulation of, for example, objects, arrays, strings, regular expressions, and dates, among others. 
+In this section, we identify two important challenges related to supporting the symbolic execution of
 JavaScript programs that interact with built-in libraries and explain how we solve them in \jilette. 
 
-\JSComp models built-in library functions as \jsil procedures, which can be called from within the
- compiled JavaScript code. However, the current runtime environment of \JSComp only supports a subset 
-of the built-in libraries described in the standard. \polish{In particular, it supports... Petar...}
-The partiality of \JSComp when it comes to supporting JavaScript built-in libraries 
+\JSComp models built-in library functions as \jsil procedures, which can be called from within the compiled JavaScript code. However, the current runtime environment of \JSComp does not support all built-in libraries described in the standard. In particular, it doesn't support regular expressions, parts of the String library that use regular expressions, parts of the Date library, and JSON objects. The partiality of \JSComp when it comes to supporting JavaScript built-in libraries 
 gives rise to the first challenge:  
 \begin{quote}
-\emph{Challenge 1:} The design of \jilette should allow for the swift addition of  
+\emph{Challenge 1:} \jilette should allow for modular addition of  
 implementations of built-in libraries not yet covered by \JSComp.  
 \end{quote}
 
-Most of the JavaScript library functions are described in the language standard in terms of 
+Most JavaScript library functions are described in the language standard in terms of 
 more elementary operations. For instance, operations on strings are often described in terms 
-of operations on the characters that comprise the string (c.f. \jsinline|String.lastIndexOf|, Ch.15.5.4.8~\cite{ecma}). 
+of operations on the characters that comprise the string, and often involve loops (c.f. \jsinline|String.lastIndexOf|, Ch.15.5.4.8~\cite{ecma}).
 The \jsil implementations of the JavaScript built-in libraries follow the standard line-by-line. 
-This is meant to emphasise that the compiler does in fact adhere to the language standard, 
-not ignoring any corner cases or making any simplifying assumptions. 
-However, for some of these built-in library functions, there are direct \rosette correspondents. 
+This is meant to emphasise that the compiler does, in fact, fully adhere to the language standard. 
+However, for some of these built-in library functions, direct \rosette correspondents exist. 
 %
-In order to minimize the chances of infinite branching during symbolic execution, one 
-should avoid looping on symbolic values whenever it is instead possible to use operations 
-natively supported by \rosette. Hence, we state the second challenge as follows: 
+In such cases, we argue that these correspondents should be used instead of the 
+functions provided by \JSComp, to minimise potential branching and looping on symbolic values. 
+Hence, we state the second challenge as follows: 
 \begin{quote}
-\emph{Challenge 2:} The design of \jilette should promote the matching of the 
-abstraction level of the \rosette operations used by the compiled JavaScript code to 
-the abstraction level of the operations natively supported by \rosette.  
+\emph{Challenge 2:} \jilette should prioritise native \rosette operations
+to the operations provided by \JSComp in the cases in which the native \rosette
+operations and JavaScript operations exactly match.
 \end{quote}
 
 \myparagraph{\rosette models of JavaScript built-in functions}
-To solve challenges 1 and 2, \jilette supports the on-the-fly extension of the \jsil interpreter 
+To solve these two challenges, \jilette supports the on-the-fly extension of the \jsil interpreter 
 with \rosette implementations of JavaScript built-in functions, which we call \rosette \emph{models}. 
 Hence, every time the interpreter evaluates a procedure call, it first checks whether or 
 not it corresponds to a built-in function for which there is a \rosette model. If it does, 
 instead of executing the standard procedure call rule, the interpreter will instead 
-execute the appropriate rosette model. 
+execute the appropriate \rosette model. 
 
-Below, we show the \rosette model for \jsinline|String.replace| (c.f. Ch.15.5.4.11~\cite{ecma}).
+Below, we show a simplified \rosette model for \jsinline|String.prototype.replace|~(c.f. Ch.15.5.4.11~\cite{ecma}).
 Observe that this model uses the natively supported function \schemeinline|string-replace|, 
-thus taking advantage of \rosette reasoning capabilities. 
-Importantly, the standard specifies that \jsinline|String.replace| can receive non-string 
-arguments, in which case a number of type coercions are applicable. 
-This model does not include any of those, since it first checks if its arguments 
-are of the appropriate type and fails otherwise. 
+thus taking advantage of \rosette reasoning capabilities.
+This example illustrates an important point about the difference between JavaScript and
+\rosette operations: \schemeinline|string-replace| works only with strings, but \jsinline|String.|\jsinline|prototype. |\jsinline|replace| can take arguments of any type that then get coerced to strings. Since \JSComp does not have an implementation of \jsinline|String.replace|, the \rosette model will report an error if it receives non-string arguments.
 \lstset{language=Scheme, numbers=none, backgroundcolor=\color{mygray}}
 \begin{lstlisting}
 (define (replace str from to)
   (if (and (string? str) (string? from) (string? to))
       (list (quote normal) (string-replace str from to #:all? #f))
-      (error "illegal call to replace")))
+      (error "Unsupported call to String.prototype.replace")))
 \end{lstlisting}
-
 
 \myparagraph{Bug-finding with strings}
 By using the appropriate \rosette models for string operations, \jilette can find bugs in  
