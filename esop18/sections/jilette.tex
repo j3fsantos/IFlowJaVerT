@@ -842,10 +842,9 @@ to \schemeinline|new-val|.
               (update-pv-list (cdr pv-list) prop new-val))]))
 \end{lstlisting}
 \vspace*{-0.3cm}
-\caption{Fragment of the \jsil Interpreter in \rosette}\label{rosette:interpreter:fragment}
+\caption{Fragment of the \jsil Interpreter in \rosette\label{rosette:interpreter:fragment}}
 \vspace*{-0.5cm}
 \end{figure}
-
 
 \jsil commands are represented in \rosette as \emph{s-expressions}. 
  For instance, the property assignment basic command $[\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$
@@ -1215,7 +1214,11 @@ abstraction level of the \rosette operations used by the compiled JavaScript cod
 the abstraction level of the operations natively supported by \rosette.  
 \end{quote}
 
+To solve challenges 1 and 2, \jilette supports the on-the-fly addition of \rosette  
+implementations of JavaScript internal functions. Hence, every time the interpreter 
+evaluates a procedure call
 
+ 
 
 %Furthermore, the \jsil language itself does not feature regular expressions or native arrays, 
 %and has very few operators on strings. 
