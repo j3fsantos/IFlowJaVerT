@@ -207,7 +207,7 @@
 
 \maketitle 
 
-\vspace*{-1cm}
+\vspace*{-1.4cm}
 \begin{abstract}
 We present \jilette: a symbolic execution tool for JavaScript, which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
 a symbolic virtual machine that enables the design of new solver-aided languages. 
@@ -218,10 +218,12 @@ First, we show how \jilette can be used for symbolic testing of JavaScript progr
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
 by compiling them to symbolic tests in order to find witnesses for both specification
 and code bugs.
+\vspace*{-0.4cm}
 \end{abstract}
 
 \section{Introduction}
 
+\vspace*{-0.2cm}
 JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications (used by 94.8\% of websites \cite{JS948percent});
 it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
@@ -237,11 +239,11 @@ This paper presents \jilette, a symbolic execution tool for ES5 Strict. Jilette 
 We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
 \myparagraph{Architecture}
-The core of \jilette consists of a sound symbolic interpreter for
-\jsil~\cite{javert}, an intermediate goto language well-suited 
-for verification. We obtain this symbolic interpreter \emph{for free}, 
-by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1}, 
-a symbolic virtual machine that facilitates generation of solver-aided languages.
+The core of \jilette consists of a symbolic interpreter for
+\jsil~\cite{javert}, a simple intermediate goto language. 
+We obtain this symbolic interpreter \emph{for free}, 
+by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1},~a 
+symbolic virtual machine that facilitates generation of solver-aided languages.
 We design the concrete interpreter so that all of Rosette's natively supported solver-aided
 features, such as advanced string reasoning, 
 are lifted to the \jsil symbolic interpreter. 
@@ -282,21 +284,23 @@ to fail, exposing bugs in the tested code.
 \pmax{This approach is not novel. Who else has done this?}
 
 \myparagraph{Application: Debugging Separation Logic Specifications}
-\polish{Some people want FCSpecs of JS. They are bananas.}
-Much like the semantics of JavaScript, functional correctness 
-specifications of JavaScript programs are highly intricate. 
-There are only a few tools (for example, \javert \cite{javert} and KJS \cite{kjs}) with support for such expressivity.
+Due to the complexity of JavaScript semantics, functional correctness 
+specifications of JS programs are highly intricate. 
+There are only a few tools (for example, \javert \cite{javert} and KJS \cite{kjs}) that even support such expressivity. They target the specialist developer wanting rich, 
+mechanically verified specifications of critical JavaScript code.
 However, when these 
 tools cannot prove that a given function satisfies a specification, to discover the error, 
-the user needs to go through a complicated proof trace and understand it in detail (\javert), or even act without any proof trace at all (KJS).
+the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback (KJS). 
 
-We show how \jilette can be used as an auxiliary mechanism for debugging 
-separation logic specifications of JavaScript programs used by \javert. \polish{stopped here.} 
-Here, we demonstrate how to use \jilette to find errors in specifications by generating 
-symbolic tests from these specifications and running the tests using \jilette. 
+In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
+separation logic specifications of JavaScript programs in \javert. 
+Our approach consists of: translating the separation logic specifications 
+into the \polish{first-order assertion language} of Rosette; 
+generating symbolic tests from these translated specifications; 
+and running the tests using \jilette. 
 Then, if a symbolic test generated from a given specification fails, we can 
 be sure that the code to be verified does not satisfy its specification. 
-More importantly, in case of failure, \jilette generates a concrete counter-model that 
+More importantly, \jilette then generates a concrete counter-model that 
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code. 
 
@@ -314,7 +318,7 @@ both specifications and code.
 % Switch in C1 for strict mode
 % Something in C1 has to connected to JSIL
 
-Few tools. Functional correctness - JaVerT, K, but too many annotations. There are others, this and that. Symbolic execution? Very few have theory or correctness results, they are critical. \jilette is: useful, approachable, and correct.
+There are others, this and that. Symbolic execution? Very few have theory or correctness results, they are critical. \jilette is: useful, approachable, and correct.
 
 Verification tools for JavaScript programs come few and far between. 
 JaVerT~\cite{} targets the specialist developer wanting rich, 
@@ -332,10 +336,6 @@ Clarify ES5 Strict
 JaVerT targets the specialist
 developer wanting rich, mechanically verified specifications of critical JavaScript code.
 Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
-
-K does a bit of functional correctness (but limited, since no proper abstractions). 
-It does a bit of debugging, but you have to know where the bug is going to be. 
-Annotations horrific, no built-in libraries, limited use. 
 
 Jilette is so better, sweet spot, targets whom again? 
 Facilitates exhaustive symbolic testing of JavaScript programs.}
