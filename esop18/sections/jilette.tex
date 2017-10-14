@@ -1169,9 +1169,13 @@ var m = new Map();  m.put(s1, n1); var r = m.get(s1);
 assert(n1 = r)
 \end{lstjsex}
 %
-The symbolic test above checks for a desired property of the library---if we were to put a key/value pair \jsinline|(k, v)| into the map, then we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. We can run \jilette on this test to reveal the bug. Indeed, \jilette generates
+The symbolic test above checks for a desired property of the library---if we were to put a key/value pair \jsinline|(k, v)| into the map, then we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. We can run \jilette on this test to reveal the bug discusses above. Indeed, \jilette generates
 the failing model: \jsinline|s1 = "hasOwnProperty"|. 
 
+This example also highlights how \jilette is approachable, does not require 
+specialist knowledge, and can, therefore, be used by almost any JavaScript developer. 
+The annotation burden amounts to the creation of symbolic variables and the writing of assertions, remaining minimal and intuitive, in stark contrast with the standard annotation 
+burden of verification tools.
 
 %- Extensible Interpreter 
 % - an easy way to have more coverage 
