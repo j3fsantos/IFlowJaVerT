@@ -1222,16 +1222,26 @@ instead of executing the standard procedure call rule, the interpreter will inst
 execute the appropriate rosette model. 
 
 Below, we show the \rosette model for \jsinline|String.replace| (c.f. Ch.15.5.4.11~\cite{ecma}).
-Observe that this \rosette code makes use of the natively supported function 
+Observe that this model uses the natively supported function \schemeinline|string-replace|, 
+thus taking advantage of \rosette reasoning capabilities. 
+Importantly, the standard specifies that \jsinline|String.replace| can receive non-string 
+arguments, in which case a number of type coercions are applicable. 
+This model does not include any of those, since it first checks if its arguments 
+are of the appropriate type and fails otherwise. 
 \lstset{language=Scheme, numbers=none, backgroundcolor=\color{mygray}}
 \begin{lstlisting}
 (define (replace str from to)
   (if (and (string? str) (string? from) (string? to))
       (list (quote normal) (string-replace str from to #:all? #f))
       (error "illegal call to replace")))
-
-(register-js-builtin-method "String" "replace" replace hp)
 \end{lstlisting}
+
+
+\myparagraph{Bug-finding with strings}
+By leveraging on \rosette models for string operations, we can use \jilette to verify 
+non-trivial JavaScript programs that manipulate heap.
+ 
+ 
  
 
 %Furthermore, the \jsil language itself does not feature regular expressions or native arrays, 
