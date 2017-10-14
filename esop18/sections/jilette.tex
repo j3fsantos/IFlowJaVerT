@@ -739,14 +739,14 @@ interpreter for \jsil. %consistent with the symbolic semantics described in  \S\
 %The idea of turning a concrete interpreter into a symbolic interpreter by embedding it in 
 %
 The implementation of the concrete interpreter in \rosette must fulfil the following criteria:
-\begin{itemize}
-   \item \emph{Consistency:} the symbolic execution of the concrete interpreter in \rosette 
-            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}; 
-            
+\begin{itemize}          
    \item \emph{Efficiency:} the implementation must promote \rosette's efficient behaviour;
    
    \item \emph{Termination:} the user must be given a way to establish a bound for the symbolic execution 
-            of programs that loop on symbolic values.
+            of programs that loop on symbolic values; 
+  
+   \item \emph{Consistency:} the symbolic execution of the concrete interpreter in \rosette 
+            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
 \end{itemize}
 
 %- describe the \rosette approach to the implementation of symbolic analysis 
@@ -889,7 +889,7 @@ symbolic heap represented in \rosette as follows:
 \end{lstlisting}
 %
 with a symbolic store mapping \schemeinline|o| to \schemeinline|lo| and 
-the path condition $\mathtt{\hat{s} = \text{\texttt{"a"}} \ \vee \hat{s} = \text{\texttt{"b"}}}$.
+the path condition {\small $\mathtt{\hat{s} = \text{\texttt{"a"}} \ \vee \hat{s} = \text{\texttt{"b"}}}$}.
 The two resulting symbolic heaps are represented in \rosette as :  
 %
 \begin{lstlisting}
@@ -915,8 +915,13 @@ with the two possible resulting property-value lists:
        (("@proto" null) ("a" 0) ("b" 42))))
 \end{lstlisting}
 
-\myparagraph{Termination} The symbolic execution 
-
+\myparagraph{Termination} The \jsil symbolic execution engine does not 
+include the abstraction mechanisms which would allow it to finitise the symbolic 
+execution of loops depending on symbolic values~\cite{abstract:symbolic:exec}. 
+Hence, the user is allowed to specify an upper bound on the number of times
+the symbolic execution is allowed to branch depending on symbolic values. 
+Once that upper bound is reached, if a conditional goto that branches 
+on a symbolic value is encountered, the symbolic execution simply stops.  
 
 
 
