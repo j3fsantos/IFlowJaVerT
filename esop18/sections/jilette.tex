@@ -593,9 +593,10 @@ Given a symbolic state $(\sheap, \sstore, \sctx)$ and a path condition $\pc$, we
 the models of the symbolic state under $\pc$, written $\smodels{\sheap, \sstore, \sctx}{\pc}$, 
 as the set of concrete states that can be obtained from $(\sheap, \sstore, \sctx)$ using 
 logical environments that are consistent with $\pc$. Formally:
-\begin{equation}
-\smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} 
-\end{equation}
+{\small \begin{align*}
+\smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} \\
+\smodels{\sheap, \sstore}{\pc} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \vdash \pc  \right\}
+\end{align*}}
 
 \begin{figure}[!h]
 {
@@ -1249,7 +1250,7 @@ Now, we can use \jilette to test if the sanitiser meets its purpose, that is, th
 strings, after being sanitised, do not contain the substring \jsinline|"script"|:
 \begin{lstjsex}
 var s = sanitise(__s()); 
-var x = ! (s.contains("script")); 
+var x = ! (s.contains("script")); d
 assert(x) 
 \end{lstjsex}
 \jilette will, in fact, be able to come up with a counter-model for this assertion. Concretely, \jsinline|s1 = "scriptcript"|. Despite its simplicity, this example illustrates the complexities underpinning the 

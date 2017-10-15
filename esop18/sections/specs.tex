@@ -1,15 +1,45 @@
 %!TEX root = ../main.tex
 
-\subsection{\jsil Symbolic Execution with Separation Logic Assertions}
+We show how to use \jilette for debugging JavaScript code annotated with 
+separation logic specifications with the goal of finding bugs in both 
+ specifications and code. In \S\ref{subsec:sep:assertions}, we describe the 
+extension of the \jsil symbolic interpreter with a special construct for asserting
+a separation logic assertion. In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
+for generating symbolic tests from separation specifications, so that if a 
+symbolic test fails, the failure comes with a concrete counter-model that invalidates 
+the specification. Finally, in \S\ref{specs:example}, we show how to use the 
+proposed methodology for debugging JaVerT specifciations~\cite{javert} of JavaScript code. 
 
-We show how to extend the \jsil symbolic execution with separation logic assertions.
-To this end, we extend symbolic values with symbolic locations $\sloc \in \slocs$, and
-we introduce the separation logic assertions for denoting spatial resource. 
-Hence, we redefine $\svars$ to be the union of $\snumbers$, $\sstrings$, and $\slocs$, 
-and continue to use $\svar$ to range over $\svars$. 
+\subsection{\jsil Symbolic Execution with Separation Logic Assertions}
+\label{subsec:sep:assertions}
+
+We extend \jsil with a special construct $\sepassert(P)$ for stating that 
+the separation logic assertion $P$ must hold whenever $\sepassert(P)$ is evaluated. 
+We make use of an adapted version of the assertion language from~\cite{javert}. 
+In particular, instead of \emph{untyped logical variables}, we 
+use \emph{typed logical variables}, $\svar \in \svars$, coinciding either with 
+symbolic numbers, $\snumber \in \snumbers$, strings $\sstring \in \sstrings$, 
+or locations, $\sloc \in \slocs$. 
+
+\myparagraph{\jsil assertions: syntax and semantics}
+\jsil assertions include: boolean operations; first-order connectives; the separating conjunction; 
+existential quantification; and assertions for describing heaps. The $\lemp$ assertion describes 
+an empty heap. The cell assertion, $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$,  describes an object 
+at the location denoted by $\lexpr_1$ with a property denoted by $\lexpr_2$ that has the value 
+denoted by $\lexpr_3$. The assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
+the location denoted by $\lexpr_1$ has no properties other than possibly those included in the
+set denoted by $\lexpr_2$. 
+%
+As in~\cite{gardner:popl:2012,javert}, in order to define the semantics of assertions, 
+we resort to \emph{instrumented heaps} $\iheap \in \iheaps$, which differ from 
+concrete heaps in that they may map object properties to the special value $\none$, 
+explicitly indicating that the property does not exist (e.g. $\iheap(\loc, \jstring) = \none$
+means that the object denoted by $\loc$ in $\iheap$ does not have a property
+named $\jstring$). 
+%
 Below, we give the syntax and semantics of \jsil logic assertions. 
 
-\begin{display}{\jsil Logic Assertions - Syntax}
+\begin{display}{\jsil Logic Assertions - syntax and semantics}
 %
 {\scriptsize \begin{tabular}{lll}
   %%%% 
@@ -65,10 +95,8 @@ written $\sheap, \sstore, \pc \satisfies P$ if and only if there are two symboli
 $\sheap'$ and $\sheap_f$ such that: $\sheap = \sheap' \dunion \sheap_f$ and 
 $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{P}$. 
 %
-We can now extend \jsil symbolic execution with separation logic assertions. 
-To this end, we introduce a new \emph{assert} command, $\sepassert(P)$ which checks
-if the current symbolic state satisfies $P$. 
-The formal semantics of $\sepassert(P)$ is as follows: 
+We can now give an \emph{ideal} symbolic semantics for the command $\sepassert(P)$ (which checks
+if the current symbolic state satisfies $P$): 
 {\small \begin{mathpar}
 \inferrule[\textsc{Assert - True}]
   { 
@@ -80,7 +108,12 @@ The formal semantics of $\sepassert(P)$ is as follows:
           \sheap, \sstore, \pc \not\satisfies P
   }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}{}{\pc}} 
 \end{mathpar}}
-
+\hspace{-3pt}Determining whether or not a symbolic heap is consistent with a formula $P$ is, in general, 
+undecidable. More importantly, since we do not want to produce \emph{false positives} in order to trigger 
+an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
+$\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must only 
+report an assertion failure if it can find a concrete state: $(\heap, \store)$ such that: 
+$(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$ and $(\heap, \store) \not\in \sepmodels{P}$.
 
 
 \begin{figure}[t!]
@@ -191,11 +224,13 @@ The formal semantics of $\sepassert(P)$ is as follows:
  {\scriptsize$\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap_f)$}\label{fig:unification}}}
 \end{figure}
 
+\myparagraph{Finding counter models for separation logic assertions}
+We describe a partial decision procedure, which we  
+implement as part of the \jsil symbolic interpreter, for proving entailments 
+between symbolic states and separation logic assertions and finding counter 
+models in case of failure.  
 
-Determining whether or not a symbolic heap is consistent with a formula $P$ is, in general, 
-undecidable. In the following, we present a partial decision procedure that we  
-implement as part of the \jsil symbolic interpreter. 
-We represent a formula $P$ as a triple 
+For convenience, we represent a formula $P$ as a triple 
 $(\existentials, \sfs, \pfs)$, consisting of: 
 \dtag{1} the set $\existentials$ of existentially quantified symbolic values, 
 \dtag{2} the set $\sfs$ containing the spatial assertions in $P$, and 
@@ -271,18 +306,18 @@ $$
 \end{theorem}
 
 \subsection{Compiling \jsil Specifications to Symbolic Tests}
-
+\label{specs:to:symbolic:tests}
 \polish{Explain \jsil specs} 
 
 \begin{definition}[Validity of \jsil Logic Specifications]
 A \jsil logic specification $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$ for return mode $\flag$ is valid with respect to a program 
 $\prog$, written $\prog, \flag \vDash \lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$,  if and only if, for all logical 
-contexts $(\aheap, \store, \senv)$, heaps $\heap_f$, stores $\store_f$, and flags $\flag'$, it holds that: 
+contexts $(\iheap, \store, \senv)$, heaps $\heap_f$, stores $\store_f$, and flags $\flag'$, it holds that: 
 $$
 \begin{array}{l}
-    \aheap, \store, \senv \satisfies P \ \wedge \ \tuple{\deabstract{\aheap}, \store, \ctx[0]} \rightarrow^* \tuple{\heap_f, \store_f, \ctx[i_{\flag'}]} \\
+    \iheap, \store, \senv \satisfies P \ \wedge \ \tuple{\deabstract{\iheap}, \store, \ctx[0]} \rightarrow^* \tuple{\heap_f, \store_f, \ctx[i_{\flag'}]} \\
        \quad \implies
-            \flag' = \flag \ \wedge \ \exists \aheap_f \, . \, \aheap_f, \store_f, \senv \satisfies Q \ \wedge \ \deabstract{\aheap_f} = \heap_f
+            \flag' = \flag \ \wedge \ \exists \iheap_f \, . \, \iheap_f, \store_f, \senv \satisfies Q \ \wedge \ \deabstract{\iheap_f} = \heap_f
 \end{array}
 $$
 \end{definition}
@@ -355,6 +390,7 @@ symbolic heap on which to execute $\prog'$.
 
 
 \subsection{Example} 
+\label{specs:example}
 
 In Figure~\ref{fig:map:example}, we define a \emph{map object predicate}, \jsinline|Map|, 
 using the auxiliary predicate \jsinline|KVPairs|, which captures the resource of the key-value pairs in the map, 
