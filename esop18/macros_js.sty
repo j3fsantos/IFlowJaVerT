@@ -211,7 +211,6 @@
 \newcommand\markeractiv{\command{act}^{\refrmarker}}
 \newcommand\eractiv{\command{act}^{\ermarker}}
 \newcommand\objactiv{\command{act}^{\objmarker}}
-\newcommand\cells{\command{cells}}
 \newcommand\objOrGlob{\command{SelectProto}}
 \newcommand\SelectThis{\command{SelectThis}}
 \newcommand\parse{\command{parse}}
@@ -734,16 +733,29 @@
 \newcommand\sepassert{\darkmath{\textsf {assert}_*}}
 \newcommand\sfs[0]{\sigma}
 \newcommand\pfs[0]{\pi}
-\newcommand\existentials[0]{X}
-\newcommand{\sass}[0]{sa}
+\newcommand\existentials[0]{\mathtt{L}}
+\newcommand{\cell}[0]{\mathtt{c}}
+\newcommand{\efa}[0]{\mathtt{\text{ef}}}
+\newcommand{\cells}[0]{\mathtt{C}}
+\newcommand{\efs}[0]{\mathtt{EF}}
 \newcommand\iheap[0]{\underline{h}}
 \newcommand{\iheaps}{{\mathcal H}_\emptyset}
+\newcommand{\isheap}[0]{\underline{\sheap}}
+\newcommand{\isheaps}[0]{\hat{{\mathcal H}}_\emptyset}
+
 %%
 %% Sep Logic - Unification
 %%
+
 \newcommand{\subst}[0]{\theta}
-\newcommand{\unification}[4]{{\cal U}_{#4}((#1), #2, #3)}
-\newcommand{\unificationfull}[4]{\lconf{(#1), (#2)} \ \stackrel{#4}{\leadsto}_{\cal U} #3}
+\newcommand{\unification}[3]{{\cal U}_{#3}^{}((#1), #2)} %\checkmark
+\newcommand{\unificationfail}[4]{{\cal U}_{#4}^{\times}((#1), #2, #3)}
+\newcommand{\unificationfull}[3]{\lconf{(#1), (#2)} \Downarrow_{\cal U}^{#3}}
+\newcommand{\unificationfullfail}[4]{\lconf{(#1), (#2)} \Downarrow_{\cal U}^{#3}\mathtt{F}(#4)}
+\newcommand{\uyes}[1]{{\mathtt{S}}(#1)}
+\newcommand{\uno}[1]{{\mathtt{F}}(#1)}
+\newcommand{\substs}[0]{\mathtt{substs}}
+
 %%
 %% Specs - test generation
 %%

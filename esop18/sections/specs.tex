@@ -5,7 +5,7 @@ separation logic specifications with the goal of finding bugs in both
  specifications and code. In \S\ref{subsec:sep:assertions}, we describe the 
 extension of the \jsil symbolic interpreter with a special construct for asserting
 a separation logic assertion. In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
-for generating symbolic tests from separation specifications, so that if a 
+for generating symbolic tests from separation logic specifications, so that if a 
 symbolic test fails, the failure comes with a concrete counter-model that invalidates 
 the specification. Finally, in \S\ref{specs:example}, we show how to use the 
 proposed methodology for debugging JaVerT specifciations~\cite{javert} of JavaScript code. 
@@ -36,8 +36,12 @@ concrete heaps in that they may map object properties to the special value $\non
 explicitly indicating that the property does not exist (e.g. $\iheap(\loc, \jstring) = \none$
 means that the object denoted by $\loc$ in $\iheap$ does not have a property
 named $\jstring$). 
-%
-Below, we give the syntax and semantics of \jsil logic assertions. 
+%Analogously, we extend symbolic heaps with $\none$-cells, obtained \emph{instrumented symbolic heaps} $\isheap \in \isheaps$. 
+Instrumented heaps are related to heaps by means of an \emph{erasure 
+function}, $\deabstract{.}: \iheaps \rightarrow \heaps$, %($\deabstract{.}: \isheaps \rightarrow \sheaps$), 
+which simply removes the none-cells from the instrumented heap given as input.  Below, we give the syntax and semantics of \jsil assertions. 
+
+%  \deabstract{\jsilaheap}(\loc, x) = \jsilaheap(\loc, x) \iffdef (\loc, x) \in \domain(\jsilaheap) \ \wedge \ \jsilaheap(\loc, x) \neq \none
 
 \begin{display}{\jsil Logic Assertions - syntax and semantics}
 %
@@ -55,45 +59,48 @@ Below, we give the syntax and semantics of \jsil logic assertions.
 {\scriptsize
 \begin{tabular}{lll} 
      \begin{tabular}{ll}
-    $\heap, \store, \senv \satisfies \truep$                  &  $\Leftrightarrow \text{always}$   \\
+    $\iheap, \store, \senv \satisfies \truep$                  &  $\Leftrightarrow \text{always}$   \\
     %
-    $\heap, \store, \senv \satisfies \falsep$                 &  $\Leftrightarrow \text{never}$   \\   
+    $\iheap, \store, \senv \satisfies \falsep$                 &  $\Leftrightarrow \text{never}$   \\   
      %
-    $\heap, \store, \senv \satisfies \neg P$                 &  $\Leftrightarrow \heap, \store, \env \not\satisfies P$ \\
+    $\iheap, \store, \senv \satisfies \neg P$                 &  $\Leftrightarrow \iheap, \store, \env \not\satisfies P$ \\
      %  
-     $\heap, \store, \senv \satisfies P \land Q$           &  $ \Leftrightarrow \heap, \store, \senv \satisfies P \land \heap, \store, \senv \satisfies Q $   \\
+     $\iheap, \store, \senv \satisfies P \land Q$           &  $ \Leftrightarrow \iheap, \store, \senv \satisfies P \land \iheap, \store, \senv \satisfies Q $   \\
      %   
-     $\heap, \store, \senv \satisfies  \exists \svar. P$  &  $\Leftrightarrow \exists \lit \in \lits. \, \heap, \store, \senv[\svar \mapsto \lit] \satisfies P$  \\ 
+     $\iheap, \store, \senv \satisfies  \exists \svar. P$  &  $\Leftrightarrow \exists \lit \in \lits. \, \iheap, \store, \senv[\svar \mapsto \lit] \satisfies P$  \\ 
      %  
-      $\heap, \store, \senv \satisfies \lexpr_1 = \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} = \symbeval{\lexpr_2}{\store, \senv}$   \\    
+      $\iheap, \store, \senv \satisfies \lexpr_1 = \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} = \symbeval{\lexpr_2}{\store, \senv}$   \\    
       %
-      $\heap, \store, \senv \satisfies \lexpr_1 \leq \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} \leq \symbeval{\lexpr_2}{\store, \senv}$   
+      $\iheap, \store, \senv \satisfies \lexpr_1 \leq \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} \leq \symbeval{\lexpr_2}{\store, \senv}$   
       \end{tabular}
       &
       $\phantom{x}$
       &
        \begin{tabular}{l}
-           $\heap, \store, \senv  \satisfies  \lemp$ $\Leftrightarrow \heap = \hemp$  \\[2pt]
+           $\iheap, \store, \senv  \satisfies  \lemp$ $\Leftrightarrow \iheap = \hemp$  \\[2pt]
            %
-	   $\heap, \store, \senv  \satisfies (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$  \\
-            $\ \Leftrightarrow \heap =  \hcell{\symbeval{\lexpr_1}{\store, \senv}}{\symbeval{\lexpr_2}{\store, \senv}}{\symbeval{\lexpr_3}{\store, \senv}}$  \\[2pt]
+	   $\iheap, \store, \senv  \satisfies (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$  \\
+            $\ \Leftrightarrow \iheap =  \hcell{\symbeval{\lexpr_1}{\store, \senv}}{\symbeval{\lexpr_2}{\store, \senv}}{\symbeval{\lexpr_3}{\store, \senv}}$  \\[2pt]
            % 
-           $\heap, \store, \senv  \satisfies P \sep Q$ $\Leftrightarrow  \exists \heap_1, \heap_2.  \, \heap = \heap_1 \dunion \heap_2$  \\
-                $\qquad \wedge \ \heap_1,  \store, \senv  \satisfies P \, \wedge \, \heap_2,  \store, \senv \satisfies Q$ \\[2pt]
+           $\iheap, \store, \senv  \satisfies P \sep Q$ $\Leftrightarrow  \exists \iheap_1, \iheap_2.  \, \iheap = \iheap_1 \dunion \iheap_2$  \\
+                $\qquad \wedge \ \iheap_1,  \store, \senv  \satisfies P \, \wedge \, \iheap_2,  \store, \senv \satisfies Q$ \\[2pt]
            %
-           $\heap, \store, \senv  \satisfies  \emptyfields{\lexpr_1}{\lexpr_2}$  \\
-                $\ \Leftrightarrow \heap = \biguplus_{s \not\in \{ \symbeval{\lexpr_2}{\store, \senv} \}} ((\symbeval{\lexpr_1}{\store, \senv}, s) \pointsto \none)$
+           $\iheap, \store, \senv  \satisfies  \emptyfields{\lexpr_1}{\lexpr_2}$  \\
+                $\ \Leftrightarrow \iheap = \biguplus_{s \not\in \{ \symbeval{\lexpr_2}{\store, \senv} \}} ((\symbeval{\lexpr_1}{\store, \senv}, s) \pointsto \none)$
            
        \end{tabular}
 \end{tabular}}
 \end{display}
-
-For convenience, we define: {\small $\sepmodels{P} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \heap, \store, \senv \satisfies P  \right\}$}. 
-Given a symbolic heap $\sheap$, a symbolic store $\sstore$, a path condition $\pc$, and 
+%
+For convenience, we define: 
+{\small 
+\begin{align}
+\sepmodels{P} = \left\{ (\heap, \store) \mid \exists \iheap, \senv \, . \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies P  \right\}
+\end{align}}
+\hspace{-2pt}Given a symbolic heap $\sheap$, a symbolic store $\sstore$, a path condition $\pc$, and 
 an assertion $P$, we say that  $(\sheap, \sstore, \pc)$ \emph{satisfies} $P$, 
-written $\sheap, \sstore, \pc \satisfies P$ if and only if there are two symbolic heaps 
-$\sheap'$ and $\sheap_f$ such that: $\sheap = \sheap' \dunion \sheap_f$ and 
-$\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{P}$. 
+written $\sheap, \sstore, \pc \satisfies P$ \emph{if and only if}
+$\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}$. 
 %
 We can now give an \emph{ideal} symbolic semantics for the command $\sepassert(P)$ (which checks
 if the current symbolic state satisfies $P$): 
@@ -108,203 +115,311 @@ if the current symbolic state satisfies $P$):
           \sheap, \sstore, \pc \not\satisfies P
   }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}{}{\pc}} 
 \end{mathpar}}
-\hspace{-3pt}Determining whether or not a symbolic heap is consistent with a formula $P$ is, in general, 
-undecidable. More importantly, since we do not want to produce \emph{false positives} in order to trigger 
+\hspace{-3pt}Determining whether or not a symbolic state satisfies a SL-assertion $P$ is, in general, 
+undecidable. Importantly, since we do not want to produce \emph{false positives}, in order to trigger 
 an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
 $\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must only 
-report an assertion failure if it can find a concrete state: $(\heap, \store)$ such that: 
-$(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$ and $(\heap, \store) \not\in \sepmodels{P}$.
+report an assertion failure if it can find a concrete state $(\heap, \store)$ such that: 
+$(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$ and
+$(\heap, \store) \not\in \sepmodels{P}$.
 
-
-\begin{figure}[t!]
-\centering
-{\scriptsize
-\begin{mathpar} 
-\inferrule[\textsc{New Existential}]
-     { 
-         \svar \in \existentials 
-         \quad
-         \svar \not\in \domain(\subst)
-     }
-     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionsome{\subst[\svar \mapsto \sexpr]}}
-\quad
-\inferrule[\textsc{Matched Existential}]
-     { 
-         \subst(\svar) = \sexpr' 
-         \quad 
-         \pc \vdash \sexpr = \sexpr' 
-     }
-     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionsome{\subst}}
-\quad
-\inferrule[\textsc{Existential - None}]
-     { 
-         \subst(\svar) = \sexpr' 
-         \quad 
-         \pc \vdash \sexpr \neq \sexpr' 
-     }
-     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionnone}
-\\
-\inferrule[\textsc{Grounded Expression}]
-     { 
-         \fv(\subst(\sexpr')) \cap \existentials = \emptyset
-         \quad 
-          \pc \vdash  \sexpr = \subst(\sexpr') 
-     }
-     {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionsome{\subst}}
-\qquad
-\inferrule[\textsc{Grounded Expression - Fail}]
-     { 
-         \fv(\subst(\sexpr')) \cap \existentials = \emptyset
-         \quad 
-          \pc  \vdash  \sexpr \neq \subst(\sexpr') 
-     }
-     {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone}
-%
-\\
-\inferrule[\textsc{Cell Assertion}]
-	{  
-	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
-	   \quad 
-	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
-	   \quad
-	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
-	   \quad
-	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
-	   \\
-	   \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionsome{\subst'} 
-	   \quad
-	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionsome{\subst''} 
-	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionsome{(\subst'', \sheap_f)}} 
-\\
-\inferrule[\textsc{Cell Assertion - Fail}]
-	{  
-	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
-	   \quad
-	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
-	   \quad
-	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
-	   \quad
-	     \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-  	   \\
-	    (l, -) \not\in \domain(\sheap') 
-	    \quad 
-	   \forall_{0 \leq i \leq n} \, \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionnone 
-	   \ \vee \
-	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionnone
-	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionnone} 
-\\
-\inferrule[\textsc{EmptyFields Assertion}]
-	{  
-	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
-	   \quad 
-	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
-	   \\\\
-	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-              \quad
-             (l, -) \not\in \domain(\sheap')
-	    \quad 
-	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
-	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionsome{(\subst, \sheap)}} 
-\\
-\inferrule[\textsc{EmptyFields Assertion - Failing}]
-	{  
-	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
-	   \quad 
-	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
-	   \\\\
-	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-              \quad
-             (l, -) \not\in \domain(\sheap')
-	    \quad 
-	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \not\subseteq \sexprv' \big)
-	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionnone} 
-\end{mathpar}
-\hrule
-\caption{Unification of spatial assertions:
- {\scriptsize$\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap_f)$}\label{fig:unification}}}
-\end{figure}
+%\begin{figure}[t!]
+%\centering
+%{\scriptsize
+%\begin{mathpar} 
+%\inferrule[\textsc{New Existential}]
+%     { 
+%         \svar \in \existentials 
+%         \quad
+%         \svar \not\in \domain(\subst)
+%     }
+%     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \uyes{\subst[\svar \mapsto \sexpr]}}
+%\quad
+%\inferrule[\textsc{Matched Existential}]
+%     { 
+%         \subst(\svar) = \sexpr' 
+%         \quad 
+%         \pc \vdash \sexpr = \sexpr' 
+%     }
+%     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \uyes{\subst}}
+%\quad
+%\inferrule[\textsc{Existential - None}]
+%     { 
+%         \subst(\svar) = \sexpr' 
+%         \quad 
+%         \pc \not\vdash \sexpr = \sexpr' 
+%     }
+%     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \uno{\sexpr \neq \sexpr'}}
+%\\
+%\inferrule[\textsc{Grounded Expression}]
+%     { 
+%         \fv(\subst(\sexpr')) \cap \existentials = \emptyset
+%         \quad 
+%          \pc \vdash  \sexpr = \subst(\sexpr') 
+%     }
+%     {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \uyes{\subst}}
+%\qquad
+%\inferrule[\textsc{Grounded Expression - Fail}]
+%     { 
+%         \fv(\subst(\sexpr')) \cap \existentials = \emptyset
+%         \quad 
+%          \pc  \not\vdash  \sexpr = \subst(\sexpr') 
+%     }
+%     {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \uno{\sexpr  \neq \subst(\sexpr')}}
+%%
+%\\
+%%
+%\\
+%\inferrule[\textsc{None-Cell Assertion}]
+%	{  
+%	   \subst(\symbeval{\lexpr_l}{\sstore})  = \loc 
+%	   \quad 
+%	    \symbeval{\lexpr_p}{\sstore} = \sexprp' 
+%	   \quad
+%       \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n    
+%	   \quad
+%	   (l, -) \not\in \domain(\sheap')  
+%	   \quad
+%	    \pc \vdash \sexprp' \not\in \{ \sexprp_i \mid_{i = 0}^n \} 
+%	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \none}{\subst}{\existentials} = \uyes{\subst, \sheap}} 
+%%
+%\\
+%\inferrule[\textsc{None-Cell Assertion - Fail}]
+%	{  
+%	   \subst(\symbeval{\lexpr_l}{\sstore})  = \loc 
+%	   \quad 
+%	    \symbeval{\lexpr_p}{\sstore} = \sexprp' 
+%	   \quad
+%       \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n    
+%	   \quad
+%	   (l, -) \not\in \domain(\sheap')  
+%	   \quad
+%	    \pc \not\vdash \sexprp' \not\in \{ \sexprp_i \mid_{i = 0}^n \} 
+%	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \none}{\subst}{\existentials} = \uno{\sexprp' \in \{ \sexprp_i \mid_{i = 0}^n \} }} 
+%%
+%\\
+%\inferrule[\textsc{EmptyFields Assertion}]
+%	{  
+%	  \loc = \subst(\symbeval{\lexpr_l}{\sstore}) 
+%	   \quad 
+%	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
+%	   \quad
+%	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+%              \quad
+%             (l, -) \not\in \domain(\sheap')
+%	    \quad 
+%	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
+%	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \uyes{(\subst, \sheap)}} 
+%\\
+%\inferrule[\textsc{EmptyFields Assertion - Fail}]
+%	{  
+%	   \loc = \subst(\symbeval{\lexpr_l}{\sstore}) 
+%	   \quad 
+%	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
+%	   \quad
+%	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+%              \quad
+%             (l, -) \not\in \domain(\sheap')
+%	    \quad 
+%	    \pc \not\vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
+%	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \uno{\{ \sexprp_i \mid_{i = 0}^n   \} \not\subseteq \sexprv'}} 
+%\end{mathpar}
+%\hrule
+%\caption{Unification of spatial assertions:
+% {\scriptsize$\unification{\sheap, \sstore, \pc}{\cell}{\subst}{\existentials} = \uyes{\subst', \sheap_f} \texttt{ OR } \uno{\pc'}$}}\label{fig:unification}}
+%\end{figure}
 
 \myparagraph{Finding counter models for separation logic assertions}
 We describe a partial decision procedure, which we  
 implement as part of the \jsil symbolic interpreter, for proving entailments 
-between symbolic states and separation logic assertions and finding counter 
+between symbolic states and SL-assertions \underline{and} finding counter 
 models in case of failure.  
+% I have to give more examples
+As customary~\cite{javert}, the decision procedure works by first using \emph{patter-matching} 
+on the spatial part of the SL-assertion, and then discharging the pure part of the 
+entailment to an external constraint solver (in our case: \rosette) . 
 
-For convenience, we represent a formula $P$ as a triple 
-$(\existentials, \sfs, \pfs)$, consisting of: 
-\dtag{1} the set $\existentials$ of existentially quantified symbolic values, 
-\dtag{2} the set $\sfs$ containing the spatial assertions in $P$, and 
-\dtag{3} a pure assertion $\pfs$. 
-Put formally we have that: 
-\begin{equation}
-P = \exists \svar_1, ..., \svar_k \, . \bigoast_{0 \leq i \leq n} \sass_i \ \wedge \ \pfs
-\end{equation}
-where $\existentials = \{ \svar_1, ..., \svar_k \}$ and $\sfs = \{ \sass_i \mid_{i = 0}^n \}$. 
+We target SL-assertions $P$ that can be represented as 4-tuples,
+$(\existentials, \cells, \efs, \pfs)$, consisting of: 
+\dtag{1} a set $\existentials$ of existentially quantified symbolic locations, 
+\dtag{2} a set $\cells$ containing the non-none cell assertions (those whose value is different from $\none$), 
+\dtag{3} a set $\efs$ containing both the empty-field assertions and the none-cell assertions, and
+\dtag{4} a pure assertion $\pfs$. 
+Hence, letting $\existentials = \{ \sloc_1, ..., \sloc_k \}$, $\cells = \{ \cell_i \mid_{i = 0}^n \}$, and
+$\efs = \{\efa_i \mid_{i = 0}^m \}$, we write $P \equiv (\existentials, \cells, \efs, \pfs)$ as shorthand for: 
+{\small \begin{equation*}
+P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i \ \sep  \bigoast_{0 \leq i \leq m} \efa_i \big) \ \wedge \ \pfs
+\end{equation*}}
 
-Figure~\ref{fig:unification} shows the unification rules for spatial assertions and logical 
-expressions. Given a set of existentially quantified variables $\existentials$, 
-symbolic state $(\sheap, \sstore, \pc)$, a spatial assertion $\sass$, and a substitution 
-$\subst$ mapping the existentially quantified variables that were already matched, 
-the unification rules compute a new substitution $\subst'$ and a new symbolic 
-heap $\sheap'$ coincides with $\sheap$ except that it does not contain the footprint 
-of $\sass$. 
+\vspace{-10pt}
+Given a symbolic state $(\sheap, \sstore, \pc)$ and an assertion $P \equiv (\existentials, \cells, \efs, \pfs)$, 
+we represent each possible mapping from the existentially quantified symbolic locations in $P$ 
+to the concrete locations in $\sheap$ as a \emph{substitution function} $\subst : \slocs \rightharpoonup \locs$.
+Since both $\existentials$ and the set of concrete locations in $\sheap$ 
+are finite, we conclude that there is a finite number of substitution functions to be considered 
+when checking if $(\sheap, \sstore, \pc)$ satisfies $P$. 
+%
+Hence, in the following, we will assume a fixed substitution,~$\subst$. 
 
-\begin{lemma}[Soundness of Unification for Spatial Assertions]\label{lemma:unification:spatial:assertions}
-\begin{enumerate}
-\item Successful termination: 
-$$
-\begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)} \\
-	\qquad \implies 
-		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)}  \, \wedge \, 
-		\subst' \geq \subst 
-\end{array}
-$$
-\item Unsuccessful termination: 
-$$
-\begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = {\optionnone} \\
-	\qquad \implies 
-		\neg\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)}  \, \wedge \, 
-		\subst' \geq \subst 
-\end{array}
-$$
-\end{enumerate}
-\end{lemma}
+Below, we show the unification rules for non-none cell assertions. 
+Unification of non-none cell assertions can either terminate
+successfully with $\uyes{\sheap_f}$, in which case $\sheap_f$ denotes the
+symbolic heap to be framed off, or unsuccessfully with $\uno{\pc'}$, 
+in which case $\pc'$ captures the constraints that need to hold for 
+the assertion to fail.
+Given a cell assertion $\cell$, a symbolic state $(\sheap, \sstore, \pc)$, 
+and a substitution $\subst$: 
+\begin{itemize}
+    \item if $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}$, then there are 
+            two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$
+            and $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}$; 
+   
+   \item if $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}$, then there are 
+            no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
+            and $\smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\subst(\cell)}$.
+\end{itemize}
 
-\begin{display}{Unification of \jsil assertions: $\unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst}$}
+\vspace{-3pt}
+\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \texttt{ OR } \uno{\pc'}$}
 {\scriptsize
 \begin{mathpar} 
-\inferrule[\textsc{Spatial Assertion}]
+\inferrule[\textsc{Cell Assertion}]
 	{  
-	   \sfs = \{ \sass \} \dunion \sfs'
-	   \and
-            \unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = (\subst', \sheap')
-            \\\\
-            \unificationfull{\sheap', \sstore, \pc}{\existentials, \sfs', \pfs'}{\sheap_f}{\subst'}
-	}{\unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst}} 
-\and 
-\inferrule[\textsc{Pure Assertions}]
+	   \subst(\symbeval{\lexpr_l}{\sstore})  = \loc 
+	   \quad 
+	    \symbeval{\lexpr_p}{\sstore} = \sexprp' 
+	   \quad
+	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	   \quad
+	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
+	   \quad
+	    \pc \vdash  \sexprp = \subst(\sexprp') 
+	   \quad
+	    \pc \vdash  \sexprv = \subst(\sexprv')
+	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}} 
+\\
+\inferrule[\textsc{Cell Assertion - Fail}]
 	{  
-	   \pc \vdash \subst(\pfs')
-	}{\unificationfull{\sheap, \sstore, \pc}{\existentials, \emptyset, \pfs'}{\sheap}{\subst}} 
+	  \subst(\symbeval{\lexpr_l}{\sstore}) = \loc
+	   \quad
+	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
+	   \quad
+	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	   \quad
+	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+	    \quad
+	    (l, -) \not\in \domain(\sheap') 
+  	   \\
+	   \forall_{0 \leq i \leq n} \, 
+	       \pc \not\vdash  \sexprp_i = \subst(\sexprp')
+	       \ \vee \
+	      \pc \not\vdash  \sexprv_i = \subst(\sexprv')
+	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = 
+		\uno{\wedge_{0 \leq i \leq n} (\pc_i \vee \pc_i')}} 
 \end{mathpar}}
 \end{display}
 
+
+\begin{figure}
+{\scriptsize
+\centering
+\begin{mathpar} 
+\inferrule[\textsc{Spatial Assertion}]
+	{  
+	   \cells = \{ \cell \} \dunion \cells'
+	   \and
+            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}
+            \\\\
+            \unificationfull{\sheap_f, \sstore, \pc}{\cells', \pfs'}{\subst}
+	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}} 
+\and 
+\inferrule[\textsc{Spatial Assertion}]
+	{  
+	   \cells = \{ \cell \} \dunion \cells'
+	   \and
+            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}
+            \\\\
+            \unificationfullfail{\sheap_f, \sstore, \pc}{\cells', \pfs'}{\subst}{\pc'}
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc'}} 
+\\
+\inferrule[\textsc{Pure Assertions}]
+	{  
+	   \pc \vdash \subst(\pfs')
+	}{\unificationfull{\hemp, \sstore, \pc}{\emptyset, \pfs'}{\subst}} 
+%
+\and
+%
+\qquad
+\inferrule[\textsc{Pure Assertions -  Fail}]
+	{  
+	      \pc \not\vdash \subst(\pfs')
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}{\subst(\pfs')}} 
+\\
+%
+\inferrule[\textsc{Cell Assertion - Fail}]
+	{  
+	   \sfs = \{ \cell \} \dunion \sfs'
+	   \and
+            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\sfs, \pfs'}{\subst}{\pc'}} 
+%
+\and
+\inferrule[\textsc{Extra Resource -  Fail}]
+	{  
+	    \sheap \neq \hemp
+	}{\unificationfull{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}} 
+%
+
+\end{mathpar}}
+\hrule
+\caption{Unification algorithm: {\small $\unificationfull{\hemp, \sstore, \pc}{\emptyset, \pfs'}{\subst}$}
+and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\sfs, \pfs'}{\subst}{\pc'}$}.\label{unification:algorithm}}
+\end{figure}
+
+Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
+The algorithm works by trying to unify the non-none cell assertions first. If they are all 
+successfully unified and the resulting symbolic heap is empty, then the final pure entailment 
+is discharged to the constraint solver. If the resulting symbolic heap is non-empty, then there 
+is additional resource and the unification also fails. Note that in case of failure, the algorithm 
+returns the constraints that need to be satisfied for a witness of that failure to be produced. 
+
+The soundness of unification theorem states that: given an SL-assertion $P$ and a 
+symbolic state $(\sheap, \sstore, \pc)$, if we find a substitution $\subst$ 
+for which the unification algorithm terminates successfully; then the symbolic state
+$(\sheap, \sstore, \pc)$ satisfies $P$. 
+The bug-finding algorithm is more subtle. It states that: if for all possible substitutions 
+$\subst$, the unification algorithm terminates with failure; then, in order to find a counter-model 
+for $P$, we just have to pick a concretisation of the symbolic state that is consistent with all 
+the failing constraints. Below, we use $\substs(\existentials, \sheap)$ to denote 
+the set of all mappings from $\existentials$ to the locations in~$\sheap$. 
+
 \begin{theorem}[Soundness of Unification]
+$\forall P, \existentials, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
 $$
 \begin{array}{l}
-P \equiv (\existentials, \sfs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\existentials, \sfs, \pfs'}{\sheap_f}{\subst} \\ 
-   \qquad \implies 
-		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(P)}  \, \wedge \, 
-		\subst' \geq \subst 
+P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst} \
+    \implies \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}   
 \end{array}
 $$ 
 \end{theorem}
 
+
+\begin{theorem}[Bug-finding for SL]
+$\forall P, \existentials, \cells, \efs, \pfs', \subst_k\!\mid_{k=0}^n,\sheap, \sstore, \pc \, .$
+$$
+\begin{array}{l}
+P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ 
+\substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \} \ \wedge \  \\
+\quad \forall_{0 \leq k \leq n} \, . \, \unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc_k} 
+%
+ \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
+\end{array}
+$$ 
+for $\pc'' = \pc \, \wedge \, \bigwedge_{k=0}^{n} \pc_k$.
+\end{theorem}
+
+
+\newpage
 \subsection{Compiling \jsil Specifications to Symbolic Tests}
 \label{specs:to:symbolic:tests}
 \polish{Explain \jsil specs} 
@@ -328,7 +443,7 @@ A symbolic test is a pair $(\prog', \sheap)$ consisting of a \jsil program and a
 differs from $\prog$ in that it has a new \jsilmain procedure with the code of the test, and $\sheap$ is the initial 
 symbolic heap on which to execute $\prog'$. 
 
-\begin{display}{Concretisation of \jsil assertions: $\concretise{\sass}{\subst} = \sheap, \subst'$ and $\concretise{(\existentials, \sfs, \pfs)}{\subst} = \sheap, \pfs', \subst'$}
+\begin{display}{Concretisation of \jsil assertions: $\concretise{\cell}{\subst} = \sheap, \subst'$ and $\concretise{(\existentials, \sfs, \pfs)}{\subst} = \sheap, \pfs', \subst'$}
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Spatial Assertion - Lit Loc}]
@@ -352,9 +467,9 @@ symbolic heap on which to execute $\prog'$.
 \and 
 \inferrule[\textsc{Spatial Assertion}]
 	{
-	    \sfs = \{ \sass \} \dunion \sfs'
+	    \sfs = \{ \cell \} \dunion \sfs'
 	    \quad 
-	    \concretise{\sass}{\subst} = \sheap, \subst' 
+	    \concretise{\cell}{\subst} = \sheap, \subst' 
 	    \\\\
 	    \concretise{(-, \sfs', \pfs)}{\subst'} = \sheap', \pfs', \subst''
 	}{\concretise{(-, \sfs, \pfs)}{\subst} = \sheap \dunion \sheap', \pfs', \subst''}  
@@ -452,4 +567,126 @@ map.  The specification is given below.
 \end{displaymath}
 %
 The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsinline|Object.prototype| object. 
-In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function. .
+In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function.
+
+
+%%
+%% OLD THINGS
+
+%\begin{figure}[t!]
+%\centering
+%{\scriptsize
+%\begin{mathpar} 
+%\inferrule[\textsc{New Existential}]
+%     { 
+%         \svar \in \existentials 
+%         \quad
+%         \svar \not\in \domain(\subst)
+%     }
+%     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionsome{\subst[\svar \mapsto \sexpr]}}
+%\quad
+%\inferrule[\textsc{Matched Existential}]
+%     { 
+%         \subst(\svar) = \sexpr' 
+%         \quad 
+%         \pc \vdash \sexpr = \sexpr' 
+%     }
+%     {\unification{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionsome{\subst}}
+%\quad
+%\inferrule[\textsc{Existential - None}]
+%     { 
+%         \subst(\svar) = \sexpr' 
+%         \quad 
+%         \pc \vdash \sexpr \neq \sexpr' 
+%     }
+%     {\unificationfail{\sexpr, \pc}{\svar}{\subst}{\existentials} = \optionnone}
+%\\
+%\inferrule[\textsc{Grounded Expression}]
+%     { 
+%         \fv(\subst(\sexpr')) \cap \existentials = \emptyset
+%         \quad 
+%          \pc \vdash  \sexpr = \subst(\sexpr') 
+%     }
+%     {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionsome{\subst}}
+%\qquad
+%\inferrule[\textsc{Grounded Expression - Fail}]
+%     { 
+%         \fv(\subst(\sexpr')) \cap \existentials = \emptyset
+%         \quad 
+%          \pc  \vdash  \sexpr \neq \subst(\sexpr') 
+%     }
+%     {\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone}
+%%
+%\\
+%\inferrule[\textsc{Cell Assertion}]
+%	{  
+%	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
+%	   \quad 
+%	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
+%	   \quad
+%	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+%	   \quad
+%	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
+%	   \\
+%	   \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionsome{\subst'} 
+%	   \quad
+%	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionsome{\subst''} 
+%	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionsome{(\subst'', \sheap_f)}} 
+%\\
+%\inferrule[\textsc{Cell Assertion - Fail}]
+%	{  
+%	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
+%	   \quad
+%	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
+%	   \quad
+%	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+%	   \quad
+%	     \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+%  	   \\
+%	    (l, -) \not\in \domain(\sheap') 
+%	    \quad 
+%	   \forall_{0 \leq i \leq n} \, \unification{\sexprp, \pc}{\sexprp'}{\subst}{\existentials} = \optionnone 
+%	   \ \vee \
+%	   \unification{\sexprv, \pc}{\sexprv'}{\subst'}{\existentials} = \optionnone
+%	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst}{\existentials} = \optionnone} 
+%\\
+%\inferrule[\textsc{EmptyFields Assertion}]
+%	{  
+%	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
+%	   \quad 
+%	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
+%	   \\\\
+%	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+%              \quad
+%             (l, -) \not\in \domain(\sheap')
+%	    \quad 
+%	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
+%	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionsome{(\subst, \sheap)}} 
+%\\
+%\inferrule[\textsc{EmptyFields Assertion - Failing}]
+%	{  
+%	   \big(\loc = \symbeval{\lexpr_l}{\sstore} \ \vee \loc = \subst(\symbeval{\lexpr_l}{\sstore}) \big)
+%	   \quad 
+%	     \symbeval{\lexpr_d}{\sstore} = \sexprv' 
+%	   \\\\
+%	     \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+%              \quad
+%             (l, -) \not\in \domain(\sheap')
+%	    \quad 
+%	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \not\subseteq \sexprv' \big)
+%	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionnone} 
+%\end{mathpar}
+%\hrule
+%\caption{Unification of spatial assertions:
+% {\scriptsize$\unification{\sheap, \sstore, \pc}{\cell}{\subst}{\existentials} = (\subst', \sheap_f)$}\label{fig:unification}}}
+%\end{figure}
+
+
+%{\small 
+%\begin{align}
+%\sepmodels{P} = \left\{ (\iheap, \store) \mid \exists \senv \, . \,  \iheap, \store, \senv \satisfies P  \right\} 
+%\\ 
+%\smodels{\isheap, \sstore}{\pc} = \left\{ (\iheap, \store) \mid \exists \senv \, . \,  \senv \vdash \pc \ \wedge \
+%    \iheap = \symbeval{\isheap}{\senv} \ \wedge \ \store = \symbeval{\sstore}{\senv}  \right\} 
+%\end{align}} 
+

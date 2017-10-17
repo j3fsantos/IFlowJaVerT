@@ -469,8 +469,8 @@ This code:
   { 
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
-     \pc \vdash \neg\sexpr 
-  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{\pc}}
+     (\pc \, \wedge \,  \neg\sexpr) \text{ satisfiable}
+  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{(\pc \, \wedge \,  \neg\sexpr)}}
   \quad
 %
 \inferrule[\textsc{Assume}]
@@ -593,10 +593,10 @@ Given a symbolic state $(\sheap, \sstore, \sctx)$ and a path condition $\pc$, we
 the models of the symbolic state under $\pc$, written $\smodels{\sheap, \sstore, \sctx}{\pc}$, 
 as the set of concrete states that can be obtained from $(\sheap, \sstore, \sctx)$ using 
 logical environments that are consistent with $\pc$. Formally:
-{\small \begin{align*}
+{\small \begin{align}
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} \\
 \smodels{\sheap, \sstore}{\pc} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \vdash \pc  \right\}
-\end{align*}}
+\end{align}}
 
 \begin{figure}[!h]
 {
@@ -701,8 +701,8 @@ in the models of one of the final symbolic states (under its associated path con
 As \jilette does not infer loop invariants, if a \jsil program contains loops that cannot be unrolled statically, we will never be in the case of the verification corollary. 
 
 \begin{corollary}[Verification]\label{corollary:verification}
-$\forall \, \sheap, \sheap_i|_{i=1}^k, \sstore, \sstore_i|_{i=1}^k, 
-\sctx, \sctx_i|_{i=1}^k, i, j_i|_{i=1}^k, \pc, \pc_i|_{i=1}^k \, . \,$
+$\forall \, \sheap, \sheap_i|_{i=1}^n, \sstore, \sstore_i|_{i=1}^n, 
+\sctx, \sctx_i|_{i=1}^n, i, j_i|_{i=1}^n, \pc, \pc_i|_{i=1}^n \, . \,$
 \vspace{-0.25cm}
 $$
 \begin{array}{l}
@@ -710,7 +710,7 @@ $$
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
       \quad \implies 
          \forall \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
-          \ \quad \implies \exists \heap', \store', \ctx' \, . \, 
+          \ \quad \implies \exists \heap', \store', \ctx', k\, . \, 
                   \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
                   (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
 \end{array}   

@@ -1214,19 +1214,19 @@ between $\pc \vdash \sexpr \neq \sexpr''$ and \hyp{4}.
 \item Successful unification: 
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)} \\
+\unification{\sheap, \sstore, \pc}{\cell}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)} \\
 	\qquad \implies 
 		\exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)} 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\cell)} 
 \end{array}
 $$
 \item Unsuccessful unification: 
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = {\optionnone} \\
+\unification{\sheap, \sstore, \pc}{\cell}{\subst}{\existentials} = {\optionnone} \\
 	\qquad \implies \forall \subst' \geq \subst  \, . \, 
 		\neg\exists \sheap' . \, \sheap = \sheap' \dunion -  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\sass)} 
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst'(\cell)} 
 		
 \end{array}
 $$
@@ -1236,11 +1236,11 @@ $$
 %
  We start with the proof of the lemma for the case of \underline{successful unification}. 
  Hence, suppose it holds that: 
-$\unification{\sheap, \sstore, \pc}{\sass}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)}$ (\hyp{1}). 
+$\unification{\sheap, \sstore, \pc}{\cell}{\subst}{\existentials} = \optionsome{(\subst', \sheap_f)}$ (\hyp{1}). 
 We proceed by case analysis on the rule used to derive \hyp{1}.
 \vspace{6pt}
 
-\noindent\prooflab{Cell Assertion} We conclude that $\sass = (\lexpr_l,\lexpr_p)\pointsto \lexpr_v$  and 
+\noindent\prooflab{Cell Assertion} We conclude that $\cell = (\lexpr_l,\lexpr_p)\pointsto \lexpr_v$  and 
 that there are symbolic expressions $\sexprp$, $\sexprp'$, $\sexprv$, and $\sexprv'$ and a substitution $\subst''$ such that:  
 $$ 
 \begin{array}{l}
@@ -1317,7 +1317,7 @@ From Equations \ieq{9} and \ieq{13}, it follows that $\pc \vdash \sexprp = \subs
  
  
  
-\noindent\prooflab{EmptyFields Assertion} We conclude that $\sass = \emptyfields{\lexpr_l}{\lexpr_d}$  and 
+\noindent\prooflab{EmptyFields Assertion} We conclude that $\cell = \emptyfields{\lexpr_l}{\lexpr_d}$  and 
 that there is a location $\loc$, a symbolic heap $\sheap''$, and symbolic expressions $\sexprv'$, $\sexprp_0$, 
 ..., $\sexpr_n$, such that: 
 $$
