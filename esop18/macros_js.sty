@@ -750,11 +750,13 @@
 \newcommand{\subst}[0]{\theta}
 \newcommand{\unification}[3]{{\cal U}_{#3}^{}((#1), #2)} %\checkmark
 \newcommand{\unificationfail}[4]{{\cal U}_{#4}^{\times}((#1), #2, #3)}
-\newcommand{\unificationfull}[3]{\lconf{(#1), (#2)} \Downarrow_{\cal U}^{#3}}
-\newcommand{\unificationfullfail}[4]{\lconf{(#1), (#2)} \Downarrow_{\cal U}^{#3}\mathtt{F}(#4)}
+\newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{S}}^{#3}}
+\newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{F}}^{#3}(#4)}
+\newcommand{\cellunification}[3]{#3 \vdash \tuple{#1} \rightarrow_{\cal U} \tuple{#2}}
+\newcommand{\cellunificationiter}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\cal U} \tuple{#2}}
 \newcommand{\uyes}[1]{{\mathtt{S}}(#1)}
 \newcommand{\uno}[1]{{\mathtt{F}}(#1)}
-\newcommand{\substs}[0]{\mathtt{substs}}
+\newcommand{\substs}[0]{{\sf substs}}
 
 %%
 %% Specs - test generation

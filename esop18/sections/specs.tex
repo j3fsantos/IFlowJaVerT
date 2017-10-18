@@ -1,11 +1,11 @@
 %!TEX root = ../main.tex
 
 We show how to use \jilette for debugging JavaScript code annotated with 
-separation logic specifications with the goal of finding bugs in both 
+separation logic (SL) specifications with the goal of finding bugs in both 
  specifications and code. In \S\ref{subsec:sep:assertions}, we describe the 
 extension of the \jsil symbolic interpreter with a special construct for asserting
-a separation logic assertion. In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
-for generating symbolic tests from separation logic specifications, so that if a 
+an SL-assertion. In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
+for generating symbolic tests from SL-specifications, so that if a 
 symbolic test fails, the failure comes with a concrete counter-model that invalidates 
 the specification. Finally, in \S\ref{specs:example}, we show how to use the 
 proposed methodology for debugging JaVerT specifciations~\cite{javert} of JavaScript code. 
@@ -115,7 +115,7 @@ if the current symbolic state satisfies $P$):
           \sheap, \sstore, \pc \not\satisfies P
   }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}{}{\pc}} 
 \end{mathpar}}
-\hspace{-3pt}Determining whether or not a symbolic state satisfies a SL-assertion $P$ is, in general, 
+\hspace{-3pt}Determining whether or not a symbolic state satisfies an SL-assertion $P$ is, in general, 
 undecidable. Importantly, since we do not want to produce \emph{false positives}, in order to trigger 
 an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
 $\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must only 
@@ -242,10 +242,10 @@ entailment to an external constraint solver (in our case: \rosette) .
 We target SL-assertions $P$ that can be represented as 4-tuples,
 $(\existentials, \cells, \efs, \pfs)$, consisting of: 
 \dtag{1} a set $\existentials$ of existentially quantified symbolic locations, 
-\dtag{2} a set $\cells$ containing the non-none cell assertions (those whose value is different from $\none$), 
+\dtag{2} a list $\cells$ containing the non-none cell assertions (those whose value is different from $\none$), 
 \dtag{3} a set $\efs$ containing both the empty-field assertions and the none-cell assertions, and
 \dtag{4} a pure assertion $\pfs$. 
-Hence, letting $\existentials = \{ \sloc_1, ..., \sloc_k \}$, $\cells = \{ \cell_i \mid_{i = 0}^n \}$, and
+Hence, letting $\existentials = \{ \sloc_1, ..., \sloc_k \}$, $\cells = [ \cell_i \mid_{i = 0}^n ]$, and
 $\efs = \{\efa_i \mid_{i = 0}^m \}$, we write $P \equiv (\existentials, \cells, \efs, \pfs)$ as shorthand for: 
 {\small \begin{equation*}
 P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i \ \sep  \bigoast_{0 \leq i \leq m} \efa_i \big) \ \wedge \ \pfs
@@ -324,56 +324,45 @@ and a substitution $\subst$:
 {\scriptsize
 \centering
 \begin{mathpar} 
-\inferrule[\textsc{Spatial Assertion}]
+\inferrule[\textsc{Iterated Cell Unification}]
 	{  
-	   \cells = \{ \cell \} \dunion \cells'
-	   \and
-            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}
-            \\\\
-            \unificationfull{\sheap_f, \sstore, \pc}{\cells', \pfs'}{\subst}
-	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}} 
-\and 
-\inferrule[\textsc{Spatial Assertion}]
-	{  
-	   \cells = \{ \cell \} \dunion \cells'
-	   \and
-            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}
-            \\\\
-            \unificationfullfail{\sheap_f, \sstore, \pc}{\cells', \pfs'}{\subst}{\pc'}
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc'}} 
-\\
-\inferrule[\textsc{Pure Assertions}]
-	{  
+	   \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}
+	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_q, \cells}{\sstore, \pc, \subst}} 
+\and
+\inferrule[\textsc{Success}]
+	{     
+	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
+	   \qquad 
 	   \pc \vdash \subst(\pfs')
-	}{\unificationfull{\hemp, \sstore, \pc}{\emptyset, \pfs'}{\subst}} 
-%
+	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}} 
+\\
+\inferrule[\textsc{Fail - Pure Entailment}]
+	{  
+	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
+            \qquad
+             \pc \not\vdash \subst(\pfs')
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\subst(\pc')}} 
 \and
 %
-\qquad
-\inferrule[\textsc{Pure Assertions -  Fail}]
+\inferrule[\textsc{Fail - Extra Resource}]
 	{  
-	      \pc \not\vdash \subst(\pfs')
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}{\subst(\pfs')}} 
+	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\sstore, \pc, \subst}
+	     \qquad
+	     \sheap_f \neq \hemp
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}{\jtrue}} 
+%
 \\
 %
-\inferrule[\textsc{Cell Assertion - Fail}]
+\inferrule[\textsc{Fail - Cell Unification}]
 	{  
-	   \sfs = \{ \cell \} \dunion \sfs'
-	   \and
-            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\sfs, \pfs'}{\subst}{\pc'}} 
-%
-\and
-\inferrule[\textsc{Extra Resource -  Fail}]
-	{  
-	    \sheap \neq \hemp
-	}{\unificationfull{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}} 
-%
-
+	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\sstore, \pc, \subst}
+            \qquad
+          \unification{\sheap', \sstore, \pc}{\cell}{\subst} = \uno{\pc''}
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc''}} 
 \end{mathpar}}
 \hrule
-\caption{Unification algorithm: {\small $\unificationfull{\hemp, \sstore, \pc}{\emptyset, \pfs'}{\subst}$}
-and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\sfs, \pfs'}{\subst}{\pc'}$}.\label{unification:algorithm}}
+\caption{Unification algorithm: {\small $\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}$}
+and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc'}$}.\label{unification:algorithm}}
 \end{figure}
 
 Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
@@ -387,13 +376,13 @@ The soundness of unification theorem states that: given an SL-assertion $P$ and 
 symbolic state $(\sheap, \sstore, \pc)$, if we find a substitution $\subst$ 
 for which the unification algorithm terminates successfully; then the symbolic state
 $(\sheap, \sstore, \pc)$ satisfies $P$. 
-The bug-finding algorithm is more subtle. It states that: if for all possible substitutions 
+The bug-finding theorem is more subtle. It states that: if for all possible substitutions 
 $\subst$, the unification algorithm terminates with failure; then, in order to find a counter-model 
 for $P$, we just have to pick a concretisation of the symbolic state that is consistent with all 
 the failing constraints. Below, we use $\substs(\existentials, \sheap)$ to denote 
 the set of all mappings from $\existentials$ to the locations in~$\sheap$. 
 
-\begin{theorem}[Soundness of Unification]
+\begin{theorem}[Soundness of Unification]\label{teo:unification:soundness}
 $\forall P, \existentials, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
 $$
 \begin{array}{l}
@@ -410,7 +399,7 @@ $$
 \begin{array}{l}
 P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ 
 \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \} \ \wedge \  \\
-\quad \forall_{0 \leq k \leq n} \, . \, \unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc_k} 
+\quad \forall_{0 \leq k \leq n} \, . \, \unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst_k}{\pc_k} 
 %
  \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
 \end{array}
@@ -689,4 +678,68 @@ In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty
 %\smodels{\isheap, \sstore}{\pc} = \left\{ (\iheap, \store) \mid \exists \senv \, . \,  \senv \vdash \pc \ \wedge \
 %    \iheap = \symbeval{\isheap}{\senv} \ \wedge \ \store = \symbeval{\sstore}{\senv}  \right\} 
 %\end{align}} 
+
+
+
+%
+%\begin{figure}
+%{\scriptsize
+%\centering
+%\begin{mathpar} 
+%\inferrule[\textsc{Spatial Assertion}]
+%	{  
+%	   \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}
+%	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_q, \cells}{\sstore, \pc, \subst}} 
+%\\
+%\inferrule[\textsc{Successful Unification}]
+%	{  
+%	   
+%	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
+%	   \qquad 
+%	   \pc \vdash \subst(\pfs')
+%%	   \cells =  \cell \lstcons \cells'
+%%	   \and
+%%            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}
+%%            \\\\
+%%            \unificationfull{\sheap_f, \sstore, \pc}{\cells', \pfs'}{\subst}
+%	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}} 
+%\and 
+%\inferrule[\textsc{Spatial Assertion}]
+%	{  
+%	   \cells = \cell \lstcons \cells'
+%	   \and
+%            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}
+%            \\\\
+%            \unificationfullfail{\sheap_f, \sstore, \pc}{\cells', \pfs'}{\subst}{\pc'}
+%	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc'}} 
+%\\
+%\inferrule[\textsc{Pure Assertions}]
+%	{  
+%	   \pc \vdash \subst(\pfs')
+%	}{\unificationfull{\hemp, \sstore, \pc}{\emptyset, \pfs'}{\subst}} 
+%%
+%\and
+%%
+%\qquad
+%\inferrule[\textsc{Pure Assertions -  Fail}]
+%	{  
+%	      \pc \not\vdash \subst(\pfs')
+%	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}{\subst(\pfs')}} 
+%\\
+%%
+%\inferrule[\textsc{Cell Assertion - Fail}]
+%	{  
+%	   \sfs = \cells \lstcons \cells
+%	   \and
+%            \unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}
+%	}{\unificationfullfail{\sheap, \sstore, \pc}{\sfs, \pfs'}{\subst}{\pc'}} 
+%%
+%\and
+%\inferrule[\textsc{Extra Resource -  Fail}]
+%	{  
+%	    \sheap \neq \hemp
+%	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}{\jtrue}} 
+%%
+%\end{mathpar}}
+%\hrule
 
