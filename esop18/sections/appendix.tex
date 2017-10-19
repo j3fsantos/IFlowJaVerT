@@ -1311,6 +1311,7 @@ Equations \ieq{2}, \ieq{3}, and \ieq{5} give us the contradiction.
  
  
 \begin{lemma}[Iterated Cell Unification]
+\label{lemma:iter:cell:unification}
 $$
 \begin{array}{l}
   \cellunificationiter{\sheap, \cells}{\sheap_f,  \cells'}{\sstore, \pc, \subst} \, \wedge \, \cells = \cells'' \lstconcat \cells'  \\ 
@@ -1450,7 +1451,7 @@ We now consider both directions of the equivalence separately.
 \end{proof}
 
 
-\begin{lemma}[Symbolic State Models and Negative Resource - 1]
+\begin{lemma}[Symbolic State Models and Negative Resource - 1]\label{lemma:negative:resource}
 $$
 \begin{array}{l}
   (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \, \wedge \, \pc \vdash \unificationef{\sheap}{\efs} \, \wedge \,  \sanity{\efs} \\
@@ -1496,32 +1497,27 @@ We proceed by case analysis on $\efa$.
 	       \unificationef{\sheap}{\efs} \vdash \unificationefl{\sheap}{(\loc,\sexprp)\pointsto \none} = \sexprp \not\in \{  \sexprp_i \mid_{i = 0}^n \} \text{ (\ieq{10})} 
 	    $$
 	    for $\sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$ and $(l, -) \not\in \domain(\sheap')$. 
-	    From the hypothesis, \ieq{1}, and \ieq{9}, we conclude $\senv \satisfies   \sexprp \not\in \{  \sexprp_i \mid_{i = 0}^n \}$ (\ieq{10}), 
-	    from which it follows that $(\loc, \symbeval{\sexprp}{\senv}) \not\in \domain(\symbeval{\sheap}{\senv}) = \domain(\heap)$ (\ieq{11}). 
-	    From \ieq{9} and \ieq{11}, we conclude that $\heap \disjoint \iheap'$. 
+	    From the hypothesis, \ieq{1}, and \ieq{10}, we conclude $\senv \satisfies   \sexprp \not\in \{  \sexprp_i \mid_{i = 0}^n \}$ (\ieq{11}), 
+	    from which it follows that $(\loc, \symbeval{\sexprp}{\senv}) \not\in \domain(\symbeval{\sheap}{\senv}) = \domain(\heap)$ (\ieq{12}). 
+	    From \ieq{9} and \ieq{12}, we conclude $\heap \disjoint \iheap'$. 
 	    \vspace{4pt}
 	    
   \item $\efa = \emptyfields{\loc}{\sexpr_d}$ for some location $\loc$ and symbolic expression $\sexpr_d$. 
            There are two cases to consider: \dtag{i} $\loc \not\in \eflocs(\sheap)$, in which case 
 	    it immediately holds that $\heap \disjoint \iheap'$ and \dtag{ii} $\loc \in \eflocs(\sheap)$. 
 	    Let us now prove the result for \dtag{ii}. 
-	    It follows from $\efa = \emptyfields{\loc}{\sexpr_d}$ that $\iheap' = \uplus_{\jstring \not\in \symbeval{\sexprp}{\senv}}\big((\loc, \jstring) \mapsto \none\big)$ (\ieq{12}). 
+	    It follows from $\efa = \emptyfields{\loc}{\sexpr_d}$ that $\iheap' = \uplus_{\jstring \not\in \symbeval{\sexpr_d}{\senv}}\big((\loc, \jstring) \mapsto \none\big)$ (\ieq{13}). 
             From \ieq{3}, and the definition of $\unificationef{\sheap}{\efs}$, 
 	    we conclude that: 
 	    $$
-	       \unificationef{\sheap}{\efs} \vdash \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}} =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d \text{ (\ieq{13})} 
+	       \unificationef{\sheap}{\efs} \vdash \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}} =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d \text{ (\ieq{14})} 
 	    $$
-	    for $\sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$  
-
+	    for $\sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$ and $(l, -) \not\in \domain(\sheap')$. 
+	    From the hypothesis, \ieq{1}, and \ieq{14}, we conclude $\senv \satisfies \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d$ (\ieq{15}), 
+	    from which it follows that $\domain(\symbeval{\sheap}{\senv}) = \domain(\heap) \subseteq \{ (\loc, \jstring) \mid \jstring \in \symbeval{\sexpr_d}{\senv} \}$ (\ieq{16}). 
+	    From \ieq{13}, we conclude that: $\domain(\iheap') \cap \{ (\loc, \jstring) \mid \jstring \in  \symbeval{\sexpr_d}{\senv} \} = \emptyset$ (\ieq{17}).
+	    From \ieq{16} and \ieq{17}, it follows that $\domain(\iheap') \cap \domain(\heap) = \emptyset$. 
 \end{itemize}
-
-
-
-%    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-%	    \quad 
-%	     (l, -) \not\in \domain(\sheap')
-%	}{ \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}}{} =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d   } 
-
 \end{proof}
 
 
@@ -1538,14 +1534,83 @@ $$
 \begin{proof}
 It must be the case that: 
 $$
-\cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst} \text{ (\ieq{1})}
+\begin{array}{l}
+\cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst} \text{ (\ieq{1})} \\
 %
-  \qquad 
-%
-\pc \vdash \subst(\pfs') \text{ (\ieq{2})}
+\pc \vdash \subst(\pfs') \ \wedge \ \sanity{\symbeval{\subst(\efs)}{\sstore}} \ \wedge \  \unificationef{\sheap}{\symbeval{\subst(\efs)}{\sstore}} \text{ (\ieq{2})}
+\end{array}
 $$
 
+\begin{enumerate}
+
+\item We start by proving that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \wedge \pc}$. 
+Applying the Iterated-Cell-Unification Lemma (Lemma~\ref{lemma:iter:cell:unification}) to \ieq{1}, 
+we conclude that: 
+$$
+  \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells)} \text{ (\ieq{2})}
+$$  
+From \ieq{2}, noting that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\pc}$, 
+we conclude that: 
+$$
+\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \wedge \pc} \text{ (\ieq{3})}
+$$  
+
+\item We will now prove that  $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs)}$. 
+To this end, let us assume that $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$ (\ieq{4}). 
+From \ieq{4}, we conclude that there is a symbolic environment $\senv$ such that $\senv \satisfies \pc$ (\ieq{5}), 
+$\heap = \symbeval{\heap}{\senv}$ (\ieq{6}), and $\store = \symbeval{\sstore}{\senv}$ (\ieq{6}).
+We will now prove that there is an instrumented heap $\iheap$  and $\senv'$ such 
+that: $\iheap, \store, \senv' \satisfies \subst(\cells) \sep \subst(\efs)$ and $\deabstract{\iheap} = \heap$. 
+From \ieq{3} and \ieq{4}, we conclude that there is a symbolic environment $\senv'$ and 
+an instrumented heap $\iheap$ such that: $\iheap, \store, \senv' \satisfies \subst(\cells) \sep \pc$ (\ieq{7}). 
+From \ieq{7}, it follows that: $\iheap, \store, \senv' \satisfies \subst(\cells)$ (\ieq{8}) and $\senv' \satisfies \pc$ (\ieq{9}).
+Applying Lemma~\ref{lemma:negative:resource} to \ieq{2}, \ieq{4}, and \ieq{9}, we conclude that 
+there is an instrumented heap $\iheap'$ such that: $\iheap', -, \senv' \satisfies \symbeval{\subst(\efs)}{\sstore}$ (\ieq{10}) 
+and $\heap \disjoint \iheap'$ (\ieq{11}). 
+Noting that: 
+$$
+\iheap', -, \senv' \satisfies \symbeval{\subst(\efs)}{\sstore} \iff 
+     \iheap', \symbeval{\sstore}{\senv'}, \senv' \satisfies \subst(\efs)
+$$
+we conclude that $\iheap', \store, \senv' \satisfies \subst(\efs)$ (\ieq{12}). 
+Since $\subst(\cells)$ does not have a negative footprint, we conclude that $\domain(\iheap) = \domain(\heap)$ (\ieq{13}). 
+From \ieq{11} and \ieq{13}, $\iheap \disjoint \iheap'$ (\ieq{14}). 
+From \ieq{8}, \ieq{12}, and \ieq{14}, it follows that: 
+$$
+\iheap \dunion \iheap', \store, \senv' \satisfies \subst(\cells) \sep \subst(\efs) \text{ (\ieq{15})}
+$$  
+which concludes the proof that: $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs)}$ (\ieq{16}). 
+\vspace{4pt}
+
+\item From \ieq{16}, we conclude that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs) \, \wedge \, \pc}$ (\ieq{17}). 
+From \ieq{2} and \ieq{17}, we conclude that: 
+$$
+  \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs)}  
+  %
+  \qquad 
+  %
+   \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\pfs')}  
+$$
+from which it follows that: 
+$$ 
+ \begin{array}{lcl}
+  \smodels{\sheap, \sstore}{\pc} 
+           & \subseteq & 
+             \sepmodels{\subst(\cells) \sep \subst(\efs)} \ \cap \ \sepmodels{\subst(\pfs')}  \\
+           & =  &
+             \sepmodels{\subst(\cells) \sep \subst(\efs) \, \wedge \, \subst(\pfs')} \\
+           & =  & \sepmodels{\cells \sep \efs \, \wedge \, \pfs'}
+ \end{array}
+$$ 
+Observing that the domain of $\subst$ coincides with the logical variables existentially quantified ($\domain(\subst) = L$), 
+it follows: $\smodels{\sheap, \sstore}{\pc}  \subseteq \sepmodels{P}$, which concludes the proof. 
+\end{enumerate}
 \end{proof}
+
+
+\begin{lemma}[Counter Models for Failed Grounded Entailement]
+
+\end{lemma}
  
 % 
 % if $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}$, then there are 

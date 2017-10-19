@@ -360,7 +360,7 @@ and a substitution $\subst$:
 	{  
 	   \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}
 	}{\cellunification{\sheap, (\lexpr_l,\lexpr_p)\pointsto \lexpr_v \lstcons \cells}{\sheap_f, \cells}{\sstore, \pc, \subst}} 
-\and
+\qquad
 \inferrule[\textsc{Success}]
 	{     
 	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
