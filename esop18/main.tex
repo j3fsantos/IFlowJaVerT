@@ -255,7 +255,7 @@ and \dtag{4} it is \emph{extensible}, in that its coverage can easily be extende
 	%
 	and widely used runtime libraries that are not part of the standard, such as the DOM.
 
-We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs (\S; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
 \myparagraph{Architecture}
 The core of \jilette consists of a symbolic interpreter for
@@ -291,7 +291,7 @@ approach to obtaining trust in JavaScript code is running it against
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
 cannot guarantee exhaustiveness. % we also cant guarantee exhaustiveness 
-In \S\ref{sec:sym:exec:js}, we show how to use \jilette
+In \S\ref{symbolic:testing}, we show how to use \jilette
 for symbolic testing of JavaScript code: instead of 
 tests with concrete 
 inputs, the developer uses symbolic inputs and states the 
@@ -305,11 +305,11 @@ to fail, exposing bugs in the tested code.
 \myparagraph{Application: Debugging Separation Logic Specifications}
 Due to the complexity of JavaScript semantics, functional correctness 
 specifications of JS programs are highly intricate. 
-There are only a few tools (for example, \javert \cite{javert} and KJS \cite{kjs}) that even support such expressivity. They target the specialist developer wanting rich, 
+There are only a few tools (for example, \javert \cite{javert} and KJS \cite{Park:2015,stefanescu-park-yuwen-li-rosu-2016-oopsla}) that support such expressivity. They target the specialist developer wanting rich, 
 mechanically verified specifications of critical JavaScript code.
 However, when these 
 tools cannot prove that a given function satisfies a specification, to discover the error, 
-the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback (KJS). 
+the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback~(KJS). 
 
 In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs in \javert. 
@@ -330,19 +330,19 @@ both specifications and code.
 %The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript, whereas the soundness result for the \jsil symbolic execution in \jilette guarantees absence of false positives. \polish{Sentence about unification.}
 %\jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
 
-\newpage
-
-\myparagraph{What's in the paper}
-
-\bigskip
-\polish{TO GO IN SOMEWHERE \\
-
-Clarify ES5 Strict
-
-JaVerT targets the specialist
-developer wanting rich, mechanically verified specifications of critical JavaScript code.
-Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
-}
+%\newpage
+%
+%\myparagraph{What's in the paper}
+%
+%\bigskip
+%\polish{TO GO IN SOMEWHERE \\
+%
+%Clarify ES5 Strict
+%
+%JaVerT targets the specialist
+%developer wanting rich, mechanically verified specifications of critical JavaScript code.
+%Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
+%}
 
 
 
@@ -357,7 +357,7 @@ Functional correctness, yes, and it works, but paid for by a heavy annotation bu
 %and regular expressions, whereas JS-2-JSIL successfully
 %contains the complexity of JavaScript itself.
 
-\newpage
+%\newpage
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jilette}
 
