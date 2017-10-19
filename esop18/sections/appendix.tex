@@ -1368,11 +1368,82 @@ $$
 which concludes the result. 		
 \end{proof}
 
-\begin{lemma}[Models and $\efs$]
-If the assertion $\cells \sep \efs$ is satisfiable then: 
-$$\sepmodels{\cells \sep \efs} = \sepmodels{\cells}$$
+\begin{lemma}[Sanity Constraints and Negative Resource]
+For $\pc = \sanity{\subst}{\efs}$, $\pvars(\efs) = \emptyset$, and $\aslocs(\efs) = \emptyset$, 
+it holds that: 
+$$
+  \senv \satisfies \pc  \ \iff \ 
+       \exists \iheap \, . \, \iheap, -, \senv \satisfies \efs
+$$
 \end{lemma}
+\begin{proof}
+We proceed by induction on the size of $\eflocs(\efs)$. 
+\vspace{6pt}
 
+\noindent\prooflab{Base Case}  $\lstsize{\eflocs(\efs)} = 0$. We conclude that $\pc = \jtrue$ 
+and $\efs \equiv \lemp$. We rewrite the equivalence as follows: 
+$
+ \senv \satisfies \jtrue  \iff  \exists \iheap \, . \, \iheap, -, \senv \satisfies \lemp
+$,
+from which the result follows. 
+\vspace{6pt}
+
+\noindent\prooflab{Inductive Case}  $\lstsize{\eflocs(\efs)} = k+1$. We conclude that 
+$\eflocs(\efs) = \{ \loc \} \dunion L$. We can therefore conclude that: 
+$$
+\begin{array}{l}
+\efs = \efproj{\efs}{L} \sep \ \efproj{\efs}{\loc} \text{ (\ieq{1})}
+%
+\\
+%
+\pc = \pc_{loc} \, \wedge \, \pc' \text{ (\ieq{2})}
+%
+\\ 
+%
+ \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto -\big) \text{ (\ieq{3})}
+%
+\\ 
+\pc_{\loc} = (\wedge_{0 \leq i, j \leq n, i \neq j} \symbeval{\sexprp_i}{\sstore} \neq \symbeval{\sexprp_j}{\sstore})
+		       \, \wedge \,  \big(\{  \symbeval{\sexpr_i}{\sstore} \mid_{i = 0}^n \} \subseteq \symbeval{\sexpr_d}{\sstore}\big) \text{ (\ieq{4})}
+\end{array}
+$$
+where $\pc' = \sanity{\subst}{\efproj{\efs}{L}}$.
+\vspace{6pt}
+
+\end{proof}
+
+
+\begin{lemma}[Symbolic State Models and Negative Resource - 1]
+$$
+\begin{array}{l}
+  (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \, \wedge \, \pc \vdash \unificationef{\sheap, \sstore}{\efs}{\subst} \\
+  \qquad 
+      \implies \forall \senv \, . \, \senv \vdash \pc  \implies \exists \iheap . \, \iheap, \store, \senv \satisfies \efs \, \wedge \, \heap \disjoint \iheap
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+We have to show that given a symbolic environment $\senv$ such that $\senv \vdash \pc$, 
+we can construct an instrumented heap $\iheap$ such that $\iheap, \store, \senv \satisfies \efs$ and 
+$\heap \disjoint \iheap$. We proceed by induction on the size of $\efs$.  
+\vspace{6pt}
+
+\noindent\prooflab{Base Case} If we take $\efs = \emptyset$, then we can pick $\iheap = \hemp$ and the 
+result holds. 
+\vspace{6pt}
+
+\noindent\prooflab{Inductive Case} If we take $\efs = \efa \dunion \efs'$ (\ieq{2}). We conclude, from the definition 
+of $\unificationef{\sheap, \sstore}{\efs}{\subst}$ that: 
+$$
+  \unificationef{\sheap, \sstore}{\efs}{\subst} \vdash \unificationef{\sheap, \sstore}{\efs'}{\subst} \text{ (\ieq{2})}
+$$
+From \ieq{2} and the hypothesis, we conclude that $\pc \vdash \unificationef{\sheap, \sstore}{\efs'}{\subst}$ (\ieq{3}). 
+We can the \underline{induction hypothesis} to 
+
+
+
+
+\end{proof}
 
 
 \begin{temax}[Theorem~\ref{teo:unification:soundness} - Soundness of Unification]

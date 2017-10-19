@@ -320,7 +320,53 @@ and a substitution $\subst$:
 \end{display}
 
 
-\begin{figure}
+\vspace{-3pt}
+\begin{display}{Unification of negative-resource assertions: $\unificationef{\sheap, \sstore}{\efa}{\subst} = \pc$}
+{\scriptsize
+\begin{mathpar} 
+\inferrule[\textsc{None Cell Assertion}]
+	{  
+	   \subst(\symbeval{\lexpr_l}{\sstore})  = \loc 
+	   \quad 
+	   \subst(\symbeval{\lexpr_p}{\sstore}) = \sexprp'
+	   \quad
+ 	   (l, -) \not\in \domain(\sheap') 
+	   \quad
+	   \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+	 }{ \unificationef{\sheap, \sstore}{(\lexpr_l,\lexpr_p)\pointsto \none}{\subst} = \sexprp' \not\in \{  \sexprp_i \mid_{i = 0}^n \} }
+\\
+\inferrule[\textsc{Empty Fields Assertion}]
+	{  
+	  \subst(\symbeval{\lexpr_l}{\sstore}) = \loc
+	   \quad
+	   \subst(\symbeval{\lexpr_d}{\sstore}) = \sexpr_d
+	   \quad
+	    (l, -) \not\in \domain(\sheap')
+	    \\\\
+	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+	    \quad 
+	    \pc =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d
+	}{ \unificationef{\sheap, \sstore}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst} = \pc   } 
+\and
+\inferrule[\textsc{Negative Resource}]
+	{}{ \unificationef{\sheap, \sstore}{\efs}{\subst} =  \bigwedge_{\efa \in \efs}  \unificationef{\sheap, \sstore}{\efa}{\subst}} 
+\\
+\inferrule[\textsc{Sanity Constraints - 1}]
+	{
+		 \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto -
+		  \\\\ 
+		  \pc =
+		       (\wedge_{0 \leq i, j \leq n, i \neq j} \symbeval{\sexprp_i}{\sstore} \neq \symbeval{\sexprp_j}{\sstore})
+		       \, \wedge \,  \big(\{  \symbeval{\sexpr_i}{\sstore} \mid_{i = 0}^n \} \subseteq \symbeval{\sexpr_d}{\sstore}\big)
+	}{ \sanityl{\efs}{\loc} = \pc \, \wedge \, \pc'} 
+\qquad 
+\inferrule[\textsc{Sanity Constraints - 2}]
+	{}{ \sanity{\subst}{\efs, \sstore} = \bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc}} 
+\end{mathpar}}
+\end{display}
+
+
+\begin{figure}[t!]
 {\scriptsize
 \centering
 \begin{mathpar} 
@@ -332,16 +378,24 @@ and a substitution $\subst$:
 \inferrule[\textsc{Success}]
 	{     
 	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
-	   \qquad 
-	   \pc \vdash \subst(\pfs')
-	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}} 
+	   \quad 
+	   \pc'' = \unificationef{\sheap, \sstore}{\efs}{\subst} 
+	   \\\\
+	   \pc''' = \sanity{\subst}{\efs} 
+	   \quad
+	   \pc \vdash \subst(\pfs') \, \wedge \, \pc''  \, \wedge \, \pc'''
+	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}} 
 \\
 \inferrule[\textsc{Fail - Pure Entailment}]
 	{  
 	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
-            \qquad
-             \pc \not\vdash \subst(\pfs')
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\subst(\pc')}} 
+	   \quad 
+	   \pc'' = \unificationef{\sheap, \sstore}{\efs}{\subst}  
+	   \\\\
+	    \pc''' = \sanity{\subst}{\efs} 
+	    \quad
+             \pc \not\vdash \subst(\pfs') \, \wedge \, \pc'' \wedge \, \pc'''
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\subst(\pc')  \, \wedge \, \pc'' \wedge \, \pc'''}} 
 \and
 %
 \inferrule[\textsc{Fail - Extra Resource}]

@@ -723,6 +723,8 @@
 %%
 %% Sep Logic 
 %%
+\newcommand\aslocs[0]{{\sf slocs}}
+\newcommand\pvars[0]{{\sf pvars}}
 \newcommand\sloc[0]{\hat{\loc}}
 \newcommand\slocs[0]{\hat{\locs}}
 \newcommand{\emptyfieldsp}[1]{\textsf{emptyFields}(#1)}
@@ -742,13 +744,15 @@
 \newcommand{\iheaps}{{\mathcal H}_\emptyset}
 \newcommand{\isheap}[0]{\underline{\sheap}}
 \newcommand{\isheaps}[0]{\hat{{\mathcal H}}_\emptyset}
+\newcommand{\disjoint}[0]{\#}
 
 %%
 %% Sep Logic - Unification
 %%
 
 \newcommand{\subst}[0]{\theta}
-\newcommand{\unification}[3]{{\cal U}_{#3}^{}((#1), #2)} %\checkmark
+\newcommand{\unification}[3]{{\cal U}_{#3}^{C}((#1), #2)} %\checkmark
+\newcommand{\unificationef}[3]{{\cal U}_{#3}^{EF}((#1), #2)} 
 \newcommand{\unificationfail}[4]{{\cal U}_{#4}^{\times}((#1), #2, #3)}
 \newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{S}}^{#3}}
 \newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{F}}^{#3}(#4)}
@@ -757,6 +761,10 @@
 \newcommand{\uyes}[1]{{\mathtt{S}}(#1)}
 \newcommand{\uno}[1]{{\mathtt{F}}(#1)}
 \newcommand{\substs}[0]{{\sf substs}}
+\newcommand{\efproj}[2]{#1\!\mid_{#2}}
+\newcommand{\sanity}[2]{{\cal S}_{#1}(#2)}
+\newcommand{\sanityl}[2]{{\cal S}_{#2}(#1)}
+\newcommand{\eflocs}[0]{{\sf locs}}
 
 %%
 %% Specs - test generation
@@ -779,4 +787,5 @@
 \newcommand{\jstmts}[0]{\sortstyle{S}_{\jssuffix}}
 \newcommand{\jexprs}[0]{\sortstyle{E}_{\jssuffix}}
 \newcommand{\jlexprs}[0]{\sortstyle{E}_{\jssuffix}^L}
+
 
