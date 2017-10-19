@@ -13,7 +13,7 @@ proposed methodology for debugging JaVerT specifciations~\cite{javert} of JavaSc
 \subsection{\jsil Symbolic Execution with Separation Logic Assertions}
 \label{subsec:sep:assertions}
 
-We extend \jsil with a special construct $\sepassert(P)$ for stating that 
+We extend \jsil with a special construct, $\sepassert(P)$, for stating that 
 the separation logic assertion $P$ must hold whenever $\sepassert(P)$ is evaluated. 
 We make use of an adapted version of the assertion language from~\cite{javert}. 
 In particular, instead of \emph{untyped logical variables}, we 
@@ -34,7 +34,7 @@ As in~\cite{gardner:popl:2012,javert}, in order to define the semantics of asser
 we resort to \emph{instrumented heaps} $\iheap \in \iheaps$, which differ from 
 concrete heaps in that they may map object properties to the special value $\none$, 
 explicitly indicating that the property does not exist (e.g. $\iheap(\loc, \jstring) = \none$
-means that the object denoted by $\loc$ in $\iheap$ does not have a property
+means that the object at location $\loc$ in the heap $\iheap$ does not have a property
 named $\jstring$). 
 %Analogously, we extend symbolic heaps with $\none$-cells, obtained \emph{instrumented symbolic heaps} $\isheap \in \isheaps$. 
 Instrumented heaps are related to heaps by means of an \emph{erasure 
@@ -49,7 +49,7 @@ which simply removes the none-cells from the instrumented heap given as input.  
   %%%% 
   $\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
   %%%%
-  $\quad P\triangleq$ & $\ltrue \mid \lfalse \mid  \neg P \mid P \land P \mid P \lor P  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{ Pure Assertions} \\
+  $\quad P\triangleq$ & $\polish{\ltrue \mid \lfalse} \mid  \neg P \mid P \land P \mid P \lor P  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{ \polish{Pure Assertions}} \\
                                   & $\quad \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{ Spatial Assertions} \\
 \end{tabular}} \\ [7pt]
   %%%%%
@@ -118,8 +118,8 @@ if the current symbolic state satisfies $P$):
 \hspace{-3pt}Determining whether or not a symbolic state satisfies an SL-assertion $P$ is, in general, 
 undecidable. Importantly, since we do not want to produce \emph{false positives}, in order to trigger 
 an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
-$\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must only 
-report an assertion failure if it can find a concrete state $(\heap, \store)$ such that: 
+$\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must  
+report an assertion failure only if it can find a concrete state $(\heap, \store)$ such that: 
 $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$ and
 $(\heap, \store) \not\in \sepmodels{P}$.
 
@@ -235,15 +235,15 @@ implement as part of the \jsil symbolic interpreter, for proving entailments
 between symbolic states and SL-assertions \underline{and} finding counter 
 models in case of failure.  
 % I have to give more examples
-As customary~\cite{javert}, the decision procedure works by first using \emph{patter-matching} 
+As it is customary~\cite{javert}, the decision procedure works by first using \emph{pattern-matching} 
 on the spatial part of the SL-assertion, and then discharging the pure part of the 
-entailment to an external constraint solver (in our case: \rosette) . 
+entailment to an external constraint solver (in our case, \rosette) . 
 
 We target SL-assertions $P$ that can be represented as 4-tuples,
 $(\existentials, \cells, \efs, \pfs)$, consisting of: 
 \dtag{1} a set $\existentials$ of existentially quantified symbolic locations, 
 \dtag{2} a list $\cells$ containing the non-none cell assertions (those whose value is different from $\none$), 
-\dtag{3} a set $\efs$ containing both the empty-field assertions and the none-cell assertions, and
+\dtag{3} a set $\efs$ containing the none-cell assertions and the empty-fields assertions, and
 \dtag{4} a pure assertion $\pfs$. 
 Hence, letting $\existentials = \{ \sloc_1, ..., \sloc_k \}$, $\cells = [ \cell_i \mid_{i = 0}^n ]$, and
 $\efs = \{\efa_i \mid_{i = 0}^m \}$, we write $P \equiv (\existentials, \cells, \efs, \pfs)$ as shorthand for: 
@@ -253,8 +253,8 @@ P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i 
 
 \vspace{-10pt}
 Given a symbolic state $(\sheap, \sstore, \pc)$ and an assertion $P \equiv (\existentials, \cells, \efs, \pfs)$, 
-we represent each possible mapping from the existentially quantified symbolic locations in $P$ 
-to the concrete locations in $\sheap$ as a \emph{substitution function} $\subst : \slocs \rightharpoonup \locs$.
+we represent each \polish{possible mapping from the existentially quantified symbolic locations in $P$ 
+to the concrete locations in $\sheap$} as a \emph{substitution function} $\subst : \slocs \rightharpoonup \locs$.
 Since both $\existentials$ and the set of concrete locations in $\sheap$ 
 are finite, we conclude that there is a finite number of substitution functions to be considered 
 when checking if $(\sheap, \sstore, \pc)$ satisfies $P$. 
@@ -280,42 +280,38 @@ and a substitution $\subst$:
 \end{itemize}
 
 \vspace{-3pt}
-\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \texttt{ OR } \uno{\pc'}$}
+\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Cell Assertion}]
 	{  
 	   \subst(\symbeval{\lexpr_l}{\sstore})  = \loc 
 	   \quad 
-	    \symbeval{\lexpr_p}{\sstore} = \sexprp' 
+	    \polish{\subst(\symbeval{\lexpr_p}{\sstore}) = \sexprp'} 
 	   \quad
-	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	    \polish{\subst(\symbeval{\lexpr_v}{\sstore}) = \sexprv'} 
 	   \quad
 	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
 	   \quad
-	    \pc \vdash  \sexprp = \subst(\sexprp') 
-	   \quad
-	    \pc \vdash  \sexprv = \subst(\sexprv')
+	    \pc \vdash  \polish{\sexprp = \sexprp' \wedge \sexprv = \sexprv'}
 	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}} 
 \\
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
 	  \subst(\symbeval{\lexpr_l}{\sstore}) = \loc
 	   \quad
-	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
+	     \polish{\subst(\symbeval{\lexpr_p}{\sstore}) = \sexprp'} 
 	   \quad
-	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	     \polish{\subst(\symbeval{\lexpr_v}{\sstore}) = \sexprv'} 
 	   \quad
 	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
 	    \quad
 	    (l, -) \not\in \domain(\sheap') 
   	   \\
-	   \forall_{0 \leq i \leq n} \, 
-	       \pc \not\vdash  \sexprp_i = \subst(\sexprp')
-	       \ \vee \
-	      \pc \not\vdash  \sexprv_i = \subst(\sexprv')
+	   \forall_{0 \leq i \leq n}. \, 
+	       \pc \not\vdash  \sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv'
 	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = 
-		\uno{\wedge_{0 \leq i \leq n} (\pc_i \vee \pc_i')}} 
+		\uno{\wedge_{0 \leq i \leq n} (\polish{\pc_i} \vee \polish{\pc_i'})}} 
 \end{mathpar}}
 \end{display}
 
@@ -363,7 +359,7 @@ and a substitution $\subst$:
 \inferrule[\textsc{Iterated Cell Unification}]
 	{  
 	   \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}
-	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_q, \cells}{\sstore, \pc, \subst}} 
+	}{\cellunification{\sheap, \polish{\cell} \lstcons \cells}{\polish{\sheap_q}, \cells}{\sstore, \pc, \subst}} 
 \and
 \inferrule[\textsc{Success}]
 	{     
@@ -410,6 +406,7 @@ and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\
 \end{figure}
 
 Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
+\polish{Notation not given?}
 The algorithm works by trying to unify the non-none cell assertions first. If they are all 
 successfully unified and the resulting symbolic heap is empty, then the final pure entailment 
 is discharged to the constraint solver. If the resulting symbolic heap is non-empty, then there 

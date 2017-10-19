@@ -217,8 +217,7 @@ a well-tested, standard-compliant compiler from JavaScript to \jsil, and then sy
 We study two complementary uses of \jilette. 
 First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
 Second, building on \jilette, we develop a tool for debugging separation logic specifications
-by compiling them to symbolic tests in order to find witnesses for both specification
-and code bugs.
+by compiling them to symbolic tests in order to find witnesses for bugs in both specification and code.
 \vspace*{-0.4cm}
 \end{abstract}
 
@@ -230,14 +229,33 @@ it is used for server-side scripting via Node.js; and it is even run on small em
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
 The dynamic nature of JavaScript and its complex semantics make it a difficult target for
 symbolic analysis and logic-based verification. 
-This paper presents \jilette, a symbolic execution tool for ES5 Strict. Jilette has the following benefits: 
-\dtag{1} it is grounded on the real semantics of the language and does not simplify the memory model in any way; 
-\dtag{2} \polish{it is provably sound, guaranteeing no false positives};
-\dtag{3} it has extensive coverage, supporting the entire core language and almost all built-in libraries; 
-\dtag{4} it supports advanced string reasoning, critical for reasoning about \polish{everyday} JavaScript code; 
-\dtag{5} it provides \polish{intuitive assertion/debugging mechanisms} accessible to the general JavaScript programmer, with minimal annotation overhead. 
+This paper presents \jilette, a symbolic execution tool for ES5 Strict.
+
+
+Jilette has the following benefits: 
 %
-We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+\dtag{1} it is \emph{useful}, in that it has tangible applications:
+	it can report bugs in JavaScript programs, producing concrete witnesses that trigger these  bugs; 
+	%
+	it can be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code; 
+	%
+	and it has support for advanced string reasoning, critical for reasoning about commonly used JavaScript code;
+%
+\dtag{2} it is \emph{accessible}, in that it can easily be used by a general JavaScript developer: 
+	the annotation burden of \jilette is minimal; 
+	%
+	and the assertion language is simple and intuitive;
+\dtag{3} it is \emph{trustworthy}, in that its components come with correctness guarantees: 
+	the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript;
+	%
+	the soundness result for the symbolic execution used in \jilette guarantees absence of false positives;
+	and \polish{sentence about unification;}
+and \dtag{4} it is \emph{extensible}, in that its coverage can easily be extended in a modular way, allowing support for: 
+	built-in libraries not covered by \JSComp; 
+	%
+	and widely used runtime libraries that are not part of the standard, such as the DOM.
+
+We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs (\S; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
 \myparagraph{Architecture}
 The core of \jilette consists of a symbolic interpreter for
@@ -273,7 +291,7 @@ approach to obtaining trust in JavaScript code is running it against
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
 cannot guarantee exhaustiveness. % we also cant guarantee exhaustiveness 
-In \S\ref{sec:sym:exec:js}, we show how to use \jilette
+In \S\ref{symbolic:testing}, we show how to use \jilette
 for symbolic testing of JavaScript code: instead of 
 tests with concrete 
 inputs, the developer uses symbolic inputs and states the 
@@ -287,11 +305,11 @@ to fail, exposing bugs in the tested code.
 \myparagraph{Application: Debugging Separation Logic Specifications}
 Due to the complexity of JavaScript semantics, functional correctness 
 specifications of JS programs are highly intricate. 
-There are only a few tools (for example, \javert \cite{javert} and KJS \cite{kjs}) that even support such expressivity. They target the specialist developer wanting rich, 
+There are only a few tools (for example, \javert \cite{javert} and KJS \cite{Park:2015,stefanescu-park-yuwen-li-rosu-2016-oopsla}) that support such expressivity. They target the specialist developer wanting rich, 
 mechanically verified specifications of critical JavaScript code.
 However, when these 
 tools cannot prove that a given function satisfies a specification, to discover the error, 
-the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback (KJS). 
+the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback~(KJS). 
 
 In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs in \javert. 
@@ -303,42 +321,28 @@ be sure that the code to be verified does not satisfy its specification.
 More importantly, \jilette then generates a concrete witness that 
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code. 
+%
+%\myparagraphq{Why \jilette} 
+%\jilette is \emph{useful}: it has tangible applications. 
+%It can report bugs in JavaScript programs, producing concrete witnesses triggering the bugs. It can also be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code.
+%\jilette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \jilette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
+%\jilette is \emph{trustworthy}: its components come with correctness guarantees. 
+%The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript, whereas the soundness result for the \jsil symbolic execution in \jilette guarantees absence of false positives. \polish{Sentence about unification.}
+%\jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
 
-\newpage
-\myparagraphq{Why \jilette} 
-
-\jilette is \emph{I want to say it has actual applications}, because something. 
-
-\jilette is \emph{approachable}, in that it can easily be used by JavaScript developers. 
-
-
-\jilette is \emph{trustworthy}, as its components come with correctness guarantees: the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript, whereas the soundness result for the \jsil symbolic execution in \jilette guarantees absence of false positives.
-
-
-% Switch in C1 for strict mode
-% Something in C1 has to connected to JSIL
-
-There are others, this and that. Symbolic execution? Very few have theory or correctness results, they are critical. \jilette is: useful, approachable, and correct.
-
-Verification tools for JavaScript programs come few and far between. 
-JaVerT~\cite{} targets the specialist developer wanting rich, 
-mechanically verified specifications of critical JavaScript code.
-It comes with 
-Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
-
-\myparagraph{What's in the paper}
-
-\bigskip
-\polish{TO GO IN SOMEWHERE \\
-
-Clarify ES5 Strict
-
-JaVerT targets the specialist
-developer wanting rich, mechanically verified specifications of critical JavaScript code.
-Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
-
-Jilette is so better, sweet spot, targets whom again? 
-Facilitates exhaustive symbolic testing of JavaScript programs.}
+%\newpage
+%
+%\myparagraph{What's in the paper}
+%
+%\bigskip
+%\polish{TO GO IN SOMEWHERE \\
+%
+%Clarify ES5 Strict
+%
+%JaVerT targets the specialist
+%developer wanting rich, mechanically verified specifications of critical JavaScript code.
+%Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
+%}
 
 
 
@@ -353,26 +357,27 @@ Facilitates exhaustive symbolic testing of JavaScript programs.}
 %and regular expressions, whereas JS-2-JSIL successfully
 %contains the complexity of JavaScript itself.
 
-\newpage
+%\newpage
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jilette}
 
 \section{Debugging Separation Logic Specifications}\label{sec:specs}
 \input{sections/specs}
 
+\newpage
 \section{Evaluation}
 \input{sections/evaluation}
 
-
+\newpage
 \section{Related Work} 
 
 The existing literature covers a wide range of analysis techniques for JavaScript programs, including: 
 type systems~\cite{thiemann:esop:2005,anderson:ecoop:2005,jensen:sas:2009,typescript:toot:2014,feldthaus:oopsla:2014,bierman:ecoop:2014,rastogi:popl:2015},
 control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang2009points,sridharan:ecoop:12} and abstract
 interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
-Here, we focused on the existing work on logic-based analysis and symbolic execution for JavaScript. 
+Here, we focus on the existing work on logic-based analysis and symbolic execution for JavaScript. 
 
-\myparagraph{Symbolic Execution} 
+\myparagraph{Symbolic Execution} Ooga. Booga. Boo.
 
 
 
