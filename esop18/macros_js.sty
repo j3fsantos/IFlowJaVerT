@@ -752,7 +752,8 @@
 
 \newcommand{\subst}[0]{\theta}
 \newcommand{\unification}[3]{{\cal U}_{#3}^{C}((#1), #2)} %\checkmark
-\newcommand{\unificationef}[3]{{\cal U}_{#3}^{EF}((#1), #2)} 
+\newcommand{\unificationef}[2]{{\cal U}_{EF}(#1, #2)} 
+\newcommand{\unificationefl}[2]{{\cal U}_{EF}(#1, #2)} 
 \newcommand{\unificationfail}[4]{{\cal U}_{#4}^{\times}((#1), #2, #3)}
 \newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{S}}^{#3}}
 \newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{F}}^{#3}(#4)}
@@ -762,7 +763,7 @@
 \newcommand{\uno}[1]{{\mathtt{F}}(#1)}
 \newcommand{\substs}[0]{{\sf substs}}
 \newcommand{\efproj}[2]{#1\!\mid_{#2}}
-\newcommand{\sanity}[2]{{\cal S}_{#1}(#2)}
+\newcommand{\sanity}[1]{{\cal S}(#1)}
 \newcommand{\sanityl}[2]{{\cal S}_{#2}(#1)}
 \newcommand{\eflocs}[0]{{\sf locs}}
 

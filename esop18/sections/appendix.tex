@@ -1368,8 +1368,8 @@ $$
 which concludes the result. 		
 \end{proof}
 
-\begin{lemma}[Sanity Constraints and Negative Resource]
-For $\pc = \sanity{\subst}{\efs}$, $\pvars(\efs) = \emptyset$, and $\aslocs(\efs) = \emptyset$, 
+\begin{lemma}[Sanity Constraints and Negative Resource]\label{sanity}
+For $\pc = \sanity{\efs}$, $\pvars(\efs) = \emptyset$, and $\aslocs(\efs) = \emptyset$, 
 it holds that: 
 $$
   \senv \satisfies \pc  \ \iff \ 
@@ -1400,15 +1400,52 @@ $$
 %
 \\ 
 %
- \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto -\big) \text{ (\ieq{3})}
+ \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto \none\big) \text{ (\ieq{3})}
 %
 \\ 
-\pc_{\loc} = (\wedge_{0 \leq i, j \leq n, i \neq j} \symbeval{\sexprp_i}{\sstore} \neq \symbeval{\sexprp_j}{\sstore})
-		       \, \wedge \,  \big(\{  \symbeval{\sexpr_i}{\sstore} \mid_{i = 0}^n \} \subseteq \symbeval{\sexpr_d}{\sstore}\big) \text{ (\ieq{4})}
+\pc_{\loc} = (\wedge_{0 \leq i, j \leq n, i \neq j} \sexprp_i \neq \sexprp_j)
+		       \, \wedge \,  \big(\{  \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d \big) \text{ (\ieq{4})}
 \end{array}
 $$
-where $\pc' = \sanity{\subst}{\efproj{\efs}{L}}$.
-\vspace{6pt}
+where $\pc' = \sanity{\subst}{\efproj{\efs}{L}}$. It follows from the hypothesis 
+that $\pvars(\efproj{\efs}{L}) = \emptyset$, and $\aslocs(\efproj{\efs}{L}) = \emptyset$.
+Hence, applying the \underline{inductive hypothesis} to $\sanity{\efproj{\efs}{L}}$, 
+we conclude that: 
+$$
+  \senv \satisfies \pc' \ \iff \ 
+       \exists \iheap \, . \, \iheap, -, \senv \satisfies \efproj{\efs}{L} \text{ (\ieq{5})}
+$$
+We now consider both directions of the equivalence separately. 
+\begin{itemize}
+	\item \prooflab{Left-to-Right} We assume that $\senv \satisfies \pc$ (\ieq{6}). We conclude from \ieq{2}
+	 that $\senv \satisfies \pc'$ (\ieq{7}), from which it follows, with \ieq{5},  that there is an 
+	 instrumented heap $\iheap$ such that: $\iheap, -, \senv \satisfies \efproj{\efs}{L}$ (\ieq{8}). 
+	From \ieq{6} and \ieq{2}, we conclude that  $\senv \satisfies \pc_{\loc}$ (\ieq{9}), from which 
+	it follows that $\iheap', -, \senv \satisfies \efproj{\efs}{\loc}$ (\ieq{10}) for: 
+	$$
+	  \iheap' =   \biguplus_{i = 0}^{n} \, \big((l, \symbeval{\sexprp_i}{\senv}) \mapsto  \none \big) 
+	       \dunion \biguplus_{\jstring \not\in \symbeval{\sexpr_d}{\senv}} \big((l, \jstring) \mapsto \none \big) 
+	$$ %\emptyfields{\loc}{\sexpr_d}
+	Because the concrete locations in $\efproj{\efs}{\loc}$ do 
+	not overlap with those in $\efproj{\efs}{L}$, we conclude, from \ieq{8} and \ieq{10}, that 
+	$\iheap \disjoint \iheap'$ and $\iheap \dunion \iheap' \satisfies \efs$. 
+	\vspace{4pt}
+	
+	\item \prooflab{Right-to-Left} We assume that there is an instrumented heap $\iheap$ such that 
+	         $\iheap, -, \senv \satisfies \efs$ (\ieq{11}), from which it follows that there are two 
+	         disjoint instrumented heaps $\iheap'$ and $\iheap''$ such that: 
+		$\iheap = \iheap' \dunion \iheap''$ (\ieq{12}), $\iheap', -, \senv \satisfies \efproj{\efs}{\loc}$ (\ieq{13}), 
+		and $\iheap'', -, \senv \satisfies \efproj{\efs}{L}$ (\ieq{14}). 
+		From \ieq{5} and \ieq{14}, we conclude that:  $ \senv \satisfies \pc'$ (\ieq{15}). 
+		From \ieq{14}, we conclude that: 
+		$$
+		   \forall_{0 \leq i, j \leq n, i \neq j} \symbeval{\sexprp_i}{\senv} \neq \symbeval{\sexprp_j}{\senv} \ \wedge \
+		         \{ \symbeval{\sexprp_i}{\senv} \mid_{i=0}^n \} \subseteq \symbeval{\sexpr_d}{\senv} \text{ (\ieq{16})}
+  		$$
+		From \ieq{16}, we conclude that $\senv \satisfies \pc_{\loc}$ (\ieq{17}). From \ieq{2}, \ieq{15} and \ieq{17}, 
+		we conclude that $\senv \satisfies \pc$. 
+\end{itemize}
+
 
 \end{proof}
 
@@ -1416,16 +1453,19 @@ where $\pc' = \sanity{\subst}{\efproj{\efs}{L}}$.
 \begin{lemma}[Symbolic State Models and Negative Resource - 1]
 $$
 \begin{array}{l}
-  (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \, \wedge \, \pc \vdash \unificationef{\sheap, \sstore}{\efs}{\subst} \\
+  (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \, \wedge \, \pc \vdash \unificationef{\sheap}{\efs} \, \wedge \,  \sanity{\efs} \\
   \qquad 
-      \implies \forall \senv \, . \, \senv \vdash \pc  \implies \exists \iheap . \, \iheap, \store, \senv \satisfies \efs \, \wedge \, \heap \disjoint \iheap
+      \implies \forall \senv \, . \, \senv \satisfies \pc  \implies \exists \iheap . \, \iheap, \store, \senv \satisfies \efs \, \wedge \, \heap \disjoint \iheap
 \end{array}
 $$
 \end{lemma}
 \begin{proof}
-We have to show that given a symbolic environment $\senv$ such that $\senv \vdash \pc$, 
+We have to show that given a symbolic environment $\senv$ such that $\senv \satisfies \pc$, 
 we can construct an instrumented heap $\iheap$ such that $\iheap, \store, \senv \satisfies \efs$ and 
-$\heap \disjoint \iheap$. We proceed by induction on the size of $\efs$.  
+$\heap \disjoint \iheap$. 
+Using Lemma~\ref{sanity}, we conclude that there is an instrumented heap $\iheap$ such 
+that $\iheap, \sstore, \senv \satisfies \efs$. We now have to prove that $\heap \disjoint \iheap$.
+We proceed by induction on the size of $\efs$.  
 \vspace{6pt}
 
 \noindent\prooflab{Base Case} If we take $\efs = \emptyset$, then we can pick $\iheap = \hemp$ and the 
