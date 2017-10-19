@@ -230,32 +230,8 @@ memory. It is the most active language in both GitHub \cite{GithubActive} and St
 The dynamic nature of JavaScript and its complex semantics make it a difficult target for
 symbolic analysis and logic-based verification. 
 This paper presents \jilette, a symbolic execution tool for ES5 Strict.
-
-
-Jilette has the following benefits: 
 %
-\dtag{1} it is \emph{useful}, in that it has tangible applications:
-	it can report bugs in JavaScript programs, producing concrete witnesses that trigger these  bugs; 
-	%
-	it can be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code; 
-	%
-	and it has support for advanced string reasoning, critical for reasoning about commonly used JavaScript code;
-%
-\dtag{2} it is \emph{accessible}, in that it can easily be used by a general JavaScript developer: 
-	the annotation burden of \jilette is minimal; 
-	%
-	and the assertion language is simple and intuitive;
-\dtag{3} it is \emph{trustworthy}, in that its components come with correctness guarantees: 
-	the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript;
-	%
-	the soundness result for the symbolic execution used in \jilette guarantees absence of false positives;
-	and \polish{sentence about unification;}
-and \dtag{4} it is \emph{extensible}, in that its coverage can easily be extended in a modular way, allowing support for: 
-	built-in libraries not covered by \JSComp; 
-	%
-	and widely used runtime libraries that are not part of the standard, such as the DOM.
-
-We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs (\S; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
 \myparagraph{Architecture}
 The core of \jilette consists of a symbolic interpreter for
@@ -283,6 +259,8 @@ of their program.
 Moreover, we adjust the \jsil symbolic interpreter so that the abstraction level 
 of the generated \jsil code precisely matches the abstraction level of Rosette, 
  maximising the use of Rosette's native reasoning capabilities.
+
+
 
 
 
@@ -321,14 +299,41 @@ be sure that the code to be verified does not satisfy its specification.
 More importantly, \jilette then generates a concrete witness that 
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code. 
+
+%Jilette has the following benefits: 
 %
-%\myparagraphq{Why \jilette} 
-%\jilette is \emph{useful}: it has tangible applications. 
-%It can report bugs in JavaScript programs, producing concrete witnesses triggering the bugs. It can also be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code.
-%\jilette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \jilette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
-%\jilette is \emph{trustworthy}: its components come with correctness guarantees. 
-%The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript, whereas the soundness result for the \jsil symbolic execution in \jilette guarantees absence of false positives. \polish{Sentence about unification.}
-%\jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
+%\dtag{1} it is \emph{useful}, in that it has tangible applications:
+%	it can report bugs in JavaScript programs, producing concrete witnesses that trigger these  bugs; 
+%	%
+%	it can be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code; 
+%	%
+%	and it has support for advanced string reasoning, critical for reasoning about commonly used JavaScript code;
+%
+%\dtag{2} it is \emph{accessible}, in that it can easily be used by a general JavaScript developer: 
+%	the annotation burden of \jilette is minimal; 
+%	%
+%	and the assertion language is simple and intuitive;
+%\dtag{3} it is \emph{trustworthy}, in that its components come with correctness guarantees: 
+%	the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript;
+%	%
+%	the soundness result for the symbolic execution used in \jilette guarantees absence of false positives;
+%	and \polish{sentence about unification;}
+%and \dtag{4} it is \emph{extensible}, in that its coverage can easily be extended in a modular way, allowing support for: 
+%	built-in libraries not covered by \JSComp; 
+%	%
+%	and widely used runtime libraries that are not part of the standard, such as the DOM.
+
+
+
+%
+\myparagraphq{Why \jilette} 
+\jilette is \emph{useful}: it has tangible applications. 
+It can report bugs in JavaScript programs, producing concrete witnesses triggering the bugs. It can also be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code.
+\jilette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \jilette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
+\jilette is \emph{trustworthy}: its components come with correctness guarantees. 
+The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \jilette symbolic execution engine is based on a sound symbolic
+analysis for \jsil, guaranteeing the absence of false positives. \polish{Sentence about unification.}
+Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
 
 %\newpage
 %
