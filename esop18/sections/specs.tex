@@ -253,14 +253,13 @@ P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i 
 
 \vspace{-10pt}
 Given a symbolic state $(\sheap, \sstore, \pc)$ and an assertion $P \equiv (\existentials, \cells, \efs, \pfs)$, 
-we represent each possible mapping from the existentially quantified symbolic locations in $P$ 
-to the concrete locations in $\sheap$ as a \emph{substitution function} $\subst : \slocs \rightharpoonup \locs$.
+we represent each \polish{possible mapping from the existentially quantified symbolic locations in $P$ 
+to the concrete locations in $\sheap$} as a \emph{substitution function} $\subst : \slocs \rightharpoonup \locs$.
 Since both $\existentials$ and the set of concrete locations in $\sheap$ 
 are finite, we conclude that there is a finite number of substitution functions to be considered 
 when checking if $(\sheap, \sstore, \pc)$ satisfies $P$. 
 %
 Hence, in the following, we will assume a fixed substitution,~$\subst$. 
-\polish{The number of locations in both has to be the same?}
 
 Below, we show the unification rules for non-none cell assertions. 
 Unification of non-none cell assertions can either terminate
@@ -281,42 +280,38 @@ and a substitution $\subst$:
 \end{itemize}
 
 \vspace{-3pt}
-\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \texttt{ OR } \uno{\pc'}$}
+\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Cell Assertion}]
 	{  
 	   \subst(\symbeval{\lexpr_l}{\sstore})  = \loc 
 	   \quad 
-	    \symbeval{\lexpr_p}{\sstore} = \sexprp' 
+	    \polish{\subst(\symbeval{\lexpr_p}{\sstore}) = \sexprp'} 
 	   \quad
-	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	    \polish{\subst(\symbeval{\lexpr_v}{\sstore}) = \sexprv'} 
 	   \quad
 	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
 	   \quad
-	    \pc \vdash  \sexprp = \subst(\sexprp') 
-	   \quad
-	    \pc \vdash  \sexprv = \subst(\sexprv')
+	    \pc \vdash  \polish{\sexprp = \sexprp' \wedge \sexprv = \sexprv'}
 	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}} 
 \\
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
 	  \subst(\symbeval{\lexpr_l}{\sstore}) = \loc
 	   \quad
-	     \symbeval{\lexpr_p}{\sstore} = \sexprp'
+	     \polish{\subst(\symbeval{\lexpr_p}{\sstore}) = \sexprp'} 
 	   \quad
-	   \symbeval{\lexpr_v}{\sstore} = \sexprv' 
+	     \polish{\subst(\symbeval{\lexpr_v}{\sstore}) = \sexprv'} 
 	   \quad
 	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
 	    \quad
 	    (l, -) \not\in \domain(\sheap') 
   	   \\
-	   \forall_{0 \leq i \leq n} \, 
-	       \pc \not\vdash  \sexprp_i = \subst(\sexprp')
-	       \ \vee \
-	      \pc \not\vdash  \sexprv_i = \subst(\sexprv')
+	   \forall_{0 \leq i \leq n}. \, 
+	       \pc \not\vdash  \sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv'
 	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = 
-		\uno{\wedge_{0 \leq i \leq n} (\pc_i \vee \pc_i')}} 
+		\uno{\wedge_{0 \leq i \leq n} (\polish{\pc_i} \vee \polish{\pc_i'})}} 
 \end{mathpar}}
 \end{display}
 
