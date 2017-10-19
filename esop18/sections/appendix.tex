@@ -1460,30 +1460,70 @@ $$
 $$
 \end{lemma}
 \begin{proof}
-We have to show that given a symbolic environment $\senv$ such that $\senv \satisfies \pc$, 
+We have to show that given a symbolic environment $\senv$ such that $\senv \satisfies \pc$ (\ieq{1}), 
 we can construct an instrumented heap $\iheap$ such that $\iheap, \store, \senv \satisfies \efs$ and 
 $\heap \disjoint \iheap$. 
 Using Lemma~\ref{sanity}, we conclude that there is an instrumented heap $\iheap$ such 
-that $\iheap, \sstore, \senv \satisfies \efs$. We now have to prove that $\heap \disjoint \iheap$.
+that $\iheap, \sstore, \senv \satisfies \efs$ (\ieq{2}). We now have to prove that $\heap \disjoint \iheap$.
 We proceed by induction on the size of $\efs$.  
 \vspace{6pt}
 
-\noindent\prooflab{Base Case} If we take $\efs = \emptyset$, then we can pick $\iheap = \hemp$ and the 
-result holds. 
+\noindent\prooflab{Base Case} We conclude that $\efs = \emptyset$; hence, we conclude, from 
+\ieq{2}, that $\iheap = \hemp$ and the result holds. 
 \vspace{6pt}
 
-\noindent\prooflab{Inductive Case} If we take $\efs = \efa \dunion \efs'$ (\ieq{2}). We conclude, from the definition 
-of $\unificationef{\sheap, \sstore}{\efs}{\subst}$ that: 
-$$
-  \unificationef{\sheap, \sstore}{\efs}{\subst} \vdash \unificationef{\sheap, \sstore}{\efs'}{\subst} \text{ (\ieq{2})}
-$$
-From \ieq{2} and the hypothesis, we conclude that $\pc \vdash \unificationef{\sheap, \sstore}{\efs'}{\subst}$ (\ieq{3}). 
-We can the \underline{induction hypothesis} to 
+\noindent\prooflab{Inductive Case} We conclude that $\efs = \efa \dunion \efs'$ (\ieq{3}). 
+We conclude, from \ieq{2}, that there are two disjoint instrumented heap $\iheap'$ and $\iheap''$ 
+such that $\iheap', \sstore, \senv \satisfies \efa$ (\ieq{4}) and  $\iheap'', \sstore, \senv \satisfies \efs'$ (\ieq{5}). 
+%
+We conclude, from the definition 
+of $\unificationef{\sheap}{\efs}$, that: $\unificationef{\sheap}{\efs} \vdash \unificationef{\sheap}{\efs'}$ (\ieq{6}).
+From \ieq{6} and the hypothesis, it follows that $\pc \vdash \unificationef{\sheap}{\efs'}$ (\ieq{7}). 
+Applying the \underline{induction hypothesis} to $\pc \vdash \unificationef{\sheap}{\efs'} \, \wedge \,  \sanity{\efs}$, 
+$(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$, $\senv \satisfies \pc$, and 
+$\iheap'', \sstore, \senv \satisfies \efs'$, we conclude that: $\iheap'' \disjoint \heap$ (\ieq{8}). 
+Now we have to prove that $\iheap' \disjoint \heap$. 
+We proceed by case analysis on $\efa$.  
+\begin{itemize}
+   \item $\efa = (\loc,\sexprp)\pointsto \none$ for some location $\loc$ and symbolic expression $\sexprp$. 
+   	    There are two cases to consider: \dtag{i} $\loc \not\in \eflocs(\sheap)$, in which case 
+	    it immediately holds that $\heap \disjoint \iheap'$ and \dtag{ii} $\loc \in \eflocs(\sheap)$. 
+	    Let us now prove the result for \dtag{ii}. 
+	    It follows from $\efa = (\loc,\sexprp)\pointsto \none$ that $\iheap' = (\loc, \symbeval{\sexprp}{\senv}) \mapsto \none$ (\ieq{9}). 
+	    From \ieq{3}, and the definition of $\unificationef{\sheap}{\efs}$, 
+	    we conclude that: 
+	    $$
+	       \unificationef{\sheap}{\efs} \vdash \unificationefl{\sheap}{(\loc,\sexprp)\pointsto \none} = \sexprp \not\in \{  \sexprp_i \mid_{i = 0}^n \} \text{ (\ieq{10})} 
+	    $$
+	    for $\sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$ and $(l, -) \not\in \domain(\sheap')$. 
+	    From the hypothesis, \ieq{1}, and \ieq{9}, we conclude $\senv \satisfies   \sexprp \not\in \{  \sexprp_i \mid_{i = 0}^n \}$ (\ieq{10}), 
+	    from which it follows that $(\loc, \symbeval{\sexprp}{\senv}) \not\in \domain(\symbeval{\sheap}{\senv}) = \domain(\heap)$ (\ieq{11}). 
+	    From \ieq{9} and \ieq{11}, we conclude that $\heap \disjoint \iheap'$. 
+	    \vspace{4pt}
+	    
+  \item $\efa = \emptyfields{\loc}{\sexpr_d}$ for some location $\loc$ and symbolic expression $\sexpr_d$. 
+           There are two cases to consider: \dtag{i} $\loc \not\in \eflocs(\sheap)$, in which case 
+	    it immediately holds that $\heap \disjoint \iheap'$ and \dtag{ii} $\loc \in \eflocs(\sheap)$. 
+	    Let us now prove the result for \dtag{ii}. 
+	    It follows from $\efa = \emptyfields{\loc}{\sexpr_d}$ that $\iheap' = \uplus_{\jstring \not\in \symbeval{\sexprp}{\senv}}\big((\loc, \jstring) \mapsto \none\big)$ (\ieq{12}). 
+            From \ieq{3}, and the definition of $\unificationef{\sheap}{\efs}$, 
+	    we conclude that: 
+	    $$
+	       \unificationef{\sheap}{\efs} \vdash \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}} =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d \text{ (\ieq{13})} 
+	    $$
+	    for $\sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$  
+
+\end{itemize}
 
 
 
+%    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+%	    \quad 
+%	     (l, -) \not\in \domain(\sheap')
+%	}{ \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}}{} =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d   } 
 
 \end{proof}
+
 
 
 \begin{temax}[Theorem~\ref{teo:unification:soundness} - Soundness of Unification]
