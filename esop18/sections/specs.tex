@@ -369,7 +369,7 @@ and a substitution $\subst$:
 \inferrule[\textsc{Iterated Cell Unification}]
 	{  
 	   \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}
-	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_q, \cells}{\sstore, \pc, \subst}} 
+	}{\cellunification{\sheap, \polish{\cell} \lstcons \cells}{\polish{\sheap_q}, \cells}{\sstore, \pc, \subst}} 
 \and
 \inferrule[\textsc{Success}]
 	{     
@@ -416,6 +416,7 @@ and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\
 \end{figure}
 
 Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
+\polish{Notation not given?}
 The algorithm works by trying to unify the non-none cell assertions first. If they are all 
 successfully unified and the resulting symbolic heap is empty, then the final pure entailment 
 is discharged to the constraint solver. If the resulting symbolic heap is non-empty, then there 
