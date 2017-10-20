@@ -279,38 +279,33 @@ and a substitution $\subst$:
             and $\smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\subst(\cell)}$.
 \end{itemize}
 
+
+
 \vspace{-3pt}
-\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
+\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \sstore, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Cell Assertion}]
 	{  
-	   \symbeval{\subst(\lexpr_l)}{\sstore}  = \loc 
-	   \quad 
-	    \symbeval{\subst(\lexpr_p)}{\sstore} = \sexprp' 
-	   \quad
-	   \symbeval{\subst(\lexpr_v)}{\sstore} = \sexprv'
-	   \quad
-	    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv) 
+	    \sheap = \sheap_f \dunion ((l, \sexprp') \mapsto \sexprv') 
 	   \quad
 	    \pc \vdash  \sexprp = \sexprp' \wedge \sexprv = \sexprv'
-	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}} 
+	}{ \unification{\sheap, \sstore, \pc}{(\loc,\sexprp)\pointsto \sexprv}{} = \uyes{\sheap_f}} 
+\and 
+\inferrule[\textsc{Iterated Cell Unification}]
+	{  
+	   \unification{\sheap, \sstore, \pc}{(\loc,\sexprp)\pointsto \sexprv}{} = \uyes{\sheap_f}
+	}{\cellunification{\sheap, (\loc,\sexprp)\pointsto \sexprv \lstcons \cells}{\sheap_f, \cells}\pc}
 \\
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
-	  \symbeval{\subst(\lexpr_l)}{\sstore} = \loc
-	   \quad
-	   \symbeval{\subst(\lexpr_p)}{\sstore} = \sexprp'
-	   \quad
-	     \symbeval{\subst(\lexpr_v)}{\sstore} = \sexprv'
-	   \quad
-	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+	   \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
 	    \quad
 	    (l, -) \not\in \domain(\sheap') 
   	  % \\
 	%   \forall_{0 \leq i \leq n}. \, 
 	  %     \pc \not\vdash  \sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv'
-	}{ \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = 
+	}{ \unification{\sheap, \sstore, \pc}{(\loc,\sexprp)\pointsto \sexprv}{} = 
 		\uno{\wedge_{0 \leq i \leq n} ( \sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv')}} 
 \end{mathpar}}
 \end{display}
@@ -323,30 +318,31 @@ and a substitution $\subst$:
 \inferrule[\textsc{None Cell Assertion}]
 	{  
 	   \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-	   \quad 
+	   \ 
 	    (l, -) \not\in \domain(\sheap') 
 	 }{ \unificationefl{\sheap}{(\loc,\sexprp)\pointsto \none} = \sexprp \not\in \{  \sexprp_i \mid_{i = 0}^n \} }
-\\
+\qquad
 \inferrule[\textsc{Empty Fields Assertion}]
 	{  
 	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-	    \quad 
+	    \ 
 	     (l, -) \not\in \domain(\sheap')
 	}{ \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}}{} =  \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d   } 
-\and
-\inferrule[\textsc{Negative Resource}]
-	{}{ \unificationef{\sheap}{\efs} =  \bigwedge_{\efa \in \efs}  \unificationefl{\sheap}{\efa}} 
 \\
-\inferrule[\textsc{Sanity Constraints - 1}]
+%
+\inferrule[\textsc{Sanity Constraints - Fixed Location}]
 	{
 		 \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto -
-		  \\\\ 
-		  \pc =
-		       (\wedge_{0 \leq i, j \leq n, i \neq j} \symbeval{\sexprp_i}{\sstore} \neq \symbeval{\sexprp_j}{\sstore})
-		       \, \wedge \,  \big(\{  \symbeval{\sexpr_i}{\sstore} \mid_{i = 0}^n \} \subseteq \symbeval{\sexpr_d}{\sstore}\big)
-	}{ \sanityl{\efs}{\loc} = \pc \, \wedge \, \pc'} 
-\qquad 
-\inferrule[\textsc{Sanity Constraints - 2}]
+	}{ \sanityl{\efs}{\loc} = 
+		 (\wedge_{0 \leq i, j \leq n, i \neq j} \sexprp_i \neq \sexprp_j)
+		       \, \wedge \,  \big(\{  \sexpr_i \mid_{i = 0}^n \} \subseteq \sexpr_d \big)
+	} 
+%
+\\
+\inferrule[\textsc{Negative Resource Unification}]
+	{}{ \unificationef{\sheap}{\efs} =  \bigwedge_{\efa \in \efs}  \unificationefl{\sheap}{\efa}} 
+\and
+\inferrule[\textsc{Sanity Constraints}]
 	{}{ \sanity{\efs} = \bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc}} 
 \end{mathpar}}
 \end{display}
@@ -356,49 +352,44 @@ and a substitution $\subst$:
 {\scriptsize
 \centering
 \begin{mathpar} 
-\inferrule[\textsc{Iterated Cell Unification}]
-	{  
-	   \unification{\sheap, \sstore, \pc}{(\lexpr_l,\lexpr_p)\pointsto \lexpr_v}{\subst} = \uyes{\sheap_f}
-	}{\cellunification{\sheap, (\lexpr_l,\lexpr_p)\pointsto \lexpr_v \lstcons \cells}{\sheap_f, \cells}{\sstore, \pc, \subst}} 
-\qquad
 \inferrule[\textsc{Success}]
 	{     
-	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
+	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc}
 	   \quad 
-	   \pc'' = \unificationef{\sheap}{\symbeval{\subst(\efs)}{\sstore}} 
+	   \pc'' = \unificationef{\sheap}{\efs} 
 	   \\\\
-	   \pc''' = \sanity{\symbeval{\subst(\efs)}{\sstore}} 
+	   \pc''' = \sanity{\efs} 
 	   \quad
-	   \pc \vdash \subst(\pfs') \, \wedge \, \pc''  \, \wedge \, \pc'''
-	}{\unificationfull{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}} 
-\\
+	   \pc \vdash \pfs' \, \wedge \, \pc''  \, \wedge \, \pc'''
+	}{\unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{}} 
+\and
 \inferrule[\textsc{Fail - Pure Entailment}]
 	{  
-	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst}
+	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc}
 	   \quad 
-	   \pc'' = \unificationef{\sheap}{\symbeval{\subst(\efs)}{\sstore}}  
+	   \pc'' = \unificationef{\sheap}{\efs} 
 	   \\\\
-	    \pc''' = \sanity{\symbeval{\subst(\efs)}{\sstore}} 
+	    \pc''' = \sanity{\efs} 
 	    \quad
-             \pc \not\vdash \subst(\pfs') \, \wedge \, \pc'' \wedge \, \pc'''
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}{\subst(\pc')  \, \wedge \, \pc'' \wedge \, \pc'''}} 
-\and
+             \pc \not\vdash \pfs' \, \wedge \, \pc'' \wedge \, \pc'''
+	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc'  \, \wedge \, \pc'' \wedge \, \pc'''}} 
+\\
 %
 \inferrule[\textsc{Fail - Extra Resource}]
 	{  
-	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\sstore, \pc, \subst}
+	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\pc}
 	     \qquad
 	     \sheap_f \neq \hemp
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \efs, \pfs'}{\subst}{\jtrue}} 
+	}{\unificationfullfail{\sheap, \pc}{\emptyset, \efs, \pfs'}{\subst}{\jtrue}} 
 %
-\\
+\and
 %
 \inferrule[\textsc{Fail - Cell Unification}]
 	{  
-	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\sstore, \pc, \subst}
+	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\pc}
             \qquad
           \unification{\sheap', \sstore, \pc}{\cell}{\subst} = \uno{\pc''}
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}{\pc''}} 
+	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc''}} 
 \end{mathpar}}
 \hrule
 \caption{Unification algorithm: {\small $\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}$}
@@ -545,9 +536,10 @@ $$}
 %\end{algorithm}
 
 
-\subsection{Example} 
+\subsection{Generating Symbolic Tests from JavaScript} 
 \label{specs:example}
 
+\myparagraph{Example}
 In Figure~\ref{fig:map:example}, we define a \emph{map object predicate}, \jsinline|Map|, 
 using the auxiliary predicate \jsinline|KVPairs|, which captures the resource of the key-value pairs in the map, 
 and the \jsinline|validKey(k)| predicate, which holds if and only if the 
