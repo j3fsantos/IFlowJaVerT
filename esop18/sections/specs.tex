@@ -381,7 +381,7 @@ and a substitution $\subst$:
 	    \pc''' = \sanity{\symbeval{\subst(\efs)}{\sstore}} 
 	    \quad
              \pc \not\vdash \subst(\pfs') \, \wedge \, \pc'' \wedge \, \pc'''
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\subst(\pc')  \, \wedge \, \pc'' \wedge \, \pc'''}} 
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}{\subst(\pc')  \, \wedge \, \pc'' \wedge \, \pc'''}} 
 \and
 %
 \inferrule[\textsc{Fail - Extra Resource}]
@@ -389,7 +389,7 @@ and a substitution $\subst$:
 	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\sstore, \pc, \subst}
 	     \qquad
 	     \sheap_f \neq \hemp
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \pfs'}{\subst}{\jtrue}} 
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\emptyset, \efs, \pfs'}{\subst}{\jtrue}} 
 %
 \\
 %
@@ -398,7 +398,7 @@ and a substitution $\subst$:
 	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\sstore, \pc, \subst}
             \qquad
           \unification{\sheap', \sstore, \pc}{\cell}{\subst} = \uno{\pc''}
-	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc''}} 
+	}{\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}{\pc''}} 
 \end{mathpar}}
 \hrule
 \caption{Unification algorithm: {\small $\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}$}
@@ -440,7 +440,7 @@ $$
 \begin{array}{l}
 P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ 
 \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \} \ \wedge \  \\
-\quad \forall_{0 \leq k \leq n} \, . \, \unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst_k}{\pc_k} 
+\quad \forall_{0 \leq k \leq n} \, . \, \unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst_k}{\pc_k} 
 %
  \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
 \end{array}
@@ -509,6 +509,17 @@ symbolic heap on which to execute $\prog'$.
 	}{\concretise{(-, \emptyset, \pfs)}{\subst} = \hemp, \subst(\pfs), \subst}  
 \end{mathpar}}
 \end{display}
+
+\begin{figure}[t!]
+\includegraphics[width=0.9\textwidth]{figures/symbolicvsass.pdf}
+{\small $$
+\text{\emph{None-Constraints: }} (\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})
+$$}
+\vspace{-25pt}
+\caption{Assertion vs. Symbolic Heap}
+\end{figure}
+
+
 
 %\begin{algorithm}
 %\caption{Synthesising a symbolic test for: $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$}\label{infer:specs:algo}
@@ -598,6 +609,7 @@ map.  The specification is given below.
 %
 The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsinline|Object.prototype| object. 
 In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function.
+
 
 
 %%

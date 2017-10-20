@@ -1609,14 +1609,39 @@ it follows: $\smodels{\sheap, \sstore}{\pc}  \subseteq \sepmodels{P}$, which con
 
 
 \begin{lemma}[Counter Models for Failed Grounded Entailement]
-
+$$
+\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}{\pc''} 
+%
+ \implies \smodels{\sheap, \sstore}{\pc \, \wedge \, \pc''} \cap \sepmodels{\cells \sep \efs \, \wedge \, \pc'} = \emptyset
+ $$
 \end{lemma}
+\begin{proof}
+There are three possible causes of failure: a cell unification failure, a pure entailment failure, 
+and an extra resource failure. We proceed by case analysis on the cause of failure. 
+\begin{itemize}
+    \item \prooflab{Cell unification failure} We conclude that there is a cell assertion $\cell$ 
+              and a symbolic heap $\sheap'$ such that:  
+              $\cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\sstore, \pc, \subst}$ (\ieq{1}) 
+              and $\unification{\sheap', \sstore, \pc}{\cell}{\subst} = \uno{\pc''}$ (\ieq{2}), and  
+              $\cells = \cells' \lstconcat (\cell \lstcons -)$ (\ieq{3}). Applying Lemma~\ref{lemma:iter:cell:unification}
+              to \ieq{1} and \ieq{3}, we conclude that there is a symbolic heap $\sheap''$ such that $\sheap = \sheap'' \dunion \sheap'$ (\ieq{4})
+              and $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cells'')}$ (\ieq{5}). 
+              
+%              We first argue that all the re-orderings of $\cells$ would yield either the same unification 
+%              failure or a different one. To prove it, let us consider a re-ordering of $\cells$, $\cells'$, 
+%              such that $\cells' = \cell \lstcons -$ and the cell assertions in $\cells'$ coincide with 
+%              those in $\cells$. If 
+\end{itemize}
+\end{proof} 
+% 
+%  \implies
+%             \exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
+%		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cells'')}
  
 % 
 % if $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}$, then there are 
 %            no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
 %            and $\smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\subst(\cell)}$.
- 
  
 % 
 %  \begin{lemma}[Soundness of unification for symbolic expressions]\label{lemma:unification:exprs}
