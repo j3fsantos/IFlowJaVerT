@@ -266,7 +266,7 @@ Unification of non-none cell assertions can either terminate
 successfully with $\uyes{\sheap_f}$, in which case $\sheap_f$ denotes the
 symbolic heap to be framed off, or unsuccessfully with $\uno{\pc'}$, 
 in which case $\pc'$ captures the constraints that need to hold for 
-the entailment no to hold.
+the entailment not to hold.
 Given a cell assertion $\cell$, a symbolic state $(\sheap, \pc)$, 
 and a substitution $\subst$: 
 \begin{itemize}
@@ -430,7 +430,7 @@ the set of all mappings from $\existentials$ to the locations in~$\sheap$.
 $\forall P, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
 $$
 \begin{array}{l}
-\symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{} \
+\symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs')\implies\unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{} \
     \implies \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}   
 \end{array}
 $$ 
