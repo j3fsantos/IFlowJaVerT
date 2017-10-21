@@ -421,10 +421,10 @@ the failing constraints. Below, we use $\substs(\existentials, \sheap)$ to denot
 the set of all mappings from $\existentials$ to the locations in~$\sheap$. 
 
 \begin{theorem}[Soundness of Unification]\label{teo:unification:soundness}
-$\forall P, \existentials, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
+$\forall P, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
 $$
 \begin{array}{l}
-P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst} \
+\symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{} \
     \implies \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}   
 \end{array}
 $$ 
@@ -435,11 +435,11 @@ $$
 $\forall P, \existentials, \cells, \efs, \pfs', \subst_k\!\mid_{k=0}^n,\sheap, \sstore, \pc \, .$
 $$
 \begin{array}{l}
-P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ 
-\substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \} \ \wedge \  \\
-\quad \forall_{0 \leq k \leq n} \, . \, \unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst_k}{\pc_k} 
-%
- \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
+   P \equiv (\existentials, -, -, -) \implies \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \} \implies  \\
+   \qquad \forall_{0 \leq k \leq n} \, . \, \big(
+   \symbeval{\subst_k(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs') 
+       \implies \\
+  \qquad \qquad \unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{}{\pc_k} \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   \big)
 \end{array}
 $$ 
 for $\pc'' = \pc \, \wedge \, \bigwedge_{k=0}^{n} \pc_k$.
