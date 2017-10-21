@@ -278,10 +278,8 @@ and a substitution $\subst$:
             no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
             and $\smodels{\sheap', -}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\cell}$.
 \end{itemize}
+We also introduce the iterated cell unification, $\rightarrow_{\cal CU}$, defined simply in terms of cell unification, and denote its transitive closure by $\rightarrow_{\cal CU}^*$. 
 
-
-
-\vspace{-3pt}
 \begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
 {\scriptsize
 \begin{mathpar} 
@@ -432,18 +430,38 @@ $$
 
 
 \begin{theorem}[Bug-finding for SL]
-$\forall P, \existentials, \cells, \efs, \pfs', \subst_k\!\mid_{k=0}^n,\sheap, \sstore, \pc \, .$
+$\forall P, \existentials, \sheap, \sstore, \pc, \subst_k\!\mid_{k=0}^n, \cells_k\!\mid_{k=0}^n, \efs_k\!\mid_{k=0}^n, \pfs'_k\!\mid_{k=0}^n,\pfs_k\!\mid_{k=0}^n.$
 $$
 \begin{array}{l}
-   P \equiv (\existentials, -, -, -) \implies \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \} \implies  \\
-   \qquad \forall_{0 \leq k \leq n} \, . \, \big(
-   \symbeval{\subst_k(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs') 
-       \implies \\
-  \qquad \qquad \unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{}{\pc_k} \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   \big)
+   P \equiv (\existentials, -, -, -) \implies \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \}  \\
+   \qquad \implies \forall_{0 \leq k \leq n} \, . \, \big(
+   \symbeval{\subst_k(P)}{\sstore} \equiv (\emptyset, \cells_k, \efs_k, \pfs'_k) 
+       \implies 
+   \unificationfullfail{\sheap, \pc}{\cells_k, \efs_k, \pfs'_k}{}{\pc_k} \big) 
+  \\ \qquad \qquad \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
 \end{array}
 $$ 
 for $\pc'' = \pc \, \wedge \, \bigwedge_{k=0}^{n} \pc_k$.
 \end{theorem}
+
+
+
+
+\begin{theorem}[Bug-finding for SL]
+$\forall P, \existentials, \sheap, \sstore, \pc, \pc'.$
+$$
+\begin{array}{l}
+   P \equiv (\existentials, -, -, -) \implies \\
+   \quad \big( \forall \subst, \cells, \efs, \pfs''.\ \subst \in \substs(\existentials, \sheap) \implies 
+   \symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs'') \implies \\
+   \qquad \unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs''}{}{\pc'''} \ \wedge \  \pc' \vdash \pfs''' \big) \implies \\
+   \qquad \quad \smodels{\sheap, \sstore}{\pc \wedge \pc'} \cap \sepmodels{P} = \emptyset.   
+\end{array}
+$$ 
+\end{theorem}
+
+
+
 
 
 \newpage
