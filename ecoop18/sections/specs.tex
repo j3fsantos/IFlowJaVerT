@@ -428,21 +428,21 @@ $$
 $$ 
 \end{theorem}
 
-
-\begin{theorem}[Bug-finding for SL]
-$\forall P, \existentials, \sheap, \sstore, \pc, \subst_k\!\mid_{k=0}^n, \cells_k\!\mid_{k=0}^n, \efs_k\!\mid_{k=0}^n, \pfs'_k\!\mid_{k=0}^n,\pfs_k\!\mid_{k=0}^n.$
-$$
-\begin{array}{l}
-   P \equiv (\existentials, -, -, -) \implies \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \}  \\
-   \qquad \implies \forall_{0 \leq k \leq n} \, . \, \big(
-   \symbeval{\subst_k(P)}{\sstore} \equiv (\emptyset, \cells_k, \efs_k, \pfs'_k) 
-       \implies 
-   \unificationfullfail{\sheap, \pc}{\cells_k, \efs_k, \pfs'_k}{}{\pc_k} \big) 
-  \\ \qquad \qquad \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
-\end{array}
-$$ 
-for $\pc'' = \pc \, \wedge \, \bigwedge_{k=0}^{n} \pc_k$.
-\end{theorem}
+%
+%\begin{theorem}[Bug-finding for SL]
+%$\forall P, \existentials, \sheap, \sstore, \pc, \subst_k\!\mid_{k=0}^n, \cells_k\!\mid_{k=0}^n, \efs_k\!\mid_{k=0}^n, \pfs'_k\!\mid_{k=0}^n,\pfs_k\!\mid_{k=0}^n.$
+%$$
+%\begin{array}{l}
+%   P \equiv (\existentials, -, -, -) \implies \substs(\existentials, \sheap) = \{ \subst_k \mid_{k=0}^n \}  \\
+%   \qquad \implies \forall_{0 \leq k \leq n} \, . \, \big(
+%   \symbeval{\subst_k(P)}{\sstore} \equiv (\emptyset, \cells_k, \efs_k, \pfs'_k) 
+%       \implies 
+%   \unificationfullfail{\sheap, \pc}{\cells_k, \efs_k, \pfs'_k}{}{\pc_k} \big) 
+%  \\ \qquad \qquad \implies \smodels{\sheap, \sstore}{\pc''} \cap \sepmodels{P} = \emptyset   
+%\end{array}
+%$$ 
+%for $\pc'' = \pc \, \wedge \, \bigwedge_{k=0}^{n} \pc_k$.
+%\end{theorem}
 
 
 
