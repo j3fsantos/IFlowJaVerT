@@ -261,7 +261,7 @@ when checking if $(\sheap, \sstore, \pc)$ satisfies $P$.
 %
 Hence, in the following, we will assume a fixed substitution,~$\subst$. 
 
-Below, we show the unification rules for non-none cell assertions. 
+In Figure \ref{fig:uninonnone}, we show the unification rules for non-none cell assertions. 
 Unification of non-none cell assertions can either terminate
 successfully with $\uyes{\sheap_f}$, in which case $\sheap_f$ denotes the
 symbolic heap to be framed off, or unsuccessfully with $\uno{\pc'}$, 
@@ -278,9 +278,9 @@ and a substitution $\subst$:
             no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
             and $\smodels{\sheap', -}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\cell}$.
 \end{itemize}
-We also introduce the iterated cell unification, $\rightarrow_{\cal CU}$, defined simply in terms of cell unification, and denote its transitive closure by $\rightarrow_{\cal CU}^*$. 
+We also introduce iterated cell unification, denoted by $\rightarrow_{\cal CU}$ and defined simply in terms of cell unification, and also denote its transitive closure by $\rightarrow_{\cal CU}^*$. 
 
-\begin{display}{Unification of non-none cell assertions: $\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
+\begin{figure}
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Cell Assertion}]
@@ -310,7 +310,11 @@ We also introduce the iterated cell unification, $\rightarrow_{\cal CU}$, define
 	   \unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f}
 	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells}\pc}
 \end{mathpar}}
-\end{display}
+\vspace*{-0.5cm}
+\caption{Unification of non-none cell assertions: $\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
+\label{fig:uninonnone}
+\vspace*{-0.2cm}
+\end{figure}
 
 
 %\vspace{-3pt}
@@ -348,7 +352,10 @@ We also introduce the iterated cell unification, $\rightarrow_{\cal CU}$, define
 \inferrule[\textsc{Sanity Constraints}]
 	{}{ \sanity{\efs} = \bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc}} 
 \end{mathpar}}
+\vspace*{-0.6cm}
 \caption{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
+\label{fig:unineg}
+\vspace*{-0.2cm}
 \end{figure}
 
 
@@ -395,9 +402,10 @@ We also introduce the iterated cell unification, $\rightarrow_{\cal CU}$, define
           \unification{\sheap', \pc}{\cell}{} = \uno{\pc''}
 	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc''}} 
 \end{mathpar}}
-\hrule
+\vspace*{-0.6cm}
 \caption{Unification algorithm: {\small $\unificationfull{\sheap, \pc}{\cells, \pfs'}{}$}
 and {\small $\unificationfullfail{\sheap, \pc}{\cells, \pfs'}{}{\pc'}$}.\label{unification:algorithm}}
+\vspace*{-0.3cm}
 \end{figure}
 
 Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
