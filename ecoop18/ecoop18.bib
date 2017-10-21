@@ -1,0 +1,2384 @@
+@STRING{JCS =    {Journal of Computer Security}}
+@STRING{LNCS =   {Lecture Notes in Computer Science}}
+@string{ PUB-SV      = {Springer-Verlag}}
+@STRING{SAS = {Static Analysis Symposium}}
+@STRING{PSI = {Andrei Ershov International Conference on Perspectives of System Informatics}}
+
+Tools and Specifications
+
+@misc{caja,
+   author                        =     {Google Caja Team},
+   title                             =     {Google-Caja: A source-to-source translator for securing {JavaScript-based} web},
+   howpublished             =     {http://code.google.com/p/google-caja/}
+}
+
+@misc{wala,
+   author                        =     {Stephen Fink and Julian Dolby},
+   title                             =     {{WALA --- The T.J. Watson Libraries for Analysis}},
+   howpublished             =     {http://wala.sourceforge.net/},
+   year                    = 2015
+}
+
+@misc{v8,
+   author                        =     {Google},
+   title                         =     {{V8}},
+   howpublished             =     {http://v8project.blogspot.co.uk},
+   year = {2017}
+}
+
+@misc{test262,
+   author                        =     {{ECMAScript Committee}},
+   title                         =     {{Test262 test suite}},
+   howpublished             =     {https://github.com/tc39/test262},
+   year = {2017}
+}
+
+@misc{priq,
+   author                        =     {Jason Jones},
+   title                         =     {Priority Queue Data Structure},
+   howpublished             =     {https://github.com/jasonsjones/queue-pri},
+   year = {2016}
+}
+
+
+
+@misc{react,
+   author                        =     {Facebook},
+   title                         =     {{react.js}},
+   howpublished             =     {https://facebook.github.io/react/},
+   year = {2017}
+}
+
+
+@misc{download:url,
+   author               =      {Anonymised Author}, 
+   title                    =      {Online Materials - Static + Hybrid Type System},	
+   howpublished   =      {http://tinyurl.com/nmstl7k}, 
+   year                  =      {2015}
+}
+
+
+@misc{jsil:url,
+   author               =      {{JaVerT Team}}, 
+   title                =      {JaVerT},	
+   howpublished         =      {http://goo.gl/au69SV}, 
+   year                 =      {2017}
+}
+
+@misc{google-closure,
+  author = { Google },
+  title = { Closure Compiler },
+  howpublished = { https://developers.google.com/closure/compiler/ },
+  year = { 2013 }
+}
+
+
+@misc{racket,
+  author = { Racket },
+  title = { The Racket Programming Language. },
+  howpublished = { racket-lang.org },
+  year = { 2017 }
+}
+
+
+
+Recent additions
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+@inproceedings{park:ecoop:15,
+  author    = {Changhee Park and
+               Sukyoung Ryu},
+  title     = {Scalable and Precise Static Analysis of JavaScript Applications via
+               Loop-Sensitivity},
+  booktitle = {{ECOOP}},
+  pages     = {735--756},
+  year      = {2015}
+}
+
+
+@inproceedings{kashyap:fse:14,
+  author    = {Vineeth Kashyap and
+               Kyle Dewey and
+               Ethan A. Kuefner and
+               John Wagner and
+               Kevin Gibbons and
+               John Sarracino and
+               Ben Wiedermann and
+               Ben Hardekopf},
+  title     = {{JSAI:} a static analysis platform for JavaScript},
+  booktitle = {FSE},
+  pages     = {121--132},
+  year      = {2014}
+}
+
+@inproceedings{sridharan:ecoop:12,
+  author    = {Manu Sridharan and
+               Julian Dolby and
+               Satish Chandra and
+               Max Sch{\"{a}}fer and
+               Frank Tip},
+  title     = {Correlation Tracking for Points-To Analysis of JavaScript},
+  booktitle = {{ECOOP}},
+  pages     = {435--458},
+  year      = {2012}
+}
+
+
+@inproceedings{andreasen:oopsla:2014,
+ author = {Esben Andreasen and Anders M{\o}ller},
+ title = {Determinacy in Static Analysis for jQuery},
+ booktitle = {OOPSLA},
+ year = {2014},
+} 
+
+
+
+My Own Papers
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{fragoso:tgc:2014,
+   author                   =     {Ana Almeida Matos and Jos\'{e} Fragoso Santos and Tamara Rezk},
+   title                        =     {An Information Flow Monitor for a Core of DOM - Introducing references and live primitives},
+   booktitle                =     {Proceedings of the 9th International Symposium on Trustworthy Global Computing},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer}, 
+   year                       =     {2014}
+}
+
+
+@inproceedings{fragoso:sec:2014,
+   author                   =     {Jos{\'{e}} Fragoso Santos and Tamara Rezk},
+   title                        =     {An Information Flow Monitor-Inlining Compiler for Securing a Core of {JavaScript}},
+   booktitle                =     {Proceedings of the {ICT} Systems Security and Privacy Protection - 29th {IFIP} {TC} International Conference, {SEC'2014}},
+   pages                    =     {278--292},
+   series                    =     {{IFIP} Advances in Information and Communication Technology},
+   publisher               =     {Springer}, 
+   year                       =     {2014}
+}
+
+
+
+
+Dynamic Mechanisms for Securing Information Flow
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{austiTypn:plas:2009,
+   author                   =     {Thomas H. Austin and Cormac Flanagan},
+   title                        =     {Efficient Purely-Dynamic Information Flow Analysis},
+   booktitle                =     {Proceedings of the 4th {ACM} {SIGPLAN} Workshop on Programming Languages and Analysis for Security},
+   pages                    =     {113--124}, 
+   series                    =     {PLAS '09},
+   publisher               =     {{ACM} Press},
+   year                       =     {2009}
+}
+
+@inproceedings{austin:plas:2010,
+   author                   =     {Thomas H. Austin and Cormac Flanagan},
+   title                        =     {Permissive Dynamic Information Flow Analysis},
+   booktitle                =     {Proceedings of the 5th {ACM} {SIGPLAN} Workshop on Programming Languages and Analysis for Security},
+   series                   =     {PLAS '10},
+   publisher              =      {{ACM} Press},
+   year                      =      {2010}
+} 
+
+@inproceedings{austin:popl:2012,
+   author                   =      {Thomas H. Austin and Cormac Flanagan},
+   title                       =       {Multiple Facets for Dynamic Information Flow},
+   booktitle                =      {Proceedings of the 39th Annual {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+   pages                  =        {165--178},
+   series                   =       {POPL '12},
+   publisher             =       {{{ACM} Press}},
+   year                     =       {2012}
+}
+
+@inproceedings{hedin:csf:2012,
+   author                  =     {Daniel Hedin and Andrei Sabelfeld},
+   title                       =     {Information-Flow Security for a Core of {JavaScript}},
+   booktitle               =     {Proceedings of the 25th {IEEE} Computer Security Foundations Symposium},
+   pages                  =      {3-18},
+   series                  =      {CSF'12},
+   publisher             =      {{IEEE} Computer Society},
+   year                     =      {2012} 
+ }
+
+@inproceedings{russo:csf:2010,
+   author                  =     {Alejandro Russo and Andrei Sabelfeld},
+   title                       =     {Dynamic vs. Static Flow-Sensitive Security Analysis},
+   booktitle               =     {Proceedings of the 23rd {IEEE} Computer Security Foundations Symposium},
+   year                     =     {2010}, 
+   pages                  =      {186--199},
+   publisher             =      {{IEEE} Computer Society},
+   series                  =      {CSF'10}
+}
+
+@inproceedings{birgisson:esorics:2012,
+   author                   =     {Arnar Birgisson and Daniel Hedin and Andrei Sabelfeld},
+   title                        =    {Boosting the Permissiveness of Dynamic Information-Flow Tracking by Testing},
+   booktitle                =     {Proceedings of 19th European Symposium on Research in Computer Security}, 
+   pages                   =     {55-72},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher              =     {Springer}, 
+   year                      =     {2012}
+}
+
+@inproceedings{sabelfedl:emc:2009,
+   author                 =      {Andrei Sabelfeld and Alejandro Russo},
+   title                      =      {From Dynamic to Static and Back: Riding the Roller Coaster of Information-Flow Control Research},
+   booktitle              =      {Ershov Memorial Conference},
+   pages                  =      {352--365},
+   series                  =      {Lecture Notes in Computer Science},
+   publisher             =      {Springer}, 
+   year                     =      {2009}
+}
+
+@inproceedings{shroff:csf:2007,
+   author                  =      {Paritosh Shroff and Scott F. Smith and Mark Thober},
+   title                       =      {Dynamic Dependency Monitoring to Secure Information Flow},
+   booktitle               =      {Proceedings of the 20th {IEEE} Computer Security Foundations Symposium},
+   pages                   =      {203--217},
+   publisher              =      {{IEEE} Computer Society},
+   series                   =      {CSF'07},
+   year                      =      {2007}
+}
+
+@inproceedings{venkatkrishnan:icics:2006,
+   author                   =     {Venkat N. Venkatakrishnan and Wei Xu and Daniel C. DuVarney and R. Sekar},
+   title                        =     {Provably Correct Runtime Enforcement of Non-interference Properties},
+   booktitle                =     {Proceedings of  8th International Conference on Information and Communications Security},
+   pages                    =     {332--351},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                       =     {2006}
+}
+
+@phdthesis{ulfar:thesis:2004,
+   author                   =     {\'{U}lfar Erlingsson},
+   advisor                  =     {Fred B. Schneider},
+   title                        =     {The inlined reference monitor approach to security policy enforcement},
+   year                       =     {2004},
+   school                   =     {Cornell University}, 
+   address                 =     {Ithaca, NY, USA},
+} 
+
+@phdthesis{leguernic:thesis:2007,
+  author                    =     {Gurvan Le Guernic},
+  advisor                   =     {David Schmidt and Anindya Banerjee},
+  title                         =     {Confidentiality Enforcement Using Dynamic Information Flow Analyses},
+  school                    =     {Kansas State University},
+  year                        =    {2007}
+}
+
+@inproceedings{disney:stop:2011,
+   author                   =     {Tim Disney and Cormac Flanagan},
+   title                        =     {Gradual Information Flow Typing},
+   booktitle                =     {STOP'11},
+   year                      =     {2011}
+}
+
+@inproceedings{fennell:csf:2013,
+   author                   =     {Luminous Fennell and Peter Thiemann},
+   title                        =     {Gradual Security Typing with References},
+   booktitle                =     {Proceedings of the 26th {IEEE} Computer Security Foundations Symposium},
+   pages                    =     {224--239},
+   series                    =     {CSF'26},
+   publisher               =     {{IEEE} Computer Society},
+   year                      =     {2013}
+}
+
+@inproceedings{boudol:fast:2009,
+   author                   =     {G�rard Boudol},
+   title                        =     {Secure Information Flow as a Safety Property},
+   booktitle                =     {Proceedings of the 5th International Workshop on Formal Aspects in Security and Trust},
+   pages                    =     {20--34},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                      =     {2008}
+} 
+
+@inproceedings{terauchi:sas:2005,
+   author                   =     {Tachio Terauchi and Alexander Aiken},
+   title                        =     {Secure Information Flow as a Safety Problem},
+   booktitle                =     {Proceedings of the 12th Static Analysis International Symposium},
+   pages                    =     {352--367},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                      =     {2005}
+}
+
+@inproceedings{devriese:sp:2010,
+   author                   =     {Dominique Devriese and Frank Piessens},
+   title                        =     {Noninterference through Secure Multi-execution},
+   booktitle                =     {Proceedings of the 31st {IEEE} Symposium on Security and Privacy},
+   pages                    =     {109--124},
+   series                    =     {SP'10},
+   publisher               =     {{IEEE} Computer Society},
+   year                       =     {2010}
+}
+
+// Scott Moore and Stephen Chong
+@InProceedings{moore:csf:2011,
+   author                   = 	{Scott Moore and Stephen Chong},
+   title                        =   	{Static Analysis for Efficient Hybrid Information-Flow Control},
+   booktitle                =	{Proceedings of the 24th {IEEE} Computer Security Foundations Symposium},
+   pages                   =        {146--160},
+   series                    =       {CSF'24},
+   publisher              =        {{IEEE} Computer Society},
+   year                      = 	{2011},
+}
+
+@inproceedings{bichawat:post:2014,
+   author                   =     {Abhishek Bichhawat and Vineet Rajani and Deepak Garg and Christian Hammer},
+   title                        =     {Information Flow Control in {WebKit}'s {JavaScript} Bytecode},
+   booktitle                =     {Proceedings of the 3rd International Conference on Principles of Security and Trust},
+   pages                    =     {159--178},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                       =     {2014}, 
+}
+
+@phdthesis{zdancewic:thesis:2002,
+   author                   =     {Stephan Zdancewic},
+   title                        =     {Programming Languages for Information Security},
+   advisor                  =     {Andrew C. Myers},
+   school                   =     {Cornell University},
+   address                 =     {Ithaca, New York},
+   year                       =     {2002}
+}
+
+@inproceedings{bielova:nss:2011,
+  author                    =     {Nataliia Bielova and Dominique Devriese and Fabio Massacci and Frank Piessens},
+  title                         =     {Reactive non-interference for a browser model},
+  booktitle                 =     {Proceedings of the 5th International Conference on Network and System Security},  
+  pages                    =      {97--104},
+  series                    =      {NSS'11},
+  publisher               =      {{IEEE} Computer Society},
+  year                       =      {2011},
+}
+
+
+@inproceedings{stefan:soh:2011,
+      author           =          {Deian Stefan and Alejandro Russo and John C. Mitchell and David Mazi{\`{e}}res},
+      title                =          {Flexible dynamic information flow control in Haskell},
+      booktitle        =          {Proceedings of the 4th {ACM} {SIGPLAN} Symposium on Haskell},
+      year              =          {2011},
+      pages           =          {95--106}
+}
+
+@inproceedings{buiras:csf:2014,
+   author                   =     {Pablo Buiras and Deian Stefan and Alejandro Russo},
+   title                        =     {On Dynamic Flow-sensitive Floating Label Systems},
+   booktitle                =     {Proceedings of the 27th {IEEE} Computer Security Foundations Symposium},
+   series                    =     {CSF'27},
+   publisher               =     {{IEEE} Computer Society},
+   year                       =     {2014}
+}
+
+@inproceedings{stefan:soh:2014,
+  author                   =       {Deian Stefan and Amit Levy and Alejandro Russo and David Mazi{\`{e}}res},
+  title                       =       {Building secure systems with {LIO} (demo)},
+  booktitle               =       {Proceedings of the 2014 {ACM} {SIGPLAN} Symposium on Haskell},
+  year                     =       {2014},
+  pages                  =       {93--94}
+}
+
+@inproceedings{russo:soh:2008,
+  author                =       {Alejandro Russo and Koen Claessen and John Hughes},
+  title                    =       {A library for light-weight information-flow security in haskell},
+  booktitle            =       {Proceedings of the 1st {ACM} {SIGPLAN} Symposium on Haskell},
+  year                  =       {2008},
+  pages               =       {13--24},
+  publisher          =       {{ACM} Press}
+ }
+
+
+@inproceedings{degroef:ccs:2012,
+  author                =       {Willem De Groef and Dominique Devriese and Nick Nikiforakis and Frank Piessens},
+  title                    =       {FlowFox: a web browser with flexible and precise information flow control},
+  booktitle            =       {Proceedings of the {ACM} Conference on Computer and Communications Security ({CCS}'12)},
+  year                  =       {2012},
+  pages               =       {748--759},
+  publisher          =       {{ACM} Press}
+ }
+
+@inproceedings{vanhoef:csf:2014,
+  author                =      {Mathy Vanhoef and Willem De Groef and Dominique Devriese and Frank Piessens and Tamara Rezk},
+  title                    =       {Stateful Declassification Policies for Event-Driven Programs},
+  booktitle            =       {Proceedings of the {IEEE} 27th Computer Security Foundations Symposium ({CSF}'14)},
+  year                  =       {2014},
+  pages               =       {293--307},
+  publisher          =       {{IEEE} Computer Society}
+ }
+
+
+
+Static Mechanisms for Securing Information Flow
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@article{volpano:jcs:1996,
+   author                   =     {Dennis M. Volpano and Cynthia E. Irvine and Geoffrey Smith},
+   title                        =     {A Sound Type System for Secure Flow Analysis},
+   journal                   =     {Journal of Computer Security},
+   volume                  =     {4},
+   number                 =     {2-3},
+   pages                   =     {167--187},
+   year                      =     {1996},
+   publisher              =     {IOS Press}
+}
+
+@inproceedings{banerjee:csfw:2002,
+   author                   =     {Anindya Banerjee and David A. Naumann},
+   title                        =     {Secure Information Flow and Pointer Confinement in a Java-like Language},
+   booktitle                =     {Proceedings of the 15th {IEEE} Computer Security Foundations Workshop},
+   pages                    =     {253--267},
+   series                    =     {CSF'15},
+   publisher               =     {{IEEE} Computer Society},
+   year                       =     {2002}
+}
+
+@ARTICLE{sabelfeld:jsac:2003,
+   author                   =     {Andrei Sabelfeld and Andrew C. Myers},
+   title                       =     {Language-Based Information-Flow Security},
+   journal                  =     {{IEEE} Journal on Selected Areas in Communications},
+   volume                 =     {21},
+   number                =     {1},
+   pages                   =    {5--19},
+   year                     =     {2003}, 
+   publisher             =      {{IEEE} Press},
+}
+
+@article{denning:cacm:1976,
+   author                   =     {Dorothy E. Denning},
+   title                        =     {A Lattice Model of Secure Information Flow},
+   journal                   =     {Communications of the {ACM}},
+   volume                  =     {19},
+   number                 =     {5},
+   pages                   =      {236--243},
+   publisher              =     {{ACM} Press},
+   year                      =     {1976}
+}
+
+@misc{foundations,
+   author                   =     {Donald I. Good},
+   title                        =     {The Foundations of Computer Security We Need Some},
+   year                       =     {1986}
+}
+
+@article{barthe:mscs:2011,
+   author                   =     {Gilles Barthe and Pedro R. D'Argenio and Tamara Rezk},
+   title                        =     {Secure information flow by self-composition},
+   journal                   =     {Mathematical Structures in Computer Science},
+   volume                  =     {21},
+   number                 =     {6},
+    pages                  =     {100--},
+   year                      =     {2011},
+   publisher              =     {IEEE Computer Society}
+}
+
+@ARTICLE{hedin:marktoberdor:2011,
+   author                  =     {Daniel Hedin and Andrei Sabelfeld},
+   title                       =     {A Perspective on Information Flow Control},
+   journal                  =     {Marktoberdorf},
+   year                      =     {2011}
+}
+
+@inproceedings{matos:csf:2005,
+    author                  =     {Ana {Almeida Matos} and G\'erard Boudol},
+    title                       =     {On Declassification and the Non-Disclosure Policy},
+    journal                  =     {Journal of Computer Security},
+    volume                 =     {17},
+    number                =      {5},
+    pages                  =      {549--597},
+    year                     =      {2009}, 
+    publisher             =      {IOS Press}
+    
+}
+
+@inproceedings{sabelfeld:isss:2003,
+  author                  =      {Andrei Sabelfeld and Andrew C. Myers},
+  title                       =      {A Model for Delimited Information Release},
+  booktitle               =      {Proceedings of the 9th Asian Symposium on Programming Languages and Systems},
+  pages                  =       {220--237},
+  series                   =       {Lecture Notes in Computer Science},
+  publisher              =      {Springer},
+  year                     =       {2003}
+}
+
+@inproceedings{keil:plas:2013,
+   author                  =      {Matthias Keil and Peter Thiemann},
+   title                       =      {Type-based dependency analysis for {JavaScript}},
+   booktitle                =     {Proceedings of the 8th {ACM} {SIGPLAN} Workshop on Programming Languages and Analysis for Security},
+   pages                   =      {47--58},
+   publisher               =     {{{ACM} Press}},
+   year                      =     {2013}
+}
+
+@inproceedings{myers:popl:1999,
+  author                 =      {Andrew C. Myers},
+  title                      =      {JFlow: Practical Mostly-Static Information Flow Control},
+  booktitle              =      {Proceedings of the 26th {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+  pages                 =      {228--241},
+  series                 =      {POPL '99},
+  publisher            =      {{ACM} Press},
+  year                    =      {1999},
+ }
+
+
+Information Flow General Literature
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+@INPROCEEDINGS{zdancewic:plid:2004,
+    author      =     {Steve Zdancewic},
+    title           =     {Challenges for information-flow security},
+    booktitle   =     {Proceedings of the 1st International Workshop on Programming Language Interference and Dependence},
+    year         =     {2004}
+}
+
+@inproceedings {yang:usenix:2013,
+   author         =     {Edward Yang and Deian Stefan and John Mitchell and David Mazi{\`e}res and Petr Marchenko and Brad Karp},
+   title              =     {Toward Principled Browser Security}, 
+   booktitle      =     {14th Workshop on Hot Topics in Operating Systems},
+   publisher     =     {{USENIX} Association},
+   year            =      {2013},
+}
+
+@techreport{bell:report:1976,
+   author           =     {David Elliott Bell and Leonard J. LaPadula},
+   title                =     {Secure Computer Systems: Mathematical Foundations},
+   institution      =     {Mitre Corp. Rep. MTR-2997 Rev. 1},
+   year              =     {1976}
+ }
+
+@article{denning:commacm:1976,
+   author        =     {Dorothy E. Denning},
+   title             =     {A Lattice Model of Secure Information Flow},
+   journal        =     {Commun. ACM},
+   volume       =     {19},
+   number       =     {5},
+   pages         =     {236--243},
+   year            =     {1976},
+   publisher     =    {{ACM} Press},
+   address      =     {New York, NY, USA},
+} 
+
+@inproceedings{cohen:sosp:77,
+   author          =    {Ellis Cohen},
+   title               =    {Information Transmission in Computational Systems},
+   booktitle       =    {Proceedings of the 6th {ACM} Symposium on Operating Systems Principles},
+   pages            =    {133--139},
+   series           =    {SOSP '77},
+   publisher       =    {{ACM} Press},
+   year              =    {1977}
+} 
+
+@inproceedings{goguen:sp:1982,
+   author            =     {Joseph A. Goguen and Jos{\'e} Meseguer},
+   title                 =     {Security Policies and Security Models},
+   booktitle         =     {Proceedings of the 3rd {IEEE} Symposium on Security and Privacy},
+   pages             =     {11-20},
+   series             =     {SP'82},
+   publisher        =     {{IEEE} Computer Society},
+   year                =     {1982},
+}
+
+@inproceedings{hunt:popl:2006,
+   author              =    {Sebastian Hunt  and David Sands},
+   title                   =    {On Flow-sensitive Security Types},
+   booktitle           =    {Proceedings of the 33rd {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+   pages              =     {79--90},
+   series               =    {POPL '06},
+   year                 =     {2006},
+   publisher         =     {{ACM} Press}
+} 
+
+@article{sabelfedl:hosc:1998,
+    author             =    {Andrei Sabelfeld and David Sands},
+    title                  =    {A Per Model of Secure Information Flow in Sequential Programs},
+    journal             =    {Higher Order and Symbolic Computation},
+    volume            =    {14},
+    number            =    {1},
+    pages              =    {59--91},
+    year                 =    {2001}
+} 
+
+@inproceedings{pottier:popl:2002,
+  author                  =     {Fran{\c{c}}ois Pottier and Vincent Simonet},
+  title                      =     {Information flow inference for {ML}},
+  booktitle               =    {Proceedings of the 29th {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+  year                     =     {2002},
+  pages                  =     {319--330},
+  publisher             =     {{{ACM} Press}}
+  
+}
+
+
+
+Inlining Transformations
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{chudnov:csf:2010,
+   author                   =      {Andrey Chudnov and David A. Naumann},
+   title                        =      {Information Flow Monitor Inlining},
+   booktitle                =      {Proceedings of the 23rd {IEEE} Computer Security Foundations Symposium}, 
+   pages                    =      {200--214},
+   series                    =      {CSF'10}, 
+   publisher               =      {{IEEE} Computer Society},
+   year                       =      {2010}
+}
+
+@article{magazinius:cs:2012,
+    author                   =      {Jonas Magazinius and Alejandro Russo and Andrei Sabelfeld},
+    title                        =     {On-the-fly Inlining of Dynamic Security Monitors},
+    journal                   =     {Computers {\&} Security},
+    volume                  =     {31},
+    number                 =      {7},
+    pages                   =      {827--843},
+    year                      =      {2012}
+}
+
+@inproceedings{magazinius:sec:2010,
+   author                   =     {Jonas Magazinius and Alejandro Russo and Andrei Sabelfeld},
+   title                        =     {On-the-fly Inlining of Dynamic Security Monitors},
+   booktitle                =     {Proceedings of the 25th {IFIP} {TC-11} International Information Security Conference}, 
+   pages                   =     {173--186},
+   series                   =     {{IFIP} Advances in Information and Communication Technology},
+   volume                 =     {330},
+   publisher              =     {Springer},
+   year                      =     {2010}
+}
+
+
+
+
+
+JavaScript Semantics
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{gardner:popl:2012,
+  author          =       {Philippa Gardner and Sergio Maffeis and Gareth Smith},
+  title           =       {Towards a program logic for {JavaScript}},
+  booktitle       =       {Proceedings of the 40th {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+  pages           =       {31--44},
+  series          =       {POPL'13}, 
+  publisher       =       {{ACM} Press}, 
+  year            =       {2012}
+}
+
+@inproceedings{guha:ecoop:2010,
+   author                   =     {Arjun Guha and Claudiu Saftoiu and Shriram Krishnamurthi},
+   title                        =     {The Essence of {Javascript}},
+   booktitle                =     {Proceedings of the 24th European Conference on Object-Oriented Programming (ECOOP)},
+   pages                   =      {126--150},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                       =     {2010}
+} 
+
+@inproceedings{maffeis:aplas:2008,
+   author                   =     {Sergio Maffeis and John C. Mitchell and Ankur Taly},
+   title                        =     {An Operational Semantics for {JavaScript}},
+   booktitle                =     {Proceedings of the 6th Asian Symposium on Programming Languages and Systems},
+   pages                    =     {307--325},
+   series                    =    {Lecture Notes in Computer Science}, 
+   volume                  =     {5356},
+   publisher               =     {Springer},
+   year                       =     {2008}
+}
+
+@inproceedings{bodin:popl:2013,
+  author                   =      {Martin Bodin and Arthur Chargu{\'e}raud and Daniele Filaretti and Philippa Gardner and Sergio Maffeis and Daiva Naudziuniene 
+                                            and Alan  Schmitt and Gareth Smith},
+   title                        =     {{A Trusted Mechanised {JavaScript} Specification}},
+  booktitle                 =     {Proceedings of the 41st {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+  pages                    =      {87--100},
+  series                     =     {POPL'13}, 
+  publisher                =     {{ACM} Press}, 
+  year                       =      {2013}
+}r
+
+
+Douglas Crockford
+@book{crockford:book:2008,
+   title                    =     {JavaScript: The Good Parts},
+   author               =     {Douglas Crockford},
+   year                  =     {2008},
+   publisher          =     {O'Reilly}
+}
+
+@book{flanagan:book:2011,
+   author                   =     {David Flanagan},
+   title                        =     {JavaScript - The Definitive Guide},
+   publisher               =     {O'Reilly},
+   year                       =     {2011}
+}
+
+
+
+DOM API
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{russo:esorics:2009,
+   author                   =     {Alejandro Russo  and Andrei Sabelfeld and Andrey Chudnov},
+   title                        =     {Tracking Information Flow in Dynamic Tree Structures},
+   booktitle                =     {Proceedings 14th European Symposium on Research in Computer Security},
+   pages                   =     {86--103},
+   series                   =     {Lecture Notes in Computer Science},
+   volume                 =     {5789},
+   publisher              =     {Springer},
+   year                      =     {2009}
+}
+
+@inproceedings{GardnerSWZ08,
+   author                 =      {Philippa Gardner and Gareth Smith and Mark J. Wheelhouse and Uri Zarfaty},
+   title                      =     {{DOM:} Towards a Formal Specification},
+   booktitle              =     {Proceedings of the {ACM} {SIGPLAN} Workshop {PLAN-X} on Programming Language Technologies for XML},
+   publisher             =     {{{ACM} Press}},
+   year                    =      {2008}
+ }
+ 
+ @inproceedings{thiemann:sdpl:2005,
+       author        =          {Peter Thiemann},
+       title             =          {A Type Safe {DOM} {API}},
+       booktitle     =          {Proceedings of the 10th International Symposium Database Programming Languages},
+        pages        =          {169--183},
+       series         =          {Lecture Notes in Computer Science},
+       volume       =          {3774},
+       publisher    =          {Springer},
+       year           =           {2005}
+  }
+
+@phdthesis{smith:thesis:2011,
+   author                   =     {Gareth Smith},
+   advisor                  =     {Philippa Gardner},
+   title                        =     {Local Reasoning about Web Programs},
+   year                       =     {2011},
+   school                   =     {Imperial College London}
+} 
+
+
+
+Isolation
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@Misc{fbjs,
+   author                   =     {The FaceBook Team: FBJS}, 
+   howpublished             =     {http://wiki.developers.facebook.com/index.php/FBJS}, 
+}
+
+
+@Misc{asm,
+   author                   =     {asm.js}, 
+   howpublished             =     {http://asmjs.org}
+}
+
+
+@Misc{webassembly,
+   author                   =     {{W3C}}, 
+   howpublished             =     {http://webassembly.org}
+}
+
+
+
+
+
+@inproceedings{maffeis:csf:2009,
+   author                   =     {Sergio Maffeis and Ankur Taly},
+   title                        =     {Language-Based Isolation of Untrusted {JavaScript}},
+   booktitle                =     {Proceedings of the 22nd {IEEE} Computer Security Foundations Symposium},
+   pages                    =     {77--91},
+   series                    =     {{CSF'09}},
+   publisher               =     {{IEEE} Computer Society}, 
+   year                      =     {2009}
+}
+
+@inproceedings{politz:usenix:2011,
+   author                   =     {Joe Gibbs Politz and Spiridon Aristides Eliopoulos and Arjun Guha and Shriram Krishnamurthi},
+   title                        =     {ADsafety: Type-Based Verification of {JavaScript} Sandboxing},
+   booktitle                =     {Proceedings of the 20th {USENIX} Security Symposium},
+    publisher              =     {{USENIX} Association},
+   year                      =      {2011}
+}
+
+@article{bielova:jlap:2013,
+   author                 =     {Nataliia Bielova},
+   title                      =     {Survey on {JavaScript} Security Policies and their Enforcement Mechanisms in a Web Browser},
+   journal                 =     {J. Log. Algebr. Program.},
+   volume                =     {82},
+   number               =     {8},
+   pages                 =      {243--262},
+   year                     =     {2013}
+}
+
+@inproceedings{bohannon:ccs:2009,
+   author                   =     {Aaron Bohannon and  Benjamin C. Pierce and Vilhelm Sj{\"{o}}berg and  Stephanie Weirich and Steve Zdancewic},
+   title                        =     {Reactive noninterference},
+   booktitle                =     {Proceedings of the 16th {ACM} Conference on Computer and Communications Security},
+   pages                   =     {79--90},
+   publisher              =     {{{ACM} Press}},
+   year                      =     {2009}
+}
+
+@inproceedings{jang:ccs:2010,
+   author                   =     {Hongseok Jang and Ranjit Jhala and  Sorin Lerner and Hovav Shacham},
+   title                        =     {An Empirical Study of Privacy-Violating Information Flows in {JavaScript} {Web} Applications},
+   booktitle                =     {Proceedings of the 17th {ACM} Conference on Computer and Communications Security},
+    pages                   =     {270--283},
+    publisher              =     {{{ACM} Press}},
+   year                       =     {2010}
+}
+
+@inproceedings{luo:csf:2012,
+   author                   =     {Zhengqin Luo and Tamara Rezk},
+   booktitle                =     {25th {IEEE} Computer Security Foundations Symposium},
+   title                       =     {Mashic Compiler: Mashup Sandboxing based on Inter-frame Communication},
+   pages                  =      {157--170},
+   publisher              =     {{IEEE} Computer Society},
+   year                     =      {2012}
+}
+
+
+@article{barth:cacm:2009,
+   author                   =     {Adam Barth and Collin Jackson and John C. Mitchell},
+   title                        =     {Securing Frame Communications in Browsers},
+   journal                   =     {Commun. {ACM}},
+   volume                  =     {52},
+   number                 =      {6},
+   pages                   =      {83--91},
+   year                      =      {2009}
+}
+
+
+
+@inproceedings{louw:usenixsec:2010,
+   author                   =     {Mike Ter Louw and  Karthik Thotta Ganesh and V. N. Venkatakrishnan},
+   title                        =     {{AdJail}: Practical Enforcement of Confidentiality and Integrity Policies on Web Advertisements},
+   booktitle                =     {Proceedings of the 19th {USENIX} Security Symposium},
+   pages                   =     {371--388},
+   publisher               =    {{USENIX} Association},
+   year                      =     {2012}
+}
+
+@MISC{cenzic,
+   author                  =     {{Cenzic Inc.}},
+   title                       =     {{Web application security trends report {Q}1, 2013}},
+   howpublished      =     {{\tt http://www.cenzic.com/}},
+   year                     =     {2013}
+}
+
+@inproceedings{barth:report:2011,
+  author               =        {A. Barth},
+  title                    =        {The web origin concept},
+  booktitle             =       {IETF},
+  url                      =       {https://tools. ietf.org/html/rfc6454},
+  year                   =       {2011}
+ }
+
+
+
+
+
+APIs
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@article{apichallenges,
+   author                  =     {Arjun Guha and Benjamin Lerner and Joe Gibbs Politz and Shriram Krishnamurthi},
+   title                       =     {Web API Verification: Results and Challenges},
+   booktitle               =     {Analysis of Security APIs},
+   year                     =     {2012}
+}
+
+@inproceedings{taly:sp:2011,
+   author                  =     {Ankur Taly and  {\'{U}}lfar Erlingsson and  John C. Mitchell and Mark S. Miller and Jasvir Nagra},
+   title                       =     {Automated Analysis of Security-Critical {JavaScript} {APIs}},
+   booktitle               =     {Proceedings of the 32nd {IEEE} Symposium on Security and Privacy},
+    pages                 =     {363--378},
+   publisher             =      {{IEEE} Computer Society},
+   year                     =     {2011}
+} 
+
+@inproceedings{hedin:sac:2014,
+   author                   =     {Daniel Hedin and Arnar Birgisson and Luciano Bello and Andrei Sabelfeld},
+   title                        =     {{JSFlow}: Tracking Information Flow in {JavaScript} and its {APIs}},
+   booktitle                =     {Proceedings of the 29th Symposium on Applied Computing},
+   pages                    =     {1663--1671},
+   publisher               =     {{{ACM} Press}},
+   year                       =     {2014}
+} 
+
+@article{mathews:toplas:2009,
+        author         =     {Jacob Matthews and Robert Bruce Findler},
+        title              =     {Operational Semantics for Multi-language Programs},
+        journal         =     {ACM Trans. Program. Lang. Syst.},
+        volume       =      {31},
+       number        =      {3},
+       year             =      {2009},
+        pages         =      {12:1--12:44},
+       publisher      =     {{ACM} Press}
+} 
+
+
+@article{ramsey:jfp:2011,
+    author    =    {Norman Ramsey},
+    title         =    {Embedding an interpreted language using higher-order functions and types},
+    journal    =    {J. Funct. Program.},
+    year        =    {2011},
+    volume   =   {21},
+    number  =    {6},
+  pages      =    {585--615}
+}
+
+@inproceedings{kiczales:1997:ecoop,
+  author     =     {Gregor Kiczales and John Lamping and Anurag Mendhekar and Chris Maeda and
+                               Cristina Videira Lopes and Jean{-}Marc Loingtier and John Irwin},
+  title          =     {Aspect-Oriented Programming},
+  booktitle  =     {Proceedings of the 11th European Conference on Object-Oriented Programming (ECOOP)},
+  year         =     {1997},
+  pages     =      {220--242}
+}
+
+@inproceedings{djoko:2008:sefm,
+  author       =          {Simplice Djoko and R{\'{e}}mi Douence and Pascal Fradet},
+  title            =         {Specialized Aspect Languages Preserving Classes of Properties},
+  booktitle    =         {Proceedings of the 6th {IEEE} International Conference on Software Engineering and Formal Methods},
+  year           =         {2008},
+  pages        =         {227--236}, 
+  publisher    =        {{IEEE} Computer Society},
+}
+
+
+
+JavaScript Static Analysis
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{thiemann:esop:2005,
+   author                  =     {Peter Thiemann},
+   title                       =     {Towards a Type System for Analysing {JavaScript} Programs},
+   booktitle               =     {Proceedings of the 14th European Symposium on Programming Languages and Systems},
+   pages                   =     {408--422},
+   series                   =     {Lecture Notes in Computer Science},
+   publisher              =     {Springer},
+   year                      =     {2005}
+}
+
+@inproceedings{anderson:ecoop:2005,
+   author                   =     {Christopher Anderson and Paola Giannini and Sophia Drossopoulou},
+   title                        =     {Proceedings of the Towards Type Inference for {JavaScript}},
+   booktitle                =     {19th European Conference Object-Oriented Programming},
+   pages                   =     {428--452},
+   series                    =    {Lecture Notes in Computer Science},
+   publisher               =    {Springer},
+   year                      =     {2005}
+}
+
+@inproceedings{jensen:sas:2009,
+   author         =     {Simon Holm Jensen and Anders M{\o}ller and  Peter Thiemann},
+   title              =     {Type Analysis for {J}ava{S}cript},
+   booktitle      =     {Proceedings of the 16th International Static Analysis Symposium (SAS)},
+   pages          =    {238-255}, 
+   series          =     {Lecture Notes in Computer Science},
+   volume        =     {5673},
+   publisher     =    {Springer},
+   year             =    {2009}
+}
+
+@inproceedings{jang:sac:2009,
+    author        =      {Hongseok Jang  and Kwang-Moo Choe},
+    title             =      {Points-to Analysis for {JavaScript}},
+    booktitle     =      {Proceedings of the 24th {ACM} Symposium on Applied Computing},
+    pages         =     {1930--1937},
+    publisher    =     {{ACM} Press},
+    year            =     {2009}
+} 
+
+@inproceedings{clements:sfpw:2008,
+   author         =     {John Clements and Ayswarya Sundaram and David Herman},
+   title              =     {Implementing continuation marks in {JavaScript}},
+   booktitle      =     {Proceedings of the 9th Scheme and Functional Programming Workshop},
+    year            =     {2008}
+}
+
+
+@inproceedings{feldthaus:oopsla:2014,
+      author      =                {Asger Feldthaus and Anders  M{\o}ller},
+      title          =                {Checking Correctness of {TypeScript} Interfaces for {JavaScript} Libraries},
+      booktitle    =                {Proceedings of the 29th Annual {ACM} {SIGPLAN} Conference on Object-Oriented Programming, Systems, Languages, and Applications, {OOPSLA}},
+       year         =                 {2014}
+}
+
+@inproceedings{bierman:ecoop:2014,
+      author       =                {Gavin M. Bierman and Mart{\'{\i}}n Abadi and Mads Torgersen},
+      title            =                {Understanding {TypeScript}},
+      booktitle    =                {Proceedings of the 28th European Conference on Object-Oriented Programming ({ECOOP}'14)},
+      pages        =                {257--281},
+      series        =                {Lecture Notes in Computer Science},
+       publisher  =                {Springer},
+       year          =                {2014}
+}
+
+
+@inproceedings{rastogi:popl:2015,
+      author       =                {Aseem Rastogi and Nikhil Swamy and C\'edric Fournet and Gavin Bierman and Panagiotis Vekris},
+      title            =                {Safe \& Efficient Gradual Typing for {TypeScript}},
+      booktitle    =                {Proceedings of the 42nd {ACM} Symposium on Principles of Programming Languages},
+       publisher  =                {{ACM} Press},
+       year          =                {2015}
+}
+
+
+
+Recursive Types
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{amadio:popl:1991,
+   author                   =     {Roberto M. Amadio  and Luca Cardelli},
+   title                        =     {Subtyping the  Recursive Types},
+   booktitle                =     {Proceedings of the 18th {ACM} Symposium on Principles of Programming Languages},
+   pages                    =     {104--118},
+   publisher               =     {{ACM} Press},
+   year                      =      {1991}
+} 
+
+
+@book{Abadi:1996:TO:547964,
+ author = {Abadi, Martin and Cardelli, Luca},
+ title = {A  Theory of Objects},
+ year = {1996},
+ isbn = {0387947752},
+ edition = {1st},
+ publisher = {Springer-Verlag New York, Inc.},
+ address = {Secaucus, NJ, USA},
+} 
+
+@book{abadi:theory:of:objects,
+   author                   =     {Martin Abadi and Luca Cardelli},
+   title                        =     {A Theory of Objects},
+   year                       =     {1996},
+   publisher               =     {Springer-Verlag}
+} 
+
+@inproceedings{castagna:2005:icalp,
+  author              =     {Giuseppe Castagna and Alain Frisch},
+  title                   =     {A Gentle Introduction to Semantic Subtyping},
+  booktitle           =     {Proceedings of the 32nd International Colloquium on Automata, Languages and Programming (ICALP)}, 
+  pages               =     {30--34},
+  series               =     {Lecture Notes in Computer Science},
+  volume             =     {3580},
+  publisher          =     {Springer}, 
+  year                  =     {2005}
+ }
+
+
+
+
+Hybrid Typing Disciplines
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{aiken:popl:1994,
+   author                   =     {Alexander Aiken and Edward L. Wimmers and T. K. Lakshman},
+   title                        =     {Soft Typing with Conditional Types},
+   booktitle                =      {21st {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages}, 
+    pages                   =     {163--173},
+    publisher               =     {{ACM} Press},
+   year                       =     {1994},
+}
+
+@inproceedings{cartwright:pldi:1991,
+   author                   =     {R. Cartwright and M. Fagan},
+   title                        =     {Soft Typing},
+   booktitle                =     {Proceedings of the {ACM} {SIGPLAN} Conference on Programming Language Design and Implementation (PLDI)},
+   pages                    =     {278--292},
+   publisher               =      {{ACM} Press},
+   year                       =     {1991}
+} 
+
+@inproceedings{flanagan:popl:2006,
+   author              =    {Cormac Flanagan},
+   title                   =    {Hybrid type checking},
+   booktitle           =    {Proceedings of the 33rd {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+   pages              =     {245--256},
+   series               =    {POPL '06},
+   year                 =     {2006},
+   publisher         =     {{ACM} Press}
+} 
+
+@inproceedings{siek:ecoop:2007,
+   author                   =     {Jeremy G. Siek and Walid Taha},
+   title                        =     {Gradual Typing for Objects},
+   booktitle                =     {Proceedings of the 21st European Conference on Object-Oriented Programming (ECOOP)},
+   pages                   =      {2--27},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                       =     {2007}
+} 
+
+Instrumentations 
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{magazinius:nc:2010,
+   author                    =     {Jonas Magazinius and Phu H. Phung and David Sands},
+   title                         =     {Safe Wrappers and Sane Policies for Self Protecting {J}ava{S}cript},
+   booktitle                 =     {Nordic Conference in Secure IT Systems},
+   pages                     =    {239--255},
+   series                    =     {Lecture Notes in Computer Science},
+   publisher               =     {Springer},
+   year                       =     {2010}
+}
+
+@inproceedings{phung:asiacs:2009,
+   author                   =     {Phu H. Phung and David Sands and Andrey Chudnov},
+   title                        =     {Lightweight Self-Protecting {JavaScript}},
+   booktitle                =     {Proceedings of the 2009 {ACM} Symposium on Information, Computer and Communications Security ({ASIACCS}'09)},
+   pages                    =     {47--60},
+   publisher               =      {{ACM} Press}, 
+   year                       =     {2009}
+ }
+
+@inproceedings{richards:pldi:2010,
+   author                   =     {Gregor Richards and Sylvain Lebresne and Brian Burg and Jan Vitek},
+   title                        =     {An Analysis of the Dynamic Behaviour of {JavaScript} Programs},
+   booktitle                =     {Proceedings of the 2010 {ACM} {SIGPLAN} Conference on Programming Language Design and Implementation ({PLDI}'10)},
+   pages                   =     {1--12},
+   volume                 =     {45},
+   publisher              =     {{ACM} Press},
+   year                      =     {2010}
+} 
+
+
+
+
+
+Technical Reports and Standards
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@Misc{adsafe,
+   author                   =     {Douglas Crockford},
+   title                        =     {ADSafe},
+   howpublished        =     {http://www.adsafe.org}
+}
+
+@TECHREPORT{dom:ref,
+   author                   =     {{{W3C} Recommendation}},
+   title                        =     {{DOM: Document Object Model (DOM)}},
+   institution              =     {W3C},
+   ee                         =     {http://www.w3.org/DOM}, 
+   year                      =     {2005}
+ }
+
+@TECHREPORT{dom:core:ref,
+   author                   =     {{{W3C} Recommendation}},
+   title                        =     {{DOM: Document Object Model (DOM) Level 1 Specification (2nd Ed.)}},
+   institution              =     {W3C},
+   ee                         =     {http://www.w3.org/TR/2000/WD-DOM-Level-1-20000929/level-one-core.html}, 
+   year                      =     {2000}
+}
+
+@TECHREPORT{ecma,
+   author                   =     {{ECMAScript Committee}},
+   title                        =     {{The 5th edition of the ECMAScript Language Specification}},
+   institution              =     {ECMA},
+   year                      =     {2011}
+}
+
+
+@TECHREPORT{ecma:new,
+   author                   =     {{ECMAScript Committee}},
+   title                        =     {{The 8th edition of the ECMAScript Language Specification}},
+   institution              =     {ECMA},
+   year                      =     {2017}
+}
+
+
+@TECHREPORT{ecma:old,
+   author                    =     {The 3rd edition of ECMA 262},
+   title                        =     {{ECMAScript Language Specification}},
+   institution               =     {ECMA},
+   year                       =     {1999}
+}
+
+@TECHREPORT{typescript:toot:2014,
+   author                    =     {Microsoft},
+   title                        =     {{TypeScript language specification}},
+   institution               =     {Microsoft},
+   year                       =     {2014}
+}
+
+
+
+
+Type-Directed Transformations
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{agat:popl:2000,
+   author              =     {Johan Agat},
+   title                  =     {Transforming out Timing Leaks},
+   booktitle           =    {Proceedings of the 27th {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages},
+   pages               =    {40--53},
+   series              =    {POPL '00},
+   publisher          =    {{ACM} Press},
+    year                 =    {2000}
+} 
+
+@misc{tedesco:report:2014,
+     author        =     {Filippo Del Tedesco and David Sands and Alejandro Russo},
+     publisher    =     {CoRR abs/1410.4917}, 
+     title             =     {Type-Directed Compilation for Fault-Tolerant Non-Interference}, 
+     year            =     {2014}
+}
+
+
+
+
+
+
+Miscellaneous
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{magazinius:asiaccs:2010,
+   author             =     {Jonas Magazinius and Aslan Askarov and Andrei Sabelfeld},
+   title              =     {A Lattice-based Approach to Mashup Security},
+   booktitle          =     {Proceedings of the 5th {ACM} Symposium on Information, Computer and Communications Security ({ASIACCS} '10)},
+   pages              =     {15--23},
+   publisher          =     {{ACM} Press},
+    year              =     {2010}
+ } 
+
+@inproceedings{cousot:popl:1977,
+  author              =     {Patrick Cousot and Radhia Cousot},
+  title               =     {Abstract Interpretation: {A} Unified Lattice Model for Static Analysis of Programs by Construction or Approximation of Fixpoints},
+  booktitle           =     {Proceedings of the Fourth {ACM} Symposium on Principles of Programming Languages (POPL'77)},
+  pages               =     {238-252},
+  publisher           =     {{ACM} Press},
+  year                =     {1977}
+  }
+
+@book{davey:book:2002,
+  author              =     {Brian A. Davey and Hilary A. Priestley},
+  title               =     {Introduction to Lattices and Order (2. ed.)},
+  publisher           =     {Cambridge University Press},
+  year                =     {2002}
+ }
+
+@inproceedings{degroef:ccs:2012,
+  author              =     {Willem De Groef and Dominique Devriese and Nick Nikiforakis and Frank Piessens},
+  title               =     {FlowFox: a web browser with flexible and precise information flow control},
+  booktitle           =     {Proceedings of the 19th {ACM} Conference on Computer and Communications Security {CCS'12}},
+  pages               =     {748-759},
+  publisher           =     {{ACM} Press},
+  year                =     {2012}
+  }
+
+@inproceedings{flanagan:pldi:1993,
+  author              =     {Cormac Flanagan and Amr Sabry and Bruce F. Duba and Matthias Felleisen},
+  title               =     {The Essence of Compiling with Continuations (with retrospective)},
+  booktitle           =     {Proceedings of the {ACM} {SIGPLAN} Conference on Programming Language Design and Implementation ({PLDI'93})}, 
+  pages               =     {237-247},
+  publisher           =     {{ACM} Press},
+  year                =     {1993}
+  }
+
+@inproceedings{dillig:sas:2010,
+  author              =     {Isil Dillig and Thomas Dillig and Alex Aiken},
+  title               =     {Small Formulas for Large Programs: On-Line Constraint Simplification in Scalable Static Analysis},
+  booktitle           =     {Proceedings of the 17th International Symposium on Static Analysis ({SAS}'2010)}, 
+  pages               =     {236--252},
+  series              =     {Lecture Notes in Computer Science},
+  publisher           =     {Springer},
+  year                =     {2010}
+  }
+
+@techreport{lamport:report:2011,
+   author             =     {Leslie Lamport},
+   title              =     {How to Write a 21\textsuperscript{st} Century Proof},
+   institution        =     {Microsoft Research},
+   year               =     {2011}
+ }
+
+
+
+Integrity
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@misc{biba:report:1977,
+     author        =     {J. K. Biba},
+     publisher    =     {U.S. Air Force Electronic Systems Division},
+     title             =     {Integrity Considerations for Secure Computer Systems},
+     year            =     {1977}
+}
+
+@inproceedings{li:fast:2003,
+    author            =    {Peng Li and Yun Mao and S. Zdancewic},
+    title                 =    {Information Integrity Policies},
+    booktitle         =     {Proceedings Formal Aspects in Security \& Trust (FAST)},
+    year                =    {2003}
+}
+
+
+
+
+
+Browser Architecture
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{grosskurth:icsm:2005,
+   author       =    {Alan Grosskurth and Michael W. Godfrey},
+   title            =     {A Reference Architecture for Web Browsers},
+   booktitle    =     {Proceedings of the 21st International Conference on Software Maintenance},
+   series        =    {ICSM '05},
+   year           =    {2005},
+   pages        =    {661--664},
+   publisher   =    {IEEE Computer Society}
+} 
+
+
+
+
+
+Semantics
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@InProceedings{chargueraud:pls:2013,
+   author         =      {Arthur Chargu{\'e}raud},
+   title             =      {Pretty-Big-Step Semantics},
+   booktitle      =     {Programming Languages and Systems},
+   year            =      {2013},
+   volume        =      {7792},
+   series          =     {Lecture Notes in Computer Science},
+   publisher     =     {Springer Berlin Heidelberg},
+   pages          =     {41-60}
+}
+
+
+
+@inproceedings{barthe:tldi:2006,
+  author    = {Gilles Barthe and
+               Tamara Rezk},
+  title     = {{Non-interference for a JVM-like language}},
+  booktitle = {Proceedings of the {ACM} {SIGPLAN} International Workshop
+               on Types in Languages Design and Implementation ({TLDI'05})},
+  pages     = {103--112},
+  year      = {2005}
+}
+
+
+@inproceedings{appel:popl:1985,
+  author    = {Andrew W. Appel},
+  title     = {Semantics-Directed Code Generation},
+  booktitle = {Proceedings of the {ACM} Symposium on Principles
+               of Programming Languages ({POPL'1985})},
+  pages     = {315--324},
+  year      = {1985}
+}
+
+
+Intermediate languages AD HOC
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+@inproceedings{s5,
+ author = {Politz, Joe Gibbs and Carroll, Matthew J. and Lerner, Benjamin S. and Pombrio, Justin and Krishnamurthi, Shriram},
+ title = {{A Tested Semantics for Getters, Setters, and Eval in JavaScript}},
+ booktitle = {Proceedings of the 8th Symposium on Dynamic Languages},
+ year = {2012}
+}
+
+@Misc{jsir,
+        key={jsir},
+        author={Ben Livshits},
+        title={{JSIR, An Intermediate Representation for JavaScript Analysis}},
+        note={\url{http://too4words.github.io/jsir/}},
+        year=2014
+}
+
+Separation Logic tools
+-----------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------
+@inproceedings{smallf,
+  author    = {J. Berdine and
+               C. Calcagno and
+               P. O'Hearn},
+  title     = {Smallfoot: Modular Automatic Assertion Checking with Separation
+               Logic},
+  booktitle = {FMCO},
+  year      = {2005},
+}
+
+
+@inproceedings{berdine:aplas:2005,
+  author    = {J. Berdine and
+               C. Calcagno and
+               P. O'Hearn},
+  title     = { Symbolic Execution with Separation Logic},
+  booktitle = {APLAS},
+  year      = {2005},
+}
+
+
+@InProceedings{jstar,
+  title = "{jStar}: {Towards} practical verification for {Java}",
+  author =  "Dino Distefano and M. Parkinson",
+  bibdate = "2008-10-27",
+  bibsource = "DBLP,
+     http://dblp.uni-trier.de/db/conf/oopsla/oopsla2008.html#DistefanoP08",
+  booktitle = "OOPSLA",
+  year =  "2008",
+  ISBN =  "978-1-60558-215-3",
+  URL =   "http://doi.acm.org/10.1145/1449764.1449782",
+}
+
+@inproceedings{reynolds:lics:2002,
+  author    = {John C. Reynolds},
+  title     = {Separation Logic: {A} Logic for Shared Mutable Data Structures},
+  booktitle = {{LICS}},
+  year      = {2002}
+}
+
+
+@inproceedings{spaceinvader,
+ author = {Yang, Hongseok and Lee, Oukseh and Berdine, Josh and Calcagno, C. and Cook, Byron and Distefano, Dino and O'Hearn, Peter},
+ title = {Scalable Shape Analysis for Systems Code},
+ booktitle = {CAV '08: Proc. of the 20th international conference on Computer Aided Verification},
+ year = {2008},
+ isbn = {978-3-540-70543-7},
+ pages = {385--398},
+ location = {Princeton, NJ, USA},
+ doi = {http://dx.doi.org/10.1007/978-3-540-70545-1_36},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+ }
+
+@inproceedings{abductor,
+ author = {Calcagno, C. and Distefano, Dino and O'Hearn, Peter and Yang, Hongseok},
+ title = {Compositional shape analysis by means of bi-abduction},
+ booktitle = {POPL},
+ year = {2009},
+ isbn = {978-1-60558-379-2},
+ doi = {http://doi.acm.org/10.1145/1480881.1480917}
+ }
+
+@inproceedings{corestar,
+  author = {Matko Botin\v{c}an and Dino Distefano and Mike Dodds and Radu Grigore and
+              Daiva Naud\v{z}i\={u}nien\.{e} and Matthew J. Parkinson},
+  title = {{\sf coreStar}: The Core of {\sf jStar}},
+  booktitle = {Boogie},
+  year = {2011}
+}
+
+@inproceedings{slayerp,
+  author    = {J. Berdine and
+               B. Cook and
+               S. Ishtiaq},
+  title     = {SLAyer: Memory Safety for Systems-Level Code},
+  booktitle = {CAV},
+  year      = {2011},
+}
+
+@incollection{jacobs2011verifast,
+  title={VeriFast: A powerful, sound, predictable, fast verifier for C and Java},
+  author={Jacobs, Bart and Smans, Jan and Philippaerts, Pieter and Vogels, Fr{\'e}d{\'e}ric and Penninckx, Willem and Piessens, Frank},
+  booktitle={NASA Formal Methods},
+  pages={41--55},
+  year={2011},
+  publisher={Springer}
+}
+
+@inproceedings{danvy1996semantics,
+  title={Semantics-based compiling: A case study in type-directed partial evaluation},
+  author={Danvy, Olivier and Vestergaard, Ren{\'e}},
+  booktitle={Programming Languages: Implementations, Logics, and Programs},
+  pages={182--197},
+  year={1996},
+  organization={Springer}
+}
+
+@inproceedings{TalySES,
+ author = {Taly, Ankur and Erlingsson, \'{U}lfar and Mitchell, John C. and Miller, Mark S. and Nagra, Jasvir},
+ title = {Automated Analysis of Security-Critical JavaScript APIs},
+ booktitle = {Proceedings of the 2011 IEEE Symposium on Security and Privacy},
+ series = {SP '11},
+ year = {2011},
+ isbn = {978-0-7695-4402-1},
+ pages = {363--378},
+ numpages = {16},
+ url = {http://dx.doi.org/10.1109/SP.2011.39},
+ doi = {10.1109/SP.2011.39},
+ acmid = {2006776},
+ publisher = {IEEE Computer Society},
+ address = {Washington, DC, USA},
+ keywords = {Language-Based Security, Points-to Analysis, APIs, Javascript},
+} 
+
+@article{Swamy2013,
+ author = {Swamy, Nikhil and Weinberger, Joel and Schlesinger, Cole and Chen, Juan and Livshits, Benjamin},
+ title = {Verifying Higher-order Programs with the Dijkstra Monad},
+ journal = {SIGPLAN Not.},
+ issue_date = {June 2013},
+ volume = {48},
+ number = {6},
+ month = jun,
+ year = {2013},
+ issn = {0362-1340},
+ pages = {387--398},
+ numpages = {12},
+ url = {http://doi.acm.org/10.1145/2499370.2491978},
+ doi = {10.1145/2499370.2491978},
+ acmid = {2491978},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {dynamic languages, hoare monad, predicate transformer, refinement types},
+} 
+
+@inproceedings{Swamy:2013:VHP:2491956.2491978,
+ author = {Swamy, Nikhil and Weinberger, Joel and Schlesinger, Cole and Chen, Juan and Livshits, Benjamin},
+ title = {Verifying Higher-order Programs with the Dijkstra Monad},
+ booktitle = {Proceedings of the 34th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+ series = {PLDI '13},
+ year = {2013},
+ isbn = {978-1-4503-2014-6},
+ location = {Seattle, Washington, USA},
+ pages = {387--398},
+ numpages = {12},
+ url = {http://doi.acm.org/10.1145/2491956.2491978},
+ doi = {10.1145/2491956.2491978},
+ acmid = {2491978},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {dynamic languages, hoare monad, predicate transformer, refinement types},
+} 
+
+@article{Swamy2013,
+ author = {Swamy, Nikhil and Weinberger, Joel and Schlesinger, Cole and Chen, Juan and Livshits, Benjamin},
+ title = {Verifying Higher-order Programs with the Dijkstra Monad},
+ journal = {SIGPLAN Not.},
+ issue_date = {June 2013},
+ volume = {48},
+ number = {6},
+ month = jun,
+ year = {2013},
+ issn = {0362-1340},
+ pages = {387--398},
+ numpages = {12},
+ url = {http://doi.acm.org/10.1145/2499370.2491978},
+ doi = {10.1145/2499370.2491978},
+ acmid = {2491978},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {dynamic languages, hoare monad, predicate transformer, refinement types},
+}
+
+@inproceedings{SAFE,
+ author = {Hongki Lee and Sooncheol Won and Joonho Jin and Junhee Cho and Sukyoung Ryu},
+ title = {{SAFE: Formal Specification and Implementation of a Scalable Analysis Framework for ECMAScript}},
+ booktitle = {Proceedings of the 19th International Workshop on Foundations of Object-Oriented Languages},
+ series = {FOOL '12},
+ year = {2012},
+ location = {Tucson, Arizona, USA}
+} 
+
+@inproceedings{Chugh:2012:DTJ:2384616.2384659,
+ author = {Chugh, Ravi and Herman, David and Jhala, Ranjit},
+ title = {Dependent Types for JavaScript},
+ booktitle = {Proceedings of the ACM International Conference on Object Oriented Programming Systems Languages and Applications},
+ series = {OOPSLA '12},
+ year = {2012},
+ isbn = {978-1-4503-1561-6},
+ location = {Tucson, Arizona, USA},
+ pages = {587--606},
+ numpages = {20},
+ url = {http://doi.acm.org/10.1145/2384616.2384659},
+ doi = {10.1145/2384616.2384659},
+ acmid = {2384659},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {JavaScript, arrays, prototype inheritance, refinement types, strong updates},
+} 
+
+@inproceedings{Dolby2005,
+  title={Using static analysis for {IDE}s for dynamic languages},
+  author={Dolby, Julian},
+  booktitle={The Eclipse Languages Symposium},
+  year={2005}
+}
+
+@inproceedings{kt2014-tacas,
+  AUTHOR    = { Kroening, Daniel
+                and Tautschnig, Michael },
+  TITLE     = { {CBMC} -- {C} Bounded Model Checker },
+  BOOKTITLE = { Tools and Algorithms for the Construction and Analysis of Systems (TACAS) },
+  YEAR      = { 2014 },
+  PUBLISHER = { Springer },
+  PAGES     = { 389--391 },
+  ISBN      = { 978-3-642-54861-1 },
+  SERIES    = { LNCS },
+  VOLUME    = { 8413 },
+}
+
+@incollection{calcagno2015moving,
+  title={Moving fast with software verification},
+  author={Calcagno, Cristiano and Distefano, Dino and Dubreil, J{\'e}r{\'e}my and Gabi, Dominik and Hooimeijer, Pieter and Luca, Martino and O'Hearn, Peter and Papakonstantinou, Irene and Purbrick, Jim and Rodriguez, Dulma},
+  booktitle={NASA Formal Methods},
+  pages={3--11},
+  year={2015},
+  publisher={Springer}
+}
+
+@inproceedings{Rosette1,
+  author    = {Emina Torlak and
+               Rastislav Bod{\'{\i}}k},
+  title     = {A lightweight symbolic virtual machine for solver-aided host languages},
+  booktitle = {{ACM} {SIGPLAN} Conference on Programming Language Design and Implementation,
+               {PLDI} '14, Edinburgh, United Kingdom - June 09 - 11, 2014},
+  pages     = {54},
+  year      = {2014}
+}
+
+@proceedings{DBLP:conf/pldi/2014,
+  editor    = {Michael F. P. O'Boyle and
+               Keshav Pingali},
+  title     = {{ACM} {SIGPLAN} Conference on Programming Language Design and Implementation,
+               {PLDI} '14, Edinburgh, United Kingdom - June 09 - 11, 2014},
+  publisher = {{ACM}},
+  year      = {2014},
+  url       = {http://dl.acm.org/citation.cfm?id=2594291},
+  isbn      = {978-1-4503-2784-8},
+  timestamp = {Sat, 10 May 2014 14:18:27 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/pldi/2014},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{Rosette2,
+  author    = {Emina Torlak and
+               Rastislav Bod{\'{\i}}k},
+  title     = {Growing solver-aided languages with rosette},
+  booktitle = {{ACM} Symposium on New Ideas in Programming and Reflections on Software,
+               Onward! 2013, part of {SPLASH} '13, Indianapolis, IN, USA, October
+               26-31, 2013},
+  pages     = {135--152},
+  year      = {2013}
+}
+
+@proceedings{DBLP:conf/oopsla/2013onward,
+  editor    = {Antony L. Hosking and
+               Patrick Th. Eugster and
+               Robert Hirschfeld},
+  title     = {{ACM} Symposium on New Ideas in Programming and Reflections on Software,
+               Onward! 2013, part of {SPLASH} '13, Indianapolis, IN, USA, October
+               26-31, 2013},
+  publisher = {{ACM}},
+  year      = {2013},
+  url       = {http://dl.acm.org/citation.cfm?id=2509578},
+  isbn      = {978-1-4503-2472-4},
+  timestamp = {Fri, 25 Oct 2013 08:50:53 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/oopsla/2013onward},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+
+
+@article{barthe:tissec:2010,
+  author    = {Gilles Barthe and
+               Tamara Rezk and
+               Alejandro Russo and
+               Andrei Sabelfeld},
+  title     = {Security of multithreaded programs by compilation},
+  journal   = {{ACM} Trans. Inf. Syst. Secur.},
+  volume    = {13},
+  number    = {3},
+  year      = {2010},
+  url       = {http://doi.acm.org/10.1145/1805974.1895977},
+  doi       = {10.1145/1805974.1895977},
+  timestamp = {Tue, 10 Aug 2010 14:39:24 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/tissec/BartheRRS10},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+
+@inproceedings{rezk:vmcai:2005,
+  author    = {Gilles Barthe and
+               Tamara Rezk and
+               Ando Saabas},
+  title     = {Proof Obligations Preserving Compilation},
+  booktitle = {Formal Aspects in Security and Trust, Third International Workshop,
+               {FAST} 2005, Newcastle upon Tyne, UK, July 18-19, 2005, Revised Selected
+               Papers},
+  pages     = {112--126},
+  year      = {2005}
+}
+
+@inproceedings{fournet:css:2011,
+  author    = {C{\'{e}}dric Fournet and
+               Gurvan Le Guernic and
+               Tamara Rezk},
+  title     = {A security-preserving compiler for distributed programs: from information-flow
+               policies to cryptographic mechanisms},
+  booktitle = {Proceedings of the 2009 {ACM} Conference on Computer and Communications
+               Security, {CCS} 2009, Chicago, Illinois, USA, November 9-13, 2009},
+  pages     = {432--441},
+  year      = {2009},
+  crossref  = {DBLP:conf/ccs/2009},
+  url       = {http://doi.acm.org/10.1145/1653662.1653715},
+  doi       = {10.1145/1653662.1653715},
+  timestamp = {Wed, 25 Nov 2009 10:38:32 +0100},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/ccs/FournetGR09},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{2006-Leroy-Blazy-Dargaye,
+  author = {Sandrine Blazy and Zaynah Dargaye and Xavier Leroy},
+  title = {Formal Verification of a {C} Compiler Front-End},
+  booktitle = {FM 2006: Int. Symp. on Formal Methods},
+  series = {Lecture Notes in Computer Science},
+  publisher = {Springer},
+  volume = 4085,
+  year = 2006,
+  pages = {460--475},
+  url = {http://gallium.inria.fr/~xleroy/publi/cfront.pdf},
+  urlpublisher = {http://dx.doi.org/10.1007/11813040_31},
+  hal = {http://hal.inria.fr/inria-00106401/},
+  abstract = {This paper presents the formal verification of a compiler front-end
+that translates a subset of the C language into the Cminor
+intermediate language.  The semantics of the source and target
+languages as well as the translation between them have been written in
+the specification language of the Coq proof assistant. The proof of
+observational semantic equivalence between the source and generated
+code has been machine-checked using Coq.  An executable compiler was
+obtained by automatic extraction of executable Caml code from the Coq
+specification of the translator, combined with a certified compiler
+back-end generating PowerPC assembly code from Cminor, described in
+previous work.},
+  pubkind = {conf-int-multi}
+}
+
+@inproceedings{2006-Leroy-compcert,
+  author = {Xavier Leroy},
+  title = {Formal certification of a compiler back-end, or:
+                   programming a compiler with a proof assistant},
+  booktitle = {33rd ACM symposium on Principles of Programming Languages},
+  year = 2006,
+  publisher = {ACM Press},
+  pages = {42--54},
+  url = {http://gallium.inria.fr/~xleroy/publi/compiler-certif.pdf},
+  urlpublisher = {http://doi.acm.org/10.1145/1111037.1111042},
+  hal = {http://hal.inria.fr/inria-00000963/},
+  abstract = {This paper reports on the development and formal certification (proof
+of semantic preservation) of a compiler from Cminor (a C-like
+imperative language) to PowerPC assembly code, using the Coq proof
+assistant both for programming the compiler and for proving its
+correctness.  Such a certified compiler is useful in the context of
+formal methods applied to the certification of critical software: the
+certification of the compiler guarantees that the safety properties
+proved on the source code hold for the executable compiled code as well.},
+  pubkind = {conf-int-mono}
+}
+
+@inproceedings{DBLP:conf/esop/Appel11,
+  author    = {Andrew W. Appel},
+  title     = {Verified Software Toolchain)},
+  booktitle = {Programming Languages and Systems - 20th European Symposium on Programming,
+               {ESOP} 2011, Held as Part of the Joint European Conferences on Theory
+               and Practice of Software, {ETAPS} 2011, Saarbr{\"{u}}cken, Germany,
+               March 26-April 3, 2011. Proceedings},
+  pages     = {1--17},
+  year      = {2011},
+  crossref  = {DBLP:conf/esop/2011},
+  url       = {http://dx.doi.org/10.1007/978-3-642-19718-5_1},
+  doi       = {10.1007/978-3-642-19718-5_1},
+  timestamp = {Tue, 22 Mar 2011 10:06:59 +0100},
+  biburl    = {http://dblp2.uni-trier.de/rec/bib/conf/esop/Appel11},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{Visser:2004:TIG:1007512.1007526,
+ author = {Visser, Willem and P\v{a}s\v{a}reanu, Corina S. and Khurshid, Sarfraz},
+ title = {Test Input Generation with Java PathFinder},
+ booktitle = {Proceedings of the 2004 ACM SIGSOFT International Symposium on Software Testing and Analysis},
+ series = {ISSTA '04},
+ year = {2004},
+ isbn = {1-58113-820-2},
+ location = {Boston, Massachusetts, USA},
+ pages = {97--107},
+ numpages = {11},
+ url = {http://doi.acm.org/10.1145/1007512.1007526},
+ doi = {10.1145/1007512.1007526},
+ acmid = {1007526},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {coverage, model checking, red-black trees, symbolic execution, testing object-oriented programs},
+} 
+
+
+Proceedings crossreferences
+-------------------------
+-------------------------
+@proceedings{DBLP:conf/ifip1-7/2005,
+  editor    = {Theodosis Dimitrakos and
+               Fabio Martinelli and
+               Peter Y. A. Ryan and
+               Steve A. Schneider},
+  title     = {Formal Aspects in Security and Trust, Third International Workshop,
+               {FAST} 2005, Newcastle upon Tyne, UK, July 18-19, 2005, Revised Selected
+               Papers},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {3866},
+  publisher = {Springer},
+  year      = {2006},
+  isbn      = {3-540-32628-6},
+  timestamp = {Mon, 13 Mar 2006 09:07:04 +0100},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/ifip1-7/2005},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@proceedings{DBLP:conf/ccs/2009,
+  editor    = {Ehab Al{-}Shaer and
+               Somesh Jha and
+               Angelos D. Keromytis},
+  title     = {Proceedings of the 2009 {ACM} Conference on Computer and Communications
+               Security, {CCS} 2009, Chicago, Illinois, USA, November 9-13, 2009},
+  publisher = {{ACM}},
+  year      = {2009},
+  isbn      = {978-1-60558-894-0},
+  timestamp = {Wed, 25 Nov 2009 10:26:38 +0100},
+  biburl    = {http://dblp2.uni-trier.de/rec/bib/conf/ccs/2009},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@proceedings{DBLP:conf/esop/2011,
+  editor    = {Gilles Barthe},
+  title     = {Programming Languages and Systems - 20th European Symposium on Programming,
+               {ESOP} 2011, Held as Part of the Joint European Conferences on Theory
+               and Practice of Software, {ETAPS} 2011, Saarbr{\"{u}}cken, Germany,
+               March 26-April 3, 2011. Proceedings},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {6602},
+  publisher = {Springer},
+  year      = {2011},
+  url       = {http://dx.doi.org/10.1007/978-3-642-19718-5},
+  doi       = {10.1007/978-3-642-19718-5},
+  isbn      = {978-3-642-19717-8},
+  timestamp = {Tue, 22 Mar 2011 10:06:59 +0100},
+  biburl    = {http://dblp2.uni-trier.de/rec/bib/conf/esop/2011},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{Klee,
+  author    = {Cristian Cadar and
+               Daniel Dunbar and
+               Dawson R. Engler},
+  title     = {{KLEE:} Unassisted and Automatic Generation of High-Coverage Tests
+               for Complex Systems Programs},
+  booktitle = {8th {USENIX} Symposium on Operating Systems Design and Implementation,
+               {OSDI} 2008, December 8-10, 2008, San Diego, California, USA, Proceedings},
+  pages     = {209--224},
+  year      = {2008},
+  crossref  = {DBLP:conf/osdi/2008},
+  url       = {http://www.usenix.org/events/osdi08/tech/full_papers/cadar/cadar.pdf},
+  timestamp = {Thu, 15 May 2014 18:36:23 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/osdi/CadarDE08},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@proceedings{DBLP:conf/osdi/2008,
+  editor    = {Richard Draves and
+               Robbert van Renesse},
+  title     = {8th {USENIX} Symposium on Operating Systems Design and Implementation,
+               {OSDI} 2008, December 8-10, 2008, San Diego, California, USA, Proceedings},
+  publisher = {{USENIX} Association},
+  year      = {2008},
+  url       = {https://www.usenix.org/publications/proceedings/?f[0]=im_group_audience%3A73},
+  isbn      = {978-1-931971-65-2},
+  timestamp = {Thu, 15 May 2014 18:36:23 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/osdi/2008},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+
+@techreport{mlkit:compiler,
+   author           =     {Lars Birkedal and Nick Rothwell and Mads Tofte and David N. Turner},
+   title            =     {The ML Kit, Version 1},
+   institution      =     {Technical Report 93/14 DIKU},
+   year              =     {1993}
+ }
+ 
+ 
+
+@proceedings{DBLP:conf/popl/1989,
+  title     = {Conference Record of the Sixteenth Annual {ACM} Symposium on Principles
+               of Programming Languages, Austin, Texas, USA, January 11-13, 1989},
+  publisher = {{ACM} Press},
+  year      = {1989},
+  url       = {http://dl.acm.org/citation.cfm?id=75277},
+  isbn      = {0-89791-294-2},
+  timestamp = {Mon, 21 May 2012 16:19:51 +0200},
+  biburl    = {http://dblp2.uni-trier.de/rec/bib/conf/popl/1989},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@misc{esprima,
+  added-at = {2012-07-17T09:37:13.000+0200},
+  author = {Hidayat, Ariya},
+  biburl = {http://www.bibsonomy.org/bibtex/23734653571f70d9a4f73318ebb3074f0/maxirichter},
+  interhash = {7d701bc7a2c97979c703ef7db6726959},
+  intrahash = {3734653571f70d9a4f73318ebb3074f0},
+  keywords = {esprima javascript programming webdevelopment},
+  timestamp = {2012-07-17T09:37:13.000+0200},
+  title = {{Esprima : ECMAScript parsing infrastructure for multipurpose analysis}},
+  howpublished = {http://esprima.org/},
+  year = 2012
+}
+
+@inproceedings{Park:2015,
+ author = {Park, Daejun and Stef\u{a}nescu, Andrei and Ro\c{s}u, Grigore},
+ title = {KJS: A Complete Formal Semantics of JavaScript},
+ booktitle = {Proceedings of the 36th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+ series = {PLDI 2015},
+ year = {2015},
+ isbn = {978-1-4503-3468-6},
+ location = {Portland, OR, USA},
+ pages = {346--356},
+ numpages = {11},
+ url = {http://doi.acm.org/10.1145/2737924.2737991},
+ doi = {10.1145/2737924.2737991},
+ acmid = {2737991},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {JavaScript, K framework, mechanized semantics}
+}
+
+@inproceedings{jsai,
+  title={JSAI: a static analysis platform for JavaScript},
+  author={Kashyap, Vineeth and Dewey, Kyle and Kuefner, Ethan A and Wagner, John and Gibbons, Kevin and Sarracino, John and Wiedermann, Ben and Hardekopf, Ben},
+  booktitle={Proceedings of the 22nd ACM SIGSOFT International Symposium on Foundations of Software Engineering},
+  pages={121--132},
+  year={2014},
+  organization={ACM}
+}
+
+@inproceedings{safe,
+  title={SAFE: Formal specification and implementation of a scalable analysis framework for ECMAScript},
+  author={Lee, Hongki and Won, Sooncheol and Jin, Joonho and Cho, Junhee and Ryu, Sukyoung},
+  booktitle={Proceedings of the 2012 International Workshop on Foundations of Object-Oriented Languages},
+  year={2012}
+}
+
+@inproceedings{park2015scalable,
+  title={Scalable and Precise Static Analysis of JavaScript Applications via Loop-Sensitivity},
+  author={Park, Changhee and Ryu, Sukyoung},
+  booktitle={29th European Conference on Object-Oriented Programming},
+  pages={735},
+  year={2015}
+}
+
+@inproceedings{park2015static,
+  title={Static Analysis of JavaScript Web Applications in the Wild via Practical DOM Modeling (T)},
+  author={Park, Changhee and Won, Sooncheol and Jin, Joonho and Ryu, Sukyoung},
+  booktitle={Automated Software Engineering (ASE), 2015 30th IEEE/ACM International Conference on},
+  pages={552--562},
+  year={2015},
+  organization={IEEE}
+}
+
+@inproceedings{park2016precise,
+  title={Precise and scalable static analysis of jQuery using a regular expression domain},
+  author={Park, Changhee and Im, Hyeonseung and Ryu, Sukyoung},
+  booktitle={Proceedings of the 12th Symposium on Dynamic Languages},
+  pages={25--36},
+  year={2016},
+  organization={ACM}
+}
+
+@inproceedings{feldthaus2013efficient,
+  title={Efficient construction of approximate call graphs for JavaScript IDE services},
+  author={Feldthaus, Asger and Sch{\"a}fer, Max and Sridharan, Manu and Dolby, Julian and Tip, Frank},
+  booktitle={2013 35th International Conference on Software Engineering (ICSE)},
+  pages={752--761},
+  year={2013},
+  organization={IEEE}
+}
+
+@inproceedings{madsen2013practical,
+  title={Practical static analysis of JavaScript applications in the presence of frameworks and libraries},
+  author={Madsen, Magnus and Livshits, Benjamin and Fanning, Michael},
+  booktitle={Proceedings of the 2013 9th Joint Meeting on Foundations of Software Engineering},
+  pages={499--509},
+  year={2013},
+  organization={ACM}
+}
+
+@inproceedings{jang2009points,
+  title={Points-to analysis for JavaScript},
+  author={Jang, Dongseok and Choe, Kwang-Moo},
+  booktitle={Proceedings of the 2009 ACM symposium on Applied Computing},
+  pages={1930--1937},
+  year={2009},
+  organization={ACM}
+}
+
+@inproceedings{sridharan2012correlation,
+  title={Correlation tracking for points-to analysis of JavaScript},
+  author={Sridharan, Manu and Dolby, Julian and Chandra, Satish and Sch{\"a}fer, Max and Tip, Frank},
+  booktitle={European Conference on Object-Oriented Programming},
+  pages={435--458},
+  year={2012},
+  organization={Springer}
+}
+
+@article{guarnieri2010gulfstream,
+  title={GULFSTREAM: Staged Static Analysis for Streaming JavaScript Applications.},
+  author={Guarnieri, Salvatore and Livshits, Benjamin},
+  journal={WebApps},
+  volume={10},
+  pages={6--6},
+  year={2010}
+}
+
+@inproceedings{icap,
+  author    = {Kasper Svendsen and
+               Lars Birkedal},
+  title     = {Impredicative Concurrent Abstract Predicates},
+  booktitle = {Programming Languages and Systems - 23rd European Symposium on Programming,
+               {ESOP} 2014, Held as Part of the European Joint Conferences on Theory
+               and Practice of Software, {ETAPS} 2014, Grenoble, France, April 5-13,
+               2014, Proceedings},
+  pages     = {149--168},
+  year      = {2014}
+}
+
+@article{chords,
+  author    = {Jan Schwinghammer and
+               Lars Birkedal and
+               Bernhard Reus and
+               Hongseok Yang},
+  title     = {Nested Hoare Triples and Frame Rules for Higher-order Store},
+  journal   = {Logical Methods in Computer Science},
+  volume    = {7},
+  number    = {3},
+  year      = {2011},
+  url       = {http://dx.doi.org/10.2168/LMCS-7(3:21)2011},
+  doi       = {10.2168/LMCS-7(3:21)2011},
+  timestamp = {Tue, 15 Nov 2011 16:45:57 +0100},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/corr/abs-1109-3031},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@article{toposof,
+  author    = {Lars Birkedal and
+               Rasmus Ejlers M{\o}gelberg and
+               Jan Schwinghammer and
+               Kristian St{\o}vring},
+  title     = {First steps in synthetic guarded domain theory: step-indexing in the
+               topos of trees},
+  journal   = {Logical Methods in Computer Science},
+  volume    = {8},
+  number    = {4},
+  year      = {2012},
+  url       = {http://dx.doi.org/10.2168/LMCS-8(4:1)2012},
+  doi       = {10.2168/LMCS-8(4:1)2012},
+  timestamp = {Mon, 15 Oct 2012 13:17:50 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/corr/abs-1208-3596},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+ @inproceedings{SSA,
+  author    = {Ron Cytron and
+               Jeanne Ferrante and
+               Barry K. Rosen and
+               Mark N. Wegman and
+               F. Kenneth Zadeck},
+  title     = {An Efficient Method of Computing Static Single Assignment Form},
+  booktitle = {Conference Record of the Sixteenth Annual {ACM} Symposium on Principles
+               of Programming Languages, Austin, Texas, USA, January 11-13, 1989},
+  pages     = {25--35},
+  year      = {1989}
+}
+
+@inproceedings{z3,
+ author = {De Moura, Leonardo and Bj{\o}rner, Nikolaj},
+ title = {Z3: An Efficient SMT Solver},
+ booktitle = {Proceedings of the Theory and Practice of Software, 14th International Conference on Tools and Algorithms for the Construction and Analysis of Systems},
+ series = {TACAS'08/ETAPS'08},
+ year = {2008},
+ isbn = {3-540-78799-2, 978-3-540-78799-0},
+ location = {Budapest, Hungary},
+ pages = {337--340},
+ numpages = {4},
+ url = {http://dl.acm.org/citation.cfm?id=1792734.1792766},
+ acmid = {1792766},
+ publisher = {Springer-Verlag},
+ address = {Berlin, Heidelberg},
+} 
+
+@misc{cbmcjsil,
+   author = {{CBMC Team}},
+   title =  {{The JSIL front end of CBMC}},
+   howpublished  =  {https://github.com/diffblue/cbmc/pull/51, https://github.com/diffblue/cbmc/pull/91},
+   year = {2016}
+}
+
+@inproceedings{stefanescu-park-yuwen-li-rosu-2016-oopsla,
+    author = "\c{S}tef\u{a}nescu, Andrei and Park, Daejun and Yuwen, Shijiao and Li, Yilong and Ro\c{s}u, Grigore",
+    publisher = "ACM",
+    doi = "http://dx.doi.org/10.1145/2983990.2984027",
+    title = "Semantics-Based Program Verifiers for All Languages",
+    booktitle = "Proceedings of the 31th Conference on Object-Oriented Programming, Systems, Languages, and Applications (OOPSLA'16)",
+    month = "Nov",
+    year = "2016",
+    pages = "74-91"
+}
+
+@article{rosu-serbanuta-2010-jlap,
+  title={An Overview of the {K} Semantic Framework},
+  author={Grigore Ro{\c s}u and Traian Florin {\c S}erb{\u a}nu{\c t}{\u a} },
+  journal={Journal of Logic and Algebraic Programming},
+  volume={79},
+  number={6},
+  pages={397--434},
+  year={2010},
+  ee={http://dx.doi.org/10.1016/j.jlap.2010.03.012},
+  doi={10.1016/j.jlap.2010.03.012},
+}
+
+@inproceedings{changcox2014,
+  author    = {Arlen Cox and
+               Bor{-}Yuh Evan Chang and
+               Xavier Rival},
+  title     = {Automatic Analysis of Open Objects in Dynamic Language Programs},
+  booktitle = {Static Analysis - 21st International Symposium, {SAS} 2014, Munich,
+               Germany, September 11-13, 2014. Proceedings},
+  pages     = {134--150},
+  year      = {2014},
+  crossref  = {DBLP:conf/sas/2014},
+  url       = {https://doi.org/10.1007/978-3-319-10936-7_9},
+  doi       = {10.1007/978-3-319-10936-7_9},
+  timestamp = {Wed, 24 May 2017 08:27:53 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/sas/CoxCR14},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+@proceedings{DBLP:conf/sas/2014,
+  editor    = {Markus M{\"{u}}ller{-}Olm and
+               Helmut Seidl},
+  title     = {Static Analysis - 21st International Symposium, {SAS} 2014, Munich,
+               Germany, September 11-13, 2014. Proceedings},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {8723},
+  publisher = {Springer},
+  year      = {2014},
+  url       = {https://doi.org/10.1007/978-3-319-10936-7},
+  doi       = {10.1007/978-3-319-10936-7},
+  isbn      = {978-3-319-10935-0},
+  timestamp = {Wed, 24 May 2017 08:27:53 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/sas/2014},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{irisinitial,
+ author = {Jung, Ralf and Swasey, David and Sieczkowski, Filip and Svendsen, Kasper and Turon, Aaron and Birkedal, Lars and Dreyer, Derek},
+ title = {Iris: Monoids and Invariants As an Orthogonal Basis for Concurrent Reasoning},
+ booktitle = {Proceedings of the 42Nd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+ series = {POPL '15},
+ year = {2015},
+ isbn = {978-1-4503-3300-9},
+ location = {Mumbai, India},
+ pages = {637--650},
+ numpages = {14},
+ url = {http://doi.acm.org/10.1145/2676726.2676980},
+ doi = {10.1145/2676726.2676980},
+ acmid = {2676980},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {atomicity, compositional verification, fine-grained concurrency, higher-order logic, invariants, partial commutative monoids, separation logic},
+} 
+
+@article{Jung:2015:IMI:2775051.2676980,
+ author = {Jung, Ralf and Swasey, David and Sieczkowski, Filip and Svendsen, Kasper and Turon, Aaron and Birkedal, Lars and Dreyer, Derek},
+ title = {Iris: Monoids and Invariants As an Orthogonal Basis for Concurrent Reasoning},
+ journal = {SIGPLAN Not.},
+ issue_date = {January 2015},
+ volume = {50},
+ number = {1},
+ month = jan,
+ year = {2015},
+ issn = {0362-1340},
+ pages = {637--650},
+ numpages = {14},
+ url = {http://doi.acm.org/10.1145/2775051.2676980},
+ doi = {10.1145/2775051.2676980},
+ acmid = {2676980},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {atomicity, compositional verification, fine-grained concurrency, higher-order logic, invariants, partial commutative monoids, separation logic},
+} 
+
+@article{mliriscoq,
+ author = {Krebbers, Robbert and Timany, Amin and Birkedal, Lars},
+ title = {Interactive Proofs in Higher-order Concurrent Separation Logic},
+ journal = {SIGPLAN Not.},
+ issue_date = {January 2017},
+ volume = {52},
+ number = {1},
+ month = jan,
+ year = {2017},
+ issn = {0362-1340},
+ pages = {205--217},
+ numpages = {13},
+ url = {http://doi.acm.org/10.1145/3093333.3009855},
+ doi = {10.1145/3093333.3009855},
+ acmid = {3009855},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {Coq, Fine-grained Concurrency, Interactive Theorem Proving, Logical Relations, Separation Logic},
+} 
+
+@inproceedings{krebbers,
+ author = {Krebbers, Robbert and Timany, Amin and Birkedal, Lars},
+ title = {Interactive Proofs in Higher-order Concurrent Separation Logic},
+ booktitle = {Proceedings of the 44th ACM SIGPLAN Symposium on Principles of Programming Languages},
+ series = {POPL 2017},
+ year = {2017},
+ isbn = {978-1-4503-4660-3},
+ location = {Paris, France},
+ pages = {205--217},
+ numpages = {13},
+ url = {http://doi.acm.org/10.1145/3009837.3009855},
+ doi = {10.1145/3009837.3009855},
+ acmid = {3009855},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {Coq, Fine-grained Concurrency, Interactive Theorem Proving, Logical Relations, Separation Logic},
+} 
+
+@misc{JS948percent,
+   author               =      {{W3Techs: Web Technology Surveys}}, 
+   title                =      {{Usage of JavaScript for websites}},	
+   howpublished         =      {https://w3techs.com/technologies/details/cp-javascript/all/all}, 
+   year                 =      {2017}
+}
+
+@misc{GithubActive,
+   author               =      {{W3Techs: Web Technology Surveys}}, 
+   title                =      {{GitHut: A Small Place to Discover Languages in GitHub}},	
+   howpublished         =      {http://githut.info}, 
+   year                 =      {2017}
+}
+
+@misc{SOActive,
+   author               =      {{Hidetaka Ko}}, 
+   title                =      {Javascript is the most active language in StackOverflow},	
+   howpublished         =      {https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628}, 
+   year                 =      {2017}
+}
+
+@inproceedings{javert,
+  author    =      {Jos\'{e}  Fragoso Santos and Philippa Gardner  and Petar Maksimovi\'{c} and Petar Naud\v{z}i\=unien\.e and Thomas Wood},
+  title     =         {{JaVerT: JavaScript Verification Toolchain}},
+  booktitle    =      {Proceedings of the 45th {ACM} {SIGPLAN-SIGACT} Symposium on Principles of Programming Languages (accepted for publication)},
+  year           =      {2018},
+ }
+ 
+ @article{symb:exec:survey,
+  author    = {Roberto Baldoni and
+               Emilio Coppa and
+               Daniele Cono D'Elia and
+               Camil Demetrescu and
+               Irene Finocchi},
+  title     = {A Survey of Symbolic Execution Techniques},
+  journal   = {CoRR},
+  volume    = {abs/1610.00502},
+  year      = {2016},
+  url       = {http://arxiv.org/abs/1610.00502},
+  timestamp = {Wed, 07 Jun 2017 14:41:05 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/corr/BaldoniCDDF16},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+
+@inproceedings{kinder,
+  author    = {Stefan Bucur and
+               Johannes Kinder and
+               George Candea},
+  title     = {Prototyping symbolic execution engines for interpreted languages},
+  booktitle = {Architectural Support for Programming Languages and Operating Systems,
+               {ASPLOS} '14, Salt Lake City, UT, USA, March 1-5, 2014},
+  pages     = {239--254},
+  year      = {2014}
+}
+
+
+@article{abstract:symbolic:exec, 
+ author = {Anand, Saswat and P\&\#x0103;s\&\#x0103;reanu, Corina S. and Visser, Willem},
+ title = {Symbolic Execution with Abstraction},
+ journal = {Int. J. Softw. Tools Technol. Transf.},
+ issue_date = {January 2009},
+ volume = {11},
+ number = {1},
+ month = jan,
+ year = {2009}
+} 
+
+@inproceedings{JoseCADE,
+  author    = {Jos{\'{e}} Fragoso Santos and
+               Philippa Gardner and
+               Petar Maksimovic and
+               Daiva Naudziuniene},
+  title     = {Towards Logic-Based Verification of JavaScript Programs},
+  booktitle = {Automated Deduction - {CADE} 26 - 26th International Conference on
+               Automated Deduction, Gothenburg, Sweden, August 6-11, 2017, Proceedings},
+  pages     = {8--25},
+  year      = {2017},
+  crossref  = {DBLP:conf/cade/2017},
+  url       = {https://doi.org/10.1007/978-3-319-63046-5_2},
+  doi       = {10.1007/978-3-319-63046-5_2},
+  timestamp = {Wed, 12 Jul 2017 10:22:36 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/cade/SantosGMN17},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@proceedings{DBLP:conf/cade/2017,
+  editor    = {Leonardo de Moura},
+  title     = {Automated Deduction - {CADE} 26 - 26th International Conference on
+               Automated Deduction, Gothenburg, Sweden, August 6-11, 2017, Proceedings},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {10395},
+  publisher = {Springer},
+  year      = {2017},
+  url       = {https://doi.org/10.1007/978-3-319-63046-5},
+  doi       = {10.1007/978-3-319-63046-5},
+  isbn      = {978-3-319-63045-8},
+  timestamp = {Wed, 12 Jul 2017 10:06:41 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/cade/2017},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@PhdThesis{Daiva2017,
+  author    = {Daiva Naud\v{z}i\=unien\.e},
+  title     = {An Infrastructure for Tractable Verification of JavaScript Programs (submitted)},
+  school    = {Imperial College London},
+  year      = {2017},
+}
+
+
+
+@inproceedings{song,
+ author = {Weinberger, Joel and Saxena, Prateek and Akhawe, Devdatta and Finifter, Matthew and Shin, Richard and Song, Dawn},
+ title = {A Systematic Analysis of XSS Sanitization in Web Application Frameworks},
+ booktitle = {Proceedings of the 16th European Conference on Research in Computer Security},
+ series = {ESORICS'11},
+ year = {2011}
+} 

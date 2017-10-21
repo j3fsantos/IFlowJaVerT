@@ -4,6 +4,15 @@
 .*.swo
 *~
 
+# LaTeX
+*.aux
+*.blg
+*.log
+*.out
+*.gz
+*.bbl
+main.pdf
+
 # Images
 *.dot
 
