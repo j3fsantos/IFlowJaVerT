@@ -362,13 +362,22 @@ We also introduce iterated cell unification, denoted by $\rightarrow_{\cal CU}$,
 {\scriptsize
 \centering
 \begin{mathpar} 
-\inferrule[\textsc{Success}]
-	{     
-	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc}
-	   \\\\
-	   \pc \vdash \pfs' \, \wedge \, \unificationef{\sheap}{\efs}   \, \wedge \, \sanity{\efs}
-	}{\unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{}} 
+\inferrule[\textsc{Fail - Cell Unification}]
+	{  
+	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\pc}
+            \qquad
+          \unification{\sheap', \pc}{\cell}{} = \uno{\pc''}
+	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc''}} 
 \and
+\inferrule[\textsc{Fail - Extra Resource}]
+	{  
+	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\pc}
+	     \qquad
+	     \sheap_f \neq \hemp
+	}{\unificationfullfail{\sheap, \pc}{\emptyset, \efs, \pfs'}{}{\jtrue}} 
+\\
+%
+%
 \inferrule[\textsc{Fail - Pure Entailment}]
 	{  
 	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc}
@@ -377,23 +386,14 @@ We also introduce iterated cell unification, denoted by $\rightarrow_{\cal CU}$,
 	   \quad
              \pc \not\vdash \pfs' \, \wedge \, \pc''
 	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\neg(\pc'  \, \wedge \, \pc'')}} 
-\\
-%
-\inferrule[\textsc{Fail - Extra Resource}]
-	{  
-	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\pc}
-	     \qquad
-	     \sheap_f \neq \hemp
-	}{\unificationfullfail{\sheap, \pc}{\emptyset, \efs, \pfs'}{}{\jtrue}} 
-%
 \and
+\inferrule[\textsc{Success}]
+	{     
+	   \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc}
+	   \\\\
+	   \pc \vdash \pfs' \, \wedge \, \unificationef{\sheap}{\efs}   \, \wedge \, \sanity{\efs}
+	}{\unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{}} 
 %
-\inferrule[\textsc{Fail - Cell Unification}]
-	{  
-	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\pc}
-            \qquad
-          \unification{\sheap', \pc}{\cell}{} = \uno{\pc''}
-	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc''}} 
 \end{mathpar}}
 \vspace*{-0.6cm}
 \caption{Unification algorithm: {\small $\unificationfull{\sheap, \pc}{\cells, \pfs'}{}$}
