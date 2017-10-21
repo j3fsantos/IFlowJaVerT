@@ -266,7 +266,7 @@ Unification of non-none cell assertions can either terminate
 successfully with $\uyes{\sheap_f}$, in which case $\sheap_f$ denotes the
 symbolic heap to be framed off, or unsuccessfully with $\uno{\pc'}$, 
 in which case $\pc'$ captures the constraints that need to hold for 
-the assertion to fail.
+the entailment no to hold.
 Given a cell assertion $\cell$, a symbolic state $(\sheap, \sstore, \pc)$, 
 and a substitution $\subst$: 
 \begin{itemize}
@@ -287,32 +287,35 @@ and a substitution $\subst$:
 \begin{mathpar} 
 \inferrule[\textsc{Cell Assertion}]
 	{  
+	   \cell = (\loc,\sexprp)\pointsto \sexprv 
+	   \\\\
 	    \sheap = \sheap_f \dunion ((l, \sexprp') \mapsto \sexprv') 
-	   \quad
+	   \\\\
 	    \pc \vdash  \sexprp = \sexprp' \wedge \sexprv = \sexprv'
-	}{ \unification{\sheap, \sstore, \pc}{(\loc,\sexprp)\pointsto \sexprv}{} = \uyes{\sheap_f}} 
-\and 
-\inferrule[\textsc{Iterated Cell Unification}]
-	{  
-	   \unification{\sheap, \sstore, \pc}{(\loc,\sexprp)\pointsto \sexprv}{} = \uyes{\sheap_f}
-	}{\cellunification{\sheap, (\loc,\sexprp)\pointsto \sexprv \lstcons \cells}{\sheap_f, \cells}\pc}
-\\
+	}{ \unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f}} 
+\qquad
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
-	   \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
-	    \quad
-	    (l, -) \not\in \domain(\sheap') 
-  	  % \\
-	%   \forall_{0 \leq i \leq n}. \, 
-	  %     \pc \not\vdash  \sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv'
-	}{ \unification{\sheap, \sstore, \pc}{(\loc,\sexprp)\pointsto \sexprv}{} = 
-		\uno{\wedge_{0 \leq i \leq n} ( \sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv')}} 
+	   \cell = (\loc,\sexprp)\pointsto \sexprv \\
+	   \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n  
+	    \\\\ 
+	     (l, -) \not\in \domain(\sheap') 
+	     \quad
+	    \pc_i = (\sexprp_i \neq \sexprp' \vee \sexprv_i \neq \sexprv')\!\mid_{i = 0}^n
+	}{ \unification{\sheap, \sstore, \pc}{\cell}{} = 
+		\uno{\wedge_{0 \leq i \leq n} \pc_i}} 
+\qquad
+\inferrule[\textsc{Iterated-CU}]
+	{  
+	   \unification{\sheap, \sstore, \pc}{\cell}{} = \uyes{\sheap_f}
+	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells}\pc}
 \end{mathpar}}
 \end{display}
 
 
-\vspace{-3pt}
-\begin{display}{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
+%\vspace{-3pt}
+%\begin{display}{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
+\begin{figure}
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{None Cell Assertion}]
@@ -332,7 +335,7 @@ and a substitution $\subst$:
 %
 \inferrule[\textsc{Sanity Constraints - Fixed Location}]
 	{
-		 \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto -
+		 \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto - \big)
 	}{ \sanityl{\efs}{\loc} = 
 		 (\wedge_{0 \leq i, j \leq n, i \neq j} \sexprp_i \neq \sexprp_j)
 		       \, \wedge \,  \big(\{  \sexpr_i \mid_{i = 0}^n \} \subseteq \sexpr_d \big)
@@ -345,7 +348,8 @@ and a substitution $\subst$:
 \inferrule[\textsc{Sanity Constraints}]
 	{}{ \sanity{\efs} = \bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc}} 
 \end{mathpar}}
-\end{display}
+\caption{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
+\end{figure}
 
 
 \begin{figure}[t!]
@@ -380,7 +384,7 @@ and a substitution $\subst$:
 	     \cellunificationiter{\sheap, \cells}{\sheap_f, []}{\pc}
 	     \qquad
 	     \sheap_f \neq \hemp
-	}{\unificationfullfail{\sheap, \pc}{\emptyset, \efs, \pfs'}{\subst}{\jtrue}} 
+	}{\unificationfullfail{\sheap, \pc}{\emptyset, \efs, \pfs'}{}{\jtrue}} 
 %
 \and
 %
@@ -388,12 +392,12 @@ and a substitution $\subst$:
 	{  
 	   \cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\pc}
             \qquad
-          \unification{\sheap', \sstore, \pc}{\cell}{\subst} = \uno{\pc''}
+          \unification{\sheap', \sstore, \pc}{\cell}{} = \uno{\pc''}
 	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc''}} 
 \end{mathpar}}
 \hrule
-\caption{Unification algorithm: {\small $\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}$}
-and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst}{\pc'}$}.\label{unification:algorithm}}
+\caption{Unification algorithm: {\small $\unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{}$}
+and {\small $\unificationfullfail{\sheap, \sstore, \pc}{\cells, \pfs'}{}{\pc'}$}.\label{unification:algorithm}}
 \end{figure}
 
 Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
