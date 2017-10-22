@@ -1133,6 +1133,12 @@ we conclude that there is $1 \leq k \leq n$ such that:
  
  \newpage
  
+ 
+ 
+ 
+ 
+ 
+ 
  \section{Proofs of Section~\ref{sec:specs}}
  
 
@@ -1140,7 +1146,7 @@ we conclude that there is $1 \leq k \leq n$ such that:
 \label{successful:unification}
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \ \implies \
+\unification{\sheap, \sstore, \pc}{\cell}{} = \uyes{\sheap_f} \ \implies \
      \exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
 		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}
 \end{array}
