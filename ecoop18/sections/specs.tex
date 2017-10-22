@@ -266,16 +266,13 @@ Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{
 \begin{mathpar} 
 \inferrule[\textsc{Cell Assertion}]
 	{  
-	   \cell = (\loc,\sexprp)\pointsto \sexprv 
-	   \\\\
 	    \sheap = \sheap_f \dunion ((l, \sexprp') \mapsto \sexprv') 
 	   \\\\
 	    \pc \vdash  \sexprp = \sexprp' \wedge \sexprv = \sexprv'
-	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells}\pc} 
+	}{\cellunification{\sheap, ((\loc,\sexprp)\pointsto \sexprv) \lstcons \cells}{\sheap_f, \cells}\pc} 
 \quad
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
-	   \cell = (\loc,\sexprp)\pointsto \sexprv \quad
 	   \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n  
 	    \\\\ 
 	     l \notin \hlocs{\sheap'}
@@ -283,7 +280,7 @@ Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{
 	    \pc_i = (\sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv')\!\mid_{i = 0}^n
 	    \quad
 	    \pc \not\vdash \pc_i \mid_{i = 0}^n
-	}{  \cellunificationx{\sheap, \cell \lstcons \cells}{\uno{\wedge_{0 \leq i \leq n} \neg\pc_i}}\pc } 
+	}{  \cellunificationx{\sheap, ((\loc,\sexprp)\pointsto \sexprv) \lstcons \cells}{\uno{\wedge_{0 \leq i \leq n} \neg\pc_i}}\pc } 
 \end{mathpar}}
 \vspace*{-0.5cm}
 \caption{Unification of non-none cell assertions: $\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
