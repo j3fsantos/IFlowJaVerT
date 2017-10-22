@@ -229,6 +229,36 @@ $(\heap, \store) \not\in \sepmodels{P}$.
 % {\scriptsize$\unification{\sheap, \sstore, \pc}{\cell}{\subst}{\existentials} = \uyes{\subst', \sheap_f} \texttt{ OR } \uno{\pc'}$}}\label{fig:unification}}
 %\end{figure}
 
+
+\begin{table}
+\centering
+\renewcommand{\arraystretch}{1.2} 
+{\scriptsize \begin{tabular}{@{}cccccccc@{}}\toprule
+\multicolumn{3}{c}{{\it Symbolic State}} & &  & & & \\
+\cmidrule{1-3}% \cmidrule{4-4}
+\emph{Heap}  &  & \emph{PC}  &   &  \emph{Assertion}  & & \emph{Failing Condition}       \\
+\cmidrule{1-1} \cmidrule{3-3} \cmidrule{5-5}  \cmidrule{7-7}
+%
+$(\loc, \sexprp_1) \mapsto \sexprv$ & & $\jtrue$ & & 
+	$(\loc, \sexprp_2) \mapsto \sexprv$ & &  $\sexprp_1 \neq \sexprp_2$ \\    
+%
+$(\loc, \sexprp_1) \mapsto \sexprv$ & & $\jtrue$ & & 
+	$(\loc, \sexprp_1) \mapsto \sexprv \sep (\loc, \sexprp_2) \mapsto \none$ & &  $\sexprp_1 = \sexprp_2$ \\    
+%
+$(\loc, \sexprp_1) \mapsto \sexprv$ & & $\sexprp_1 \neq \sexprp_2$ & & 
+	$(\loc, \sexprp_1) \mapsto \sexprv \sep (\loc, \sexprp_2) \mapsto \none \sep \emptyfields{\loc}{\{\sexprp_2, \sexprp_3\}}$ & &  $\sexprp_1 \neq \sexprp_3$ \\    
+%
+$(\loc, \sexprp_1) \mapsto \sexprv$ & & $\sexprp_1 \not\in \{\sexprp_2, \sexprp_3\}$ & & 
+	$(\loc, \sexprp_1) \mapsto \sexprv \sep (\loc, \sexprp_2) \mapsto \none \sep (\loc, \sexprp_3) \mapsto \none$ & &  $\sexprp_2 = \sexprp_3$ \\    
+
+\bottomrule
+\end{tabular}}
+\vspace{10pt}
+\caption{Symbolic States vs Assertions}\label{example:symb:states:vs:assertions}
+\end{table}
+
+
+
 \myparagraph{Finding counter models for separation logic assertions}
 We describe a partial decision procedure, which we  
 implement as part of the \jsil symbolic interpreter, for proving entailments 
@@ -473,17 +503,6 @@ $$
 \end{array}
 $$ 
 \end{theorem}
-
-
-\begin{tabular}{lllll}
-\textsc{SH1:} & $(\loc, \sexprp_1) \mapsto \sexprv$ & \textsc{PC1: } &  $\jtrue$ &  \multirow{2}{*}{Fail1: $\sexprp_1 \neq \sexprp_2$} \\
-\textsc{A1:}    & \multicolumn{3}{l}{$(\loc, \sexprp_2) \mapsto \sexprv$}  &  \\[3pt]
-%
-\textsc{SH2:} & $(\loc, \sexprp_1) \mapsto \sexprv$ & \textsc{PC1: } &  $\jtrue$ &  \multirow{2}{*}{Fail1: $\sexprp_1 = \sexprp_2$} \\
-\textsc{A2:}    & \multicolumn{3}{l}{$(\loc, \sexprp_1) \mapsto \sexprv \sep \loc, \sexprp_1) \mapsto \none$}  & 
-
-\end{tabular}
-
 
 
 
