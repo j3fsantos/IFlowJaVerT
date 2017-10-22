@@ -357,29 +357,7 @@ Unification of negative resource, that is, none-cells and \jsinline|emptyFields|
 Moreover, due to the semantics of the separating conjunction, there are additional  constraints imposed by the negative resource. Concretely, all none-cells for the same object have to have different property names, and if any none-cell is starred together with an \jsinline|emptyFields| assertion for the same object, then its property name has to be in the domain of that \jsinline|emptyFields| assertion (\textsc{Separation-Constraints - Fixed Location}). 
 We call these constrants \emph{separation constraints}, and denote them, for a fixed location~$\loc$, by $\sanityl{\efs}{\loc}$ in Figure \ref{fig:unineg}. The point is that, if a given symbolic state entails a negative resource assertion, it must be the case that its path condition entails the corresponding separation constraints.
 
-
-%Due to the semantics of the separating conjunction, when we star NR-assertions together, we are stating that they are disjoint. 
-%This means, for instance, for none-cell assertions corresponding to the same object, that their respective properties are 
-%distinct (analogously for the empty fields). We call these constraints \emph{separation constraints}. When trying to prove if a 
-%given symbolic state entails some a set of NR-assertions $\efs$, it must be the case that the 
-%path condition, $\pc$, entails the separating constraints yielded by $\efs$. The rule \textsc{Separation-Constraints - Fixed Location}
-%captures these constraints for a fixed location $\loc$, whereas the rule \textsc{Negative Resource Unification} captures 
-%all the constraints yielded by $\efs$. 
-
-
-
-
-
 Finally, the (\textsc{NR-Unification}) and (\textsc{Separation Constraints}) rules extend $\unificationef{\sheap}{\efs}$ and $\sanityl{\efs}{\loc}$, respectively, to sets of negative resource formulas.
-
-
-Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
-\polish{Notation not given?}
-The algorithm works by trying to unify the non-none cell assertions first. If they are all 
-successfully unified and the resulting symbolic heap is empty, then the final pure entailment 
-is discharged to the constraint solver. If the resulting symbolic heap is non-empty, then there 
-is additional resource and the unification also fails. Note that in case of failure, the algorithm 
-returns the constraints that need to be satisfied for a witness of that failure to be produced. 
 
 \begin{figure}[t!]
 {\scriptsize
@@ -421,6 +399,19 @@ returns the constraints that need to be satisfied for a witness of that failure 
 and {\small $\unificationfullfail{\sheap, \pc}{\cells, \pfs'}{}{\pc'}$}.\label{unification:algorithm}}
 \vspace*{-0.3cm}
 \end{figure}
+
+\pmax{Stopped here.}
+
+Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
+\polish{Notation not given?}
+The algorithm works by trying to unify the non-none cell assertions first. If they are all 
+successfully unified and the resulting symbolic heap is empty, then the final pure entailment 
+is discharged to the constraint solver. If the resulting symbolic heap is non-empty, then there 
+is additional resource and the unification also fails. Note that in case of failure, the algorithm 
+returns the constraints that need to be satisfied for a witness of that failure to be produced. 
+
+
+
 
 The soundness of unification theorem states that: given an SL-assertion $P$ and a 
 symbolic state $(\sheap, \sstore, \pc)$, if we find a substitution $\subst$ 
