@@ -271,7 +271,7 @@ Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{
 	    \sheap = \sheap_f \dunion ((l, \sexprp') \mapsto \sexprv') 
 	   \\\\
 	    \pc \vdash  \sexprp = \sexprp' \wedge \sexprv = \sexprv'
-	}{ \unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f}} 
+	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells}\pc} 
 \quad
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
@@ -283,13 +283,7 @@ Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{
 	    \pc_i = (\sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv')\!\mid_{i = 0}^n
 	    \quad
 	    \pc \not\vdash \pc_i \mid_{i = 0}^n
-	}{ \unification{\sheap, \pc}{\cell}{} = 
-		\uno{\wedge_{0 \leq i \leq n} \neg\pc_i}} 
-\quad
-\inferrule[\textsc{Iterated-CU}]
-	{  
-	   \unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f}
-	}{\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells}\pc}
+	}{  \cellunificationx{\sheap, \cell \lstcons \cells}{\uno{\wedge_{0 \leq i \leq n} \neg\pc_i}}\pc } 
 \end{mathpar}}
 \vspace*{-0.5cm}
 \caption{Unification of non-none cell assertions: $\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
@@ -298,10 +292,11 @@ Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{
 \end{figure}
 
 
+
 In Figure \ref{fig:uninonnone}, we show the unification rules for non-none cell assertions. 
-Unification of a non-none cell assertion can either terminate
-successfully with $\uyes{\sheap_f}$, in which case $\sheap_f$ denotes the
-symbolic heap to be framed off (\textsc{Cell Assertion}), or unsuccessfully with $\uno{\pc'}$, 
+We write $\cellunificationx{\sheap, \cell \lstcons \cells}{-}\pc$ to denote the unification of a single non-none cell $\cell$ against the symbolic heap $\sheap$, given a path condition $\pc$. This unification can either terminate
+successfully, with $\tuple{\sheap_f, \cells}$, in which case $\sheap_f$ denotes the
+symbolic heap to be framed off and $\cells$ denotes the list of remaining non-none cell assertions to be unified (\textsc{Cell Assertion}); or unsuccessfully, with $\uno{\pc'}$, 
 in which case $\pc'$ captures the constraints required for the entailment not to hold (\textsc{Cell Assertion - Fail}).
 %Given a cell assertion $\cell$, a symbolic state $(\sheap, \pc)$, 
 %and a substitution $\subst$: 
@@ -314,7 +309,7 @@ in which case $\pc'$ captures the constraints required for the entailment not to
 %            no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
 %            and $\smodels{\sheap', -}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\cell}$.
 %\end{itemize}
-We also introduce iterated cell unification (\textsc{Iterated-CU}), denoted by $\rightarrow_{\cal CU}$, which extends single cell unification to lists of cells, and denote its transitive closure by $\rightarrow_{\cal CU}^*$. 
+Onward, we denote the transitive closure of $\rightarrow_{\cal CU}$ by $\rightarrow_{\cal CU}^*$. 
 
 %\vspace{-3pt}
 %\begin{display}{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
@@ -356,7 +351,7 @@ We also introduce iterated cell unification (\textsc{Iterated-CU}), denoted by $
 \vspace*{-0.2cm}
 \end{figure}
 
-Unification of negative resource, that is, none-cells and \jsinline|emptyFields| assertions, is more intricate, as symbolic heaps do not maintain negative information. We denote by $\unificationef{\sheap}{\efs}$ the constraints required for the unification of a symbolic heap $\sheap$ against negative resource $\efs$ to succeed, and show the rules in Figure \ref{fig:unineg}. First, unifying a none-cell $(\loc,\sexprp)\pointsto \none$ against a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$  effectively means that $\sexprp$ has to be different from all $\sexprp_i|_{i=0}^n$ (\textsc{None Cell Assertion}). Next, unifying an  \jsinline|emptyFields| assertion $\emptyfields{\loc}{\sexpr_d}$ against a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$  means that all of the properties $\sexprp_i|_{i=0}^n$  have to be in the domain of of the \jsinline|emptyFields| assertion, $\sexpr_d$ (\textsc{Empty Fields Assertion}). 
+Unification of negative resource, that is, none-cells and \jsinline|emptyFields| assertions, is more intricate, as symbolic heaps do not maintain negative information. We denote by $\unificationef{\sheap}{\efs}$ the constraints required for the unification of a symbolic heap $\sheap$ against the negative resource denoted by $\efs$ to succeed, and show the rules in Figure \ref{fig:unineg}. First, unifying a none-cell $(\loc,\sexprp)\pointsto \none$ against a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$  effectively means that $\sexprp$ has to be different from all $\sexprp_i|_{i=0}^n$ (\textsc{None Cell Assertion}). Next, unifying an  \jsinline|emptyFields| assertion $\emptyfields{\loc}{\sexpr_d}$ against a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$  means that all of the properties $\sexprp_i|_{i=0}^n$  have to be in the domain of of the \jsinline|emptyFields| assertion, $\sexpr_d$ (\textsc{Empty Fields Assertion}). 
 
 Moreover, there are additional separation constraints imposed by negative resource. Concretely, all none-cells for the same object have to have different property names, and if any none-cell is starred together with an \jsinline|emptyFields| assertion for the same object, then its property name has to be in the domain of that \jsinline|emptyFields| assertion (\textsc{Separation-Constraints - Fixed Location}). Otherwise, the corresponding SL assertion would be unsatisfiable. We denote these constraints, for a fixed location $\loc$, by $\sanityl{\efs}{\loc}$ in Figure \ref{fig:unineg}. 
 
