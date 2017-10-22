@@ -353,10 +353,10 @@ Unification of negative resource, that is, none-cells and \jsinline|emptyFields|
 Moreover, there are additional separation constraints imposed by negative resource. Concretely, all none-cells for the same object have to have different property names, and if any none-cell is starred together with an \jsinline|emptyFields| assertion for the same object, then its property name has to be in the domain of that \jsinline|emptyFields| assertion (\textsc{Separation-Constraints - Fixed Location}). Otherwise, the corresponding SL assertion would be unsatisfiable. We denote these constraints, for a fixed location $\loc$, by $\sanityl{\efs}{\loc}$ in Figure \ref{fig:unineg}. 
 
 Due to the semantics of the separating conjunction, when we star NR-assertions together, we are stating that they are disjoint. 
-This means, for instance, for none-cell assertions corresponding to the same object, that their corresponding properties are 
+This means, for instance, for none-cell assertions corresponding to the same object, that their respective properties are 
 distinct (analogously for the empty fields). We call these constraints \emph{separation constraints}. When trying to prove if a 
-given symbolic state entails some NR resource captured by a given set of NR-assertions $\efs$, it must be the case that the 
-path condition ($\pc$) entails the separating constraints yielded by $\efs$. The rule \textsc{Separation-Constraints - Fixed Location}
+given symbolic state entails some a set of NR-assertions $\efs$, it must be the case that the 
+path condition, $\pc$, entails the separating constraints yielded by $\efs$. The rule \textsc{Separation-Constraints - Fixed Location}
 captures these constraints for a fixed location $\loc$, whereas the rule \textsc{Negative Resource Unification} captures 
 all the constraints yielded by $\efs$. 
 
