@@ -256,6 +256,16 @@
 
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
+
+\begin{temax}{Theorem~\ref{teo:transparency} - Transparency} 
+$\forall \, \heap, \heap', \store, \store', i, i', \ctx, \ctx', \, . \,$
+$$
+  \semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+  \iff
+  \symbtranstrans{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
+$$
+\end{temax}
+
 \begin{lemma}[Soundness of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
 $$
 \begin{array}{l}

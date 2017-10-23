@@ -4,7 +4,11 @@ We show how to use \jilette for debugging JavaScript code annotated with
 separation logic (SL) specifications with the goal of finding bugs in both 
  specifications and code. In \S\ref{subsec:sep:assertions}, we describe the 
 extension of the \jsil symbolic interpreter with a special construct for asserting
-an SL-assertion. In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
+an SL-assertion. 
+In \S\ref{subsec:countermodels}, we show how to implement the newly introduced
+\emph{assert} construct by giving a sound decision procedure for finding counter-models 
+for SL-assertions.
+In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
 for generating symbolic tests from SL-specifications, so that if a 
 symbolic test fails, the failure comes with a concrete counter-model that invalidates 
 the specification. Finally, in \S\ref{specs:example}, we show how to use the 
@@ -254,21 +258,24 @@ $(\loc, \sexprp_1) \mapsto \sexprv$ & & $\sexprp_1 \not\in \{\sexprp_2, \sexprp_
 \bottomrule
 \end{tabular}}
 \vspace{10pt}
-\caption{Symbolic States vs Assertions}\label{example:symb:states:vs:assertions}
+\caption{Symbolic States vs Assertions\label{example:symb:states:vs:assertions}}
 \end{table}
 
 
 
-\myparagraph{Finding counter models for separation logic assertions}
+\subsection{Finding counter models for separation logic assertions}
+\label{subsec:countermodels}
+
 We describe a partial decision procedure, which we  
 implement as part of the \jsil symbolic interpreter, for proving entailments 
 between symbolic states and SL-assertions \underline{and} finding counter 
 models in case of failure.  
 % I have to give more examples
-As it is customary~\cite{javert}, the decision procedure works by first using \emph{pattern-matching} 
+As it is customary~\cite{javert,jacobs2011verifast,sepwithsmt}, the decision procedure works by first using \emph{pattern-matching} 
 on the spatial part of the SL-assertion, and then discharging the pure part of the 
 entailment to an external constraint solver (in our case, \rosette) . 
 
+\myparagraph{Representation of SL-assertions}
 We target SL-assertions $P$ that can be represented as 4-tuples,
 $(\existentials, \cells, \efs, \pfs)$, consisting of: 
 \dtag{1} a set $\existentials$ of existentially quantified symbolic locations, 
@@ -277,9 +284,9 @@ $(\existentials, \cells, \efs, \pfs)$, consisting of:
 \dtag{4} a pure assertion $\pfs$. 
 Hence, letting $\existentials = \{ \sloc_1, ..., \sloc_k \}$, $\cells = [ \cell_i \mid_{i = 0}^n ]$, and
 $\efs = \{\efa_i \mid_{i = 0}^m \}$, we write $P \equiv (\existentials, \cells, \efs, \pfs)$ as shorthand for: 
-{\small \begin{equation*}
+{\small \begin{equation}
 P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i \ \sep  \bigoast_{0 \leq i \leq m} \efa_i \big) \ \wedge \ \pfs
-\end{equation*}}
+\end{equation}}
 
 \vspace{-10pt}
 Given a symbolic state $(\sheap, \sstore, \pc)$ and an assertion $P \equiv (\existentials, \cells, \efs, \pfs)$, 
@@ -288,8 +295,16 @@ to the concrete locations in $\sheap$ as a \emph{substitution function} $\subst 
 Since both $\existentials$ and the set of concrete locations in $\sheap$ 
 are finite, we conclude that there is a finite number of substitution functions to be considered 
 when checking if $(\sheap, \sstore, \pc)$ satisfies $P$. 
-%
-Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{Does this paragraph need to be rewritten? Stores?}
+Hence, in the following, we will assume a fixed substitution,~$\subst$. %\polish{Does this paragraph need to be rewritten? Stores?}
+Furthermore, noting that the following equivalence holds: 
+\begin{equation}
+ \sheap, \sstore, \pc \satisfies P \iff \sheap, \emptystore, \pc \satisfies \symbeval{P}{\sstore}
+\end{equation}
+where $\symbeval{P}{\sstore}$ denotes the SL-assertion obtained by symbolically evaluating 
+all the symbolic expressions in $P$ under $\sstore$; we will also assume that the SL-assertion 
+given as input to the decision procedure does not contain any program variables. 
+To obtain an SL-assertion in the targeted format, 
+it suffices to symbolically evaluate all its symbolic expressions under the appropriate symbolic store. 
 
 \begin{figure}[!t]
 {\scriptsize
@@ -299,32 +314,41 @@ Hence, in the following, we will assume a fixed substitution,~$\subst$. \polish{
 	    \sheap = \sheap_f \dunion ((l, \sexprp') \mapsto \sexprv') 
 	   \\\\
 	    \pc \vdash  \sexprp = \sexprp' \wedge \sexprv = \sexprv'
-	}{\cellunification{\sheap, ((\loc,\sexprp)\pointsto \sexprv) \lstcons \cells}{\sheap_f, \cells}\pc} 
-\quad
+	}{\cellunification{\sheap, ((\loc,\sexprp)\pointsto \sexprv) \lstcons \cells}{\sheap_f, \cells}{\pc}} 
+\and
 \inferrule[\textsc{Cell Assertion - Fail}]
 	{  
 	   \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n  
-	    \\\\ 
+	   \quad 
 	     l \notin \hlocs{\sheap'}
-	     \quad
-	    \pc_i = (\sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv')\!\mid_{i = 0}^n
+	    \\\\ 
+	     \pc_i = (\sexprp_i = \sexprp' \wedge \sexprv_i = \sexprv')\!\mid_{i = 0}^n
 	    \quad
 	    \pc \not\vdash \pc_i \mid_{i = 0}^n
 	}{  \cellunificationx{\sheap, ((\loc,\sexprp)\pointsto \sexprv) \lstcons \cells}{\uno{\wedge_{0 \leq i \leq n} \neg\pc_i}}\pc } 
 \end{mathpar}}
 \vspace*{-0.5cm}
-\caption{Unification of non-none cell assertions: $\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
+\caption{Unification of non-none cells: $\cellunification{\sheap, \cells}{\sheap_f, \cells'}{\pc}$
+and $\cellunificationx{\sheap, \cells}{\uno{\pc'}}{\pc}$}
+%$\unification{\sheap, \pc}{\cell}{} = \uyes{\sheap_f} \texttt{ or } \uno{\pc'}$}
 \label{fig:uninonnone}
 \vspace*{-0.2cm}
 \end{figure}
 
 
-
+\myparagraph{Unification rules}
 In Figure \ref{fig:uninonnone}, we show the unification rules for non-none cell assertions. 
 We write $\cellunificationx{\sheap, \cell \lstcons \cells}{-}\pc$ to denote the unification of a symbolic heap $\sheap$ against a single non-none cell $\cell$, given a path condition $\pc$. This unification can either terminate
 successfully, with $\tuple{\sheap_f, \cells}$, in which case $\sheap_f$ denotes the
-symbolic heap to be framed off and $\cells$ denotes the list of remaining non-none cell assertions to be unified (\textsc{Cell Assertion}); or unsuccessfully, with $\uno{\pc'}$, 
+symbolic heap %to be framed off
+that does \underline{not} contain the footprint of $\cell$, 
+ and $\cells$ denotes the list of remaining non-none cell assertions to be unified (\textsc{Cell Assertion}); or unsuccessfully, with $\uno{\pc'}$, 
 in which case $\pc'$ captures the constraints required for the unification to provably fail (\textsc{Cell Assertion - Fail}).
+See the first example of Table~\ref{example:symb:states:vs:assertions};  
+in order to generate a witness for the entailment failure, we need to instantiate $\sexprp_1$ and $\sexprp_2$ in
+a way that satisfies the \emph{failing constraint}: $\sexprp_1 \neq \sexprp_2$. 
+Onward, we denote the transitive closure of $\rightarrow_{\cal CU}$ by $\rightarrow_{\cal CU}^*$. 
+
 %Given a cell assertion $\cell$, a symbolic state $(\sheap, \pc)$, 
 %and a substitution $\subst$: 
 %\begin{itemize}
@@ -336,7 +360,6 @@ in which case $\pc'$ captures the constraints required for the unification to pr
 %            no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
 %            and $\smodels{\sheap', -}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\cell}$.
 %\end{itemize}
-Onward, we denote the transitive closure of $\rightarrow_{\cal CU}$ by $\rightarrow_{\cal CU}^*$. 
 
 %\vspace{-3pt}
 %\begin{display}{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
@@ -383,9 +406,13 @@ Onward, we denote the transitive closure of $\rightarrow_{\cal CU}$ by $\rightar
 \end{figure}
 
 Unification of negative resource, that is, none-cells and \jsinline|emptyFields| assertions, is more intricate, as symbolic heaps do not maintain negative information. We denote by $\unificationef{\sheap}{\efs}$ the constraints that need to be satisfied for the unification of a symbolic heap $\sheap$ against the negative resource denoted by $\efs$ to succeed, and show the rules in Figure \ref{fig:unineg}. First, unifying a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$ against a none-cell $(\loc,\sexprp)\pointsto \none$ effectively means that $\sexprp$ has to be different from all $\sexprp_i|_{i=0}^n$ (\textsc{NR-None Cell}). Next, unifying a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$ against an  \jsinline|emptyFields| assertion $\emptyfields{\loc}{\sexpr_d}$ means that all of the properties $\sexprp_i|_{i=0}^n$  have to be in the domain of of the \jsinline|emptyFields| assertion, $\sexpr_d$ (\textsc{NR-Empty Fields}). 
+\polish{The second and third examples of Table~\ref{example:symb:states:vs:assertions} illustrate unification failures resulting from NR-constraints not being satisfied
+(second example: $\sexprp_1 \neq \sexprp_2$; third example: $\sexprp_1 \not\in \jsilset{\sexprp_2, \sexprp_3}$.}
 
-Moreover, due to the semantics of the separating conjunction, there are additional  constraints imposed by the negative resource. Concretely, all none-cells for the same object have to have different property names, and if any none-cell is starred together with an \jsinline|emptyFields| assertion for the same object, then its property name has to be in the domain of that \jsinline|emptyFields| assertion (\textsc{Separation-Constraints - Fixed Location}). 
+Moreover, due to the semantics of the separating conjunction, there are additional  constraints imposed by \polish{the} negative resource. Concretely, all none-cells for the same object have to have different property names, and if any none-cell is starred together with an \jsinline|emptyFields| assertion for the same object, then its property name has to be in the domain of that \jsinline|emptyFields| assertion (\textsc{Separation-Constraints - Fixed Location}). 
 We call these constrants \emph{separation constraints}, and denote them, for a fixed location~$\loc$, by $\sanityl{\efs}{\loc}$ in Figure \ref{fig:unineg}. The point is that, if a given symbolic state entails a negative resource assertion, it must be the case that its path condition entails the corresponding separation constraints.
+The last example of Table~\ref{example:symb:states:vs:assertions} illustrates an unification failure resulting from an EF-separation-constraint not being satisfied; 
+namely $\sexprp_2 \neq \sexprp_3$. 
 
 Finally, the (\textsc{NR-Unification}) and (\textsc{Separation Constraints}) rules extend $\unificationef{\sheap}{\efs}$ and $\sanityl{\efs}{\loc}$, respectively, to sets of negative resource formulas.
 
@@ -425,24 +452,29 @@ Finally, the (\textsc{NR-Unification}) and (\textsc{Separation Constraints}) rul
 %
 \end{mathpar}}
 \vspace*{-0.6cm}
-\caption{Unification algorithm: {\small $\unificationfull{\sheap, \pc}{\cells, \pfs'}{}$}
-and {\small $\unificationfullfail{\sheap, \pc}{\cells, \pfs'}{}{\pc'}$}.\label{unification:algorithm}}
+\caption{Unification algorithm: {\small $\unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{}$}
+and {\small $\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc'}$}.\label{unification:algorithm}}
 \vspace*{-0.3cm}
 \end{figure}
 
-\pmax{Stopped here.}
+%\pmax{Stopped here.}
 
+\myparagraph{Unification Algorithm}
 Figure~\ref{unification:algorithm} presents the rules for the \emph{unification algorithm}. 
-\polish{Notation not given?}
+We write $\unificationfull{\sheap, \pc}{\cells, \efs \pfs'}{}$ to mean that the unification of 
+the symbolic state $\sheap, \pc$ against the assertion $P \equiv (\emptyset, \cells, \efs, \pfs')$ 
+succeeds, and $\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc'}$ to mean that it
+fails, with the \emph{failing constraints} being: $\pc'$. Note that in order to generate a 
+witness for the unification failure, one needs to find a symbolic environment satisfying the 
+failing constraints.
 The algorithm works by trying to unify the non-none cell assertions first. If they are all 
 successfully unified and the resulting symbolic heap is empty, then the final pure entailment 
 is discharged to the constraint solver. If the resulting symbolic heap is non-empty, then there 
-is additional resource and the unification also fails. Note that in case of failure, the algorithm 
-returns the constraints that need to be satisfied for a witness of that failure to be produced. 
+is additional resource and the unification also fails. 
+%Note that in case of failure, the algorithm 
+%returns the constraints that need to be satisfied for a witness of that failure to be produced. 
 
-
-
-
+\myparagraph{Soundness}
 The soundness of unification theorem states that: given an SL-assertion $P$ and a 
 symbolic state $(\sheap, \sstore, \pc)$, if we find a substitution $\subst$ 
 for which the unification algorithm terminates successfully; then the symbolic state
