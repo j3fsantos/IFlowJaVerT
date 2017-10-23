@@ -1260,10 +1260,10 @@ Observe that \ieq{5} contradicts \ieq{3}, from which the result follows.
 \label{lemma:iter:cell:unification}
 $$
 \begin{array}{l}
-  \cellunificationiter{\sheap, \cells}{\sheap_f,  \cells'}{\sstore, \pc, \subst} \, \wedge \, \cells = \cells'' \lstconcat \cells'  \\ 
+  \cellunificationiter{\sheap, \cells}{\sheap_f,  \cells'}{\pc} \, \wedge \, \cells = \cells'' \lstconcat \cells'  \\ 
        \qquad \implies
              \exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cells'')}
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\cells''}
  \end{array}
 $$
 \end{lemma}
@@ -1273,55 +1273,44 @@ $\cellunificationiter{\sheap, \cells}{\sheap_f,  \cells'}{\sstore, \pc, \subst}$
 We assume that $\cells$ has at least one element. 
 \vspace{6pt}
 
-\noindent\prooflab{Base Case} The base case corresponds to a derivation of length $1$. 
-We conclude that: $\cells = \cells'' = [ \cell ]$, $\cells' = []$, and
-$\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}$. 
-The result follows immediately from Lemma~\ref{successful:unification}. 
+\noindent\prooflab{Base Case} The base case corresponds to a derivation of length $0$.
+We conclude that  $\cells = \cells''$, $\cells' = \lemp$, $\sheap = \sheap_f$, and $\sheap' = \hemp$. 
+Noting that $\hemp, \sstore, - \satisfies \lemp$, the result follows. 
 \vspace{6pt}
 
 \noindent\prooflab{Recursive Case} We assume a derivation of length $n=k+1$. 
-We conclude that: $\cells'' = [ \cell_1, ..., \cell_k, \cell_{k+1} ]$ (\ieq{1}) and 
-$\cellunificationiter{\sheap,  [ \cell_1, ..., \cell_k, \cell_{k+1} ] \lstconcat \cells'}{\sheap_f,  \cells'}{\sstore, \pc, \subst}$ (\ieq{2}). 
-We re-write \ieq{2} as follows: 
+We conclude that: $\cells'' = \cell \lstcons \cells'''$ (\ieq{1}) for some $\cells'''$. It follows 
+that $\cellunification{\sheap, (\cell \lstcons \cells''') \lstconcat \cells'}{\sheap_f',  (\cells''' \lstconcat \cells')}{\pc}$ (\ieq{2}) and 
+$\cellunificationiter{\sheap_f',  (\cells''' \lstconcat \cells')}{\sheap_f,  \cells'}{\pc}$  (\ieq{3}).
+Applying Lemma~\ref{successful:unification} to \ieq{2}, we conclude that 
+there is a symbolic heap $\sheap''$ such that: 
 $$
-\begin{array}{l}
-\cellunificationiter{\sheap,  [ \cell_1, ..., \cell_k ] \lstconcat \cells'}{\sheap_f', \cell_{k+1} \lstcons \cells'}{\sstore, \pc, \subst} \text{ (\ieq{3})}
-\\ 
-\unification{\sheap_f', \sstore, \pc}{\cell_{k+1}}{\subst} = \uyes{\sheap_f} \text{ (\ieq{4})}
-\end{array}
+ \sheap = \sheap'' \dunion \sheap_f' \text{ (\ieq{4})}
+  \qquad 
+  \smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\cell}  \text{ (\ieq{5})}
 $$
 Applying the induction hypothesis to \ieq{3}, we conclude that there is a symbolic heap 
-$\sheap''$ such that: 
+$\sheap'''$ such that: 
 $$
-  \sheap = \sheap'' \dunion \sheap_f'  \text{ (\ieq{5})}
+  \sheap_f' = \sheap''' \dunion \sheap_f  \text{ (\ieq{6})}
   \qquad 
-  \smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\subst(\oast_{1 \leq i \leq k} \cell_k)}  \text{ (\ieq{6})}
-$$
-Applying Lemma~\ref{successful:unification} to \ieq{4}, we conclude that 
-there is a symbolic heap $\sheap'''$ such that: 
-$$
- \sheap_f' = \sheap''' \dunion \sheap_f  \text{ (\ieq{7})}
-  \qquad 
-  \smodels{\sheap''', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell_{k+1})}  \text{ (\ieq{8})}
+  \smodels{\sheap''', \sstore}{\pc} \subseteq \sepmodels{\cells'''}  \text{ (\ieq{7})}
 $$
 If we pick $\sheap' = \sheap'' \dunion \sheap'''$, it follows that: 
 $$
 \begin{array}{l}
-   \sheap'' \dunion \sheap''' \dunion \sheap_f = \sheap' \dunion \sheap_f = \sheap  \text{ from \ieq{5} and \ieq{7}}\\
+   \sheap'' \dunion \sheap''' \dunion \sheap_f = \sheap'' \dunion \sheap_f' = \sheap  \text{ from \ieq{4} and \ieq{6}}\\
   % 
-   \smodels{\sheap'' \dunion \sheap''', \sstore}{\pc} \subseteq \sepmodels{\cells''} \text{ from \ieq{6} and \ieq{8}}
+   \smodels{\sheap'' \dunion \sheap''', \sstore}{\pc} \subseteq \sepmodels{\cell \lstcons \cells'''} = \sepmodels{\cells''} \text{ from \ieq{6} and \ieq{8}}
 \end{array}
 $$
 which concludes the result. 		
 \end{proof}
 
-\begin{lemma}[Sanity Constraints and Negative Resource]\label{sanity}
+\begin{lemma}[Separation Constraints]\label{sanity}
 For $\pc = \sanity{\efs}$, $\pvars(\efs) = \emptyset$, and $\aslocs(\efs) = \emptyset$, 
 it holds that: 
-$$
-  \senv \satisfies \pc  \ \iff \ 
-       \exists \iheap \, . \, \iheap, -, \senv \satisfies \efs
-$$
+$\senv \satisfies \pc  \ \iff \ \exists \iheap \, . \, \iheap, -, \senv \satisfies \efs$.
 \end{lemma}
 \begin{proof}
 We proceed by induction on the size of $\eflocs(\efs)$. 
@@ -1332,7 +1321,7 @@ and $\efs \equiv \lemp$. We rewrite the equivalence as follows:
 $
  \senv \satisfies \jtrue  \iff  \exists \iheap \, . \, \iheap, -, \senv \satisfies \lemp
 $,
-from which the result follows. 
+from which the result follows (it suffices to pick $\iheap = \hemp$). 
 \vspace{6pt}
 
 \noindent\prooflab{Inductive Case}  $\lstsize{\eflocs(\efs)} = k+1$. We conclude that 
@@ -1343,7 +1332,7 @@ $$
 %
 \\
 %
-\pc = \pc_{loc} \, \wedge \, \pc' \text{ (\ieq{2})}
+\pc = \pc_{\loc} \, \wedge \, \pc' \text{ (\ieq{2})}
 %
 \\ 
 %
@@ -1354,7 +1343,7 @@ $$
 		       \, \wedge \,  \big(\{  \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d \big) \text{ (\ieq{4})}
 \end{array}
 $$
-where $\pc' = \sanity{\subst}{\efproj{\efs}{L}}$. It follows from the hypothesis 
+where $\pc' = \sanity{\efproj{\efs}{L}}$. It follows from the hypothesis 
 that $\pvars(\efproj{\efs}{L}) = \emptyset$, and $\aslocs(\efproj{\efs}{L}) = \emptyset$.
 Hence, applying the \underline{inductive hypothesis} to $\sanity{\efproj{\efs}{L}}$, 
 we conclude that: 
@@ -1384,7 +1373,7 @@ We now consider both directions of the equivalence separately.
 		$\iheap = \iheap' \dunion \iheap''$ (\ieq{12}), $\iheap', -, \senv \satisfies \efproj{\efs}{\loc}$ (\ieq{13}), 
 		and $\iheap'', -, \senv \satisfies \efproj{\efs}{L}$ (\ieq{14}). 
 		From \ieq{5} and \ieq{14}, we conclude that:  $ \senv \satisfies \pc'$ (\ieq{15}). 
-		From \ieq{14}, we conclude that: 
+		From \ieq{13}, we conclude that: 
 		$$
 		   \forall_{0 \leq i, j \leq n, i \neq j} \symbeval{\sexprp_i}{\senv} \neq \symbeval{\sexprp_j}{\senv} \ \wedge \
 		         \{ \symbeval{\sexprp_i}{\senv} \mid_{i=0}^n \} \subseteq \symbeval{\sexpr_d}{\senv} \text{ (\ieq{16})}
@@ -1397,7 +1386,7 @@ We now consider both directions of the equivalence separately.
 \end{proof}
 
 
-\begin{lemma}[Symbolic State Models and Negative Resource - 1]\label{lemma:negative:resource}
+\begin{lemma}[Negative Resource]\label{lemma:negative:resource}
 $$
 \begin{array}{l}
   (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \, \wedge \, \pc \vdash \unificationef{\sheap}{\efs} \, \wedge \,  \sanity{\efs} \\
@@ -1472,7 +1461,7 @@ We proceed by case analysis on $\efa$.
 $\forall P, \existentials, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
 $$
 \begin{array}{l}
-P \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst} \
+\symbeval{P}{\senv} \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst} \
     \implies \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}   
 \end{array}
 $$ 
