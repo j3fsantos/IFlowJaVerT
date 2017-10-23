@@ -1156,80 +1156,41 @@ we conclude that there is $1 \leq k \leq n$ such that:
 \label{successful:unification}
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\cell}{} = \uyes{\sheap_f} \ \implies \
+\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells'}{\pc} \ \implies \
+%
+%\unification{\sheap, \sstore, \pc}{\cell}{} = \uyes{\sheap_f} 
      \exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}
+		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\cell}
 \end{array}
 $$
  \end{lemma}
  \begin{proof}
 %
-We conclude from the hypothesis that $\cell = (\lexpr_l,\lexpr_p)\pointsto \lexpr_v$  and 
-that there are symbolic expressions $\sexprp$, $\sexprp'$, $\sexprv$, and $\sexprv'$ such that:  
-$$ 
-\begin{array}{l}
-\loc = \symbeval{\lexpr_l}{\sstore} \ \text{ (\ieq{1})}
-\qquad 
- \symbeval{\lexpr_p}{\sstore} = \sexprp' \  \text{ (\ieq{2})}
- %
- \qquad
- \symbeval{\lexpr_v}{\sstore} = \sexprv' \ \text{ (\ieq{3})}
- \\[5pt] 
-    \sheap = \sheap_f \dunion ((l, \sexprp) \mapsto \sexprv)\ \text{ (\ieq{4})}
-  \qquad
-  \pc \vdash  \sexprp = \subst(\sexprp') \ \text{ (\ieq{5})}
-   \qquad 
-   \pc \vdash  \sexprv = \subst(\sexprv') \ \text{ (\ieq{6})}
-\end{array}
-$$
-We have to prove that there is a symbolic heap $\sheap'$ such that 
-for all symbolic environments $\senv$ such that $\senv \vdash \pc$, it holds that: 
-$$
-(\symbeval{\sheap'}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst(\lexpr_l), \subst(\lexpr_p))\pointsto \subst(\lexpr_v)}
-$$
-Suppose that  $\senv \vdash \pc$ (\ieq{7}).
-If we pick $\sheap' = ((l, \sexprp) \mapsto \sexprv)$, we now have to show that: 
-$$
-(\symbeval{((l, \sexprp) \mapsto \sexprv)}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst(\lexpr_l), \subst(\lexpr_p))\pointsto \subst(\lexpr_v)}
-$$
-Noting that $\symbeval{((l, \sexprp) \mapsto \sexprv)}{\senv} = (l, \symbeval{\sexprp}{\senv}) \mapsto \symbeval{\sexprv}{\senv}$ (\ieq{8}), 
-we now have prove that: 
+We conclude from the hypothesis that $\cell = (\loc,\sexprp)\pointsto \sexprv$ (\ieq{1}), 
+$\sheap = \sheap_f \dunion ((l, \sexprp') \mapsto \sexprv')$ (\ieq{2}), and 
+$\pc \vdash \sexprp = \sexprp' \ \wedge \ \sexprv = \sexprv'$ (\ieq{3}). 
+We pick $\sheap' = (l, \sexprp') \mapsto \sexprv')$ (\ieq{4}). 
+We have to prove that for all symbolic environments 
+$\senv$ such that $\senv \satisfies \pc$, it holds that: 
 $$
 \begin{array}{l}
- ((l, \symbeval{\sexprp}{\senv}) \mapsto \symbeval{\sexprv}{\senv}, \symbeval{\sstore}{\senv}, \senv) \satisfies (\subst(\lexpr_l), \subst(\lexpr_p))\pointsto \subst(\lexpr_v) 
-  \\[3pt]
- %
- \Leftrightarrow l = \symbeval{\subst(\lexpr_l)}{\symbeval{\sstore}{\senv}, \senv} 
-     \ \wedge \ \symbeval{\sexprp}{\senv} = \symbeval{\subst(\lexpr_p)}{\symbeval{\sstore}{\senv}, \senv}
-     \ \wedge \ \symbeval{\sexprv}{\senv} = \symbeval{\subst(\lexpr_v)}{\symbeval{\sstore}{\senv}, \senv}
+(\symbeval{\sheap'}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\loc, \sexprp))\pointsto \sexprv} \\
+   %
+   \qquad \iff (\symbeval{((l, \sexprp') \mapsto \sexprv')}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\loc, \sexprp))\pointsto \sexprv} \\
+   % 
+   \qquad \iff  (l, \symbeval{\sexprp'}{\senv}) \mapsto \symbeval{\sexprv'}{\senv}, -, \senv \satisfies (\loc, \sexprp))\pointsto \sexprv \\
+   %
+   \qquad \iff \symbeval{\sexprp'}{\senv} = \symbeval{\sexprp}{\senv} \, \wedge \ \symbeval{\sexprv'}{\senv} = \symbeval{\sexprv}{\senv} \\
+   %
+   \qquad \iff \jtrue \text{ (because } \senv \satisfies \pc = \sexprp = \sexprp' \ \wedge \ \sexprv = \sexprv' \text{)}
 \end{array}
 $$
-Noting that: 
-$$
-\begin{array}{l}
-\symbeval{\subst(\lexpr_l)}{\symbeval{\sstore}{\senv}, \senv} = 
-	\symbeval{\subst(\symbeval{\lexpr_l}{\sstore})}{\senv} = 
-	\loc \text{ (using \ieq{1}) - (\ieq{9})} \\
-%
-\symbeval{\subst(\lexpr_p)}{\symbeval{\sstore}{\senv}, \senv} = 
-	\symbeval{\subst(\symbeval{\lexpr_p}{\sstore})}{\senv} = 
-	\symbeval{\subst(\sexprp')}{\senv} = 
-	 \symbeval{\sexprp}{\senv}  \text{ (using \ieq{2}, \ieq{5}, and \ieq{7}) - (\ieq{10})} \\
-%
-\symbeval{\subst(\lexpr_v)}{\symbeval{\sstore}{\senv}, \senv} = 
-	\symbeval{\subst(\symbeval{\lexpr_v}{\sstore})}{\senv} = 
-	\symbeval{\subst(\sexprv')}{\senv} = 
-	\symbeval{\sexprv}{\senv} \text{ (using \ieq{3}, \ieq{6}, and \ieq{7}) - (\ieq{11})}
-\end{array}
-$$
-the result follows. 
- \end{proof}
- \vspace{6pt}
+\end{proof}
  
 \begin{lemma}[CA-Unification: Uniqueness of Solutions] 
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f} \, \implies \,
+\cellunification{\sheap, \cells}{\sheap_f, \cell \lstcons \cells}{\pc} \, \implies \,
 	 \neg\exists \sheap'', \sheap_f' . \, \sheap_f = \sheap' \dunion \sheap_f' \, \wedge \, 
                 \smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}
 \end{array}
