@@ -1190,100 +1190,69 @@ $$
 \begin{lemma}[CA-Unification: Uniqueness of Solutions] 
 $$
 \begin{array}{l}
-\cellunification{\sheap, \cells}{\sheap_f, \cell \lstcons \cells}{\pc} \, \implies \,
-	 \neg\exists \sheap'', \sheap_f' . \, \sheap_f = \sheap' \dunion \sheap_f' \, \wedge \, 
-                \smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}
+\cellunification{\sheap, \cell \lstcons \cells}{\sheap_f, \cells}{\pc} \, \implies \,
+	 \neg\exists \sheap'', \sheap_f' . \, \sheap_f = \sheap'' \dunion \sheap_f' \, \wedge \, 
+                \smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\cell}
 \end{array}
 $$
- \end{lemma}
- \begin{proof}
- We prove the result by \emph{contradiction}, assuming that  $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uyes{\sheap_f}$~(\hyp{1})
- and that there are two symbolic heaps $\sheap''$ and $\sheap_f'$ such that 
- $\sheap_f = \sheap' \dunion \sheap_f'$~(\hyp{2} )and 
- $\smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}$~(\hyp{3}), for 
- $\cell = (\lexpr_l, \lexpr_p) \pointsto \lexpr_v$. 
+\end{lemma}
+\begin{proof}
+We prove the result by \emph{contradiction}, there are two symbolic heaps $\sheap''$ and $\sheap_f'$ such that
+$\sheap_f = \sheap'' \dunion \sheap_f'$~(\ieq{1}) and $\smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\cell}$ (\ieq{2}). 
+ Applying Lemma~\ref{successful:unification} to the hypothesis, we conclude that there is a 
+ we conclude that there is a symbolic heap $\sheap'$ such that: $\sheap = \sheap' \dunion \sheap_f$ (\ieq{3}) and 
+ $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\cell}$ (\ieq{4}). 
  %
- Applying Lemma~\ref{successful:unification} to \hyp{1}, we conclude that there is a 
- symbolic heap $\sheap''$ such that: 
- $\sheap = \sheap'' \dunion \sheap_f$ (\ieq{1}),  
- $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cell)}$ (\ieq{2}). 
- Combining \ieq{1} and \hyp{2}, we conclude that: $\sheap = \sheap'' \dunion \sheap' \dunion \sheap_f'$ 
- (\ieq{3}). 
- From \hyp{3} and \ieq{2}, we conclude that for all symbolic environments $\senv$ such that $\senv \vdash \pc$, it holds that: 
- \begin{align*}
-(\symbeval{\sheap'}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst(\lexpr_l), \subst(\lexpr_p))\pointsto \subst(\lexpr_v)} 
-\\ 
-(\symbeval{\sheap''}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\subst(\lexpr_l), \subst(\lexpr_p))\pointsto \subst(\lexpr_v)}
-\end{align*}
+ Combining \ieq{1} and \ieq{3}, we conclude that: $\sheap = \sheap' \dunion \sheap'' \dunion \sheap_f'$ (\ieq{5}). 
+Letting $\cell = (\loc, \sexprp) \mapsto \sexprv$, we conclude, from \ieq{2} and \ieq{4}, that for symbolic 
+environments $\senv \satisfies \pc$, it holds that: 
+$$
+(\symbeval{\sheap'}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\loc, \sexprp)\pointsto \sexprv} 
+\qquad 
+(\symbeval{\sheap''}{\senv}, \symbeval{\sstore}{\senv}) \in \sepmodels{(\loc, \sexprp) \pointsto \sexprv}
+$$
 Let us pick an arbitrary $\senv$ satisfying $\pc$. It must be the case that: 
 $$
 \begin{array}{l}
-\sheap' = (\symbeval{\subst(\lexpr_l)}{\store, \senv}, \symbeval{\subst(\lexpr_p)}{\store, \senv}) \mapsto \symbeval{\subst(\lexpr_v)}{\store, \senv} = \sheap'' \text{ (\ieq{4})}
+\sheap' = (\symbeval{\loc}{\store, \senv}, \symbeval{\sexprp}{\store, \senv}) \mapsto \symbeval{\sexprv}{\store, \senv} 
+ =  (\loc, \symbeval{\sexprp)}{\senv}) \mapsto \symbeval{\sexprv}{\senv}
+ = \sheap'' \text{ (\ieq{6})}
 \end{array}
 $$
-Observe that \ieq{4} contradicts \ieq{3}, from which the result follows.
+Observe that \ieq{6} contradicts \ieq{5}, from which the result follows.
  \end{proof}
 
 
 \begin{lemma}[CA-Unification:  Failure] 
 $$
 \begin{array}{l}
-\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'} \, \implies \, \\ 
+\cellunificationx{\sheap, \cell \lstcons -}{\uno{\pc'}}{\pc} \, \implies \, \\ 
 	\qquad  \big(\forall \sheap', \sheap_f . \, \sheap = \sheap' \dunion \sheap_f \implies 
-                \smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\subst(\cell)} = \emptyset \big)
+                \smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset \big)
 \end{array}
 $$
  \end{lemma}
  \begin{proof}
-Suppose $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}$ (\hyp{1}) and 
-$\sheap = \sheap' \dunion \sheap_f$ (\hyp{2}). We have to show that: 
-$\smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\subst(\cell)} = \emptyset$.
+Suppose $\cellunificationx{\sheap, \cell \lstcons -}{\uno{\pc'}}{\pc}$ (\hyp{1}) and 
+$\sheap = \sheap' \dunion \sheap_f$ (\hyp{2}), for $\sheap' = (\loc', \sexprp') \mapsto \sexprv'$. 
+We have to show that: $\smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset$.
 We proceed by \emph{contradiction} assuming that there is a symbolic environment 
-$\senv \vdash \pc \, \wedge \, \pc'$ such that: 
+$\senv \satisfies \pc \, \wedge \, \pc'$ (\ieq{1}) such that $\sheap, -, \senv \satisfies \cell$ (\ieq{2}). 
+Given that $\cell = (\loc, \sexprp) \mapsto \sexprv$ for some location $\loc$ and 
+symbolic expressions $\sexprp$ and $\sexprv$, we conclude that: 
 $$
 \begin{array}{l}
-((l, \symbeval{\sexprp}{\senv}) \mapsto \symbeval{\sexprv}{\senv}, \symbeval{\sstore}{\senv}, \senv) \satisfies (\subst(\lexpr_l), \subst(\lexpr_p))\pointsto \subst(\lexpr_v) 
-\\[3pt]
- %
- \Leftrightarrow l = \symbeval{\subst(\lexpr_l)}{\symbeval{\sstore}{\senv}, \senv} 
-     \ \wedge \ \symbeval{\sexprp}{\senv} = \symbeval{\subst(\lexpr_p)}{\symbeval{\sstore}{\senv}, \senv}
-     \ \wedge \ \symbeval{\sexprv}{\senv} = \symbeval{\subst(\lexpr_v)}{\symbeval{\sstore}{\senv}, \senv}
- \\[3pt]
- %
- \Leftrightarrow l = \symbeval{\subst(\symbeval{\lexpr_l}{\sstore})}{\senv} 
-      \ \wedge \ \symbeval{\sexprp}{\senv} = \symbeval{\symbeval{\subst(\lexpr_p)}{\sstore}}{\senv} 
-     \ \wedge \ \symbeval{\sexprv}{\senv} = \symbeval{\symbeval{\subst(\lexpr_v)}{\sstore}}{\senv}  
- \\[3pt]
- %
- \Leftrightarrow l = \symbeval{\subst(\symbeval{\lexpr_l}{\sstore})}{\senv} 
-      \ \wedge \ \symbeval{\sexprp}{\senv} = \symbeval{\subst(\symbeval{\lexpr_p}{\sstore})}{\senv} 
-     \ \wedge \ \symbeval{\sexprv}{\senv} = \symbeval{\subst(\symbeval{\lexpr_v}{\sstore})}{\senv} \text{ (\ieq{1})} 
+\symbeval{\sheap'}{\senv}, -, \senv \satisfies (\loc, \sexprp) \mapsto \sexprv \\ 
+\qquad \iff \big((\loc', \symbeval{\sexprp'}{\senv}) \mapsto \symbeval{\sexprv'}{\senv} \big), -, \senv \satisfies (\loc, \sexprp) \mapsto \sexprv \\ 
+\qquad \iff \big((\loc', \symbeval{\sexprp'}{\senv}) \mapsto \symbeval{\sexprv'}{\senv} \big) = (\loc, \symbeval{\sexprp}{\senv}) \mapsto \symbeval{\sexprv}{\senv} \\
+\qquad \iff \loc' = \loc \, \wedge \, \symbeval{\sexprp'}{\senv} = \symbeval{\sexprp}{\senv} \, \wedge \, \symbeval{\sexprv'}{\senv} = \symbeval{\sexprv}{\senv} \text{ (\ieq{3})}
 \end{array}
 $$
-for $\sheap' = (l, \sexprp) \mapsto \sexprv$ (note that $\sheap'$ necessarily needs to be of this 
-shape in order for the assertion to hold). 
-From \ieq{1}, we conclude that: 
-$$
-\senv \vdash \sexprp = \subst(\symbeval{\lexpr_p}{\sstore}) \text{ (\ieq{2})}
-\qquad  
-\senv \vdash \sexprv = \subst(\symbeval{\lexpr_v}{\sstore}) \text{ (\ieq{3)}}
-$$
-From \hyp{1}, it follows that $ \subst(\symbeval{\lexpr_l}{\sstore}) = \loc$ and 
-that: 
-$$
-\pc \, \wedge \, \pc' \vdash  \sexprp \neq \subst(\symbeval{\lexpr_p}{\sstore})
-    \ \vee \
-   \pc \, \wedge \, \pc' \vdash  \sexprv \neq \subst(\symbeval{\lexpr_v}{\sstore})
-    \text{ (\ieq{4})}
-$$
-Because  $\senv \vdash \pc \, \wedge \, \pc'$, we conclude that 
-$$
-\senv \vdash  \sexprp \neq \subst(\symbeval{\lexpr_p}{\sstore})
-    \ \vee \
-\senv \vdash  \sexprv \neq \subst(\symbeval{\lexpr_v}{\sstore})
-    \text{ (\ieq{5})}
-$$
-Equations \ieq{2}, \ieq{3}, and \ieq{5} give us the contradiction. 
+Observing that $\loc = \loc'$, we conclude, from the definition of $\rightarrow_{\cal CU}$, that: 
+$\pc' \vdash \sexprp' \neq \sexprp \, \vee \, \sexprv' \neq \sexprv$ (\ieq{4}). 
+From Equations \ieq{1} and \ieq{4}, we conclude that: 
+$\symbeval{\sexprp'}{\senv} \neq \symbeval{\sexprp}{\senv} \, \vee \, \symbeval{\sexprv'}{\senv} \neq \symbeval{\sexprv}{\senv}$ (\ieq{5}). 
+Observe that \ieq{5} contradicts \ieq{3}, from which the result follows.
 \end{proof}
  
  
