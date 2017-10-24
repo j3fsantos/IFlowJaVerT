@@ -183,7 +183,7 @@
 \usepackage{macros_js}
 \usepackage{gdshojs}
 
-\newcommand{\jilette}{Jilette\xspace}
+\newcommand{\jilette}{Cosette\xspace}
 \newcommand{\rosette}{Rosette\xspace}
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
@@ -245,13 +245,13 @@
 \maketitle 
 
 \begin{abstract}
-We present \jilette: a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
+We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
 a symbolic virtual machine that enables the design of new solver-aided languages. 
 \jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
 a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
 We study two complementary uses of \jilette. 
 First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
-We highlight the range of \jilette by giving advanced examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
 Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
 witnesses for bugs in both specification and code.
 \vspace*{-0.4cm}
@@ -278,11 +278,11 @@ symbolic virtual machine that facilitates generation of solver-aided languages.
 We design the concrete interpreter so that all of Rosette's natively supported solver-aided
 features, such as advanced string and regular-expression reasoning, 
 are lifted to the \jsil symbolic interpreter. 
-In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide  insights on how to correctly design the concrete \jsil interpreter in Rosette.
+In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide insights on how to correctly design the concrete \jsil interpreter in Rosette.
 
 The second component that \jilette uses is \JSComp~\cite{javert}, 
 a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
-the coverage of \JSComp with support for the non-strict mode of ES5, as well as
+\JSComp with support for the non-strict mode of ES5, as well as
 regular expressions and the entire \jsinline|String| built-in library.
 \JSComp allows us to lift the \jsil symbolic execution to JavaScript by first compiling JavaScript code to \jsil code, and
 then symbolically executing the compiled code in the 
@@ -310,7 +310,7 @@ tests with concrete
 inputs, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
 first-order assertions over these inputs. 
-Furthermore, if a test fails, Jilette provides the concrete inputs that cause it 
+Furthermore, if a test fails, \jilette provides the concrete inputs that cause it 
 to fail, exposing bugs in the tested code. 
 We highlight the capabilities of \jilette through examples that showcase
 challenging reasoning on strings, regular expressions, and the \jsinline|eval|
