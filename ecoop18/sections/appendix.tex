@@ -1549,11 +1549,37 @@ it follows: $\smodels{\sheap, \sstore}{\pc}  \subseteq \sepmodels{P}$, which con
 \end{proof}
 
 
+\begin{lemma}[No double unification]
+\label{lemma:no:double:unification}
+$$
+  \sheap, \pc \satisfies \cell_1 \, \wedge \, \sheap, \pc \satisfies \cell_2 
+    \implies 
+        \sepmodels{\cell_1 \sep \cell_2 \sep \pc} = \emptyset$$  
+for $\pvars(\efs) = \emptyset$ and $\aslocs(\efs) = \emptyset$.
+\end{lemma}
+\begin{proof}
+Given that $\pvars(\efs) = \emptyset$ and $\aslocs(\efs) = \emptyset$,
+we can assume that there are symbolic expressions $\sexprp$, 
+$\sexprp_1$, $\sexprp_2$, $\sexprv_1$, $\sexprv$, and $\sexprv_2$ 
+and a concrete location $\loc$, such that: 
+$$
+\sheap = (\loc, \sexprp) \mapsto \sexprv \text{ (\ieq{1})}
+\qquad
+\cell_1 = (\loc, \sexprp_1) \mapsto \sexprv_1 \text{ (\ieq{2})}
+\qquad 
+\cell_2 = (\loc, \sexprp_2) \mapsto \sexprv_2 \text{ (\ieq{3})}
+$$
+From \ieq{2} and \ieq{3}, we conclude that: 
+$\pc \vdash \sexprp_1 = \sexprp_2 \, \wedge \, \sexprv_1 = \sexprv_2$ (\ieq{4}), 
+from which the result follows immediately. 
+\end{proof}
+
+
 \begin{lemma}[Counter Models for Failed Grounded Entailement]
 $$
 \unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{}{\pc''} 
 %
- \implies \smodels{\sheap, \sstore}{\pc \, \wedge \, \pc''} \cap \sepmodels{\cells \sep \efs \, \wedge \, \pc'} = \emptyset
+ \implies \smodels{\sheap, \sstore}{\pc \, \wedge \, \pc''} \cap \sepmodels{\cells \sep \efs \sep \pc'} = \emptyset
  $$
 \end{lemma}
 \begin{proof}
@@ -1562,7 +1588,7 @@ and an extra resource failure. We proceed by case analysis on the cause of failu
 \vspace{6pt}
 \begin{itemize}
     \item \prooflab{Cell unification failure} We conclude that there is a cell assertion $\cell$ 
-              and a symbolic heap $\sheap'$ such that:  
+              and a symbolic heap $\sheap_f$ such that:  
               $\cellunificationiter{\sheap, \cells}{\sheap_f, \cell \lstcons \cells''}{\pc}$ (\ieq{1}) 
               and $\cellunificationx{\sheap_f, \cell}{\uno{\pc''}}{\pc}$ (\ieq{2}), and  
               $\cells = \cells' \lstconcat (\cell \lstcons \cells'')$ (\ieq{3}). Applying Lemma~\ref{lemma:iter:cell:unification}
@@ -1578,125 +1604,49 @@ and an extra resource failure. We proceed by case analysis on the cause of failu
               Put formally, we need to prove that: 
               $$
               	\forall \sheap'', \sheap_f' . \, \sheap = \sheap'' \dunion \sheap_f' \implies 
-                     \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset 
+                     \big(\smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset 
+                     	\, \vee \, 
+	              \sepmodels{\cells \sep \pc} = \emptyset \big)
               $$
+              Observing that 
+              $\smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cells}  =   
+                  \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cells \sep (\pc \, \wedge \, \pc')}$, 
+              we rewrite the implication above as follows: 
+              $$
+              	\forall \sheap'', \sheap_f' . \, \sheap = \sheap'' \dunion \sheap_f' \implies 
+                     \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cells  \sep (\pc \, \wedge \, \pc')} = \emptyset   
+              $$      
+              %
               We prove the above by contradiction. Let us assume that there are two symbolic heaps 
               $\sheap''$ and $\sheap_f'$ such that: $\sheap = \sheap'' \dunion \sheap_f'$ (\ieq{7})
-              and $\smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset$ (\ieq{8}). 
+              and $(\smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell \sep (\pc \, \wedge \, \pc')} \neq \emptyset) 
+                   \vee  \sepmodels{\cells \sep \pc} = \emptyset \big)$ (\ieq{8}). 
               We have two cases to consider: either $\sheap''$ is part of $\sheap'$ or it is part of 
-              $\sheap_f'$. We prove the two cases separately. 
+              $\sheap_f$. We prove the two cases separately. 
               \begin{itemize}
-                 \item If $\sheap''$ is part of $\sheap'$, it means that 
+                 \item If $\sheap''$ is part of $\sheap'$, it means that $\sheap'', \pc \satisfies \cell$ and there is a cell $\cell'$, 
+                         such that $\sheap'', \pc \satisfies \cell'$. Using Lemma~\ref{lemma:no:double:unification}, 
+                         we conclude that $\sepmodels{\cell \sep \cell' \sep \pc} = \emptyset$, from 
+                         which it follows that $\sepmodels{\cells  \sep (\pc \, \wedge \, \pc')} = \emptyset$, 
+                         obtaining a contradiction with \ieq{8}. 
+                  \item If $\sheap''$ is part of $\sheap_f$,  we immediately get a contradiction with \ieq{6}.
               \end{itemize}
-              
-              
-              From \ieq{6}, we conclude that 
-              $\smodels{\sheap_f, \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell \lstcons \cells''} = \emptyset$ (\ieq{7}).
-%              We first argue that all the re-orderings of $\cells$ would yield either the same unification 
-%              failure or a different one. To prove it, let us consider a re-ordering of $\cells$, $\cells'$, 
-%              such that $\cells' = \cell \lstcons -$ and the cell assertions in $\cells'$ coincide with 
-%              those in $\cells$. If 
+              Having established that: 
+                $$
+              	\forall \sheap'', \sheap_f' . \, \sheap = \sheap'' \dunion \sheap_f' \implies 
+                     \big(
+                        \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cells  \sep (\pc \, \wedge \, \pc')} = \emptyset
+                      \big) \, \vee \, \sepmodels{\cells} = \emptyset  \text{ (\ieq{9})}
+              $$ 
+              the result follows immediately. 
+        	      \vspace{6pt}
+	      
+          \item \prooflab{Extra Resource Failure} We conclude that
+                   $\cellunificationiter{\sheap, \cells}{\sheap_f, []}{\pc}$ and $\sheap_f \neq \hemp$. Observing that 
+                   the size of the symbolic heap is smaller than the number of cells against which it needs to be unified, 
+                   we conclude the result. 
+                   \vspace{6pt}
+                        
+          \item \prooflab{Extra Resource Failure} We conclude that
 \end{itemize}
 \end{proof} 
-
-
-%
-%\cellunificationx{\sheap, \cell \lstcons -}{\uno{\pc'}}{\pc} \, \implies \, \\ 
-%	\qquad  \big(\forall \sheap', \sheap_f . \, \sheap = \sheap' \dunion \sheap_f \implies 
-%                \smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset \big)
-
-
-% 
-%  \implies
-%             \exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
-%		\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cells'')}
- 
-% 
-% if $\unification{\sheap, \sstore, \pc}{\cell}{\subst} = \uno{\pc'}$, then there are 
-%            no two heaps $\sheap'$ and $\sheap_f$, such that $\sheap = \sheap' \dunion \sheap_f$ 
-%            and $\smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \subseteq \sepmodels{\subst(\cell)}$.
- 
-% 
-%  \begin{lemma}[Soundness of unification for symbolic expressions]\label{lemma:unification:exprs}
-%\begin{enumerate}
-%\item Successful unification: 
-%$$
-% \unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionsome{\subst'}
-%      \implies \pc \vdash \sexpr = \subst'(\sexpr')
-% $$
-% \item Unsuccessful unification:
-% $$
-% \begin{array}{l}
-% \unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone \\
-%     \quad \implies \forall \, \subst' . \, \domain(\subst') \subseteq \existentials \ \wedge \
-%            \subst' \geq \subst \ \wedge \ \pc \vdash \sexpr \neq \subst'(\sexpr')
-% \end{array}
-% $$
-% \end{enumerate}
-% \end{lemma}
-% \begin{proof}
-%We start with the proof of the lemma for the case of \underline{successful unification}. 
-%Hence, suppose it holds that: 
-%$\unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionsome{\subst'}$ (\hyp{1}). 
-%We proceed by case analysis on the rule used to derive \hyp{1}.
-%\vspace{6pt}
-%
-%\noindent\prooflab{New Existential} We conclude that $\sexpr' = \svar$ and 
-%$\subst' = \subst[\svar \mapsto \sexpr]$, for some logical variable $\svar$, 
-%such that $\svar \in \existentials$ and $\svar \not\in \domain(\subst)$. 
-%We conclude that:
-%$$
-%\subst'(\sexpr') = \subst[\svar \mapsto \sexpr](\svar) = \sexpr
-%$$
-%from which the result follows. 
-%\vspace{6pt}
-%
-%\noindent\prooflab{Matched Existential} We conclude that $\sexpr' = \svar$ 
-%for some me logical variable $\svar$, $\subst' = \subst$, $\svar \in \existentials$, and
-%$\pc \vdash \sexpr = \subst(\svar)$. The result immediately holds. 
-%\vspace{6pt}
-%
-%\noindent\prooflab{Grounded Expression} We conclude that 
-%$\subst' = \subst$, $\fv(\subst(\sexpr')) \cap \existentials = \emptyset$, 
-%$\pc \vdash  \sexpr = \subst(\sexpr')$. The result immediately holds. 
-%\vspace{6pt}
-%
-%\noindent We now have to prove the lemma for the case of  
-%\underline{unsuccessful unification}. 
-%Hence, suppose it holds that: 
-%$ \unification{\sexpr, \pc}{\sexpr'}{\subst}{\existentials} = \optionnone$ (\hyp{2}). 
-%We have to prove that for all substitutions $\subst'$ that extend $\subst$, 
-%it holds that: $\pc \vdash \sexpr \neq \subst'(\sexpr')$. 
-%We prove this by contradiction. More concretely, suppose that
-%there is a substitution $\subst'$ such that 
-%$\subst' \geq \subst$ (\hyp{3}) and $\pc \not\vdash \sexpr \neq \subst'(\sexpr')$ (\hyp{4}).
-%We now proceed by case analysis on the rule used to derive \hyp{2}. 
-%\vspace{6pt}
-%
-%\noindent\prooflab{Existential - None} We conclude that $\sexpr' = \svar$, for some 
-%logical variable $\svar$, that $\subst(\svar) = \sexpr''$, and 
-%$\pc \vdash \sexpr \neq \sexpr''$.  From \hyp{3} and $\subst(\svar) = \sexpr''$, 
-%we conclude that $\subst'(\svar) = \sexpr''$, thereby obtaining a contradiction 
-%between $\pc \vdash \sexpr \neq \sexpr''$ and \hyp{4}.
-%\vspace{6pt}
-%
-%\noindent\prooflab{Grounded Expression - Fail} We conclude that 
-%$ \fv(\subst(\sexpr')) \cap \existentials = \emptyset$ 
-%and $\pc  \vdash  \sexpr \neq \subst(\sexpr')$. 
-%Since $ \fv(\subst(\sexpr')) \cap \existentials = \emptyset$, we 
-%conclude, using \hyp{3}, that $\subst'(\sexpr') = \sexpr'$, 
-%thereby obtaining a contradiction 
-%between $\pc \vdash \sexpr \neq \sexpr''$ and \hyp{4}.
-% \end{proof}
-% 
- 
-
-
-%
-%\inferrule[\textsc{EmptyFields Assertion}]
-%	{  
-%	         \quad
-%             (l, -) \not\in \domain(\sheap')
-%	    \quad 
-%	    \pc \vdash \big( \{ \sexprp_i \mid_{i = 0}^n   \} \subseteq \sexprv' \big)
-%	}{ \unification{\sheap, \sstore, \pc}{\emptyfields{\lexpr_l}{\lexpr_d}}{\subst}{\existentials} = \optionsome{(\subst, \sheap)}} 

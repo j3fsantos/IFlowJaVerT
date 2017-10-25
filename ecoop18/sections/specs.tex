@@ -263,7 +263,7 @@ $(\loc, \sexprp_1) \mapsto \sexprv$ & & $\sexprp_1 \not\in \{\sexprp_2, \sexprp_
 
 
 
-\subsection{Finding counter models for separation logic assertions}
+\subsection{Finding Counter Models for SL Assertions}
 \label{subsec:countermodels}
 
 We describe a partial decision procedure, which we  
@@ -528,11 +528,28 @@ $$
 \end{theorem}
 
 
-
-\newpage
-\subsection{Compiling \jsil Specifications to Symbolic Tests}
+\subsection{Compiling \jsil Logic Specifications to Symbolic Tests}
 \label{specs:to:symbolic:tests}
-\polish{Explain \jsil specs} 
+
+\begin{figure}[t!]
+\includegraphics[width=0.75\textwidth]{figures/symbolicvsass.pdf}
+{\small $$
+\text{\emph{None-Constraints: }} (\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})
+$$}
+\vspace{-25pt}
+\caption{Assertion vs. Symbolic Heap}
+\end{figure}
+
+\jsil Logic specifications have the form $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$, where $P$ and $Q$ are the 
+pre- and postconditions of the function with identifier $\fid$, and $\jvec{x}$ its list of formal parameters.
+Each specification is associated with a return mode $\flag \in \{ \fnormal, \ferror \}$, indicating if the function
+ returns normally or with an error. If it returns normally, then its return value can be accessed  via a dedicated variable 
+ $\procretvar$, and $\procerrvar$ otherwise.  Intuitively, a specification $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$ for mode $\flag$ is 
+valid for a given JavaScript program $\jstmt$, if $\jstmt$ contains a function with identifier 
+$\fid$ and ``whenever $\fid$ is executed in a state satisfying $P$, then, 
+if it terminates, it does so in a state satisfying $Q$, with return mode $\flag$''.
+The formal definition is given below. 
+
 
 \begin{definition}[Validity of \jsil Logic Specifications]
 A \jsil logic specification $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$ for return mode $\flag$ is valid with respect to a program 
@@ -553,51 +570,7 @@ A symbolic test is a pair $(\prog', \sheap)$ consisting of a \jsil program and a
 differs from $\prog$ in that it has a new \jsilmain procedure with the code of the test, and $\sheap$ is the initial 
 symbolic heap on which to execute $\prog'$. 
 
-\begin{display}{Concretisation of \jsil assertions: $\concretise{\cell}{\subst} = \sheap, \subst'$ and $\concretise{(\existentials, \sfs, \pfs)}{\subst} = \sheap, \pfs', \subst'$}
-{\scriptsize
-\begin{mathpar} 
-\inferrule[\textsc{Spatial Assertion - Lit Loc}]
-	{
-	  \concretise{\lexpr_p}{\subst} = \sexpr_p, \subst' 
-	  \quad 
-	  \concretise{\lexpr_v}{\subst'} = \sexpr_v, \subst''
-	}{\concretise{(\loc,\lexpr_p)\pointsto \lexpr_v}{\subst} = (\loc,\sexpr_p)\pointsto \sexpr_v, \subst''}  
-\and 
-\inferrule[\textsc{Spatial Assertion - Var Loc}]
-	{
-	  \concretise{\lexpr_p}{\subst[\sloc \mapsto \loc]} = \sexpr_p, \subst' 
-	  \quad 
-	  \concretise{\lexpr_v}{\subst'} = \sexpr_v, \subst''
-	  	  \quad 
-	  \loc \ \cfresh
-	}{\concretise{(\sloc,\lexpr_p)\pointsto \lexpr_v}{\subst} = (\loc,\sexpr_p)\pointsto \sexpr_v, \subst''}  
-\and 
-\inferrule[\textsc{EmptyFileds}]
-	{}{\concretise{\emptyfields{-}{-}}{\subst} = \hemp, \subst}  
-\and 
-\inferrule[\textsc{Spatial Assertion}]
-	{
-	    \sfs = \{ \cell \} \dunion \sfs'
-	    \quad 
-	    \concretise{\cell}{\subst} = \sheap, \subst' 
-	    \\\\
-	    \concretise{(-, \sfs', \pfs)}{\subst'} = \sheap', \pfs', \subst''
-	}{\concretise{(-, \sfs, \pfs)}{\subst} = \sheap \dunion \sheap', \pfs', \subst''}  
-\and 
-\inferrule[\textsc{Spatial Assertion}]
-	{
-	}{\concretise{(-, \emptyset, \pfs)}{\subst} = \hemp, \subst(\pfs), \subst}  
-\end{mathpar}}
-\end{display}
 
-\begin{figure}[t!]
-\includegraphics[width=0.9\textwidth]{figures/symbolicvsass.pdf}
-{\small $$
-\text{\emph{None-Constraints: }} (\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})
-$$}
-\vspace{-25pt}
-\caption{Assertion vs. Symbolic Heap}
-\end{figure}
 
 
 
@@ -625,7 +598,7 @@ $$}
 %\end{algorithm}
 
 
-\subsection{Generating Symbolic Tests from JavaScript} 
+\subsection{Compiling JaVerT Specifications to Symbolic Tests} 
 \label{specs:example}
 
 \myparagraph{Example}
