@@ -1563,18 +1563,49 @@ and an extra resource failure. We proceed by case analysis on the cause of failu
 \begin{itemize}
     \item \prooflab{Cell unification failure} We conclude that there is a cell assertion $\cell$ 
               and a symbolic heap $\sheap'$ such that:  
-              $\cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\pc}$ (\ieq{1}) 
-              and $\cellunificationx{\sheap', \cell}{\uno{\pc''}}{\pc}$ (\ieq{2}), and  
-              $\cells = \cells' \lstconcat (\cell \lstcons -)$ (\ieq{3}). Applying Lemma~\ref{lemma:iter:cell:unification}
-              to \ieq{1} and \ieq{3}, we conclude that there is a symbolic heap $\sheap''$ such that $\sheap = \sheap'' \dunion \sheap'$ (\ieq{4})
-              and $\smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\cells'}$ (\ieq{5}). 
-              Applying Lemma~\ref{ca:unification:failure} to 
+              $\cellunificationiter{\sheap, \cells}{\sheap_f, \cell \lstcons \cells''}{\pc}$ (\ieq{1}) 
+              and $\cellunificationx{\sheap_f, \cell}{\uno{\pc''}}{\pc}$ (\ieq{2}), and  
+              $\cells = \cells' \lstconcat (\cell \lstcons \cells'')$ (\ieq{3}). Applying Lemma~\ref{lemma:iter:cell:unification}
+              to \ieq{1} and \ieq{3}, we conclude that there is a symbolic heap $\sheap'$ such that $\sheap = \sheap' \dunion \sheap_f$ (\ieq{4})
+              and $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\cells'}$ (\ieq{5}). 
+              Applying Lemma~\ref{ca:unification:failure} to \ieq{2}, we conclude that: 
+              $$
+              	\forall \sheap'', \sheap_f' . \, \sheap_f = \sheap'' \dunion \sheap_f' \implies 
+                     \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset \text{ (\ieq{6})}
+              $$
+              Equation \ieq{6} tells us that there is no way to unify $\sheap_f$ against $\cell$. However, to 
+              establish the result, one needs to prove that there is no way to unify $\sheap$ against $\cell$. 
+              Put formally, we need to prove that: 
+              $$
+              	\forall \sheap'', \sheap_f' . \, \sheap = \sheap'' \dunion \sheap_f' \implies 
+                     \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset 
+              $$
+              We prove the above by contradiction. Let us assume that there are two symbolic heaps 
+              $\sheap''$ and $\sheap_f'$ such that: $\sheap = \sheap'' \dunion \sheap_f'$ (\ieq{7})
+              and $\smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset$ (\ieq{8}). 
+              We have two cases to consider: either $\sheap''$ is part of $\sheap'$ or it is part of 
+              $\sheap_f'$. We prove the two cases separately. 
+              \begin{itemize}
+                 \item If $\sheap''$ is part of $\sheap'$, it means that 
+              \end{itemize}
+              
+              
+              From \ieq{6}, we conclude that 
+              $\smodels{\sheap_f, \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell \lstcons \cells''} = \emptyset$ (\ieq{7}).
 %              We first argue that all the re-orderings of $\cells$ would yield either the same unification 
 %              failure or a different one. To prove it, let us consider a re-ordering of $\cells$, $\cells'$, 
 %              such that $\cells' = \cell \lstcons -$ and the cell assertions in $\cells'$ coincide with 
 %              those in $\cells$. If 
 \end{itemize}
 \end{proof} 
+
+
+%
+%\cellunificationx{\sheap, \cell \lstcons -}{\uno{\pc'}}{\pc} \, \implies \, \\ 
+%	\qquad  \big(\forall \sheap', \sheap_f . \, \sheap = \sheap' \dunion \sheap_f \implies 
+%                \smodels{\sheap', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset \big)
+
+
 % 
 %  \implies
 %             \exists \sheap' . \, \sheap = \sheap' \dunion \sheap_f  \, \wedge \, 
