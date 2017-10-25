@@ -216,43 +216,6 @@ For convenience, we use $\svars$ to denote the union of $\sstrings$ and $\snumbe
 and $\svar$ to range over $\svars$. 
 
 
-\begin{wrapfigure}{R}{0.4\textwidth}
-\vspace*{-0.8cm}
-{\scriptsize
-\begin{mathpar}
-\inferrule[]{}{\semexpr{\val}{\sstore} \semeq \val}
-\and
-\inferrule[]{}{\semexpr{\svar}{\sstore} \semeq \svar}
-\\
-\inferrule[]
-	{\semexpr{\jsilexpr}{\sstore} = \val \quad \val' = \semop{\unoper} \val}
-	{\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \val'}
-\\
-\inferrule[]
-	{\semexpr{\jsilexpr}{\sstore} = \sexpr \not\in \vals}
-	{\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \unoper \ \sexpr}
-\\
-\inferrule[]
-	{\semexpr{\jsilexpr_1}{\sstore} = \val_1 
-	  \quad 
-	  \semexpr{\jsilexpr_2}{\sstore} = \val_2
-	}
-	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \semop{\binoper}(\val_1, \val_2)}
-\\
-\inferrule[]
-	{\semexpr{\jsilexpr_1}{\sstore} = \sexpr_1 
-	  \quad 
-	  \semexpr{\jsilexpr_2}{\sstore} = \sexpr_2
-	  \\
-	  \sexpr_1 \not\in \vals \ \vee \ \sexpr_2 \not\in \vals 
-	}
-	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val_1 \, {\binoper} \, \val_2}
-\end{mathpar}}
-%\vspace{-0.3cm}
-{\small \vspace{-0.2cm}\caption{Symbolic Sem. of Exprs.}\label{fig:symb:sem:exprs}}
-\vspace*{-0.7cm}
-\end{wrapfigure}
-
 We extend heaps, stores, and call stacks with symbolic values, obtaining symbolic 
 heaps, stores, and call stacks, respectively ranged over by $\sheap$, $\sstore$, and $\sctx$. 
 A symbolic heap, $\sheap \in \sheaps$, is a partial function mapping pairs of  
@@ -267,7 +230,7 @@ any program variables. Put formally, the syntax of symbolic expressions is as fo
 $\sexpr \triangleq \val \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
 The evaluation of a \jsil expression $\jsilexpr$ in a symbolic store $\sstore$ yields a 
 symbolic expression $\sexpr$.
-Figure~\ref{fig:symb:sem:exprs} shows the rules for symbolically evaluating \jsil expressions. 
+%Figure~\ref{fig:symb:sem:exprs} shows the rules for symbolically evaluating \jsil expressions. 
 
 %
 A \emph{symbolic state} $\sstate = (\sheap, \sstore, \sctx, \pc)$ is a 4-tuple consisting of a 
@@ -300,14 +263,14 @@ returns the $i$-th command of the procedure that is first in $\ctx$. We write $\
 
 
 \begin{wrapfigure}{R}{0.4\textwidth}
-\vspace*{-0.7cm}
+\vspace*{-0.4cm}
 {\small
 \hspace*{0.25cm} $\mathtt{0\quad o := new\ ()}$ \\
 \hspace*{0.25cm} $\mathtt{1\quad o[\hat{s}] := 42};$ \\
 \hspace*{0.25cm} $\mathtt{2\quad x := getFields(o);}$ \\
 \hspace*{0.25cm} $\mathtt{3\quad assert\ (card \ x == 2)}$
 }
-\vspace*{-0.5cm}
+\vspace*{-0.3cm}
 \end{wrapfigure}
 The rules for skip, assignment, object creation, property collection, assume, and assert are straightforward. The remaining rules follow a specific pattern. To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
 This code: 
@@ -320,6 +283,42 @@ This code:
 \begin{figure}[ht!]
 {\scriptsize
 \begin{mathpar} 
+%
+\inferrule[\textsc{Symbolic semantics of expressions}]{}{
+%
+{\begin{array}{c}
+\semexpr{\val}{\sstore} \semeq \val \\[2pt]
+%
+\semexpr{\svar}{\sstore} \semeq \svar
+\end{array}}
+%
+\qquad
+%
+\frac{\semexpr{\jsilexpr}{\sstore} = \val}
+      {\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \semop{\unoper} \val}
+%
+\qquad
+%
+\frac{\semexpr{\jsilexpr}{\sstore} = \sexpr \not\in \vals}
+       {\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \unoper \ \sexpr}
+%
+\qquad
+\frac{ \val = \semop{\binoper}(\semexpr{\jsilexpr_1}{\sstore}, \semexpr{\jsilexpr_2}{\sstore})} 
+       {\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val}
+ %
+ \qquad
+\frac{{\begin{array}{c}
+	\semexpr{\jsilexpr_1}{\sstore} = \sexpr_1 
+	  \quad 
+	  \semexpr{\jsilexpr_2}{\sstore} = \sexpr_2
+	  \\
+	  \sexpr_1 \not\in \vals \ \vee \ \sexpr_2 \not\in \vals 
+	  \end{array}}
+	}
+	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val_1 \, {\binoper} \, \val_2}
+}
+%
+\\
 %
 \inferrule[\textsc{Skip}]{}
 	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
@@ -608,6 +607,7 @@ Given a symbolic state $(\sheap, \sstore, \sctx)$ and a path condition $\pc$, we
 the models of the symbolic state under $\pc$, written $\smodels{\sheap, \sstore, \sctx}{\pc}$, 
 as the set of concrete states that can be obtained from $(\sheap, \sstore, \sctx)$ using 
 logical environments that are consistent with $\pc$. Formally:
+
 {\small \begin{align}
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} \\
 \smodels{\sheap, \sstore}{\pc} = \left\{ (\heap, \store) \mid \exists \senv \, . \,  \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \vdash \pc  \right\}

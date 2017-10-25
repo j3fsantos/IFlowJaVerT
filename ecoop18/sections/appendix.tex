@@ -1223,7 +1223,7 @@ Observe that \ieq{6} contradicts \ieq{5}, from which the result follows.
  \end{proof}
 
 
-\begin{lemma}[CA-Unification:  Failure] 
+\begin{lemma}[CA-Unification:  Failure]\label{ca:unification:failure} 
 $$
 \begin{array}{l}
 \cellunificationx{\sheap, \cell \lstcons -}{\uno{\pc'}}{\pc} \, \implies \, \\ 
@@ -1386,7 +1386,7 @@ We now consider both directions of the equivalence separately.
 \end{proof}
 
 
-\begin{lemma}[Negative Resource]\label{lemma:negative:resource}
+\begin{lemma}[Negative Resource Unification]\label{lemma:negative:resource}
 $$
 \begin{array}{l}
   (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \, \wedge \, \pc \vdash \unificationef{\sheap}{\efs} \, \wedge \,  \sanity{\efs} \\
@@ -1456,12 +1456,24 @@ We proceed by case analysis on $\efa$.
 \end{proof}
 
 
+\begin{lemma}[Symbolic Store and Entailment]\label{lemma:symb:store}
+$$
+\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P} 
+    \iff 
+    \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\symbeval{P}{\sstore}} 
+$$
+\end{lemma}
+\begin{proof}
+\polish{TODO}
+\end{proof}
+
+
 
 \begin{temax}[Theorem~\ref{teo:unification:soundness} - Soundness of Unification]
-$\forall P, \existentials, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
+$\forall P, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
 $$
 \begin{array}{l}
-\symbeval{P}{\senv} \equiv (\existentials, \cells, \efs, \pfs') \ \wedge \ \unificationfull{\sheap, \sstore, \pc}{\cells, \pfs'}{\subst} \
+\symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs')\implies\unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{} \
     \implies \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}   
 \end{array}
 $$ 
@@ -1470,73 +1482,67 @@ $$
 It must be the case that: 
 $$
 \begin{array}{l}
-\cellunificationiter{\sheap, \cells}{\hemp, []}{\sstore, \pc, \subst} \text{ (\ieq{1})} \\
+\cellunificationiter{\sheap, \cells}{\hemp, []}{\pc} \text{ (\ieq{1})} \\
 %
-\pc \vdash \subst(\pfs') \ \wedge \ \sanity{\symbeval{\subst(\efs)}{\sstore}} \ \wedge \  \unificationef{\sheap}{\symbeval{\subst(\efs)}{\sstore}} \text{ (\ieq{2})}
+\pc \vdash \pfs' \ \wedge \ \sanity{\efs} \ \wedge \  \unificationef{\sheap}{\efs} \text{ (\ieq{2})}
 \end{array}
 $$
 
 \begin{enumerate}
 
-\item We start by proving that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \wedge \pc}$. 
+\item We start by proving that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cell \, \wedge \, \pc}$. 
 Applying the Iterated-Cell-Unification Lemma (Lemma~\ref{lemma:iter:cell:unification}) to \ieq{1}, 
 we conclude that: 
 $$
-  \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells)} \text{ (\ieq{2})}
+  \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells} \text{ (\ieq{2})}
 $$  
 From \ieq{2}, noting that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\pc}$, 
 we conclude that: 
 $$
-\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \wedge \pc} \text{ (\ieq{3})}
+\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \wedge \pc} \text{ (\ieq{3})}
 $$  
 
-\item We will now prove that  $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs)}$. 
+\item We will now prove that  $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \sep \efs}$. 
 To this end, let us assume that $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$ (\ieq{4}). 
 From \ieq{4}, we conclude that there is a symbolic environment $\senv$ such that $\senv \satisfies \pc$ (\ieq{5}), 
-$\heap = \symbeval{\heap}{\senv}$ (\ieq{6}), and $\store = \symbeval{\sstore}{\senv}$ (\ieq{6}).
+$\heap = \symbeval{\sheap}{\senv}$ (\ieq{6}), and $\store = \symbeval{\sstore}{\senv}$ (\ieq{6}).
 We will now prove that there is an instrumented heap $\iheap$  and $\senv'$ such 
-that: $\iheap, \store, \senv' \satisfies \subst(\cells) \sep \subst(\efs)$ and $\deabstract{\iheap} = \heap$. 
+that: $\iheap, \store, \senv' \satisfies \cells \sep \efs$ and $\deabstract{\iheap} = \heap$. 
 From \ieq{3} and \ieq{4}, we conclude that there is a symbolic environment $\senv'$ and 
 an instrumented heap $\iheap$ such that: $\iheap, \store, \senv' \satisfies \subst(\cells) \sep \pc$ (\ieq{7}). 
-From \ieq{7}, it follows that: $\iheap, \store, \senv' \satisfies \subst(\cells)$ (\ieq{8}) and $\senv' \satisfies \pc$ (\ieq{9}).
+From \ieq{7}, it follows that: $\iheap, \store, \senv' \satisfies \cells$ (\ieq{8}) and $\senv' \satisfies \pc$ (\ieq{9}).
 Applying Lemma~\ref{lemma:negative:resource} to \ieq{2}, \ieq{4}, and \ieq{9}, we conclude that 
-there is an instrumented heap $\iheap'$ such that: $\iheap', -, \senv' \satisfies \symbeval{\subst(\efs)}{\sstore}$ (\ieq{10}) 
+there is an instrumented heap $\iheap'$ such that: $\iheap', -, \senv' \satisfies \efs$ (\ieq{10}) 
 and $\heap \disjoint \iheap'$ (\ieq{11}). 
-Noting that: 
-$$
-\iheap', -, \senv' \satisfies \symbeval{\subst(\efs)}{\sstore} \iff 
-     \iheap', \symbeval{\sstore}{\senv'}, \senv' \satisfies \subst(\efs)
-$$
-we conclude that $\iheap', \store, \senv' \satisfies \subst(\efs)$ (\ieq{12}). 
-Since $\subst(\cells)$ does not have a negative footprint, we conclude that $\domain(\iheap) = \domain(\heap)$ (\ieq{13}). 
-From \ieq{11} and \ieq{13}, $\iheap \disjoint \iheap'$ (\ieq{14}). 
-From \ieq{8}, \ieq{12}, and \ieq{14}, it follows that: 
-$$
-\iheap \dunion \iheap', \store, \senv' \satisfies \subst(\cells) \sep \subst(\efs) \text{ (\ieq{15})}
-$$  
-which concludes the proof that: $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs)}$ (\ieq{16}). 
+Since $\cells$ does not have a negative footprint, we conclude that $\domain(\iheap) = \domain(\heap)$ (\ieq{12}). 
+From \ieq{11} and \ieq{12}, $\iheap \disjoint \iheap'$ (\ieq{13}). 
+From \ieq{8}, \ieq{10}, and \ieq{13}, it follows that: 
+$
+\iheap \dunion \iheap', \store, \senv' \satisfies \cells \sep \efs \text{ (\ieq{14})}
+$  
+which concludes the proof that: $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \sep \efs}$ (\ieq{15}). 
 \vspace{4pt}
 
-\item From \ieq{16}, we conclude that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs) \, \wedge \, \pc}$ (\ieq{17}). 
-From \ieq{2} and \ieq{17}, we conclude that: 
+\item From \ieq{15}, we conclude that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \sep \efs \, \wedge \, \pc}$ (\ieq{16}). 
+From \ieq{2} and \ieq{16}, we conclude that: 
 $$
-  \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\cells) \sep \subst(\efs)}  
+  \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \sep \efs}  
   %
   \qquad 
   %
-   \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(\pfs')}  
+   \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\pfs'}  
 $$
 from which it follows that: 
 $$ 
  \begin{array}{lcl}
   \smodels{\sheap, \sstore}{\pc} 
            & \subseteq & 
-             \sepmodels{\subst(\cells) \sep \subst(\efs)} \ \cap \ \sepmodels{\subst(\pfs')}  \\
-           & =  &
-             \sepmodels{\subst(\cells) \sep \subst(\efs) \, \wedge \, \subst(\pfs')} \\
-           & =  & \sepmodels{\cells \sep \efs \, \wedge \, \pfs'}
+             \sepmodels{\cells \sep \efs} \ \cap \ \sepmodels{\pfs'}  = 
+             \sepmodels{\cells \sep \efs \, \wedge \, \pfs'} \text{ (\ieq{17})}
  \end{array}
 $$ 
+Applying Lemma~\ref{lemma:symb:store} to \ieq{17}, we conclude that 
+$\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\subst(P)}$ (\ieq{18}).
 Observing that the domain of $\subst$ coincides with the logical variables existentially quantified ($\domain(\subst) = L$), 
 it follows: $\smodels{\sheap, \sstore}{\pc}  \subseteq \sepmodels{P}$, which concludes the proof. 
 \end{enumerate}
@@ -1545,7 +1551,7 @@ it follows: $\smodels{\sheap, \sstore}{\pc}  \subseteq \sepmodels{P}$, which con
 
 \begin{lemma}[Counter Models for Failed Grounded Entailement]
 $$
-\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{\subst}{\pc''} 
+\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{}{\pc''} 
 %
  \implies \smodels{\sheap, \sstore}{\pc \, \wedge \, \pc''} \cap \sepmodels{\cells \sep \efs \, \wedge \, \pc'} = \emptyset
  $$
@@ -1553,15 +1559,16 @@ $$
 \begin{proof}
 There are three possible causes of failure: a cell unification failure, a pure entailment failure, 
 and an extra resource failure. We proceed by case analysis on the cause of failure. 
+\vspace{6pt}
 \begin{itemize}
     \item \prooflab{Cell unification failure} We conclude that there is a cell assertion $\cell$ 
               and a symbolic heap $\sheap'$ such that:  
-              $\cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\sstore, \pc, \subst}$ (\ieq{1}) 
-              and $\unification{\sheap', \sstore, \pc}{\cell}{\subst} = \uno{\pc''}$ (\ieq{2}), and  
+              $\cellunificationiter{\sheap, \cells}{\sheap', \cell \lstcons -}{\pc}$ (\ieq{1}) 
+              and $\cellunificationx{\sheap', \cell}{\uno{\pc''}}{\pc}$ (\ieq{2}), and  
               $\cells = \cells' \lstconcat (\cell \lstcons -)$ (\ieq{3}). Applying Lemma~\ref{lemma:iter:cell:unification}
               to \ieq{1} and \ieq{3}, we conclude that there is a symbolic heap $\sheap''$ such that $\sheap = \sheap'' \dunion \sheap'$ (\ieq{4})
-              and $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\subst(\cells'')}$ (\ieq{5}). 
-              
+              and $\smodels{\sheap'', \sstore}{\pc} \subseteq \sepmodels{\cells'}$ (\ieq{5}). 
+              Applying Lemma~\ref{ca:unification:failure} to 
 %              We first argue that all the re-orderings of $\cells$ would yield either the same unification 
 %              failure or a different one. To prove it, let us consider a re-ordering of $\cells$, $\cells'$, 
 %              such that $\cells' = \cell \lstcons -$ and the cell assertions in $\cells'$ coincide with 
