@@ -766,6 +766,8 @@ The implementation of the concrete interpreter in \rosette must fulfil the follo
   
    \item \emph{Adequacy:} the symbolic execution of the concrete interpreter in \rosette 
             must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
+            We discuss adequacy in \S\ref{sec:evaluation} in the context of the global evaluation 
+            of \jilette.
 \end{itemize}
 
 %- describe the \rosette approach to the implementation of symbolic analysis 
@@ -942,15 +944,15 @@ conditional gotos.
 Once that upper bound is reached, if a conditional goto that branches 
 on a symbolic value is encountered, the symbolic execution stops.  
 
-
-\myparagraph{Adequacy} 
-We strongly believe that the symbolic execution of the concrete interpreter 
-in \rosette is consistent with respect to the \jsil symbolic semantics. 
-In fact, we have ``reverse-engineered'' our \jsil symbolic execution by 
-observing in detail the guarded unions produced by Rosette for each of 
-the \jsil commands. Due to its complexity and scale, 
-{a formal proof would require
-mechanisation}, which is, unfortunately, beyond our manpower.
+%
+%\myparagraph{Adequacy} 
+%We strongly believe that the symbolic execution of the concrete interpreter 
+%in \rosette is consistent with respect to the \jsil symbolic semantics. 
+%In fact, we have ``reverse-engineered'' our \jsil symbolic execution by 
+%observing in detail the guarded unions produced by Rosette for each of 
+%the \jsil commands. Due to its complexity and scale, 
+%{a formal proof would require
+%mechanisation}, which is, unfortunately, beyond our manpower.
  
 %Hence, the user is asked to specify an upper bound on the number of times
 %the symbolic execution is allowed to branch depending on symbolic values. 
