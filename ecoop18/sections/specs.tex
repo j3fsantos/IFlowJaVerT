@@ -361,7 +361,11 @@ in order to generate a witness for the entailment failure, we need to instantiat
 
 %\vspace{-3pt}
 %\begin{display}{Unification of negative-resource assertions: $\unificationef{\sheap}{\efs} = \pc$ and $\sanity{\efs} = \pc$}
-\begin{figure}
+
+Unification of negative resource, that is, none-cells and \jsinline|emptyFields| assertions, is more intricate, as symbolic heaps do not maintain negative information. We denote by $\unificationef{\sheap}{\efs}$ the constraints that need to be satisfied for the unification of a symbolic heap $\sheap$ against the negative resource denoted by $\efs$ to succeed, and show the rules in Figure \ref{fig:unineg}. First, unifying a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$ against a none-cell $(\loc,\sexprp)\pointsto \none$ effectively means that $\sexprp$ has to be different from all $\sexprp_i|_{i=0}^n$ (\textsc{NR-None Cell}). Next, unifying a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$ against an  \jsinline|emptyFields| assertion $\emptyfields{\loc}{\sexpr_d}$ means that all of the properties $\sexprp_i|_{i=0}^n$  have to be in the domain of of the \jsinline|emptyFields| assertion, $\sexpr_d$ (\textsc{NR-Empty Fields}). 
+The second and third examples of Table~\ref{example:symb:states:vs:assertions} illustrate unification failures resulting from NR-constraints not being satisfied: the second example targets the (\textsc{NR-None Cell}) rule, with the failing constraint: $\sexprp_1 \neq \sexprp_2$; and the third example targets the (\textsc{NR-Empty Fields}) rule, with the failing constraint $\sexprp_1 \not\in \jsilset{\sexprp_2, \sexprp_3}$.
+
+\begin{figure}[!t]
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{NR-None Cell}]
@@ -402,9 +406,6 @@ in order to generate a witness for the entailment failure, we need to instantiat
 \label{fig:unineg}
 \vspace*{-0.2cm}
 \end{figure}
-
-Unification of negative resource, that is, none-cells and \jsinline|emptyFields| assertions, is more intricate, as symbolic heaps do not maintain negative information. We denote by $\unificationef{\sheap}{\efs}$ the constraints that need to be satisfied for the unification of a symbolic heap $\sheap$ against the negative resource denoted by $\efs$ to succeed, and show the rules in Figure \ref{fig:unineg}. First, unifying a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$ against a none-cell $(\loc,\sexprp)\pointsto \none$ effectively means that $\sexprp$ has to be different from all $\sexprp_i|_{i=0}^n$ (\textsc{NR-None Cell}). Next, unifying a symbolic heap $\sheap$ that contains the object $\loc$ with properties $\sexprp_i|_{i=0}^n$ against an  \jsinline|emptyFields| assertion $\emptyfields{\loc}{\sexpr_d}$ means that all of the properties $\sexprp_i|_{i=0}^n$  have to be in the domain of of the \jsinline|emptyFields| assertion, $\sexpr_d$ (\textsc{NR-Empty Fields}). 
-The second and third examples of Table~\ref{example:symb:states:vs:assertions} illustrate unification failures resulting from NR-constraints not being satisfied: the second example targets the (\textsc{NR-None Cell}) rule, with the failing constraint: $\sexprp_1 \neq \sexprp_2$; and the third example targets the (\textsc{NR-Empty Fields}) rule, with the failing constraint $\sexprp_1 \not\in \jsilset{\sexprp_2, \sexprp_3}$.
 
 Furthermore, due to the semantics of the separating conjunction, there are additional  constraints imposed by the negative resource. Concretely, all none-cells for the same object have to have different property names, and if any none-cell is starred together with an \jsinline|emptyFields| assertion for the same object, then its property name has to be in the domain of that \jsinline|emptyFields| assertion (\textsc{Separation-Constraints - Fixed Location}). 
 We call these constrants \emph{separation constraints}, and denote them, for a fixed location~$\loc$, by $\sanityl{\efs}{\loc}$ in Figure~\ref{fig:unineg}. The point is that, if a given symbolic state entails a negative resource assertion, it must be the case that its path condition entails the corresponding separation constraints.
