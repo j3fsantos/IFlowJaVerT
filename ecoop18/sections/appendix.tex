@@ -1455,19 +1455,80 @@ We proceed by case analysis on $\efa$.
 \end{itemize}
 \end{proof}
 
+\begin{lemma}[Expressions and store evaluation]\label{lemma:expr:storev}
+$$
+\forall \lexpr, \sstore, \senv, \store.\ \symbeval{\sstore}{\senv} = \store \implies \symbeval{\lexpr}{\store, \senv} = \symbeval{\symbeval{\lexpr}{\sstore}}{\emptystore, \senv}.
+$$
+\end{lemma}
+\begin{proof}
+By induction on the structure of $\lexpr$. 
+The only case we will show is for $\lexpr = \jvar$, the remaining cases are straightforward. 
+We need to prove that:
+$$
+\begin{array}{cl}
+\forall \sstore, \senv, \store.\ \symbeval{\sstore}{\senv} = \store \implies \symbeval{\jvar}{\store, \senv} = \symbeval{\symbeval{\jvar}{\sstore}}{\emptystore, \senv}, & \text{i.e.} \\
+\forall \sstore, \senv, \store.\ \symbeval{\sstore}{\senv} = \store \implies \store(\jvar) = \symbeval{\sstore(\jvar)}{\emptystore, \senv}, & \text{i.e.} \\
+\forall \sstore, \senv.\ (\symbeval{\sstore}{\senv})(\jvar) = \symbeval{\sstore(\jvar)}{\emptystore, \senv}, & \text{i.e.} \\
+\forall \sstore, \senv.\ (\symbeval{\sstore(\jvar)}{\senv}) = \symbeval{\sstore(\jvar)}{\emptystore, \senv}, & 
+\end{array}
+$$
+\noindent which trivially holds.
+\end{proof}
+
+%  $\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
 
 \begin{lemma}[Symbolic Store and Entailment]\label{lemma:symb:store}
 $$
 \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P} 
     \iff 
-    \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\symbeval{P}{\sstore}} 
+    \smodels{\sheap, \emptystore}{\pc} \subseteq \sepmodels{\symbeval{P}{\sstore}} 
 $$
 \end{lemma}
 \begin{proof}
-\polish{TODO}
+By induction on the structure of $P$. The base cases $\jtrue$, $\jfalse$, and $\lemp$ are straightforward, as they contain no program variables and for them, we have that $\symbeval{P}{\sstore} = P$. The cases in which we can apply the induction hypothesis, namely $\neg P$ $P_1 \wedge P_2$, $P_1 \vee P_2$, and $P_1 \sep P_2$, follow immediately from the definitions and the appropriate induction hypotheses.
+
+Let us now do the case when $P \equiv \lexpr_1 = \lexpr_2$ (the case when $P \equiv \lexpr_1 \leq \lexpr_2$ is analogous). We have to prove that:
+$$\begin{array}{l}
+\forall \sheap, \sstore, \heap, \store. \ (\exists \senv. \,  \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \satisfies \pc) \implies
+(\exists \iheap, \senv. \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies \lexpr_1 = \lexpr_2 )
+\\
+\qquad \qquad \iff \\
+\forall \sheap, \sstore, \heap, \store. \ (\exists \senv. \,  \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\emptystore}{\senv} = \store \, \wedge \,  \senv \satisfies \pc) \implies
+(\exists \iheap, \senv. \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies \symbeval{\lexpr_1}{\sstore} = \symbeval{\lexpr_2}{\sstore} ).
+\end{array}$$
+Given the satisfiability relation for SL-assertions, we have that $\sheap = \heap = \iheap = \hemp$ in both implications and also $\store = \emptystore$ in the implication below:
+$$\begin{array}{l}
+\forall \sstore, \store. \ (\exists \senv \, . \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \satisfies \pc) \implies
+(\exists \senv. \, \hemp, \store, \senv \satisfies \lexpr_1 = \lexpr_2 )
+\\
+\qquad \qquad \iff \\
+\forall \sstore. \ (\exists \senv \, . \, \senv \satisfies \pc) \implies
+(\exists \senv \, . \,  \hemp, \emptystore, \senv \satisfies \symbeval{\lexpr_1}{\sstore} = \symbeval{\lexpr_2}{\sstore}).
+\end{array}$$
+
+Let us first do the left-to-right implication. The hypotheses we have are:
+$\forall \sstore, \store. \ (\exists \senv \, . \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \satisfies \pc) \implies
+(\exists \senv. \, \hemp, \store, \senv \satisfies \lexpr_1 = \lexpr_2 )$ (\hyp{1}) and 
+$\exists \senv \, . \, \senv \satisfies \pc$ (\hyp{2}), whereas our goal is 
+$\exists \senv \, . \,  \hemp, \emptystore, \senv \satisfies \symbeval{\lexpr_1}{\sstore} = \symbeval{\lexpr_2}{\sstore}$ (\goal{1}), and $\sstore$ is arbitrary.
+From (\hyp{2}), we obtain an $\senv$, such that $\senv \satisfies \pc$. We instantiate (\hyp{1}) with $\sstore$, $\semexpr{\sstore}{\senv}$, and $\senv$, obtaining $\senv'$ such that
+$\hemp, \semexpr{\sstore}{\senv}, \senv' \satisfies \lexpr_1 = \lexpr_2$, which
+means that $\symbeval{\lexpr_1}{\semexpr{\sstore}{\senv}, \senv'} = \symbeval{\lexpr_2}{\semexpr{\sstore}{\senv}, \senv'}$.
+We claim that the witness for the goal (\goal{1}) is $\senv'$, i.e.~that $\hemp, \emptystore, \senv' \satisfies \symbeval{\lexpr_1}{\sstore} = \symbeval{\lexpr_2}{\sstore}$, i.e.~that
+$\symbeval{\symbeval{\lexpr_1}{\sstore}}{\emptystore, \senv'} = \symbeval{\symbeval{\lexpr_2}{\sstore}}{\emptystore, \senv'}$. Using the previous lemma, this is equivalent to
+$\symbeval{\lexpr_1}{\semexpr{\sstore}{\senv'}, \senv'} = \symbeval{\lexpr_2}{\semexpr{\sstore}{\senv'}, \senv'}$.
+
+
+Next, cell assertion.
+
+Next, empty fields.
 \end{proof}
 
-
+%$\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
+%  %%%%
+%  $\quad P\triangleq$ & $\jtrue \mid \jfalse \mid  \neg P \mid P \land P \mid P \lor P  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{ {Pure Assertions}} \\
+%                                  & \hspace*{0.41cm} $\mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. P
+%                                  \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{ Spatial Assertions} 
 
 \begin{temax}[Theorem~\ref{teo:unification:soundness} - Soundness of Unification]
 $\forall P, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$

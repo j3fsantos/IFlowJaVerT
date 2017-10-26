@@ -584,7 +584,7 @@ symbolic execution. In that case, the symbolic execution must behave exactly as 
 execution. This is captured by the transparency theorem given below. 
 
 \begin{theorem}[Transparency]\label{teo:transparency}
-$\forall \, \heap, \heap', \store, \store', i, i', \ctx, \ctx', \, . \,$
+$\forall \, \heap, \heap', \store, \store', i, i', \ctx, \ctx' \, . \,$
 \vspace{-5pt}
 $$
   \semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
@@ -609,7 +609,7 @@ $\pc$, written $\senv \vdash \pc$,  if and only if $\semexpr{\pc}{\senv} = \jtru
 Given a symbolic state $(\sheap, \sstore, \sctx)$ and a path condition $\pc$, we define 
 the models of the symbolic state under $\pc$, written $\smodels{\sheap, \sstore, \sctx}{\pc}$, 
 as the set of concrete states that can be obtained from $(\sheap, \sstore, \sctx)$ using 
-logical environments that are consistent with $\pc$. Formally:
+logical environments that are consistent with~$\pc$. Formally:
 
 {\small \begin{align}
 \smodels{\sheap, \sstore, \sctx}{\pc} = \left\{ (\heap, \store, \ctx) \mid \exists \senv \, . \,  \semexpr{(\sheap, \sstore, \sctx)}{\senv} = (\heap, \store, \ctx) \, \wedge \,  \senv \vdash \pc  \right\} \\
