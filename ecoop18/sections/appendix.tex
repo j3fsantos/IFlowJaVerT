@@ -1500,7 +1500,7 @@ $$
 $$
 which holds directly, given Lemma \ref{lemma:symb:store:sat}.
 
-We will also prove the case when $P \equiv (\lexpr_1,\lexpr_2)\pointsto \lexpr_3)$ (the case when $P \equiv\emptyfields{\lexpr_1}{\lexpr_2}$ is analogous). We have to prove that:
+We will also prove the case when $P \equiv (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$ (the case when $P \equiv\emptyfields{\lexpr_1}{\lexpr_2}$ is analogous). We have to prove that:
 $$
 \iheap, \semexpr{\sstore}{\senv}, \senv \satisfies (\lexpr_1,\lexpr_2) \pointsto \lexpr_3
 \iff 
@@ -1516,28 +1516,23 @@ which, again, holds directly, given Lemma \ref{lemma:symb:store:sat}.
 \end{proof}
 
 
-\begin{lemma}[Symbolic Store and Entailment]\label{lemma:symb:store}
-$$
-\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P} 
-    \iff 
-    \smodels{\sheap, \emptystore}{\pc} \subseteq \sepmodels{\symbeval{P}{\sstore}} 
-$$
-\end{lemma}
-\begin{proof}
-First, we will define a slightly different notion of models:
+\begin{lemma}[Symbolic Store and Entailment, Extended Models]\label{lemma:symb:store:extmod}
+We define extended models in the following way: 
 $$
 \begin{array}{l}
-\smodelsext{\sheap, \sstore, \senv}{\pc} = \left\{ (\heap, \store, \senv) \mid \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \vdash \pc  \right\} \\
-\sepmodelsext{P} = \left\{ (\heap, \store, \senv) \mid \exists \iheap \, . \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies P  \right\} \\
+\smodelsext{\sheap, \sstore}{\pc} = \left\{ (\heap, \store, \senv) \mid \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \satisfies \pc  \right\}; \\
+\sepmodelsext{P} = \left\{ (\heap, \store, \senv) \mid \exists \iheap \, . \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies P  \right\}.
 \end{array}
 $$
-and prove that:
-\begin{equation}\label{eq:extmod}
-\smodelsext{\sheap, \sstore, \senv}{\pc} \subseteq \sepmodelsext{P} 
+Given this definition, it holds that
+$$
+\smodelsext{\sheap, \sstore}{\pc} \subseteq \sepmodelsext{P} 
     \iff 
-    \smodelsext{\sheap, \emptystore, \senv}{\pc} \subseteq \sepmodelsext{\symbeval{P}{\sstore}}.
-\end{equation}
+    \smodelsext{\sheap, \emptystore}{\pc} \subseteq \sepmodelsext{\symbeval{P}{\sstore}}.
+$$
+\end{lemma}
 
+\begin{proof}
 After unfolding the definitions, we obtain:
 $$\begin{array}{l}
 \forall P, \sheap, \sstore, \senv. \\
@@ -1548,12 +1543,59 @@ $$\begin{array}{l}
 \qquad \left( \senv \satisfies \pc \implies
 \exists \iheap,\,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore} \right).
 \end{array}$$
-Now, we will prove the left-to-right direction (the right-to-left direction is analogous). We have two hypotheses: $\senv \satisfies \pc \implies
+We will prove the left-to-right direction (the right-to-left direction is analogous). We have two hypotheses: $\senv \satisfies \pc \implies
 \exists \iheap. \,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\sstore}{\senv}, \senv \satisfies P$ (\hyp{1}); and $\senv \satisfies \pc$ (\hyp{2}). Our goal is $\exists \iheap,\,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore}$ (\goal{1}). From (\hyp{2}) and (\hyp{1}), we obtain $\iheap$, such that $\semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\sstore}{\senv}, \senv \satisfies P$ (\ieq{1}). From (\ieq{1}) and Lemma \ref{lemma:symb:store:sat}, we obtain that $\semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore}$, which gives us the witness for the goal (\goal{1}), namely $\iheap$. 
+\end{proof}
+
+\begin{lemma}[Connecting Models and Extended Models]\label{lemma:connect:models}
+$$
+\begin{array}{l}
+\forall \sheap, \sstore, \senv, \pc, \heap, \store. \; (\heap, \store, \senv) \in \smodelsext{\sheap, \sstore}{\pc} \implies (\heap, \store) \in \smodels{\sheap, \sstore}{\pc}; \\
+\forall \sheap, \sstore, \pc, \heap, \store. \; (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \iff \exists \senv. \; (\heap, \store, \senv) \in \smodelsext{\sheap, \sstore}{\pc}
+\\
+\forall P, \heap, \store, \senv. \; (\heap, \store, \senv) \in \sepmodelsext{P} \implies (\heap, \store) \in \sepmodels{P}; \\
+\forall P, \heap, \store. \; (\heap, \store) \in \sepmodels{P} \iff \exists \senv. \; (\heap, \store, \senv) \in \sepmodelsext{P}.
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Directly from the appropriate definitions.
+\end{proof}
+
+\begin{lemma}[Symbolic Store and Entailment]\label{lemma:symb:store}
+$$
+\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P} 
+    \iff 
+    \smodels{\sheap, \emptystore}{\pc} \subseteq \sepmodels{\symbeval{P}{\sstore}} 
+$$
+\end{lemma}
+\begin{proof}
+We will prove that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P} \iff \smodelsext{\sheap, \sstore}{\pc} \subseteq \sepmodelsext{P} $. Then, from that and Lemma \ref{lemma:symb:store:extmod}, the desired goal directly holds.
+
+
+%Unfolding the definitions, we obtain:
+%$$\begin{array}{l}
+%\forall P, \sheap, \sstore. \\
+%\qquad
+%\left( \forall \heap, \store. \ (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \implies (\heap, \store) \in \sepmodels{P}  \right)
+%\\
+%\qquad \qquad \iff \\
+%\qquad \left( 
+%\forall \heap, \store. \ (\heap, \store) \in \smodels{\sheap, \emptystore}{\pc} \implies (\heap, \store) \in \sepmodels{\symbeval{P}{\sstore}}
+%\right).
+%\end{array}$$
+%Let us prove the left-to-right direction. We have two hypotheses: $\forall \heap, \store. \ (\heap, \store) \in \smodels{\sheap, \sstore}{\pc} \implies (\heap, \store) \in \sepmodels{P}$ (\hyp{1}); and $(\heap, \store) \in \smodels{\sheap, \emptystore}{\pc}$ (\hyp{2}). Our goal is: $(\heap, \store) \in \sepmodels{\symbeval{P}{\sstore}}$ (\goal{1}).
+\end{proof}
+
+
+
+
+
+
 
 \newpage
 
-
+\begin{proof}
 By induction on the structure of $P$. The base cases $\jtrue$, $\jfalse$, and $\lemp$ are straightforward, as they contain no program variables and for them, we have that $\symbeval{P}{\sstore} = P$. The cases in which we can apply the induction hypothesis, namely $\neg P$ $P_1 \wedge P_2$, $P_1 \vee P_2$, and $P_1 \sep P_2$, follow immediately from the definitions and the appropriate induction hypotheses.
 
 Let us now do the case when $P \equiv \lexpr_1 = \lexpr_2$ (the case when $P \equiv \lexpr_1 \leq \lexpr_2$ is analogous). We have to prove that:
