@@ -539,48 +539,79 @@ $$
 {\scriptsize
 $$
 \begin{array}{ll}
-\testify{\fnormal}(\fid, \svar_i\mid_{i=0}^n, Q) \ \semeq & \\
+\testify{\fnormal}(\fid, \svar_i\mid_{i=0}^n, \pc, Q) \ \semeq & \\
          \dspc \dspc  \darkmath{\sf proc} \jsilmain () \{ 
-         &  \text{Generated testing procedure for \underline{normal} return specification:} \\ 
-             \dspc \dspc \dspc 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\fid}{\svar_0, ..., \svar_n}{\procerrlab}  
-                   & \text{  {\bf a.} Call the procedure to be tested $\fid$ with symbolic arguments $\svar_i\mid_{i=0}^n$} \\ 
+         &  \text{Generated testing procedure for \underline{normal}-return specification:} \\ 
+             \dspc \dspc \dspc 0_{\phantom{\sf nm}}:  \assume(\pc) 
+                   & \text{  {\bf a.} Assume the initial path condition} \\ 
+   %
+             \dspc \dspc \dspc 1_{\phantom{\sf nm}}: \jsilcall{\jvar}{\fid}{\svar_0, ..., \svar_n}{\procerrlab}  
+                   & \text{  {\bf b.} Call the procedure to be tested $\fid$ with symbolic arguments $\svar_i\mid_{i=0}^n$} \\ 
              \dspc \dspc \dspc \procretlab \, : \sepassert(Q)
-                  & \text{  {\bf b.}  In case of normal return, assert the $\fnormal$-postcondition of $\fid$} \\ 
+                  & \text{  {\bf c.}  In case of normal return, assert the $\fnormal$-postcondition of $\fid$} \\ 
              \dspc \dspc \dspc \procerrlab \, \, \, : \assert(\jfalse)
-                  & \text{  {\bf c.}  In case of error return, assert $\jfalse$} \\ 
+                  & \text{  {\bf d.}  In case of error return, assert $\jfalse$} \\ 
          \ \ \ \ \ \ \ \} &\\[8pt]
 %
-\testify{\ferror}(\fid, \svar_i\mid_{i=0}^n, Q) \ \semeq & \\
+\testify{\ferror}(\fid, \svar_i\mid_{i=0}^n, \pc, Q) \ \semeq & \\
          \dspc \dspc  \darkmath{\sf proc} \jsilmain () \{ 
-         &  \text{Generated testing procedure for \underline{error} return specification:} \\ 
-             \dspc \dspc \dspc 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\fid}{\svar_0, ..., \svar_n}{\procerrlab}  
-                   & \text{  {\bf a.} Call the procedure to be tested $\fid$ with symbolic arguments $\svar_i\mid_{i=0}^n$} \\ 
+         &  \text{Generated testing procedure for \underline{error}-return specification:} \\ 
+            \dspc \dspc \dspc 0_{\phantom{\sf nm}}:  \assume(\pc)   
+                   & \text{  {\bf a.} Assume the initial path condition} \\ 
+             \dspc \dspc \dspc 1_{\phantom{\sf nm}}: \jsilcall{\jvar}{\fid}{\svar_0, ..., \svar_n}{\procerrlab}  
+                   & \text{  {\bf b.} Call the procedure to be tested $\fid$ with symbolic arguments $\svar_i\mid_{i=0}^n$} \\ 
              \dspc \dspc \dspc \procretlab \, : \assert(\jfalse)
-                  & \text{  {\bf b.}  In case of normal return, assert $\jfalse$} \\ 
+                  & \text{  {\bf c.}  In case of normal return, assert $\jfalse$} \\ 
              \dspc \dspc \dspc \procerrlab \, \, \, : \sepassert(Q)
-                  & \text{  {\bf c.}  In case of error return,  assert the $\ferror$-postcondition of $\fid$} \\ 
-         \ \ \ \ \ \ \ \} 
+                  & \text{  {\bf d.}  In case of error return,  assert the $\ferror$-postcondition of $\fid$} \\ 
+         \ \ \ \ \ \ \ \} \\[8pt]
+%         
+\testify{}(\specsig{P}{\fid(\jvec{x})}{Q}{\flag}) \ \semeq & \\      
+    \dspc \dspc  \mathbf{let} \ \subst = \mathbf{pick} \ \functionset{\aslocs(P)}{\locs \backslash \eflocs(P)} \ \mathbf{in} 
+           & \text{  {\bf a.}  Compute a substitution from the symbolic locations in $P$ to} \\ 
+           & \text{ $\phantom{a.}\ $ randomly picked concrete locations not overlapping with those in $P$}  \\
+    %
+    \dspc \dspc  \mathbf{let} \ (-, \cells, \efs, \pc) = \subst(P) \ \mathbf{in}  
+            & \text{  {\bf b.}  Apply the substitution to $P$ obtaining $(-, \cells, \efs, \pc)$}  \\
+    %
+    \dspc \dspc  \mathbf{let} \ \sstore = [ \jvar_i \mapsto \svar_i \mid_{i=0}^n] \ \mathbf{in} 
+            & \text{  {\bf c.} Compute the initial store mapping each argument to a symbolic}  \\
+            & \text{ $\phantom{c.} \ $  value of the appropriate type}  \\
+       %
+    \dspc \dspc  \mathbf{let} \ \sheap = \symbeval{\cells}{\sstore} \ \mathbf{in} 
+           & \text{  {\bf d.}  Symbolically evaluate $\efs$ under $\sstore$, obtaining $\sheap$}  \\
+     %
+    \dspc \dspc  \mathbf{let} \ \pc' = \sanity{\symbeval{\efs}{\sstore}} \, \wedge \,  \unificationef{\sheap}{\symbeval{\efs}{\sstore}}  \ \mathbf{in} 
+           & \text{  {\bf e.}  Compute the appropriate NR- and separation constraints}  \\
+    %
+      \dspc \dspc  \mathbf{let} \ \pc'' = \symbeval{\subst(\pc)}{\sstore} \, \wedge \, \pc'  \ \mathbf{in} 
+          & \text{  {\bf f.} Construct the initial path condition from $\pc$ and $\pc'$}  \\
+    %
+       \dspc \dspc  \mathbf{let} \ \proc = \testify{\flag}(\fid, \svar_i\mid_{i=0}^n, \pc'', \symbeval{\subst(Q)}{\sstore})  \ \mathbf{in} 
+          & \text{  {\bf g.} Synthesise the symbolic test} \\
+     %
+      \dspc \dspc \dspc (\proc, \sheap) 
 \end{array}
 $$}
-\caption{Symbolic Test Generation}
+\caption{Symbolic Test Generation Algorithm~\label{fig:test:generation}}
 \end{figure}
 
 
-
-\jsil Logic specifications have the form $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$, where $P$ and $Q$ are the 
+\myparagraph{\jsil Logic specifications}
+\jsil Logic specifications have the form $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$, where $P$ and $Q$ are the 
 pre- and postconditions of the function with identifier $\fid$, and $\jvec{x}$ its list of formal parameters.
 Each specification is associated with a return mode $\flag \in \{ \fnormal, \ferror \}$, indicating if the function
  returns normally or with an error. If it returns normally, then its return value can be accessed  via a dedicated variable 
- $\procretvar$, and $\procerrvar$ otherwise.  Intuitively, a specification $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$ for mode $\flag$ is 
-valid for a given JavaScript program $\jstmt$, if $\jstmt$ contains a function with identifier 
+ $\procretvar$, and $\procerrvar$ otherwise.  Intuitively, a specification $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$ is 
+valid for a given \jsil program $\prog$, if $\prog$ contains a procedure with identifier 
 $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P$, then, 
 if it terminates, it does so in a state satisfying $Q$, with return mode $\flag$''.
 The formal definition is given below. 
 
 
 \begin{definition}[Validity of \jsil Logic Specifications]
-A \jsil logic specification $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$ for return mode $\flag$ is valid with respect to a program 
-$\prog$, written $\prog, \flag \vDash \lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$,  if and only if, for all logical 
+A \jsil logic specification $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$ is valid with respect to a program 
+$\prog$, written $\prog \satisfies \specsig{P}{\fid(\jvec{x})}{Q}{\flag}$,  if and only if, for all logical 
 contexts $(\iheap, \store, \senv)$, heaps $\heap_f$, stores $\store_f$, and flags $\flag'$, it holds that: 
 $$
 \begin{array}{l}
@@ -591,11 +622,18 @@ $$
 $$
 \end{definition}
 
-\noindent Given a \jsil program $\prog$ containing a procedure $\fid$ with spec {\small $\lconf{P} \, \fid(\jvec{x}) \,  \lconf{Q}$}, 
+\myparagraph{Symbolic test generation}
+\noindent Given a \jsil program $\prog$ containing a procedure $\fid$ with spec {\small $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$}, 
 our goal is to construct a symbolic test for checking whether or not $\fid$ behaves as its specification mandates.
-A symbolic test is a pair $(\prog', \sheap)$ consisting of a \jsil program and a symbolic heap. The new program $\prog'$ 
+A symbolic test is a pair $(\proc, \sheap)$ consisting of a \jsil procedure and a symbolic heap. The test program 
+is obtained by replacing the $\jsilmain$ of $\proc$ 
 differs from $\prog$ in that it has a new \jsilmain procedure with the code of the test, and $\sheap$ is the initial 
 symbolic heap on which to execute $\prog'$. 
+
+\begin{theorem}[Bug Finding for SL Specifications]
+
+\end{theorem}
+
 
 \begin{figure}[t!]
 \includegraphics[width=0.75\textwidth]{figures/symbolicvsass.pdf}

@@ -285,7 +285,6 @@
 % 
 \newcommand\procs{\mathcal{P}_{names}}
 \newcommand\procset{\mathtt{Proc}}
-\newcommand\proc{\mathtt{proc}}
 \newcommand\procedure[3]{\darkmath{\sf proc} \ #1(#2) \{ #3 \}}
 \newcommand\nprocedure[4]{\darkmath{\sf proc} \ #1(#2) \{ #3 \} \, \darkmath{\sf with} \, (#4)}
 % operators
@@ -531,6 +530,7 @@
 \newcommand{\optionnone}[0]{\mathtt{None}}
 \newcommand{\jssuffix}{\mathtt{JS}}
 \newcommand{\jsilsuffix}{\mathtt{JSIL}}
+\newcommand{\functionset}[2]{[ #1 \rightarrow #2 ]}
 % Lists
 \newcommand{\lstcons}[0]{::}
 \newcommand{\lstconcat}[0]{\cdot}
@@ -554,6 +554,7 @@
 \newcommand\unoper{\ominus}
 \newcommand\binoper{\oplus}
 \newcommand{\jsilset}[1]{ \{ \, #1 \, \} }
+\newcommand\proc{proc}
 % indexes
 \newcommand\procretlab[0]{i_{\fnormal}}
 \newcommand\procerrlab[0]{i_{\ferror}}
@@ -779,7 +780,7 @@
 %%
 %% Specs - test generation
 %%
-\newcommand{\specsig}[4]{}
+\newcommand{\specsig}[4]{\lconf{#1} \, #2 \,  \lconf{#3}^{#4}}
 \newcommand{\concretise}[2]{\llfloor #1 \rrfloor_{#2}}
 \newcommand{\testify}[1]{{\cal T}_{#1}}
 %%
