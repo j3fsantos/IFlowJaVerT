@@ -1477,6 +1477,45 @@ $$
 
 %  $\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
 
+\begin{lemma}[Symbolic Store and Satisfiability]\label{lemma:symb:store:sat}
+$$
+\forall P, \iheap, \sstore, \senv. \;
+\iheap, \semexpr{\sstore}{\senv}, \senv \satisfies P
+\iff 
+\iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore}.
+$$
+\end{lemma}
+\begin{proof}
+By induction on the structure of $P$. The base cases $\jtrue$, $\jfalse$, and $\lemp$ are straightforward, as they contain no program variables and for them, we have that $\symbeval{P}{\sstore} = P$. The cases in which we can apply the induction hypothesis, namely $\neg P$ $P_1 \wedge P_2$, $P_1 \vee P_2$, $\exists \svar. P$, and $P_1 \sep P_2$, follow immediately from the definitions and the appropriate induction hypotheses. Let us now do the case when $P \equiv \lexpr_1 = \lexpr_2$ (the case when $P \equiv \lexpr_1 \leq \lexpr_2$ is analogous). We have to prove that:
+$$
+\iheap, \semexpr{\sstore}{\senv}, \senv \satisfies \lexpr_1 = \lexpr_2
+\iff 
+\iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{\lexpr_1}{\sstore} = \symbeval{\lexpr_2}{\sstore}.
+$$
+By unfolding the satisfiability relation, this becomes:
+$$
+\iheap = \hemp \, \wedge \, \semexpr{\lexpr_1}{\semexpr{\sstore}{\senv}, \senv} = \semexpr{\lexpr_2}{\semexpr{\sstore}{\senv}, \senv}
+\iff 
+\iheap = \hemp \, \wedge \, \semexpr{\symbeval{\lexpr_1}{\sstore}}{\emptystore, \senv} = \semexpr{\symbeval{\lexpr_2}{\sstore}}{\emptystore, \senv},
+$$
+which holds directly, given Lemma \ref{lemma:symb:store:sat}.
+
+We will also prove the case when $P \equiv (\lexpr_1,\lexpr_2)\pointsto \lexpr_3)$ (the case when $P \equiv\emptyfields{\lexpr_1}{\lexpr_2}$ is analogous). We have to prove that:
+$$
+\iheap, \semexpr{\sstore}{\senv}, \senv \satisfies (\lexpr_1,\lexpr_2) \pointsto \lexpr_3
+\iff 
+\iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies (\symbeval{\lexpr_1}{\sstore},\symbeval{\lexpr_2}{\sstore})\pointsto \symbeval{\lexpr_3}{\sstore}).
+$$
+By unfolding the satisfiability relation, this becomes:
+$$
+\iheap = \hcell{\symbeval{\lexpr_1}{\semexpr{\sstore}{\senv}, \senv}}{\symbeval{\lexpr_2}{\semexpr{\sstore}{\senv}, \senv}}{\symbeval{\lexpr_3}{\semexpr{\sstore}{\senv}, \senv}}
+\iff 
+\iheap = \hcell{\symbeval{\symbeval{\lexpr_1}{\sstore}}{\emptystore, \senv}}{\symbeval{\symbeval{\lexpr_1}{\sstore}}{\emptystore, \senv}}{\symbeval{\symbeval{\lexpr_1}{\sstore}}{\emptystore, \senv}}
+$$
+which, again, holds directly, given Lemma \ref{lemma:symb:store:sat}.
+\end{proof}
+
+
 \begin{lemma}[Symbolic Store and Entailment]\label{lemma:symb:store}
 $$
 \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P} 
@@ -1485,6 +1524,36 @@ $$
 $$
 \end{lemma}
 \begin{proof}
+First, we will define a slightly different notion of models:
+$$
+\begin{array}{l}
+\smodelsext{\sheap, \sstore, \senv}{\pc} = \left\{ (\heap, \store, \senv) \mid \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \vdash \pc  \right\} \\
+\sepmodelsext{P} = \left\{ (\heap, \store, \senv) \mid \exists \iheap \, . \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies P  \right\} \\
+\end{array}
+$$
+and prove that:
+\begin{equation}\label{eq:extmod}
+\smodelsext{\sheap, \sstore, \senv}{\pc} \subseteq \sepmodelsext{P} 
+    \iff 
+    \smodelsext{\sheap, \emptystore, \senv}{\pc} \subseteq \sepmodelsext{\symbeval{P}{\sstore}}.
+\end{equation}
+
+After unfolding the definitions, we obtain:
+$$\begin{array}{l}
+\forall P, \sheap, \sstore, \senv. \\
+\qquad \left( \senv \satisfies \pc \implies
+\exists \iheap. \,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\sstore}{\senv}, \senv \satisfies P \right)
+\\
+\qquad \qquad \iff \\
+\qquad \left( \senv \satisfies \pc \implies
+\exists \iheap,\,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore} \right).
+\end{array}$$
+Now, we will prove the left-to-right direction (the right-to-left direction is analogous). We have two hypotheses: $\senv \satisfies \pc \implies
+\exists \iheap. \,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\sstore}{\senv}, \senv \satisfies P$ (\hyp{1}); and $\senv \satisfies \pc$ (\hyp{2}). Our goal is $\exists \iheap,\,  \semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore}$ (\goal{1}). From (\hyp{2}) and (\hyp{1}), we obtain $\iheap$, such that $\semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\sstore}{\senv}, \senv \satisfies P$ (\ieq{1}). From (\ieq{1}) and Lemma \ref{lemma:symb:store:sat}, we obtain that $\semexpr{\sheap}{\senv} = \deabstract{\iheap} \ \wedge \ \iheap, \semexpr{\emptystore}{\senv}, \senv \satisfies \symbeval{P}{\sstore}$, which gives us the witness for the goal (\goal{1}), namely $\iheap$. 
+
+\newpage
+
+
 By induction on the structure of $P$. The base cases $\jtrue$, $\jfalse$, and $\lemp$ are straightforward, as they contain no program variables and for them, we have that $\symbeval{P}{\sstore} = P$. The cases in which we can apply the induction hypothesis, namely $\neg P$ $P_1 \wedge P_2$, $P_1 \vee P_2$, and $P_1 \sep P_2$, follow immediately from the definitions and the appropriate induction hypotheses.
 
 Let us now do the case when $P \equiv \lexpr_1 = \lexpr_2$ (the case when $P \equiv \lexpr_1 \leq \lexpr_2$ is analogous). We have to prove that:
