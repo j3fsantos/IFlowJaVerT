@@ -28,6 +28,7 @@ type jsil_axiomatized_operations = {
 	num2int_fun         : FuncDecl.func_decl;
 	lnth_fun            : FuncDecl.func_decl;
 	snth_fun            : FuncDecl.func_decl;
+	lcat_fun            : FuncDecl.func_decl
 }
 
 type jsil_type_constructors = {
@@ -110,6 +111,8 @@ type extended_jsil_value_constructor = {
 
 let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")]
 let ctx : Z3.context = (mk_context cfg)
+
+let masterSolver = Solver.mk_solver ctx None
 
 let booleans_sort = Boolean.mk_sort ctx
 let ints_sort     = Arithmetic.Integer.mk_sort ctx
@@ -399,6 +402,8 @@ let axiomatised_operations =
 							[ numbers_sort; numbers_sort ] numbers_sort in
 	let lnth_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-nth")
 							[ z3_jsil_list_sort; numbers_sort ] z3_jsil_literal_sort in
+	let lcat_fun        = FuncDecl.mk_func_decl ctx (mk_string_symb "l-cat")
+							[ z3_jsil_list_sort; z3_jsil_list_sort ] z3_jsil_list_sort in
 
 	{
 		slen_fun     = slen_fun;
@@ -407,7 +412,8 @@ let axiomatised_operations =
 		str2num_fun  = str2num_fun;
 		num2int_fun  = num2int_fun;
 		snth_fun     = snth_fun;
-		lnth_fun     = lnth_fun
+		lnth_fun     = lnth_fun; 
+		lcat_fun     = lcat_fun 
 	}
 
 let mk_z3_list_core les list_nil list_cons =
@@ -556,7 +562,7 @@ let rec encode_lit lit =
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ arg_list ])
 
 	with (Failure msg) ->
-		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (JSIL_Print.string_of_literal lit false) msg))
+		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (JSIL_Print.string_of_literal lit) msg))
 
 
 (** Encode JSIL binary operators *)
@@ -609,13 +615,16 @@ let encode_binop op le1 le2 =
 		let le      = Set.mk_subset ctx le1_set le2_set in
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.boolean_constructor [ le ])
 
+	| LstCat -> 
+		let n_le1 = (Expr.mk_app ctx lit_operations.list_accessor [ mk_singleton_access le1 ]) in
+		let n_le2 = (Expr.mk_app ctx lit_operations.list_accessor [ mk_singleton_access le2 ]) in
+		let n_le  = (Expr.mk_app ctx axiomatised_operations.lcat_fun [ n_le1; n_le2 ]) in 
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ n_le ])		
+
 	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
 
 
 let encode_unop op le =
-
-	print_debug ("encode_unop");
-
 	match op with
 
 	| UnaryMinus ->
@@ -726,7 +735,7 @@ let rec encode_logical_expression le =
 
 	| _                     ->
 		let msg = Printf.sprintf "Failure - z3 encoding: Unsupported logical expression: %s"
-			(JSIL_Print.string_of_logic_expression le false) in
+			(JSIL_Print.string_of_logic_expression le) in
 		raise (Failure msg)
 
 
@@ -749,37 +758,6 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		let quantified_assertion = Expr.simplify quantified_assertion None in
 		quantified_assertion)
 	else assertion
-
-
-
-let global_axioms =
-
-	(* forall x. slen(x) >= 0 *)
-	let x    = "x" in
-	let le_x = mk_const (mk_string_symb x) in
-	let le1  = Expr.mk_app ctx axiomatised_operations.slen_fun [ le_x ] in
-	let le2  = mk_num_i 0 in
-	let slen_assertion = mk_ge ctx le1 le2 in
-	let slen_axiom     = encode_quantifier true ctx [ x ] [ numbers_sort ] slen_assertion in
-
-	(* forall x. llen(x) >= 0 *)
-	let x    = "x" in
-	let le_x = Expr.mk_const ctx (mk_string_symb x) z3_jsil_list_sort in
-	let le1  = Expr.mk_app ctx axiomatised_operations.llen_fun [ le_x ] in
-	let le2  = mk_num_i 0 in
-	let llen_assertion = mk_ge ctx le1 le2 in
-	let llen_axiom1 = encode_quantifier true ctx [ x ] [ z3_jsil_list_sort ] llen_assertion in
-
-	(* forall x. (x = nil) \/ (llen(x) > 0) *)
-	let x         = "x" in
-	let le_x      = Expr.mk_const ctx (mk_string_symb x) z3_jsil_list_sort in
-	let a1        = Boolean.mk_eq ctx le_x (Expr.mk_app ctx list_operations.nil_constructor []) in
-	let le_llen_x = Expr.mk_app ctx axiomatised_operations.llen_fun [ le_x ] in
-	let a2        = mk_lt ctx (mk_num_i 0) le_llen_x in
-	let a         = Boolean.mk_or ctx [a1; a2] in
-	let llen_axiom2 = encode_quantifier true ctx [ x ] [ z3_jsil_list_sort ] a in
-
-	[ slen_axiom; llen_axiom1; llen_axiom2 ]
 
 let make_recognizer_assertion x t_x =
 	let le_x = Expr.mk_const ctx (mk_string_symb x) extended_literal_sort in
@@ -845,7 +823,7 @@ let rec encode_assertion a : Expr.expr =
 			encode_quantifier true ctx binders z3_sorts z3_a
 
 	| _ ->
-		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a false) in
+		let msg = Printf.sprintf "Unsupported assertion to encode for Z3: %s" (JSIL_Print.string_of_logic_assertion a) in
 		raise (Failure msg)
 
 
@@ -872,31 +850,24 @@ let string_of_z3_expr_list exprs =
 		""
 		exprs
 
-let get_new_solver assertions gamma =
-  	(* let string_axioms = get_them_nasty_string_axioms tr_ctx assertions in *)
-	let assertions = List.map encode_assertion_top_level assertions in
-	let assertions = global_axioms @ (encode_gamma gamma) @ assertions in
-	let solver = (Solver.mk_solver ctx None) in
-	Solver.add solver assertions;
-	solver
-
 let print_model solver =
 	let model = Solver.get_model solver in
 	match model with
 	| Some model ->
 		let str_model = Model.to_string model in
-		print_debug (Printf.sprintf "I found the model: \n\n%s" str_model)
+		print_debug_petar (Printf.sprintf "I found the model: \n\n%s" str_model)
 	| None ->
-		print_debug ("No model found.")
+		print_debug_petar ("No model found.")
 
 let string_of_solver solver =
 	let exprs = Solver.get_assertions solver in
 	string_of_z3_expr_list exprs
 
-
-let make_global_axioms list_vars string_vars = 
+let make_global_axioms list_vars string_vars list_exprs = 
 	let x_name = "#x" in 
-	let lvar_x = LVar x_name in 
+	let y_name = "#y" in 
+	let lvar_x = LVar x_name in
+	let lvar_y = LVar y_name in  
   	
   	(* forall x. 0 <= slen(x) *)
 	let slen1 = LLessEq (LLit (Num 0.), LUnOp (StrLen, lvar_x)) in 
@@ -917,7 +888,17 @@ let make_global_axioms list_vars string_vars =
 	let carlnth0 = LEq (LUnOp (Car, lvar_x), LLstNth (lvar_x, LLit (Num 0.))) in 
 	let carlnth0_s = JSIL_Logic_Utils.concretise carlnth0 x_name list_vars in 	
 
-	slen1_s @ llen1_s @ llen2_s @ carlnth0_s
+	(* forall x, y. ((x = nil) /\ (y = nil)) \/ (! (x @ y = nil)) *)
+	let l_disjunct = LAnd (LEq (lvar_x, LLit (LList [])), LEq (lvar_y, LLit (LList []))) in 
+	let r_disjunct = LNot (LEq (LLit (LList []), LBinOp (lvar_x, LstCat, lvar_y))) in 
+	let lstcat1    = LOr (l_disjunct, r_disjunct) in 
+	let lstcat1_s  = JSIL_Logic_Utils.concretise2 lstcat1 x_name y_name list_exprs in 
+
+	(* forall x. x @ nil = x *)
+	let cons_nil_idem_r = LEq (LBinOp (lvar_x, LstCat, LLit (LList [])), lvar_x) in
+	let cons_nil_idem_r_s = JSIL_Logic_Utils.concretise cons_nil_idem_r x_name list_vars in 
+
+	slen1_s @ llen1_s @ llen2_s @ carlnth0_s @ lstcat1_s @ cons_nil_idem_r_s
 
 let make_list_axioms a_list =
 
@@ -959,193 +940,273 @@ let make_string_axioms s =
 	slen_axiom :: (loop_nth (explode s) 0 [])
 
 
-let make_relevant_axioms a list_vars string_vars =
+let make_relevant_axioms a list_vars string_vars list_exprs =
 	(* string axioms *)
-	let a_strings, _ = JSIL_Logic_Utils.get_assertion_string_number_literals a in
+	let a_strings, _ = JSIL_Logic_Utils.get_asrt_strings_and_numbers a in
 	let a_strings    = JSIL_Logic_Utils.remove_string_duplicates a_strings in
 	let s_axioms     = List.concat (List.map make_string_axioms a_strings) in
 
 	(* list axioms *)
-	let a_lists      = JSIL_Logic_Utils.get_assertion_lists a in
+	let a_lists      = JSIL_Logic_Utils.get_asrt_lists a in
 	let l_axioms     = List.concat (List.map make_list_axioms a_lists) in
 
-	let constant_axioms = make_global_axioms list_vars string_vars in 
-
-	(*if (List.length l_axioms > 0) then *)
-
-	print_debug_petar (Printf.sprintf "Generated Axioms:\n%s\n"
-	   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list (l_axioms @ constant_axioms)) false));
+	let constant_axioms = make_global_axioms list_vars string_vars list_exprs in 
 
 	s_axioms @ l_axioms @ constant_axioms
 
-let understand_satisfiability assertions gamma =
-	print_debug ("Understanding unsat.");
-	let array_asses = Array.to_list (Array.make (List.length assertions) (Array.of_list assertions)) in
-	let list_asses = List.mapi (fun i x -> Array.to_list (Array.sub x 0 (i + 1))) array_asses in
-	print_debug (
-		(String.concat "\n" (List.map (fun x -> Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list x) false) list_asses)));
-	let solvers = List.map (fun x -> get_new_solver x gamma) list_asses in
-	let results = List.map (fun x -> Solver.check x [] == Solver.SATISFIABLE) solvers in
-	print_debug (String.concat ", " (List.map (fun b -> Printf.sprintf "%b" b) results))
+(** For a given set of pure formulae and its associated gamma, return the corresponding encoding *)
+let encode_assertions (assertions : SA.t) gamma = 
+	(* Check if the assertions have previously been cached *)
+	let cached = Hashtbl.mem JSIL_Syntax.encoding_cache assertions in
+	let result = (match cached with
+	(* Cached, return from cache *)
+	| true -> Hashtbl.find JSIL_Syntax.encoding_cache assertions 
+	(* Not cached *)
+	| false -> 
+			(* Encode assertions *)
+			let encoded_assertions = List.map encode_assertion_top_level (SA.elements assertions) in
+			(* Encode gamma *)
+			let encoded_assertions = (encode_gamma gamma) @ encoded_assertions in
+			(* Cache *)
+			Hashtbl.replace JSIL_Syntax.encoding_cache assertions encoded_assertions;
+			encoded_assertions) in
+	(* Return *)
+	result
 
-let check_satisfiability assertions gamma =
+(** For a given set of pure formulae and its associated gamma, return the corresponding axioms *)
+let get_axioms assertions gamma = 
+	(* Get list variables *)
+  let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
+	(* Get string variables *)
+	let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in
+	(* Get list expressions *)
+	let list_exprs = List.concat (List.map JSIL_Logic_Utils.get_asrt_list_lexprs assertions) in 
+	(* Remove duplicates *)
+	let list_exprs = SLExpr.elements (SLExpr.of_list list_exprs) in 
+	(* Put list-related expressions together *)
+	let list_exprs = list_exprs @ list_vars in 
+  
+	(* Get all axioms *)
+	let axioms = List.concat (List.map (fun a -> make_relevant_axioms a list_vars string_vars list_exprs) assertions) in
+	(* Remove duplicates *)
+  let axioms = SA.elements (SA.of_list axioms) in
+	(* Encode axioms *)
+	let axioms = List.map encode_assertion_top_level axioms in
+	
+	(* Return *)
+	axioms
+
+(** ****************
+  * SATISFIABILITY *
+	* **************** **)
+
+(** 
+		Check if a given set of pure formulae, given its associated gamma, 
+  	is satisfiable. Does not perform simplifications.
+		
+		Returns: 
+			- an indicator if the pure formulae are satisfiable
+			- an indicator if the SAT check was cached
+ *)
+  let check_satisfiability_core (assertions : SA.t) gamma = 
+	
 	let start_time = Sys.time () in
+	
+	(* Check if the SAT check was previously cached *) 
+	let cached = Hashtbl.mem JSIL_Syntax.sat_cache assertions in
+	let result = (match cached with
+	(* Cached, return from cache *)
+	| true -> let result = Hashtbl.find JSIL_Syntax.sat_cache assertions in
+			print_debug_petar (Printf.sprintf "Cached with result: %b" result);
+			result, true
+	(* Not cached *)
+	| false -> 
+  		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.sat_cache));
+  		
+			let assertions_list = SA.elements assertions in
+			
+			print_debug_petar (Printf.sprintf "About to check SAT of: %s\nwith gamma: %s\n" 
+				(Symbolic_State_Print.string_of_pfs (DynArray.of_list assertions_list))
+				(Symbolic_State_Print.string_of_gamma gamma));
+			
+			(* Get the associated axioms - currently we are making the choice not to get them *)
+			let axioms = [] in (* get_axioms assertions_list gamma in *)
+			(* Encode the assertions and gamma *)
+    	let encoded_assertions = encode_assertions assertions gamma in
+			
+			(* Reset the solver and add the encoded formulae *)
+    	Solver.reset masterSolver;
+    	Solver.add masterSolver (axioms @ encoded_assertions);
+  		
+  		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver masterSolver));
+  		let start_time = Sys.time () in
+			
+			(* Check satisfiability *)
+  		let ret = Solver.check masterSolver [] in
+  		
+			print_debug_petar (Printf.sprintf "The solver returned: %s"
+  			(match ret with
+  			| Solver.SATISFIABLE -> "SAT"
+  			| Solver.UNSATISFIABLE -> "UNSAT"
+  			| Solver.UNKNOWN -> "UNKNOWN"));
+  		let ret = (ret = Solver.SATISFIABLE) in
+			
+			let end_time = Sys.time () in
+  		JSIL_Syntax.update_statistics "solver_call" 0.;
+  		JSIL_Syntax.update_statistics "SOLVER CALL: check_satisfiability" (end_time -. start_time);
+			
+			(* Cache *)
+  		Hashtbl.replace JSIL_Syntax.sat_cache assertions ret;
+  		
+			print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
+  			(JSIL_Print.string_of_logic_assertion (star_asses (SA.elements assertions))) (Hashtbl.length JSIL_Syntax.sat_cache));
 
-	(* print_debug_petar (Printf.sprintf "Non-simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-	(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list assertions) false)
-	(Symbolic_State_Print.string_of_gamma gamma)); *)
+			(* Return *) 
+  		ret, false
+	) in
+	
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "check_satisfiability_core" (end_time -. start_time);
+	result
+	
+(** 
+		For a given set of pure formulae and its associated gamma, 
+  	check if it is satisfiable. Performs simplifications.
 
+		Returns: 
+			- an indicator if the pure formulae are satisfiable
+ *)
+let check_satisfiability assertions gamma =
+
+	let start_time = Sys.time () in
+	
+	(* Simplify assertions maximally *)
 	let new_assertions, new_gamma = Simplifications.simplify_pfs (DynArray.of_list assertions) gamma None in
+	(* Simplify gamma to have only featured variables *)
+	Simplifications.filter_gamma_pfs new_assertions new_gamma;
 
-	(* print_debug_petar (Printf.sprintf "Simplified:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(Symbolic_State_Print.string_of_shallow_p_formulae new_assertions false)
-			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
+	(* Check satisfiability *)
+	let ret, _ = check_satisfiability_core (SA.of_list (DynArray.to_list new_assertions)) new_gamma in
+	
+	let end_time = Sys.time () in
+	JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
+	ret
 
-	let new_assertions_set = SA.of_list (DynArray.to_list new_assertions) in
-	let new_assertions = SA.elements new_assertions_set in
-	let cache_assertion = star_asses new_assertions in
-
-	print_debug_petar (Printf.sprintf "About to check sat of:\nPure formulae:\n%s\nGamma:\n%s\n\n"
-			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
-			(Symbolic_State_Print.string_of_gamma new_gamma));
-
-	if (Hashtbl.mem JSIL_Syntax.check_sat_cache cache_assertion) then
-	begin
-		let ret = Hashtbl.find JSIL_Syntax.check_sat_cache cache_assertion in
-		let end_time = Sys.time() in
-		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
-		JSIL_Syntax.update_statistics "sat_cache" 0.;
-		print_debug_petar (Printf.sprintf "Found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
-		ret
-	end
-	else
-	begin
-		(* print_debug_petar (Printf.sprintf "Firing sat check:\nPFS:\n%s\nGamma:\n%s\n"
-			(Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list new_assertions) false)
-			(Symbolic_State_Print.string_of_gamma new_gamma)); *)
-
-		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.check_sat_cache));
-		let solver = get_new_solver new_assertions new_gamma in
-		print_debug_petar (Printf.sprintf "SAT: About to check the following:\n%s" (string_of_solver solver));
-		let ret = Solver.check solver [] in
-		print_debug (Printf.sprintf "The solver returned: %s"
-			(match ret with
-			| Solver.SATISFIABLE -> "SAT"
-			| Solver.UNSATISFIABLE -> "UNSAT"
-			| Solver.UNKNOWN -> "UNKNOWN"));
-		let ret = (ret = Solver.SATISFIABLE) in
-		Hashtbl.add JSIL_Syntax.check_sat_cache cache_assertion ret;
-		print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
-			(JSIL_Print.string_of_logic_assertion cache_assertion false) (Hashtbl.length JSIL_Syntax.check_sat_cache));
-		let end_time = Sys.time () in
-		JSIL_Syntax.update_statistics "solver_call" 0.;
-		JSIL_Syntax.update_statistics "check_sat_alt" (end_time -. start_time);
-		if (ret == false) then understand_satisfiability new_assertions new_gamma;
-		ret
-	end
-
-(*
- 	(forall #x : $$number_type . ((! (#x --e-- _lvar_214)) \/ (_lvar_213 <# #x)))
-	(forall #x : $$number_type . ((! (#x --e-- _lvar_215)) \/ (#x <# _lvar_213)))
-*)
-
-
+(** ************
+  * ENTAILMENT *
+	* ************ **)
 let check_entailment (existentials : SS.t)
 					 (left_as      : jsil_logic_assertion list)
 					 (right_as     : jsil_logic_assertion list)
 					 (gamma        : typing_environment) =
 
-  try (
 		print_time_debug "check_entailment:";
 
 		print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 		   (String.concat ", " (SS.elements existentials))
-		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list left_as) false)
-		   (Symbolic_State_Print.string_of_shallow_p_formulae (DynArray.of_list right_as) false)
+		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list left_as))
+		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
 		   (Symbolic_State_Print.string_of_gamma gamma));
 
-		let existentials, left_as, right_as, gamma =
-			Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) (copy_gamma gamma) in
+		let start_time = Sys.time() in
+
+		(* Simplify maximally the implication to be checked *)
+		let existentials, left_as, right_as, gamma = Simplifications.simplify_implication existentials (DynArray.of_list left_as) (DynArray.of_list right_as) gamma in
 		let right_as = Simplifications.simplify_equalities_between_booleans right_as in
-			Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
+		Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 
-		(* If right is empty, then the left only needs to be satisfiable *)
-		if (DynArray.empty right_as) then check_satisfiability (DynArray.to_list left_as) gamma else
-		(* If left or right are directly false, everything is false *)
-		if (DynArray.get right_as 0 = LFalse || (DynArray.length left_as <> 0 && DynArray.get left_as 0 = LFalse)) then false else
-
-		let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
-		let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in 
-
-		let left_as = DynArray.to_list left_as in
-		let right_as = DynArray.to_list right_as in
-
-		let gamma_left  = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
+		(* Separate gamma into existentials and non-existentials *)
+		let gamma_left = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
 		let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in
 
-		let left_as_axioms = 
-			List.concat 
-				(List.map (fun a -> make_relevant_axioms a list_vars string_vars) left_as) in
-		let left_as = List.map encode_assertion_top_level (left_as_axioms @ left_as) in
-		let left_as = global_axioms @ (encode_gamma gamma_left) @ left_as in
-		let solver = (Solver.mk_solver ctx None) in
-		Solver.add solver left_as;
-		print_debug_petar (Printf.sprintf "ENT ENCODED: About to check the following:\n%s" (string_of_solver solver));
-		let ret_left = (Solver.check solver [ ] = Solver.SATISFIABLE) in
-		if (ret_left) then (
-			let right_as_axioms = 
-				List.concat 
-					(List.map (fun a -> make_relevant_axioms a list_vars string_vars) right_as) in
-			let right_as_axioms = List.map encode_assertion_top_level right_as_axioms in
-			let right_as = List.map (fun a -> encode_assertion_top_level (LNot a)) right_as in
-			let right_as_or =
-				if ((List.length right_as) > 1) then
-						(Boolean.mk_or ctx right_as)
-					else if ((List.length right_as) = 1) then
-						(List.nth right_as 0)
-					else Boolean.mk_false ctx in
-
-			let existentials = SS.elements existentials in
-			let existentials_sorts = List.map (fun _ -> extended_literal_sort) existentials in
-			let right_as_or =
-				print_debug_petar (Printf.sprintf "Length of existentials: %d" (List.length existentials));
-				if ((List.length existentials) > 0)
-					then (
-						let a_gamma_right   = encode_gamma gamma_right in
-						let a_right         = Boolean.mk_and ctx ( right_as_or :: a_gamma_right ) in
-						encode_quantifier true ctx existentials existentials_sorts a_right
-					) else right_as_or in
-
-			Solver.add solver (right_as_or :: right_as_axioms);
-			print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver solver));
-
-			let start_time = Sys.time () in
-			let ret = Solver.check solver [ ] in
-			print_debug_petar (Printf.sprintf "The solver returned: %s"
-						(match ret with
-						| Solver.SATISFIABLE -> "SAT"
-						| Solver.UNSATISFIABLE -> "UNSAT"
-						| Solver.UNKNOWN -> "UNKNOWN"));
+		(* If left side is false, return false *)
+		let result = if (DynArray.length left_as > 0 && DynArray.get left_as 0 = LFalse) then false
+		(* If right side is false, return false *)
+		else if (DynArray.length right_as > 0 && DynArray.get right_as 0 = LFalse) then false
+		else 
+			(* Check satisfiability of left side *)
+			let left_sat, how = check_satisfiability_core (SA.of_list (DynArray.to_list left_as)) gamma_left in 
+			(* If the right side is empty or left side is not satisfiable, return the result of checking left-side satisfiability *)
+			if (DynArray.empty right_as || not left_sat) then left_sat else (
+				
+				(* Additional simplifications *)
+				let continue, existentials, left_as, right_as, gamma = Simplifications.trim_down existentials left_as right_as gamma in
+				
+				(match continue with
+				| false -> print_debug_petar "False!"; false
+				| true -> 
+				
+  				let left_as = DynArray.to_list left_as in
+      		let right_as = DynArray.to_list right_as in
+  				
+  				(* Get axioms *)
+  				let axioms = get_axioms (left_as @ right_as) gamma in
+  				
+  				(* Encode left side *)
+  				let left_as = encode_assertions (SA.of_list left_as) gamma_left in
+  				(* Encode right side with negations and empty gamma *)
+  				let right_as = encode_assertions (SA.of_list (List.map (fun a -> LNot a) right_as)) (Hashtbl.create 11) in 
+  				
+  				(* Initialise solver depending on if a sat check of the left side was performed *)
+  				Solver.reset masterSolver; Solver.add masterSolver left_as;
+  
+  				(* Construct disjunction of right side *)
+    			let right_as_or =
+    				if ((List.length right_as) > 1) then
+    						(Boolean.mk_or ctx right_as)
+    					else if ((List.length right_as) = 1) then
+    						(List.nth right_as 0)
+    					else Boolean.mk_false ctx in
+    
+  				(* Encode existentials *)
+    			let existentials = SS.elements existentials in
+    			let existentials_sorts = List.map (fun _ -> extended_literal_sort) existentials in
+    			let right_as_or =
+    				print_debug_petar (Printf.sprintf "Length of existentials: %d" (List.length existentials));
+    				if ((List.length existentials) > 0)
+    					then (
+  							(* Encode the types of the existentials *)
+    						let a_gamma_right   = encode_gamma gamma_right in
+    						let a_right         = Boolean.mk_and ctx ( right_as_or :: a_gamma_right ) in
+    						encode_quantifier true ctx existentials existentials_sorts a_right
+    					) else right_as_or in
+      
+  				(* Add axioms and right side assertions *) 
+    			Solver.add masterSolver (right_as_or :: axioms);
+    			
+  				print_debug_petar (Printf.sprintf "ENT: About to check the following:\n%s" (string_of_solver masterSolver));
+    			
+    			let start_time = Sys.time () in
+  				
+  				(* Entailment check *)
+    			let ret = Solver.check masterSolver [ ] in
+    			let end_time = Sys.time () in
+    			JSIL_Syntax.update_statistics "solver_call" 0.;
+    			JSIL_Syntax.update_statistics "SOLVER CALL: check_entailment" (end_time -. start_time);
+    
+  				print_debug_petar (Printf.sprintf "The solver returned: %s"
+    				(match ret with
+    				| Solver.SATISFIABLE -> "SAT"
+    				| Solver.UNSATISFIABLE -> "UNSAT"
+    				| Solver.UNKNOWN -> "UNKNOWN"));
+  	
+  				(* Print the countermodel, if it is found *)
+    			if (ret = Solver.SATISFIABLE) then print_model masterSolver;
+  				
+  				
+  				(* Reframe the result *)
+    			let ret = (ret = Solver.UNSATISFIABLE) in
+  				(* Return *)
+    			ret)) in
 			let end_time = Sys.time () in
-			JSIL_Syntax.update_statistics "solver_call" 0.;
-			JSIL_Syntax.update_statistics "check_entailment_alt" (end_time -. start_time);
-
-			if (ret = Solver.SATISFIABLE) then print_model solver;
-			let ret = (ret = Solver.UNSATISFIABLE) in
-			ret)
-		else (
-			print_time_debug ("check_entailment done: false. OUTER");
-			false)
-	) with
-	| Failure _ ->
-			print_debug_petar ("CHECK_ENTAILMENT_FAILURE, RETURNING FALSE");
-			false
-
+				print_debug_petar (Printf.sprintf "Entailment took: %f" (end_time -. start_time));
+				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+				result
 
 let is_equal_on_lexprs e1 e2 pfs : bool option =
 (match (e1 = e2) with
 (* This true check is not good enough, things could creep in with Unknowns *)
-| true -> Some (not (e1 = LUnknown))
+| true -> Some true
 | false -> (match e1, e2 with
 
 	| LLit (String str), LVar x
@@ -1188,7 +1249,7 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	(* other *)
 	| _, _ -> None))
 
-let is_equal e1 e2 pure_formulae (* solver *) gamma =
+let is_equal e1 e2 pure_formulae gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 		| Some b -> b
@@ -1196,7 +1257,7 @@ let is_equal e1 e2 pure_formulae (* solver *) gamma =
 	result
 
 
-let is_different e1 e2 pure_formulae (* solver *) gamma =
+let is_different e1 e2 pure_formulae gamma =
 	let pfs = DynArray.to_list pure_formulae in
 	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
 		| Some b -> not b

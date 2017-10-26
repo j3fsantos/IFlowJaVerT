@@ -1,5 +1,5 @@
 /**
-	@toprequires emp
+	@toprequires initialHeapPre()
 	@topensures  scope(x : 42)
 */
 

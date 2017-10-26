@@ -1,4 +1,4 @@
-import Array, Boolean, Date, Function, Global, Init, Internals, Math, Number, Object, RegExp, String, Errors;
+import Array.jsil, Boolean.jsil, Date.jsil, Function.jsil, Global.jsil, Init.jsil, Internals.jsil, Math.jsil, Number.jsil, Object.jsil, RegExp.jsil, String.jsil, Errors.jsil;
 
 proc banana_where_it_belongs_by_pm () {
 	rlab: skip

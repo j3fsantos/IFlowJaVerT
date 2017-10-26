@@ -1,4 +1,4 @@
-import Internals, Object;
+import Internals.jsil, Object.jsil;
 
 (* *** DEFAULT *** *)
 
@@ -36,7 +36,7 @@ proc FP_call () {
 
 			x__se := "SyntaxError" ();
 
-			xret := apply (body, xscope, xthis, pars) with elab;
+			xret := apply (body, {{ xscope }}, xthis, pars) with elab;
 
 			goto [xret = $$empty] undef rlab;
 

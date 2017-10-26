@@ -1,34 +1,39 @@
 %{
 open JSIL_Syntax
-open JSIL_Syntax_Checks
-open JS2JSIL_Logic
+open JSIL_Logic_Utils
+open JSLogic
 
 (* Tables where we collect the predicates and the procedures as we parse them. *)
 let predicate_table : (string, jsil_logic_predicate) Hashtbl.t = Hashtbl.create 511
 let procedure_table : (string, jsil_ext_procedure) Hashtbl.t = Hashtbl.create 511
 let only_spec_table : (string, jsil_spec) Hashtbl.t = Hashtbl.create 511
+let lemma_table : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511
 let procedure_names  : (string list) ref = ref []
-let copy_and_clear_globals () = 
+let normalised_lvar_r = Str.regexp "##NORMALISED_LVAR"
+let copy_and_clear_globals () =
+  let lemm' = Hashtbl.copy lemma_table in
 	let pred' = Hashtbl.copy predicate_table in
 	let ospc' = Hashtbl.copy only_spec_table in
 	let proc' = Hashtbl.copy procedure_table in
 	let proc_names = !procedure_names in
+	Hashtbl.clear lemma_table;
 	Hashtbl.clear predicate_table;
 	Hashtbl.clear procedure_table;
 	Hashtbl.clear only_spec_table;
 	procedure_names = ref [];
-	(pred' , ospc', proc', proc_names)
+	(lemm', pred' , ospc', proc', proc_names)
 %}
 
 (***** Token definitions *****)
 (*  JS Logic Literals *)
+%token SCOPELEXPR
 %token SCOPE
 %token THIS
-%token FUNOBJ
 %token CLOSURE
-%token SCSCOPE 
+%token SCSCOPE
 %token OCHAINS
-%token OCS
+%token SCHAIN
+%token UNDERSCORE
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -71,6 +76,8 @@ let copy_and_clear_globals () =
 %token LSTCLOSE
 (* Variables *)
 %token <string> VAR
+(* Filenames *)
+%token <string> FILENAME
 (* Binary operators *)
 %token EQUAL
 %token LESSTHAN
@@ -149,6 +156,7 @@ let copy_and_clear_globals () =
 %token <string> LVAR
 (* Logical expressions *)
 %token LNONE
+%token <string> ALOC
 (* Logic assertions *)
 %token OASSERT
 %token CASSERT
@@ -165,7 +173,7 @@ let copy_and_clear_globals () =
 %token LEMP
 %token EMPTYFIELDS
 (*%token LEXISTS *)
-%token LFORALL 
+%token LFORALL
 %token LTYPES
 (* Logic predicates *)
 %token PRED
@@ -176,6 +184,7 @@ let copy_and_clear_globals () =
 %token CCLCMD
 %token FOLD
 %token UNFOLD
+%token FLASH
 %token RECUNFOLD
 %token CALLSPEC
 %token LIF
@@ -184,6 +193,8 @@ let copy_and_clear_globals () =
 (* Procedure specification keywords *)
 %token ONLY
 %token SPEC
+%token LEMMA
+%token VARIANT
 %token NORMAL
 %token ERROR
 (* JS only spec specifics *)
@@ -235,13 +246,13 @@ let copy_and_clear_globals () =
 (* Program operators have higher precedence.*)
 (* Based on JavaScript:
    https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Operators/Operator_Precedence *)
-%left OR 
+%left OR
 %left AND
 %left BITWISEOR
 %left BITWISEXOR
 %left BITWISEAND
 %left EQUAL
-%nonassoc LESSTHAN LESSTHANSTRING LESSTHANEQUAL 
+%nonassoc LESSTHAN LESSTHANSTRING LESSTHANEQUAL
 %left LEFTSHIFT SIGNEDRIGHTSHIFT UNSIGNEDRIGHTSHIFT
 %left PLUS MINUS
 %left TIMES DIV MOD M_POW
@@ -256,10 +267,12 @@ let copy_and_clear_globals () =
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
-%type <JS2JSIL_Logic.js_logic_predicate> js_pred_target
+%type <JSLogic.js_logic_predicate> js_pred_target
 %type <JSIL_Syntax.jsil_logic_assertion> top_level_assertion_target
-%type <JS2JSIL_Logic.js_logic_assertion> top_level_js_assertion_target
-%type <JS2JSIL_Logic.js_spec> js_only_spec_target
+%type <JSLogic.js_logic_assertion> top_level_js_assertion_target
+%type <JSIL_Syntax.jsil_lemma> jsil_lemma_target
+%type <JSLogic.js_spec> js_only_spec_target
+%type <JSLogic.js_logic_command list> js_logic_cmds_target
 
 %type<jsil_constant> constant_target
 
@@ -268,35 +281,39 @@ let copy_and_clear_globals () =
 %start pred_spec_target
 %start top_level_assertion_target
 %start top_level_js_assertion_target
+%start jsil_lemma_target
 %start js_pred_target
 %start js_only_spec_target
+%start js_logic_cmds_target
 %%
 
 (********* JSIL *********)
 
 main_target:
 	| imports = import_target; declaration_target; EOF
-		{  let (pred, ospc, proc, proc_names) = copy_and_clear_globals () in
-			{ imports; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
+		{  let (lemm, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports; lemmas = lemm; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 	| declaration_target; EOF
-		{   let (pred, ospc, proc, proc_names) = copy_and_clear_globals () in
-			{ imports = []; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
+		{   let (lemm, pred, ospc, proc, proc_names) = copy_and_clear_globals () in
+			{ imports = []; lemmas = lemm; predicates = pred; onlyspecs = ospc; procedures = proc; procedure_names = List.rev proc_names } }
 ;
 
 declaration_target:
+	| declaration_target; jsil_lemma_target
+	| jsil_lemma_target
 	| declaration_target; pred_target
 	| pred_target
 	| declaration_target; proc_target
-	| proc_target 
+	| proc_target
 	| declaration_target; macro_target
-	| macro_target 
+	| macro_target
 	| declaration_target; only_spec_target
-	| only_spec_target 
+	| only_spec_target
 	{ }
 ;
 
 import_target:
-  IMPORT; imports = separated_nonempty_list(COMMA, VAR); SCOLON { imports }
+  IMPORT; imports = separated_nonempty_list(COMMA, FILENAME); SCOLON { imports }
 ;
 
 proc_target:
@@ -342,8 +359,8 @@ proc_head_target:
 	spec = option(spec_target);
 	PROC; proc_name = VAR; LBRACE; param_list = separated_list(COMMA, VAR); RBRACE
 	{ (* TODO: Check pvars statically in the logic commands? *)
-		enter_procedure ();
-		validate_proc_signature spec proc_name param_list;
+		(* enter_procedure *) ();
+		(* validate_proc_signature spec proc_name param_list; *)
 		(proc_name, param_list, spec)
 	}
 ;
@@ -482,18 +499,6 @@ expr_target:
 (* typeOf *)
 	| TYPEOF; LBRACE; e=expr_target; RBRACE
 		{ TypeOf (e) }
-(* asssume (e) *)
-  | ASSUME; LBRACE; e=expr_target; RBRACE
-	  { RAssume (e) }
-(* assert (e) *)
-  | ASSERT; LBRACE;  e=expr_target; RBRACE
-	  { RAssert (e) }
-(* make_symbol_number() *)
-  | RNUMSYM; LBRACE;  RBRACE
-	  { RNumSymb }
-(* make_symbol_string() *)
-  | RSTRSYM; LBRACE; RBRACE
-	  { RStrSymb }
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
 		{ EList exprlist }
@@ -521,20 +526,36 @@ expr_target:
 pred_target:
 (* pred name (arg1, ..., argn) : def1, ..., defn ; *)
 	PRED; pred_head = pred_head_target; COLON;
-	definitions = separated_nonempty_list(COMMA, assertion_target); SCOLON
-  { (* Add the predicate to the collection *)
+	definitions = separated_nonempty_list(COMMA, named_assertion_target); SCOLON
+  	{
+  		(* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
-	  let pred = { name; num_params; params; definitions; } in
+    let previously_normalised_pred = !previously_normalised in
+		let pred = { name; num_params; params; definitions; previously_normalised_pred } in
 		Hashtbl.add predicate_table name pred;
-    pred
+    	pred
 	}
 ;
 
+named_assertion_target:
+	id = option(assertion_id_target); a = assertion_target
+	{ (id, a) }
+;
+
+assertion_id_target: LBRACKET; v=VAR; RBRACKET
+	{ v }
+;
+
+
+js_named_assertion_target:
+	id = option(assertion_id_target); a = js_assertion_target
+	{ (id, a) }
+;
 
 js_pred_target:
-(* pred name (arg1, ..., argn) : def1, ..., defn ; *)
+(* pred name (arg1, ..., argn) : [def1_id] def1, ..., [def1_id] defn ; *)
 	PRED; pred_head = js_pred_head_target; COLON;
-	definitions = separated_nonempty_list(COMMA, js_assertion_target); SCOLON
+	definitions = separated_nonempty_list(COMMA, js_named_assertion_target); SCOLON
   { (* Add the predicate to the collection *)
 		let (name, num_params, params) = pred_head in
 	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_definitions = definitions } in
@@ -547,8 +568,8 @@ pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
-		register_predicate name num_params;
-		enter_predicate params;
+		(* register_predicate name num_params; *)
+		(* enter_predicate params; *)
 	  (name, num_params, params)
 	}
 ;
@@ -598,7 +619,16 @@ post_logic_cmd_target:
 	| OOLCMD; logic_cmds = separated_list(SCOLON, logic_cmd_target); CCLCMD
 		{ logic_cmds }
 
+var_and_le_target:
+	| LBRACE; lvar = LVAR; DEFEQ; le = lexpr_target; RBRACE;
+		{ (lvar, le) }
+;
 
+(* [ def with #x := le1 and ... ] *)
+unfold_info_target:
+	| LBRACKET; id = VAR; WITH; var_les = separated_list(AND, var_and_le_target); RBRACKET
+		{ (id, var_les) }
+;
 
 (* TODO: Check that the assertions are only predicates, or deal with full assertions in the execution *)
 logic_cmd_target:
@@ -606,28 +636,28 @@ logic_cmd_target:
 	| FOLD; assertion = assertion_target
 	  { Fold (assertion) }
 
-(* unfold x(e1, ..., en) *)
-	| UNFOLD; assertion = assertion_target
-	  { Unfold (assertion) }
+(* unfold x(e1, ..., en) [ def with #x := le1 and ... ] *)
+	| UNFOLD; assertion = assertion_target; unfold_info = option(unfold_info_target)
+	  { Unfold (assertion, unfold_info) }
 
 (* unfold* x *)
 	| RECUNFOLD; v = VAR
 	  { RecUnfold v }
 
-(* callspec spec_name(ret_var, args) *)
-	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE; 
-	  { 
-	  	match params with 
-	  	| (LVar ret_var) :: rest_params ->  CallSpec (spec_name, ret_var, rest_params) 
-	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
-	 }
+(* apply lemma_name(args) *)
+	 | APPLY; lemma_name = VAR; LBRACE; params = separated_list(COMMA, lexpr_target); RBRACE;
+	 	 {
+	 	  match params with
+	 	  | rest_params ->  ApplyLem (lemma_name, rest_params)
+	 	  | _ -> raise (Failure "DEATH: Parser: APPLY ")
+	 	}
 
 (* if(le) { lcmd* } else { lcmd* } *)
 	| LIF; LBRACE; le=lexpr_target; RBRACE; LTHEN; CLBRACKET;
 			then_lcmds = separated_list(SCOLON, logic_cmd_target);
 			CRBRACKET; LELSE; CLBRACKET;
 			else_lcmds = separated_list(SCOLON, logic_cmd_target);
-			 CLBRACKET;
+			 CRBRACKET;
 	  { LogicIf (le, then_lcmds, else_lcmds)}
 
 (* if(e) { lcmd* } *)
@@ -639,16 +669,16 @@ logic_cmd_target:
 	| macro = macro_head_target;
 		{ let (name, params) = macro in Macro (name, params) }
 
-(* assert a *)
-	| ASSERT; a = assertion_target 
+(* assert (a) *)
+	| ASSERT; LBRACE; a = assertion_target; RBRACE
 		{ Assert a }
 ;
 
-macro_target: 
+macro_target:
 	MACRO; head = macro_head_def_target; COLON; command = logic_cmd_target; SCOLON
   { let (name, params) = head in
-		let macro = { mname = name; mparams = params; mdefinition = command } in 
-		Hashtbl.add macro_table macro.mname macro } 
+		let macro = { mname = name; mparams = params; mdefinition = command } in
+		Hashtbl.add macro_table macro.mname macro }
 
 macro_head_def_target:
  | name = VAR; LBRACE; params = separated_list(COMMA, VAR); RBRACE
@@ -663,7 +693,8 @@ only_spec_target:
 	ONLY; SPEC; spec_head = spec_head_target;
 	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
 	{ let (spec_name, spec_params) = spec_head in
-		let spec = { spec_name; spec_params; proc_specs } in
+    let is_normalised = !previously_normalised in
+		let spec = { spec_name; spec_params; proc_specs; previously_normalised = is_normalised } in
 		Hashtbl.replace only_spec_table spec_name spec;
 	}
 
@@ -673,9 +704,52 @@ js_only_spec_target:
 	js_proc_specs = separated_nonempty_list(SCOLON, js_pre_post_target); EOF
 	{
 		let (js_spec_name, js_spec_params) = spec_head in
-		{ js_spec_name; js_spec_params; js_proc_specs } 
+		{ js_spec_name; js_spec_params; js_proc_specs }
 	}
-	
+
+jsil_lemma_target:
+  (* lemma xpto (x, y)
+     variant(x)
+   	 [[ pre ]]
+     [[ post ]]
+     [* proof_body *] *)
+	LEMMA; lemma_head = jsil_lemma_head_target;
+  variant = option(jsil_lemma_variant_target);
+  pre = spec_line;
+	post = mult_spec_line;
+	proof = option(jsil_lemma_proof_target);
+	{
+    let (lemma_name, lemma_params) = lemma_head in
+    let lemma_spec = create_jsil_spec lemma_name lemma_params [(create_single_spec pre post Normal)] false in
+		let lemma =
+		{
+			lemma_name  = lemma_name;
+			lemma_spec  = lemma_spec;
+			lemma_proof = proof;
+      		lemma_variant = variant
+		} in
+		Hashtbl.replace lemma_table lemma_name lemma;
+		lemma
+	}
+
+jsil_lemma_head_target:
+  lemma_name = VAR; LBRACE; lemma_params = separated_list(COMMA, VAR); RBRACE
+	{
+		(lemma_name, lemma_params)
+	}
+;
+
+jsil_lemma_variant_target:
+  VARIANT LBRACE; variant = expr_target; RBRACE
+	{
+		variant
+	}
+;
+
+jsil_lemma_proof_target:
+  OLCMD; proof = separated_list(SCOLON, logic_cmd_target); CLCMD;
+	{ proof }
+
 js_pre_post_target:
 (* pre: ... post: ... outcome: ... *)
 	JSOSPRE; OASSERT; js_pre = js_assertion_target; CASSERT;
@@ -691,31 +765,38 @@ outcome_target:
 spec_target:
 (* spec xpto (x, y) pre: assertion, post: assertion, flag: NORMAL|ERROR *)
 	SPEC; spec_head = spec_head_target;
-	proc_specs = separated_nonempty_list(SCOLON, pre_post_target);
+	proc_specs = separated_nonempty_list(SCOLON, pre_post_target)
 	{ let (spec_name, spec_params) = spec_head in
-		{ spec_name; spec_params; proc_specs }
+    let is_normalised = !previously_normalised in
+		{ spec_name; spec_params; proc_specs; previously_normalised = is_normalised }
 	}
 ;
 
 spec_head_target:
   spec_name = VAR; LBRACE; spec_params = separated_list(COMMA, VAR); RBRACE
-	{ enter_specs spec_params;
+	{ (* enter_specs spec_params; *)
 		(spec_name, spec_params)
 	}
 ;
 
 pre_post_target:
 (* [[ .... ]] [[ .... ]] Normal *)
-	| pre = spec_line; post = spec_line; NORMAL
+	| pre = spec_line; post = mult_spec_line; NORMAL
 		{ { pre; post; ret_flag = Normal } }
 (* [[ .... ]] [[ .... ]] Error *)
-	| pre = spec_line; post = spec_line; ERROR
+	| pre = spec_line; post = mult_spec_line; ERROR
 		{ { pre; post; ret_flag = Error } }
 ;
 
 spec_line:
   OASSERT; assertion = assertion_target; CASSERT { assertion }
 ;
+
+mult_spec_line:
+  OASSERT; assertions = separated_list(SCOLON, assertion_target); CASSERT { assertions }
+;
+
+
 
 top_level_assertion_target:
 	a = assertion_target; EOF { a }
@@ -772,9 +853,9 @@ assertion_target:
 (* types (type_pairs) *)
   | LTYPES; LBRACE; type_pairs = separated_list(COMMA, type_env_pair_target); RBRACE
     { LTypes type_pairs }
-(* empty_fields (le : lit1, lit2, lit3, ...) *)
-	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; fields=separated_list(COMMA, lexpr_target); RBRACE
-		{ LEmptyFields (le, fields) }
+(* empty_fields (le1 : le2) *)
+	| EMPTYFIELDS; LBRACE; le=lexpr_target; COLON; domain=lexpr_target; RBRACE
+		{ LEmptyFields (le, domain) }
 (* E --e-- E *)
 	| left_expr=lexpr_target; LSETMEM; right_expr=lexpr_target
 		{ LSetMem (left_expr, right_expr) }
@@ -807,7 +888,9 @@ lexpr_target:
 (* Logic variable *)
 	| lvar = logic_variable_target
 	  { lvar }
-(* Abstract locations are computed on normalisation *)
+(* Abstract locations are *normally* computed on normalisation *)
+  | ALOC
+    { ALoc $1 }
 (* Program variable (including the special variable "ret") *)
 	| pvar = program_variable_target
 	  { pvar }
@@ -847,20 +930,23 @@ lexpr_target:
 
 logic_variable_target:
   v = LVAR
-	{ validate_lvar v; LVar v }
+	{
+    let v_imported = Str.replace_first normalised_lvar_r "_lvar_n" v in
+    (* Prefixed with _n_ to avoid clashes *)
+		LVar v_imported }
 ;
 
 just_logic_variable_target:
   v = LVAR
-	{ validate_lvar v; v }
+	{ (* validate_lvar v; *) v }
 
 program_variable_target:
   | v = VAR
-	  { let _ = validate_pvar v in PVar v }
+	  { (* let _ = validate_pvar v in *) PVar v }
 	| RET
-	  { let _ = validate_pvar "ret" in PVar "ret" }
+	  { (* let _ = validate_pvar "ret" in *) PVar "ret" }
 	| ERR
-	  { let _ = validate_pvar "err" in PVar "err" }
+	  { (* let _ = validate_pvar "err" in *) PVar "err" }
 ;
 
 (********* PREDS and SPECS only *********)
@@ -1020,6 +1106,9 @@ js_assertion_target:
 (* emp *)
 	| LEMP;
 		{ JSLEmp }
+(* schain(fid: le) *)
+	| SCHAIN; LBRACE; fid=VAR; COLON; le=js_lexpr_target; RBRACE
+		{ JSSChain (fid, le) }
 (* x(e1, ..., en) *)
 	| name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
 	  {
@@ -1041,9 +1130,6 @@ js_assertion_target:
 (* E --s-- E *)
 	| left_expr=js_lexpr_target; LSETSUB; right_expr=js_lexpr_target
 		{ JSLSetSub (left_expr, right_expr) }
-(* fun_obj (x, le, le) *)
-	| FUNOBJ; LBRACE; f_id=VAR; COMMA; f_loc=js_lexpr_target; COMMA; f_prototype=js_lexpr_target; f_scope_chain=option(js_lexpr_preceded_by_comma_target); RBRACE
-		{ JSFunObj(f_id, f_loc, f_prototype, f_scope_chain) }
 (* closure(x_0: le_0, ..., x_n: le_n; fid_0: le_0', ..., fid_n: le_n') *)
 	| CLOSURE; LBRACE; var_les=separated_list(COMMA, var_js_le_pair_target); SCOLON; fid_scs=separated_list(COMMA, var_js_le_pair_target); RBRACE
 		{	JSClosure (var_les, fid_scs)	}
@@ -1053,31 +1139,29 @@ js_assertion_target:
 (* o_chains(pid1: le1, pid2: le2) *)
 	| OCHAINS; LBRACE; pid1=VAR; COLON; le1=js_lexpr_target; COMMA; pid2=VAR; COLON; le2=js_lexpr_target; RBRACE
 		{ JSOSChains (pid1, le1, pid2, le2) }
-	| OCS; LBRACE; pid=VAR; COLON; le=js_lexpr_target; RBRACE
-		{ JSOCS (pid, le) }
-(* empty_fields (le : lit1, lit2, lit3, ...) *)
-	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; fields=separated_list(COMMA, js_lexpr_target); RBRACE
-		{ JSEmptyFields (le, fields) }
+(* empty_fields (le : le_domain) *)
+	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; domain=js_lexpr_target; RBRACE
+		{ JSEmptyFields (le, domain) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
 	  { ass }
 ;
 
-var_js_le_pair_target: 
+var_js_le_pair_target:
 	v=VAR; COLON; le=js_lexpr_target { (v, le) }
-	
 
-js_lexpr_preceded_by_comma_target: 
+
+js_lexpr_preceded_by_comma_target:
 	COMMA; le=js_lexpr_target	{ le }
-; 
+;
 
 js_program_variable_target:
   | v = VAR
-	  { let _ = validate_pvar v in v }
+	  { (* let _ = validate_pvar v in *) v }
 	| RET
-	  { let _ = validate_pvar "ret" in "ret" }
+	  { (* let _ = validate_pvar "ret" in *) "ret"}
 	| ERR
-	  { let _ = validate_pvar "err" in "err" }
+	  { (* let _ = validate_pvar "err" in *) "err" }
 ;
 
 js_lexpr_target:
@@ -1128,6 +1212,11 @@ js_lexpr_target:
 (* (e) *)
   | LBRACE; e=js_lexpr_target; RBRACE
 	  { e }
+(* _ *)
+  | UNDERSCORE
+  	{ JSLVar (JSLogic.fresh_lvar ()) }
+(* $$scope *)
+  | SCOPELEXPR { JSLScope }
 ;
 
 js_type_env_pair_target:
@@ -1138,4 +1227,76 @@ js_type_env_pair_target:
 ;
 
 
+js_macro_head_target:
+ | name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE
+	 { (name, params) }
 
+js_var_and_le_target:
+	| LBRACE; lvar = LVAR; DEFEQ; le = js_lexpr_target; RBRACE;
+		{
+			(lvar, le) }
+;
+
+(* [ def with #x := le1 and ... ] *)
+js_unfold_info_target:
+	| LBRACKET; id = VAR; WITH; var_les = separated_list(AND, js_var_and_le_target); RBRACKET
+		{ (id, var_les) }
+;
+
+
+js_logic_cmd_target:
+(* fold x(e1, ..., en) *)
+	| FOLD; assertion = js_assertion_target
+	  { JSFold (assertion) }
+
+(* unfold x(e1, ..., en) [ def1 with x1 := le1, ..., xn := len ] *)
+	| UNFOLD; assertion = js_assertion_target; unfold_info = option(js_unfold_info_target)
+	  { JSUnfold (assertion, unfold_info) }
+
+(* flash x(e1, ..., en) *)
+	| FLASH; assertion = js_assertion_target;
+	  { JSFlash (assertion) }
+
+(* unfold* x *)
+	| RECUNFOLD; v = VAR
+	  { JSRecUnfold v }
+
+(* callspec spec_name(ret_var, args) *)
+	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE;
+	  {
+	  	match params with
+	  	| (JSLVar ret_var) :: rest_params ->  JSCallSpec (spec_name, ret_var, rest_params)
+	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
+	 }
+
+(* if(le) { lcmds } else { lcmds } *)
+	| LIF; LBRACE; le=js_lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, js_logic_cmd_target);
+			CRBRACKET; LELSE; CLBRACKET;
+			else_lcmds = separated_list(SCOLON, js_logic_cmd_target);
+			 CRBRACKET;
+	  { JSLogicIf (le, then_lcmds, else_lcmds) }
+
+(* if(e) { lcmd* } *)
+	| LIF; LBRACE; le=js_lexpr_target; RBRACE; LTHEN; CLBRACKET;
+			then_lcmds = separated_list(SCOLON, js_logic_cmd_target);
+			CRBRACKET;
+	  { JSLogicIf (le, then_lcmds, []) }
+
+	| macro = js_macro_head_target;
+		{ let (name, params) = macro in JSMacro (name, params) }
+
+(* assert a *)
+	| ASSERT; a = js_assertion_target
+		{ JSAssert a  }
+
+(* (lcmd) *)
+  | LBRACE; lcmds=js_logic_cmd_target; RBRACE
+	  { lcmds }
+;
+
+
+js_logic_cmds_target:
+	| lcmds = separated_list(SCOLON, js_logic_cmd_target); option(EOF);
+		{ lcmds }
+;

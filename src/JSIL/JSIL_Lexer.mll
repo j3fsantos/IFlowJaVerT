@@ -5,23 +5,30 @@ open Lexing
 let digit = ['0'-'9']
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
-let var = (letter|'_')(letter|digit|'_')*
+let var = letter(letter|digit|'_')*
+let var2 = "_pvar_" (letter|digit|'_')*
+let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
 let lvar = '#' (letter|digit|'_'|'$')*
+let lvar2 = "_lvar_" (letter|digit|'_')*
+let normalised_lvar = "##NORMALISED_LVAR" (letter|digit|'_'|'$')*
 let loc = "$l" (letter|digit|'_')*
+let aloc = "_$l_" (letter|digit|'_')*
+let normalised_aloc = "_$l_#" (letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 
 rule read = parse
 	| white       	       { read lexbuf }
-	|	newline	             { new_line lexbuf; read lexbuf }
+	| newline	             { new_line lexbuf; read lexbuf }
 (* js logic tokens *)
-	| "scope"                       { JSIL_Parser.SCOPE     }
-	| "this"                        { JSIL_Parser.THIS      }
-	| "fun_obj"                     { JSIL_Parser.FUNOBJ    }
-	| "closure"                     { JSIL_Parser.CLOSURE   }
-	| "sc_scope"                    { JSIL_Parser.SCSCOPE   }
-	| "o_chains"                    { JSIL_Parser.OCHAINS   }
-	| "overlaps_with_current_scope" { JSIL_Parser.OCS       }
+	| "$$scope"            { JSIL_Parser.SCOPELEXPR    }
+	| "scope"              { JSIL_Parser.SCOPE         }
+	| "schain"             { JSIL_Parser.SCHAIN        }
+	| "this"               { JSIL_Parser.THIS          }
+	| "closure"            { JSIL_Parser.CLOSURE       }
+	| "sc_scope"           { JSIL_Parser.SCSCOPE       }
+	| "o_chains"           { JSIL_Parser.OCHAINS       }
+	| "_"                  { JSIL_Parser.UNDERSCORE    }
 (* Type literals *)
 	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT  }
 	| "$$null_type"        { JSIL_Parser.NULLTYPELIT   }
@@ -123,7 +130,6 @@ rule read = parse
 (* Expression keywords *)
 	| "typeOf"             { JSIL_Parser.TYPEOF }
 	| "assume"             { JSIL_Parser.ASSUME }
-	| "assert"             { JSIL_Parser.ASSERT }
 	| "make-symbol-number" { JSIL_Parser.RNUMSYM }
 	| "make-symbol-string" { JSIL_Parser.RSTRSYM }
 	| "l-nth"              { JSIL_Parser.LSTNTH }
@@ -171,13 +177,21 @@ rule read = parse
 	| "+]"                 { JSIL_Parser.CCLCMD    }
 	| "unfold*"            { JSIL_Parser.RECUNFOLD }
 	| "fold"               { JSIL_Parser.FOLD      }
+	| "flash"              { JSIL_Parser.FLASH     }
 	| "unfold"             { JSIL_Parser.UNFOLD    }
 	| "callspec"           { JSIL_Parser.CALLSPEC  }
 	| "if"                 { JSIL_Parser.LIF       }
 	| "then"               { JSIL_Parser.LTHEN     }
 	| "else"               { JSIL_Parser.LELSE     }
-(* Procedure specification keywords *)
+	| "macro"              { JSIL_Parser.MACRO     }
+	| "assert"             { JSIL_Parser.ASSERT    }
+	(**
+		macro, assert are elsewhere
+	*)
+  (* Procedure specification keywords *)
   | "only"               { JSIL_Parser.ONLY      }
+	| "lemma"              { JSIL_Parser.LEMMA     }
+	| "variant"            { JSIL_Parser.VARIANT   }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
@@ -192,7 +206,6 @@ rule read = parse
 	| "err"                { JSIL_Parser.ERR       }
 (* Others *)
 	| "import"             { JSIL_Parser.IMPORT    }
-	| "macro"              { JSIL_Parser.MACRO     }
 (* Separators *)
 	| "(*"                 { read_comment lexbuf   }
 	| '.'                  { JSIL_Parser.DOT       }
@@ -210,10 +223,17 @@ rule read = parse
 	                           JSIL_Parser.FLOAT n }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
+	| aloc                  { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
+	| normalised_aloc       { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
+(* Filenames *)
+  | filename             { JSIL_Parser.FILENAME (Lexing.lexeme lexbuf) }
 (* Variables *)
 	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
+	| var2                 { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* Logic variables *)
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+	| lvar2                { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+	| normalised_lvar      { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 (* EOF *)
 	| eof                  { JSIL_Parser.EOF }
 	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

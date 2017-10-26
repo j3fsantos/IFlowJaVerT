@@ -1,13 +1,15 @@
-(** JSIL_Syntax *)
+4(** JSIL_Syntax *)
 
 open Set
+open Queue
 
 (**/**)
 (* Exceptions *)
 exception Syntax_error of string
 
-let small_tbl_size = 31
-let big_tbl_size = 1021
+let small_tbl_size  = 31
+let medium_tbl_size = 101 
+let big_tbl_size    = 1021
 (**/**)
 
 (** {2 Syntax of the JSIL language} *)
@@ -28,6 +30,7 @@ type jsil_type =
 	| ListType      (** Type of lists     *)
 	| TypeType      (** Type of types     *)
 	| SetType       (** Type of sets      *)
+	[@@deriving show]
 
 (** {b JSIL constants}. They are mostly inspired by those present in JavaScript's Math
     and Date libraries. *)
@@ -45,9 +48,10 @@ type jsil_constant =
 	| Sqrt2     (** The square root of 2 *)
 	| UTCTime   (** Current UTC time *)
 	| LocalTime (** Current local time *)
+	[@@deriving show]
 
 (** {b JSIL variables}. JSIL variables are internally represented as strings. *)
-type jsil_var = string
+type jsil_var = string [@@deriving show]
 
 (** {b JSIL literals}. The literal values of the JSIL language. Most are standard, some
     are inherited from JavaScript. *)
@@ -64,6 +68,7 @@ type jsil_lit =
 	| Type      of jsil_type     (** JSIL types ({!type:jsil_type}) *)
 	| LList     of jsil_lit list (** Lists of JSIL literals *)
 	| CList     of jsil_lit list (** Lists of JSIL literals converted from String *)
+	[@@deriving show]
 
 (** Maps JSIL literal's to their JSIL types *)
 let evaluate_type_of lit =
@@ -121,6 +126,7 @@ type jsil_unop =
 	| LstLen      (** List length *)
 	(* Strings *)
 	| StrLen      (** String length *)
+	[@@deriving show]
 
 (** {b JSIL binary operators}. JSIL features standard binary operators on numbers,
     booleans, lists, and strings, plus several mathematical operators as well as a
@@ -162,6 +168,7 @@ type jsil_binop =
 	| SetDiff            (** Set difference *)
 	| SetMem             (** Set membership *)
 	| SetSub             (** Subset *)
+	[@@deriving show]
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
@@ -177,10 +184,6 @@ type jsil_binop =
 	| CList    of jsil_expr list                     (** Lists of characters *)
 	| SetUnion of jsil_expr list
 	| SetInter of jsil_expr list
-	| RAssume  of jsil_expr
-	| RAssert  of jsil_expr
-	| RNumSymb
-	| RStrSymb
 
 (**/**)
 (* Shorthand *)
@@ -224,7 +227,7 @@ type jsil_cmd =
 (** {2 Syntax of JSIL Logic} *)
 
 (** {b JSIL logic variables}. JSIL logic variables are internally represented as strings. *)
-type jsil_logic_var = string
+type jsil_logic_var = string [@@deriving show]
 
 (** {b JSIL logic expressions}. *)
 type jsil_logic_expr =
@@ -243,7 +246,7 @@ type jsil_logic_expr =
 	| LSetUnion of jsil_logic_expr list                          (** Unions *)
 	| LSetInter of jsil_logic_expr list                          (** Intersections *)
 	| LNone                                                      (** Empty field value *)
-	| LUnknown                                                   (** Unknown field value *)
+	[@@deriving show]
 
 (** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =
@@ -258,21 +261,22 @@ type jsil_logic_assertion =
 	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
 	| LForAll           of (jsil_var * jsil_type) list * jsil_logic_assertion      (** Forall *)
 	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
-	| LEmptyFields	    of jsil_logic_expr * (jsil_logic_expr list)                (** emptyFields assertion *)
+	| LEmptyFields	    of jsil_logic_expr * jsil_logic_expr                       (** emptyFields assertion *)
 	| LEq			    of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
 	| LLess			    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for numbers *)
 	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than-or-equal for numbers *)
-	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                           (** Expression less-than for strings *)
-	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                           (** Set membership *)
-	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                           (** Set subsetness *)
+	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for strings *)
+	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)
+	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *)
 
 
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
-	name        : string;                    (** Name of the predicate *)
-	num_params  : int;                       (** Number of parameters *)
-	params      : jsil_logic_expr list;      (** Actual parameters *)
-	definitions : jsil_logic_assertion list; (** Predicate definitions *)
+	name        : string;                                        (** Name of the predicate  *)
+	num_params  : int;                                           (** Number of parameters   *)
+	params      : jsil_logic_expr list;                          (** Actual parameters      *)
+  definitions : ((string option) * jsil_logic_assertion) list;  (** Predicate definitions  *)
+  previously_normalised_pred : bool                             (** If the predicate has been previously normalised *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -290,16 +294,20 @@ type jsil_return_flag =
 
 (** {b Single JSIL specifications}. *)
 type jsil_single_spec = {
-	pre      : jsil_logic_assertion; (** Precondition *)
-	post     : jsil_logic_assertion; (** Postcondition *)
-	ret_flag : jsil_return_flag      (** Return flag ({!type:jsil_return_flag}) *)
+	pre      : jsil_logic_assertion;      (** Precondition *)
+	post     : jsil_logic_assertion list; (** Postcondition *)
+	ret_flag : jsil_return_flag           (** Return flag ({!type:jsil_return_flag}) *)
 }
+
+(** Keeps track of whether the current file is a previously normalised file **)
+let previously_normalised = ref false;
 
 (** {b Full JSIL specifications}. *)
 type jsil_spec = {
-	spec_name    : string;               (** Procedure/spec name *)
-	spec_params  : jsil_var list;        (** Procedure/spec parameters *)
-	proc_specs   : jsil_single_spec list (** List of single specifications *)
+	spec_name     : string;                (** Procedure/spec name *)
+	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
+  proc_specs    : jsil_single_spec list; (** List of single specifications *)
+  previously_normalised : bool           (** If the spec is already normalised *)
 }
 
 (**/**)
@@ -311,24 +319,32 @@ let create_single_spec pre post flag =
 		ret_flag = flag
 	}
 
-let create_jsil_spec name params specs =
+let create_jsil_spec name params specs normalised =
 	{
 		spec_name   = name;
 		spec_params = params;
-		proc_specs  = specs
+    proc_specs  = specs;
+    previously_normalised = normalised
 	}
 (**/**)
 
 (** {b JSIL logic commands}. *)
 type jsil_logic_command =
-	| Fold             of jsil_logic_assertion                                                    (** Recursive fold *)
-	| Unfold           of jsil_logic_assertion                                                    (** Single unfold *)
-	| CallSpec		   of string * jsil_var * (jsil_logic_expr list)                              (** Spec calling *)
-	| RecUnfold        of string                                                                  (** Recursive unfold of everything *)
-	| LinearRecUnfold  of string * (jsil_logic_expr list)                                         (** Recursive unfold of everything but this time I will give you the arguments *)
-	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list) (** If-then-else *)
-	| Macro            of string * (jsil_logic_expr list)                                         (** Macro *)
-	| Assert           of jsil_logic_assertion                                                    (** Assert *)
+	| Fold             of jsil_logic_assertion                                                          (** Recursive fold *)
+	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
+	| ApplyLem		   of string * (jsil_logic_expr list)                                               (** Apply lemma *)
+	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
+	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)       (** If-then-else *)
+	| Macro            of string * (jsil_logic_expr list)                                               (** Macro *)
+	| Assert           of jsil_logic_assertion                                                          (** Assert *)
+
+(** {b JSIL lemmas}. *)
+type jsil_lemma = {
+	lemma_name    : string; (* Name of the lemma *)
+	lemma_spec    : jsil_spec; (* The lemma spec *)
+  lemma_proof   : (jsil_logic_command list) option;  (** (Optional) Proof body *)
+  lemma_variant : jsil_expr option (* The paramater to treat as the variant. Will trigger termination checks *)
+}
 
 (** {b JSIL logic macro}. *)
 type jsil_logic_macro = {
@@ -392,6 +408,8 @@ type jsil_ext_procedure = {
 type jsil_ext_program = {
 	(* Import statements = [Filename : String] *)
 	imports : string list;
+	(* Lemmas *)
+	lemmas : (string, jsil_lemma) Hashtbl.t;
 	(* Predicates = Name : String --> Definition *)
 	predicates : (string, jsil_logic_predicate) Hashtbl.t;
 	(* Specs = Name : String --> Spec *)
@@ -401,6 +419,27 @@ type jsil_ext_program = {
 	(* List of JSIL procedure names in order.*)
 	procedure_names : (string list);
 }
+
+(* Normalised predicate *)
+type normalised_predicate = {
+  name         : string;
+  num_params   : int;
+  params       : jsil_var list;
+  definitions  : ((string option) * jsil_logic_assertion) list;
+  is_recursive : bool
+}
+
+type lemma_table         = (string, jsil_lemma) Hashtbl.t
+type which_predecessor   = (string * int * int, int) Hashtbl.t
+
+
+(*************************************)
+(** JSIL Logic Macros               **)
+(*************************************)
+
+(* Associates a string with a jsil_logic_macro *)
+let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
+
 
 (*************************************)
 (** JSIL Heaps                      **)
@@ -445,8 +484,6 @@ let get_proc_args proc = proc.proc_params (* shorthand *)
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
-(* Associates a string with a jsil_logic_macro *)
-let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 
 (* STATISTICS *)
 
@@ -456,13 +493,18 @@ let newencoding = ref false
 
 let output_file = open_out "normalOutput.txt"
 let output_file_debug = open_out "debugOutput.txt"
+let output_file_normalisation = open_out "normalisationOutput.txt"
+let output_file_njsil = open_out "normalisedSpecsPreds.njsil"
 
 let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
-let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg
-				
-let close_output_files () = 
+let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg 
+let print_normalisation msg = output_string output_file_normalisation (msg ^ "\n") 
+let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n") 
+
+let close_output_files () =
 	close_out output_file;
-	close_out output_file_debug
+  close_out output_file_debug;
+  close_out output_file_normalisation
 
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
@@ -542,14 +584,19 @@ module SLExpr = Set.Make(MyLExpr)
 
 module SFV = Set.Make(MyFieldValueList)
 
+
+
 (* Satisfiability cache *)
 (* Maps each assertion to true or false (if it's sasisfiable) *)
-let check_sat_cache : (jsil_logic_assertion, bool) Hashtbl.t = Hashtbl.create 513
+let sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create 513
+let encoding_cache : (SA.t, Z3.Expr.expr list) Hashtbl.t = Hashtbl.create 513
 
 (* Default values *)
-let initialise =
-	Hashtbl.add check_sat_cache LTrue true;
-	Hashtbl.add check_sat_cache LFalse false
+let initialise_caches =
+	Hashtbl.add sat_cache (SA.singleton LTrue) true;
+	Hashtbl.add sat_cache (SA.singleton LFalse) false;
+	Hashtbl.add encoding_cache (SA.singleton LTrue) [];
+  Hashtbl.add encoding_cache (SA.singleton LFalse) []
 
 let statistics = Hashtbl.create 511
 
@@ -562,7 +609,7 @@ let update_statistics (fname : string) (time : float) =
 
 let process_statistics () =
 	print_normal "\n STATISTICS \n ========== \n";
-	print_normal (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length check_sat_cache));
+	print_normal (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length sat_cache));
 	(* Process each item in statistics table *)
 	Hashtbl.iter (fun f lt ->
 		(* Calculate average, min, max *)
@@ -655,8 +702,49 @@ let is_spec_var_name (name : string) : bool =
 let fresh_spec_var () : string =
 	( "#" ^ fresh_svar ())
 
+
+(*******************************************************)
+(*******************************************************)
 (* A substitution type                                 *)
-type substitution = ((string, jsil_logic_expr) Hashtbl.t)
+(*******************************************************)
+(*******************************************************)
+type substitution      = ((string, jsil_logic_expr) Hashtbl.t)
+type substitution_list = ((string * jsil_logic_expr) list) 
+
+let init_substitution (vars : string list) : substitution =
+	let new_subst = Hashtbl.create big_tbl_size in
+	List.iter
+		(fun var -> Hashtbl.replace new_subst var (LVar var))
+		vars;
+	new_subst
+
+let init_substitution2 vars les =
+	let subst = Hashtbl.create big_tbl_size in
+
+	let rec loop vars les =
+		match vars, les with
+		| [], _
+		| _, [] -> ()
+		| var :: rest_vars, le :: rest_les ->
+			Hashtbl.replace subst var le; loop rest_vars rest_les in
+
+	loop vars les;
+	subst
+
+let init_substitution3 vars_les =
+	let subst = Hashtbl.create big_tbl_size in
+
+	let rec loop vars_les =
+		match vars_les with
+		| [] -> ()
+		| (var, le) :: rest ->
+			Hashtbl.replace subst var le; loop rest in
+
+	loop vars_les;
+	subst
+
+let substitution_range (subst : substitution) : jsil_logic_expr list = 
+	Hashtbl.fold (fun x le ac -> le :: ac) subst [] 
 
 (* creates an expression of equality from the substitution table *)
 let assertions_of_substitution (subst : substitution) =
@@ -665,12 +753,31 @@ let assertions_of_substitution (subst : substitution) =
 		subst                                      (* the substituion table *)
 		[]                                         (* base element *)
 
-(* Typing Environment *)
+let copy_substitution (subst : substitution) : substitution = Hashtbl.copy subst
 
+let extend_substitution (subst : substitution) (vars : string list) (les : jsil_logic_expr list) : unit =
+	List.iter2 (fun v le -> Hashtbl.replace subst v le) vars les
+
+
+
+(* Symbolic heaps *)
+module LHeap = Hashtbl.Make(
+	struct
+		type t = string
+		let equal = (=)
+		let hash = Hashtbl.hash
+	end)
+
+
+(*******************************************************)
+(*******************************************************)
+(* Typing Environment                                  *)
+(*******************************************************)
+(*******************************************************)
 type typing_environment        = ((string, jsil_type) Hashtbl.t)
 
 (* functions to manipulate gamma *)
-let mk_gamma () = Hashtbl.create small_tbl_size
+let gamma_init () = Hashtbl.create small_tbl_size
 
 let gamma_get_type gamma var =
 	try Some (Hashtbl.find gamma var) with Not_found -> None
@@ -685,7 +792,7 @@ let weak_update_gamma (gamma : typing_environment) x te =
 	| None -> ()
 	| Some te -> Hashtbl.replace gamma x te)
 
-let copy_gamma gamma =
+let gamma_copy (gamma : typing_environment) : typing_environment =
 	let new_gamma = Hashtbl.copy gamma in
 	new_gamma
 
@@ -714,26 +821,10 @@ let filter_gamma_f gamma f =
 		gamma;
 	new_gamma
 
-let filter_gamma_with_subst gamma vars subst =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
-		(fun v v_type ->
-			(if (List.mem v vars) then
-				try
-					match (Hashtbl.find subst v) with
-					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
-					| _ -> ()
-				with Not_found -> ()))
-		gamma;
-	new_gamma
-
-let get_gamma_vars catch_pvars gamma : SS.t =
+let gamma_lvars (gamma : typing_environment) : SS.t =
 	Hashtbl.fold
 		(fun var _ ac ->
-			let is_lvar = is_lvar_name var in
-			(match ((is_lvar && not catch_pvars) || (not is_lvar && catch_pvars)) with
-			| true -> SS.add var ac
-			| false -> ac))
+			if is_lvar_name var then SS.add var ac else ac)
 		gamma SS.empty
 
 let get_gamma_all_vars gamma : SS.t =
@@ -775,12 +866,41 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 				then Hashtbl.add gamma_l var v_type)
 		gamma_r
 
-let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list = 
+let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list =
 	Hashtbl.fold
-		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars)) 
+		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars))
 		gamma
-		[]	
+		[]
 
+(** conversts a symbolic store to a list of assertion *)
+let assertion_of_gamma (gamma : typing_environment) : jsil_logic_assertion = 
+	let le_type_pairs = 
+		Hashtbl.fold
+			(fun x t pairs -> 
+				(if (is_lvar_name x) 
+					then (LVar x, t) :: pairs
+					else (PVar x, t) :: pairs)) gamma [] in 
+	LTypes le_type_pairs 
 
+(* ******* *)
+(* Hashing *)
+(* ******* *)
 
+let hash_to_list hash =
+	List.sort compare (Hashtbl.fold (fun k v ac -> (k, v) :: ac) hash [])
 
+let hash_of_list hash =
+	let result = Hashtbl.create 523 in
+	List.iter (fun (v, t) -> Hashtbl.add result v t) hash;
+	result
+
+let lheap_to_list hash =
+	List.sort compare (LHeap.fold (fun k v ac -> (k, v) :: ac) hash [])
+
+let lheap_of_list hash =
+	let result = LHeap.create 523 in
+	List.iter (fun (v, t) -> LHeap.add result v t) hash;
+	result
+	
+(* JS2JSIL *)
+let for_verification = ref false

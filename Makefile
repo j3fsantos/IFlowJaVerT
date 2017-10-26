@@ -4,17 +4,17 @@ OCAMLBUILDFLAGS=-use-ocamlfind -verbose 1
 default:
 	ocamlbuild ${OCAMLBUILDFLAGS} sjsil.otarget
 
-init: init_ci
+init: init_build
 	.git-hooks/install.sh .
-	echo "Now install Z3"
 
-init_ci: init_parser
+init_build: init_parser
+	opam pin -y add JS_Parser "https://github.com/resource-reasoning/JS_Parser.git#002ecf9f28e8cdaf9683c39190e495403196fa7e"
 	opam pin -yn add .
 	opam install -y JavaScriptVerification --deps-only
 
 init_parser:
-	opam pin -y add JS_Parser "https://github.com/resource-reasoning/JS_Parser.git#d4384b12880361ceb0ff14129a60200e697ca38b"
-#	opam pin -y add JS_Parser ../JS_Parser
+	opam pin -y add JS_Parser-runtime "https://github.com/resource-reasoning/JS_Parser.git#002ecf9f28e8cdaf9683c39190e495403196fa7e"
+	opam install -y JS_Parser-runtime
 
 clean:
 	ocamlbuild ${OCAMLBUILDFLAGS} -clean

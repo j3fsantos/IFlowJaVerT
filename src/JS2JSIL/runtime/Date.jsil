@@ -1,4 +1,4 @@
-import Global;
+import Global.jsil;
 
 (* Magic + UTC and daylight conversion *)
 

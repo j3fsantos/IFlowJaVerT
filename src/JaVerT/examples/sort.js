@@ -5,9 +5,9 @@
     (o == $$null) * types (o : $$null_type);
 
  @pred Node(n, v, t):
-   standardObject(n) *
-   dataField(n, "value", v) *
-   dataField(n, "next", t) *
+   JSObject(n) *
+   DataProp(n, "value", v) *
+   DataProp(n, "next", t) *
    types(v: $$number_type);
  
  @pred NDList(l, E):
@@ -30,18 +30,18 @@
 /**
 	@id insert
 
-	@pre ((node == #n) * (value == #v) * SOList(#n, #E) * types(#v: $$number_type) * 
-		 scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
-	@post ( (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) *
-		 scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto) )
+	@pre ( initialHeapPostWeak() * (node == #n) * (value == #v) * SOList(#n, #E) * types(#v: $$number_type) * 
+		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
+	@post ( initialHeapPostWeak() * (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) *
+		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto) )
 */
 function insert(node, value) {
     
     var result;
 
-    /** @unfold SOList(#n, #E) */
+    /** @tactic unfold SOList(#n, #E) */
     if (node === null) {
-    	/** @fold SOList(#n, #E) */
+    	/** @tactic fold SOList(#n, #E) */
         result = { next: null, value: value }
     } else if (node.value === value) {
         result = node;
@@ -53,25 +53,25 @@ function insert(node, value) {
     }
     
     /** @invariant scope(result : #res) 
-        @fold SOList(#res, -u- (-{ #v }-, #E)) */
+        @tactic fold SOList(#res, -u- (-{ #v }-, #E)) */
     return result;
 }
 
 /**
 	@id sort
 
-	@pre ((head == #h) * NDList(#h, #E) * 
-		  scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
-		  scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
-	@post (SOList(ret, #E) * nullableObject(ret) * 
-		  scope(sort: #sort_fun) * fun_obj(sort, #sort_fun, #sort_proto) * 
-		  scope(insert: #insert_fun) * fun_obj(insert, #insert_fun, #insert_proto))
+	@pre (initialHeapPostWeak() * (head == #h) * NDList(#h, #E) * 
+		  scope(sort: #sort_fun) * FunctionObject(#sort_fun, "sort", #sort_sc, #sort_proto) * 
+		  scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
+	@post ( initialHeapPostWeak() * SOList(ret, #E) * nullableObject(ret) * 
+		  scope(sort: #sort_fun) * FunctionObject(#sort_fun, "sort", #sort_sc, #sort_proto) * 
+		  scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
 */
 function sort(head) {
     var result;
-    /** @unfold NDList(#h, #E) */
+    /** @tactic unfold NDList(#h, #E) */
     if (head === null) {
-        /** @fold SOList($$null, -{ }-) */
+        /** @tactic fold SOList($$null, -{ }-) */
         result = null
     } else {
         var rec = sort(head.next);

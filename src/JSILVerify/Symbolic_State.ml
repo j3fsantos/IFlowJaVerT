@@ -1,219 +1,258 @@
 open JSIL_Syntax
+open JSIL_Logic_Utils
 open Z3
 
-(* Symbolic State Error                                *)
-exception Symb_state_error of string;;
-
 (*************************************)
-(** Symbolic States                 **)
+(** Types                           **)
 (*************************************)
-module LHeap = Hashtbl.Make(
-	struct
-		type t = string
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
 
 type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
-type symbolic_heap             = (symbolic_field_value_list * jsil_logic_expr) LHeap.t
+type symbolic_heap             = (symbolic_field_value_list * (jsil_logic_expr option)) LHeap.t
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
-type symbolic_state = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set 
+type symbolic_state       = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
+type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
+type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
+
+type jsil_n_single_spec = {
+	n_pre              : symbolic_state;
+	n_post             : symbolic_state list;
+	n_ret_flag         : jsil_return_flag;
+	n_lvars            : SS.t; 
+	n_subst            : substitution; 
+	n_unification_plan : jsil_logic_assertion list; 
+}
+
+type jsil_n_spec = {
+	n_spec_name   : string;
+  	n_spec_params : jsil_var list;
+	n_proc_specs  : jsil_n_single_spec list
+}
+
+type n_jsil_logic_predicate = {
+	n_pred_name             : string;
+	n_pred_num_params       : int;
+	n_pred_params           : jsil_logic_var list;
+	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
+	n_pred_is_rec           : bool; 
+}
+
+type specification_table = (string, jsil_n_spec) Hashtbl.t
+
+(** {b Pruning table}. A table mapping each spec_name to a list of 
+arrays - one per possible precondition. Each precondtion is associated 
+with an array of booleans, one per postcondition, denoting whether or 
+not that postcondition is reachable from the precondition.
+For instance, suppose:
+ pruning_table ("foo") = [ [| false, true |], [| true, true |] ] 
+Then the procedure foo has two pre-conditions, each with two 
+possible postconditions. The first postcondtion associated with 
+the first precondition is unreachable and therefore needs to be 
+eliminated. *)
+type pruning_table       = (string, (bool array) list) Hashtbl.t
+
+type symb_jsil_program = {
+	program    	: jsil_program;
+	spec_tbl   	: specification_table;
+	lemma_tbl   : lemma_table;
+	which_pred 	: (string * int * int, int) Hashtbl.t;
+	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
+}
+
+(*********************************************************)
+(** Lemma Dependency Graph **)
+(** Used for detecting cyclic dependencies **)
+(*********************************************************)
+type lemma_depd_graph = {
+  lemma_depd_names_ids       : (string, int) Hashtbl.t; (* mapping lemma names to node id's *)
+  lemma_depd_ids_names       : (int, string) Hashtbl.t; (* and the reverse.. *)
+  lemma_depd_edges           : (int, int list) Hashtbl.t; (* lemma_depd_edges.find(x) = list of all dependencies of x *)
+}
+
+type symb_graph_node_type = 
+	| SGCmdNode    of jsil_cmd * int
+	| SGLCmdNode   of jsil_logic_command
+	| SGPreNode 
+	| SGPostNode 
+	| SGErrorNode  of string 
+
+type symb_graph_node = {
+	symb_state  : symbolic_state option; 
+	(* cmd index *)
+	node_type   : symb_graph_node_type; 
+	node_number : int 
+}
+
+type symbolic_graph = { 
+	root                : symb_graph_node; 
+	info_nodes 		    : (int, symb_graph_node) Hashtbl.t;
+	info_edges          : (int, int list) Hashtbl.t;
+}
+
+type symbolic_execution_context = {
+	vis_tbl    		    : (int, int) Hashtbl.t;
+	cur_node_info       : symb_graph_node;
+	symb_graph          : symbolic_graph; 
+	next_node           : int ref;
+	post_pruning_info   : pruning_table; 
+	spec_number         : int;
+	proc_name           : string; 
+	pred_info           : (string, int Stack.t) Hashtbl.t
+}
+
+
+
 
 (*************************************)
 (** Field Value Lists               **)
 (*************************************)
 
-let is_empty_fv_list fv_list js =
-	let rec loop fv_list empty_so_far =
-		match fv_list with
-		| [] -> empty_so_far
-		| (f_name, f_val) :: rest ->
-			if ((f_name = (LLit (String JS2JSIL_Constants.erFlagPropName))) && js) 
-				then true 
-				else ( if (f_val = LNone) then loop rest empty_so_far else loop rest false ) in 
-	loop fv_list true
+let fv_list_substitution 
+		(subst   : substitution) (partial : bool) 
+		(fv_list : symbolic_field_value_list) : symbolic_field_value_list =
+	let f_subst = lexpr_substitution subst partial in 
+	List.map (fun (le_field, le_val) -> f_subst le_field, f_subst le_val) fv_list
 
-
-let fv_list_substitution fv_list subst partial =
-	List.map
-		(fun (le_field, le_val) ->
-			let s_le_field = JSIL_Logic_Utils.lexpr_substitution le_field subst partial in
-			let s_le_val = JSIL_Logic_Utils.lexpr_substitution le_val subst partial in
-			(s_le_field, s_le_val))
-		fv_list
-
-let selective_fv_list_substitution fv_list subst partial =
-	List.map
-		(fun (le_field, le_val) ->
-			let s_le_val = JSIL_Logic_Utils.lexpr_substitution le_val subst partial in
-			(le_field, s_le_val))
-		fv_list
+let selective_fv_list_substitution 
+		(subst   : substitution) (partial : bool) 
+		(fv_list : symbolic_field_value_list) : symbolic_field_value_list =
+	let f_subst = JSIL_Logic_Utils.lexpr_selective_substitution subst partial in 
+	List.map (fun (le_field, le_val) -> (le_field, f_subst le_val)) fv_list
 
 (*************************************)
 (** Heap functions                  **)
 (*************************************)
 
-let heap_init () = 
-	LHeap.create 1021
+(** Returns an empty symbolic heap *)
+let heap_init () : symbolic_heap =
+	LHeap.create big_tbl_size
 
+(** Symbolic heap read heap(loc) *)
 let heap_get (heap : symbolic_heap) (loc : string) =
 	try Some (LHeap.find heap loc) with _ -> None
 
-let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (def : jsil_logic_expr) =
-	LHeap.replace heap loc (fv_list, def)   
+let heap_get_unsafe (heap : symbolic_heap) (loc : string) =
+	try LHeap.find heap loc with _ -> raise (Failure "DEATH. heap_get_unsafe")
 
-let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) = 
-	let fv_list, def_val = try LHeap.find heap loc with _ -> ([], LUnknown) in  
-	LHeap.replace heap loc (((field, value) :: fv_list), def_val)
+(** Symbolic heap put heap(loc) is assigned to fv_list *)
+let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (dom : jsil_logic_expr option) =
+	LHeap.replace heap loc (fv_list, dom)
 
+let heap_has_loc (heap : symbolic_heap) (loc : string) : bool = 
+	LHeap.mem heap loc 
+
+(** Symbolic heap put heap(loc, field) is assgined to value. 
+    The domain remains unchanged *) 
+let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) =
+	let fv_list, domain = try LHeap.find heap loc with _ -> ([], None) in
+	LHeap.replace heap loc (((field, value) :: fv_list), domain)
+
+(** Removes the fv-list associated with --loc-- in --heap-- *)
 let heap_remove (heap : symbolic_heap) (loc : string) =
-	LHeap.remove heap loc  
+	LHeap.remove heap loc
 
-let heap_domain (heap : symbolic_heap) subst =
-	let domain =
-		LHeap.fold
-			(fun l _ ac -> l :: ac)
-			heap
-			[] in
+(** Removes the domain of --heap-- *)
+let heap_domain (heap : symbolic_heap) : SS.t =
+	SS.of_list (LHeap.fold (fun l _ ac -> l :: ac) heap [])
 
-	let rec loop locs matched_abs_locs free_abs_locs concrete_locs =
-		match locs with
-		| [] -> concrete_locs @ matched_abs_locs @ free_abs_locs
-		| loc :: rest_locs ->
-			if (is_abs_loc_name loc)
-				then (
-					if (Hashtbl.mem subst loc)
-						then loop rest_locs (loc :: matched_abs_locs) free_abs_locs concrete_locs
-						else loop rest_locs matched_abs_locs (loc :: free_abs_locs) concrete_locs)
-				else loop rest_locs matched_abs_locs free_abs_locs (loc :: concrete_locs) in
+(** Returns a copie of --heap-- *)
+let heap_copy (heap : symbolic_heap) : symbolic_heap = LHeap.copy heap
 
-	loop domain [] [] []
-
-let heap_copy heap = LHeap.copy heap 
-
-let heap_substitution (heap : symbolic_heap) (subst : substitution) (partial : bool) =
+(** Returns subst(heap) *)
+let heap_substitution (subst : substitution) (partial : bool) (heap : symbolic_heap)  : symbolic_heap =
 	let new_heap = LHeap.create 1021 in
 	LHeap.iter
-		(fun loc (fv_list, def) ->
-			let s_loc =
-				(try Hashtbl.find subst loc
-					with _ ->
-						if (is_abs_loc_name loc)
-							then
-								(if (partial) then (ALoc loc) else
-									(let new_aloc = ALoc (fresh_aloc ()) in
-									JSIL_Logic_Utils.extend_subst subst loc new_aloc;
-									new_aloc))
-							else (LLit (Loc loc))) in
-			let s_loc =
-				(match s_loc with
-					| LLit (Loc loc) -> loc
-					| ALoc loc -> loc
-					| _ ->
-						raise (Failure (Printf.sprintf "Heap substitution failed miserably: %s" (JSIL_Print.string_of_logic_expression s_loc false)))) in
-			let s_fv_list = fv_list_substitution fv_list subst partial in
-			let s_def = JSIL_Logic_Utils.lexpr_substitution def subst partial in
-			LHeap.add new_heap s_loc (s_fv_list, s_def))
+		(fun loc (fv_list, domain) ->
+			let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
+				try Hashtbl.find subst loc with _ -> 
+					if (partial) then (ALoc loc) else (
+						let new_aloc = ALoc (fresh_aloc ()) in
+						extend_substitution subst [ loc ] [ new_aloc ];
+						new_aloc)) in 
+			let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
+				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 
+			let s_fv_list = fv_list_substitution subst partial fv_list in
+			let s_domain = Option.map (fun le -> lexpr_substitution subst partial le) domain in
+			LHeap.add new_heap s_loc (s_fv_list, s_domain))			
 		heap;
 	new_heap
 
-let heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
+(** Modifies --heap-- in place updating it to subst(heap) *)
+let heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) : unit =
   LHeap.iter
-  	(fun loc (fv_list, def) ->
-  		let s_loc =
-  			(try Hashtbl.find subst loc
-  				with _ ->
-  					if (is_abs_loc_name loc)
-  						then ALoc loc
-  						else (LLit (Loc loc))) in
-  		let s_loc =
-  			(match s_loc with
-  				| LLit (Loc loc) -> loc
-  				| ALoc loc -> loc
-  				| _ ->
-  					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = fv_list_substitution fv_list subst true in
-  		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
-  		LHeap.replace heap s_loc (s_fv_list, s_def))
-  	heap
-		
-let selective_heap_substitution_in_place (heap : symbolic_heap) (subst : substitution) =
-  LHeap.iter
-  	(fun loc (fv_list, def) ->
-  		let s_loc =
-  			(try Hashtbl.find subst loc
-  				with _ ->
-  					if (is_abs_loc_name loc)
-  						then ALoc loc
-  						else (LLit (Loc loc))) in
-  		let s_loc =
-  			(match s_loc with
-  				| LLit (Loc loc) -> loc
-  				| ALoc loc -> loc
-  				| _ ->
-  					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = fv_list in (* selective_fv_list_substitution fv_list subst true in *)
-  		let s_def = JSIL_Logic_Utils.lexpr_substitution def subst true in
-  		LHeap.replace heap s_loc (s_fv_list, s_def))
+  	(fun loc (fv_list, domain) ->
+  		let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
+			try Hashtbl.find subst loc with _ -> ALoc loc) in 
+  		let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
+			| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 		
+  		let s_fv_list = fv_list_substitution subst true fv_list in
+  		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst true le) domain in
+  		LHeap.replace heap s_loc (s_fv_list, s_domain))
   	heap
 
-let heap_vars catch_pvars heap : SS.t =
+(** Returns the logical variables occuring in --heap-- *)
+let heap_lvars (heap : symbolic_heap) : SS.t =
 	LHeap.fold
-		(fun _ (fv_list, e_def) ac ->
+		(fun _ (fv_list, domain) ac ->
 			let v_fv = List.fold_left
-				(fun ac (e_field, e_val) ->
-					let v_f = JSIL_Logic_Utils.get_expr_vars catch_pvars e_field in
-					let v_v = JSIL_Logic_Utils.get_expr_vars catch_pvars e_val in
-						SS.union ac (SS.union v_f v_v))
+				(fun ac (e_field, e_val) -> SS.union ac (SS.union (get_lexpr_lvars e_field) (get_lexpr_lvars e_val)))
 				SS.empty fv_list in
-			let v_def = JSIL_Logic_Utils.get_expr_vars catch_pvars e_def in
-			SS.union ac (SS.union v_fv v_def))
-		heap SS.empty
-		
-let get_locs_heap heap : SS.t =
-	LHeap.fold
-		(fun _ (fv_list, e_def) ac ->
-			let v_fv = List.fold_left
-				(fun ac (e_field, e_val) ->
-					let v_f = JSIL_Logic_Utils.get_locs_expr e_field in
-					let v_v = JSIL_Logic_Utils.get_locs_expr e_val in
-						SS.union ac (SS.union v_f v_v))
-				SS.empty fv_list in
-			let v_def = JSIL_Logic_Utils.get_locs_expr e_def in
-			SS.union ac (SS.union v_fv v_def))
+			let v_domain = Option.map_default (fun domain -> get_lexpr_lvars domain) SS.empty domain in
+			SS.union ac (SS.union v_fv v_domain))
 		heap SS.empty
 
-let heap_as_list (heap : symbolic_heap) = 
-	LHeap.fold 
-		(fun loc (fv_list, def) heap_as_list -> 
-			((loc, (fv_list, def)) :: heap_as_list))
-		heap
-		[]
-		
-let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * jsil_logic_expr) -> unit) = 
+(** Returns the abstract locations occuring in --heap-- *)
+let heap_alocs (heap : symbolic_heap) : SS.t =
+	LHeap.fold
+		(fun _ (fv_list, _) ac ->
+			let v_fv = List.fold_left
+				(fun ac (e_field, e_val) -> SS.union ac (SS.union (get_lexpr_alocs e_field) (get_lexpr_alocs e_val)))
+				SS.empty fv_list in
+			SS.union ac v_fv)
+		heap SS.empty
+
+(** Returns the serialization of --heap-- as a list *)
+let heap_to_list (heap : symbolic_heap) : (string * (symbolic_field_value_list * (jsil_logic_expr option))) list =
+	LHeap.fold (fun loc obj ac -> ((loc, obj) :: ac)) heap []
+
+(** Calls --f-- on all objects of --heap--; f(loc, (fv_list, dom)) *)
+let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * (jsil_logic_expr option) -> unit)) =
 	LHeap.iter f heap
 
-let is_heap_empty (heap : symbolic_heap) (js : bool) : bool =
+(** Returns true if --heap-- is empty *)
+let is_heap_empty (heap : symbolic_heap) : bool =
 	LHeap.fold
-		(fun loc (fv_list, def) ac -> if (not ac) then ac else is_empty_fv_list fv_list js)
+		(fun loc (fv_list, dom) ac -> if (not ac) then ac else (fv_list = []) && (dom = None))
 		heap
 		true
 
-
-
+(** conversts a symbolic heap to a list of assertions *)
+let assertions_of_heap (h : symbolic_heap) : jsil_logic_assertion list= 
+	let make_loc_lexpr loc = 
+		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
 	
+	let rec assertions_of_object (loc, (fv_list, set)) =
+	 	let le_loc = make_loc_lexpr loc in
+		let fv_assertions = List.map (fun (field, value) -> LPointsTo (le_loc, field, value)) fv_list in 
+		Option.map_default (fun set -> (LEmptyFields (le_loc, set)) :: fv_assertions) fv_assertions set in 
+
+	List.concat (List.map assertions_of_object (heap_to_list h))
+
 (*************************************)
 (** Abstract Store functions        **)
 (*************************************)
 
-let store_init vars les =
-	let store = Hashtbl.create 31 in
-
+(** Returns a new symbolic store where the variables in vars are 
+    mapped to the logical expressions in --les--. 
+    When |les| > |vars|, the additional les are ignored. 
+    When |les| < |vars|, the vars for which we do not have le are
+    set to undefined *)  
+let store_init (vars : string list) (les : jsil_logic_expr list) : symbolic_store =
+	let store = Hashtbl.create medium_tbl_size in
 	let rec loop vars les =
 		match vars, les with
 		| [], _ -> ()
@@ -221,681 +260,692 @@ let store_init vars les =
 				Hashtbl.replace store var le; loop rest_vars rest_les
 		| var :: rest_vars, [] ->
 				Hashtbl.replace store var (LLit Undefined); loop rest_vars [] in
-
 	loop vars les;
 	store
 
-let store_get_safe store x =
+(** Returns Some store(x) if defined and None otherwise *)
+let store_get_safe (store : symbolic_store) (x : string) : jsil_logic_expr option =
 	try
 		Some (Hashtbl.find store x)
 	with Not_found -> None
 
-let store_get store var =
+(** Returns Some store(x) if defined and throws an error otherwise *)
+let store_get (store : symbolic_store) (x : string) : jsil_logic_expr =
 	(try
-		Hashtbl.find store var
+		Hashtbl.find store x
 	with _ ->
-		let msg = Printf.sprintf "store_get_var: fatal error. var: %s" var in
+		let msg = Printf.sprintf "DEATH. store_get_var. var: %s" x in
 		raise (Failure msg))
 
-let store_put store x ne =
-	Hashtbl.replace store x ne
-
-let store_remove store x = 
-	Hashtbl.remove store x 
-
-let store_domain store =
+(** Returns Some --x-- for which store(x) = --y-- *)
+let store_get_rev (store : symbolic_store) (le : jsil_logic_expr) : string option =
 	Hashtbl.fold
-		(fun x _ ac -> x :: ac)
-		store
-		[]
-
-let store_get_rev store var =
-	Hashtbl.fold
-		(fun x y ac -> 
-			if (y = var) then
-				Some x
-			else 
-				ac)
+		(fun x le' ac -> if (le = le') then Some x else ac)
 		store
 		None
 
-let store_copy store =
-	let new_store = Hashtbl.copy store in
-	new_store
+(** Updates store(x) with --le-- *)
+let store_put (store : symbolic_store) (x : string) (le : jsil_logic_expr) : unit =
+	Hashtbl.replace store x le
 
-(** why are the types being treated here? **)
-let store_substitution store gamma subst partial =
+(** Removes the binding of --x-- from --store-- *)
+let store_remove (store : symbolic_store) (x : string) : unit =
+	Hashtbl.remove store x
+
+(** Removes the domian of --store-- *)
+let store_domain (store : symbolic_store) : SS.t =
+	SS.of_list (Hashtbl.fold (fun x _ ac -> x :: ac) store [])
+
+(** Returns a copie of --store-- *)
+let store_copy (store : symbolic_store) : symbolic_store = Hashtbl.copy store 
+
+(** Returns subst(store) *)
+let store_substitution 
+		(subst : substitution) (partial : bool) (store : symbolic_store) : symbolic_store =
 	let vars, les =
 		Hashtbl.fold
-			(fun pvar le (vars, les) ->
-				let s_le = JSIL_Logic_Utils.lexpr_substitution le subst partial in
-				let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
-				(match s_le_type with
-					| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
-					| None -> ());
-				(pvar :: vars), (s_le :: les))
+			(fun pvar le (vars, les) -> (pvar :: vars), ((lexpr_substitution subst partial le) :: les))
 			store
 			([], []) in
 	let store = store_init vars les in
 	store
 
-let store_substitution_in_place store gamma subst =
+(** Updates --store-- to subst(store) *)
+let store_substitution_in_place (subst : substitution) (store : symbolic_store) : unit =
 	Hashtbl.iter
-		(fun pvar le ->
-			let s_le = JSIL_Logic_Utils.lexpr_substitution le subst true in
-			Hashtbl.replace store pvar s_le;
-			
-			let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
-			(match s_le_type with
-				| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
-				| None -> ()))
+		(fun x le ->
+			let s_le = lexpr_substitution subst true le in
+			Hashtbl.replace store x s_le)
 		store
 
-let selective_store_substitution_in_place store gamma subst =
-	Hashtbl.iter
-		(fun pvar le ->
-			let s_le = JSIL_Logic_Utils.lexpr_substitution le subst true in
-			(match s_le with
-			| ALoc loc -> Hashtbl.replace store pvar s_le;
-					let s_le_type, is_typable, _ = JSIL_Logic_Utils.type_lexpr gamma s_le in
-					(match s_le_type with
-						| Some s_le_type -> Hashtbl.replace gamma pvar s_le_type
-						| None -> ())
-			| _ -> ()))
-		store
+(** Returns the set containing all the lvars occurring in --store-- *)
+let store_lvars (store : symbolic_store) : SS.t =
+	Hashtbl.fold (fun _ le ac -> SS.union ac (get_lexpr_lvars le)) store SS.empty
 
-let store_vars catch_pvars store =
-	Hashtbl.fold (fun _ e ac -> 
-		let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
-		SS.union ac v_e) store SS.empty
+(** Returns the set containing all the alocs occurring in --store-- *)
+let store_alocs (store : symbolic_store) : SS.t =
+	Hashtbl.fold (fun _ le ac -> SS.union ac (get_lexpr_alocs le)) store SS.empty
 
-let get_locs_store store =
-	Hashtbl.fold (fun _ e ac -> 
-		let v_e = JSIL_Logic_Utils.get_locs_expr e in
-		SS.union ac v_e) store SS.empty
-
-let store_pvars store : SS.t = 
-	Hashtbl.fold (fun v _ ac -> SS.add v ac) store SS.empty
-
-let store_merge_left (store_l : symbolic_store) (store_r : symbolic_store) =
-	Hashtbl.iter
-		(fun var expr ->
-			if (not (Hashtbl.mem store_l var))
-				then Hashtbl.add store_l var expr)
+(** Extend store_l with store_r *)
+let store_merge_left (store_l : symbolic_store) (store_r : symbolic_store) : unit =
+	Hashtbl.iter 
+		(fun x le -> if (not (Hashtbl.mem store_l x)) then Hashtbl.replace store_l x le)
 		store_r
 
-let store_filter store filter_fun =
+(** Partitions the variables in the domain of --store-- into two groups: 
+    - the group containing the variables mapped onto lexprs satisfying --pred--
+    - the rest *)
+let store_partition (store : symbolic_store) (pred_fun : jsil_logic_expr -> bool) : (string list) * (string list) =
 	Hashtbl.fold
-		(fun var le (filtered_vars, unfiltered_vars) ->
-			if (filter_fun le)
-				then ((var :: filtered_vars), unfiltered_vars)
-				else (filtered_vars, (var :: unfiltered_vars)))
+		(fun x le (pred_xs, npred_xs) ->
+			if (pred_fun le) then ((x :: pred_xs), npred_xs) else (pred_xs, (x :: npred_xs)))
 		store
 		([], [])
 
-let store_projection store vars =
-	let vars, les = 
-		List.fold_left 
-			(fun (vars, les) v ->
-				if (Hashtbl.mem store v) 
-					then (v :: vars), ((Hashtbl.find store v) :: les) 
-					else vars, les)
-			([], []) 
-			vars in
-	store_init vars les
+(** Returns the projection of --store-- onto --xs-- *)
+let store_projection (store : symbolic_store) (xs : string list) : symbolic_store =
+	let xs, les =
+		List.fold_left
+			(fun (xs, les) x ->
+				if (Hashtbl.mem store x)
+					then (x :: xs), ((Hashtbl.find store x) :: les)
+					else xs, les)
+			([], [])
+			xs in
+	store_init xs les
 
+(** Converts --store-- into a list of assertions *)
+let asrts_of_store (store : symbolic_store) : jsil_logic_assertion list =
+	Hashtbl.fold (fun x le asrts -> ((LEq (PVar x, le)) :: asrts)) store []
+
+(** Calls --f-- on all variables of --store--; f(x, le_x) *)
+let store_iter (store: symbolic_store) (f : string -> jsil_logic_expr -> unit) : unit =
+	Hashtbl.iter f store
+
+let store_fold (store: symbolic_store) (f : string -> jsil_logic_expr -> 'a  -> 'a) (init : 'a) : 'a =
+	Hashtbl.fold f store init 
+
+(** conversts a symbolic store to a list of assertions *)
+let assertions_of_store (s : symbolic_store) : jsil_logic_assertion list= 
+	Hashtbl.fold
+		(fun x le assertions -> 
+			(LEq (PVar x, le)) :: assertions) s []
 
 (*************************************)
 (** Pure Formulae functions         **)
 (*************************************)
 
-let pfs_to_list (pfs : pure_formulae) =
-	DynArray.to_list pfs
+(** Returns a new (empty) predicate set *)
+let pfs_init () : pure_formulae = DynArray.make medium_tbl_size
 
-let pfs_of_list (pfs : jsil_logic_assertion list) =
-	DynArray.of_list pfs
+(** Returns the serialization of --pfs-- as a list *)
+let pfs_to_list (pfs : pure_formulae) : jsil_logic_assertion list = DynArray.to_list pfs
 
-let add_pure_assertion (pfs : pure_formulae) (a : jsil_logic_assertion) = 
-	DynArray.add pfs a
-	
-let copy_p_formulae pfs =
-	let new_pfs = DynArray.copy pfs in
-	new_pfs
+(** Returns a pure_formulae array given a list of assertions *)
+let pfs_of_list (pfs : jsil_logic_assertion list) : pure_formulae = DynArray.of_list pfs
 
-(* let extend_pfs pfs solver pfs_to_add =
-	print_time_debug "extend_pfs:";
-	(match solver with
-	 | None -> ()
-	 | Some solver -> solver := None);
-	DynArray.append (DynArray.of_list pfs_to_add) pfs *)
+(** Extends --pfs-- with --a-- *)
+let pfs_extend (pfs : pure_formulae) (a : jsil_logic_assertion) : unit = DynArray.add pfs a
 
-let pf_of_store store subst =
-	Hashtbl.fold
-		(fun var le pfs ->
-			try
-				let sle = Hashtbl.find subst var in
-				((LEq (sle, le)) :: pfs)
-			with _ -> pfs)
-		store
-		[]
+(** Returns a copie of --pfs-- *)
+let pfs_copy (pfs : pure_formulae) : pure_formulae = DynArray.copy pfs
 
-let pf_of_store2 store =
-	Hashtbl.fold
-		(fun var le pfs -> ((LEq (PVar var, le)) :: pfs))
-		store
-		[]
+(** Extend --pfs_l-- with --pfs_r-- *)
+let pfs_merge (pfs_l : pure_formulae) (pfs_r : pure_formulae) : unit = DynArray.append pfs_r pfs_l
 
-let pf_of_substitution subst =
-	Hashtbl.fold
-		(fun var le pfs ->
-			if (is_lvar_name var)
-				then ((LEq (LVar var, le)) :: pfs)
-				else pfs)
-		subst
-		[]
+(** Returns subst(pf) *)
+let pfs_substitution (subst : substitution) (partial : bool) (pf : pure_formulae) : pure_formulae =
+	let asrts   = pfs_to_list pf in 
+	let s_asrts = List.map (asrt_substitution subst partial) asrts in 
+	pfs_of_list s_asrts
 
-let merge_pfs pfs_l pfs_r =
-	DynArray.append pfs_r pfs_l
-
-let pf_substitution pf_r subst partial =
-	let new_pf = DynArray.create () in
-	let len = (DynArray.length pf_r) - 1 in
-	for i=0 to len do
-		let a = DynArray.get pf_r i in
-		let s_a = JSIL_Logic_Utils.assertion_substitution a subst partial in
-		DynArray.add new_pf s_a
-	done;
-	new_pf
-
-let pf_substitution_in_place pfs subst =
+(** Updates pfs to subst(pfs) *)
+let pfs_substitution_in_place (subst : substitution) (pfs : pure_formulae) : unit =
 	DynArray.iteri (fun i a ->
-		let s_a = JSIL_Logic_Utils.assertion_substitution a subst true in
+		let s_a = JSIL_Logic_Utils.asrt_substitution subst true a in
 		DynArray.set pfs i s_a) pfs
 
-let get_pf_vars catch_pvars pfs =
-	DynArray.fold_left (fun ac a ->
-		let v_a = JSIL_Logic_Utils.get_assertion_vars catch_pvars a in
-		SS.union ac v_a) SS.empty pfs
+(** Returns the set containing all the lvars occurring in --pfs-- *)
+let pfs_lvars (pfs : pure_formulae) : SS.t  =
+	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_lvars a)) SS.empty pfs
 
-let get_locs_pfs pfs =
-	DynArray.fold_left (fun ac a ->
-		let v_a = JSIL_Logic_Utils.get_locs_assertion a in
-		SS.union ac v_a) SS.empty pfs
+(** Returns the set containing all the alocs occurring in --pfs-- *)
+let pfs_alocs (pfs : pure_formulae) : SS.t =
+	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_alocs a)) SS.empty pfs
+
 
 (*************************************)
 (** Predicate Set functions         **)
 (*************************************)
-let copy_pred_set preds =
-	let new_preds = DynArray.copy preds in
-	new_preds
 
-let pred_substitution pred subst partial =
-	let pred_name, les = pred in
-	let s_les = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution le subst partial)  les in
-	(pred_name, s_les)
+(** Returns a new (empty) predicate set *)
+let preds_init () : predicate_set = DynArray.make small_tbl_size
 
-let preds_substitution preds subst partial =
-	let len = DynArray.length preds in
-	let new_preds = DynArray.create () in
-	for i=0 to len - 1 do
-		let pred = DynArray.get preds i in
-		let s_pred = pred_substitution pred subst partial in
-		DynArray.add new_preds s_pred
-	done;
-	new_preds
+(** Returns the serialization of --preds-- as a list of predicate_assertions *)
+let preds_to_list (preds : predicate_set) : predicate_assertion list = DynArray.to_list preds
 
-let preds_substitution_in_place preds subst =
+(** Returns a pred_set given a list of predicate_assertions. *)
+let preds_of_list (list_preds : predicate_assertion list) : predicate_set = DynArray.of_list list_preds
+
+(** Returns a copie of --preds-- *)
+let preds_copy (preds : predicate_set) : predicate_set = DynArray.copy preds 
+
+(** Returns subst(preds) *)
+let preds_substitution (subst : substitution) (partial : bool) (preds : predicate_set) : predicate_set =
+	let preds  = preds_to_list preds in 
+	let preds' = List.map (fun (s, les) -> (s, List.map (fun le -> lexpr_substitution subst partial le) les)) preds in 
+	preds_of_list preds' 
+
+(** Updates --preds-- to subst(preds) *)
+let preds_substitution_in_place (subst : substitution) (preds : predicate_set) : unit =
+	let pred_substitution subst (s, les) = (s, List.map (fun le -> lexpr_substitution subst true le) les) in 
 	DynArray.iteri (fun i pred ->
-		let s_pred = pred_substitution pred subst true in
+		let s_pred = pred_substitution subst pred in
 		DynArray.set preds i s_pred) preds
 
-let extend_pred_set preds pred_assertion =
-	match pred_assertion with
-	| (pred_name, args) ->
-		DynArray.add preds (pred_name, args)
-	| _ -> raise (Symb_state_error "Illegal Predicate Assertion")
+(** Extends --preds-- with --pred_asrt-- *)
+let preds_extend (preds : predicate_set) (pred_asrt : predicate_assertion) : unit = DynArray.add preds pred_asrt
 
-let preds_add_predicate_assertion preds (pred_name, args) = DynArray.add preds (pred_name, args)
+(** Finds the index of --pred_asrt-- in --preds-- *)
+let preds_find_index (preds : predicate_set) (pred_asrt : predicate_assertion) : int option =
+	try Some (DynArray.index_of (fun pa -> pa = pred_asrt) preds) with _ -> None 
 
-let preds_to_list preds = DynArray.to_list preds
+(** Removes the binding of --pa-- from --preds-- *)
+let preds_remove (preds : predicate_set) (pred_asrt : predicate_assertion) : unit =
+	match preds_find_index preds pred_asrt with Some i -> DynArray.delete preds i | _ -> () 
 
-let preds_of_list list_preds = DynArray.of_list list_preds
+(** Removes the i-th predicate of --preds-- *)
+let preds_remove_by_index (preds : predicate_set) (i : int) : unit = DynArray.delete preds i  
 
-let find_predicate_assertion_index preds (pred_name, args) =
-	let len = DynArray.length preds in
-	let rec loop i =
-		if (i >= len) then None else (
-			let cur_pred_name, cur_args = DynArray.get preds i in
-			if (not (cur_pred_name = pred_name)) then loop (i+1) else (
-				let equal_args = List.fold_left2 (fun ac a1 a2 -> if (not ac) then ac else a1 = a2) true args cur_args in
-				if (equal_args) then Some i else loop (i+1))) in
-	loop 0
+(** Find predicate_assertion via pred_name. 
+    Returns a list with all the predicate assertions whose pred_name is --pred_name-- *)
+let find_predicate_assertion_by_name (preds : predicate_set) (pred_name : string) : (jsil_logic_expr list) list =
+	let preds_l = preds_to_list preds in 
+	let preds_l = List.filter (fun (pn, _) -> pn = pred_name) preds_l in 
+	List.map (fun (_, les) -> les) preds_l 
 
-let remove_predicate_assertion preds (pred_name, args) =
-	let index = find_predicate_assertion_index preds (pred_name, args) in
-	match index with
-	| Some index -> DynArray.delete preds index
-	| None -> ()
-
-let find_predicate_assertion preds pred_name =
-	let len = DynArray.length preds in
-	let rec loop preds args =
-		match preds with
-		| [] -> args
-		| cur_pred :: rest_preds ->
-			let cur_pred_name, cur_pred_args = cur_pred in
-			if (cur_pred_name = pred_name)
-				then loop rest_preds (cur_pred_args :: args)
-				else loop rest_preds args  in
-	loop (DynArray.to_list preds) []
-
-let is_preds_empty preds =
+(** Returns true if --preds-- is empty *)
+let is_preds_empty (preds : predicate_set) : bool =
 	(DynArray.length preds) = 0
-	
 
-let simple_subtract_pred preds pred_name = 
-	let pred_asses = DynArray.to_list preds in 
-	let rec loop pred_asses cur = 
-		(match pred_asses with 
-		| [] -> None
-		| (cur_pred_name, les) :: rest -> 
-			if (cur_pred_name = pred_name) 
-			then Some (cur, les)
-			else loop rest (cur + 1)) in 
-	match (loop pred_asses 0) with 
-	| None -> None
-	| Some (cur, les) -> (DynArray.delete preds cur); Some (pred_name, les)
-		
-let get_preds_vars catch_pvars preds : SS.t =
-	DynArray.fold_left (fun ac (_, les) ->
-		let v_les = List.fold_left (fun ac e ->
-			let v_e = JSIL_Logic_Utils.get_expr_vars catch_pvars e in
-			SS.union ac v_e) SS.empty les in
-		SS.union ac v_les) SS.empty preds
+(** Removes the first occurrence of a pred_asrt with name --pred_name-- 
+    and returns its list of arguments *)
+let preds_remove_by_name (preds : predicate_set) (pred_name : string) : (string * jsil_logic_expr list) option =
+	try (
+		let i              = DynArray.index_of (fun (pname, _) -> pname = pred_name) preds in 
+		let pname, les     = DynArray.get preds i in 
+		DynArray.delete preds i; 
+		Some (pname, les))
+	with _ -> None 		 
 
-let get_locs_preds preds : SS.t =
-	DynArray.fold_left (fun ac (_, les) ->
-		let v_les = List.fold_left (fun ac e ->
-			let v_e = JSIL_Logic_Utils.get_locs_expr e in
-			SS.union ac v_e) SS.empty les in
-		SS.union ac v_les) SS.empty preds
-		
+(** Return the set containing all the lvars occurring in --preds-- *)
+let preds_lvars (preds : predicate_set) : SS.t =
+	DynArray.fold_left 
+		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_lvars le)) ac les) 
+		SS.empty 
+		preds
+
+(** Return the set containing all the alocs occurring in --preds-- *)
+let preds_alocs (preds : predicate_set) : SS.t =
+	DynArray.fold_left 
+		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_alocs le)) ac les) 
+		SS.empty 
+		preds
+
+(** Return the set containing all the alocs occurring in --preds-- *)
+let preds_alocs (preds : predicate_set) : SS.t =
+	DynArray.fold_left 
+		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_alocs le)) ac les)
+		SS.empty 
+		preds
+
+(** conversts a predicate set to a list of assertions *)
+let assertions_of_preds (preds : predicate_set) : jsil_logic_assertion list = 
+	let preds = preds_to_list preds in 
+	let rec loop preds assertions = 
+		match preds with 
+		| [] -> assertions 
+		| (pred_name, args) :: rest -> 
+			loop rest ((LPred (pred_name, args)) :: assertions) in 
+	loop preds [] 
+
+
 (*************************************)
 (** Symbolic State functions        **)
 (*************************************)
-let get_heap symb_state =
-	let heap, _, _, _, _ (*, _ *) = symb_state in
-	heap
 
-let get_store symb_state =
-	let _, store, _, _, _ (*, _ *) = symb_state in
-	store
+(** Symbolic state first projection *)
+let ss_heap (symb_state : symbolic_state) : symbolic_heap =
+	let heap, _, _, _, _ = symb_state in heap
 
-let get_pf symb_state =
-	let _, _, pf, _, _ (*, _ *) = symb_state in
-	pf
+(** Symbolic state second projection *)
+let ss_store (symb_state : symbolic_state) : symbolic_store =
+	let _, store, _, _, _ = symb_state in store
 
-let get_gamma symb_state =
-	let _, _, _, gamma, _ (*, _ *) = symb_state in
-	gamma
+(** Symbolic state third projection *)
+let ss_pfs (symb_state : symbolic_state) : pure_formulae =
+	let _, _, pfs, _, _ = symb_state in pfs
 
-let get_preds symb_state =
-	let _, _, _, _, preds (*, _ *) = symb_state in
-	preds
+(** Symbolic state fourth projection *)
+let ss_gamma (symb_state : symbolic_state) : typing_environment =
+	let _, _, _, gamma, _ = symb_state in gamma
 
-let get_pf_list symb_state =
-	let pf = get_pf symb_state in
-	pfs_to_list pf
+(** Symbolic state fifth projection *)
+let ss_preds (symb_state : symbolic_state) : predicate_set =
+	let _, _, _, _, preds = symb_state in preds
 
-let symb_state_add_predicate_assertion symb_state pred_assertion =
-	let preds = get_preds symb_state in
-	extend_pred_set preds pred_assertion
+let ss_pfs_list (symb_state : symbolic_state) : jsil_logic_assertion list =
+	pfs_to_list (ss_pfs symb_state)
 
-let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds = symb_state in
-	(heap, new_store, pfs, gamma, preds)
+let ss_extend_preds (symb_state : symbolic_state) (pred_assertion : predicate_assertion) : unit =
+	preds_extend (ss_preds symb_state) pred_assertion
 
-let init_symb_state () : symbolic_state =
-	(* Heap, Store, Pure Formula, Gamma, Preds *)
-	(LHeap.create small_tbl_size, Hashtbl.create small_tbl_size, DynArray.create (), Hashtbl.create small_tbl_size, DynArray.create ())
+let ss_extend_pfs (symb_state : symbolic_state) (pfs_to_add : pure_formulae) : unit =
+	pfs_merge (ss_pfs symb_state) pfs_to_add
 
-let copy_symb_state symb_state =
-	let heap, store, p_formulae, gamma, preds = symb_state in
-	let c_heap      = LHeap.copy heap in
-	let c_store     = store_copy store in
-	let c_pformulae = copy_p_formulae p_formulae in
-	let c_gamma     = copy_gamma gamma in
-	let c_preds     = copy_pred_set preds in
-	(c_heap, c_store, c_pformulae, c_gamma, c_preds (*, ref None *))
+(** Replaces the --symb_state-- heap with --heap--   *)
+let ss_replace_heap (symb_state : symbolic_state) (heap : symbolic_heap) : symbolic_state =
+	let _, store, pfs, gamma, preds  = symb_state in (heap, store, pfs, gamma, preds)
 
-let rec extend_symb_state_with_pfs symb_state pfs_to_add =
-	merge_pfs (get_pf symb_state) pfs_to_add
+(** Replaces the --symb_state-- store with --store-- *)
+let ss_replace_store (symb_state : symbolic_state) (store : symbolic_store) : symbolic_state =
+	let heap, _, pfs, gamma, preds   = symb_state in (heap, store, pfs, gamma, preds)
 
-let symb_state_add_subst_as_equalities new_symb_state subst pfs spec_vars =
-	Hashtbl.iter
-		(fun var le ->
-			match le with
-			| LLit _
-			| ALoc _ ->
-				if (List.mem var spec_vars)
-					then DynArray.add pfs (LEq (LVar var, le))
-					else ()
-			| _ -> DynArray.add pfs (LEq (LVar var, le)))
-		subst
+(** Replaces the --symb_state-- pfs with --pfs--     *)
+let ss_replace_pfs (symb_state : symbolic_state) (pfs : pure_formulae) : symbolic_state =
+	let heap, store, _, gamma, preds = symb_state in (heap, store, pfs, gamma, preds)
 
-let is_empty_symb_state symb_state js=
-	let heap, store, pfs, gamma, _  = symb_state in
-	(is_heap_empty heap js) && 
-	(Hashtbl.length store = 0) &&
-	(DynArray.empty pfs) &&
-	(Hashtbl.length gamma = 0)
+(** Replaces the --symb_state-- gamma with --gamma-- *)
+let ss_replace_gamma (symb_state : symbolic_state) (gamma : typing_environment) : symbolic_state =
+	let heap, store, pfs, _, preds   = symb_state in (heap, store, pfs, gamma, preds)
 
-let symb_state_replace_store symb_state new_store =
-	let heap, _, pfs, gamma, preds  = symb_state in
-	(heap, new_store, pfs, gamma, preds )
+(** Replaces the --symb_state-- preds with --preds-- *)
+let ss_replace_preds (symb_state : symbolic_state) (preds : predicate_set) : symbolic_state =
+	let heap, store, pfs, gamma, _   = symb_state in (heap, store, pfs, gamma, preds)
 
-let symb_state_replace_heap symb_state new_heap =
-	let _, store, pfs, gamma, preds  = symb_state in
-	(new_heap, store, pfs, gamma, preds )
+(** Returns a new empty symbolic state *)
+let ss_init () : symbolic_state = (heap_init (), (store_init [] []), pfs_init (), gamma_init (), preds_init ())
 
-let symb_state_replace_preds symb_state new_preds =
-	let heap, store, pfs, gamma, _  = symb_state in
-	(heap, store, pfs, gamma, new_preds )
+(** Returns a copy of the symbolic state *)
+let ss_copy (symb_state : symbolic_state) : symbolic_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let c_heap   = heap_copy heap in
+	let c_store  = store_copy store in
+	let c_pfs    = pfs_copy pfs in
+	let c_gamma  = gamma_copy gamma in
+	let c_preds  = preds_copy preds in
+	(c_heap, c_store, c_pfs, c_gamma, c_preds)
 
-let symb_state_replace_gamma symb_state new_gamma =
-	let heap, store, pfs, _, preds  = symb_state in
-	(heap, store, pfs, new_gamma, preds )
-
-let symb_state_replace_pfs symb_state new_pfs =
-	let heap, store, _, gamma, preds  = symb_state in
-	(heap, store, new_pfs, gamma, preds )
-
-let remove_concrete_values_from_the_store symb_state = 
-	Hashtbl.filter_map_inplace (fun x le -> 
-		match le with 
-		| LLit lit ->
-			let new_l_var = fresh_lvar () in
-			add_pure_assertion (get_pf symb_state) (LEq (LVar new_l_var, le));
-			Some (LVar new_l_var)
-		| _ -> 
-			Some le) (get_store symb_state)
-
-let symb_state_substitution (symb_state : symbolic_state) subst partial =
+(** Returns subst(symb_state) *)
+let ss_substitution 
+		(subst : substitution) (partial : bool) (symb_state : symbolic_state) : symbolic_state =
 	let heap, store, pf, gamma, preds = symb_state in
-	let s_heap = heap_substitution heap subst partial in
-	let s_store = store_substitution store gamma subst partial in
-	let s_pf = pf_substitution pf subst partial  in
+	let s_heap  = heap_substitution subst partial heap in
+	let s_store = store_substitution subst partial store in
+	let s_pf    = pfs_substitution subst partial pf in
 	let s_gamma = gamma_substitution gamma subst partial in
-	let s_preds = preds_substitution preds subst partial in
+	let s_preds = preds_substitution subst partial preds in
 	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
-let symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
-	let heap, store, pf, gamma, preds = symb_state in
-		heap_substitution_in_place heap subst;
-		store_substitution_in_place store gamma subst; 
-		pf_substitution_in_place pf subst;
-		preds_substitution_in_place preds subst
-
-let selective_symb_state_substitution_in_place_no_gamma (symb_state : symbolic_state) subst =
-	let heap, store, pf, gamma, preds = symb_state in
-		pf_substitution_in_place pf subst;
-		selective_store_substitution_in_place store gamma subst;
-		preds_substitution_in_place preds subst;
-		selective_heap_substitution_in_place heap subst
-
-let get_symb_state_vars catch_pvars symb_state =
+let ss_substitution_in_place_no_gamma
+		(subst : substitution) (symb_state : symbolic_state) : unit =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = heap_vars catch_pvars heap in
-	let v_s  : SS.t = store_vars catch_pvars store in
-	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
-	let v_g  : SS.t = get_gamma_vars catch_pvars gamma in
-	let v_pr : SS.t = get_preds_vars catch_pvars preds in
+	heap_substitution_in_place  subst heap;		
+	store_substitution_in_place subst store;
+	pfs_substitution_in_place   subst pfs;	
+	preds_substitution_in_place subst preds
+
+(** Return the set containing all the lvars occurring in --symb_state-- *)
+let ss_lvars (symb_state : symbolic_state) : SS.t =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  : SS.t = heap_lvars heap in
+	let v_s  : SS.t = store_lvars store in
+	let v_pf : SS.t = pfs_lvars pfs in
+	let v_g  : SS.t = gamma_lvars gamma in
+	let v_pr : SS.t = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
 
-let get_symb_state_vars_no_gamma catch_pvars symb_state : SS.t =
+(** Return the set containing all the lvars occurring in --symb_state-- *)
+let ss_alocs (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = heap_vars catch_pvars heap in
-	let v_s  : SS.t = store_vars catch_pvars store in
-	let v_sp : SS.t = store_pvars store in
-	let v_pf : SS.t = get_pf_vars catch_pvars pfs in
-	let v_pr : SS.t = get_preds_vars catch_pvars preds in
+	let v_h  : SS.t = heap_alocs heap in
+	let v_s  : SS.t = store_alocs store in
+	let v_pf : SS.t = pfs_alocs pfs in
+	let v_pr : SS.t = preds_alocs preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
+
+(** Return the set containing all the lvars occurring in --symb_state-- 
+    except for those that only appear in the gamma + all the program 
+    variables in the store *)
+let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
+	let heap, store, pfs, gamma, preds = symb_state in
+	let v_h  = heap_lvars heap in
+	let v_s  = store_lvars store in
+	let v_sp = store_domain store in 
+	let v_pf = pfs_lvars pfs in
+	let v_pr = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_sp (SS.union v_pf v_pr)))
 
-let extend_abs_store x store gamma =
-	let new_l_var_name = fresh_lvar () in
-	let new_l_var = LVar new_l_var_name in
-	(try
-		let x_type = Hashtbl.find gamma x in
-		Hashtbl.add gamma new_l_var_name x_type
-	with _ -> ());
-	Hashtbl.add store x new_l_var;
-	new_l_var
-
-let check_store store gamma =
-
-	let placeholder pvar le target_type =
-		if (Hashtbl.mem gamma pvar) then
-		begin
-		  let _type = Hashtbl.find gamma pvar in
-		  	(target_type = _type)
-		end
-		else
-		begin
-		   Hashtbl.add gamma pvar target_type;
-		   true
-		end in
-
-	Hashtbl.fold
-		(fun pvar le ac -> ac &&
-			(match le with
-			 | LNone -> placeholder pvar le NoneType
-			 | ALoc _ -> placeholder pvar le ObjectType
-			 | LLit lit -> placeholder pvar le (evaluate_type_of lit)
-			 | _ -> true
-			)
-		) store true
-
-
-(****************************************)
-(** Normalised Specifications          **)
-(****************************************)
-type jsil_n_single_spec = {
-	n_pre         : symbolic_state;
-	n_post        : symbolic_state list;
-	n_ret_flag    : jsil_return_flag;
-	n_lvars       : SS.t;
-	n_post_lvars  : SS.t list;
-	n_subst       : substitution
-}
-
-type jsil_n_spec = {
-    n_spec_name   : string;
-    n_spec_params : jsil_var list;
-	n_proc_specs  : jsil_n_single_spec list
-}
-
-type specification_table = (string, jsil_n_spec) Hashtbl.t
-
-type pruning_table = (string, bool array) Hashtbl.t
-
-let init_post_pruning_info () = Hashtbl.create small_tbl_size
-
-let update_post_pruning_info_with_spec pruning_info n_spec =
-	let spec_post_pruning_info =
-		List.map
-			(fun spec ->
-				let number_of_posts = List.length spec.n_post in
-				Array.make number_of_posts false)
-			n_spec.n_proc_specs in
-	Hashtbl.replace pruning_info n_spec.n_spec_name spec_post_pruning_info
-
-let filter_useless_posts_in_single_spec	spec pruning_array =
-	let rec loop posts i processed_posts =
-		(match posts with
-		| [] -> processed_posts
-		| post :: rest_posts ->
-			if (pruning_array.(i))
-				then loop rest_posts (i + 1) (post :: processed_posts)
-				else loop rest_posts (i + 1) processed_posts) in
-	let useful_posts = loop spec.n_post 0 [] in
-	{ spec with n_post = useful_posts }
-
-let filter_useless_posts_in_multiple_specs proc_name specs pruning_info =
-	try
-		let pruning_info = Hashtbl.find pruning_info proc_name in
-		let new_specs = List.map2 filter_useless_posts_in_single_spec specs pruning_info in
-		new_specs
-	with Not_found -> specs
+(** conversts a symbolic state to an assertion *)
+let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion = 
+	let heap, store, pfs, gamma, preds = symb_state in
+	let heap_asrts  = assertions_of_heap heap in
+	let store_asrts = assertions_of_store store in
+	let gamma_asrt  = assertion_of_gamma gamma in
+	let pure_asrts  = pfs_to_list pfs in
+	let pred_asrts  = assertions_of_preds preds in 
+	let asrts       = heap_asrts @ store_asrts @ pure_asrts @ [ gamma_asrt ] @ pred_asrts in
+	JSIL_Logic_Utils.star_asses asrts 
 
 
 (****************************************)
 (** Normalised Predicate Definitions   **)
 (****************************************)
-type n_jsil_logic_predicate = {
-	n_pred_name        : string;
-	n_pred_num_params  : int;
-	n_pred_params      : jsil_logic_var list;
-	n_pred_definitions : symbolic_state list;
-	n_pred_is_rec      : bool
-}
 
-let get_pred pred_tbl pred_name =
+let get_pred (pred_tbl : (string, n_jsil_logic_predicate) Hashtbl.t) (pred_name : string) : n_jsil_logic_predicate =
 	try
 		Hashtbl.find pred_tbl pred_name
 	with _ ->
 		let msg = Printf.sprintf "Predicate %s does not exist" pred_name in
 		raise (Failure msg)
 
-(***************************************************)
-(** JSIL Program Annotated for Symbolic Execution **)
-(***************************************************)
-type symb_jsil_program = {
-	program    	: jsil_program;
-	spec_tbl   	: specification_table;
-	which_pred 	: (string * int * int, int) Hashtbl.t;
-	pred_defs  	: (string, n_jsil_logic_predicate) Hashtbl.t
-}
+
+(*********************************************************)
+(** Pruning Info                                        **)
+(*********************************************************)
+
+(** Returns a new (empty) pruning info table *)
+let pruning_info_init () : pruning_table = Hashtbl.create small_tbl_size
+
+(** Extends --pi-- with a new array for each single spec in --n_spec-- *)
+let pruning_info_extend (pi : pruning_table) (spec : jsil_n_spec) : unit =
+	let spec_pi =
+		List.map (fun ss -> Array.make (List.length ss.n_post) false) spec.n_proc_specs in
+	Hashtbl.replace pi spec.n_spec_name spec_pi
+
+(** Removes unreachable posts in --spec-- using --pi_arr-- *)
+let prune_posts_sspec (pi_arr : bool array) (spec : jsil_n_single_spec) : jsil_n_single_spec =
+	let posts = List.filter (fun (post, b) -> b) (List.combine spec.n_post (Array.to_list pi_arr)) in
+	{ spec with n_post = (List.map (fun (post, _) -> post) posts) }
+
+(** Removes unreachable posts in --spec-- using --pi-- *)
+let prune_posts (pi : pruning_table) (spec : jsil_n_spec) (proc_name : string) : jsil_n_spec =
+	try
+		let new_sspecs = List.map2 prune_posts_sspec (Hashtbl.find pi proc_name) (spec.n_proc_specs) in
+		{ spec with n_proc_specs = new_sspecs }
+	with Not_found -> spec
+
+(** Activates the postcondition number --post_number-- in the pruning info 
+    of the spec number --si.spec_number-- of the procedure --si.proc_name--  *)
+let turn_on_post (post_number : int) (sec : symbolic_execution_context) : unit =
+	try
+		let pi     = Hashtbl.find (sec.post_pruning_info) sec.proc_name in
+		let pi_arr = List.nth pi (sec.spec_number) in
+		pi_arr.(post_number) <- true
+	with Not_found -> ()
+
+
+(*********************************************************)
+(** Symbolic Execution Context (SEC)                    **)
+(*********************************************************)
+
+let symb_graph_init (root_node : symb_graph_node) : symbolic_graph = 
+	{ 
+	  root         = root_node; 
+	  info_nodes   = Hashtbl.create small_tbl_size;
+	  info_edges   = Hashtbl.create small_tbl_size }
+
+(** Returns a new sec node - initialised as the code shows                *)
+let sec_init 
+		(node_info : symb_graph_node) (pi : pruning_table) 
+		(proc_name : string) (spec_number : int) : symbolic_execution_context = 
+	
+	if (not (node_info.node_number = 0)) then
+		raise (Failure "the node number of the first node must be 0")
+	else begin
+		let new_sec =
+			{
+				vis_tbl             = Hashtbl.create small_tbl_size;
+				cur_node_info       = node_info;
+				symb_graph          = symb_graph_init node_info; 
+				next_node           = ref 1;
+				post_pruning_info   = pi;
+				spec_number         = spec_number;
+				pred_info           = Hashtbl.create small_tbl_size;
+				proc_name           = proc_name 
+			} in
+		Hashtbl.replace new_sec.symb_graph.info_edges 0 [];
+		Hashtbl.replace new_sec.symb_graph.info_nodes 0 node_info;
+		new_sec
+	end
+
+(** Duplicates the current --sec--. Only the elements of --sec-- that 
+    cannot be shared between different symbolic executions are deep 
+    copied                                                             *)
+let sec_duplicate (sec : symbolic_execution_context) : symbolic_execution_context = 
+	let new_vis_tbl   = Hashtbl.copy sec.vis_tbl in 
+	let new_pred_info = Hashtbl.copy sec.pred_info in 	
+	Hashtbl.iter (fun pred_name pred_stack -> 
+		Hashtbl.replace new_pred_info pred_name (Stack.copy pred_stack)
+	) sec.pred_info; 
+	{ sec with vis_tbl = new_vis_tbl; pred_info = new_pred_info }
+
+(** Sets --sec.vis_tbl-- to the empty table                            *)
+let sec_reset_vis_tbl (sec : symbolic_execution_context) : symbolic_execution_context = 
+	{ sec with vis_tbl = Hashtbl.create small_tbl_size }
+
+(** Marks node --i-- has visited in --sec--                            *)
+let sec_visit_node (sec : symbolic_execution_context) (i : int) : unit =
+	let cur_node_info = sec.cur_node_info in
+	Hashtbl.replace sec.vis_tbl i cur_node_info.node_number 
+
+(** Checks if node --i-- has visited using the information in --sec--  *)
+ let sec_is_visited_node (sec : symbolic_execution_context) (i : int) : bool = 
+ 	Hashtbl.mem sec.vis_tbl i
+
+(** Gets the index of the last unfolded definition of --pred_name--    *)
+let sec_fold_pred_def 
+		(sec         : symbolic_execution_context) 
+		(pred_name   : string) : symbolic_execution_context * int =
+	
+	let pred_info = sec.pred_info in
+	(match Hashtbl.mem pred_info pred_name with
+	| false -> sec, -1
+	| true ->
+		let s = Hashtbl.find pred_info pred_name in
+		(match Stack.is_empty s with
+		| true -> sec, -1
+		| false ->
+			let pred_info = Hashtbl.copy pred_info in
+			let s         = Stack.copy s in
+			let cmf       = Stack.pop s in
+			Hashtbl.replace pred_info pred_name s;
+			{ sec with pred_info = pred_info }, cmf)) 
+
+(** Extend --sec-- with the index of definition of --pred_name-- to 
+    be unfolded next                                                   *)
+let sec_unfold_pred_def 
+		(sec         : symbolic_execution_context) 
+		(pred_name   : string)
+		(def_index   : int) : unit = 
+
+	let pred_stack = try Hashtbl.find sec.pred_info pred_name with Not_found -> (
+		let pred_stack = Stack.create () in 
+		Hashtbl.replace sec.pred_info pred_name pred_stack; 
+		pred_stack 	
+	) in 
+	Stack.push def_index pred_stack; () 	
+
+(** Extends sec with a new node_info, updating all the structures that 
+    maintain the symbolic execution graphy                            *)
+let sec_create_new_info_node 
+		(sec            : symbolic_execution_context)
+		(new_node_info  : symb_graph_node) : symbolic_execution_context = 
+
+	let new_node_number  = !(sec.next_node) in
+	let new_node_info    = { new_node_info with node_number = new_node_number } in 
+	let parent_node_info = sec.cur_node_info in
+	
+	sec.next_node := new_node_number + 1;
+	Hashtbl.add (sec.symb_graph.info_nodes) new_node_number new_node_info;
+	Hashtbl.replace sec.symb_graph.info_edges new_node_number []; 
+
+	(try 
+ 		let parent_children = Hashtbl.find sec.symb_graph.info_edges parent_node_info.node_number in
+ 		Hashtbl.replace sec.symb_graph.info_edges parent_node_info.node_number (new_node_number :: parent_children); 
+	with _ -> Printf.printf "DEATH. sec_create_new_info_node"); 
+
+	{ sec with cur_node_info = new_node_info }
+
+
+(****************************************)
+(** TO REFACTOR                        **)
+(****************************************)
+
+let selective_heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) =
+  LHeap.iter
+  	(fun loc (fv_list, domain) ->
+  		let s_loc =
+  			(try Hashtbl.find subst loc
+  				with _ ->
+  					if (is_abs_loc_name loc)
+  						then ALoc loc
+  						else (LLit (Loc loc))) in
+  		let s_loc =
+  			(match s_loc with
+  				| LLit (Loc loc) -> loc
+  				| ALoc loc -> loc
+  				| _ ->
+  					raise (Failure "Heap substitution failed miserably!!!")) in
+  		let s_fv_list = selective_fv_list_substitution subst true fv_list in
+  		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst true le) domain in
+  		LHeap.replace heap s_loc (s_fv_list, s_domain))
+  	heap
+
+let selective_symb_state_substitution_in_place_no_gamma 
+		(subst : substitution) (symb_state : symbolic_state) : unit =
+	let lexpr_subst = JSIL_Logic_Utils.lexpr_selective_substitution in
+	let heap, store, pfs, gamma, preds = symb_state in
+	store_substitution_in_place          subst store;
+	preds_substitution_in_place          subst preds;
+	pfs_substitution_in_place            subst pfs;
+	selective_heap_substitution_in_place subst heap 
+
+
+
+
 
 
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
 (*********************************************************)
-type search_info_node = {
-	heap_str    : string;
-	store_str   : string;
-	pfs_str     : string;
-	gamma_str   : string;
-	preds_str   : string;
-	(* cmd index *)
-	cmd_index   : int;
-	cmd_str     : string;
-	(* node number *)
-	node_number : int
-}
 
-type symbolic_execution_search_info = {
-	vis_tbl    		      : (int, int) Hashtbl.t;
-	cur_node_info       :	search_info_node;
-	info_nodes 		      : (int, search_info_node) Hashtbl.t;
-	info_edges          : (int, int list) Hashtbl.t;
-	next_node           : int ref;
-	post_pruning_info   : (string, (bool array) list) Hashtbl.t;
-	spec_number         : int;
-	pred_info           : (string, int Stack.t) Hashtbl.t
-}
 
-let make_symb_exe_search_info node_info post_pruning_info spec_number =
-	if (not (node_info.node_number = 0)) then
-		raise (Failure "the node number of the first node must be 0")
-	else begin
-		let new_search_info =
-			{
-				vis_tbl             = Hashtbl.create small_tbl_size;
-				cur_node_info       = node_info;
-				info_nodes          = Hashtbl.create small_tbl_size;
-				info_edges          = Hashtbl.create small_tbl_size;
-				next_node           = ref 1;
-				post_pruning_info   = post_pruning_info;
-				spec_number         = spec_number;
-				pred_info           = Hashtbl.create small_tbl_size;
-			} in
-		Hashtbl.replace new_search_info.info_edges 0 [];
-		Hashtbl.replace new_search_info.info_nodes 0 node_info;
-		new_search_info
-	end
+let compute_verification_statistics 
+	(pruning_info     : pruning_table) 
+	(procs_to_verify  : string list) 
+	(spec_table       : specification_table) : int * int  = 
 
-let update_search_info search_info info_node vis_tbl =
-	{
-		search_info with cur_node_info = info_node; vis_tbl = vis_tbl
-	}
+	Hashtbl.fold
+		(fun proc_name spec (count_prunings, count_verified) ->
+			let should_we_verify = (List.mem proc_name procs_to_verify) in
+			if (should_we_verify) then (
+				let pruning_info_list = Hashtbl.find pruning_info proc_name in
+				List.fold_left 
+					(fun (count_prunings, count_verified) arr -> 
+						Array.fold_left 
+							(fun (count_prunings, count_verified) b -> if b then (count_prunings, (count_verified + 1)) else ((count_prunings + 1),  count_verified))
+							(count_prunings, count_verified)
+							arr)
+					(count_prunings, count_verified)
+					pruning_info_list
+			) else (
+				(count_prunings, count_verified)
+			))
+		spec_table
+		(0, 0)
+	
 
-let copy_vis_tbl vis_tbl = Hashtbl.copy vis_tbl
 
-let update_vis_tbl search_info vis_tbl =
-	{	search_info with vis_tbl = vis_tbl }
 
-let activate_post_in_post_pruning_info symb_exe_info proc_name post_number =
-	try
-		let post_pruning_info_array_list =
-			Hashtbl.find (symb_exe_info.post_pruning_info) proc_name in
-		let post_pruning_info_array = List.nth post_pruning_info_array_list (symb_exe_info.spec_number) in
-		post_pruning_info_array.(post_number) <- true
-	with Not_found -> ()
+(*************************************)
+(** Cached symbolic state           **)
+(*************************************)
 
-(* Hierarchy of failures *)
+type cached_symbolic_state =
+	  (string * ((jsil_logic_expr * jsil_logic_expr) list * jsil_logic_expr option)) list
+	* (string * jsil_logic_expr) list
+	* jsil_logic_assertion list
+	* (string * jsil_type) list
+	* (string * jsil_logic_expr list) list
 
-type unify_stores_fail = 
-	| VariableNotInStore of string
-	| ValueMismatch of string * jsil_logic_expr * jsil_logic_expr
-	| NoSubstitution
+let cache_ss (ss : symbolic_state) : cached_symbolic_state =
+	let sort = List.sort compare in
+	let heap, store, pfs, gamma, preds = ss in
+	let lheap = lheap_to_list heap in
+	let lstore = hash_to_list store in
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in
+	let lgamma = hash_to_list gamma in
+	let lpreds = List.sort compare (DynArray.to_list preds) in
+	lheap, lstore, lpfs, lgamma, lpreds
 
-type unify_heaps_fail =
-	| CannotResolvePatLocation of string
-	| CannotResolveLocation of string
-	| CannotResolveField of string * jsil_logic_expr
-	| FieldValueMismatch of string * jsil_logic_expr * jsil_logic_expr * string * jsil_logic_expr * jsil_logic_expr
-	| ValuesNotNone of string * (jsil_logic_expr * jsil_logic_expr) list
-	| FloatingLocations of string list
-	| IllegalDefaultValue of jsil_logic_expr
-	| PatternHeapWithDefaultValue
-	| GeneralHeapUnificationFailure
+let uncache_ss (css : cached_symbolic_state) : symbolic_state =
+	let lheap, lstore, lpfs, lgamma, lpreds = css in
+	let heap = lheap_of_list lheap in
+	let store = hash_of_list lstore in
+	let pfs   = DynArray.of_list lpfs in
+	let gamma = hash_of_list lgamma in
+	let preds = DynArray.of_list lpreds in
+	let result = (heap, store, pfs, gamma, preds) in
+	result
 
-type unify_gamma_fail = 
-	| NoTypeForVariable of string
-	| VariableNotInSubstitution of string
-	| TypeMismatch of string * jsil_type * jsil_logic_expr * jsil_type
+let ss_cache :
+	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state,
+	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
 
-type unify_symb_states_fail = 
-	| CannotDischargeSpecVars
-	| CannotUnifyPredicates
-	| ContradictionInPFS
+let ss_encache_key vts ots exs ss =
+	let cots = List.sort compare (DynArray.to_list ots) in
+	let css = cache_ss ss in
+	vts, cots, exs, css
 
-type fully_unify_symb_states_fail = 
-	| ResourcesRemain
-	| CannotUnifySymbStates
+let ss_encache_value ss subst ots exs =
+	let css = cache_ss ss in
+	let csubst = hash_to_list subst in
+	let cots = List.sort compare (DynArray.to_list ots) in
+	css, csubst, cots, exs
 
-type unify_symb_states_fold_fail = 
-	| CannotSubtractPredicate of string
-	| CannotUnifyPredicates
+let ss_uncache_value css csubst cots exs =
+	let ss = uncache_ss css in
+	let subst = hash_of_list csubst in
+	let ots = DynArray.of_list cots in
+	ss, subst, ots, exs
 
-type symb_exec_fail =
-	| US  of unify_stores_fail
-	| UH  of unify_heaps_fail
-	| UG  of unify_gamma_fail
-	| USS of unify_symb_states_fail
-	| FSS of fully_unify_symb_states_fail
-	| USF of unify_symb_states_fold_fail
-	| Impossible of string
+(*************************************)
+(** Cached pfs state                **)
+(*************************************)
 
-exception SymbExecFailure of symb_exec_fail
+let pfs_cache :
+	(jsil_logic_assertion list * (string * jsil_type) list * SS.t option option,
+	 jsil_logic_assertion list * (string * jsil_type) list) Hashtbl.t = Hashtbl.create 21019
 
-(* Hierarchy of recoveries *)
+let pfs_cache_key pfs gamma lexs =
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in
+	let lgamma = hash_to_list gamma in
+	let result = (lpfs, lgamma, lexs) in
+	result
 
-type unify_gamma_recovery = 
-	| Flash of string * (jsil_logic_expr list)
+let pfs_cache_value pfs gamma =
+	let lpfs   = List.sort compare (DynArray.to_list pfs) in
+	let lgamma = hash_to_list gamma in
+	let result = (lpfs, lgamma) in
+	result
 
-type recovery = 
-	| GR of unify_gamma_recovery
-	| NoRecovery
+let pfs_uncache_value value =
+	let lpfs, lgamma = value in
+	let pfs   = DynArray.of_list lpfs in
+	let gamma = hash_of_list lgamma in
+	let result = (pfs, gamma) in
+	result
 
-exception SymbExecRecovery of recovery
+
+

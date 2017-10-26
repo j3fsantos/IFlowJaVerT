@@ -5,6 +5,7 @@ open JSIL_Print
 open Symbolic_State_Print
 
 exception FoundIt of jsil_logic_expr
+exception UnionInUnion of jsil_logic_expr list
 
 (**
 	List simplifications:
@@ -100,7 +101,7 @@ let rec replace_nle_with_lvars pfs nle =
 		| None -> 
 			let lhs = replace_nle_with_lvars pfs le in
 			let rhs = replace_nle_with_lvars pfs le' in
-			let lhs_string = string_of_logic_expression lhs false in
+			let lhs_string = string_of_logic_expression lhs in
 			(LBinOp (lhs, op, rhs)))
 	| LUnOp (op, le) -> 
 		(match find_me_in_the_pi pfs nle with 
@@ -201,10 +202,18 @@ let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
 				(try (
 					let str = String.concat "" (List.map (fun x -> match x with | LLit (Char c) -> String.make 1 c) l) in
 					(LLit (String str), false) 
-				) with | _ -> print_debug "String representation leftovers."; (se, false))
+				) with | _ -> print_debug_petar "String representation leftovers."; (se, false))
 		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
 		| _ -> (se, true))
 
+
+let all_set_literals lset = List.fold_left (fun x le -> 
+	let result = (match le with
+		| LESet _ -> true
+		| _ -> false) in
+	(* print_debug (Printf.sprintf "All literals: %s -> %b" (string_of_logic_expression le) result); *)
+	x && result
+	) true lset 
 
 (**
 	Reduction of expressions: everything must be IMMUTABLE
@@ -222,8 +231,11 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
                           (gamma : (string, jsil_type) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
-								
+	
+	(* print_debug (Printf.sprintf "Reduce expression: %s" (string_of_logic_expression e)); *)
+	
 	let f = reduce_expression store gamma pfs in
+	let orig_expr = e in
 	let result = (match e with
 
 	| LUnOp (M_sgn, LLit (Num n)) -> LLit (Num (copysign 1.0 n))
@@ -233,6 +245,13 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (le1, CharCons, LCList []) -> LCList [ f le1 ]
 	| LBinOp (le1, CharCons, LLit (CList [])) -> LCList [ f le1 ]
 	| LBinOp (LEList le1, LstCat,  LEList le2) -> f (LEList (le1 @ le2))
+	| LBinOp (LLit (LList le1), LstCat, LLit (LList le2)) -> f (LLit (LList (le1 @ le2)))
+	| LBinOp (LLit (LList le1), LstCat, LEList le2) -> 
+			let le1 = List.map (fun x -> LLit x) le1 in
+			f (LEList (le1 @ le2))
+	| LBinOp (LEList le1, LstCat, LLit (LList le2)) -> 
+			let le2 = List.map (fun x -> LLit x) le2 in
+			f (LEList (le1 @ le2))
 	| LBinOp (LLit (String s1), StrCat, LLit (String s2)) -> f (LLit (String (s1 ^ s2)))
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 
@@ -247,18 +266,28 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			LESet (SLExpr.elements (SLExpr.of_list s'))
 	
 	| LSetUnion s ->
-			let s' = List.map f s in
-			let s' = SLExpr.of_list s' in
-			let s' = SLExpr.fold (fun s ac ->
-				(match s with
-				| LESet [] -> ac 
-				| LSetUnion s'' -> SLExpr.union ac (SLExpr.of_list s'')
-				| _ -> SLExpr.add s ac)) s' (SLExpr.empty) in
-			let potential_result = SLExpr.elements s' in
-			(match potential_result with
-			| [] -> LESet []
-			| [ only_one ] -> only_one
-			| _ -> LSetUnion potential_result)
+			let s' = SLExpr.elements (SLExpr.of_list (List.filter (fun x -> x <> LESet []) (List.map f s))) in
+			(match (all_set_literals s') with
+			| true ->
+					let all_elems = List.fold_left (fun ac le -> 
+						(match le with | LESet lst -> ac @ lst)) [] s' in
+					let all_elems = SLExpr.elements (SLExpr.of_list all_elems) in
+					f (LESet all_elems)
+			| false ->
+					try (
+						let ss' = SLExpr.of_list s' in
+						SLExpr.iter (fun x -> 
+							(match x with
+							| LSetUnion s'' ->
+								let ss' = SLExpr.remove x ss' in
+								let ss' = SLExpr.union ss' (SLExpr.of_list s'') in
+								let ss' = SLExpr.elements ss' in
+								raise (UnionInUnion ss')
+							| _ -> ())
+							) ss';
+						LSetUnion s'
+					) with
+					| UnionInUnion e -> f (LSetUnion e))
 				
 	| LSetInter s ->
 			let s' = List.map f s in
@@ -267,6 +296,25 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			(match is_empty_there with
 			| true -> LESet []
 			| false -> LSetInter (SLExpr.elements s'))
+
+	| LBinOp (le1, SetDiff, le2) when (f le1 = f le2) -> LESet []
+	| LBinOp (le1, SetDiff, le2) ->
+			let sle1 = f le1 in
+			let sle2 = f le2 in
+			(match sle1, sle2 with
+			| _, LESet [] -> f sle1
+			| LESet le1, LESet le2 -> f (LESet (SLExpr.elements (SLExpr.diff (SLExpr.of_list le1) (SLExpr.of_list le2))))
+			| LSetUnion l1, LSetUnion l2 ->
+					let sl1 = SLExpr.of_list l1 in
+					let sl2 = SLExpr.of_list l2 in
+					let inter = SLExpr.inter sl1 sl2 in
+					let sl1 = SLExpr.diff sl1 inter in
+					let sl2 = SLExpr.diff sl2 inter in
+					let sle1 = LSetUnion (SLExpr.elements sl1) in
+					let sle2 = LSetUnion (SLExpr.elements sl2) in
+						f (LBinOp (sle1, SetDiff, sle2))
+			| _, _ -> LBinOp (sle1, SetDiff, sle2))
+			
 
 	(* List append *)
 	| LBinOp (le1, LstCat, le2) ->
@@ -318,10 +366,19 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			(match re1, re2 with
 			(* n1 +J n2 ---> n1 + n2 *) 
 			| LLit (Num n1), LLit (Num n2) -> LLit (Num (n1 +. n2))
+			| re1, LLit (Num 0.) -> re1
+			| LLit (Num 0.), re2 -> re2
 			(* (_ +J n1) +J n2 ---> _ +J (n1 + n2) *)
 			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 +. n2))))
 			(* (n1 +J _) +J n2 ---> _ +J (n1 + n2) *)
 			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 +. n2))))
+			| _, _ -> LBinOp (re1, bop, re2)) 
+		| Minus ->
+			(match re1, re2 with
+			(* n1 -J n2 ---> n1 - n2 *) 
+			| LLit (Num n1), LLit (Num n2) -> LLit (Num (n1 -. n2))
+			| LBinOp (re1, Plus, LLit (Num n1)), LLit (Num n2) -> f (LBinOp (re1, Plus, LLit (Num (n1 -. n2))))
+			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 -. n2))))
 			| _, _ -> LBinOp (re1, bop, re2)) 
 		| _ -> LBinOp (re1, bop, re2))
 
@@ -364,11 +421,11 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
 
 		| LBinOp (le, LstCons, list), LLit (Num n) ->
-			print_debug_petar (Printf.sprintf "Cons: %s %s %f" (print_lexpr le) (print_lexpr list) n);
+			print_debug_petar (Printf.sprintf "Cons: %s %s %f" (string_of_logic_expression le) (string_of_logic_expression list) n);
 			if (Utils.is_int n) then
 		  let ni = int_of_float n in
 			 (match (ni = 0) with
-		   | true -> print_debug_petar (Printf.sprintf "ni = 0, calling recursively with %s" (print_lexpr le)); f le
+		   | true -> print_debug_petar (Printf.sprintf "ni = 0, calling recursively with %s" (string_of_logic_expression le)); f le
 		   | false -> f (LLstNth (f list, LLit (Num (n -. 1.)))))
 			else
 					raise (Failure (Printf.sprintf "Non-integer list index: %f" n))
@@ -405,12 +462,14 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		 | LstLen -> (match re1 with
 				| LLit (LList list) -> (LLit (Num (float_of_int (List.length list))))
 		    | LEList list -> (LLit (Num (float_of_int (List.length list))))
-			| LBinOp (le, LstCons, list) ->
-				let rlist = f (LUnOp (LstLen, list)) in
-				(match rlist with
-				| LLit (Num n) -> LLit (Num (n +. 1.))
-				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
-				| _ -> LUnOp (LstLen, e1))
+  			| LBinOp (le, LstCons, list) ->
+  				let rlist = f (LUnOp (LstLen, list)) in
+  				(match rlist with
+  				| LLit (Num n) -> LLit (Num (n +. 1.))
+  				| _ -> LBinOp (LLit (Num 1.), Plus, rlist))
+				| LBinOp (l1, LstCat, l2) ->
+						LBinOp (f (LUnOp (op, l1)), Plus, f (LUnOp (op, l2)))
+  			| _ -> LUnOp (LstLen, e1))
 		 | StrLen -> (match re1 with
 		    | LLit (String str) -> (LLit (Num (float_of_int (String.length str))))
 		    | _ -> LUnOp (StrLen, e1))
@@ -418,9 +477,9 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	(* Everything else *)
 	| _ -> e) in
-	(* print_debug (Printf.sprintf "Reduce expression: %s ---> %s"
-		(JSIL_Print.string_of_logic_expression e false)
-		(JSIL_Print.string_of_logic_expression result false)); *) 
+	(* if (result <> orig_expr) then (print_debug_petar (Printf.sprintf "Reduce expression: %s ---> %s"
+		(JSIL_Print.string_of_logic_expression e) 
+		(JSIL_Print.string_of_logic_expression result))); *)
 	result
 
 let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
@@ -447,6 +506,15 @@ let rec reduce_assertion store gamma pfs a =
 	| LOr (_, LTrue) -> LTrue
 	| LOr (LFalse, a1)
 	| LOr (a1, LFalse) -> f a1
+	| LOr (LAnd (a1, a2), a3) ->
+			f (LAnd (LOr (a1, a3), LOr (a2, a3))) 
+	(* | LOr (LNot (LEq (LVar x, e1)), a) ->
+			let subst = Hashtbl.create 1 in
+			Hashtbl.add subst x e1;
+			let a = asrt_substitution subst true a in
+				f a *)
+	| LOr (LOr (a1, a2), a3) -> 
+			f (LOr (a1, LOr (a2, a3)))
 	| LOr (a1, a2) ->
 		let ra1 = f a1 in
 		let ra2 = f a2 in
@@ -456,11 +524,11 @@ let rec reduce_assertion store gamma pfs a =
 
 	| LNot LTrue -> LFalse
 	| LNot LFalse -> LTrue
+	| LNot (LNot a) -> f a
 	| LNot (LOr (al, ar)) ->
 			f (LAnd (LNot al, LNot ar))
 	| LNot (LAnd (al, ar)) -> 
 			f (LOr (LNot al, LNot ar))
-	| LNot (LEq (ALoc l1, ALoc l2)) when (l1 <> l2) -> LTrue
 	| LNot a1 ->
 		let ra1 = f a1 in
 		let a' = LNot ra1 in
@@ -482,7 +550,7 @@ let rec reduce_assertion store gamma pfs a =
 		let re1 = fe e1 in
 		let re2 = fe e2 in
 		(* Warning - NaNs, infinities, this and that, this is not good enough *)
-		let eq = (re1 = re2) && (re1 <> LUnknown) in
+		let eq = (re1 = re2) in
 		if eq then LTrue
 		else
 		let ite a b = if (a = b) then LTrue else LFalse in
@@ -491,6 +559,20 @@ let rec reduce_assertion store gamma pfs a =
 				if ((re1 = e1) && (re2 = e2))
 					then a' else f a' in
 		(match e1, e2 with
+
+			(* The alocs *)
+			| ALoc al1, ALoc al2 -> ite al1 al2
+
+			(* The empty business *)
+			| _, LLit Empty -> (match e1 with
+				| LLit l when (l <> Empty) -> LFalse
+				
+				| LEList _
+				| LBinOp _ 
+				| LUnOp _ -> LFalse
+				
+				| _ -> default e1 e2 re1 re2)
+
 			| LLit l1, LLit l2 -> ite l1 l2
 			| LNone, PVar x
 			| PVar x, LNone
@@ -541,7 +623,7 @@ let rec reduce_assertion store gamma pfs a =
 			| LBinOp (re1', Plus, LLit (Num n1)), LBinOp (LLit (Num n2), Plus, re2')
 			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (re2', Plus, LLit (Num n2))
 			| LBinOp (LLit (Num n1), Plus, re1'), LBinOp (LLit (Num n2), Plus, re2') ->
-					print_debug "PLUS_ON_BOTH_SIDES";
+					print_debug_petar "PLUS_ON_BOTH_SIDES";
 					let isn1 = Utils.is_normal n1 in
 					let isn2 = Utils.is_normal n2 in
 					if (isn1 && isn2)
@@ -555,14 +637,22 @@ let rec reduce_assertion store gamma pfs a =
 			(* More Plus theory *)
 			| LBinOp (re1', Plus, LLit (Num n1)), LLit (Num n2)
 			| LLit (Num n2), LBinOp (re1', Plus, LLit (Num n1)) ->
-					print_debug "PLUS_ON_ONE, LIT_ON_OTHER";
+					print_debug_petar "PLUS_ON_ONE, LIT_ON_OTHER";
 					let isn1 = Utils.is_normal n1 in
 					let isn2 = Utils.is_normal n2 in
 					if (isn1 && isn2)
 						then 
 							f (LEq (re1', LLit (Num (n2 -. n1))))
 						else default e1 e2 re1 re2
-						
+
+			(* Nil *)
+			| LBinOp (l1, LstCat, l2), LLit (LList []) ->
+				f (LAnd (LEq (l1, LLit (LList [])), LEq (l2, LLit (LList []))))
+
+			(* Very special cases *)
+			| LTypeOf (LBinOp (_, StrCat, _)), LLit (Type t) when (t <> StringType) -> LFalse
+			| LTypeOf (LBinOp (_, SetMem, _)), LLit (Type t) when (t <> BooleanType) -> LFalse
+			
 			| _, _ -> default e1 e2 re1 re2
 		)
 
@@ -585,7 +675,7 @@ let rec reduce_assertion store gamma pfs a =
 							LOr (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_UNION: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
 
 	| LSetMem (leb, LSetInter lle) -> 
@@ -596,10 +686,10 @@ let rec reduce_assertion store gamma pfs a =
 				let rle = fe le in
 					List.fold_left (fun ac le -> 
 						let rle = fe le in 
-							LOr (ac, LSetMem (rleb, rle))
+							LAnd (ac, LSetMem (rleb, rle))
 					) (LSetMem (rleb, rle)) lle) in
 		let result = f formula in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_INTER: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
 
 	| LSetMem (leb, LBinOp(lel, SetDiff, ler)) -> 
@@ -607,22 +697,28 @@ let rec reduce_assertion store gamma pfs a =
 		let rlel = fe lel in
 		let rler = fe ler in
 		let result = f (LAnd (LSetMem (rleb, rlel), LNot (LSetMem (rleb, rler)))) in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) (JSIL_Print.string_of_logic_assertion result false)); 
+			print_debug_petar (Printf.sprintf "SIMPL_SETMEM_DIFF: from %s to %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); 
 			result
-
-	| LSetMem (leb, LESet [ le ]) -> 
+			
+	| LSetMem (leb, LESet les) -> 
 		let rleb = fe leb in
-		let rle = fe le in
-			print_debug (Printf.sprintf "SIMPL_SETMEM_SINGLETON: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
-				(JSIL_Print.string_of_logic_assertion (LEq (rleb, rle)) false)); 
-			f (LEq (rleb, rle))
+		let rles = List.map (fun le -> fe le) les in
+		let result = List.map (fun le -> LEq (rleb, le)) rles in
+		let result = List.fold_left (fun ac eq ->
+			(match ac with
+			| LFalse -> eq
+			| _ -> LOr (ac, eq))) LFalse result in  
+			print_debug_petar (Printf.sprintf "SET_MEM: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
+				(JSIL_Print.string_of_logic_assertion result)); 
+			f result
 
 	| LForAll (bt, a) -> 
 			let ra = f a in
-			if (a <> ra) then
-		  print_debug (Printf.sprintf "SIMPL_FORALL: from %s to %s" (JSIL_Print.string_of_logic_assertion a false) 
-				(JSIL_Print.string_of_logic_assertion (LForAll (bt, ra)) false)); 
-			LForAll (bt, ra)
+			let vars = get_asrt_lvars a in
+			let bt = List.filter (fun (b, _) -> SS.mem b vars) bt in
+			(match bt with
+			| [] -> ra
+			| _ -> LForAll (bt, ra))
 
 	| _ -> a) in
 	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
@@ -689,8 +785,8 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typin
 
 
  let naively_infer_type_information_symb_state (symb_state : symbolic_state) = 
- 	let gamma = get_gamma symb_state in 
- 	let pfs = get_pf symb_state in 
+ 	let gamma = ss_gamma symb_state in 
+ 	let pfs = ss_pfs symb_state in 
  	naively_infer_type_information pfs gamma
 
 (*************************************)
@@ -708,8 +804,20 @@ let reduce_pfs_in_place store gamma pfs =
 		DynArray.set pfs i rpf) pfs
 	
 let sanitise_pfs store gamma pfs =
-	reduce_pfs_in_place store gamma pfs;
 	
+	reduce_pfs_in_place store gamma pfs;
+
+	(* let i = ref 0 in
+	while (!i < DynArray.length pfs) do
+		let pf = DynArray.get pfs !i in
+		(match pf with
+		| LAnd (a1, a2) ->
+				DynArray.delete pfs !i;
+				DynArray.add pfs a1;
+				DynArray.add pfs a2;
+		| _ -> i := !i + 1)
+	done; *)
+			
 	let length = DynArray.length pfs in
 	let dindex = DynArray.init length (fun x -> false) in
 	let clc = ref 0 in
@@ -765,12 +873,12 @@ let rec isExistentiallySubstitutable le =
 let get_lvars_pfs pfs =
 	List.fold_left
 		(fun lvars pf -> 
-			let lvs = get_assertion_lvars pf in
+			let lvs = get_asrt_lvars pf in
 				SS.union lvars lvs)
 		SS.empty (DynArray.to_list pfs)
 	
 let filter_gamma_pfs pfs gamma = 
-	let pfs_vars = get_pf_vars false pfs in
+	let pfs_vars = pfs_lvars pfs in
 	Hashtbl.filter_map_inplace 
 		(fun k v -> if (SS.mem k pfs_vars) then Some v else None) 
 		gamma
@@ -804,7 +912,7 @@ let arrange_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) : (jsil_logic_
 		| LBinOp (_, LstCat, _), LBinOp (_, LstCat, _) -> le1, le2
 		| _, _ -> le2, le1
 	) else
-		let msg = Printf.sprintf "Non-list expressions passed to arrange_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
+		let msg = Printf.sprintf "Non-list expressions passed to arrange_lists : %s, %s" (string_of_logic_expression le1) (string_of_logic_expression le2) in
 		raise (Failure msg)
 
 (* Extracting elements from a list *)
@@ -815,7 +923,7 @@ let rec get_elements_from_list (le : jsil_logic_expr) : jsil_logic_expr list =
 	| LEList l -> l
 	| LBinOp (e, LstCons, le) -> e :: get_elements_from_list le
 	| LBinOp (lel, LstCat, ler) -> get_elements_from_list lel @ get_elements_from_list ler
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (print_lexpr le) in
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (string_of_logic_expression le) in
 		raise (Failure msg))
 
 (* Separating a list into a head and a tail *)
@@ -838,7 +946,7 @@ let rec get_head_and_tail_list (le : jsil_logic_expr) : bool option * jsil_logic
 		| Some true -> Some true, head, LBinOp (tail, LstCat, l2))
 	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
 	| _ -> 
-		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (print_lexpr le) in
+		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (string_of_logic_expression le) in
 		raise (Failure msg))
 
 (* TODO: IMPROVE THIS *)
@@ -895,7 +1003,7 @@ let rec split_list_on_element (le : jsil_logic_expr) (e : jsil_logic_expr) : boo
 				| _ -> LBinOp (lel, LstCat, lrl)) in
 					true, (left, lrr)
 			| false -> false, (le, LEList [])))
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (print_lexpr le) in
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to split_list_on_element : %s" (string_of_logic_expression le) in
 		raise (Failure msg))
 
 let crossProduct l l' = List.concat (List.map (fun e -> List.map (fun e' -> (e,e')) l') l)
@@ -912,8 +1020,8 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 		| _ -> 
 			(* print_debug_petar (Printf.sprintf "LEL: %s\nREL: %s"
-				(String.concat ", " (List.map (fun x -> print_lexpr x) elems1))	
-				(String.concat ", " (List.map (fun x -> print_lexpr x) elems2))	
+				(String.concat ", " (List.map (fun x -> string_of_logic_expression x) elems1))	
+				(String.concat ", " (List.map (fun x -> string_of_logic_expression x) elems2))	
 			); *)
 			let intersection = List.fold_left (fun ac x -> 
 				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
@@ -935,10 +1043,10 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 						let lcand = List.length candidates in
 						let sqrtl = sqrt (float_of_int lcand) in
 						if (!interactive) && (not (sqrtl = floor sqrtl)) then (
-							print_debug (Printf.sprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates));
+							print_debug_petar (Printf.sprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates));
 							Printf.eprintf "Actually, we've got %d candidates for this unification.\n%!" (List.length candidates);
 							List.iter (fun (le1, le2, _) -> 
-								Printf.eprintf "%s vs. %s\n%!" (print_lexpr le1) (print_lexpr le2)) candidates;
+								Printf.eprintf "%s vs. %s\n%!" (string_of_logic_expression le1) (string_of_logic_expression le2)) candidates;
 							Printf.eprintf "Choose: ";
 							let n = read_int() in
 							let le1, le2, _ = DynArray.get (DynArray.of_list candidates) n in
@@ -950,12 +1058,12 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 			(match intersection with
 			| None -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false)), None
 			| Some (i, j) ->
-				(* print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (print_lexpr i) (print_lexpr j)); *)
+				(* print_debug_petar (Printf.sprintf "(Potential) Intersection: %s, %s" (string_of_logic_expression i) (string_of_logic_expression j)); *)
 				let ok1, (l1, r1) = split_list_on_element le1 i in
 				let ok2, (l2, r2) = split_list_on_element le2 j in
 				(match ok1, ok2 with
 				| true, true -> true, (l1, r1), (l2, r2), list_unification
-				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (print_lexpr i) (print_lexpr le1) (print_lexpr le2) in
+				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both lists: %s, %s is not." (string_of_logic_expression i) (string_of_logic_expression le1) (string_of_logic_expression le2) in
 						raise (Failure msg)))
 		))
 and
@@ -967,8 +1075,8 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 	let to_swap_now = (le1_old <> le1) in
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
-	(* print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
-		(print_lexpr le1) (print_lexpr le2)); *) 
+	print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
+		(string_of_logic_expression le1) (string_of_logic_expression le2)); 
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -976,6 +1084,12 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 		| LEList [], LEList [] -> Some false, []
 		| LVar _, _ -> Some false, [ swap (le1, le2) ]
 		(* Inductive cases *)
+		| LBinOp (l1, LstCat, LEList [ e1 ]), LBinOp (l2, LstCat, LEList [ e2 ]) ->
+				let ok, rest = unify_lists l1 l2 to_swap in
+				(match ok with
+				| None -> None, []
+				| _ -> Some true, (e1, e2) :: rest)
+		
 		| LLit (LList _), LLit (LList _)
 		| LLit (LList _), LEList _
 		| LEList _, LEList _
@@ -1028,7 +1142,7 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
-			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr le1) (print_lexpr le2) in
+			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (string_of_logic_expression le1) (string_of_logic_expression le2) in
 			raise (Failure msg)
 	)
 
@@ -1077,7 +1191,7 @@ let rec get_elements_from_string (se : jsil_logic_expr) : jsil_logic_expr list =
 	| LCList l -> l
 	| LBinOp (e, CharCons, se) -> e :: get_elements_from_string se
 	| LBinOp (sel, CharCat, ser) -> get_elements_from_string sel @ get_elements_from_string ser
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (print_lexpr se) in
+	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (string_of_logic_expression se) in
 		raise (Failure msg))
 
 (* Splitting an internal string based on an element *)
@@ -1123,7 +1237,7 @@ let rec split_string_on_element (se : jsil_logic_expr) (e : jsil_logic_expr) : b
 				| _ -> LBinOp (sel, CharCat, srl)) in
 					true, (left, srr)
 			| false -> false, (se, LCList [])))
-	| _ -> let msg = Printf.sprintf "Non-string expressions passed to split_string_on_element : %s" (print_lexpr se) in
+	| _ -> let msg = Printf.sprintf "Non-string expressions passed to split_string_on_element : %s" (string_of_logic_expression se) in
 		raise (Failure msg))
 
 (* Unifying strings based on a common literal *)
@@ -1145,7 +1259,7 @@ let match_strings_on_element (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : b
 				let ok2, (l2, r2) = split_string_on_element se2 i in
 				(match ok1, ok2 with
 				| true, true -> true, (l1, r1), (l2, r2) 
-				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both strings: %s, %s is not." (print_lexpr i) (print_lexpr se1) (print_lexpr se2) in
+				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both strings: %s, %s is not." (string_of_logic_expression i) (string_of_logic_expression se1) (string_of_logic_expression se2) in
 						raise (Failure msg)
 				)
 			)
@@ -1172,7 +1286,7 @@ let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_log
 		| Some true -> Some true, head, LBinOp (tail, CharCat, s2))
 	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
 	| _ -> 
-		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (print_lexpr se) in
+		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (string_of_logic_expression se) in
 		raise (Failure msg))
 
 (* String unification *)
@@ -1186,7 +1300,7 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (se1, se2) = if to_swap then (se2, se1) else (se1, se2) in
 	(* print_debug (Printf.sprintf "unify_strings: \n\t%s\n\t\tand\n\t%s" 
-		(print_lexpr se1) (print_lexpr se2)); *)
+		(string_of_logic_expression se1) (string_of_logic_expression se2)); *)
 	(match se1, se2 with
 	  (* Base cases *)
 		| LLit (CList []), LLit (CList []) 
@@ -1206,7 +1320,7 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 		| LBinOp (_, CharCat,  _), LBinOp (_, CharCat,  _) -> 
 			let (okl, headl, taill) = get_head_and_tail_string se1 in
 			let (okr, headr, tailr) = get_head_and_tail_string se2 in
-			print_debug (Printf.sprintf "Got head and tail: left: %b, right: %b" 
+			print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
 				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr));
 			(match okl, okr with
 			(* We can separate both strings *)
@@ -1240,7 +1354,7 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 			(* A proper error occurred while getting head and tail *)
 			| _, _ -> None, [])
 		| _, _ ->
-			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (print_lexpr se1) (print_lexpr se2) in
+			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (string_of_logic_expression se1) (string_of_logic_expression se2) in
 			raise (Failure msg)
 	)
 				
@@ -1367,9 +1481,10 @@ let simplify_symb_state
 	(existentials : SS.t)
 	(symb_state   : symbolic_state) =
 
-	let start_time = Sys.time () in
 	print_time_debug "simplify_symb_state:";
-	
+
+	print_debug_petar (Printf.sprintf "Symbolic state before simplification:\n%s" (Symbolic_State_Print.string_of_symb_state symb_state));  
+		
 	let initial_existentials = ref existentials in
 
 	let vars_to_save, save_all = 
@@ -1377,10 +1492,6 @@ let simplify_symb_state
 		| Some (Some v) -> v, false 
 		| Some None     -> SS.empty, true
 		| None          -> SS.empty, false) in
-
-	(* print_debug_petar (Printf.sprintf "Vars_to_save: %s" (String.concat ", " (SS.elements vars_to_save))); *)
-	(* print_debug_petar (Printf.sprintf "Save_all: %b" save_all); *)
-	(* print_debug_petar (Printf.sprintf "Existentials: %s" (String.concat ", " (SS.elements existentials))); *)
 
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
@@ -1392,7 +1503,7 @@ let simplify_symb_state
 
 	(* Are there any singleton types in gamma? *)
 	let simplify_singleton_types others exists symb_state subst types =		 
-		let gamma = get_gamma symb_state in
+		let gamma = ss_gamma symb_state in
 		if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
 			(Hashtbl.iter (fun v t -> 
 				let lexpr = (match t with
@@ -1407,8 +1518,8 @@ let simplify_symb_state
 						Hashtbl.add subst v lexpr;
 				| None -> ())) gamma;
 			(* Substitute *)
-			let symb_state = symb_state_substitution symb_state subst true in
-			let others = pf_substitution others subst true in
+			let symb_state = ss_substitution subst true symb_state in
+			let others = pfs_substitution subst true others in
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
 			Hashtbl.iter (fun v _ ->
@@ -1456,7 +1567,7 @@ let simplify_symb_state
 	 * and are also not in others
 	 *)
 	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
-	let lvars = SS.union (get_symb_state_vars_no_gamma false symb_state) (get_pf_vars false other_pfs) in
+	let lvars = SS.union (ss_vars_no_gamma symb_state) (pfs_lvars other_pfs) in
 	let lvars_gamma = get_gamma_all_vars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
@@ -1474,12 +1585,12 @@ let simplify_symb_state
 	let subst = Hashtbl.create 57 in
 	let symb_state, subst, others, exists = simplify_singleton_types other_pfs !initial_existentials symb_state subst types in
 
-	let pfs = get_pf symb_state in
+	let pfs = ss_pfs symb_state in
 
 	(* String translation: Use internal representation as Chars *)
-	let pfs = DynArray.map (assertion_map None le_string_to_list) pfs in
-	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (print_pfs pfs)); *)
-	let symb_state = symb_state_replace_pfs symb_state pfs in 
+	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_string_to_list None))) pfs in
+	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (string_of_pfs pfs)); *)
+	let symb_state = ss_replace_pfs symb_state pfs in 
 	
 	let changes_made = ref true in
 	let symb_state   = ref symb_state in
@@ -1566,7 +1677,9 @@ let simplify_symb_state
 								| _, _ -> v, le))
 					| _ -> v, le) in
 					
-					let lvars_le = get_logic_expression_lvars le in
+					(* print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (string_of_logic_expression le)); *)
+					
+					let lvars_le = get_lexpr_lvars le in
 					(match (SS.mem v lvars_le) with
 					| true -> n := !n + 1
 					| false -> 		
@@ -1584,22 +1697,24 @@ let simplify_symb_state
 							let temp_subst = Hashtbl.create 1 in
 							Hashtbl.add temp_subst v le;
 							
-							let simpl_fun = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
-								| false -> symb_state_substitution_in_place_no_gamma
-								| true -> selective_symb_state_substitution_in_place_no_gamma
+							let simpl_fun, how_subst = (match (not (SS.mem v !initial_existentials) && (save_all || SS.mem v vars_to_save)) with
+								| false -> ss_substitution_in_place_no_gamma, "general"
+								| true -> selective_symb_state_substitution_in_place_no_gamma, "selective"
 								) in
 							
-							simpl_fun !symb_state temp_subst;
-							pf_substitution_in_place !others temp_subst;
+							(* print_debug_petar (Printf.sprintf "The substitution will be: %s" how_subst); *)
+							
+							simpl_fun temp_subst !symb_state;
+							pfs_substitution_in_place temp_subst !others;
 							
 							(* Add to subst *)
 							if (Hashtbl.mem subst v) then 
 								raise (Failure (Printf.sprintf "Impossible variable in subst: %s\n%s"
-									v (Symbolic_State_Print.string_of_substitution subst)));
+									v (JSIL_Print.string_of_substitution subst)));
 							Hashtbl.iter (fun v' le' ->
 								let sb = Hashtbl.create 1 in
 									Hashtbl.add sb v le;
-									let sa = lexpr_substitution le' sb true in
+									let sa = lexpr_substitution sb true le' in
 										Hashtbl.replace subst v' sa) subst;
 							Hashtbl.replace subst v le;
 							
@@ -1682,9 +1797,40 @@ let simplify_symb_state
 							)
 						)
 				
+				(* List n-th *)
+				| LLstNth (lst, LLit (Num idx)), le ->
+					(match (Utils.is_int idx) with
+						| false -> pfs_ok := false; msg := "Non-integer list indexation. Good luck."
+						| true -> 
+							let idx = int_of_float idx in
+							(match (0 <= idx) with
+							| false -> pfs_ok := false; msg := "Sub-zero indexation. Good luck."
+							| true -> 
+									let subst_list = Array.to_list (Array.init (idx + 1) (fun _ -> fresh_lvar())) in
+									let new_exists = !exists in
+									let new_exists = List.fold_left (fun ac v -> 
+										initial_existentials := SS.add v !initial_existentials;
+										SS.add v ac) new_exists subst_list in
+									exists := new_exists;
+									(* Get the part of the list before the nth and the part of the list after the nth *)
+									let front, back = List.tl subst_list, List.hd subst_list in
+									(* The part after is of list type *)
+									Hashtbl.add gamma back ListType;
+									let front = List.map (fun x -> LVar x) front in
+									let back = LVar back in
+									
+									let new_lst = LBinOp (LEList front, LstCat, (LBinOp (le, LstCons, back))) in
+									
+									(* Changes made, stay on n *)
+									changes_made := true;
+									DynArray.delete pfs !n;
+									DynArray.add pfs (LEq (lst, new_lst))
+								)
+						)
+				
 				(* List unification *)
 				| le1, le2 when (isList le1 && isList le2) ->
-					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (print_lexpr le1) (print_lexpr le2)); *)
+					(* print_debug (Printf.sprintf "List unification: %s vs. %s" (string_of_logic_expression le1) (string_of_logic_expression le2)); *)
 					let ok, subst = unify_lists le1 le2 false in
 					(match ok with
 					(* Error while unifying lists *)
@@ -1696,7 +1842,7 @@ let simplify_symb_state
 						| _ -> 
 							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
+								Printf.sprintf "%s = %s" (string_of_logic_expression x) (string_of_logic_expression y)) subst)); *)
 							raise (Failure "Unexpected list obtained from list unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1731,7 +1877,7 @@ let simplify_symb_state
 						)
 				(* String unification *)
 				| se1, se2 when (isInternalString se1 && isInternalString se2) ->
-					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (print_lexpr se1) (print_lexpr se2)); *)
+					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (string_of_logic_expression se1) (string_of_logic_expression se2)); *)
 					let ok, subst = unify_strings se1 se2 false in
 					(match ok with
 					(* Error while unifying strings *)
@@ -1743,7 +1889,7 @@ let simplify_symb_state
 						| _ -> 
 							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
 							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (print_lexpr x) (print_lexpr y)) subst)); *)
+								Printf.sprintf "%s = %s" (string_of_logic_expression x) (string_of_logic_expression y)) subst)); *)
 							raise (Failure "Unexpected list obtained from string unification."))
 					(* Progress *)
 					| Some true -> 
@@ -1751,6 +1897,7 @@ let simplify_symb_state
 							changes_made := true;
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
+				
 				| _, _ -> n := !n + 1)
 			
 			(* Special cases *)
@@ -1769,14 +1916,14 @@ let simplify_symb_state
 						(match (t = EmptyType) with
 						| true -> pfs_ok := false; msg := "Negation incorrect."
 						| false -> DynArray.delete pfs !n))
-							
+
 			| _ -> n := !n + 1);
 		done;
 	done;
 
 	(* String translation: Move back from internal representation to Strings - EVERYWHERE *)	
 	(* Convert substitutions back to string format *)
-	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) subst;
+	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) subst;
 
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
@@ -1785,35 +1932,39 @@ let simplify_symb_state
 		) subst;
 	
 	(* Convert Pure Formulas back *)
-	let pfs = DynArray.map (assertion_map None le_list_to_string) (get_pf !symb_state) in
-	let symb_state = ref (symb_state_replace_pfs !symb_state pfs) in
+	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) (ss_pfs !symb_state) in
+	let symb_state = ref (ss_replace_pfs !symb_state pfs) in
 	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
 
 	let heap, store, _, _, preds = !symb_state in
 	
 	(* Convert Store, Heap and Preds back, which should only change new additions *)
-	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string lexpr)) store;
+	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) store;
 	LHeap.filter_map_inplace (fun loc (fv_list, default) -> 
 		let fn, fv = List.split fv_list in
-		let fn = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) fn in
-		let fv = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) fv in
+		let fn = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fn in
+		let fv = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fv in
 		Some (List.combine fn fv, default)
 		) heap; 
 	DynArray.iteri (fun i (pname, pparams) ->
-		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string lexpr) pparams in
+		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) pparams in
 		DynArray.set preds i (pname, pparams)) preds;
 
-	let others = ref (DynArray.map (assertion_map None le_list_to_string) !others) in
+	let others = ref (DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) !others) in
 
-	(* print_debug_petar (Printf.sprintf "Symbolic state after (no internal Strings should be present):\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
-
-	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "simplify_symb_state" (end_time -. start_time);
+	(* print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 	
 	(* print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok); *)
-	if (!pfs_ok) 
+	let ss, subst, ots, exs = if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
-		else (pfs_false subst !others !exists !symb_state !msg)
+		else (pfs_false subst !others !exists !symb_state !msg) in
+	
+	(* let cache_value = simpl_encache_value ss subst ots exs in
+	Hashtbl.replace simpl_cache cache_key cache_value; *)
+
+	print_debug_petar ("symb_state after call to simplification: \n" ^ (Symbolic_State_Print.string_of_symb_state ss)); 
+
+	ss, subst, ots, exs
 	
 
 let simplify_ss symb_state vars_to_save = 
@@ -1823,24 +1974,24 @@ let simplify_ss symb_state vars_to_save =
 let simplify_ss_with_subst symb_state vars_to_save = 
 	let symb_state, subst, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) symb_state in
 	symb_state, subst
-	
+
 let simplify_pfs pfs gamma vars_to_save =
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
 	pfs, gamma
-
+			
 let simplify_pfs_with_subst pfs gamma =
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
 	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
 	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (copy_gamma gamma), DynArray.create ()) in
+	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
 	lpfs, rpfs, exists, gamma
 
@@ -1852,7 +2003,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 
 	(* print_time_debug ("simplify_existentials:"); *)
 	
-	let rhs_gamma = copy_gamma gamma in
+	let rhs_gamma = gamma_copy gamma in
 	filter_gamma_pfs p_formulae rhs_gamma;
 	
 	let p_formulae, exists, _ = simplify_pfs_with_exists exists p_formulae rhs_gamma (Some None) in
@@ -1860,7 +2011,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	(* print_debug (Printf.sprintf "PFS: %s" (Symbolic_State_Print.string_of_shallow_p_formulae p_formulae false)); *)
 
 	let pfs_false msg =
-		print_debug (msg ^ " Pure formulae false.\n");
+		print_debug_petar (msg ^ " Pure formulae false.\n");
 		DynArray.clear p_formulae;
 		DynArray.add p_formulae LFalse;
 		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
@@ -1874,12 +2025,12 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
 		let subst = Hashtbl.create 1 in
 		Hashtbl.add subst v le;
-		simplify_existentials exists lpfs (pf_substitution p_formulae subst true) gamma in
+		simplify_existentials exists lpfs (pfs_substitution subst true p_formulae) gamma in
 
 	let test_for_nonsense pfs =
 
 		let rec test_for_nonsense_var_list var lst =
-			print_debug (Printf.sprintf "Nonsense test: %s vs. %s" (print_lexpr var) (print_lexpr lst));
+			print_debug_petar (Printf.sprintf "Nonsense test: %s vs. %s" (string_of_logic_expression var) (string_of_logic_expression lst));
 			(match var, lst with
 			 | LVar v, LVar w -> v = w
 			 | LVar _, LEList lst ->
@@ -2002,7 +2153,8 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 	) p_formulae;
 
 	let pf_list = DynArray.to_list p_formulae in
-		go_through_pfs pf_list 0 
+	let result = go_through_pfs pf_list 0 in
+	result
 
 
 
@@ -2013,7 +2165,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 let clean_up_stuff exists left right =
 	let sleft = SA.of_list (DynArray.to_list left) in
 	let i = ref 0 in
-	
 	while (!i < DynArray.length right) do
 		let pf = DynArray.get right !i in
 		let pf_sym pf = (match pf with
@@ -2032,6 +2183,20 @@ let clean_up_stuff exists left right =
 						DynArray.add left LFalse)
 		 | true -> DynArray.delete right !i
 		)
+	done;
+	
+	i := 0;
+	while (!i < DynArray.length right) do
+		let pf = DynArray.get right !i in
+		(match pf with
+		| LNot (LEq (le, LLit Empty)) ->
+			(match le with
+			| LEList _ 
+			| LBinOp (_, _, _)  
+			| LUnOp (_, _) -> DynArray.delete right !i 
+			| _ -> i := !i + 1
+			)
+		| _ -> i := !i + 1)
 	done
 	
 
@@ -2101,7 +2266,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
-		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) intersections)));
+		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) intersections)));
 					
 	let i = ref 0 in
 	while (!i < DynArray.length rpfs) do
@@ -2111,20 +2276,20 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
 				print_debug_petar "Resolve set existentials: I have found a union equality.";
-				print_debug_petar (JSIL_Print.string_of_logic_assertion a false);
+				print_debug_petar (JSIL_Print.string_of_logic_assertion a);
 				
 				(* Trying to cut the union *)
 				let same_parts = SLExpr.inter sul sur in
-				print_debug_petar (Printf.sprintf "Same parts: %s" (String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements same_parts))));
+				print_debug_petar (Printf.sprintf "Same parts: %s" (String.concat ", " (List.map (fun x -> string_of_logic_expression x) (SLExpr.elements same_parts))));
 				if (SLExpr.cardinal same_parts = 1) then (
 					let must_not_intersect = SLExpr.diff (SLExpr.union sul sur) same_parts in
 					print_debug_petar (Printf.sprintf "%s must not intersect any of %s" 
-						(String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements same_parts)))
-						(String.concat ", " (List.map (fun x -> print_lexpr x) (SLExpr.elements must_not_intersect))));
+						(String.concat ", " (List.map (fun x -> string_of_logic_expression x) (SLExpr.elements same_parts)))
+						(String.concat ", " (List.map (fun x -> string_of_logic_expression x) (SLExpr.elements must_not_intersect))));
 					let element : jsil_logic_expr = List.hd (SLExpr.elements same_parts) in 
 					let must_not_intersect = List.map (fun s -> List.sort compare [ s; element ]) (SLExpr.elements must_not_intersect) in
 					print_debug_petar (Printf.sprintf "Intersections we need:\n%s"
-							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) must_not_intersect)));
+							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) must_not_intersect)));
 					let must_not_intersect = List.map (fun s -> List.mem s intersections) must_not_intersect in
 					print_debug_petar (Printf.sprintf "And we have: %s" (String.concat ", " (List.map (fun (x : bool) -> if (x = true) then "true" else "false") must_not_intersect)));
 					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
@@ -2137,10 +2302,10 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 						(* CAREFULLY substitute *)
 						(match lhs with
 						| LVar v when (SS.mem v set_exists) ->
-								print_debug (Printf.sprintf "Managed to instantiate a set existential: %s" v);
+								print_debug_petar (Printf.sprintf "Managed to instantiate a set existential: %s" v);
 								let temp_subst = Hashtbl.create 1 in
 								Hashtbl.add temp_subst v rhs;
-								pf_substitution_in_place rpfs temp_subst;
+								pfs_substitution_in_place temp_subst rpfs;
 								exists := SS.remove v !exists;
 								while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
 								DynArray.delete rpfs !i
@@ -2163,7 +2328,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
-		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) intersections)));
+		(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) intersections)));
 	
 	try (
 	let i = ref 0 in
@@ -2179,7 +2344,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 				SLExpr.iter (fun s1 ->
 					let must_not_intersect = List.map (fun s -> List.sort compare [ s; s1 ]) (SLExpr.elements sur) in
 					print_debug_petar (Printf.sprintf "Intersections we need:\n%s"
-							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> print_lexpr e) s)) must_not_intersect)));
+							(String.concat "\n" (List.map (fun s -> String.concat ", " (List.map (fun e -> string_of_logic_expression e) s)) must_not_intersect)));
 					let must_not_intersect = List.map (fun s -> List.mem s intersections) must_not_intersect in
 					print_debug_petar (Printf.sprintf "And we have: %s" (String.concat ", " (List.map (fun (x : bool) -> if (x = true) then "true" else "false") must_not_intersect)));
 					let must_not_intersect = SB.elements (SB.of_list must_not_intersect) in
@@ -2198,21 +2363,51 @@ let find_impossible_unions lpfs rpfs exists gamma =
 
 
 let simplify_implication exists lpfs rpfs gamma =
-	sanitise_pfs_no_store gamma rpfs;
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
-	sanitise_pfs_no_store gamma rpfs;
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
-	clean_up_stuff exists lpfs rpfs;
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
 	let rpfs, exists, gamma = find_impossible_unions   lpfs rpfs exists gamma in
+	sanitise_pfs_no_store gamma rpfs;
+	clean_up_stuff exists lpfs rpfs;
 	print_debug_petar (Printf.sprintf "Finished existential simplification:\n\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\n\nGamma:\n%s\n\n"
 		(String.concat ", " (SS.elements exists))
-		(print_pfs lpfs)
-		(print_pfs rpfs)
+		(string_of_pfs lpfs)
+		(string_of_pfs rpfs)
 		(Symbolic_State_Print.string_of_gamma gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
-
+let trim_down (exists : SS.t) (lpfs : jsil_logic_assertion DynArray.t) (rpfs : jsil_logic_assertion DynArray.t) gamma = 
+	try (
+  	let lhs_lvars = pfs_lvars lpfs in
+  	let rhs_lvars = pfs_lvars rpfs in
+  	let diff = SS.diff (SS.diff rhs_lvars lhs_lvars) exists in
+  	
+  	if (DynArray.length rpfs = 1) then (
+			let pf = DynArray.get rpfs 0 in
+			(match pf with
+			| LEq (LVar v1, LVar v2)
+			| LLess (LVar v1, LVar v2)
+			| LLessEq (LVar v1, LVar v2) 
+			| LNot (LEq (LVar v1, LVar v2))
+			| LNot (LLess (LVar v1, LVar v2))
+			| LNot (LLessEq (LVar v1, LVar v2)) ->
+					if (v1 <> v2 && (SS.mem v1 diff || SS.mem v2 diff)) then raise (Failure "")
+			| _ -> ())
+		);
+  	
+  	let i = ref 0 in
+  	while (!i < DynArray.length lpfs) do
+  		let pf = DynArray.get lpfs !i in
+  		let pf_lvars = get_asrt_lvars pf in
+  		let inter_empty = (SS.inter rhs_lvars pf_lvars = SS.empty) in 
+  		(match inter_empty with
+  		| true -> 
+  				print_debug_petar (Printf.sprintf "Removing from lhs:\n\t%s" (JSIL_Print.string_of_logic_assertion pf)); DynArray.delete lpfs !i 
+  		| false -> i := !i + 1)
+  	done;
+  	true, exists, lpfs, rpfs, gamma)
+	with
+	| Failure _ -> false, exists, lpfs, rpfs, gamma
 
 
 let aux_find_me_Im_a_loc pfs gamma v = 
@@ -2227,15 +2422,41 @@ let aux_find_me_Im_a_loc pfs gamma v =
 				| _ -> None))
 
 (** This function is dramatically incomplete **)
-let resolve_location lvar pfs =
-	let rec loop pfs =
-		match pfs with
-		| [] -> None
-		| LEq (LVar cur_lvar, ALoc loc) :: rest
-		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
-			if (cur_lvar = lvar) then Some (ALoc loc) else loop rest
-		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
-		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
-			if (cur_lvar = lvar) then Some (LLit (Loc loc)) else loop rest
-		| _ :: rest -> loop rest in
-	loop pfs
+
+	
+(* ******************** *
+ * EXPRESSION REDUCTION *
+ * ******************** *)
+
+let reduce_expression_using_pfs_no_store gamma pfs e =
+	let _, subst = simplify_pfs_with_subst pfs gamma in
+	(match subst with
+	| None -> e
+	| Some subst ->
+		let e = lexpr_substitution subst true e in
+			reduce_expression_no_store gamma pfs e)
+			
+(* ******************************** *
+ * CONGRUENCE CLOSURE APPROXIMATION *
+ * ********************************** *)
+
+(* No entailment *)
+let cc_from_subst (subst : (string, jsil_logic_expr) Hashtbl.t) : (jsil_logic_expr, SLExpr.t) Hashtbl.t =
+	let cc_table : (jsil_logic_expr, SLExpr.t) Hashtbl.t = Hashtbl.create 57 in
+	
+	let establish_initial_cc () = 
+		Hashtbl.iter (fun key value -> 
+			let var = (match (is_pvar_name key) with
+				| true -> PVar key 
+				| false -> LVar key) in
+			Hashtbl.add cc_table var (SLExpr.add value (SLExpr.singleton var))) subst in
+		
+	establish_initial_cc();
+	
+	let changes_made = ref true in
+	
+	while (!changes_made) do
+		changes_made := false;
+	done;
+	
+	cc_table

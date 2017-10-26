@@ -1,4 +1,3 @@
 src/js2jsil.native
-src/tests/test_main.native
 src/jsilverify.native
 src/jsil.native

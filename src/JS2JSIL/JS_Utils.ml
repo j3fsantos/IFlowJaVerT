@@ -85,9 +85,9 @@ let rec js_map f_m expr =
     | Array leo                   -> Array (List.map fo leo)     
     (* statement *) 
     | Label (lab, s)              -> Label (lab, f s)  
-    | If (e, s1, s2)              -> If (e, f s1, fo s2)
-    | While (e, s)                -> While (e, f s)
-    | DoWhile (s, e)              -> DoWhile (e, f s) 
+    | If (e, s1, s2)              -> If (f e, f s1, fo s2)
+    | While (e, s)                -> While (f e, f s)
+    | DoWhile (s, e)              -> DoWhile (f e, f s) 
     | Skip | Break _ |  Continue _ | Debugger   -> e_stx
     | Throw e                     -> Throw (f e)
     | Return eo                   -> Return (fo eo) 
@@ -395,13 +395,19 @@ let get_all_assigned_declared_identifiers exp =
 
 let rec var_decls_inner exp =
   let f_ac exp state prev_state ac = 
-    match exp.exp_stx with 
-    | VarDec vars -> (List.map (fun (v, _) -> v) vars) @ ac 
-    | _ -> ac in 
-  js_fold f_ac (fun x y -> y) true exp
+    if (not state) then ac else (
+      match exp.exp_stx with 
+      | VarDec vars -> (List.map (fun (v, _) -> v) vars) @ ac 
+      | _ -> ac
+    ) in 
+  let f_state exp state = 
+    (match exp.exp_stx with 
+    | FunctionExp _ | Function _ -> false 
+    | _                          -> state) in  
+  js_fold f_ac f_state true exp
 
 
-let var_decls exp = (List.unique (var_decls_inner exp))
+let var_decls exp = (List.unique (var_decls_inner exp)) @ [ "arguments" ]
 
 
 let rec get_fun_decls exp =

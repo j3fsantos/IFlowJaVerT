@@ -1,11 +1,11 @@
 /**
-	@pred nullableObject(o) : 
+	@pred NullableObject(o) : 
 		types(o : $$object_type),
 		(o == $$null) * types (o : $$null_type);
 
 	@pred Node(n, val, left, right) :
-		standardObject(n) *
-		dataField(n, "value", val) * dataField(n, "left",  left) * dataField(n, "right", right) *
+		JSObject(n) *
+		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right) *
 		types(val : $$number_type);
 
 	@pred BST(n, K) :
@@ -16,10 +16,6 @@
 		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
 		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
 		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type);
-*/
-
-/**
-	@lemma BST($$null, #x) --> (#x == -{ }-)
 */
 
 /**
@@ -45,29 +41,31 @@ function make_node(v)
 	@id insert
 
 	@pre
+		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : $$number_type) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
-		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
+		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
+		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
 		
 	@post 
+		initialHeapPostWeak() * 
 		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : $$object_type) *
-		scope(make_node : #makeNode) * fun_obj(makeNode, #makeNode, #mknProto) *
-		scope(insert : #insert) * fun_obj(insert, #insert, #insertProto)
+		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
+		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
 */
 function insert(v, t)
 {
   var result;
   
-  /** @unfold BST(#t, #K) */
+  /** @tactic unfold BST(#t, #K) */
   if (t === null) {
   
   	result = make_node(v);
   	
   	/** @invariant scope(result : #r) 
-  		@fold BST($$null, -{ }-)
-  		@fold BST($$null, -{ }-)
-  		@fold BST(#r, -{ #v }-) */
+  		@tactic fold BST($$null, -{ }-)
+  		@tactic fold BST($$null, -{ }-)
+  		@tactic fold BST(#r, -{ #v }-) */
     return result
   }
 
@@ -76,7 +74,7 @@ function insert(v, t)
   else if (v > t.value) 
     t.right = insert(v, t.right);
 
-  /** @fold BST(#t, -u- (#K, -{ #v }-)) */
+  /** @tactic fold BST(#t, -u- (#K, -{ #v }-)) */
   return t;
 }
 
@@ -84,18 +82,20 @@ function insert(v, t)
 	@id find
 	
 	@pre
+		initialHeapPostWeak() *
 		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : $$number_type) * 
-		scope(find : #find) * fun_obj(find, #find, #findProto)
+		scope(find : #find) * FunctionObject(#find, "find", _, _)
 
 	@post 
+		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : $$boolean_type) *
-		scope(find : #find) * fun_obj(find, #find, #findProto)
+		scope(find : #find) * FunctionObject(#find, "find", _, _)
 */
 function find (v, t)
 {
 	var result;
 
-	/** @unfold BST(#t, #K) */	
+	/** @tactic unfold BST(#t, #K) */	
 	if (t === null)
 		result = false;
 	else if (v === t.value)
@@ -107,7 +107,7 @@ function find (v, t)
 		  result = find(v, t.right);
 	}
 	
-	/** @fold BST(#t, #K) */
+	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -115,27 +115,29 @@ function find (v, t)
 	@id findMin
 	
 	@pre
+		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * types(#t : $$object_type) * 
-		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 
 	@post 
+		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) * 
 		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
-		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 */
 function find_min(t)
 {
-	/** @unfold BST(#t, #K) */
+	/** @tactic unfold BST(#t, #K) */
 	var result;
 	
-	/** @invariant dataField(#t, "left", #il) * BST(#il, #KL) */
-	/** @flash BST(#il, #KL) */
+	/** @invariant DataProp(#t, "left", #il) * BST(#il, #KL) */
+	/** @tactic flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else
 		result = find_min(t.left);
 		
-	/** @fold BST(#t, #K) */
+	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -143,37 +145,38 @@ function find_min(t)
 	@id remove
 		
 	@pre
+		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : $$number_type) *
-		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
-		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
+		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 
 	@post 
-		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) * nullableObject(#t_new) *
-		scope(remove : #remove) * fun_obj(remove, #remove, #removeProto) *
-		scope(find_min : #findMin) * fun_obj(findMin, #findMin, #findMinProto)
+		initialHeapPostWeak() * 
+		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) * NullableObject(#t_new) *
+		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
+		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 */
 function remove(v, t)
 {
-	/** @unfold BST(#t, #K) */
+	/** @tactic unfold BST(#t, #K) */
 	if (t === null)
-		/** @fold BST(#t, #K) */
+		/** @tactic fold BST(#t, #K) */
 		return null;
 
-	/** @invariant dataField(#t, "left", #il) * dataField(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
-	
+	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
 	if (v === t.value) {
+		/** @tactic flash BST(#il, #KL) */
 		if (t.left === null) {	
-				/** @unfold BST($$null, #KL) */
+				/** @tactic flash BST(#ir, #KR) */
 				return t.right;
 			}
 		else 
+		/** @tactic flash BST(#ir, #KR) */
 		if (t.right === null) {
-				/** @unfold BST($$null, #KR) */
 	  			return t.left;
 			}
 		else {
-			/** @flash BST(#ir, #KR) */
 			var min = find_min(t.right);
 			t.right = remove(min, t.right);
 			t.value = min;
@@ -184,6 +187,6 @@ function remove(v, t)
 	else
 		t.right = remove(v, t.right);	
 
-	/** @fold BST(#t, #K -d- -{ #v }-) */
+	/** @tactic fold BST(#t, #K -d- -{ #v }-) */
   	return t;
 }
