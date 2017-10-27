@@ -702,13 +702,19 @@ $$
 $$
 \end{theorem}
 
-\myparagraph{Symbolic States versus Assertions} We emphasise the point that the conversion of the 
+\myparagraph{Symbolic States versus Assertions} Note that the conversion of the 
 pre-condition $P$ of a \jsil procedure $\fid$ to a symbolic state $(\sheap, \sstore, \pc)$ is such that 
 the initial path condition $\pc$ includes constraints that are \underline{not} entailed by the pure part of $P$. 
 These constraints are instead entailed by the negative resource assertions in $P$ (which are not captured 
-by $\sheap$) and are generated in item ${\bf e.}$ of the test generation algorithm. 
-To illustrate this point, let us consider the assertion and the symbolic state shown in Figure~\ref{fig:symb:state:versus:assertion}
-
+by $\sheap$).
+To illustrate this, let us consider the assertion and the symbolic heap graphically illustrated
+ in Figure~\ref{fig:symb:state:versus:assertion}. One can see that the cell assertion 
+ {\small $(\texttt{contents}, \texttt{"hasOwnProperty"}) \mapsto \none$} does not have a correspondent 
+ cell in the symbolic heap, as all $\none$-cells disappear. 
+ However, due to the semantics of the separating conjunction, this assertion entails that 
+{\small $(\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})$}. 
+Since this constraint is not entailed by the corresponding symbolic heap, it is, instead, added to the initial path condition. 
+Negative constraints are generated in item ${\bf e.}$ of the test generation algorithm. 
 
 
 
