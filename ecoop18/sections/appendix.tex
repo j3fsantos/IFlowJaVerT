@@ -257,7 +257,7 @@
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
 
-\begin{temax}{Theorem~\ref{teo:transparency} - Transparency} 
+\begin{temax}{Theorem~\ref{teo:transparency} - Transparency.} 
 $\forall \, \heap, \heap', \store, \store', i, i', \ctx, \ctx', \, . \,$
 $$
   \semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
@@ -269,15 +269,15 @@ $$
 \begin{lemma}[Soundness of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
 $$
 \begin{array}{l}
-\forall \sheap, \sheap', \sstore, \sstore', \bcmd, \pc, \pc', \pc'' \, . \,  \\
+\forall \sheap, \sstore, \bcmd, \pc, \sheap', \sstore',  \pc', \heap, \store, \senv, \pc'' \, .\\
 \qquad \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
    \ \wedge \ 
-      (\heap, \store) \in \smodels{\sheap, \sstore}{\pc''} 
+      (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
             \ \wedge \ \pc'' \vdash \pc' \\ \qquad \quad
-      	 \ \implies \ \exists (\heap', \store') \, . \, 
+      	 \ \implies \ \exists \heap', \store' \, . \, 
 	 	 \semtrans{\heap, \store, \bcmd}{\heap', \store'}
 		\, \wedge \, 
-		(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}  
+		(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}  
 \end{array}
 $$
 \end{lemma}
@@ -294,8 +294,7 @@ By picking $\heap' = \heap$, $\store' = \store$, the result follows.
 \noindent\prooflab{Assignment} 
 We conclude that $\bcmd = \jvar := \jsilexpr$, for some variable $\jvar$ and expression $\jsilexpr$, 
 and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$, and $\pc' = \pc$. 
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment 
-$\senv$ such that, $\senv \vdash \pc''$,  $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\senv \vdash \pc''$,  $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
 Noting that: 
 $$
  \semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}
@@ -303,7 +302,7 @@ $$
  %\semexpr{\sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}{\senv} = \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\jsilexpr}{\store, \senv}]
 $$
 we pick $\heap' = \heap$ and $\store' =  \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$. We 
-now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+now have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Observing that: 
 $$
 \heap' =  \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} 
