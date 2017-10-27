@@ -667,6 +667,7 @@
 \newcommand\sexprv{\hat{v}}
 \newcommand\func{\mathtt{fun}}
 \newcommand\sctx{\hat{C}}
+\newcommand\sctxmain{\hat{C}_{\sf main}^0}
 \newcommand\sstring{\hat{s}}
 \newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
 \newcommand\snumber{\hat{n}}
@@ -764,7 +765,9 @@
 \newcommand{\unificationefl}[2]{{\cal U}_{NR}(#1, #2)} 
 \newcommand{\unificationfail}[4]{{\cal U}_{#4}^{\times}((#1), #2, #3)}
 \newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{S}}^{#3}}
+\newcommand{\unificationfullP}[2]{\tuple{(#1), #2} \in {\cal U}_{\mathtt{S}}}
 \newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{F}}^{#3}(#4)}
+\newcommand{\unificationfullfailP}[3]{\tuple{(#1), #2} \in {\cal U}_{\mathtt{F}}(#3)}
 \newcommand{\cellunification}[3]{#3 \vdash \tuple{#1} \rightarrow_{\cal CU} \tuple{#2}}
 \newcommand{\cellunificationx}[3]{#3 \vdash \tuple{#1} \rightarrow_{\cal CU} #2}
 \newcommand{\cellunificationiter}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\cal CU} \tuple{#2}}
@@ -783,6 +786,7 @@
 \newcommand{\specsig}[4]{\lconf{#1} \, #2 \,  \lconf{#3}^{#4}}
 \newcommand{\concretise}[2]{\llfloor #1 \rrfloor_{#2}}
 \newcommand{\testify}[1]{{\cal T}_{#1}}
+\newcommand{\testifyfun}[1]{{\cal T}_{#1}}
 %%
 %% Jilette - JS extended syntax
 %%
