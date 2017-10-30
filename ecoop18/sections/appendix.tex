@@ -105,7 +105,7 @@
   }{\semtranserr{\heap, \store, \assert(\jsilexpr)}} 
 \end{mathpar}}
 \vspace*{-0.5cm}
-\caption{Symbolic Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\caption{\polish{Symbolic} Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \end{figure}
 
 
@@ -180,7 +180,7 @@
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.4cm}
-\caption{Symbolic Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
+\caption{\polish{Symbolic} Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
 \end{figure}
 %
 %\begin{figure}[ht!]
@@ -273,7 +273,7 @@ $$
 \qquad \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
    \ \wedge \ 
       (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
-            \ \wedge \ \pc'' \vdash \pc' \\ \qquad \quad
+            \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \svarsreallyqueen(\prog) \subseteq \domain(\senv) \\ \qquad \quad
       	 \ \implies \ \exists \heap', \store' \, . \, 
 	 	 \semtrans{\heap, \store, \bcmd}{\heap', \store'}
 		\, \wedge \, 
@@ -292,12 +292,12 @@ By picking $\heap' = \heap$, $\store' = \store$, the result follows.
 \vspace{6pt}
 
 \noindent\prooflab{Assignment} 
-We conclude that $\bcmd = \jvar := \jsilexpr$, for some variable $\jvar$ and expression $\jsilexpr$, 
-and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]$, and $\pc' = \pc$. 
-From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\senv \vdash \pc''$,  $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+We conclude that $\bcmd = \jvar := \sexpr$, for some variable $\jvar$ and expression $\sexpr$, 
+and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\sexpr}{\store}]$, and $\pc' = \pc$. 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\senv \satisfies \pc''$,  $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
 Noting that: 
 $$
- \semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}
+ \semtrans{\heap, \store, \jvar := \sexpr}{\heap, \store[\jvar \mapsto \symbeval{\sexpr}{\store}]}
 % \qquad 
  %\semexpr{\sstore[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}{\senv} = \semexpr{\sstore}{\senv}[\jvar \mapsto \symbeval{\jsilexpr}{\store, \senv}]
 $$
@@ -319,15 +319,14 @@ the result follows.
 We conclude that $\bcmd = \jvar := \jsilnew()$, for some variable $\jvar$, and that
 $\sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}$, $\sstore' = \sstore[\jvar \mapsto \loc]$, and $\pc' = \pc$, 
  where  $(\loc,-) \notin \domain (\sheap)$. 
- From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
-$\senv$ such that $\senv \vdash \pc''$, $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
+ From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that  $\senv \vdash \pc''$, $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
 Noting that: 
 $$
 \semtrans{\heap, \store, \jvar := \jsilnew()}{\heap \dunion \hcell{\loc}{\protop}{\jsnull}, \store[\jvar \mapsto \loc]}
 $$
 where: $(\loc,-) \notin \domain (\heap)$, we pick $\heap' = \semexpr{\sheap}{\senv} \dunion \hcell{\loc}{\protop}{\jsnull}$ 
 and $\store' = \semexpr{\sstore}{\senv}[\jvar \mapsto \loc]$. 
-We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+We now have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that: 
 $$
 \begin{array}{l}
