@@ -10,8 +10,7 @@ let update_prev_annot prev_annot cur_annot =
 		(annot.annot_type == Parser_syntax.Requires) ||
 			(annot.annot_type == Parser_syntax.Ensures) ||
 			(annot.annot_type == Parser_syntax.EnsuresErr) || 
-			(annot.annot_type == Parser_syntax.Id) ||
-			(annot.annot_type == Parser_syntax.Rec) in
+			(annot.annot_type == Parser_syntax.Id) in
 
 	let rec annot_has_specs annots =
 		match annots with
@@ -529,11 +528,11 @@ let process_js_logic_annotations (vis_tbl : (string, string list) Hashtbl.t) fun
 		preconditions
 		postconditions in
 
-	let f_rec =
-		let f_recs = List.filter (fun annotation -> annotation.annot_type = Rec) annotations in
+	let f_rec = true in
+		(* let f_recs = List.filter (fun annotation -> annotation.annot_type = Rec) annotations in
 		(match f_recs with
 		 | [ f_rec_annot ] -> if (f_rec_annot.annot_formula = "false") then false else true
-		 | _ -> true) in
+		 | _ -> true) in *)
 
 	let args = 
 		if (fun_name = Js2jsil_constants.var_main)
