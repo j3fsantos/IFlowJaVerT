@@ -1745,6 +1745,69 @@ from which the result follows immediately.
 \end{proof}
 
 
+\begin{lemma}[Separation Constraints: Failure]
+$$
+  \forall \efs \, . \, \pvars(\efs) = \emptyset \implies  
+  	\forall \iheap, \senv, \efs \, . \, 
+		\senv \satisfies \neg \sanity{\efs} \implies \iheap, \senv \not\satisfies \efs
+$$
+\end{lemma}
+\begin{proof}
+Assuming that $\pvars(\efs) = \emptyset$ (\hyp{1}) and $\senv \satisfies \neg \sanity{\efs}$ (\hyp{2}), 
+we have to prove that $\iheap, \senv \not\satisfies \efs$ for an arbitrary instrumented heap $\iheap$. 
+Given that: 
+$$
+\begin{array}{ll}
+\senv  \satisfies \neg \sanity{\efs} 
+	& \iff \senv \satisfies \neg \big(\bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc} \big) \\
+	%
+	& \iff \senv \satisfies  \bigvee_{\loc \in \eflocs(\efs)} \neg \sanityl{\efs}{\loc} 
+	
+\end{array}
+$$
+we conclude that there is a concrete location $\loc \in \eflocs(\efs)$ such that 
+$\senv \satisfies  \neg \sanityl{\efs}{\loc}$ (\ieq{1}).
+From \ieq{1}, we conclude that: 
+$$
+\begin{array}{l}
+ \senv \satisfies \neg\big((\wedge_{0 \leq i, j \leq n, i \neq j} \sexprp_i \neq \sexprp_j)  \, \wedge \,  (\wedge_{0 \leq i \leq n} \sexprp_i \in \sexpr_d)\big) \\
+    \iff \senv \satisfies (\vee_{0 \leq i, j \leq n, i \neq j} \sexprp_i = \sexprp_j) \, \vee \, (\vee_{0 \leq i \leq n} \sexprp_i \not\in \sexpr_d)\big)
+\end{array}
+$$
+where: $\efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto \none \big)$. 
+From the above, we conclude that either: \dtag{1} there are two integers $i$ and $j$ such that $i \neq j$ and $\senv \satisfies \sexprp_i = \sexprp_j$ 
+or \dtag{1} there is an integer $i$ such that $\senv \satisfies \sexprp_i \not\in \sexpr_d$. We proceed by case analysis. 
+\begin{itemize}
+   \item Suppose that $\senv \satisfies \sexprp_i = \sexprp_j$, we conclude that there is no 
+            instrumented heap $\iheap$, such that $\iheap, \senv \satisfies (l, \sexprp_i) \mapsto \none \sep (l, \sexprp_j) \mapsto \none$, 
+            from which it follows that there is no instrumented heap $\iheap$, such that $\iheap, \senv \satisfies \efs$, 
+            which concludes the result. 
+%
+  \item Suppose that $\senv \satisfies \sexprp_i \not\in \sexpr_d$, we conclude that there is no 
+            instrumented heap $\iheap$, such that $\iheap, \senv \satisfies \emptyfields{\loc}{\sexpr_d} \sep (l, \sexprp_i) \mapsto \none$, 
+            from which it follows that there is no instrumented heap $\iheap$, such that $\iheap, \senv \satisfies \efs$, 
+            which concludes the result.
+\end{itemize}
+\end{proof}
+
+
+%
+%\inferrule[\textsc{NR-Unification}]
+%	{}{ \unificationef{\sheap}{\efs} =  \bigwedge_{\efa \in \efs}  \unificationefl{\sheap}{\efa}} 
+%\\
+%\inferrule[\textsc{Separation Constraints - Fixed Location}]
+%	{
+%		 \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto \none \big)
+%	}{ \sanityl{\efs}{\loc} = 
+%		 (\wedge_{0 \leq i, j \leq n, i \neq j} \sexprp_i \neq \sexprp_j)
+%		       \, \wedge \,  ( \wedge_{0 \leq i \leq n} \sexprp_i \in \sexpr_d )
+%	} 
+%
+%\and
+%\inferrule[\textsc{Separation Constraints}]
+%	{}{ \sanity{\efs} = \bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc}} 
+
+
 \begin{lemma}[Counter Models for Failed Grounded Entailement]
 $$
 \unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{}{\pc''} 
