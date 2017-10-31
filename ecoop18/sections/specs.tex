@@ -761,8 +761,9 @@ of $\jstmt$ by a correct compiler $\compile$. Put formally:
 \end{equation}
 
 To generate symbolic tests from \javert specifications, we make use of the translation of specifications 
-described in~\cite{javert}. In particular, we first convert the \javert specification into a \jsil Logic specification, 
-using the translation of specifications; then, we generate a set of symbolic tests from the obtained \jsil Logic specification; 
+described in~\cite{javert} together with the \JSComp compiler. In particular, we first convert the \javert specification into a \jsil Logic specification, 
+using the translation of specifications, and the original JavaScript program to a \jsil program, using the \JSComp compiler; then, we 
+generate a set of symbolic tests from the obtained \jsil Logic specification and \jsil program; 
 and, finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. 
 
 
