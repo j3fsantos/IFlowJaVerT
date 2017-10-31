@@ -557,6 +557,8 @@ $$
    \smodels{\sheap, \sstore}{\pc \wedge \pc'} \cap \sepmodels{P} = \emptyset
 $$ 
 \end{theorem}
+%
+The {\bf proofs} of the above results are given in the Appendix.
 
 %\begin{theorem}[Soundness of Unification]\label{teo:unification:soundness}
 %$\forall P, \cells, \efs, \pfs',  \sheap, \sstore, \pc, \subst \, .$
@@ -719,11 +721,13 @@ To illustrate this, let us consider the assertion and the symbolic heap graphica
 Since this constraint is not entailed by the corresponding symbolic heap, it is, instead, added to the initial path condition. 
 Negative constraints are generated in item ${\bf e.}$ of the test generation algorithm. 
 
-
-
-\subsection{Compiling JaVerT Specifications to Symbolic Tests} 
-\label{specs:example}
-
+\myparagraph{Inductive Predicates} 
+\jilette does not have built-in abstraction mechanisms. Hence, it does not support symbolic
+execution over inductive predicates describing recursive data structures, which are 
+commonplace in separation-logic-style specifications~\cite{smallf, berdine:aplas:2005}. 
+As in~\cite{korat}, we deal with user-defined inductive predicate assertions by \emph{unfolding} 
+those assertions up to a fixed bound, which is established by the user. The unfolding mechanism 
+is routine and therefore omitted from the paper. 
 
 \begin{figure}[t!]
 \includegraphics[width=0.75\textwidth]{figures/symbolicvsass.pdf}
@@ -733,6 +737,35 @@ $$}
 \vspace{-25pt}
 \caption{Assertion vs. Symbolic Heap}\label{fig:symb:state:versus:assertion}
 \end{figure}
+
+
+\subsection{Compiling JaVerT Specifications to Symbolic Tests} 
+\label{specs:example}
+
+\myparagraph{\javert Specifications} \javert specifications are analogous to \jsil specifications. 
+As for \jsil Logic specification, we say that s a \javert specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+is valid for a JavaScript program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$, 
+if $\jstmt$ contains a function literal with identifier $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P_\jssuffix$, then, 
+if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mode $\flag$''.
+In~\cite{javert}, the authors present 
+a translation from \javert specifications to \jsil Logic specifications and prove the soundness 
+of that translation assuming a correct compiler $\compile$ from JavaScript to \jsil.
+In a nutshell, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
+$\ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag})$ is valid for the compilation 
+of $\jstmt$ by a correct compiler $\compile$. Put formally:  
+\begin{equation}
+   \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
+      \iff
+           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}) 
+\end{equation}
+
+To generate symbolic tests from \javert specifications, we make use of the translation of specifications 
+described in~\cite{javert}. In particular, we first convert the \javert specification into a \jsil Logic specification, 
+using the translation of specifications; then, we generate a set of symbolic tests from the obtained \jsil Logic specification; 
+and, finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. 
+
+
 
 
 \myparagraph{Example}
@@ -763,8 +796,8 @@ KVPairs (o, kvs) :=
   (kvs = (key, value) -u- kvs') * ValidKey(key) * DataProp(o, key, value) * KVPairs(o, kvs')
 \end{verbatim}}
 %
-\noindent We write \jsinline|-u-| for set union and omit the brackets around singleton 
-sets when clear. 
+\noindent \emph{Notation:}  We separate alternative definitions for a predicate using a comma. 
+We write \jsinline|-u-| for set union and omit the brackets around singleton sets when clear. 
 %
 The assertion \jsinline|DataProp(m, "_contents", c)| states that the property \jsinline|contents| of object \jsinline|m| has value
 \jsinline|v| (\polish{more details about the internal representation of JavaScript properties in~\cite{javert}}). 
@@ -777,7 +810,7 @@ The assertion \jsinline|JSObject(c, Object.prototype)|  states that \jsinline|c|
 
 
 We are now in the position to give the specifications of the functions of the map library. In particular, 
-below we show the specifications of \jsinline|get(k)| and \jsinline|put(k, v)| for the case in which
+ we show the specifications of \jsinline|get(k)| and \jsinline|put(k, v)| for the case in which
  \jsinline|k| already exists in the map. 
 
 \begin{minipage}{0.3\textwidth}
@@ -825,6 +858,25 @@ The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsi
 In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function, which is 
 defined as a property of \jsinline|Object.prototype|.
 
+If the predicate  $\mathtt{ValidKey(k)}$ does not state that  $\mathtt{k}$ needs to be different 
+from the string \texttt{"hasOwnProperty"}, the symbolic tests generated for both specifications 
+will fail (for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$). 
+Let us consider the symbolic execution of both methods on the symbolic heap described 
+in Figure~\ref{fig:symb:state:versus:assertion} (which can be obtained using the depth-$2$-unfolding 
+of $\mathtt{KVPairs}$). 
+\begin{itemize}
+ \item \prooflab{Get Failure} The symbolic execution of  $\mathtt{get(k)}$ will fail for the cases 
+           in which either $\hat{s}_1$ or $\hat{s}_2$ is equal to \texttt{"hasOwnProperty"}. In those 
+           cases, the execution of line 5 (\jsinline|if (c.hasOwnProperty(k))|) will raise an error. 
+           Since the specification of  $\mathtt{get(k)}$ states that this method must terminate 
+           normally, the jump to the error label in the compiled \jsil code will trigger the $\assert(\jfalse)$. 
+
+ \item \prooflab{Put Failure} The symbolic execution of  $\mathtt{put(k, v)}$ will also fail for the cases 
+           in which either $\hat{s}_1$ or $\hat{s}_2$ is equal to \texttt{"hasOwnProperty"}. In those 
+           cases, the execution will terminate normally; but, then,  the final symbolic 
+           state will not entail the final postcondition, which states that the property 
+            \texttt{"hasOwnProperty"} cannot be present in the object $\mathtt{contents}$. 
+\end{itemize}
 
 
 %%
