@@ -743,8 +743,8 @@
     fun-loc))
 
 (define (register-js-builtin-method builtin-obj-name method-name racket-method hp)
-  (println "inside register-js-builtin-method")
-  (println (format "checking the object at ~v" jsglobal))
+  ;;(println "inside register-js-builtin-method")
+  ;(println (format "checking the object at ~v" jsglobal))
   (let* ((builtin-obj-desc (heap-get hp jsglobal builtin-obj-name))
          (builtin-obj-loc (third builtin-obj-desc))
          (builtin-obj-proto-loc (third (heap-get hp builtin-obj-loc "prototype")))
@@ -761,11 +761,11 @@
           (mutate-heap hp builtin-obj-proto-loc method-name method-obj-desc))
         ;; the method already exists and we are just going to override it with a racket implementation
         (let ((method-obj-loc (third method-obj-desc)))
-          (println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
-                           method-name method-obj-loc fresh-function-name))
+          ;(println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
+                          ;; method-name method-obj-loc fresh-function-name))
           (mutate-heap hp method-obj-loc "@call" fresh-function-name)
-          (mutate-heap hp method-obj-loc "@construct" fresh-function-name)))
-    (println (format "just updated the heap:~v" hp))))
+          (mutate-heap hp method-obj-loc "@construct" fresh-function-name)))))
+    ;(println (format "just updated the heap:~v" hp))))
 
 (provide has-racket-implementation? get-racket-implementation register-js-builtin-method)
     

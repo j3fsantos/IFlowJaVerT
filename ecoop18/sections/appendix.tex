@@ -105,7 +105,7 @@
   }{\semtranserr{\heap, \store, \assert(\jsilexpr)}} 
 \end{mathpar}}
 \vspace*{-0.5cm}
-\caption{\polish{Symbolic} Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\caption{Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \end{figure}
 
 
@@ -180,7 +180,7 @@
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.4cm}
-\caption{\polish{Symbolic} Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
+\caption{Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
 \end{figure}
 %
 %\begin{figure}[ht!]
@@ -1791,28 +1791,93 @@ or \dtag{1} there is an integer $i$ such that $\senv \satisfies \sexprp_i \not\i
 \end{proof}
 
 
+
+
+\begin{lemma}[Separation Constraints: Failure]
+$$
+\begin{array}{l}
+  \forall \heap, \store, \senv, \pc, \sheap, \sstore, \efs \, . \\
+        \qquad (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc}
+           \, \wedge \, \senv \satisfies \neg \unificationef{\sheap}{\efs} 
+           \, \wedge \, \symbeval{\sheap}{\senv} \disjoint \iheap 
+              \implies \iheap, \senv \not\satisfies \efs
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+We assume that: 
+$(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc}$ (\hyp{1}), 
+$\senv \satisfies \neg \unificationef{\sheap}{\efs}$ (\hyp{2}), and
+$\symbeval{\sheap}{\senv} \disjoint \iheap$ (\hyp{3}); and we have to prove that 
+$\iheap, \senv \not\satisfies \efs$. 
+We prove the result by contradiction, assuming that $\iheap, \senv \satisfies \efs$ (\hyp{4}). 
+Expanding \hyp{2}, we obtain: 
+$$
+\begin{array}{lll}
+  \senv \satisfies \neg \unificationef{\sheap}{\efs}  &  \iff & \senv \satisfies \neg \bigwedge_{\efa \in \efs}  \unificationefl{\sheap}{\efa} \\ 
+  % 
+  & \iff & \senv \satisfies \bigvee_{\efa \in \efs}  \neg\unificationefl{\sheap}{\efa} \\
+  %
+  & \iff & \exists_{\efa \in \efs} \, \senv \satisfies \neg\unificationefl{\sheap}{\efa}
+\end{array}
+$$
+Hence, we conclude that there is an NR-assertion $\efa \in \efs$ such that $\senv \satisfies \neg\unificationefl{\sheap}{\efa}$ (\ieq{1}). 
+We proceed by case analysis on $\efa$. 
+\begin{itemize}
+   \item $\efa = \emptyfields{\loc}{\sexpr_d}$ (\ieq{2}) for some concrete location $\loc$ and symbolic expression $\sexpr_d$. 
+            It follows from \ieq{1} and \ieq{2} that: 
+            $\sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n$ (\ieq{3}), $l \notin \hlocs{\sheap'}$ (\ieq{4}), 
+            and $\senv \satisfies \{ \sexprp_i \mid_{i = 0}^n \} \not\subseteq \sexpr_d$ (\ieq{5}). 
+            From \hyp{4} and \ieq{2}, it follows that $\{ (\loc, \jstring) \mid \jstring \not\in \symbeval{\sexpr_d}{\senv} \} \subseteq \domain(\iheap)$ (\ieq{6}).
+            From \ieq{3} and \ieq{4}, we conclude that: $\{ (\loc, \symbeval{\sexprp_i}{\senv}) \mid_{i=0}^n \} \subseteq \domain(\symbeval{\sheap}{\senv})$ (\ieq{7}).               
+            From \ieq{5}-\ieq{7}, we conclude that $\domain(\symbeval{\sheap}{\senv}) \cap \domain(\iheap) \neq \emptyset$, which contradicts \hyp{3}.
+            
+  \item $\efa = (\loc,\sexprp)\pointsto \none$ (\ieq{8}) for some concrete location $\loc$ and symbolic expression $\sexprp$. 
+            It follows from \ieq{1} and \ieq{2} that: 
+            $\sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n$ (\ieq{9}), 
+            $l \notin \hlocs{\sheap'}$ (\ieq{10}), and 
+            $\senv \satisfies  \neg\wedge_{0 \leq i \leq n} \sexprp \neq \sexprp_i$ (\ieq{11}). 
+           We conclude that there is an $i$ such that: $\senv \satisfies \sexprp = \sexprp_i$ (\ieq{12}). 
+           From \hyp{4} and \ieq{8}, it follows that $(\loc, \symbeval{\sexprp}{\senv}) \in \domain(\iheap)$ (\ieq{13}). 
+           From \ieq{9}, it follows that $(\loc, \symbeval{\sexprp_i}{\senv}) \in \domain(\symbeval{\sheap}{\senv})$ (\ieq{14}). 
+           From \ieq{12}-\ieq{14}, we conclude that $\domain(\symbeval{\sheap}{\senv}) \cap \domain(\iheap) \neq \emptyset$, which contradicts \hyp{3}.
+\end{itemize}
+
+
+\end{proof}
+
+
+%\inferrule[\textsc{NR-None Cell}]
+%	{  
+%	   \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+%	   \\\\
+%	    l \notin \hlocs{\sheap'}
+%	    \quad 
+%	    \pc = \wedge_{0 \leq i \leq n} \sexprp \neq \sexprp_i 
+%	 }{ \unificationefl{\sheap}{(\loc,\sexprp)\pointsto \none} =  \pc  }
+%\qquad
+%\inferrule[\textsc{NR-Empty Fields}]
+%	{  
+%	    \sheap = \sheap' \dunion  \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+%	    \\\\
+%	     l \notin \hlocs{\sheap'}
+%	     \quad 
+%	    \pc = \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d 
+%	}{ \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}}{} =  \pc  } 
+%%
+
 %
 %\inferrule[\textsc{NR-Unification}]
 %	{}{ \unificationef{\sheap}{\efs} =  \bigwedge_{\efa \in \efs}  \unificationefl{\sheap}{\efa}} 
 %\\
-%\inferrule[\textsc{Separation Constraints - Fixed Location}]
-%	{
-%		 \efproj{\efs}{\loc} = \emptyfields{\loc}{\sexpr_d} \sep  \oast_{i = 0}^{n} \, \big((l, \sexprp_i) \mapsto \none \big)
-%	}{ \sanityl{\efs}{\loc} = 
-%		 (\wedge_{0 \leq i, j \leq n, i \neq j} \sexprp_i \neq \sexprp_j)
-%		       \, \wedge \,  ( \wedge_{0 \leq i \leq n} \sexprp_i \in \sexpr_d )
-%	} 
-%
-%\and
-%\inferrule[\textsc{Separation Constraints}]
-%	{}{ \sanity{\efs} = \bigwedge_{\loc \in \eflocs(\efs)}\sanityl{\efs}{\loc}} 
+
 
 
 \begin{lemma}[Counter Models for Failed Grounded Entailement]
 $$
-\unificationfullfail{\sheap, \sstore, \pc}{\cells, \efs, \pfs'}{}{\pc''} 
+\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc''} 
 %
- \implies \smodels{\sheap, \sstore}{\pc \, \wedge \, \pc''} \cap \sepmodels{\cells \sep \efs \sep \pc'} = \emptyset
+ \implies \smodels{\sheap}{\pc \, \wedge \, \pc''} \cap \sepmodels{\cells \sep \efs \sep \pc'} = \emptyset
  $$
 \end{lemma}
 \begin{proof}
@@ -1826,11 +1891,11 @@ and an extra resource failure. We proceed by case analysis on the cause of failu
               and $\cellunificationx{\sheap_f, \cell}{\uno{\pc''}}{\pc}$ (\ieq{2}), and  
               $\cells = \cells' \lstconcat (\cell \lstcons \cells'')$ (\ieq{3}). Applying Lemma~\ref{lemma:iter:cell:unification}
               to \ieq{1} and \ieq{3}, we conclude that there is a symbolic heap $\sheap'$ such that $\sheap = \sheap' \dunion \sheap_f$ (\ieq{4})
-              and $\smodels{\sheap', \sstore}{\pc} \subseteq \sepmodels{\cells'}$ (\ieq{5}). 
+              and $\smodels{\sheap'}{\pc} \subseteq \sepmodels{\cells'}$ (\ieq{5}). 
               Applying Lemma~\ref{ca:unification:failure} to \ieq{2}, we conclude that: 
               $$
               	\forall \sheap'', \sheap_f' . \, \sheap_f = \sheap'' \dunion \sheap_f' \implies 
-                     \smodels{\sheap'', \sstore}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset \text{ (\ieq{6})}
+                     \smodels{\sheap''}{\pc \, \wedge \, \pc'} \cap \sepmodels{\cell} = \emptyset \text{ (\ieq{6})}
               $$
               Equation \ieq{6} tells us that there is no way to unify $\sheap_f$ against $\cell$. However, to 
               establish the result, one needs to prove that there is no way to unify $\sheap$ against $\cell$. 
@@ -1880,6 +1945,24 @@ and an extra resource failure. We proceed by case analysis on the cause of failu
                    we conclude the result. 
                    \vspace{6pt}
                         
-          \item \prooflab{Extra Resource Failure} We conclude that
+          \item \prooflab{Pure Entailment Failure} We conclude that: 
+                   $$
+                   \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc} \text{ (\ieq{10})}
+                   \qquad 
+                   \pc'' = \neg(\pc' \, \wedge \, \unificationef{\sheap}{\efs} \wedge \, \sanity{\efs}) \text{ (\ieq{11})} 
+                   $$ 
+                 
 \end{itemize}
 \end{proof} 
+
+
+
+
+%  \cellunificationiter{\sheap, \cells}{\hemp, []}{\pc}
+%	   \\\\
+%	   \pc'' = \unificationef{\sheap}{\efs} \wedge \, \sanity{\efs}
+%	   \quad
+%             \pc \not\vdash \pfs' \, \wedge \, \pc''
+%	}{\unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\neg(\pc'  \, \wedge \, \pc'')}} 
+
+

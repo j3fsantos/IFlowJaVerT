@@ -48,12 +48,12 @@
       ;;
       ;; ('skip)
       [(eq? cmd-type 'skip)
-       (print-info proc-name "skip")
+       ;(print-info proc-name "skip")
        empty]
       ;;
       ;; ('discharge)
       [(eq? cmd-type 'discharge)
-       (print-info proc-name "discharge")
+       ;(print-info proc-name "discharge")
        (jsil-discharge)]
       ;;
       ;; ('h-assign e1 e2 e3)
@@ -65,7 +65,7 @@
               (prop-val (run-expr prop-expr store))
               (rhs-val (run-expr rhs-expr store)))
 	      ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
-         (print-info proc-name (format "[~v, ~v] := ~v" loc-expr prop-expr rhs-expr))
+         ;(print-info proc-name (format "[~v, ~v] := ~v" loc-expr prop-expr rhs-expr))
          (mutate-heap heap loc-val prop-val rhs-val)
          rhs-val)]
       ;;
@@ -75,7 +75,7 @@
               (rhs-expr (third bcmd))
               (rhs-val  (run-expr rhs-expr store)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v" lhs-var rhs-val))
+         ;(print-info proc-name (format "~v := ~v" lhs-var rhs-val))
          (mutate-store store lhs-var rhs-val)
          rhs-val)]
       ;;
@@ -83,7 +83,7 @@
       [(eq? cmd-type 'new)
        (let ((lhs-var (second bcmd))
              (loc-val (get-new-loc)))
-         (print-info proc-name (format "~v := new()" lhs-var))
+         ;(print-info proc-name (format "~v := new()" lhs-var))
          (mutate-store store lhs-var loc-val)
          (mutate-heap heap loc-val protop jnull)
          loc-val)]
@@ -101,7 +101,7 @@
          ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
          ;; (println (format "object: ~v" (heap-get-obj heap loc-val)))
          ;; (println (format "proplist: ~v" prop-list))
-         (print-info proc-name (format "~v := has-field(~v, ~v)" lhs-var loc-val prop-val))
+         ;(print-info proc-name (format "~v := has-field(~v, ~v)" lhs-var loc-val prop-val))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
       ;;
@@ -114,7 +114,7 @@
               (prop-list (petar-get-fields heap loc-val))
               (result (cons 'jsil-list prop-list)))
          ;; (println (format "Get-fields: ~v = gf (~v) : ~v" lhs-var loc-val result))
-         (print-info proc-name (format "~v := get-fields(~v)" lhs-var loc-val))
+         ;(print-info proc-name (format "~v := get-fields(~v)" lhs-var loc-val))
          (mutate-store store lhs-var result) ;; (to-jsil-bool contains))
          result)] ;; (to-jsil-bool contains))]
       ;;
@@ -127,7 +127,7 @@
               (prop-val (run-expr prop-expr store))
               (result (heap-get heap loc-val prop-val)))
          ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
-         (print-info proc-name (format "~v := [~v, ~v]" lhs-var loc-val prop-val))
+         ;(print-info proc-name (format "~v := [~v, ~v]" lhs-var loc-val prop-val))
          (mutate-store store lhs-var result)
          result)]
       ;;
@@ -148,7 +148,7 @@
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store)))
          ;;(println (format "the current heap: ~v" heap))
-         (print-info proc-name (format "delete(~v, ~v)" loc-val prop-val))
+         ;(print-info proc-name (format "delete(~v, ~v)" loc-val prop-val))
          (heap-delete-cell heap loc-val prop-val)
          #t)] ;; (to-jsil-bool #t))]
       ;;
@@ -157,7 +157,7 @@
        (let* ((loc-expr (second bcmd))
               (loc-val (run-expr loc-expr store)))
          ;; (println (format "deleting the object: ~v" loc-val))
-         (print-info proc-name (format "delete-object(~v)" loc-val))
+         ;(print-info proc-name (format "delete-object(~v)" loc-val))
          (heap-delete-object heap loc-val)
          #t)]
       ;;
@@ -233,7 +233,7 @@
       ;;
       ;; ('goto i)
       [(and (eq? cmd-type 'goto) (= (length cmd) 2))
-       (print-info proc-name (format "goto ~v" (second cmd)))
+       ;(print-info proc-name (format "goto ~v" (second cmd)))
        (run-cmds-iter prog proc-name heap store (second cmd) cur-index)]
       ;;
       ;; ('goto e i j)
@@ -242,7 +242,7 @@
               (then-label (third cmd))
               (else-label (fourth cmd))
               (expr-val (run-expr expr store)))
-         (print-info proc-name (format "goto [~v] ~v ~v" expr-val then-label else-label))
+         ;(print-info proc-name (format "goto [~v] ~v ~v" expr-val then-label else-label))
          (parameterize ([goto-stack
                          (cons (cons proc-name cur-index) (goto-stack))])
 
@@ -256,7 +256,7 @@
              
              [(and (symbolic? expr-val)
                    (> (count-goto proc-name cur-index) goto-limit))
-              (println "I am killing an execution because I reached the goto limit")
+              ;(println "I am killing an execution because I reached the goto limit")
               (kill expr-val)]
              
              [(eq? expr-val #t)
@@ -302,7 +302,7 @@
          ;; (newline (current-output-port))
          ;; (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
          (set! depth (+ depth 1))
-         (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
+         ;(print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
          (let ((outcome (car (run-proc prog call-proc-name heap arg-vals))))
            (set! depth (- depth 1))
            ;; (println (format "~v : Procedure return: ~v = ~v (~v) -> ~v" depth lhs-var call-proc-name arg-vals outcome)) 
@@ -310,16 +310,16 @@
            
            (cond
              [(and (eq? (first outcome) 'err) (not (null? err-label)))
-              (print-info proc-name (format "~v :=~v~v -> (error, ~v)" lhs-var call-proc-name arg-vals (second outcome)))
+              ;(print-info proc-name (format "~v :=~v~v -> (error, ~v)" lhs-var call-proc-name arg-vals (second outcome)))
               (mutate-store store lhs-var (second outcome))
               (run-cmds-iter prog proc-name heap store err-label cur-index)]
 
              [(eq? (first outcome) 'err)
-              (print-info proc-name (format "~v :=~v~v -> (error, ~v)" lhs-var call-proc-name arg-vals (second outcome)))
+              ;(print-info proc-name (format "~v :=~v~v -> (error, ~v)" lhs-var call-proc-name arg-vals (second outcome)))
               (error "Procedures that throw errors must be called with error labels")]
              
              [(eq? (first outcome) 'normal)
-              (print-info proc-name (format "~v :=~v~v -> (normal, ~v)" lhs-var call-proc-name arg-vals (second outcome)))
+              ;(print-info proc-name (format "~v :=~v~v -> (normal, ~v)" lhs-var call-proc-name arg-vals (second outcome)))
               (mutate-store store lhs-var (second outcome))
               (run-cmds-iter-next prog proc-name heap store cur-index cur-index)]
              
@@ -484,7 +484,8 @@
 
 (define (run-program prog heap)
   (jsil-discharge)
-  (run-proc prog "main" heap '()))
+  (run-proc prog "main" heap '())
+  (solve (assert (not success))))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success) ;; jtrue jfalse protop)
 

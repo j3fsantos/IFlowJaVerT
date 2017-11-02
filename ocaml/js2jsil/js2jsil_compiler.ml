@@ -4755,7 +4755,7 @@ let js2jsil e offset_converter for_verification =
 	let procedures = Hashtbl.create medium_tbl_size in
 	Hashtbl.iter
 		(fun f_id (_, f_params, f_body, f_rec, spec) ->
-			print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec);
+			(* print_endline (Printf.sprintf "Procedure %s is recursive?! %b" f_id f_rec);*)
 			let proc =
 				(if (f_id = main)
 					then generate_main offset_converter e main cc_tbl spec

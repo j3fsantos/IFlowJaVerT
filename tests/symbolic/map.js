@@ -35,12 +35,13 @@ Map.prototype.put = function put (key, value) {
 }
 
 var ___p1_string = jsil_make_symbolic_string (s1);
+var ___v1_number = jsil_make_symbolic_number (n1);
 var m = new Map(); 
+
 if (isValidKey (___p1_string)) { 
-  m.put(___p1_string, "banana"); 
-  m.get(___p1_string)
-} else { 
-  "apple"
-}
+  m.put(___p1_string, ___v1_number); 
+  var key_val = m.get(___p1_string); 
+  jsil_assert(key_val === ___v1_number)
+} else { }
 
 
