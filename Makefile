@@ -10,7 +10,7 @@ init: init_build
 init_build: init_parser
 	opam pin -y add JS_Parser "https://github.com/resource-reasoning/JS_Parser.git#002ecf9f28e8cdaf9683c39190e495403196fa7e"
 	opam pin -yn add .
-	opam install -y JavaScriptVerification --deps-only
+	opam install -y JaVerT --deps-only
 
 init_parser:
 	opam pin -y add JS_Parser-runtime "https://github.com/resource-reasoning/JS_Parser.git#002ecf9f28e8cdaf9683c39190e495403196fa7e"

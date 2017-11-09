@@ -1138,8 +1138,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 					next4:  x_r3 := PHI(x_r1, x_this)
 		*)
 		
-		Printf.printf "New: %s (%s)\n" (Pretty_print.string_of_exp false e_f) (String.concat ", " (List.map (fun x -> Pretty_print.string_of_exp false x) xes));
-		
 		let cmds_ef, x_ef, errs_ef = f e_f in
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)

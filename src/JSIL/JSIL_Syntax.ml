@@ -1,4 +1,4 @@
-4(** JSIL_Syntax *)
+(** JSIL_Syntax *)
 
 open Set
 open Queue
