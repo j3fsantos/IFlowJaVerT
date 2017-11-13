@@ -273,8 +273,9 @@ let copy_and_clear_globals () =
 %type <JSIL_Syntax.jsil_lemma> jsil_lemma_target
 %type <JSLogic.js_spec> js_only_spec_target
 %type <JSLogic.js_logic_command list> js_logic_cmds_target
-
 %type<jsil_constant> constant_target
+%type <JSIL_Syntax.jsil_expr> top_level_jsil_expr_target
+%type <JSIL_Syntax.jsil_logic_expr> top_level_lexpr_target
 
 %start main_target
 %start param_list_FC_target
@@ -285,6 +286,8 @@ let copy_and_clear_globals () =
 %start js_pred_target
 %start js_only_spec_target
 %start js_logic_cmds_target
+%start top_level_jsil_expr_target
+%start top_level_lexpr_target
 %%
 
 (********* JSIL *********)
@@ -520,6 +523,11 @@ expr_target:
   | LBRACE; e=expr_target; RBRACE
 		{ e }
 ;
+
+
+top_level_jsil_expr_target:
+	e = expr_target; EOF { e }
+
 
 (********* LOGIC *********)
 
@@ -797,7 +805,6 @@ mult_spec_line:
 ;
 
 
-
 top_level_assertion_target:
 	a = assertion_target; EOF { a }
 
@@ -927,6 +934,12 @@ lexpr_target:
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
 ;
+
+
+top_level_lexpr_target: 
+	le = lexpr_target; EOF { le }
+; 
+
 
 logic_variable_target:
   v = LVAR

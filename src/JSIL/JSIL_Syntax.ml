@@ -1,4 +1,4 @@
-4(** JSIL_Syntax *)
+(** JSIL_Syntax *)
 
 open Set
 open Queue
@@ -184,6 +184,8 @@ type jsil_binop =
 	| CList    of jsil_expr list                     (** Lists of characters *)
 	| SetUnion of jsil_expr list
 	| SetInter of jsil_expr list
+	| RNumSymb of jsil_var option 
+	| RStrSymb of jsil_var option
 
 (**/**)
 (* Shorthand *)
@@ -211,6 +213,9 @@ type jsil_basic_cmd =
 	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check *)
 	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
 	| SArguments  of jsil_var                          (** Arguments of the current function *)
+	| RAssume     of jsil_expr                          
+	| RAssert     of jsil_expr
+	| STerminate
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which
@@ -708,8 +713,16 @@ let fresh_spec_var () : string =
 (* A substitution type                                 *)
 (*******************************************************)
 (*******************************************************)
+type p_substitution    = ((string, jsil_expr) Hashtbl.t)
 type substitution      = ((string, jsil_logic_expr) Hashtbl.t)
 type substitution_list = ((string * jsil_logic_expr) list) 
+
+let init_p_substitution vars_es =
+	let subst = Hashtbl.create small_tbl_size in
+	List.iter (fun (x, e) -> 
+		Hashtbl.replace subst x e
+	) vars_es; 
+	subst 
 
 let init_substitution (vars : string list) : substitution =
 	let new_subst = Hashtbl.create big_tbl_size in

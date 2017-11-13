@@ -169,6 +169,7 @@ let make_get_value_call x err =
 	match is_get_value_var x with
 	| None ->
 		let x_v = val_var_of_var x in
+		Printf.printf "I am doing a getValue of %s\n" (JSIL_Print.string_of_expression x); 
 		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err), [x_v])
 	| Some x_v -> (x_v, SLBasic SSkip, [])
 
@@ -1080,7 +1081,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			C(e) = cmds, x;
 			C(e.p) =
 				cmds1
-      	x_v := i__getValue (x) with err
+      			x_v := i__getValue (x) with err
 				x_oc := i__checkObjectCoercible (x1_v) with err
 				x_r  := ref-o(x1_v, "p")
 		 *)
@@ -1113,29 +1114,29 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			Section 11.2.2 - The new Operator
 			C(e_f) = cmds_ef, x_f
 			C(e_i) = cmds_ei, x_argi (for i = 1, ..., n)
-			C(new e_f (e_1, ..., e_n) =
-				          cmds_ef
-           				x_f_val := i__getValue (x_f) with err;
-									cmds_e1
-		 	     				x_arg1_val := i__getValue (x_arg1) with err;
-		       				...
-									cmds_en
-		       				x_argn_val := i__getValue (x_argn) with err;
-			     				goto [ typeOf(x_f_val) != Object] err next1;
-					next1:  x_hp := [x_f_val, "@construct"];
-					        goto [ x_hp = $$empty ] err next2;
-					next2:	x_this := new ();
-					        x_ref_prototype := ref-o(x_f_val, "prototype");
-									x_f_prototype := i__getValue(x_ref_prototype) with err;
-									goto [typeof (x_f_prototype) = $$object_type] then0 else0;
-					then0:	x_f_prototype := $lobj_proto;
-					else0:	x_cdo := i__createDefaultObject (x_this, x_f_prototype);
-								 	x_body := [x_f_val, "@construct"];
-		       				x_scope := [x_f_val, "@scope"];
-					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err;
-					 				goto [typeOf(x_r1) = $$object_type ] next4 next3;
-        	next3:  skip
-					next4:  x_r3 := PHI(x_r1, x_this)
+				C(new e_f (e_1, ..., e_n) =
+				cmds_ef
+           		x_f_val := i__getValue (x_f) with err;
+				cmds_e1
+		 		x_arg1_val := i__getValue (x_arg1) with err;
+		    	...
+				cmds_en
+		    	x_argn_val := i__getValue (x_argn) with err;
+				goto [ typeOf(x_f_val) != Object] err next1;
+		next1:  x_hp := [x_f_val, "@construct"];
+				goto [ x_hp = $$empty ] err next2;
+		next2:	x_this := new ();
+				x_ref_prototype := ref-o(x_f_val, "prototype");
+				x_f_prototype := i__getValue(x_ref_prototype) with err;
+				goto [typeof (x_f_prototype) = $$object_type] then0 else0;
+		then0:	x_f_prototype := $lobj_proto;
+		else0:	x_cdo := i__createDefaultObject (x_this, x_f_prototype);
+			 	x_body := [x_f_val, "@construct"];
+		      	x_scope := [x_f_val, "@scope"];
+				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err;
+				goto [typeOf(x_r1) = $$object_type ] next4 next3;
+        next3:  skip
+				next4:  x_r3 := PHI(x_r1, x_this)
 		*)
 		
 		Printf.printf "New: %s (%s)\n" (Pretty_print.string_of_exp false e_f) (String.concat ", " (List.map (fun x -> Pretty_print.string_of_exp false x) xes));
@@ -1346,6 +1347,70 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let errs = errs_ef @ errs_xf_val @ errs_args @ [ var_te; var_te ] @ (if_verification [] (errs_bf_prototype @ [ x_bconstruct ])) @ errs_xf_prototype @ [ x_r1 ] in
 		cmds, Var (if_verification x_rcall x_final), errs
 
+	(** 
+      * The constructs for symbolic execution...
+	  **)
+	| Parser_syntax.Call (e_f, xes)
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_assert)) ->
+			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
+			| [ (Parser_syntax.String assert_arg_str) ] ->
+				let le         = JSIL_Syntax_Utils.jsil_expr_of_string assert_arg_str in
+				let xs         = JSIL_Syntax_Utils.get_expr_pvars le in 
+				let subst      = init_p_substitution [] in 
+				let cmds, errs =  
+					List.fold_left (fun (cmds, errs) x ->
+						let new_cmds, x_expr, new_errs = 
+							f ({ e with Parser_syntax.exp_stx = Parser_syntax.Var x }) in 
+						
+						let x_v, cmd_gv_x, errs_x_v = make_get_value_call x_expr tr_ctx.tr_err in
+						Hashtbl.replace subst x (Var x_v); 
+						(cmds @ new_cmds @ [ (annotate_cmd cmd_gv_x None) ]), (errs @ new_errs @ errs_x_v) 
+					) ([], []) (SS.elements xs) in 
+
+				let le' = JSIL_Syntax_Utils.jsil_expr_substitution subst true le in 
+				let cmd = (None, (SLBasic (RAssert le'))) in 
+        		
+        		(cmds @ (annotate_cmds [ cmd ])), Literal Empty, errs
+			| _ -> raise (Failure "Invalid assert"))
+
+	| Parser_syntax.Call (e_f, xes)
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_assume)) ->
+			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
+			| [ (Parser_syntax.String assume_arg_str) ] ->
+				let le         = JSIL_Syntax_Utils.jsil_expr_of_string assume_arg_str in
+				let xs         = JSIL_Syntax_Utils.get_expr_pvars le in 
+				let subst      = init_p_substitution [] in 
+				let cmds, errs =  
+					List.fold_left (fun (cmds, errs) x ->
+						let new_cmds, x_expr, new_errs = 
+							f ({ e with Parser_syntax.exp_stx = Parser_syntax.Var x }) in 
+						let x_v, cmd_gv_x, errs_x_v = make_get_value_call x_expr tr_ctx.tr_err in
+						Hashtbl.replace subst x (Var x_v); 
+						(cmds @ new_cmds @ [ annotate_cmd cmd_gv_x None ]), (errs @ new_errs @ errs_x_v)  
+					) ([], []) (SS.elements xs) in 
+				
+				let le' = JSIL_Syntax_Utils.jsil_expr_substitution subst true le in 
+				
+				let cmd = (None, (SLBasic (RAssume le'))) in
+       			(cmds @ (annotate_cmds [ cmd ])), Literal Empty, errs	
+			| _ -> raise (Failure "Invalid assume"))
+
+
+	| Parser_syntax.Call (e_f, xes)
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_symb_number)) ->
+			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
+			| [ ] -> [ ], RNumSymb None, [ ]
+			| [ Parser_syntax.Var x ] -> [ ], RNumSymb (Some x), [ ]
+			| _ -> raise (Failure "Invalid symb_number"))
+
+
+	| Parser_syntax.Call (e_f, xes)
+		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_symb_string)) ->
+			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
+			| [ ] -> [ ], RStrSymb None, [ ]
+			| [ Parser_syntax.Var x ] -> [ ], RStrSymb (Some x), [ ]
+			| _ -> raise (Failure "Invalid symb_string"))
+
 
 	| Parser_syntax.Call (e_f, xes) ->
 		(**
@@ -1353,24 +1418,24 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			C(e_f) = cmds_ef, x_f
 			C(e_i) = cmds_ei, x_argi (for i = 1, ..., n)
 			C(e_f(e_1, ..., e_n) =
-				          cmds_ef
-           				x_f_val := i__getValue (x_f) with err;
-									cmds_e1
-		 	     				x_arg1_val := i__getValue (x_arg1) with err;
-		       				...
-									cmds_en
-		       				x_argn_val := i__getValue (x_argn) with err;
-			     				goto [ typeOf(x_f_val) != Object] err next1;
-					next1:  x_ic := isCallable(x_f_val);
-		     				  goto [ x_ic ] next2 err;
-					next2:  goto [ typeOf(x_f) = ObjReference ] then else;
-					then1:  x_this := base(x_f);
-					 				goto end;
-					else1: 	x_this := undefined;
-					end1: 	x_body := [x_f_val, "@call"];
-		       				x_scope := [x_f_val, "@scope"];
-					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err;
-					 				goto [ x_r1 = $$empty ] next3 next4;
+					cmds_ef
+           			x_f_val := i__getValue (x_f) with err;
+					cmds_e1
+		 	    	x_arg1_val := i__getValue (x_arg1) with err;
+		       		...
+					cmds_en
+		       		x_argn_val := i__getValue (x_argn) with err;
+				    goto [ typeOf(x_f_val) != Object] err next1;
+			next1:  x_ic := isCallable(x_f_val);
+		     		goto [ x_ic ] next2 err;
+			next2:  goto [ typeOf(x_f) = ObjReference ] then else;
+			then1:  x_this := base(x_f);
+					goto end;
+			else1: 	x_this := undefined;
+			end1: 	x_body := [x_f_val, "@call"];
+		       		x_scope := [x_f_val, "@scope"];
+					x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err;
+					goto [ x_r1 = $$empty ] next3 next4;
         	next3:  x_r2 := $$undefined;
 					next4:  x_r3 := PHI(x_r1, x_r2)
 		*)
@@ -1733,12 +1798,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	  (**
          Section: 11.4.5
          C(e) = cmds, x
-			C(--e) =          cmds
-			                  goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next
-			           next:  x_v := getValue (x) with err
-								        x_n := i__toNumber (x_v) with err
-							          x_r := x_n - 1
-												x_pv := i__putValue (x, x_r) with err
+			C(--e) =        cmds
+			                goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next
+			        next: 	x_v := getValue (x) with err
+							x_n := i__toNumber (x_v) with err
+							x_r := x_n - 1
+							x_pv := i__putValue (x, x_r) with err
        *)
 	  	let cmds, x, errs = f e in
 	 	let new_cmds, new_errs, x_v, x_r = translate_inc_dec x false tr_ctx.tr_err in
@@ -1749,10 +1814,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	| Parser_syntax.Unary_op (Parser_syntax.Positive, e) ->
 		(**
 			Section: 11.4.6
-      C(e) = cmds, x
-			C(+e) =  cmds
-			         x_v := i__getValue (x) with err
-							 x_n := i__toNumber (x_v) with err
+      		C(e) = cmds, x
+			C(+e) = cmds
+			       	x_v := i__getValue (x) with err
+					x_n := i__toNumber (x_v) with err
      *)
 		let cmds, x, errs = f e in
 
@@ -1775,14 +1840,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(**
 			Section: 11.4.7
       C(e) = cmds, x
-			C(-e) =        cmds
-			               x_v := i__getValue (x) with err
-							       x_n := i__toNumber (x_v) with err
-							       goto [x_n = nan] then else
-							 then: x_then := nan
-							       goto end
-							 else: x_else := (negative x_n)
-							 end:  x_r := PHI(x_then, x_else)
+			C(-e) =        	cmds
+			               	x_v := i__getValue (x) with err
+							x_n := i__toNumber (x_v) with err
+							goto [x_n = nan] then else
+					then: 	x_then := nan
+							goto end
+					else: 	x_else := (negative x_n)
+					end:  	x_r := PHI(x_then, x_else)
      *)
 		let cmds, x, errs = f e in
 
@@ -1828,11 +1893,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(**
 			Section: 11.4.8
       C(e) = cmds, x
-			C(~e) =        cmds
-			               x_v := i__getValue (x) with err
-							       x_n := i__toNumber (x_v) with err
-										 x_i32 := (num_to_int32 x_n)
-										 x_r := (! x_i32)
+			C(~e) =     cmds
+			            x_v := i__getValue (x) with err
+						x_n := i__toNumber (x_v) with err
+						x_i32 := (num_to_int32 x_n)
+						x_r := (! x_i32)
      *)
 
 		let cmds, x, errs = f e in
@@ -1860,10 +1925,10 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(**
       Section: 11.4.9
 	  	C(e)  =  cmds, x
-	   	C(!e) =  cmds
-			         x_v := i__getValue (x) with err
-				   	   x_b := i__toBoolean (x_v) with err
-						   x_r := not x_b
+	   	C(!e) =  	cmds
+			        x_v := i__getValue (x) with err
+				   	x_b := i__toBoolean (x_v) with err
+					x_r := not x_b
      *)
 
 		let cmds, x, errs = f e in
@@ -1892,13 +1957,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		when ((aop = Parser_syntax.Times) || (aop = Parser_syntax.Div) || (aop = Parser_syntax.Mod) || (aop = Parser_syntax.Minus)) ->
 		(** Sections 11.5 + 11.6.2
 			  C(e1) = cmds1, x1; C(e2) = cmds2, x2
-				C(e1 * e2) =  cmds1
-				              x1_v := i__getValue (x1) with err
-				              cmds2
-											x2_v := i__getValue (x2) with err
-											x1_n := i__toNumber (x1_v) with err
-											x2_n := i__toNumber (x2_v) with err
-											x_r := x1_n * x2_n
+				C(e1 * e2) =  	cmds1
+				              	x1_v := i__getValue (x1) with err
+				              	cmds2
+								x2_v := i__getValue (x2) with err
+								x1_n := i__toNumber (x1_v) with err
+								x2_n := i__toNumber (x2_v) with err
+								x_r := x1_n * x2_n
 		*)
 		let cmds1, x1, errs1 = f e1 in
 		let cmds2, x2, errs2 = f e2 in
@@ -1918,21 +1983,21 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(**
 			Section 11.6.1
 			C(e1) = cmds1, x1; C(e2) = cmds2, x2
-			C(e1 + e2) =          cmds1
-											      x1_v := i__getValue (x1) with err
-														cmds2
-											      x2_v := i__getValue (x2) with err
-														x1_p := i__toPrimitive (x1_v) with err
-														x2_p := i__toPrimitive (x2_v) with err
-											      goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else
-									    then: x1_s := i__toString (x1_p) with err
-											      x2_s := i__toString (x2_p) with err
-														x_rthen := x1_s :: x2_s
-														goto end
-										  else: x1_n := i__toNumber (x1_p) with err
-											      x2_n := i__toNumber (x2_p) with err
-														x_relse := x1_n + x2_n
-											end:  x_r := PHI (x_rthen, x_relse)
+			C(e1 + e2) =   	cmds1
+							x1_v := i__getValue (x1) with err
+							cmds2
+							x2_v := i__getValue (x2) with err
+							x1_p := i__toPrimitive (x1_v) with err
+							x2_p := i__toPrimitive (x2_v) with err
+							goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else
+					then: 	x1_s := i__toString (x1_p) with err
+							x2_s := i__toString (x2_p) with err
+							x_rthen := x1_s :: x2_s
+							goto end
+					else: 	x1_n := i__toNumber (x1_p) with err
+							x2_n := i__toNumber (x2_p) with err
+							x_relse := x1_n + x2_n
+					end: 	x_r := PHI (x_rthen, x_relse)
 		*)
 
 		let cmds1, x1, errs1 = f e1 in
@@ -1979,13 +2044,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	  (**
       Section 11.7.2
       C(e1) = cmds1, x1; C(e2) = cmds2, x2
-		  C(e1 >> e2) =    cmds1
-					             x1_v := i__getValue (x1) with err
-				               cmds2
-											 x2_v := i__getValue (x2) with err
-											 x1_i32 := i__toInt32 (x1_v) with err
-											 x2_ui32 := i__toUInt32 (x2_v) with err
-											 x_r := x1_i32 >> x2_ui32
+		  C(e1 >> e2) =    	cmds1
+					      	x1_v := i__getValue (x1) with err
+				            cmds2
+							x2_v := i__getValue (x2) with err
+							x1_i32 := i__toInt32 (x1_v) with err
+							x2_ui32 := i__toUInt32 (x2_v) with err
+							x_r := x1_i32 >> x2_ui32
      *)
 		let cmds1, x1, errs1 = f e1 in
 		let cmds2, x2, errs2 = f e2 in
@@ -2005,13 +2070,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	  (**
       Section 11.7.3
       C(e1) = cmds1, x1; C(e2) = cmds2, x2
-			C(e1 >>> e2) =   cmds1
-											 x1_v := i__getValue (x1) with err
-											 cmds2
-											 x2_v := i__getValue (x2) with err
-											 x1_ui32 := i__toUInt32 (x1_v) with err
-											 x2_ui32 := i__toUInt32 (x2_v) with err
-											 x_r := x1_ui32 >>> x2_ui32
+			C(e1 >>> e2) =  cmds1
+							x1_v := i__getValue (x1) with err
+							cmds2
+							x2_v := i__getValue (x2) with err
+							x1_ui32 := i__toUInt32 (x1_v) with err
+							x2_ui32 := i__toUInt32 (x2_v) with err
+							x_r := x1_ui32 >>> x2_ui32
      *)
 		let cmds1, x1, errs1 = f e1 in
 		let cmds2, x2, errs2 = f e2 in
@@ -2031,14 +2096,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	  (**
       Section 11.8.1
       C(e1) = cmds1, x1; C(e2) = cmds2, x2
-			C(e1 < e2) =             cmds1
-				                       x1_v := i__getValue (x1) with err
-				                       cmds2
-											         x2_v := i__getValue (x2) with err
-											         x_ac := i__abstractComparison (x1_v, x2_v, true) with err
-											         goto [ x_ac = undefined ] then end
-											  then:  x_undef := false
-											  end:   x_r := PHI(x_ac, x_undef)
+			C(e1 < e2) =    cmds1
+				            x1_v := i__getValue (x1) with err
+				            cmds2
+							x2_v := i__getValue (x2) with err
+							x_ac := i__abstractComparison (x1_v, x2_v, true) with err
+							goto [ x_ac = undefined ] then end
+					then: 	x_undef := false
+					end:  	x_r := PHI(x_ac, x_undef)
      *)
 		let cmds1, x1, errs1 = f e1 in
 		let cmds2, x2, errs2 = f e2 in

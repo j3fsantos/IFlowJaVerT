@@ -181,7 +181,11 @@ let rec string_of_expression (e : jsil_expr) : string  =
 	| StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
 	| SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
 	| SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
-
+	(* make-symbol-number() *)
+	| RNumSymb x -> "make-symbol-number(" ^ (Option.default "" x) ^ ")"
+	(* make-symbol-string() *)
+	| RStrSymb x -> "make-symbol-string(" ^ (Option.default "" x) ^ ")"
+	
 
 (** JSIL Basic statements *)
 let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
@@ -210,6 +214,10 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
 	(* x := args *)
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+    (* assume(e) *)
+	| RAssume e -> Printf.sprintf "assume(%s)" (se e)
+	(* assert(e) *)
+	| RAssert e -> Printf.sprintf "assert(%s)" (se e)
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 

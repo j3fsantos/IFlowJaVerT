@@ -301,7 +301,6 @@ let get_asrt_pred_names (a : jsil_logic_assertion) : string list =
 		| _            -> List.concat ac) in
 	assertion_fold None f_ac None None a
 
-
 (***************************************************************)
 (***************************************************************)
 (** Pure Assertions                                           **)

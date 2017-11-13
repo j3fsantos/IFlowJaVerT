@@ -6,6 +6,20 @@ let medium_tbl_size = 101
 
 let line_numbers_extension = "_line_numbers.txt"
 
+type js_symbolic_constructs_type = {
+	js_assume      : string; 
+	js_assert      : string; 
+	js_symb_number : string; 
+	js_symb_string : string
+}
+
+let js_symbolic_constructs = {
+	js_assume      = "assume"; 
+	js_assert      = "assert"; 
+	js_symb_number = "symb_number"; 
+	js_symb_string = "symb_string" 
+}
+
 let js2jsil_imports = [
 	"Array.jsil";
 	"Boolean.jsil";

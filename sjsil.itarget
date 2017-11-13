@@ -1,3 +1,4 @@
 src/js2jsil.native
 src/jsilverify.native
 src/jsil.native
+src/jsil2rkt.native

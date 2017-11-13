@@ -13,6 +13,95 @@ type which_pred_type = (int * int, int) Hashtbl.t
 
 (** ----------------------------------------------------
     ----------------------------------------------------
+    JSIL Expressionts - AST transformers
+    -----------------------------------------------------
+*)
+
+let rec jsil_expr_fold 
+  (f_ac    : jsil_expr -> 'b -> 'b -> 'a list -> 'a) 
+  (f_state : (jsil_expr -> 'b -> 'b) option)
+  (state   : 'b) 
+  (expr    : jsil_expr) : 'a =
+
+  let new_state = (Option.default (fun _ x -> x) f_state) expr state in
+  let fold_e    = jsil_expr_fold f_ac f_state new_state in
+  let f_ac      = f_ac expr new_state state in
+
+    match expr with
+    | Literal _ | Var _ | RNumSymb _ | RStrSymb _ -> f_ac []
+    | BinOp (e1, op, e2)    -> f_ac [ (fold_e e1); (fold_e e2) ]
+    | UnOp (op, e)          -> f_ac [ (fold_e e) ]
+    | TypeOf e              -> f_ac [ (fold_e e) ]
+    | EList es              -> f_ac (List.map fold_e es)
+    | LstNth (e1, e2)       -> f_ac [ (fold_e e1); (fold_e e2) ]
+    | StrNth (e1, e2)       -> f_ac [ (fold_e e1); (fold_e e2) ]
+    | ESet es
+    | SetUnion es
+    | SetInter es 
+    | CList es              -> f_ac (List.map fold_e es)
+
+
+let rec jsil_expr_map 
+  (f_before : jsil_expr  -> jsil_expr * bool) 
+  (f_after  : (jsil_expr -> jsil_expr) option)
+  (expr    : jsil_expr) : jsil_expr =
+  (* Apply the mapping *)
+  let map_e   = jsil_expr_map f_before f_after in
+  let f_after = Option.default (fun x -> x) f_after in 
+  
+  let (mapped_expr, recurse) = f_before expr in
+  if not recurse then
+    mapped_expr
+  else ( 
+    (* Map recursively to expressions *)
+      let mapped_expr = 
+        match mapped_expr with
+        | Literal _ | Var _ | RNumSymb _ | RStrSymb _  -> mapped_expr
+        | BinOp (e1, op, e2)  -> BinOp (map_e e1, op, map_e e2)
+        | UnOp (op, e)        -> UnOp (op, map_e e)
+        | TypeOf e            -> TypeOf (map_e e)
+        | EList es            -> EList (List.map map_e es)
+        | LstNth (e1, e2)     -> LstNth (map_e e1, map_e e2)
+        | StrNth (e1, e2)     -> StrNth (map_e e1, map_e e2)
+        | ESet es             -> ESet  (List.map map_e es)
+        | SetUnion es         -> SetUnion  (List.map map_e es)
+        | SetInter es         -> SetInter  (List.map map_e es)
+        | CList es            -> CList (List.map map_e es) in 
+      f_after mapped_expr)
+
+
+
+(* Get all the program variables in --e-- *)
+let get_expr_pvars (e : jsil_expr) : SS.t =
+  let fe_ac e _ _ ac = match e with
+    | Var x -> [ x ]
+    | _      -> List.concat ac in 
+  SS.of_list (jsil_expr_fold fe_ac None None e)
+
+
+
+let jsil_expr_substitution (subst : p_substitution) (partial : bool) (e : jsil_expr) : jsil_expr = 
+
+  let find_in_subst (x : string) (x_old : jsil_expr) 
+      (make_new_x : unit -> jsil_expr) : jsil_expr = 
+    try Hashtbl.find subst x with _ -> 
+      if partial then x_old else (
+        let new_x = make_new_x () in 
+        Hashtbl.replace subst x new_x;
+        new_x) in  
+
+  let f_before e = match e with 
+    | Var x    -> find_in_subst x e (fun () ->
+        let pvar = fresh_pvar () in
+        print_debug_petar (Printf.sprintf "Unable to find PVar %s in subst, generating fresh: %s" x pvar); 
+        Var (fresh_pvar ())), false 
+    | _         -> e, true in 
+
+  jsil_expr_map f_before None e
+
+
+(** ----------------------------------------------------
+    ----------------------------------------------------
     JSIL Syntax Checks
     -----------------------------------------------------
 *)
@@ -425,6 +514,7 @@ let ext_program_of_string
 	prog
 
 
+
 (** ----------------------------------------------------
     Run the parser on a string of an assertion.
     -----------------------------------------------------
@@ -432,10 +522,38 @@ let ext_program_of_string
 let js_assertion_of_string
     (str : string) : js_logic_assertion =
 
-	print_debug_petar (Printf.sprintf "Parsing the following js assertion: %s" str);
+  print_debug_petar (Printf.sprintf "Parsing the following js assertion: %s" str);
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
-	parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
+  parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
+
+
+
+
+(** ----------------------------------------------------
+    Run the parser on a string of a JSIL Expression
+    -----------------------------------------------------
+*)
+let jsil_expr_of_string
+    (str : string) : jsil_expr =
+
+	print_debug_petar (Printf.sprintf "Parsing the following jsil expr: %s" str);
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+	parse JSIL_Parser.Incremental.top_level_jsil_expr_target lexbuf
+
+
+(** ----------------------------------------------------
+    Run the parser on a string of a predicate definition.
+    -----------------------------------------------------
+*)
+let lexpr_of_string
+    (str : string) : jsil_logic_expr =
+  print_debug_petar (Printf.sprintf "Parsing the following jsil logic expr: %s" str);
+  let lexbuf = Lexing.from_string str in
+  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
+  parse JSIL_Parser.Incremental.top_level_lexpr_target lexbuf
+
 
 
 (** ----------------------------------------------------

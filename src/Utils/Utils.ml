@@ -170,3 +170,9 @@ let split3 (lst : ('a * 'b * 'c) list) : ('a list) * ('b list) * ('c list) =
 		([], [], [])
 		lst  
 
+
+
+
+
+
+
