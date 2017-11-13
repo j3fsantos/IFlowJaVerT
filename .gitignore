@@ -63,3 +63,7 @@ environment
 *.out
 *.log
 tutorial/main.pdf
+
+# Rosette
+src/Cosette/runtime/compiled
+src/Cosette/new_runtime/compiled
