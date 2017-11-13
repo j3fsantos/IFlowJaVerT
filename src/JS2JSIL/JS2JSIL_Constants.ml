@@ -241,9 +241,11 @@ let is_get_value_var x =
 
 let val_var_of_var x =
 	(match x with
-	| Var x_name -> x_name ^ "_v"
-	| Literal l -> (fresh_var ()) ^ "_v"
-	| _ -> raise (Failure "val_var_of_var expects a variable or a literal"))
+	| Var x_name -> x_name ^ "_v" 
+	| Literal _ -> (fresh_var ()) ^ "_v"
+	| _ ->
+		let msg = Printf.sprintf "DEATH. val_var_of_var. x: %s" (JSIL_Print.string_of_expression x) in  
+		raise (Failure msg))
 
 let number_var_of_var x =
 	(match x with

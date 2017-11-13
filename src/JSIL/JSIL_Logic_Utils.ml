@@ -910,11 +910,14 @@ let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
 	| Literal l           -> LLit l
 	| Var x               -> PVar x
 	| BinOp (e1, op, e2)  -> LBinOp ((f e1), op, (f e2))
-	| UnOp (op, e)     -> LUnOp (op, f e)
+	| UnOp (op, e)        -> LUnOp (op, f e)
 	| TypeOf e            -> LTypeOf (f e)
 	| EList es            -> LEList (List.map f es)
 	| LstNth (e1, e2)     -> LLstNth (f e1, f e2)
 	| StrNth (e1, e2)     -> LStrNth (f e1, f e2)
+	| _  ->
+		let msg = Printf.sprintf "DEATH. expr_2_lexpr. e: %s" (JSIL_Print.string_of_expression e) in 
+		raise (Failure msg)
 
 
 let rec lift_lit_list_to_logical_expr (lit : jsil_lit) : jsil_logic_expr =

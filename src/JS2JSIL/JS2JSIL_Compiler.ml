@@ -1386,7 +1386,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 							f ({ e with Parser_syntax.exp_stx = Parser_syntax.Var x }) in 
 						let x_v, cmd_gv_x, errs_x_v = make_get_value_call x_expr tr_ctx.tr_err in
 						Hashtbl.replace subst x (Var x_v); 
-						(cmds @ new_cmds @ [ annotate_cmd cmd_gv_x None ]), (errs @ new_errs @ errs_x_v)  
+						(cmds @ new_cmds @ [ annotate_cmd cmd_gv_x None]), (errs @ new_errs @ errs_x_v)  
 					) ([], []) (SS.elements xs) in 
 				
 				let le' = JSIL_Syntax_Utils.jsil_expr_substitution subst true le in 
@@ -1395,22 +1395,28 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
        			(cmds @ (annotate_cmds [ cmd ])), Literal Empty, errs	
 			| _ -> raise (Failure "Invalid assume"))
 
-
 	| Parser_syntax.Call (e_f, xes)
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_symb_number)) ->
-			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
-			| [ ] -> [ ], RNumSymb None, [ ]
-			| [ Parser_syntax.Var x ] -> [ ], RNumSymb (Some x), [ ]
-			| _ -> raise (Failure "Invalid symb_number"))
+			let e = 
+				(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
+				| [ ] -> RNumSymb None 
+				| [ Parser_syntax.Var x ] -> RNumSymb (Some x)
+				| _ -> raise (Failure "Invalid symb_number")) in 
+			let x_v = (fresh_var ()) ^ "_v" in 
+			let cmd = (None, SLBasic (SAssignment (x_v, e))) in 
+			(annotate_cmds [ cmd ]), Var x_v, []
 
 
 	| Parser_syntax.Call (e_f, xes)
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_symb_string)) ->
-			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
-			| [ ] -> [ ], RStrSymb None, [ ]
-			| [ Parser_syntax.Var x ] -> [ ], RStrSymb (Some x), [ ]
-			| _ -> raise (Failure "Invalid symb_string"))
-
+				let e = 
+				(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
+				| [ ] -> RStrSymb None 
+				| [ Parser_syntax.Var x ] -> RStrSymb (Some x)
+				| _ -> raise (Failure "Invalid symb_number")) in 
+			let x_v = (fresh_var ()) ^ "_v" in 
+			let cmd = (None, SLBasic (SAssignment (x_v, e))) in 
+			(annotate_cmds [ cmd ]), Var x_v, []
 
 	| Parser_syntax.Call (e_f, xes) ->
 		(**
@@ -4425,6 +4431,8 @@ let generate_main offset_converter e spec =
 	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
 
+	let cmd_terminate_successfully = annotate_cmd (SLBasic STerminate) None in 
+
 	(* lab_ret: skip *)
 	let lab_ret_skip = annotate_cmd (SLBasic SSkip) (Some ctx.tr_ret_lab) in
 
@@ -4436,7 +4444,7 @@ let generate_main offset_converter e spec =
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
 		cmds_e @
-		[ret_ass; cmd_del_te; cmd_del_se; lab_ret_skip; cmd_err_phi_node ] in
+		[ret_ass; cmd_del_te; cmd_del_se; cmd_terminate_successfully; lab_ret_skip; cmd_err_phi_node ] in
 	{
 		lproc_name = main_fid;
     	lproc_body = (Array.of_list main_cmds);

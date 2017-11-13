@@ -117,9 +117,9 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	(* ('terminate-successfully) *)
     | STerminate -> Printf.sprintf "'(%ssuccess)" str_i
     (* (assume e) *)
-	| RAssume e -> Printf.sprintf "(assume %s)" (se e)
+	| RAssume e -> Printf.sprintf "'(%sassume %s)" str_i (se e)
 	(* (assert e) *)
-	| RAssert e -> Printf.sprintf "(assert %s)" (se e)
+	| RAssert e -> Printf.sprintf "'(%sassert %s)" str_i (se e)
 	
 
 

@@ -218,7 +218,9 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 	| RAssume e -> Printf.sprintf "assume(%s)" (se e)
 	(* assert(e) *)
 	| RAssert e -> Printf.sprintf "assert(%s)" (se e)
-
+	(* terminate_successfully *)
+	| STerminate -> Printf.sprintf "%ssuccess" str_i 
+	
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
   let sle = string_of_logic_expression in

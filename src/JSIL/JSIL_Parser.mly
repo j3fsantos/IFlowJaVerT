@@ -152,6 +152,7 @@ let copy_and_clear_globals () =
 %token APPLY
 %token PHI
 %token PSI
+%token SUCCESS
 (* Logic variables *)
 %token <string> LVAR
 (* Logical expressions *)
@@ -473,11 +474,20 @@ cmd_target:
 	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
 		{ SLApply (v, es, oi) }
 (* x := PHI(e1, e2, ... en); *)
-  | v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
+	| v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
 	  { SLPhiAssignment (v, Array.of_list es) }
 (* x := PSI(e1, e2, ... en); *)
-  | v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
+	| v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
 	  { SLPsiAssignment (v, Array.of_list es) }
+(* asssume (e) *)
+	| ASSUME; LBRACE; e=expr_target; RBRACE
+	  { SLBasic (RAssume (e)) }
+(* assert (e) *)
+ 	| ASSERT; LBRACE;  e=expr_target; RBRACE
+	  { SLBasic (RAssert (e)) }
+(* success *)
+	| SUCCESS
+		{ SLBasic (STerminate) }
 ;
 
 call_with_target:
@@ -519,6 +529,12 @@ expr_target:
 	  { SetUnion (SExpr.elements (SExpr.of_list le)) }
 	| SETINTER LBRACE; le = separated_list(COMMA, expr_target); RBRACE
 	  { SetInter (SExpr.elements (SExpr.of_list le)) }
+(* make_symbol_number(x) *)
+  | RNUMSYM; LBRACE; x=option(VAR); RBRACE
+	  { RNumSymb x }
+(* make_symbol_string(x) *)
+  | RSTRSYM; LBRACE; x=option(VAR); RBRACE
+	  { RStrSymb x }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }
