@@ -1,4 +1,5 @@
 (* open Core.Std *)
+open JSIL_PreParser
 open JSIL_Syntax
 open JS2JSIL_Preprocessing
 open JS2JSIL_Compiler
@@ -60,6 +61,7 @@ let create_output ext_proc path =
 let process_file path =
   try
 	let e_str = string_of_file path in
+	let e_str = JSIL_PreParser.stringify_assume_and_assert e_str in
 	let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline e_str in
 	let e = Parser_main.exp_from_string ~force_strict:true e_str in
 
