@@ -273,7 +273,7 @@ $$
 \qquad \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
    \ \wedge \ 
       (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
-            \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \svarsreallyqueen(\prog) \subseteq \domain(\senv) \\ \qquad \quad
+            \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad \quad
       	 \ \implies \ \exists \heap', \store' \, . \, 
 	 	 \semtrans{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}
 		\, \wedge \, 
@@ -362,10 +362,10 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -419,10 +419,10 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $$ and $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -472,13 +472,13 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
-  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_3}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_3}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_3}{\sstore}}{\senv}
    =  \symbeval{\sexpr_v}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -542,13 +542,13 @@ $$
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \forall_{0 \leq i \leq n}  \, \pc' \vdash \sexprp_i \neq \sexpr_p  
       \implies \forall_{0 \leq i \leq n}  \, \senv \vdash \sexprp_i \neq \sexpr_p  \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} \\
  %
-  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_3}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_3}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_3}{\sstore}}{\senv}
    =  \symbeval{\sexpr_v}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -622,10 +622,10 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} \\
@@ -686,10 +686,10 @@ $$
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \forall_{0 \leq i \leq n}  \, \pc' \vdash \sexprp_i \neq \sexpr_p  
       \implies \forall_{0 \leq i \leq n}  \, \senv \vdash \sexprp_i \neq \sexpr_p  \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} \\
