@@ -1,5 +1,15 @@
 %!TEX root = main.tex
 
+\ExplSyntaxOn
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyTF}{mmm}
+ {
+  \IfNoValueTF{#1}{#2}
+   {
+    \tl_if_empty:nTF {#1} {#2} {#3}
+   }
+ }
+\ExplSyntaxOff
+
 %frame inference
 \newcommand{\pass}[0]{\Pi}
 \newcommand{\gfrinference}[3]{#1 \vdash #2 * [ #3 ]}
@@ -439,6 +449,7 @@
 \newcommand{\ieq}[1]{{\bf I#1}}
 \newcommand{\indhyp}[0]{{\bf IH}}
 \newcommand{\prooflab}[1]{{\small {\scshape [#1]}}}
+\newcommand{\fact}[1]{{\bf [F#1]}}
 
 \newcommand{\ilvars}{{\sf vars}}
 \newcommand{\betaequal}[1]{\sim_{#1}}
@@ -588,14 +599,29 @@
 %%%%%%%%%%%%%%%
 \newcommand\ctx{C}
 \newcommand\semop[1]{\overline{#1}}
-\DeclareDocumentCommand{\semtrans}{ o m m o o }
+\newcommand\mode{\mu}
+\DeclareDocumentCommand{\semtrans}{ o o o m m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \rightarrow \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4} \rightarrow \tuple{#5} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6} \rightarrow \tuple{#5}_{#6}}
+			{\tuple{#4}_{#6} \rightarrow \tuple{#5}_{#7}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#5}^{#2} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#6}^{#2}}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#7}^{#2}} } }
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#5}^{#3} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#6}^{#3}}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#7}^{#3}} } }
+	}
+}
 
 \DeclareDocumentCommand{\semtranstrans}{ o m m o o }
 { 
@@ -622,7 +648,6 @@
 	{\tuple{#2}_#3 \rightarrow^* \bot} }
 
 
-
 \DeclareDocumentCommand{\ccmd}{ o o m }
 {
   \IfNoValueTF{#1}
@@ -635,14 +660,28 @@
 \newcommand\sstate{\sigma}
 \newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
 
-\DeclareDocumentCommand{\symbtrans}{ o m m o o }
+\DeclareDocumentCommand{\symbtrans}{ o o o m m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \leadsto \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4} \leadsto \tuple{#5} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6} \leadsto \tuple{#5}_{#6}}
+			{\tuple{#4}_{#6} \leadsto \tuple{#5}_{#7}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \leadsto \tuple{#5}^{#2} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#6}^{#2}}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#7}^{#2}} } }
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \leadsto \tuple{#5}^{#3} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#6}^{#3}}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#7}^{#3}} } }
+	}
+}
 
 
 \DeclareDocumentCommand{\symbtranstrans}{ o m m o o }
