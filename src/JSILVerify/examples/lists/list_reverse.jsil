@@ -1,0 +1,31 @@
+(** LIST REVERSE EXAMPLE **)
+
+pred my_list(x,alpha) : 
+  (x == $$null) * (alpha == $$nil),
+  ((x, "value") -> #v) * ((x, "next") -> #z)  * my_list(#z,#beta) * (alpha == (#v :: #beta))
+    * types(#v: $$number_type, alpha: $$list_type, #beta: $$list_type); 
+
+pred my_list_reverse(alpha, revalpha) : (alpha == $$nil) * (revalpha == $$nil),
+                            (alpha == (#v :: #gama)) * (revalpha == (#revalphat @ {{#v}})) *
+                            my_list_reverse(#gama, #revalphat) *
+          types(#v: $$number_type, revalpha: $$list_type, #revalphat: $$list_type, #gama: $$list_type);  
+
+spec list_reverse (x)
+  [[ (x == #x) * my_list(#x, #alpha) * my_list_reverse(#alpha, #revalpha) * types(#alpha: $$list_type, #revalpha: $$list_type)  ]]
+  [[ my_list(#x, #alpha) * my_list_reverse(#alpha, #revalpha) * (ret == #revalpha)  ]]
+  normal
+
+proc list_reverse(x) {
+   [* unfold my_list(x, #alpha); unfold my_list_reverse(#alpha, #revalpha) *]
+           goto [ x = $$null ] then1 else1;
+   then1:  rev := $$nil;
+           goto rlab;
+   else1:  z := [x, "next"];
+           v := [x, "value"];
+           rev := {{ }};
+           rev := "list_reverse"(z);
+           rev := rev @ {{ v }};
+     [* fold my_list(x, #alpha); fold my_list_reverse(#alpha, #alpharev) *]
+   rlab:   skip
+
+} with { ret: rev, rlab; };

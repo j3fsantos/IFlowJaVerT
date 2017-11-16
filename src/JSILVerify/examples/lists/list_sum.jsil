@@ -1,0 +1,39 @@
+pred lseg(e1,e2,alpha) : (alpha == {{ }}) * (e1 == e2) * types(alpha: $$list_type),
+		       (! e1 == e2) * ((e1, "value") -> #y) * (alpha == (#y :: #beta)) * lseg(#y,e2,#beta) * 
+			types(alpha: $$list_type, #beta: $$list_type);
+
+		
+pred my_list(x,alpha) : 
+	(x == $$null) * (alpha == $$nil),
+	((x, "value") -> #v) * ((x, "next") -> #z)  * my_list(#z,#beta) * (alpha == (#v :: #beta))
+		* types(#v: $$number_type, alpha: $$list_type, #beta: $$list_type); 
+
+
+(** LIST SUM EXAMPLE **)
+
+pred alpha_sum(alpha,sum) : 
+  (alpha == $$nil) * (sum == 0),
+  (alpha == (#v :: #beta))  * alpha_sum(#beta,#sum_beta) * (sum == (#sum_beta + #v)) 
+    * types(#v: $$number_type, sum: $$number_type, #sum_beta: $$number_type, alpha: $$list_type, #beta: $$list_type);
+
+spec list_sum_recursive (x)
+   [[ (x == #x) * my_list(#x,#alpha) * alpha_sum(#alpha,#sum) ]]
+   [[ 		        my_list(#x,#alpha) * alpha_sum(#alpha,#sum) * (ret == #sum) ]]
+   normal
+
+proc list_sum_recursive (x) {
+           [* unfold my_list(x,#alpha); unfold alpha_sum(#alpha,#sum) *]
+           goto [ x = $$null ] then1 else1;
+   then1:  count := 0;
+           goto rlab;
+   else1:  
+           z := [x, "next"];
+           y := [x, "value"];
+           count := "list_sum_recursive"(z);
+           count := count + y;
+           skip;
+     
+     [* fold my_list(x,#alpha); fold alpha_sum(#alpha,#sum) *]
+   rlab:   skip
+} with { ret: count, rlab; };
+
