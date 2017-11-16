@@ -562,30 +562,87 @@
 \newpage
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
+\begin{lemma}[Transparency for single-step executions]\label{lem:singlefix}
+$\forall \, \heap, \store, i, \ctx, \mode, \heap', \store', i', \ctx', \mode' \, . \,$
+$$
+  \semtrans[\prog][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+  \iff
+  \symbtrans[\prog][\mode][\mode']{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
+$$
+\end{lemma}
+
+\begin{proof}
+Given the rules of the concrete and symbolic JSIL semantics, we have that $\mode = \top$. 
+The interesting case is when $\mode' = \bot$. Then, it must be that the rule applied on both sides of the equivalence is the \prooflab{Basic Command} rule. Moreover, the associated basic command rule must be \prooflab{Assert - False}. This means that, in the concrete semantics, we should have:
+
+$$\inferrule[\textsc{Assert - False}]
+  { 
+      \symbeval{\jsilexpr}{\store} = \jfalse
+  }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}}$$
+
+\noindent whereas in the symbolic semantics, we should have:
+
+$$\inferrule[\textsc{Assert - False}]
+  { 
+     (\jtrue \, \wedge \,  \neg\symbeval{\jsilexpr}{\store}) \text{ satisfiable}
+  }{\symbtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr), \jtrue}{\heap, \store,  \jtrue \wedge \neg\symbeval{\jsilexpr}{\store}}}$$
+
+\noindent for some concrete expression $\jsilexpr$. From this, in the left-to-right case, we observe that $\symbeval{\jsilexpr}{\store} = \jfalse$, that is, that its negation is $\neg\symbeval{\jsilexpr}{\store} = \jtrue$ and the symbolic \prooflab{Assert - False} rule can be applied to obtain the desired goal. In the right-to-left case, since $\jtrue \, \wedge \,  \neg\symbeval{\jsilexpr}{\store}$ is satisfiable and $\jsilexpr$ is concrete, it must be that $\neg\symbeval{\jsilexpr}{\store} = \jtrue$, that is, that $\symbeval{\jsilexpr}{\store} = \jfalse$. Given that, we can apply the concrete \prooflab{Assert - False} rule to obtain the desired goal.
+
+\medskip
+All remaining cases follow directly from the definitions of the concrete and symbolic semantics and the fact that the heaps, stores, and call stacks are concrete.
+\end{proof}
+
+\begin{lemma}[Transparency for fixed-length executions]\label{lem:transfix}
+$\forall \, k, \heap, \store, i, \ctx, \mode, \heap', \store', i', \ctx', \mode' \, . \,$
+$$
+  \semtranstrans[\prog][\mode][\mode']{\heap, \store, i}[k]{\heap', \store', i'}[\ctx][\ctx']
+  \iff
+  \symbtranstrans[\prog][\mode][\mode']{\heap, \store, i, \jtrue}[k]{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
+$$
+\end{lemma}
+
+\begin{proof}
+By induction on $k$. The base case, when $k = 0$, amounts to reflexivity. Let us assume that $k = n$ and prove the claim for $k = n + 1$. We have the inductive hypothesis:
+
+\begin{description}
+\item[IH:] $\forall \, \heap, \store, i, \ctx, \mode, \heap', \store', i', \ctx', \mode' \, .$
+	\vspace*{-0.3cm}
+  $$\semtranstrans[\prog][\mode][\mode']{\heap, \store, i}[n]{\heap', \store', i'}[\ctx][\ctx']
+  \iff
+  \symbtranstrans[\prog][\mode][\mode']{\heap, \store, i, \jtrue}[n]{\heap', \store', i', \jtrue}[\ctx][\ctx'].$$
+\end{description}
+  
+Let us prove the left-to-right direction for $k = n + 1$. By definition of $\rightarrow^k$, we have that $$\exists \ \heap'', \rho'', i'', \ctx'', \mode''. \; \semtranstrans[\prog][\mode][\mode'']{\heap, \store, i}[n]{\heap'', \store'', i''}[\ctx][\ctx''] \ \wedge \ \semtrans[\prog][\mode''][\mode']{\heap'', \store'', i''}{\heap', \store', i'}[\ctx''][\ctx'].$$
+
+From this, by the IH, we obtain that $\symbtranstrans[\prog][\mode][\mode']{\heap, \store, i, \jtrue}[n]{\heap'', \store'', i'', \jtrue}[\ctx][\ctx'']$. Also, from Lemma \ref{lem:singlefix}, we obtain that $\symbtrans[\prog][\mode''][\mode']{\heap'', \store'', i', \jtrue}{\heap', \store', i', \jtrue}[\ctx''][\ctx']$, concluding the proof.
+
+\medskip
+The right-to-left direction is proven analogously.
+\end{proof}
 
 \begin{temax}{Theorem~\ref{teo:transparency} - Transparency.} 
-$\forall \, \heap, \store, i, \ctx, \heap', \store', i', \ctx' \, . \,$
+$\forall \, \heap, \store, i, \ctx, \mode, \heap', \store', i', \ctx', \mode' \, . \,$
 $$
-  \semtranstrans[\prog]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+  \semtranstrans[\prog][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
   \iff
-  \symbtranstrans[\prog]{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
+  \symbtranstrans[\prog][\mode][\mode']{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
 $$
 \end{temax}
 
 \begin{proof}
-\polish{TODO}
-
+Directly from Lemma \ref{lem:transfix} and the definitions of $\rightarrow^*$ and $\leadsto^*$.
 \end{proof}
 
 \begin{lemma}[Soundness of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
 $$
 \begin{array}{l}
 \forall \sheap, \sstore, \bcmd, \pc, \mode, \sheap', \sstore',  \pc', \mode', \heap, \store, \senv, \pc'' \, .\\
-\qquad \symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
-   \ \wedge \ \pc'' \vdash \pc' \ \wedge \ 
+\quad \symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
+   \wedge \ \pc'' \vdash \pc' \ \wedge \ 
       (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
-             \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad \qquad
-      	 \ \implies \ \exists \heap', \store' \, . \, 
+             \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad 
+      	  \implies \ \exists \heap', \store' \, . \, 
 	 	 \semtrans[][\mode][\mode']{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}
 		\, \wedge \, 
 		(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}

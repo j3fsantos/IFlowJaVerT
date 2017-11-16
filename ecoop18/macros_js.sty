@@ -623,14 +623,28 @@
 	}
 }
 
-\DeclareDocumentCommand{\semtranstrans}{ o m m o o }
+\DeclareDocumentCommand{\semtranstrans}{ o o o m o m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \rightarrow^* \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \rightarrow^* \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \rightarrow^* \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4} \rightarrow \tuple{#6} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}}
+			{\tuple{#4}_{#7} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#6}^{#2} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#2}}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#2}} } }
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#6}^{#3} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#3}}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#3}} } }
+	}
+}
 
 
 \DeclareDocumentCommand{\semtranserr}{ o m o }
@@ -684,14 +698,28 @@
 }
 
 
-\DeclareDocumentCommand{\symbtranstrans}{ o m m o o }
+\DeclareDocumentCommand{\symbtranstrans}{ o o o m o m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \leadsto^* \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4} \leadsto \tuple{#6} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}}
+			{\tuple{#4}_{#7} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \leadsto \tuple{#6}^{#2} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#2}}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#2}} } }
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \leadsto \tuple{#6}^{#3} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#3}}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#3}} } }
+	}
+}
 
 
 \newcommand{\symbtranserr}[3]{ \tuple{#1}_{#2} \leadsto \tuple{\bot, #3}}
