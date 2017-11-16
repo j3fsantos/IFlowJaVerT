@@ -250,7 +250,7 @@
 \\
 %
 \inferrule[\textsc{Skip}]{}
-	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
+	{ \symbtrans[][\top]{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
  \and
 %
 \inferrule[\textsc{Object Creation}]
@@ -259,14 +259,14 @@
     \and
     \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
     \and 
-  }{\symbtrans{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
 \\
 \inferrule[\textsc{Assignment}]
   {
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
       \\\\
       \sstore' = \sstore[\jvar \mapsto \sexpr]
-  }{\symbtrans{\sheap, \sstore, \jvar := \jsilexpr, \pc}{\sheap, \sstore', \pc}} 
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \jsilexpr, \pc}{\sheap, \sstore', \pc}} 
   %
   \and
   %
@@ -277,7 +277,7 @@
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto - \big)\mid_{i = 0}^n   
         \quad
         (l, -) \not\in \domain(\sheap')
-  }{\semtrans{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\sexprp_0, ..., \sexprp_n}]}} 
+  }{\semtrans[][\top]{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\sexprp_0, ..., \sexprp_n}]}} 
 %
 \\
 \inferrule[\textsc{Property Access}]
@@ -293,7 +293,7 @@
         0 \leq k \leq n
         \\\\
         \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{ \symbtrans{\sheap, \sstore, \jvar := [\jsilexpr_1, \jsilexpr_2], \pc}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
+  }{ \symbtrans[][\top]{\sheap, \sstore, \jvar := [\jsilexpr_1, \jsilexpr_2], \pc}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
  %
 \\
 %
@@ -313,7 +313,7 @@
           \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
          \quad
          \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}} 
+  }{\symbtrans[][\top]{\sheap, \sstore,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}} 
 \\
 %
 \inferrule[\textsc{Property Assignment - Not Found}]
@@ -332,7 +332,7 @@
           \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
          \quad
          \sheap'' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}}   
+  }{\symbtrans[][\top]{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}}   
 %
 \\
 %
@@ -351,7 +351,7 @@
       \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
      \quad 
       \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
-   }{\symbtrans{\sheap, \sstore, \jsildelete(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap'', \sstore, \pc'}}
+   }{\symbtrans[][\top]{\sheap, \sstore, \jsildelete(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap'', \sstore, \pc'}}
  \\
  %
 \inferrule[\textsc{Member Check - True}]
@@ -367,7 +367,7 @@
         0 \leq k \leq n
      \\ 
      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
 %
 \\
 %
@@ -384,7 +384,7 @@
         0 \leq k \leq n
      \\ 
      \pc' = \pc \ \wedge \,  \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
 \\
 %
 \inferrule[\textsc{Assert - True}]
@@ -392,14 +392,14 @@
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      \pc \vdash \sexpr 
-  }{\symbtrans{\sheap, \sstore, \assert(\jsilexpr), \pc}{\sheap, \sstore, \pc}} 
+  }{\symbtrans[][\top]{\sheap, \sstore, \assert(\jsilexpr), \pc}{\sheap, \sstore, \pc}} 
 \quad
 \inferrule[\textsc{Assert - False}]
   { 
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      (\pc \, \wedge \,  \neg\sexpr) \text{ satisfiable}
-  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{(\pc \, \wedge \,  \neg\sexpr)}}
+  }{\symbtrans[][\top][\bot]{\sheap, \sstore, \assert(\jsilexpr), \pc}{\sheap, \sstore,  \pc \wedge \neg\sexpr}}
   \quad
 %
 \inferrule[\textsc{Assume}]
@@ -407,10 +407,10 @@
       \symbeval{\jsilexpr}{\sstore} =  \sexpr
      \quad 
      \pc \vdash \sexpr 
-  }{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
+  }{\symbtrans[][\top]{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
 \end{mathpar}}
 \vspace*{-0.6cm}
-\caption{Symbolic Semantics for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:app:symbexe:bcmds}}
+\caption{Symbolic Semantics for \jsil Basic Commands: {$\symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:app:symbexe:bcmds}}
 \vspace*{-0.6cm}
 \end{figure}
 %\end{display}  
@@ -422,8 +422,8 @@
    { 
      \ccmd{i} = \bcmd 
      \quad
-     \symbtrans[\prog][\top][\mode]{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'} 
-   }{\symbtrans[\prog][\top][\mode]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i+1, \pc'}}
+     \symbtrans[\prog][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'} 
+   }{\symbtrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', i+1, \pc'}}
 %
    \qquad
 %  %
