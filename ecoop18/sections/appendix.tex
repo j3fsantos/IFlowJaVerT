@@ -11,24 +11,43 @@
 {\scriptsize
 \begin{mathpar} 
 %
+\inferrule[Semantics of expressions]{}{
+\semexpr{\val}{\store} \semeq \val
+\quad 
+\semexpr{\jvar}{\store} \semeq \store(\jvar)
+\quad 
+\semexpr{\unoper\ \jexpr}{\store} \semeq \semop{\unoper} (\semexpr{\jexpr}{\store})
+\quad 
+\semexpr{\jexpr_1 \binoper \jexpr_2}{\store} \semeq \semop{\binoper}(\semexpr{\jexpr_1}{\store}, \semexpr{\jexpr_2}{\store})}
+\\
+
 \inferrule[\textsc{Skip}]{}
-	{ \semtrans{\heap, \store, \jsilskip}{\heap, \store}} 
+	{ \semtrans[][\top]{\heap, \store, \jsilskip}{\heap, \store}} 
  \qquad
+%
+\inferrule[\textsc{Object Creation}]
+  { 
+    \heap = \heap \dunion \hcell{\loc}{\protop}{\jsnull}
+    \quad (\loc,-) \notin \domain (\heap)
+  }{\semtrans[][\top]{\heap, \store, \jvar := \jsilnew()}{\heap, \store[\jvar \mapsto \loc]}}
+\\
+\inferrule[\textsc{Property Collection}]
+  {
+      \symbeval{\jsilexpr}{\store} =  \loc
+      \quad
+        \heap = \heap' \, \uplus \, \big((l, \jstring_i) \mapsto \val_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\heap')
+  }{\semtrans[][\top]{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\jstring_0, ..., \jstring_n}]}} 
+%
+\qquad
  %
 \inferrule[\textsc{Assignment}]
   {
       \symbeval{\jsilexpr}{\store} =  \val
       \quad
       \store' = \store[\jvar \mapsto \val]
-  }{\semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store'}} 
-%
-\qquad 
-%
-\inferrule[\textsc{Object Creation}]
-  { 
-    \heap = \heap \dunion \hcell{\loc}{\protop}{\jsnull}
-    \quad (\loc,-) \notin \domain (\heap)
-  }{\semtrans{\heap, \store, \jvar := \jsilnew()}{\heap, \store[\jvar \mapsto \loc]}}
+  }{\semtrans[][\top]{\heap, \store, \jvar := \jsilexpr}{\heap, \store'}} 
 \\
 %
 \inferrule[\textsc{Property Access}]
@@ -38,7 +57,7 @@
         \symbeval{\jsilexpr_2}{\store} =  \jstring
         \quad
         \heap = - \dunion \hcell{\loc}{\jstring}{\val}
-  }{ \semtrans{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \val]}}
+  }{ \semtrans[][\top]{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \val]}}
  \and 
  \inferrule[\textsc{Property Deletion}]
   { 
@@ -47,7 +66,7 @@
         \symbeval{\jsilexpr_2}{\store} =  \jstring
         \quad
         \heap = \heap' \dunion \hcell{\loc}{\jstring}{-}
-  }{\semtrans{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\heap', \store}}
+  }{\semtrans[][\top]{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\heap', \store}}
  %
 \\
 %
@@ -59,7 +78,7 @@
         \symbeval{\jsilexpr_3}{\store} =  \val
        \\\\
         \heap = \heap' \dunion  \hcell{\loc}{\jstring}{-}
-  }{\semtrans{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap' \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
+  }{\semtrans[][\top]{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap' \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
  \and 
  \inferrule[\textsc{Property Assignment - Not Found}]
   {     \symbeval{\jsilexpr_1}{\store} =  \loc
@@ -71,7 +90,7 @@
         \heap = \heap' 
         \quad 
         (\loc, \jstring) \not\in \domain(\heap)
-  }{\semtrans{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
+  }{\semtrans[][\top]{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
 \\
 %
 \inferrule[\textsc{Member Check - True}]
@@ -81,7 +100,7 @@
         \symbeval{\jsilexpr_2}{\store} =  \jstring
        \quad 
    	(\loc, \jstring) \in \domain(\heap) 
-  }{\semtrans{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jtrue]}}
+  }{\semtrans[][\top]{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jtrue]}}
   \and 
  \inferrule[\textsc{Member Check - False}]
   { 
@@ -90,22 +109,27 @@
         \symbeval{\jsilexpr_2}{\store} =  \jstring
        \quad 
    	(\loc, \jstring) \not\in \domain(\heap) 
-  }{\semtrans{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jfalse]}}
+  }{\semtrans[][\top]{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jfalse]}}
 %
 \\
 %
+\inferrule[\textsc{Assume}]
+  { 
+      \symbeval{\jsilexpr}{\store} =  \jtrue
+  }{\semtrans[][\top]{\heap, \store, \assume(\jsilexpr)}{\heap, \store}} 
+\and
 \inferrule[\textsc{Assert - True}]
   { 
       \symbeval{\jsilexpr}{\store} =  \jtrue
-  }{\semtrans{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
+  }{\semtrans[][\top]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
 \and
 \inferrule[\textsc{Assert - False}]
   { 
-      \symbeval{\jsilexpr}{\store} \neq \jtrue
-  }{\semtranserr{\heap, \store, \assert(\jsilexpr)}} 
+      \symbeval{\jsilexpr}{\store} = \jfalse
+  }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
 \end{mathpar}}
 \vspace*{-0.5cm}
-\caption{Execution for Basic Commands: {\scriptsize$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\caption{Execution for Basic Commands: {\scriptsize$\semtrans[][\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \end{figure}
 
 
@@ -118,35 +142,35 @@
    { 
      \ccmd[\prog][\ctx]{i} = \bcmd 
      \quad
-     \semtrans{\heap, \store, \bcmd}{\heap', \store'} 
-   }{\semtrans[\prog]{\heap, \store, i}{\heap', \store', i+1}[C]}
+     \semtrans[][\top][\mode]{\heap, \store, \bcmd}{\heap', \store'} 
+   }{\semtrans[\prog][\top][\mode]{\heap, \store, i}{\heap', \store', i+1}[C]}
 %
    \qquad
-  %
-  \inferrule[\textsc{Basic Command - Fail}]
-   { 
-     \ccmd[\prog][\ctx]{i} = \bcmd 
-     \quad
-     \semtranserr{\heap, \store, \bcmd} 
-   }{\semtranserr[\prog]{\heap, \store, i}[C]}
- %
-   \qquad
+%  %
+%  \inferrule[\textsc{Basic Command - Fail}]
+%   { 
+%     \ccmd[\prog][\ctx]{i} = \bcmd 
+%     \quad
+%     \semtrans[\prog][\top][\bot]{\heap, \store, \bcmd}{\heap', \store'}
+%   }{\semtrans[\prog][\top][\bot]{\heap, \store, i}{\heap', \store', i+1}[C]}
+% %
+%   \qquad
   %
   \inferrule[\textsc{Goto}]
    { \ccmd[\prog][\ctx]{i} = \goto \, j \quad}
-   {\semtrans[\prog]{\heap, \store, i}{\heap, \store, j}[C]}
+   {\semtrans[\prog][\top]{\heap, \store, i}{\heap, \store, j}[C]}
   \\ 
   \inferrule[\textsc{Cond. Goto - True}]
    { \ccmd[\prog][\ctx]{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
      \symbeval{\jsilexpr}{\store} =  \jtrue
    }
-   {\semtrans[\prog]{\heap, \store, i}{\heap, \store, j}[C]}
+   {\semtrans[\prog][\top]{\heap, \store, i}{\heap, \store, j}[C]}
   \and 
     \inferrule[\textsc{Cond. Goto - False}]
    { \ccmd[\prog][\ctx]{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
      \symbeval{\jsilexpr}{\store} =  \jfalse
    }
-   {\semtrans[\prog]{\heap, \store, i}{\heap, \store, k}[C]}
+   {\semtrans[\prog][\top]{\heap, \store, i}{\heap, \store, k}[C]}
    \\
     \inferrule[\textsc{Procedure Call}]
    { 
@@ -160,7 +184,7 @@
      \ 
       \val_i = \jsundefined \mid_{i = n+1}^{m}  
    }
-   {\semtrans[\prog]{\heap, \store, i}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , 0}[C][(\pid', \store, \jvar, i+1, j) :: \ctx]}
+   {\semtrans[\prog][\top]{\heap, \store, i}{\heap, [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}] , 0}[C][(\pid', \store, \jvar, i+1, j) :: \ctx]}
     \\ 
   \inferrule[\textsc{Normal Return}]
    {
@@ -168,7 +192,7 @@
        \quad 
        \store(\procretvar) = \val
    }  
-   {\semtrans[\prog]{\heap, \store, \procretlab}{\heap, \store'[\jvar \mapsto \val], i}[C][C']}
+   {\semtrans[\prog][\top]{\heap, \store, \procretlab}{\heap, \store'[\jvar \mapsto \val], i}[C][C']}
    \and 
      \inferrule[\textsc{Error Return}]
    {
@@ -176,12 +200,293 @@
        \quad 
        \store(\procerrvar) = \val
    }
-   {\semtrans[\prog]{\heap, \store, \procerrlab}{\heap, \store'[\jvar \mapsto \val], j}[C][C']}
+   {\semtrans[\prog][\top]{\heap, \store, \procerrlab}{\heap, \store'[\jvar \mapsto \val], j}[C][C']}
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.4cm}
-\caption{Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
+\caption{Execution for Control Flow Commands: $\semtrans[\prog][\mode][\mode']{\heap, \store, i}{\heap', \store', j}[C][C']$}
 \end{figure}
+%
+\begin{figure}[ht!]
+{\scriptsize
+\begin{mathpar} 
+%
+\inferrule[\textsc{Symbolic semantics of expressions}]{}{
+%
+{\begin{array}{c}
+\semexpr{\val}{\sstore} \semeq \val \\[2pt]
+%
+\semexpr{\xvar}{\sstore} \semeq \sstore(\xvar) \\[2pt]
+%
+\semexpr{\svar}{\sstore} \semeq \svar
+\end{array}}
+%
+\qquad
+%
+\frac{\semexpr{\jsilexpr}{\sstore} = \val}
+      {\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \semop{\unoper} \val}
+%
+\qquad
+%
+\frac{\semexpr{\jsilexpr}{\sstore} = \sexpr \not\in \vals}
+       {\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \unoper \ \sexpr}
+%
+\qquad
+\frac{ \val = \semop{\binoper}(\semexpr{\jsilexpr_1}{\sstore}, \semexpr{\jsilexpr_2}{\sstore})} 
+       {\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val}
+ %
+ \qquad
+\frac{{\begin{array}{c}
+	\semexpr{\jsilexpr_1}{\sstore} = \sexpr_1 
+	  \quad 
+	  \semexpr{\jsilexpr_2}{\sstore} = \sexpr_2
+	  \\
+	  \sexpr_1 \not\in \vals \ \vee \ \sexpr_2 \not\in \vals 
+	  \end{array}}
+	}
+	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val_1 \, {\binoper} \, \val_2}
+}
+%
+\\
+%
+\inferrule[\textsc{Skip}]{}
+	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
+ \and
+%
+\inferrule[\textsc{Object Creation}]
+  { 
+    (\loc,-) \notin \domain (\sheap) 
+    \and
+    \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
+    \and 
+  }{\symbtrans{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
+\\
+\inferrule[\textsc{Assignment}]
+  {
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+      \\\\
+      \sstore' = \sstore[\jvar \mapsto \sexpr]
+  }{\symbtrans{\sheap, \sstore, \jvar := \jsilexpr, \pc}{\sheap, \sstore', \pc}} 
+  %
+  \and
+  %
+  \inferrule[\textsc{Property Collection}]
+  {
+      \symbeval{\jsilexpr}{\sstore} =  \loc
+      \quad
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto - \big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+  }{\semtrans{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\sexprp_0, ..., \sexprp_n}]}} 
+%
+\\
+\inferrule[\textsc{Property Access}]
+  { 
+ 	\symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \quad
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+        \\\\
+        \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+  }{ \symbtrans{\sheap, \sstore, \jvar := [\jsilexpr_1, \jsilexpr_2], \pc}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
+ %
+\\
+%
+\inferrule[\textsc{Property Assignment - Found}]
+  {     \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \quad
+        \symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+        \\
+          \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+         \quad
+         \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
+  }{\symbtrans{\sheap, \sstore,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}} 
+\\
+%
+\inferrule[\textsc{Property Assignment - Not Found}]
+  {     \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \quad
+        \symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+        \\
+          \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
+         \quad
+         \sheap'' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
+  }{\symbtrans{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}}   
+%
+\\
+%
+\inferrule[\textsc{Property Deletion}]
+  { 
+        \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+     \\ 
+      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+     \quad 
+      \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
+   }{\symbtrans{\sheap, \sstore, \jsildelete(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap'', \sstore, \pc'}}
+ \\
+ %
+\inferrule[\textsc{Member Check - True}]
+  { 
+      \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+     \\ 
+     \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
+%
+\\
+%
+\inferrule[\textsc{Member Check - False}]
+  { 
+      \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  	\quad 
+        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+       \quad 
+        \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
+        \quad
+        (l, -) \not\in \domain(\sheap')
+        \quad 
+        0 \leq k \leq n
+     \\ 
+     \pc' = \pc \ \wedge \,  \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p) \big)
+  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
+\\
+%
+\inferrule[\textsc{Assert - True}]
+  { 
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+     \quad 
+     \pc \vdash \sexpr 
+  }{\symbtrans{\sheap, \sstore, \assert(\jsilexpr), \pc}{\sheap, \sstore, \pc}} 
+\quad
+\inferrule[\textsc{Assert - False}]
+  { 
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+     \quad 
+     (\pc \, \wedge \,  \neg\sexpr) \text{ satisfiable}
+  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{(\pc \, \wedge \,  \neg\sexpr)}}
+  \quad
+%
+\inferrule[\textsc{Assume}]
+  { 
+      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+     \quad 
+     \pc \vdash \sexpr 
+  }{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
+\end{mathpar}}
+\vspace*{-0.6cm}
+\caption{Symbolic Semantics for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:app:symbexe:bcmds}}
+\vspace*{-0.6cm}
+\end{figure}
+%\end{display}  
+%
+\begin{figure}[ht]
+{\scriptsize
+\begin{mathpar} 
+\inferrule[\textsc{Basic Command}]
+   { 
+     \ccmd{i} = \bcmd 
+     \quad
+     \symbtrans[\prog][\top][\mode]{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'} 
+   }{\symbtrans[\prog][\top][\mode]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i+1, \pc'}}
+%
+   \qquad
+%  %
+%  \inferrule[\textsc{Basic Command - Fail}]
+%   { 
+%     \ccmd{i} = \bcmd 
+%     \quad
+%     \symbtranserr{\sheap, \sstore, \bcmd, \pc}{}{\pc}
+%   }{\symbtranserr{\sheap, \sstore, i, \pc}{}{\pc}}
+% %
+   \qquad
+  %
+  \inferrule[\textsc{Goto}]
+   { \ccmd{i} = \goto \, j \quad}
+   {\symbtrans[\prog][\top]{\sheap, \sstore, i, \pc}{\sheap, \sstore, j, \pc}}
+  \\ 
+  \inferrule[\textsc{Cond. Goto - True}]
+   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
+     \symbeval{\jsilexpr}{\sstore} =  \sexpr
+   }
+   {\symbtrans[\prog][\top]{\sheap, \sstore, i, \pc}{\sheap, \sstore, j,  \pc \, \wedge \, \sexpr}}
+  \and 
+    \inferrule[\textsc{Cond. Goto - False}]
+   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} \quad
+     \symbeval{\jsilexpr}{\sstore} =  \sexpr
+   }
+   {\symbtrans[\prog][\top]{\sheap, \sstore, i, \pc}{\sheap, \sstore, k, \pc \, \wedge \, \neg\sexpr}}
+   \\
+    \inferrule[\textsc{Procedure Call}]
+   { 
+    \ccmd{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+     \quad
+    \symbeval{\jsilexpr}{\sstore} =  \pid' 
+    \quad
+      \symbeval{\jsilexpr_i}{\sstore} =  \sexpr_i \mid_{i = 0}^{n} 
+     \quad
+     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+     \quad 
+      \sexpr_i = \jsundefined \mid_{i = n+1}^{m}  
+   }
+   {\symbtrans[\prog][\top]{\sheap, \sstore, i, \pc}{\sheap, [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}], 0, \pc}[\sctx][(\pid', \sstore, \jvar, i+1, j)::\sctx]}
+    \\ 
+  \inferrule[\textsc{Normal Return}]
+   {
+       \sctx = (-, \sstore', \jvar, i, -) :: \sctx' 
+       \quad 
+       \sstore(\procretvar) = \sexpr
+   }  
+   {\symbtrans[\prog][\top]{\sheap, \sstore, \procretlab, \pc}{\sheap, \sstore'[\jvar \mapsto \sexpr], i, \pc}[\sctx][\sctx']}
+   \and 
+     \inferrule[\textsc{Error Return}]
+   {
+       \sctx = (-, \sstore', \jvar, -, j) :: \sctx' 
+       \quad 
+       \sstore(\procerrvar) = \sexpr
+   }  
+   {\symbtrans[\prog][\top]{\sheap, \sstore, \procerrlab, \pc}{\sheap, \sstore'[\jvar \mapsto \sexpr], j, \pc}[\sctx][\sctx']}
+ \end{mathpar}}
+ \vspace*{-0.4cm}
+\caption{Symbolic Semantics for \jsil Commands: {$\symbtrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:app:symbexe:cmds}}
+ \vspace*{-0.2cm}
+\end{figure}
+
 %
 %\begin{figure}[ht!]
 %{\scriptsize
@@ -254,35 +559,63 @@
 %\caption{Symbolic Execution for Control Flow Commands: $\semtrans[\prog]{\heap, \store, i}{\heap', \store', j}[C][C']$}
 %\end{figure}
 
+\newpage
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
 
 \begin{temax}{Theorem~\ref{teo:transparency} - Transparency.} 
-$\forall \, \heap, \heap', \store, \store', i, i', \ctx, \ctx', \, . \,$
+$\forall \, \heap, \store, i, \ctx, \heap', \store', i', \ctx' \, . \,$
 $$
-  \semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+  \semtranstrans[\prog]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
   \iff
-  \symbtranstrans{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
+  \symbtranstrans[\prog]{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
 $$
 \end{temax}
+
+\begin{proof}
+\polish{TODO}
+
+\end{proof}
 
 \begin{lemma}[Soundness of symbolic execution for \jsil basic commands]\label{soundness:basic:commands}
 $$
 \begin{array}{l}
-\forall \sheap, \sstore, \bcmd, \pc, \sheap', \sstore',  \pc', \heap, \store, \senv, \pc'' \, .\\
-\qquad \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
-   \ \wedge \ 
+\forall \sheap, \sstore, \bcmd, \pc, \mode, \sheap', \sstore',  \pc', \mode', \heap, \store, \senv, \pc'' \, .\\
+\qquad \symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}
+   \ \wedge \ \pc'' \vdash \pc' \ \wedge \ 
       (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
-            \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad \quad
+             \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad \qquad
       	 \ \implies \ \exists \heap', \store' \, . \, 
-	 	 \semtrans{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}
+	 	 \semtrans[][\mode][\mode']{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}
 		\, \wedge \, 
-		(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}  
+		(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}
 \end{array}
 $$
 \end{lemma}
 \begin{proof}
-We proceed by case analysis on $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$. Throughout the proof, we use the fact that $\symbeval{\bcmd}{\senv}$ is concrete for all $\senv$, such that $\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)$.
+We proceed by case analysis on $\symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$. 
+Given the symbolic semantics for JSIL basic commands, we obtain that $\mode = \top$. 
+
+\medskip
+We first prove the cases for which $\mode' = \bot$. The only applicable rule is \prooflab{Assert - False}.
+We conclude that  $\bcmd = \assert(\sexpr)$ for some expression $\sexpr$, and that
+$\pc \ \wedge \  \neg\symbeval{\sexpr}{\sstore}$ is satisfiable and $\pc' = \pc \ \wedge \  \neg\symbeval{\sexpr}{\sstore}$. 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+$\senv \vdash \pc''$. Since $\pc'' \vdash \pc'$,
+we conclude that $\pc'' \vdash \neg\symbeval{\jsilexpr}{\sstore}$.
+We let $\jsilexpr = \symbeval{\sexpr}{\senv}$ and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
+We now have to prove that we can apply the \prooflab{Assert - False} rule in the concrete state.
+To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jfalse$. 
+Noting that
+$
+  \symbeval{\jsilexpr}{\store} = \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} 
+         = \symbeval{\symbeval{\sexpr}{\sstore}}{\senv} 
+$, we conclude (using $\senv \vdash \pc''$ and $\pc'' \vdash  \neg\symbeval{\sexpr}{\sstore}$) that 
+$\symbeval{\jsilexpr}{\store} = \jfalse$, from which we obtain that $\heap' = \heap$ and $\store' = \store$, and the result follows. 
+
+\medskip
+Onward, we assume that $\mode' = \top$ and elide the modes from the rules.
+Throughout the proof, we use the fact that $\symbeval{\bcmd}{\senv}$ is concrete for all $\senv$, such that $\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)$.
 \vspace{5pt}
 
 \noindent\prooflab{Skip} 
@@ -760,24 +1093,20 @@ $$
  \store' = \store = \symbeval{\sstore}{\senv} = \symbeval{\sstore}{\senv} = \symbeval{\sstore'}{\senv} 
 \end{array}
 $$
-the result follows. The \prooflab{Assert - False} case is analogous.
+the result follows. The case for the \prooflab{Assume} rule is analogous, noting that if $\senv \vdash \pc \ \wedge \ \sexpr$, then $\senv \vdash \pc$ and $\senv \vdash \sexpr$.
 \vspace{6pt}
 
-%\noindent\prooflab{Assert - False}
-%We conclude that  $\bcmd = \assert(\sexpr)$ for some expression $\sexpr$, and that: 
-%$\pc \vdash \neg\symbeval{\sexpr}{\sstore}$ and $\pc' = \pc$. 
-%From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-%$\senv \vdash \pc''$. Since $\pc'' \vdash \pc' = \pc$ and  $\pc \vdash \neg\symbeval{\jsilexpr}{\sstore}$, 
-%we conclude that $\pc'' \vdash \neg\symbeval{\jsilexpr}{\sstore}$.
-%We let $\jsilexpr = \symbeval{\sexpr}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
-%We now have to prove that we can apply the \prooflab{Assert - False} rule in the concrete state.
-%To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jfalse$. 
-%Noting that:
-%$
-%  \symbeval{\jsilexpr}{\store} = \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} 
-%         = \symbeval{\symbeval{\sexpr}{\sstore}}{\senv} 
-%$, we conclude (using $\senv \vdash \pc''$ and $\pc'' \vdash  \neg\symbeval{\sexpr}{\sstore}$) that 
-%$\symbeval{\jsilexpr}{\store} = \jfalse$, from which the result follows. 
+$\forall \sheap, \sstore, \bcmd, \pc,  \pc', \heap, \store, \senv, \pc'' \, .$
+\vspace*{-0.28cm}
+$$
+\begin{array}{l}
+\qquad \symbtranserr{\sheap, \sstore, \bcmd, \pc}{}{\pc'}
+   \ \wedge \ 
+      (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
+            \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad \quad
+      	 \ \implies \ \semtranserr{\heap, \store, \symbeval{\bcmd}{\senv}}
+\end{array}
+$$
 \end{proof}
 
 \begin{lemma}[Soundness of \jsil symbolic execution - Single Step]\label{lemma:soundness:single:step}
@@ -955,71 +1284,65 @@ $$
 the result follows. 
 \vspace{6pt}
 
-\polish{STOPPED HERE}
-
 
 \noindent\prooflab{Normal Return} 
-We conclude that $i =  \procretlab$, and 
-$$\symbtrans{\sheap, \sstore, \procretlab, \pc}{\sheap, \sstore''[\jvar \mapsto \sexpr], i, \pc}[\sctx][\sctx'']$$
+We have that $i =  \procretlab$, and 
+$$\symbtrans[\prog]{\sheap, \sstore, \procretlab, \pc}{\sheap, \sstore'[\jvar \mapsto \sexpr], i, \pc}[\sctx][\sctx']$$
 where: 
-$\sctx = (-, \sstore'', \jvar, i, -) :: \sctx''$ and $\sexpr = \sstore(\procretvar)$. 
-Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$ and $\pc' = \pc$, we conclude that 
-there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$, 
-$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
-and $\ctx = \semexpr{\sctx}{\senv}$.
-From $\ctx = \semexpr{\sctx}{\senv}$ and $\sctx = (-, \sstore'', \jvar, i, -) :: \sctx''$, we conclude 
-that: $\ctx =  (-, \semexpr{\sstore''}{\senv}, \jvar, i, -) :: \semexpr{\sctx''}{\senv}$.
-Hence, since $i =  \procretlab$, 
-we conclude that: $\semtrans{\heap, \store, \procretlab}{\heap, \semexpr{\sstore''}{\senv}[\jvar \mapsto \val], i}[C][\semexpr{\sctx''}{\senv}]$, 
+$\sctx = (-, \sstore', \jvar, i, -) :: \sctx'$ and $\sexpr = \sstore(\procretvar)$. 
+%Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$ and $\pc' = \pc$, we conclude that there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$, $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and $\ctx = \semexpr{\sctx}{\senv}$.
+From $\ctx = \semexpr{\sctx}{\senv}$ (obtained from \fact{1}) and $\sctx = (-, \sstore', \jvar, i, -) :: \sctx'$, we conclude 
+that: $\ctx =  (-, \semexpr{\sstore'}{\senv}, \jvar, i, -) :: \semexpr{\sctx'}{\senv}$.
+Hence, from \fact{2} and $i =  \procretlab$, 
+we conclude that: $\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, \procretlab}{\heap, \semexpr{\sstore'}{\senv}[\jvar \mapsto \val], i}[C][\semexpr{\sctx'}{\senv}]$, 
 where $\val =  \store(\procretvar) = \semexpr{\sstore}{\senv}(\procretvar)$.
 Noting that: 
 $$ 
  \begin{array}{l}
   \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\ 
   %
-  \store' = \semexpr{\sstore''}{\senv}[\jvar \mapsto \val] = 
-       \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore}{\senv}(\procretvar)] = 
-        \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore(\procretvar)}{\senv}] = \\
-       \qquad  \semexpr{\sstore''[\jvar \mapsto \sstore(\procretvar)]}{\senv}  = 
-       \semexpr{\sstore''[\jvar \mapsto \sexpr]}{\senv}  = 
-       \semexpr{\sstore'}{\senv}  \\ 
+  \store' = \semexpr{\sstore'}{\senv}[\jvar \mapsto \val] = 
+       \semexpr{\sstore'}{\senv}[\jvar \mapsto \semexpr{\sstore}{\senv}(\procretvar)] = 
+        \semexpr{\sstore'}{\senv}[\jvar \mapsto \semexpr{\sstore(\procretvar)}{\senv}] = \\
+       \qquad  \semexpr{\sstore'[\jvar \mapsto \sstore(\procretvar)]}{\senv}  = 
+       \semexpr{\sstore'[\jvar \mapsto \sexpr]}{\senv}  \\ 
  %
- \ctx' = \semexpr{\sctx''}{\senv} = \semexpr{\sctx'}{\senv} 
+ \ctx' = \semexpr{\sctx'}{\senv} 
 \end{array}
 $$
-the result follows. 
+the result follows. The \prooflab{Error Return} case is analogous.
 \vspace{6pt}
 
-\noindent\prooflab{Error Return} 
-We conclude that $i =  \procerrlab$, and 
-$$\symbtrans{\sheap, \sstore, \procerrlab, \pc}{\sheap, \sstore''[\jvar \mapsto \sexpr], j, \pc}[\sctx][\sctx']$$
-where: 
-$\sctx = (-, \sstore'', \jvar, -, j) :: \sctx''$ and $\sexpr = \sstore(\procerrvar)$. 
-Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$ and $\pc' = \pc$, we conclude that 
-there is a symbolic environment $\senv$ such that: $\senv \vdash \pc$, 
-$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
-and $\ctx = \semexpr{\sctx}{\senv}$.
-From $\ctx = \semexpr{\sctx}{\senv}$ and $\sctx = (-, \sstore'', \jvar, -, j) :: \sctx''$, we conclude 
-that: $\ctx =  (-, \semexpr{\sstore''}{\senv}, \jvar, -, j) :: \semexpr{\sctx''}{\senv}$.
-Hence, since $i =  \procerrlab$, 
-we conclude that: $\semtrans{\heap, \store, \procerrlab}{\heap, \semexpr{\sstore''}{\senv}[\jvar \mapsto \val], i}[C][\semexpr{\sctx''}{\senv}]$, 
-where $\val =  \store(\procerrvar) = \semexpr{\sstore}{\senv}(\procerrvar)$.
-Noting that: 
-$$ 
- \begin{array}{l}
-  \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\ 
-  %
-  \store' = \semexpr{\sstore''}{\senv}[\jvar \mapsto \val] = 
-       \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore}{\senv}(\procerrvar)] = 
-        \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore(\procerrvar)}{\senv}] = \\
-       \qquad  \semexpr{\sstore''[\jvar \mapsto \sstore(\procerrvar)]}{\senv}  = 
-       \semexpr{\sstore''[\jvar \mapsto \sexpr]}{\senv}  = 
-       \semexpr{\sstore'}{\senv}  \\ 
- %
- \ctx' = \semexpr{\sctx''}{\senv} = \semexpr{\sctx'}{\senv} 
-\end{array}
-$$
-the result follows. 
+%\noindent\prooflab{Error Return} 
+%We conclude that $i =  \procerrlab$, and 
+%$$\symbtrans{\sheap, \sstore, \procerrlab, \pc}{\sheap, \sstore''[\jvar \mapsto \sexpr], j, \pc}[\sctx][\sctx']$$
+%where: 
+%$\sctx = (-, \sstore'', \jvar, -, j) :: \sctx''$ and $\sexpr = \sstore(\procerrvar)$. 
+%Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$ and $\pc' = \pc$, we conclude that 
+%there is a symbolic environment $\senv$ such that: $\senv \vdash \pc$, 
+%$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
+%and $\ctx = \semexpr{\sctx}{\senv}$.
+%From $\ctx = \semexpr{\sctx}{\senv}$ and $\sctx = (-, \sstore'', \jvar, -, j) :: \sctx''$, we conclude 
+%that: $\ctx =  (-, \semexpr{\sstore''}{\senv}, \jvar, -, j) :: \semexpr{\sctx''}{\senv}$.
+%Hence, since $i =  \procerrlab$, 
+%we conclude that: $\semtrans{\heap, \store, \procerrlab}{\heap, \semexpr{\sstore''}{\senv}[\jvar \mapsto \val], i}[C][\semexpr{\sctx''}{\senv}]$, 
+%where $\val =  \store(\procerrvar) = \semexpr{\sstore}{\senv}(\procerrvar)$.
+%Noting that: 
+%$$ 
+% \begin{array}{l}
+%  \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\ 
+%  %
+%  \store' = \semexpr{\sstore''}{\senv}[\jvar \mapsto \val] = 
+%       \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore}{\senv}(\procerrvar)] = 
+%        \semexpr{\sstore''}{\senv}[\jvar \mapsto \semexpr{\sstore(\procerrvar)}{\senv}] = \\
+%       \qquad  \semexpr{\sstore''[\jvar \mapsto \sstore(\procerrvar)]}{\senv}  = 
+%       \semexpr{\sstore''[\jvar \mapsto \sexpr]}{\senv}  = 
+%       \semexpr{\sstore'}{\senv}  \\ 
+% %
+% \ctx' = \semexpr{\sctx''}{\senv} = \semexpr{\sctx'}{\senv} 
+%\end{array}
+%$$
+%the result follows. 
 \end{proof}
 
 \begin{lemma}[Monotonicity of Path Condition]\label{lemma:pc:monotonocity}
