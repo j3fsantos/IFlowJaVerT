@@ -1094,19 +1094,6 @@ $$
 \end{array}
 $$
 the result follows. The case for the \prooflab{Assume} rule is analogous, noting that if $\senv \vdash \pc \ \wedge \ \sexpr$, then $\senv \vdash \pc$ and $\senv \vdash \sexpr$.
-\vspace{6pt}
-
-$\forall \sheap, \sstore, \bcmd, \pc,  \pc', \heap, \store, \senv, \pc'' \, .$
-\vspace*{-0.28cm}
-$$
-\begin{array}{l}
-\qquad \symbtranserr{\sheap, \sstore, \bcmd, \pc}{}{\pc'}
-   \ \wedge \ 
-      (\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''} 
-            \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \svarsreallyqueen(\bcmd) \subseteq \domain(\senv) \\ \qquad \quad
-      	 \ \implies \ \semtranserr{\heap, \store, \symbeval{\bcmd}{\senv}}
-\end{array}
-$$
 \end{proof}
 
 \begin{lemma}[Soundness of \jsil symbolic execution - Single Step]\label{lemma:soundness:single:step}
@@ -1114,17 +1101,17 @@ $$
 \begin{array}{l}
  \forall \, 
 	\prog,
-	\sheap, \sstore, i, \pc, \sctx, 
-	\sheap', \sstore', i', \pc', \sctx', 
+	\sheap, \sstore, i, \pc, \sctx, \mode,
+	\sheap', \sstore', i', \pc', \sctx', \mode',
 	\heap, \store, \ctx,
 	\senv, \pc''. \\ 
-\quad \symbtrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
-   \, \wedge \,
-      (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''} \, \wedge \, \pc'' \vdash \pc' \, \wedge \,
+\quad \symbtrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
+   \, \wedge \, \pc'' \vdash \pc' \, \wedge \,
+      (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''} \, \wedge \, 
       \svarsreallyqueen(\prog) \subseteq \domain(\senv) 
-      \\ \quad \quad
-      	 \ \implies \ \exists \heap', \store', \ctx'. \, 
-	 	 \semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+      \\ \qquad
+      	 \implies \ \exists \heap', \store', \ctx'. \, 
+	 	 \semtrans[\symbeval{\prog}{\senv}][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
 		\, \wedge \, 
 		(\heap', \store', \ctx', \senv) \in \smodels{\sheap', \sstore', \sctx'}{\pc''}  
 \end{array}
@@ -1133,15 +1120,45 @@ $$
 
 %
 \begin{proof}
-We proceed by case analysis on $\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$. Throughout the proof, we use the following facts:
+We proceed by case analysis on $\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$. Given the symbolic semantics for JSIL commands, we obtain that $\mode = \top$.  Throughout the proof, we use the following facts:
  
 \begin{description}
 \item [{[F1]}] If $\ccmd[\prog][\sctx]{i} = \cmd$ and $\svarsreallyqueen(\prog) \subseteq \domain(\senv)$, then it holds that $\symbeval{\prog}{\senv}$, $\symbeval{\sctx}{\senv}$, and $\symbeval{\cmd}{\senv}$ are concrete, and $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \symbeval{\cmd}{\senv}$.
 \item [{[F2]}] If $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc}$, then it holds that $\heap = \symbeval{\sheap}{\senv}$, $\store = \symbeval{\sstore}{\senv}$, $\ctx = \symbeval{\sctx}{\senv}$, $\senv \vdash \pc$, and also that $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc}$
 \end{description}
 
-\vspace{5pt}
+\medskip
+We first prove the cases for which $\mode' = \bot$. The only applicable rule is \prooflab{Basic Command}. We conclude that $\ccmd[\prog][\sctx]{i} = \bcmd$ for some basic command $\bcmd$,  
+$\symbtrans[][\top][\bot]{\sheap, \sstore, \bcmd, \pc}{\sheap, \sstore, \pc'}$, 
+$\sctx' = \sctx$, and $j = i + 1$. 
+Since $\svarsreallyqueen(\prog) \subseteq \domain(\senv)$, we conclude that $\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)$.
+Applying Lemma~\ref{soundness:basic:commands} to: 
+$$ 
+\symbtrans[][\top][\bot]{\sheap, \sstore, \bcmd, \pc}{\sheap, \sstore, \pc'} 
+\qquad 
+(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}\ \fact{1}
+\qquad 
+\pc'' \vdash \pc'
+\qquad
+\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)
+$$
+we conclude that there is a concrete heap $\heap'$ and store $\store'$ such 
+that: 
+$$
+\semtrans[][\top][\bot]{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}
+\qquad 
+(\heap', \store') \in \smodels{\sheap, \sstore}{\pc''}  
+$$
+From the concrete semantics of JSIL basic commands, we obtain that $\heap = \heap'$ and $\store = \store'$. 
+Using \fact{1} and $\semtrans[][\top][\bot]{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap, \store}$, 
+we can apply the \prooflab{Basic Command} rule of \jsil semantics to conclude 
+that: $\semtrans[\symbeval{\prog}{\senv}][\top][\bot]{\heap, \store, i}{\heap, \store, i+1}[\ctx][\ctx']$. Since $\heap' = \heap$, $\store' = \store$, $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, from \fact{1} we obtain that $\ctx' = \ctx$ and, from that, we obtain that $
+(\heap', \store', \ctx', \senv) \in \smodels{\sheap', \sstore', \sctx'}{\pc''}$, concluding the proof.
 
+\vspace{5pt}
+Onward, we assume that $\mode' = \top$ and elide the modes from the rules.
+
+\vspace{5pt}
 \noindent\prooflab{Basic Command} 
 We conclude that $\ccmd[\prog][\sctx]{i} = \bcmd$ for some basic command $\bcmd$,  
 $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
