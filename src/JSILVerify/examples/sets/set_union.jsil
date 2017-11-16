@@ -1,0 +1,14 @@
+spec set_union_01 ()
+	[[ emp ]]
+	[[ (ret == -{- 1 -}-) * types(ret : $$set_type) ]]
+	normal
+
+proc set_union_01 ()
+{
+			xret := -{- -}- -u- -{- 1 -}-;
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};

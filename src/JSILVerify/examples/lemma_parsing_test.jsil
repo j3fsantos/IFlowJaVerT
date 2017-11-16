@@ -1,0 +1,13 @@
+pred val(x):
+  (x == 5);
+
+pred val_2(x):
+  (x == 10),
+
+  (x == 5);
+
+lemma lemma_a (x, y)
+  variant(x)
+  [[ val(x) ]]
+  [[ val_2(x) ]]
+  [* apply lemma_a(x + 5, y) *]

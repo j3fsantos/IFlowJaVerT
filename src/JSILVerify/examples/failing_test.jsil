@@ -1,0 +1,177 @@
+(*
+ * Predicate: DataDescriptor
+ *
+ * Resource: None
+ *
+ *)
+pred DataDescriptor (d) :
+    types (d : $$list_type) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
+    types (#dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type); 
+
+
+(*
+ * Predicate: GenericDescriptor
+ *
+ * Resource: None
+ *
+ *)
+pred GenericDescriptor (d) :
+    types (d : $$list_type) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
+
+(* ******************* *)
+(* I__ISDATADESCRIPTOR *)
+(* ******************* *)
+
+spec i__isDataDescriptor (desc)
+
+    (* Property not defined at all *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Data descriptor *)
+    [[ DataDescriptor(desc) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Generic descriptor, no data descriptor components *)
+    [[ GenericDescriptor(desc) * (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Generic descriptor, with value *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Generic descriptor, with writable *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 4) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal
+
+proc i__isDataDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "d"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+			goto [(v = $$empty) and (w = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+(* *********************** *)
+(* I__ISACCESSORDESCRIPTOR *)
+(* *********************** *)
+
+spec i__isAccessorDescriptor (desc)
+
+    (* Property not defined at all *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Data descriptor *)
+    [[ DataDescriptor(desc) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Generic descriptor, no data descriptor components *)
+    [[ GenericDescriptor(desc) * (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
+    [[ ret == $$f ]]
+    normal;
+
+    (* Generic descriptor, with get *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 5) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal;
+
+    (* Generic descriptor, with set *)
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 6) == $$empty) ]]
+    [[ ret == $$t ]]
+    normal
+
+proc i__isAccessorDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "a"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	g := l-nth (desc, 5);
+			s := l-nth (desc, 6);
+			goto [(g = $$empty) and (s = $$empty)] rf rt;
+	rt:		xret := $$t;
+			goto rlab;
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+
+(* ********************** *)
+(* I__ISGENERICDESCRIPTOR *)
+(* ********************** *)
+
+spec i__isGenericDescriptor (desc)
+
+    (* Property not defined at all *)
+    [[ desc == $$undefined ]]
+    [[ ret == $$f ]]
+    normal;
+
+	(* Data descriptor *)
+	[[ DataDescriptor(desc) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, no data descriptor components *)
+	[[ GenericDescriptor(desc) *
+	   (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) *
+	   (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
+	[[ ret == $$t ]]
+	normal;
+
+	(* Generic descriptor, with value *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 3) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, with writable *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 4) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, with get *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 5) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal;
+
+	(* Generic descriptor, with get *)
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 6) == $$empty)) ]]
+	[[ ret == $$f ]]
+	normal
+
+proc i__isGenericDescriptor (desc) {
+			goto [desc = $$undefined] rf cont;
+
+	cont:	dd := "i__isDataDescriptor" (desc);
+			ad := "i__isAccessorDescriptor" (desc);
+			xret := not (dd or ad);
+			goto rlab;
+
+	rf:		xret := $$f;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};

@@ -1,0 +1,29 @@
+(** Totals: 0 fails and 2 passes **)
+
+adata domaddr : int
+adata element : {{ tag:string; id:int; children: forest }} 
+adata forest  : element list 
+adata grove   : element list 
+adata domdata : element + forest + grove 
+
+apred domCellAP(alpha:domaddr, d:domdata) : 	
+	split(d, #d', #beta, #d'') => 
+    	domCellAP(alpha, d) <=> domCellAP(alpha, #d') * domCellAP(#beta, #d'')
+
+apred documentAP (id:int, element:element, grove:grove) :
+  documentAP (id, element, grove) <=> documentAP (id, #alpha, grove) * domCellAP(#alpha, element); 
+  documentAP (id, element, grove) <=> documentAP (id, element, #alpha) * domCellAP(#alpha, grove)
+
+apred split(d:domdata, ctxt:domdata, alpha:domaddr, d':domdata) : 
+	types (d: element) * d == {{#t, #id, #f}} * split(#f, #f_ctxt, #beta, #f') 
+	   <=> split(d, {{#t, #id, #f_ctx}}, #beta, #f'), 
+	
+	types (d: forest) * d == {{ }} * split(#f, #f_ctxt, #beta, #f') 
+	   <=> split(d, {{#t, #id, #f_ctx}}, #beta, #f')   
+ 
+  
+
+
+
+
+

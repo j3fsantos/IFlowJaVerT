@@ -1,0 +1,130 @@
+(** Totals: 3 fails and 7 passes **)
+
+(** Tested feature: field assignment 1               **)
+(** Expected result: YES                             **)
+spec test0 (x)
+   [[ emp ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
+   normal
+proc test0 (x) {
+  		   x := new ();
+           [x, "cenoura"] := "maria";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Tested feature: field assignment 2               **)
+(** Expected result: YES                             **)
+spec test1 (x)
+   [[ emp ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) ]]
+   normal
+proc test1 (x) {
+  		   x := new ();
+           [x, "cenoura"] := "maria";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Tested feature: field assignment 2               **)
+(** Expected result: NO                              **)
+spec test2 (x)
+   [[ emp ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * (! (#y == "maria")) * types(#y: $$string_type)]]
+   normal
+proc test2 (x) {
+  		   x := new ();
+           [x, "cenoura"] := "maria";
+   rlab:   skip
+} with { ret: x, rlab; };
+
+
+(** Tested feature: property check 1                 **)
+(** Expected result: YES                             **)
+spec test3 (x)
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * (! #y == None) * types(#y: $$string_type) ]]
+   [[ ((x, "cenoura") -> #y) * ((x, "@proto") -> $$null) * types(#y: $$string_type) * (ret == $$t) ]]
+   normal
+proc test3 (x) {
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: y, rlab; };
+
+
+(** Tested feature: property check 2                 **)
+(** Expected result: YES                             **)
+spec test4 (x)
+   [[ ((x, "cenoura") -> None) * ((x, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> None) * ((x, "@proto") -> $$null) * (ret == $$f) ]]
+   normal
+proc test4 (x) {
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: y, rlab; };
+
+
+(** Tested feature: property check 3                 **)
+(** Expected result: YES                             **)
+spec test5 (x)
+   [[ emp ]]
+   [[ ((x, "@proto") -> $$null) * (ret == $$f) ]]
+   normal
+proc test5 (x) {
+		   x := new (); 
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: y, rlab; };
+
+
+(** Tested feature: property check 4                 **)
+(** Expected result: NO                              **)
+spec test6 (x)
+   [[ emp ]]
+   [[ ((x, "@proto") -> $$null) * (ret == $$t) ]]
+   normal
+proc test6 (x) {
+		   x := new (); 
+  		   y := hasField(x, "cenoura");
+   rlab:   skip
+} with { ret: y, rlab; };
+
+
+(** Tested feature: field look-up 1              **)
+(** Expected result: YES                         **)
+spec test7 (x, y)
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * (ret == "maria") ]]
+   normal
+proc test7 (x, y) {
+		   z := [x, y];
+   rlab:   skip
+} with { ret: z, rlab; };
+
+
+(** Tested feature: delete 1                     **)
+(** Expected result: YES                         **)
+spec test8 (x, y)
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> None) * (ret == "maria") ]]
+   normal
+proc test8 (x, y) {
+		   z := [x, y];
+		   delete(x, y); 
+   rlab:   skip
+} with { ret: z, rlab; };
+
+
+(** Tested feature: delete 2                     **)
+(** Expected result: NO                          **)
+spec test9 (x, y)
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> "maria") * types(x: $$object_type, y: $$string_type) ]]
+   [[ ((x, "@proto") -> $$null) * ((x, y) -> #z) * (ret == "maria") * (! (#z == None)) ]]
+   normal
+proc test9 (x, y) {
+		   z := [x, y];
+		   delete(x, y); 
+   rlab:   skip
+} with { ret: z, rlab; };
+
+
+

@@ -1,0 +1,14 @@
+(** Totals: 0 fails and 1 pass **)
+
+pred int_pair (p) : (p == {{#y, #z}}) * types(#y: $$number_type, #z: $$number_type);
+
+spec sum_pairs (p1, p2)
+	[[ int_pair(p1) * int_pair(p2) ]]
+	[[ int_pair(ret) ]]
+	normal
+proc sum_pairs (p1, p2) {
+			xret := p1;
+	rlab:	skip
+} with {
+	ret: xret, rlab;
+};

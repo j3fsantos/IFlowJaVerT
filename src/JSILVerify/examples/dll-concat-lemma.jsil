@@ -1,0 +1,206 @@
+pred dll_node(node, val, next, prev):
+  types(node : $$object_type) *
+  ((node, "value")  -> val) *
+  ((node, "next")   -> next) *
+  ((node, "prev")   -> prev) *
+  ((node, "@proto") -> $$null);
+
+(* Unfolds from the left *)
+pred dll_seg(head, head_prev, last, last_next, list):
+  types(list: $$list_type) *
+  (list == {{ }}) *
+  (head_prev == last) *
+  (head == last_next),
+
+  types(list: $$list_type) *
+  (list == (#item :: #items)) * types (#items : $$list_type) *
+  (dll_node(head, #item, #next, head_prev)) *
+  (dll_seg(#next, head, last, last_next, #items));
+
+(* Unfolds from the right *)
+pred dll_seg_2(head, head_prev, last, last_next, list):
+  types(list: $$list_type) *
+  (list == {{ }}) *
+  (head_prev == last) *
+  (head == last_next),
+
+  (list == (#items @ {{ #item }})) *
+  types(list: $$list_type, #items: $$list_type, head: $$object_type, last: $$object_type) *
+  (dll_node(last, #item, last_next, #last_prev)) *
+  (dll_seg_2(head, head_prev, #last_prev, last, #items));
+
+pred dll_obj(obj, head, head_prev, last, last_next, list):
+  types(obj: $$object_type, list: $$list_type) *
+  ((obj, "head")      -> head) *
+  ((obj, "head_prev") -> head_prev) *
+  ((obj, "last")      -> last) *
+  ((obj, "last_next") -> last_next) *
+  ((obj, "@proto")    -> $$null) *
+  dll_seg(head, head_prev, last, last_next, list);
+
+lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
+  variant(l-len(list))
+  [[ dll_seg_2(head, head_prev, last, last_next, list) *
+     dll_node(new_node, #val, #next, #prev) *
+     (#next == head) *
+     (head_prev == new_node) *
+     (new_node == #new_node) * (list == #list) ]]
+  [[ dll_seg_2(#new_node, #prev, last, last_next, (#val :: #list)) ]]
+  [*
+    unfold(dll_seg_2(head, head_prev, last, last_next, list));
+    if (not (list = ({{ }}))) then {
+      assert(dll_seg_2(head, head_prev, #last_prev, last, #rest_list));
+      apply prepend_dll_seg_2(head, head_prev, #last_prev, last, #rest_list, new_node);
+      fold(dll_seg_2(new_node, #prev, last, last_next, (#val :: #list)))
+    } else {
+      fold(dll_seg_2(new_node, #prev, last, last_next, (#val :: #list)))
+    }
+  *]
+
+lemma append_dll_seg(head, head_prev, last, last_next, list)
+  variant(l-len(list))
+  [[ dll_seg(head, head_prev, last, last_next, list) * dll_node(last_next, #val, #next, last) * (list == #list) * (last_next == #last_next) ]]
+  [[ dll_seg(head, head_prev, #last_next, #next, (#list @ {{ #val }})) ]]
+  [*
+    unfold(dll_seg(head, head_prev, last, last_next, list));
+    if (not (list = ({{ }}))) then {
+      assert(dll_seg(#head_next, head, last, last_next, #rest_list));
+      apply append_dll_seg(#head_next, head, last, last_next, #rest_list);
+      fold(dll_seg(head, head_prev, last_next, #next, (#list @ {{ #val }})))
+    } else {
+      fold(  dll_seg(head, head_prev, last_next, #next, (#list @ {{ #val }})))
+    }
+  *]
+
+lemma switch_end_to_right(head, head_prev, last, last_next, list)
+  variant(l-len(list))
+  [[ dll_seg(head, head_prev, last, last_next, list) ]]
+  [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
+  [*
+    unfold dll_seg(head, head_prev, last, last_next, list);
+    if (not (list = ({{ }}))) then {
+      assert ( dll_seg (#next, head, last, last_next, #rest_list) );
+      apply switch_end_to_right(#next, head, last, last_next, #rest_list);
+      apply prepend_dll_seg_2(#next, head, last, last_next, #rest_list, head)
+    } else {
+      fold ( dll_seg_2(head, head_prev, last, last_next, list) )
+    }
+  *]
+
+lemma switch_end_to_left(head, head_prev, last, last_next, list)
+  variant(l-len(list))
+  [[ dll_seg_2(head, head_prev, last, last_next, list) ]]
+  [[ dll_seg(head, head_prev, last, last_next, list) ]]
+  [*
+    unfold dll_seg_2(head, head_prev, last, last_next, list);
+    if (not (list = ({{ }}))) then {
+      assert ( dll_seg_2 (head, head_prev, #last_prev, last, #rest_list) );
+      apply switch_end_to_left(head, head_prev, #last_prev, last, #rest_list);
+      apply append_dll_seg(head, head_prev, #last_prev, last, #rest_list)
+    } else {
+      fold ( dll_seg(head, head_prev, last, last_next, list) )
+    }
+  *]
+
+lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, head_prev_2, last_2, last_next_2, list_2)
+  variant(l-len(list_1) + l-len(list_2))
+  [[ (head_1 == #head_1) * (head_prev_1 == #head_prev_1) * (last_1 == #last_1) * (last_next_1 == #last_next_1) * (list_1 == #list_1) *
+     (head_2 == #head_2) * (head_prev_2 == #head_prev_2) * (last_2 == #last_2) * (last_next_2 == #last_next_2) * (list_2 == #list_2) *
+     dll_seg(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1) * types(#list_1 : $$list_type) * 
+     dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) * types(#list_2 : $$list_type) *
+     (#last_next_1 == #head_2) *
+     (#head_prev_2 == #last_1) ]]
+  [[ (#concat_list == (#list_1 @ #list_2)) *
+     dll_seg(#head_1, #head_prev_1, #last_2, #last_next_2, #concat_list) ]]
+ [*
+    unfold dll_seg(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1);
+    if (not (list_1 = ({{ }}))) then {
+      assert ( dll_seg (#next, #head_1, #last_1, #last_next_1, #rest_list_1) );
+      apply concat_dll_segs(#next, #head_1, #last_1, #last_next_1, #rest_list_1, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2);
+      fold (dll_seg(#head_1, #head_prev_1, #last_2, #last_next_2, (#list_1 @ #list_2)))
+    } else { }
+  *]
+
+(* Using the convention that the head_prev and last_next of an empty list object are null *)
+spec append_dll_obj(dll_obj_1, dll_obj_2)
+  (* Case 1: First list empty. Return the second. *)
+  [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
+     dll_obj(#dll_obj_1, #head_1, $$null, #last, $$null, {{ }}) *
+     dll_obj(#dll_obj_2, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2) ]]
+  [[ dll_obj(ret, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2) ]]
+  normal;
+
+  (* Case 2: Second list empty. Return the first. *)
+  [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
+     dll_obj(#dll_obj_1, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *
+     dll_obj(#dll_obj_2, #head_2, $$null, #last_2, $$null, {{ }}) *
+     (! (#head_prev_1 == $$null)) * (! (#last_next_1 == $$null)) ]]
+  [[ dll_obj(ret, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) ]]
+  normal;
+
+  (* Case 3: Both lists non-empty. Actually do some work. *)
+  [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
+     dll_obj(#dll_obj_1, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *
+     dll_obj(#dll_obj_2, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2) *
+     (! (#head_prev_1 == $$null)) * (! (#last_next_1 == $$null)) *
+     (! (#head_prev_2 == $$null)) * (! (#last_next_2 == $$null)) *
+     (! (#list_1 == {{ }})) * (! (#list_2 == {{ }}))  ]]
+  [[ (#appended_list == (#list_1 @ #list_2)) *
+     dll_obj(ret, #appended_head, #appended_head_prev, #appended_last, #appended_last_next, #appended_list) ]]
+  normal
+
+proc append_dll_obj(dll_obj_1, dll_obj_2) {
+					head_prev_1 := [dll_obj_1, "head_prev"];
+					goto [head_prev_1 = $$null] emptyList1 nonemptyList1;
+
+	emptyList1:		(* Return the second list *)
+    				return_obj := dll_obj_2;
+
+    				[* unfold dll_seg(#head_1, $$null, #last_1, $$null, {{ }}) *]
+    				deleteObject(dll_obj_1);
+
+    				goto rlab;
+
+	nonemptyList1:	head_prev_2 := [dll_obj_2, "head_prev"];
+					goto [head_prev_2 = $$null] emptyList2 nonemptyList2;
+
+	emptyList2:		(* Return the first list *)
+					return_obj := dll_obj_1;
+
+      				[* unfold dll_seg(#head_2, $$null, #last_2, $$null, {{ }}) *]
+      				deleteObject(dll_obj_2);
+
+      				goto rlab;
+
+					(* Unfold the pred to access the first's last and the second's first *)
+					[* apply switch_end_to_right(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1);
+      				   unfold dll_seg_2(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1);
+         			   unfold dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) *]
+	
+	nonemptyList2:	(* Join the two lists using their pointers *)
+      				last_1           := [dll_obj_1, "last"];
+      				head_2           := [dll_obj_2, "head"];
+      				[last_1, "next"] := head_2;
+      				[head_2, "prev"] := last_1;
+      				
+      				(* Collapse both the list preds and flip the first back to the left
+      				   then axiomatically concatenate the segs *)
+      				[* fold dll_seg(#head_2, #last_1, #last_2, #last_next_2, #list_2);
+         			   fold dll_seg_2(#head_1, #head_prev_1, #last_1, #head_2, #list_1);
+         			   apply switch_end_to_left(#head_1, #head_prev_1, #last_1, #head_2, #list_1);
+         			   apply concat_dll_segs(#head_1, #head_prev_1, #last_1, #head_2, #list_1, #head_2, #last_1, #last_2, #last_next_2, #list_2)  *]
+
+      				(* Re-use the first dll obj and delete the second *)
+      				return_obj                := dll_obj_1;
+      				last_2                    := [dll_obj_2, "last"];
+      				last_next_2               := [dll_obj_2, "last_next"];
+      				[return_obj, "last"]      := last_2;
+      				[return_obj, "last_next"] := last_next_2;
+      				deleteObject(dll_obj_2);
+
+	rlab: 			skip
+} 
+with 
+{
+	ret: 			return_obj, rlab; 
+};

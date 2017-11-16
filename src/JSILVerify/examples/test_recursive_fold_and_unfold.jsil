@@ -1,0 +1,45 @@
+(** Totals: 0 fails and 2 passes **)
+
+pred my_list (x, alpha) :
+	(x == $$null) * (alpha == {{ }}) * types(alpha: $$list_type),
+
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *
+		(alpha == (#y :: #beta)) * my_list(#z, #beta) *
+		types(#y: $$number_type, alpha: $$list_type, #beta: $$list_type);
+
+
+(** Expected result: YES                             **)
+spec test_1 (x)
+   [[ my_list(x, {{1, 2}}) ]]
+   [[ my_list(#y, {{2}}) ]]
+   normal
+proc test_1 (x) {
+		   [* unfold* my_list *]
+		   y := [x, "next"];
+		   delete(x, "value");
+		   delete(x, "@proto");
+		   delete(x, "next");
+		   [* fold my_list(y, #alpha) *]
+   rlab:   skip
+} with { ret: y, rlab; };
+
+
+
+(** Expected result: YES                             **)
+spec test_2 (x)
+   [[ my_list(x, 1::(2::#alpha)) * types(#alpha: $$list_type) ]]
+   [[ my_list(#y, #alpha) ]]
+   normal
+proc test_2 (x) {
+		   [* unfold* my_list *]
+		   y := [x, "next"];
+		   delete(x, "value");
+		   delete(x, "@proto");
+		   delete(x, "next");
+		   x := y;
+		   y := [x, "next"];
+		   delete(x, "value");
+		   delete(x, "@proto");
+		   delete(x, "next");
+   rlab:   skip
+} with { ret: y, rlab; };
