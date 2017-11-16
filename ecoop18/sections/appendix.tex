@@ -282,7 +282,7 @@ $$
 $$
 \end{lemma}
 \begin{proof}
-We proceed by case analysis on $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$. 
+We proceed by case analysis on $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$. Throughout the proof, we use the fact that $\symbeval{\bcmd}{\senv}$ is concrete for all $\senv$, such that $\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)$.
 \vspace{5pt}
 
 \noindent\prooflab{Skip} 
@@ -349,8 +349,7 @@ and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \sexprv_k]$, and:
  $\sheap = \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$, 
  $(l, -) \not\in \domain(\sheap')$, and $0 \leq k \leq n$. 
 %
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
 We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := [\jsilexpr_1, \jsilexpr_2]$.
 We now have to prove that we can apply the \prooflab{Property Access} rule in the concrete state.
@@ -379,7 +378,7 @@ $$
    \semtrans{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \semexpr{\sexprv_k}{\senv}]}
 $$
 meaning that: $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \semexpr{\sexprv_k}{\senv}]$.
-We have now to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+We have now to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Observe that: 
 $$
 \begin{array}{l}
@@ -406,8 +405,7 @@ $$
 \end{array}
 $$
 where $\loc = \symbeval{\sexpr_1}{\sstore}$ and $\sexpr_p = \symbeval{\sexpr_2}{\sstore}$.
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and 
 $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jsildelete(\jsilexpr_1, \jsilexpr_2)$.
 Now, we have to prove that we can apply the \prooflab{Property Deletion} rule in the concrete state.
@@ -437,7 +435,7 @@ $$
    \semtrans{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\semexpr{\sheap'}{\senv},  \store}
 $$
 meaning that: $\heap' = \semexpr{\sheap'}{\senv}$ and $\store' = \store$.
-Now, we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+Now, we have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that $\heap' = \semexpr{\sheap'}{\senv}$ and $\store' = \store = \semexpr{\sstore}{\senv} = \semexpr{\sstore'}{\senv}$, 
 the result follows. 
 \vspace{6pt}
@@ -458,8 +456,7 @@ $$
 $$ 
 where $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
 $\symbeval{\sexpr_3}{\sstore} =  \sexpr_v$.
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
 We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$, 
 $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and $\jsilexpr_3 = \symbeval{\sexpr_3}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$.
@@ -495,7 +492,7 @@ $$
 meaning that: 
 $\heap' = \symbeval{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n}{\senv} \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto \symbeval{\jsilexpr_3}{\store}$ and 
 $\store' = \store$.
-Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+Now we have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -527,8 +524,7 @@ $$
 where: $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
 $\symbeval{\sexpr_3}{\sstore} =  \sexpr_v$,  $(\loc, -) \not\in \domain(\sheap'')$, 
 and $0 \leq k \leq n$. 
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
 We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$, 
 $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and $\jsilexpr_3 = \symbeval{\sexpr_3}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$.
@@ -574,7 +570,7 @@ $$
 meaning that $\heap' = \heap \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto \symbeval{\jsilexpr_3}{\store}$ 
 and $\store' = \store$. 
 %
-Now, we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+Now, we have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -607,8 +603,7 @@ $$
 where $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
 $(\loc, -) \not\in \domain(\sheap'')$, and $0 \leq k \leq n$. 
 %
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
 We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and  
 $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)$.
@@ -643,7 +638,7 @@ $$
 $$
 which means that $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \jtrue]$. 
 %
-We now have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+We now have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -672,8 +667,7 @@ $$
 where $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
 $(\loc, -) \not\in \domain(\sheap'')$, and $0 \leq k \leq n$. 
 %
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
 We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and  
 $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)$.
@@ -714,7 +708,7 @@ $$
 $$
 meaning that $\heap' = \heap$ and $\store' = \store[\jvar \mapsto \jfalse]$. 
 %
-Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+Now we have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -738,8 +732,7 @@ $$
   \quad
   \pc \vdash  \symbeval{\sexpr}{\sstore}
 $$ 
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. Because $\pc'' \vdash \pc' = \pc$, we conclude that $\senv \vdash \pc$. 
 We let $\jsilexpr = \symbeval{\sexpr}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
 We now have to prove that we can apply the \prooflab{Assert - True} rule in the concrete state.
@@ -756,7 +749,7 @@ $$
 $$
 meaning that $\heap' = \heap$ and $\store' = \store$. 
 %
-Now we have to prove that $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$.
+Now we have to prove that $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$.
 Noting that:
 $$
 \begin{array}{l}
@@ -767,127 +760,138 @@ $$
  \store' = \store = \symbeval{\sstore}{\senv} = \symbeval{\sstore}{\senv} = \symbeval{\sstore'}{\senv} 
 \end{array}
 $$
-the result follows. 
+the result follows. The \prooflab{Assert - False} case is analogous.
 \vspace{6pt}
 
-\noindent\prooflab{Assert - False}
-We conclude that  $\bcmd = \assert(\sexpr)$ for some expression $\sexpr$, and that: 
-$\pc \vdash \neg\symbeval{\sexpr}{\sstore}$ and $\pc' = \pc$. 
-From $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that there is a symbolic environment
-$\senv$ such that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc''$. Since $\pc'' \vdash \pc' = \pc$ and  $\pc \vdash \neg\symbeval{\jsilexpr}{\sstore}$, 
-we conclude that $\pc'' \vdash \neg\symbeval{\jsilexpr}{\sstore}$.
-We let $\jsilexpr = \symbeval{\sexpr}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
-We now have to prove that we can apply the \prooflab{Assert - False} rule in the concrete state.
-To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jfalse$. 
-Noting that:
-$
-  \symbeval{\jsilexpr}{\store} = \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} 
-         = \symbeval{\symbeval{\sexpr}{\sstore}}{\senv} 
-$, we conclude (using $\senv \vdash \pc''$ and $\pc'' \vdash  \neg\symbeval{\sexpr}{\sstore}$) that 
-$\symbeval{\jsilexpr}{\store} = \jfalse$, from which the result follows. 
+%\noindent\prooflab{Assert - False}
+%We conclude that  $\bcmd = \assert(\sexpr)$ for some expression $\sexpr$, and that: 
+%$\pc \vdash \neg\symbeval{\sexpr}{\sstore}$ and $\pc' = \pc$. 
+%From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
+%$\senv \vdash \pc''$. Since $\pc'' \vdash \pc' = \pc$ and  $\pc \vdash \neg\symbeval{\jsilexpr}{\sstore}$, 
+%we conclude that $\pc'' \vdash \neg\symbeval{\jsilexpr}{\sstore}$.
+%We let $\jsilexpr = \symbeval{\sexpr}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
+%We now have to prove that we can apply the \prooflab{Assert - False} rule in the concrete state.
+%To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jfalse$. 
+%Noting that:
+%$
+%  \symbeval{\jsilexpr}{\store} = \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} 
+%         = \symbeval{\symbeval{\sexpr}{\sstore}}{\senv} 
+%$, we conclude (using $\senv \vdash \pc''$ and $\pc'' \vdash  \neg\symbeval{\sexpr}{\sstore}$) that 
+%$\symbeval{\jsilexpr}{\store} = \jfalse$, from which the result follows. 
 \end{proof}
-
-\polish{STOPPED HEREEEEE!}
 
 \begin{lemma}[Soundness of \jsil symbolic execution - Single Step]\label{lemma:soundness:single:step}
 $$
 \begin{array}{l}
-\forall \, \sheap, \sheap', \heap, \sstore, \sstore', \store, i, j, \sctx, \sctx', \ctx, \pc, \pc', \pc'' \, . \,  \\ 
-\quad \symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx'] 
-   \ \wedge \ 
-      (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''} 
-            \ \wedge \ \pc'' \vdash \pc' \\ \quad \quad 
-      	 \ \implies \ \exists (\heap', \store', \ctx') \, . \, 
-	 	 \semtrans{\heap, \store, i}{\heap', \store', j}[\ctx][\ctx']
+ \forall \, 
+	\prog,
+	\sheap, \sstore, i, \pc, \sctx, 
+	\sheap', \sstore', i', \pc', \sctx', 
+	\heap, \store, \ctx,
+	\senv, \pc''. \\ 
+\quad \symbtrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
+   \, \wedge \,
+      (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''} \, \wedge \, \pc'' \vdash \pc' \, \wedge \,
+      \svarsreallyqueen(\prog) \subseteq \domain(\senv) 
+      \\ \quad \quad
+      	 \ \implies \ \exists \heap', \store', \ctx'. \, 
+	 	 \semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
 		\, \wedge \, 
-		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc''}  
+		(\heap', \store', \ctx', \senv) \in \smodels{\sheap', \sstore', \sctx'}{\pc''}  
 \end{array}
 $$
 \end{lemma}
+
 %
 \begin{proof}
-We proceed by case analysis on $\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$. 
+We proceed by case analysis on $\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$. Throughout the proof, we use the following facts:
+ 
+\begin{description}
+\item [{[F1]}] If $\ccmd[\prog][\sctx]{i} = \cmd$ and $\svarsreallyqueen(\prog) \subseteq \domain(\senv)$, then it holds that $\symbeval{\prog}{\senv}$, $\symbeval{\sctx}{\senv}$, and $\symbeval{\cmd}{\senv}$ are concrete, and $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \symbeval{\cmd}{\senv}$.
+\item [{[F2]}] If $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc}$, then it holds that $\heap = \symbeval{\sheap}{\senv}$, $\store = \symbeval{\sstore}{\senv}$, $\ctx = \symbeval{\sctx}{\senv}$, $\senv \vdash \pc$, and also that $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc}$
+\end{description}
+
 \vspace{5pt}
 
 \noindent\prooflab{Basic Command} 
-We conclude that $\ccmd{i} = \bcmd$ for some basic command $\bcmd$,  
+We conclude that $\ccmd[\prog][\sctx]{i} = \bcmd$ for some basic command $\bcmd$,  
 $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
 $\sctx' = \sctx$, and $j = i + 1$. 
-Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude 
-that $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}$. 
+Since $\svarsreallyqueen(\prog) \subseteq \domain(\senv)$, we conclude that $\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)$.
 Applying Lemma~\ref{soundness:basic:commands} to: 
 $$ 
 \symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'} 
 \qquad 
-(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}
+(\heap, \store) \in \smodels{\sheap, \sstore}{\pc''}\ \fact{1}
 \qquad 
 \pc'' \vdash \pc'
+\qquad
+\svarsreallyqueen(\bcmd) \subseteq \domain(\senv)
 $$
 we conclude that there is a concrete heap $\heap'$ and store $\store'$ such 
 that: 
 $$
-\semtrans{\heap, \store, \bcmd}{\heap', \store'}
+\semtrans{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}
 \qquad 
-(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}  
+(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc}  
 $$
-Using $\ccmd{i} = \bcmd$ and $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, 
+Using \fact{1} and $\semtrans{\heap, \store, \symbeval{\bcmd}{\senv}}{\heap', \store'}$, 
 we can apply the \prooflab{Basic Command} rule of \jsil semantics to conclude 
-that: $\semtrans{\heap, \store, i}{\heap', \store', i+1}[\ctx][\ctx']$. 
-From $\sctx' = \sctx$, $(\heap', \store') \in \smodels{\sheap', \sstore'}{\pc''}$, 
-and $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, it follows
-that $(\heap', \store', \ctx') \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, 
+that: $\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap', \store', i+1}[\ctx][\ctx']$. 
+From $\sctx' = \sctx$, $(\heap', \store', \senv) \in \smodels{\sheap', \sstore'}{\pc''}$, 
+and $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, it follows
+that $(\heap', \store', \ctx', \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, 
 which concludes the proof. 
 \vspace{6pt}
 
 
 \noindent\prooflab{Goto} 
-We conclude that $\ccmd{i} = \goto \, k$ for some program index $k$ and 
+We conclude that $\ccmd[\prog][\sctx]{i} = \goto \, k$ for some program index $k$ and 
 that $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore, k, \pc}[\sctx][\sctx]$, 
 meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
 and $\pc' = \pc$. 
-From $\ccmd{i} = \goto \, k$, we conclude that 
-$\semtrans{\heap, \store, i}{\heap, \store, k}[\ctx][\ctx]$. 
+Given \fact{1}, we conclude that 
+$\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap, \store, k}[\ctx][\ctx]$. 
 Noting that: 
 $$
-(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}  = \smodels{\sheap', \sstore', \sctx'}{\pc''}
+(\heap', \store', \ctx',\senv) = (\heap, \store, \ctx,\senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''}  = \smodels{\sheap', \sstore', \sctx'}{\pc''}
 $$
 the result follows. 
 \vspace{6pt}
 
 
 \noindent\prooflab{Cond. Goto - True} 
-We conclude that $\ccmd{i} = \ifgoto{\jsilexpr}{k_1}{k_2}$ for some expression 
-$\jsilexpr$ and indexes $k_1$ and $k_2$ and 
-that $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore, k_1, \pc \, \wedge \, \sexpr}[\sctx][\sctx]$, 
+We conclude that $\ccmd[\prog][\sctx]{i} = \ifgoto{\sexpr}{k_1}{k_2}$ for some symbolic expression 
+$\sexpr$ and indexes $k_1$ and $k_2$ and 
+that $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore, k_1, \pc \, \wedge \, \semexpr{\sexpr}{\sstore}}[\sctx][\sctx]$, 
 meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
-and $\pc' = \pc \, \wedge \, \sexpr$, where $\semexpr{\jsilexpr}{\sstore} = \sexpr$. 
-Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude that 
-there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$, 
-$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
-and $\ctx = \semexpr{\sctx}{\senv}$.
-Since $\pc'' \vdash \pc'$ and $\senv \vdash \pc''$, we conclude that $\senv \vdash \pc'$. 
-From  $\senv \vdash \pc' = (\pc \ \wedge \ \sexpr)$, it follows that $\senv \vdash \sexpr$, 
-implying that $\symbeval{\sexpr}{\senv} = \jtrue$. 
+and $\pc' = \pc \, \wedge \, \semexpr{\sexpr}{\sstore}$. 
+%Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude that there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$, $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and $\ctx = \semexpr{\sctx}{\senv}$.
+Given $\pc'' \vdash \pc'$ and \fact{2}, we conclude that $\senv \vdash \pc'$. 
+From  $\senv \vdash \pc' = (\pc \ \wedge \ \semexpr{\jsilexpr}{\sstore})$, it follows that $\senv \vdash \semexpr{\sexpr}{\sstore}$, 
+implying that $\symbeval{\semexpr{\sexpr}{\sstore}}{\senv} = \jtrue$. 
+Letting $\jsilexpr = \symbeval{\sexpr}{\senv}$, from \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \ifgoto{\jsilexpr}{k_1}{k_2}$.
 Noting that: 
 $$
-\semexpr{\jsilexpr}{\store} = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\semexpr{\jsilexpr}{\sstore}}{\senv} 
-    = \semexpr{\sexpr}{\senv}
+\semexpr{\jsilexpr}{\store} 
+    = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\symbeval{\sexpr}{\senv}}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\sexpr}{\sstore}}{\senv} 
     = \jtrue
 $$
-we conclude that $\semtrans{\heap, \store, i}{\heap, \store, k_1}[\ctx][\ctx]$. 
+we conclude that $\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap, \store, k_1}[\ctx][\ctx]$. 
 Noting that: 
 $$
-(\heap', \store', \ctx') = (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}  = \smodels{\sheap', \sstore', \sctx'}{\pc''}
+(\heap', \store', \ctx', \senv) = (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc''}  = \smodels{\sheap', \sstore', \sctx'}{\pc''}
 $$
-the result follows. 
+the result follows. The \prooflab{Cond. Goto - False} case is analogous.
 \vspace{6pt}
 
+\polish{REVISE, NUMBER OF PARAMETERS BANANAS}
 
 \noindent\prooflab{Procedure Call} 
-We conclude that $\ccmd{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}$
-for some variable $\jvar$, expressions $\jsilexpr$, $\jsilexpr_0$, ..., $\jsilexpr_n$, and 
+We conclude that $\ccmd[\prog][\sctx]{i} =   \jsilcall{\jvar}{\sexpr}{\sexpr_i |_{i = 0}^{n}}{j}$
+for some variable $\jvar$, symbolic expressions $\sexpr$, $\sexpr_0$, ..., $\sexpr_n$, and 
 index $j$, and $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore', 0, \pc}[\sctx][\sctx']$
 where: 
 $$
@@ -896,14 +900,14 @@ $$
 %
 \qquad
 % 
-\sstore' = [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}] 
+\sstore' = [ \jvar_i \mapsto \sexpr_i' \mid_{i = 0}^{m}] 
 %
 \qquad 
 %
 \ctx' = ((\pid', \sstore, \jvar, i+1, j)::\sctx
 \\
 %
-\pid' = \symbeval{\jsilexpr}{\sstore}
+\pid' = \symbeval{\sexpr}{\sstore}
 %
 \qquad 
 %
@@ -911,37 +915,38 @@ $$
 %
 \qquad
 %
-\sexpr_i = \left\lbrace{\begin{array}{ll}
-\symbeval{\jsilexpr_i}{\sstore} & \text{if } 0 \leq i \leq n \\
+\sexpr_i' = \left\lbrace{\begin{array}{ll}
+\symbeval{\sexpr_i}{\sstore} & \text{if } 0 \leq i \leq n \\
 \jsundefined                            & \text{otherwise}
 \end{array}}\right.
 \end{array}
 $$
-Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude that 
-there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$, 
-$\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, 
-and $\ctx = \semexpr{\sctx}{\senv}$.
-Noting that: 
+
+Letting $\jsilexpr = \symbeval{\sexpr}{\senv}$ and $\jsilexpr_i = \symbeval{\sexpr_i}{\senv}$, for $0 \leq i \leq n$, and given \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i |_{i = 0}^{n}}{j}$.
+%Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude that there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$,  $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and $\ctx = \semexpr{\sctx}{\senv}$.
+Given \fact{2}, and noting that: 
 $$
 %\begin{array}{l}
 \semexpr{\jsilexpr}{\store} = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\semexpr{\jsilexpr}{\sstore}}{\senv} 
-    = \semexpr{\pid'}{\senv}
+    = \semexpr{\symbeval{\sexpr}{\senv}}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\sexpr}{\sstore}}{\senv} 
     = \pid'   
  \qquad
 \semexpr{\jsilexpr_i}{\store} = \semexpr{\jsilexpr_i}{\semexpr{\sstore}{\senv}}
-    = \semexpr{\semexpr{\jsilexpr_i}{\sstore}}{\senv}
-    = \semexpr{\sexpr_i}{\senv}
+    = \semexpr{\symbeval{\sexpr_i}{\senv}}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\sexpr_i}{\sstore}}{\senv}
+    = \semexpr{\sexpr_i'}{\senv}
 %\end{array}
 $$
 we conclude that 
-$\semtrans{\heap, \store, i}{\heap, [ \jvar_i \mapsto \semexpr{\sexpr_i}{\senv} \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]$. 
+$\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap, [ \jvar_i \mapsto \semexpr{\jsilexpr_i}{\store} \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]$. 
 From: 
 $$
 \begin{array}{l}
 \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\
 %
-\store' =  [ \jvar_i \mapsto \semexpr{\sexpr_i}{\senv} \mid_{i = 0}^{m}] = \semexpr{[ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}]}{\senv} = \semexpr{\sstore'}{\senv} \\
+\store' =  [ \jvar_i \mapsto \semexpr{\semexpr{\sexpr_i}{\senv}}{\semexpr{\sstore}{\senv}} \mid_{i = 0}^{m}] = 
+\semexpr{[ \jvar_i \mapsto \sexpr_i' \mid_{i = 0}^{m}]}{\senv} = \semexpr{\sstore'}{\senv} \\
 %
 \ctx' = (\pid', \store, \jvar, i+1, j) :: \ctx = (\pid', \semexpr{\sstore}{\senv}, \jvar, i+1, j) :: \semexpr{\sctx}{\senv} = \semexpr{\sctx'}{\senv} 
 \end{array}
