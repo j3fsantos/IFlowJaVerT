@@ -887,8 +887,6 @@ $$
 the result follows. The \prooflab{Cond. Goto - False} case is analogous.
 \vspace{6pt}
 
-\polish{REVISE, NUMBER OF PARAMETERS BANANAS}
-
 \noindent\prooflab{Procedure Call} 
 We conclude that $\ccmd[\prog][\sctx]{i} =   \jsilcall{\jvar}{\sexpr}{\sexpr_i |_{i = 0}^{n}}{j}$
 for some variable $\jvar$, symbolic expressions $\sexpr$, $\sexpr_0$, ..., $\sexpr_n$, and 
@@ -922,7 +920,10 @@ $$
 \end{array}
 $$
 
-Letting $\jsilexpr = \symbeval{\sexpr}{\senv}$ and $\jsilexpr_i = \symbeval{\sexpr_i}{\senv}$, for $0 \leq i \leq n$, and given \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i |_{i = 0}^{n}}{j}$.
+Letting $\jsilexpr = \symbeval{\sexpr}{\senv}$, $\jsilexpr_i|_{i=0}^n = \symbeval{\sexpr_i}{\senv}$, $\jsilexpr_i'|_{i=0}^m = \left\lbrace{\begin{array}{ll}
+\jsilexpr_i & \text{if } 0 \leq i \leq n \\
+\jsundefined                            & \text{otherwise}
+\end{array}}\right.$, and given \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i |_{i = 0}^{n}}{j}$.
 %Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude that there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$,  $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and $\ctx = \semexpr{\sctx}{\senv}$.
 Given \fact{2}, and noting that: 
 $$
@@ -932,20 +933,20 @@ $$
     = \semexpr{\semexpr{\sexpr}{\sstore}}{\senv} 
     = \pid'   
  \qquad
-\semexpr{\jsilexpr_i}{\store} = \semexpr{\jsilexpr_i}{\semexpr{\sstore}{\senv}}
-    = \semexpr{\symbeval{\sexpr_i}{\senv}}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\semexpr{\sexpr_i}{\sstore}}{\senv}
+\semexpr{\jsilexpr_i'}{\store} = \semexpr{\jsilexpr_i'}{\semexpr{\sstore}{\senv}}
+%    = \semexpr{\symbeval{\sexpr_i}{\senv}}{\semexpr{\sstore}{\senv}} 
+%    = \semexpr{\semexpr{\sexpr_i}{\sstore}}{\senv}
     = \semexpr{\sexpr_i'}{\senv}
 %\end{array}
 $$
 we conclude that 
-$\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap, [ \jvar_i \mapsto \semexpr{\jsilexpr_i}{\store} \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]$. 
+$\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap, [ \jvar_i \mapsto \semexpr{\jsilexpr_i'}{\store} \mid_{i = 0}^{m}] , 0}[\ctx][(\pid', \store, \jvar, i+1, j) :: \ctx]$. 
 From: 
 $$
 \begin{array}{l}
 \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\
 %
-\store' =  [ \jvar_i \mapsto \semexpr{\semexpr{\sexpr_i}{\senv}}{\semexpr{\sstore}{\senv}} \mid_{i = 0}^{m}] = 
+\store' =  [ \jvar_i \mapsto \semexpr{\jsilexpr_i'}{\store} \mid_{i = 0}^{m}] = 
 \semexpr{[ \jvar_i \mapsto \sexpr_i' \mid_{i = 0}^{m}]}{\senv} = \semexpr{\sstore'}{\senv} \\
 %
 \ctx' = (\pid', \store, \jvar, i+1, j) :: \ctx = (\pid', \semexpr{\sstore}{\senv}, \jvar, i+1, j) :: \semexpr{\sctx}{\senv} = \semexpr{\sctx'}{\senv} 
@@ -953,6 +954,8 @@ $$
 $$
 the result follows. 
 \vspace{6pt}
+
+\polish{STOPPED HERE}
 
 
 \noindent\prooflab{Normal Return} 
