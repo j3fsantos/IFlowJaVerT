@@ -189,8 +189,8 @@ rule read = parse
 	(**
 		macro, assert are elsewhere
 	*)
-  (* Procedure specification keywords *)
-  | "only"               { JSIL_Parser.ONLY      }
+  	(* Procedure specification keywords *)
+  	| "only"               { JSIL_Parser.ONLY      }
 	| "lemma"              { JSIL_Parser.LEMMA     }
 	| "variant"            { JSIL_Parser.VARIANT   }
 	| "spec"               { JSIL_Parser.SPEC      }

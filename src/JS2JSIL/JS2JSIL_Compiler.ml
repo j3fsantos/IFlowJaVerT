@@ -169,7 +169,7 @@ let make_get_value_call x err =
 	match is_get_value_var x with
 	| None ->
 		let x_v = val_var_of_var x in
-		Printf.printf "I am doing a getValue of %s\n" (JSIL_Print.string_of_expression x); 
+		(* Printf.printf "I am doing a getValue of %s\n" (JSIL_Print.string_of_expression x); *)
 		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err), [x_v])
 	| Some x_v -> (x_v, SLBasic SSkip, [])
 
@@ -1354,9 +1354,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_assert)) ->
 			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
 			| [ (Parser_syntax.String assert_arg_str) ] ->
+				Printf.printf "marica: %s!!!\n" assert_arg_str; 
 				let le         = JSIL_Syntax_Utils.jsil_expr_of_string assert_arg_str in
+				Printf.printf "marica!!!\n"; 
 				let xs         = JSIL_Syntax_Utils.get_expr_pvars le in 
 				let subst      = init_p_substitution [] in 
+				
 				let cmds, errs =  
 					List.fold_left (fun (cmds, errs) x ->
 						let new_cmds, x_expr, new_errs = 

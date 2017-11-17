@@ -10,6 +10,6 @@ function top(x) {
     }
 }
 
-var ret = top(6);
-assert(ret = 8)
+var ret1 = top(6);
+assert(ret1 = 8)
 

@@ -159,6 +159,23 @@
               (heap (heap-delete-object heap loc-val)))
          (print-info proc-name (format "delete-object(~v)" loc-val))
          (cons heap store))]
+
+      ;;
+      ;; ('assert e)
+      [(eq? cmd-type 'assert)
+       (let* ((expr-arg (second bcmd))
+              (expr-val (run-expr expr-arg store)))
+         (op-assert expr-val)
+         (cons heap store))]
+
+      ;;
+      ;; ('assume e)
+      [(eq? cmd-type 'assume)
+       (let* ((expr-arg (second bcmd))
+              (expr-val (run-expr expr-arg store)))
+         (op-assume expr-val)
+         (cons heap store))]
+      
       ;;
       ;; ('success)
       [(eq? cmd-type 'success)
@@ -478,19 +495,6 @@
         (constant (second expr) string?)]
 
       ;;
-      ;; ('assert e)
-      [(eq? (first expr) 'assert)
-       (let* ((expr-arg (second expr))
-              (expr-val (run-expr expr-arg store)))
-         (op-assert expr-val))]
-
-      ;;
-      ;; ('assume e)
-      [(eq? (first expr) 'assume)
-       (let* ((expr-arg (second expr))
-              (expr-val (run-expr expr-arg store)))
-         (op-assume expr-val))]
-      ;;
       ;; (binop e e)
       [(= (length expr) 3) 
        (let ((binop (first expr)))
@@ -525,8 +529,9 @@
 
 (define (run-program prog heap)
   (jsil-discharge)
-  (run-proc prog "main" heap '() '() '() '() -1 -1))
-  ;(solve (assert (not success))))
+  (let ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
+        (assertions-outcome (solve (assert (not (and success (get-assertions)))))))
+    assertions-outcome))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success) ;; jtrue jfalse protop)
 
