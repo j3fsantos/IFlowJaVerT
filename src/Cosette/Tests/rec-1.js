@@ -10,5 +10,6 @@ function top(x) {
     }
 }
 
-top(6);
+var ret = top(6);
+assert(ret = 8)
 

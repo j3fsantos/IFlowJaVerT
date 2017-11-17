@@ -461,8 +461,6 @@
         (let* ((unop (to-interp-op (first expr)))
                (arg (run-expr (second expr) store)))
           (apply-unop unop arg))]
-     
-
        )]))
 
 (define (run-proc prog proc-name heap arg-vals)
@@ -484,8 +482,10 @@
 
 (define (run-program prog heap)
   (jsil-discharge)
-  (run-proc prog "main" heap '())
-  (solve (assert (not success))))
+  (let ((ret (run-proc prog "main" heap '())))
+    ;(println (car ret))
+    ret))
+  ;(solve (assert (not success))))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success) ;; jtrue jfalse protop)
 

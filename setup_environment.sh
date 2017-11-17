@@ -1,10 +1,10 @@
 #!/bin/bash
 mkdir -p environment
-cp src/Cosette/runtime/mem_model.rkt environment
-cp src/Cosette/runtime/interpreter.rkt environment 
-cp src/Cosette/runtime/util.rkt environment
-cp src/Cosette/runtime/internals_racket.rkt environment 
-cp src/Cosette/runtime/assertions.rkt environment
+cp src/Cosette/new_runtime/mem_model.rkt environment
+cp src/Cosette/new_runtime/interpreter.rkt environment 
+cp src/Cosette/new_runtime/util.rkt environment
+cp src/Cosette/new_runtime/internals_racket.rkt environment 
+cp src/Cosette/new_runtime/assertions.rkt environment
 cp src/JS2JSIL/runtime/*.jsil environment
 cp src/JS2JSIL/runtime/harness.js environment
 cp js2jsil.native environment

@@ -93,7 +93,6 @@
            (string? val)
            (is-loc? val)
            (is-llist? val)
-           (is-ref? val)
            (list-mem? jsil-constants val)
            (list-mem? jsil-math-constants val))))
     ;; (println (format "literal? with ~v produced ~v" val ret))
@@ -126,7 +125,6 @@
     ((string? val) string-type)
     ((boolean? val) boolean-type)
     ((is-loc? val) obj-type)
-    ((is-ref? val) (ref-type val))
     ((eq? val jnull) null-type)
     ((eq? val jundefined) undefined-type)
     ((eq? val jempty) empty-type)
@@ -457,13 +455,14 @@
 ;; Construct a heap from given cells
 ;;
 (define (heap . cells)
-  (let ((new-heap make-heap))
-    (let loop ((cells cells))
-      (when (not (null? cells))
-        (let ((cur-cell (first cells)))
-          (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))
-          (loop (cdr cells)))))
-    new-heap))
+  (let loop ((new-heap (make-heap))
+             (cells cells))
+    (if (not (null? cells))
+        (let* ((cur-cell (first cells))
+               (new-heap (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))))
+          (loop new-heap (cdr cells)))
+        new-heap)))
+  
 
 ;;
 ;; Fresh location generator
@@ -558,23 +557,44 @@
 
 (provide make-store mutate-store store-get var? store)
 
-;; refs
-(define (make-ref base field reftype)
-  (list 'ref base field reftype))
+;;
+;; Contexts
+;;
+(define (create-context proc-name ret-var normal-index err-index)
+  (list proc-name ret-var normal-index err-index))
 
-(define (ref-base ref) (second ref))
+(define (is-ctx-entry? ctx-entry)
+  (and (list ctx-entry) (eq? (length ctx-entry) 5)))
 
-(define (ref-field ref) (third ref))
+(define (get-proc-name-from-ctx ctx)
+  (cond
+    [ (null? ctx) (error (format "Empty context: ~v." ctx))]
+    [ (is-ctx-entry? (car ctx)) (caar ctx) ]
+    [ else (error (format "Invalid context: ~v." ctx))] ))
 
-(define (ref-type ref) (fourth ref))
+(define (is-top-ctx? ctx)
+  (eq? (length ctx) 1))
 
-(define (is-ref? arg)
-  (and
-   (list? arg)
-   (not (null? arg))
-   (equal? (first arg) 'ref)))
+(define (get-top-ctx-entry ctx)
+  (if (> (length ctx) 0)
+      (first ctx)
+      (error (format "Invalid context: ~v." ctx))))
 
-(provide make-ref ref-base ref-field ref-type)
+
+(define (pop-ctx-entry ctx)
+  (if (> (length ctx) 1)
+      (cdr ctx)
+      (error (format "Invalid context: ~v." ctx))))
+
+
+(define (push-ctx-entry ctx store proc-name ret-var n-index e-index)
+  (let ((new-entry (list store proc-name ret-var n-index e-index)))
+    ;(displayln (format "new-entry: ~v" new-entry))
+    (cons new-entry ctx)))
+
+(provide create-context is-ctx-entry? get-proc-name-from-ctx is-top-ctx? get-top-ctx-entry pop-ctx-entry push-ctx-entry)
+  
+
 
 ;;
 ;; Programs supported by Rosette
@@ -673,17 +693,15 @@
   (vector-length (fourth proc)))
 
 (define (proc-init-store proc args)
-  (define (proc-init-store-iter params args cur-store)
-    (if (not (null? params))
-        (cond
-          [(null? args)
-           (mutate-store cur-store (first params) jundefined)
-           (proc-init-store-iter (rest params) args cur-store)]
-          [else
-           (mutate-store cur-store (first params) (first args))
-           (proc-init-store-iter (rest params) (rest args) cur-store)])
-        cur-store))
-  (proc-init-store-iter (get-params proc) args (make-store)))
+  (let loop ((params (get-params proc))
+             (args args)
+             (store (make-store)))
+    (if (null? params)
+        store
+        (if (null? args)
+            (loop (cdr params) args (cons (cons (car params) jundefined) store))
+            (loop (cdr params) (cdr args) (cons (cons (car params) (car args)) store))))))
+
 
 (define (args . lst)
   lst)
@@ -699,26 +717,6 @@
 
 (provide procedure which-pred eval_literal petar-get-fields get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
 
-;;(define (heap-contains? heap loc prop)
-;;  (not (equal? jempty (heap-get heap loc prop))))
-
-
-;; heaps
-;;(define (make-heap)
-;;  (make-hash))
-
-;;(define (mutate-heap heap loc prop val)
-;;  (hash-set! heap (cons loc prop) val))
-
-;;(define (heap-get heap loc prop)
-;;  (hash-ref heap (cons loc prop)))
-
-;;(define (heap-delete-cell heap loc prop)
-;;  (when (heap-contains? heap loc prop)
-;;      (hash-remove! heap (cons loc prop))))
-      
-;;(define (heap-contains? heap loc prop)
-;;  (hash-has-key? heap (cons loc prop)))
 
 
 ;;
