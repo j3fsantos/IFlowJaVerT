@@ -1421,22 +1421,22 @@ the result follows.
 
 
 \noindent\prooflab{Cond. Goto - True} 
-We conclude that $\ccmd[\prog][\sctx]{i} = \ifgoto{\sexpr}{k_1}{k_2}$ for some symbolic expression 
-$\sexpr$ and indexes $k_1$ and $k_2$ and 
+We conclude that $\ccmd[\prog][\sctx]{i} = \ifgoto{\sexpr}{k_1}{k_2}$ for some extended expression 
+$\pvsexpr$ and indexes $k_1$ and $k_2$ and 
 that $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore, k_1, \pc \, \wedge \, \semexpr{\sexpr}{\sstore}}[\sctx][\sctx]$, 
 meaning that $\sheap' = \sheap$, $\sstore' = \sstore$, $\sctx' = \sctx$, $j = k$, 
-and $\pc' = \pc \, \wedge \, \semexpr{\sexpr}{\sstore}$. 
+and $\pc' = \pc \, \wedge \, \semexpr{\pvsexpr}{\sstore}$. 
 %Since $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc''}$, we conclude that there is a symbolic environment $\senv$ such that: $\senv \vdash \pc''$, $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and $\ctx = \semexpr{\sctx}{\senv}$.
 Given $\pc'' \vdash \pc'$ and \fact{2}, we conclude that $\senv \vdash \pc'$. 
-From  $\senv \vdash \pc' = (\pc \ \wedge \ \semexpr{\jsilexpr}{\sstore})$, it follows that $\senv \vdash \semexpr{\sexpr}{\sstore}$, 
-implying that $\symbeval{\semexpr{\sexpr}{\sstore}}{\senv} = \jtrue$. 
-Letting $\jsilexpr = \symbeval{\sexpr}{\senv}$, from \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \ifgoto{\jsilexpr}{k_1}{k_2}$.
+From  $\senv \vdash \pc' = (\pc \ \wedge \ \semexpr{\pvsexpr}{\sstore})$, it follows that $\senv \vdash \semexpr{\pvsexpr}{\sstore}$, 
+implying that $\symbeval{\semexpr{\pvsexpr}{\sstore}}{\senv} = \jtrue$. 
+Letting $\jsilexpr = \symbeval{\pvsexpr}{\senv}$, from \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \ifgoto{\jsilexpr}{k_1}{k_2}$.
 Noting that: 
 $$
 \semexpr{\jsilexpr}{\store} 
     = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\symbeval{\sexpr}{\senv}}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\semexpr{\sexpr}{\sstore}}{\senv} 
+    = \semexpr{\symbeval{\pvsexpr}{\senv}}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\pvsexpr}{\sstore}}{\senv} 
     = \jtrue
 $$
 we conclude that $\semtrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap, \store, k_1}[\ctx][\ctx]$. 
@@ -1448,8 +1448,8 @@ the result follows. The \prooflab{Cond. Goto - False} case is analogous.
 \vspace{6pt}
 
 \noindent\prooflab{Procedure Call} 
-We conclude that $\ccmd[\prog][\sctx]{i} =   \jsilcall{\jvar}{\sexpr}{\sexpr_i |_{i = 0}^{n}}{j}$
-for some variable $\jvar$, symbolic expressions $\sexpr$, $\sexpr_0$, ..., $\sexpr_n$, and 
+We conclude that $\ccmd[\prog][\sctx]{i} =   \jsilcall{\jvar}{\pvsexpr}{\pvsexpr_i |_{i = 0}^{n}}{j}$
+for some variable $\jvar$, extended expressions $\pvsexpr$, $\pvsexpr_0$, ..., $\pvsexpr_n$, and 
 index $j$, and $\symbtrans{\sheap, \sstore, i, \pc}{\sheap, \sstore', 0, \pc}[\sctx][\sctx']$
 where: 
 $$
@@ -1458,14 +1458,14 @@ $$
 %
 \qquad
 % 
-\sstore' = [ \jvar_i \mapsto \sexpr_i' \mid_{i = 0}^{m}] 
+\sstore' = [ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}] 
 %
 \qquad 
 %
 \ctx' = ((\pid', \sstore, \jvar, i+1, j)::\sctx
 \\
 %
-\pid' = \symbeval{\sexpr}{\sstore}
+\pid' = \symbeval{\pvsexpr}{\sstore}
 %
 \qquad 
 %
@@ -1473,14 +1473,14 @@ $$
 %
 \qquad
 %
-\sexpr_i' = \left\lbrace{\begin{array}{ll}
-\symbeval{\sexpr_i}{\sstore} & \text{if } 0 \leq i \leq n \\
+\sexpr_i = \left\lbrace{\begin{array}{ll}
+\symbeval{\pvsexpr_i}{\sstore} & \text{if } 0 \leq i \leq n \\
 \jsundefined                            & \text{otherwise}
 \end{array}}\right.
 \end{array}
 $$
 
-Letting $\jsilexpr = \symbeval{\sexpr}{\senv}$, $\jsilexpr_i|_{i=0}^n = \symbeval{\sexpr_i}{\senv}$, $\jsilexpr_i'|_{i=0}^m = \left\lbrace{\begin{array}{ll}
+Letting $\jsilexpr = \symbeval{\pvsexpr}{\senv}$, $\jsilexpr_i|_{i=0}^n = \symbeval{\pvsexpr_i}{\senv}$, $\jsilexpr_i'|_{i=0}^m = \left\lbrace{\begin{array}{ll}
 \jsilexpr_i & \text{if } 0 \leq i \leq n \\
 \jsundefined                            & \text{otherwise}
 \end{array}}\right.$, and given \fact{1}, we obtain that $\ccmd[\symbeval{\prog}{\senv}][\symbeval{\sctx}{\senv}]{i} = \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i |_{i = 0}^{n}}{j}$.
@@ -1489,14 +1489,14 @@ Given \fact{2}, and noting that:
 $$
 %\begin{array}{l}
 \semexpr{\jsilexpr}{\store} = \semexpr{\jsilexpr}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\symbeval{\sexpr}{\senv}}{\semexpr{\sstore}{\senv}} 
-    = \semexpr{\semexpr{\sexpr}{\sstore}}{\senv} 
+    = \semexpr{\symbeval{\pvsexpr}{\senv}}{\semexpr{\sstore}{\senv}} 
+    = \semexpr{\semexpr{\pvsexpr}{\sstore}}{\senv} 
     = \pid'   
  \qquad
 \semexpr{\jsilexpr_i'}{\store} = \semexpr{\jsilexpr_i'}{\semexpr{\sstore}{\senv}}
 %    = \semexpr{\symbeval{\sexpr_i}{\senv}}{\semexpr{\sstore}{\senv}} 
 %    = \semexpr{\semexpr{\sexpr_i}{\sstore}}{\senv}
-    = \semexpr{\sexpr_i'}{\senv}
+    = \semexpr{\sexpr_i}{\senv}
 %\end{array}
 $$
 we conclude that 
@@ -1507,7 +1507,7 @@ $$
 \heap' = \heap = \semexpr{\sheap}{\senv} = \semexpr{\sheap'}{\senv} \\
 %
 \store' =  [ \jvar_i \mapsto \semexpr{\jsilexpr_i'}{\store} \mid_{i = 0}^{m}] = 
-\semexpr{[ \jvar_i \mapsto \sexpr_i' \mid_{i = 0}^{m}]}{\senv} = \semexpr{\sstore'}{\senv} \\
+\semexpr{[ \jvar_i \mapsto \sexpr_i \mid_{i = 0}^{m}]}{\senv} = \semexpr{\sstore'}{\senv} \\
 %
 \ctx' = (\pid', \store, \jvar, i+1, j) :: \ctx = (\pid', \semexpr{\sstore}{\senv}, \jvar, i+1, j) :: \semexpr{\sctx}{\senv} = \semexpr{\sctx'}{\senv} 
 \end{array}
@@ -1694,41 +1694,45 @@ $$
 $$
 \end{cormax}
 \begin{proof}
-We suppose that $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$, and will first show that $\pc'$ is satisfiable. Given the symbolic execution rules, the last rule that was applied in the symbolic execution of $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$ is the \prooflab{Basic Command} rule combined with an \prooflab{Assert - False} rule: {\footnotesize $$\inferrule[\textsc{Assert - False}]
-  { 
-     \pc' = \pc'' \wedge  \neg\symbeval{\sexpr}{\store} \qquad \pc' \text{is satisfiable}
-  }{\symbtrans[][\top][\bot]{\sheap', \sstore', \assert(\sexpr), \pc''}{\sheap', \sstore',  \pc'}} \qquad 
+We suppose that $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$, and will first show that $\pc'$ is satisfiable. Given the symbolic execution rules, the last rule that was applied in the symbolic execution of $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$ is the \prooflab{Basic Command} rule combined with an \prooflab{Assert - False} rule: {\footnotesize 
+$$
   \inferrule[\textsc{Basic Command}]
    { 
-     \ccmd{j-1} = \assert(\sexpr) 
+     \ccmd{j-1} = \assert(\pvsexpr) 
      \\\\
-     \symbtrans[\prog][\top][\bot]{\sheap', \sstore', \assert(\sexpr), \pc''}{\sheap', \sstore', \pc'} 
-   }{\symbtrans[\prog][\top][\bot]{\sheap', \sstore', j-1, \pc''}{\sheap', \sstore', j, \pc'}}$$}
+     \symbtrans[\prog][\top][\bot]{\sheap', \sstore', \assert(\pvsexpr), \pc''}{\sheap', \sstore', \pc'} 
+   }{\symbtrans[\prog][\top][\bot]{\sheap', \sstore', j-1, \pc''}{\sheap', \sstore', j, \pc'}}
+   \qquad
+\inferrule[\textsc{Assert - False}]
+  { 
+     \pc' = \pc'' \wedge  \neg\symbeval{\pvsexpr}{\store} \qquad \pc' \text{is satisfiable}
+  }{\symbtrans[][\top][\bot]{\sheap', \sstore', \assert(\pvsexpr), \pc''}{\sheap', \sstore',  \pc'}}$$}
 
 \noindent Therefore, $\pc'$ is satisfiable. Now, since $\pc'$ is satisfiable, we conclude that there exist a concrete heap $\heap$, store $\store$, context $\ctx$, and symbolic environment $\senv$, such that $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$. Then, using Theorem \ref{teo:soundness:jsil:symb:exe}, we obtain the desired goal.
 \end{proof}
 
-
 \begin{cormax}[Corollary~\ref{corollary:verification} - Verification]
+\vspace*{-0.1cm}
 $$
 \begin{array}{l}
-\forall \, \sheap, \sheap_1, ..., \sheap_k, \sstore, \sstore_1, ..., \sstore_k, \sctx, \sctx_1, ..., \sctx_k, i, j_1, ..., j_k, \pc, \pc_1, ..., \pc_k \, . \,  \\
-  \quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+\forall \, \prog, \sheap, \sheap_1, ..., \sheap_n, \sstore, \sstore_1, ..., \sstore_n, \sctx, \sctx_1, ..., \sctx_n, i, j_1, ..., j_n, \pc, \pc_1, ..., \pc_n, \mode, \mode_1, ..., \mode_n \, . \,  \\
+  \quad \symbtranstrans[\prog][\mode][\mode_k]{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
-      \quad \quad \implies 
-         \forall \heap, \store, \ctx \, . \, (\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
-          \quad \qquad \implies \exists \heap', \store', \ctx' \, . \, 
-                  \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
-                  (\heap', \store', \ctx') \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}
+      \quad \quad \implies \left(
+         \forall \heap, \store, \ctx, \senv \, . \, (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc} \right. \\
+          \quad \qquad \left. \implies \exists k, \heap', \store', \ctx' \, . \, 
+                  \semtranstrans[\symbeval{\prog}{\senv}][\mode][\mode_k]{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
+                  (\heap', \store', \ctx', \senv) \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k} \right)
 \end{array}
 $$
 \end{cormax}
+
 \begin{proof}
-Suppose $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc}$. Then, since $\pc \vdash \bigvee_{k=1}^n \pc_k$, 
-we conclude that there is $1 \leq k \leq n$ such that:
- $(\heap, \store, \ctx) \in \smodels{\sheap, \sstore, \sctx}{\pc_k}$. 
- Observing that $\symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]$, we can 
- apply Theorem~\ref{teo:soundness:jsil:symb:exe} and conclude the result. 
+Suppose that $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc}$. Then, since $\pc \vdash \bigvee_{k=1}^n \pc_k$, 
+we conclude that there exists $k$, $1 \leq k \leq n$, such that:
+ $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc_k}$. 
+ Observing that $\symbtranstrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]$, we can 
+ apply Theorem~\ref{teo:soundness:jsil:symb:exe} to conclude the result. 
  \end{proof}
  
  \newpage
