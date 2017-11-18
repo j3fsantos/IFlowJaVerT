@@ -11,4 +11,6 @@ function top(x) {
     return str;
 }
 
-top(3);
+var ret1 = top(3);
+
+assert(ret1 = "ababab")

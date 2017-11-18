@@ -11,4 +11,6 @@ function top(o) {
 
 var o = { a: 1, b: 2, c: 3 };
 
-top(o);
+var ret1 = top(o);
+
+assert(ret1 = 6)

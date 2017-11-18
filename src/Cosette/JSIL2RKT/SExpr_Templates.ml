@@ -45,10 +45,8 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 	)
 )
 
-(register-racket-methods hp)
-
 (let ((prog-full (program-append prog internal-procs)))
-  (run-program prog-full hp))
+  (run-program prog-full (register-racket-methods hp)))
 "
 
 let (template_wp_racket:  ('a -> 'b, unit, string) format) = "

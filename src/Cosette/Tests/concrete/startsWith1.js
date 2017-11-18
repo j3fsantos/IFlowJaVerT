@@ -4,4 +4,5 @@
 
 var s1 = "xptooooo"; 
 var s2 = "xp"; 
-s1.startsWith(s2)
+var ret1 = s1.startsWith(s2)
+assert(ret1 = $$t)

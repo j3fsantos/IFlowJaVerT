@@ -10,6 +10,8 @@ let fun_tbl     : fun_tbl_type     = Hashtbl.create medium_tbl_size
 let old_fun_tbl : pre_fun_tbl_type = Hashtbl.create medium_tbl_size
 let vis_tbl     : vis_tbl_type     = Hashtbl.create medium_tbl_size
 
+let include_heap = ref true 
+
 let if_verification a b = 
 	let cond = !for_verification in
 	 	if cond then a else b
@@ -4390,7 +4392,7 @@ let generate_main offset_converter e spec =
 		cmds in
 
 	let new_var = fresh_var () in
-	let setup_heap_ass =  annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None in
+	let setup_heap_ass = if !include_heap then [ annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None ] else [] in
 	let sc_var_main = JS2JSIL_Constants.var_scope in
 
 	(* x_sc := {{ $lg }} *)
@@ -4442,7 +4444,8 @@ let generate_main offset_converter e spec =
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_err ctx.tr_error_var in
 
 	let main_cmds =
-		[ setup_heap_ass; init_scope_chain_ass; init_scope_chain_ass_again; this_ass] @
+		setup_heap_ass @
+		[ init_scope_chain_ass; init_scope_chain_ass_again; this_ass] @
 		global_var_asses @
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @

@@ -11,4 +11,5 @@ function top(f, n) {
     }
 }
 
-top("two", 5);
+var ret1 = top("two", 5);
+assert (ret1 = 5)

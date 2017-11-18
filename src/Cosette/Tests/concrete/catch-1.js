@@ -18,4 +18,5 @@ function top(s) {
     return total;
 }
 
-top(7);
+var ret1 = top(7);
+assert(ret1 = 12)

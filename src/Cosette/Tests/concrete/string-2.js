@@ -25,4 +25,5 @@ function top(f) {
     }
 }
 
-top("two");
+var ret1 = top("two");
+assert (ret1 = 2)

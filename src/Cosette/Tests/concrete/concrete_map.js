@@ -37,5 +37,6 @@ Map.prototype.put = function put (key, value) {
 var m = new Map(); 
 m.put("a", "banana"); 
 m.put("b", "passionfruit"); 
-m.get("a")
+var ret1 = m.get("a"); 
+assert(ret1 = "banana")
 

@@ -754,20 +754,23 @@
     (hash-set! racket-js-implementations fresh-function-name racket-method)
     ;;
     (if (eq? method-obj-desc empty)
+
         ;; the method does not exist - we need to create it - returning the heap
         (let* ((result (create-new-function-obj heap fresh-function-name))
                (heap (car result))
                (method-obj-loc (cdr result))
                (method-obj-desc (list 'jsil-list "d" method-obj-loc #t #f #t)))
           (mutate-heap heap builtin-obj-proto-loc method-name method-obj-desc))
+
         ;; the method already exists and we are just going to override it with a racket implementation
         (let* ((method-obj-loc (third method-obj-desc))
-               (heap  (mutate-heap heap method-obj-loc "@call" fresh-function-name)))
-          ;(println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
-                          ;; method-name method-obj-loc fresh-function-name))
-          (mutate-heap heap method-obj-loc "@construct" fresh-function-name)))))
+               (heap (mutate-heap heap method-obj-loc "@call" fresh-function-name))
+               (heap (mutate-heap heap method-obj-loc "@construct" fresh-function-name)))
+          (println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
+                           method-name method-obj-loc fresh-function-name))
+          heap))))
 
-(provide has-racket-implementation? get-racket-implementation register-js-builtin-method)
+(provide racket-js-implementations has-racket-implementation? get-racket-implementation register-js-builtin-method)
     
 
 

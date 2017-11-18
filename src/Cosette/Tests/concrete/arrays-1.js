@@ -23,5 +23,5 @@ f_one();
 f_two();
 f_three();
 
-top(2, "2");
-
+var ret1 = top(2, "2");
+assert(ret1 = "ten")

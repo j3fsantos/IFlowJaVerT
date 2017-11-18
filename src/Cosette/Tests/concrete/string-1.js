@@ -10,4 +10,5 @@ function top(x, y) {
     return str;
 }
 
-top(3, "aa");
+var ret1 = top(3, "aa");
+assert(ret1 = "aaaaaa")

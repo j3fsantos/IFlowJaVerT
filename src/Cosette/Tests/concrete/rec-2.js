@@ -12,5 +12,5 @@ var o = {
     }
 };
 
-o.top(6);
-
+var ret1 = o.top(6);
+assert (ret1 = 8)

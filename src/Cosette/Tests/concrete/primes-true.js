@@ -20,4 +20,5 @@ function isPrime(value) {
 
 var n = 7;
 
-isPrime(n);
+var ret1 = isPrime(n);
+assert(ret1 = $$t)

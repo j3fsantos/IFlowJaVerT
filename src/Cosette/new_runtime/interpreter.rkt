@@ -9,7 +9,7 @@
 (define success #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 5)
+(define max-depth 2)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -265,13 +265,12 @@
 (define (run-proc prog proc-name heap store ctx lhs-var arg-vals cur-index err-label)
   (if (has-racket-implementation? proc-name)
       ;; Procedure Implemented in Racket
-      (let* ((racket-proc (get-racket-implementation proc-name))
-             (outcome (apply racket-proc (cdr arg-vals)))
-             (next-state (process-proc-outcome outcome ctx))
-             (new-store (first next-state))
-             (cur-index (second next-state))
-             (prev-index (third next-state)))
-        (run-cmds-iter prog heap new-store ctx cur-index prev-index))
+      (begin
+        (displayln "encontrei um rosette model!!!")
+        (let* ((racket-proc (get-racket-implementation proc-name))
+               (outcome (apply racket-proc (cdr arg-vals)))
+               (new-store (mutate-store store lhs-var (cdr outcome))))
+          (run-cmds-iter prog heap new-store ctx (+ cur-index 1) cur-index)))
       ;; 
       ;; Procedure Implemented in JSIL
       (let* ((proc (get-proc prog proc-name))

@@ -3,4 +3,5 @@
 */
 
 var x = "xpto"; 
-x.toUpperCase()
+var ret1 = x.toUpperCase()
+assert (ret1 = "XPTO")

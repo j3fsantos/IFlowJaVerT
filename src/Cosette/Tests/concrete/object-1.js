@@ -18,5 +18,6 @@ function top(base) {
 }
 
 var x = new top(1);
-x.silly(6);
+var ret1 = x.silly(6);
 
+assert(ret1 = 9)

@@ -35,3 +35,5 @@ total += o[ "fact" ](3);
 total += o[ "sum" ](2);
 
 total;
+
+assert(total = 22)

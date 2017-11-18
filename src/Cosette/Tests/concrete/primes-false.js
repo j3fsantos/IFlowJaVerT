@@ -21,4 +21,6 @@ function isPrime(value) {
 
 var n = 4;
 
-isPrime(n);
+var ret1 = isPrime(n);
+
+assert(ret1 = $$f)

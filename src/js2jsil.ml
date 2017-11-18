@@ -27,6 +27,7 @@ let arguments () =
 			"-closure", Arg.Clear(Parser_main.use_json), "use closure parser";
 			(* output for logic verification  *)
 			"-logic", Arg.Unit(fun () -> for_verification := true), "output for logic verification";
+			"-cosette", Arg.Unit(fun () -> JS2JSIL_Compiler.include_heap := false), "include setup initial heap";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
