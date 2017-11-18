@@ -707,9 +707,15 @@ $\semexpr{\prog}{\senv} = \{\ (\fid, \semexpr{\prog(\fid)}{\senv}) \ \mid \ \fid
 \newpage
 \section{Proofs - Section~\ref{sec:jsil:symb:exec}}
 
-\begin{lemma}{Interpretation and Evaluation}
-
+\begin{lemma}{Some Properties of Interpretation and Evaluation.}
+\begin{enumerate}
+\item $\forall \ \pvsexpr, \senv.\ \svarsreallyqueen(\pvsexpr) \subseteq \domain(\senv) \implies \semexpr{\pvsexpr}{\senv} \in \exprs$.
+\item $\forall \ \pvsexpr, \sstore, \senv.\ \semexpr{\semexpr{\pvsexpr}{\senv}}{\semexpr{\sstore}{\senv}} = \semexpr{\semexpr{\pvsexpr}{\sstore}}{\senv}$.
+\end{enumerate}
 \end{lemma}
+\begin{proof}
+By induction on the structure of the appropriate syntactic category.
+\end{proof}
 
 \begin{lemma}[Transparency for single-step executions]\label{lem:singlefix}
 $\forall \, \heap, \store, i, \ctx, \mode, \heap', \store', i', \ctx', \mode' \, . \,$
@@ -804,18 +810,20 @@ Given the symbolic semantics for JSIL basic commands, we obtain that $\mode = \t
 
 \medskip
 We first prove the cases for which $\mode' = \bot$. The only applicable rule is \prooflab{Assert - False}.
-We conclude that  $\bcmd = \assert(\sexpr)$ for some expression $\sexpr$, and that
-$\pc \ \wedge \  \neg\symbeval{\sexpr}{\sstore}$ is satisfiable and $\pc' = \pc \ \wedge \  \neg\symbeval{\sexpr}{\sstore}$. 
+We conclude that  $\bcmd = \assert(\pvsexpr)$ for some extended expression $\pvsexpr$, and that
+$\pc \ \wedge \  \neg\symbeval{\pvsexpr}{\sstore}$ is satisfiable and $\pc' = \pc \ \wedge \  \neg\symbeval{\pvsexpr}{\sstore}$. 
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. Since $\pc'' \vdash \pc'$,
 we conclude that $\pc'' \vdash \neg\symbeval{\jsilexpr}{\sstore}$.
-We let $\jsilexpr = \symbeval{\sexpr}{\senv}$ and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
+We let $\jsilexpr = \symbeval{\pvsexpr}{\senv}$ and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
 We now have to prove that we can apply the \prooflab{Assert - False} rule in the concrete state.
 To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jfalse$. 
 Noting that
 $
-  \symbeval{\jsilexpr}{\store} = \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} 
-         = \symbeval{\symbeval{\sexpr}{\sstore}}{\senv} 
+  \symbeval{\jsilexpr}{\store} = 
+  \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} = 
+  \symbeval{\symbeval{\pvsexpr}{\senv}}{\symbeval{\sstore}{\senv}} 
+         = \symbeval{\symbeval{\pvsexpr}{\sstore}}{\senv} 
 $, we conclude (using $\senv \vdash \pc''$ and $\pc'' \vdash  \neg\symbeval{\sexpr}{\sstore}$) that 
 $\symbeval{\jsilexpr}{\store} = \jfalse$, from which we obtain that $\heap' = \heap$ and $\store' = \store$, and the result follows. 
 
@@ -831,10 +839,10 @@ By picking $\heap' = \heap$, $\store' = \store$, the result follows.
 \vspace{6pt}
 
 \noindent\prooflab{Assignment} 
-We conclude that $\bcmd = \jvar := \sexpr$, for some variable $\jvar$ and expression $\sexpr$, 
-and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\sexpr}{\sstore}]$, and $\pc' = \pc$. 
+We conclude that $\bcmd = \jvar := \pvsexpr$, for some variable $\jvar$ and extended expression $\pvsexpr$, 
+and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \symbeval{\pvsexpr}{\sstore}]$, and $\pc' = \pc$. 
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\senv \satisfies \pc''$,  $\heap = \semexpr{\sheap}{\senv}$ and $\store = \semexpr{\sstore}{\senv}$. 
-Now, letting $\jsilexpr = \symbeval{\sexpr}{\senv}$, noting that $\symbeval{\bcmd}{\senv} = \jvar := \jsilexpr$, and noting that 
+Now, letting $\jsilexpr = \symbeval{\pvsexpr}{\senv}$, noting that $\symbeval{\bcmd}{\senv} = \jvar := \jsilexpr$, and noting that 
 $$
  \semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store[\jvar \mapsto \symbeval{\jsilexpr}{\store}]}
 % \qquad 
@@ -880,17 +888,17 @@ the result follows.
 \vspace{6pt}
 
 \noindent\prooflab{Property Access}
-We conclude that $\bcmd = \jvar := [\sexpr_1, \sexpr_2]$, for some variable $\jvar$, and expressions $\sexpr_1$ and $\sexpr_2$, 
+We conclude that $\bcmd = \jvar := [\pvsexpr_1, \pvsexpr_2]$, for some variable $\jvar$, and extended expressions $\pvsexpr_1$ and $\pvsexpr_2$, 
 and that $\sheap' = \sheap$, $\sstore' = \sstore[\jvar \mapsto \sexprv_k]$, and: 
  $$\pc' =  \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)$$
  where:
- $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
+ $\symbeval{\pvsexpr_1}{\sstore} =  \loc$, $\symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p$, 
  $\sheap = \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n$, 
  $(l, -) \not\in \domain(\sheap')$, and $0 \leq k \leq n$. 
 %
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
-We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and $\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := [\jsilexpr_1, \jsilexpr_2]$.
+We let $\jsilexpr_1 = \symbeval{\pvsexpr_1}{\senv}$ and $\jsilexpr_2 = \symbeval{\pvsexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := [\jsilexpr_1, \jsilexpr_2]$.
 We now have to prove that we can apply the \prooflab{Property Access} rule in the concrete state.
 To this end, we have to show that there is a concrete heap $\heap''$ such that:
 $\heap = \heap'' \dunion \hcell{\symbeval{\jsilexpr_1}{\store}}{\symbeval{\jsilexpr_2}{\store}}{\symbeval{\sexprv_k}{\senv}}$. 
@@ -900,10 +908,10 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -932,7 +940,7 @@ $$
 \vspace{6pt}
 
 \noindent\prooflab{Property Deletion}
-We conclude that $\bcmd = \jsildelete(\sexpr_1, \sexpr_2)$, for some expressions $\sexpr_1$ and $\sexpr_2$
+We conclude that $\bcmd = \jsildelete(\pvsexpr_1, \pvsexpr_2)$, for some expressions $\pvsexpr_1$ and $\pvsexpr_2$
 and that: 
 $$
 \begin{array}{l}
@@ -943,10 +951,10 @@ $$
  \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
 \end{array}
 $$
-where $\loc = \symbeval{\sexpr_1}{\sstore}$ and $\sexpr_p = \symbeval{\sexpr_2}{\sstore}$.
+where $\loc = \symbeval{\pvsexpr_1}{\sstore}$ and $\sexpr_p = \symbeval{\pvsexpr_2}{\sstore}$.
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
-$\senv \vdash \pc''$. We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and 
-$\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jsildelete(\jsilexpr_1, \jsilexpr_2)$.
+$\senv \vdash \pc''$. We let $\jsilexpr_1 = \symbeval{\pvsexpr_1}{\senv}$ and 
+$\jsilexpr_2 = \symbeval{\pvsexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jsildelete(\jsilexpr_1, \jsilexpr_2)$.
 Now, we have to prove that we can apply the \prooflab{Property Deletion} rule in the concrete state.
 To this end, we have to show that:
 $\heap = \heap' \dunion \hcell{\symbeval{\jsilexpr_1}{\store}}{\symbeval{\jsilexpr_2}{\store}}{-}$. 
@@ -956,10 +964,10 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $$ and $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -980,8 +988,8 @@ the result follows.
 \vspace{6pt}
 
 \noindent\prooflab{Property Assignment - Found}
-We conclude that  $\bcmd = [\sexpr_1, \sexpr_2] := \sexpr_3$ for some expressions $\sexpr_1$, $\sexpr_2$, 
-and $\sexpr_3$, and that: 
+We conclude that  $\bcmd = [\pvsexpr_1, \pvsexpr_2] := \pvsexpr_3$ for some extended expressions $\sexpr_1$, $\sexpr_2$, 
+and $\pvsexpr_3$, and that: 
 $$
 \begin{array}{l}
   \sheap =  \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n    \\
@@ -993,12 +1001,12 @@ $$
   \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p)
 \end{array}
 $$ 
-where $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
-$\symbeval{\sexpr_3}{\sstore} =  \sexpr_v$.
+where $\symbeval{\pvsexpr_1}{\sstore} =  \loc$, $\symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p$, 
+$\symbeval{\pvsexpr_3}{\sstore} =  \sexpr_v$.
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
-We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$, 
-$\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and $\jsilexpr_3 = \symbeval{\sexpr_3}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$.
+We let $\jsilexpr_1 = \symbeval{\pvsexpr_1}{\senv}$, 
+$\jsilexpr_2 = \symbeval{\pvsexpr_2}{\senv}$, and $\jsilexpr_3 = \symbeval{\pvsexpr_3}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$.
 Now, we have to prove that we can apply the \prooflab{Property Assignment - Found} rule in the concrete state.
 To this end, we have to show that there is a concrete heap $\heap''$ such that:
 $\heap = \heap'' \dunion \hcell{\symbeval{\jsilexpr_1}{\store}}{\symbeval{\jsilexpr_2}{\store}}{-}$. 
@@ -1008,13 +1016,13 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} = \symbeval{\sexprp_k}{\senv}  \text{ (because $\senv \vdash \sexprp_k = \sexpr_p$)} \\
  %
-  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_3}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_3}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_3}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_3}{\sstore}}{\senv}
    =  \symbeval{\sexpr_v}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -1047,8 +1055,8 @@ the result follows.
 \vspace{6pt}
 
 \noindent\prooflab{Property Assignment - Not Found}
-We conclude that  $\bcmd = [\sexpr_1, \sexpr_2] := \sexpr_3$ for some expressions $\sexpr_1$, $\sexpr_2$, 
-and $\sexpr_3$, and that: 
+We conclude that  $\bcmd = [\pvsexpr_1, \pvsexpr_2] := \pvsexpr_3$ for some extended expressions $\pvsexpr_1$, $\pvsexpr_2$, 
+and $\pvsexpr_3$, and that: 
 $$
 \begin{array}{l}
   \sheap =   \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n     \\
@@ -1060,13 +1068,13 @@ $$
     \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
 \end{array}
 $$ 
-where: $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
-$\symbeval{\sexpr_3}{\sstore} =  \sexpr_v$,  $(\loc, -) \not\in \domain(\sheap'')$, 
+where: $\symbeval{\pvsexpr_1}{\sstore} =  \loc$, $\symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p$, 
+$\symbeval{\pvsexpr_3}{\sstore} =  \sexpr_v$,  $(\loc, -) \not\in \domain(\sheap'')$, 
 and $0 \leq k \leq n$. 
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
-We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$, 
-$\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and $\jsilexpr_3 = \symbeval{\sexpr_3}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$.
+We let $\jsilexpr_1 = \symbeval{\pvsexpr_1}{\senv}$, 
+$\jsilexpr_2 = \symbeval{\pvsexpr_2}{\senv}$, and $\jsilexpr_3 = \symbeval{\pvsexpr_3}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3$.
 We now have to prove that we can apply the \prooflab{Property Assignment - Found} rule in the concrete state.
 To this end, we have to show that:
 $(\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \not\in \domain(\heap)$. 
@@ -1077,13 +1085,13 @@ $$
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \forall_{0 \leq i \leq n}  \, \pc' \vdash \sexprp_i \neq \sexpr_p  
       \implies \forall_{0 \leq i \leq n}  \, \senv \vdash \sexprp_i \neq \sexpr_p  \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} \\
  %
-  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_3}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_3}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_3}{\store}  = \symbeval{\jsilexpr_3}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_3}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_3}{\sstore}}{\senv}
    =  \symbeval{\sexpr_v}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} 
@@ -1127,7 +1135,7 @@ the result follows.
 
 
 \noindent\prooflab{Member Check - True}
-We conclude that  $\bcmd = \jvar := \hasfield(\sexpr_1, \sexpr_2)$ for some variable $\jvar$ and expressions $\sexpr_1$ and $\sexpr_2$, and that: 
+We conclude that  $\bcmd = \jvar := \hasfield(\pvsexpr_1, \pvsexpr_2)$ for some variable $\jvar$ and expressions $\pvsexpr_1$ and $\pvsexpr_2$, and that: 
 $$
 \begin{array}{l}
   \sheap =   \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n     \\
@@ -1139,13 +1147,13 @@ $$
     \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
 \end{array}
 $$ 
-where $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
+where $\symbeval{\pvsexpr_1}{\sstore} =  \loc$, $\symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p$, 
 $(\loc, -) \not\in \domain(\sheap'')$, and $0 \leq k \leq n$. 
 %
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
-We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and  
-$\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)$.
+We let $\jsilexpr_1 = \symbeval{\pvsexpr_1}{\senv}$ and  
+$\jsilexpr_2 = \symbeval{\pvsexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)$.
 Now we have to prove that we can apply the \prooflab{Member Check - True} rule in the concrete state.
 To this end, we have to show that:
 $\heap = \heap'' \dunion (\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \mapsto -$, for 
@@ -1156,10 +1164,10 @@ $$
 %
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \pc' \vdash \sexprp_k = \sexpr_p \implies \senv \vdash \sexprp_k = \sexpr_p \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} \\
@@ -1191,7 +1199,7 @@ the result follows.
 
 
 \noindent\prooflab{Member Check - False}
-We conclude that  $\bcmd = \jvar := \hasfield(\sexpr_1, \sexpr_2)$ for some variable $\jvar$ and expressions $\sexpr_1$ and $\sexpr_2$, and that: 
+We conclude that  $\bcmd = \jvar := \hasfield(\pvsexpr_1, \pvsexpr_2)$ for some variable $\jvar$ and expressions $\pvsexpr_1$ and $\pvsexpr_2$, and that: 
 $$
 \begin{array}{l}
   \sheap =  \sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n      \\
@@ -1203,13 +1211,13 @@ $$
      \pc' = \pc \ \wedge \,  \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p) 
 \end{array}
 $$ 
-where $\symbeval{\sexpr_1}{\sstore} =  \loc$, $\symbeval{\sexpr_2}{\sstore} =  \sexpr_p$, 
+where $\symbeval{\pvsexpr_1}{\sstore} =  \loc$, $\symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p$, 
 $(\loc, -) \not\in \domain(\sheap'')$, and $0 \leq k \leq n$. 
 %
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc'}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. 
-We let $\jsilexpr_1 = \symbeval{\sexpr_1}{\senv}$ and  
-$\jsilexpr_2 = \symbeval{\sexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)$.
+We let $\jsilexpr_1 = \symbeval{\pvsexpr_1}{\senv}$ and  
+$\jsilexpr_2 = \symbeval{\pvsexpr_2}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)$.
 We now have to prove that we can apply the \prooflab{Member Check - False} rule in the concrete state.
 To this end, we have to show that: $(\symbeval{\jsilexpr_1}{\store}, \symbeval{\jsilexpr_2}{\store}) \not\in \domain(\heap)$. 
 Note that: 
@@ -1219,10 +1227,10 @@ $$
 \senv \vdash \pc'' \ \wedge \ \pc'' \vdash \pc' \ \wedge \ \forall_{0 \leq i \leq n}  \, \pc' \vdash \sexprp_i \neq \sexpr_p  
       \implies \forall_{0 \leq i \leq n}  \, \senv \vdash \sexprp_i \neq \sexpr_p  \\
 %
- \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_1}{\sstore}}{\senv} 
+ \symbeval{\jsilexpr_1}{\store} = \symbeval{\jsilexpr_1}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_1}{\sstore}}{\senv} 
     = \symbeval{\loc}{\senv} = \loc \\ 
  %
-  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\sexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\sexpr_2}{\sstore}}{\senv}
+  \symbeval{\jsilexpr_2}{\store}  = \symbeval{\jsilexpr_2}{\semexpr{\sstore}{\senv}} =  \symbeval{\symbeval{\pvsexpr_2}{\senv}}{\symbeval{\sstore}{\senv}} = \symbeval{\symbeval{\pvsexpr_2}{\sstore}}{\senv}
    =  \symbeval{\sexpr_p}{\senv} \\
  %
  \heap = \semexpr{\sheap'' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n}{\senv} \\
@@ -1261,7 +1269,7 @@ the result follows.
 
 
 \noindent\prooflab{Assert - True}
-We conclude that  $\bcmd = \assert(\sexpr)$ for some expression $\sexpr$, and that: 
+We conclude that  $\bcmd = \assert(\pvsexpr)$ for some extended expression $\pvsexpr$, and that: 
 $$
   \sheap' = \sheap 
   \quad
@@ -1273,14 +1281,14 @@ $$
 $$ 
 From $(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc''}$, we conclude that $\heap = \semexpr{\sheap}{\senv}$, $\store = \semexpr{\sstore}{\senv}$, and 
 $\senv \vdash \pc''$. Because $\pc'' \vdash \pc' = \pc$, we conclude that $\senv \vdash \pc$. 
-We let $\jsilexpr = \symbeval{\sexpr}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
+We let $\jsilexpr = \symbeval{\pvsexpr}{\senv}$, and note that $\symbeval{\bcmd}{\senv} = \jvar := \assert(\jsilexpr)$.
 We now have to prove that we can apply the \prooflab{Assert - True} rule in the concrete state.
 To this end, we have to show that: $\symbeval{\jsilexpr}{\store} = \jtrue$. 
 Noting that:
 $
   \symbeval{\jsilexpr}{\store} = \symbeval{\jsilexpr}{\symbeval{\sstore}{\senv}} 
-         = \symbeval{\symbeval{\sexpr}{\sstore}}{\senv} 
-$, we conclude (using $\senv \vdash \pc$ and $\pc \vdash  \symbeval{\sexpr}{\sstore}$) that 
+         = \symbeval{\symbeval{\pvsexpr}{\sstore}}{\senv} 
+$, we conclude (using $\senv \vdash \pc$ and $\pc \vdash  \symbeval{\pvsexpr}{\sstore}$) that 
 $\symbeval{\jsilexpr}{\store} = \jtrue$. 
 We can now apply the \prooflab{Assert - True} rule of \jsil semantics, concluding: 
 $$
@@ -1697,7 +1705,7 @@ We suppose that $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sh
      \symbtrans[\prog][\top][\bot]{\sheap', \sstore', \assert(\sexpr), \pc''}{\sheap', \sstore', \pc'} 
    }{\symbtrans[\prog][\top][\bot]{\sheap', \sstore', j-1, \pc''}{\sheap', \sstore', j, \pc'}}$$}
 
-\noindent Therefore, $\pc'$ is satisfiable. Now, since $\pc'$ is satisfiable, we conclude that there exist a concrete heap $\heap$, store $\store$, context $\ctx$, and logical environment $\senv$, such that $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$. Then, using Theorem \ref{teo:soundness:jsil:symb:exe}, we obtain the desired goal.
+\noindent Therefore, $\pc'$ is satisfiable. Now, since $\pc'$ is satisfiable, we conclude that there exist a concrete heap $\heap$, store $\store$, context $\ctx$, and symbolic environment $\senv$, such that $(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc'}$. Then, using Theorem \ref{teo:soundness:jsil:symb:exe}, we obtain the desired goal.
 \end{proof}
 
 
