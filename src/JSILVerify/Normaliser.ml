@@ -1496,6 +1496,9 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 		if (Pure_Entailment.check_satisfiability new_pfs_list (ss_gamma ss_post)) then (
 			ss_substitution aloc_subst true ss_post 
 		) else (
+			print_normal(Printf.sprintf "I am dying here. new_pfs_list: %s\ngamma: %s\n" 
+				(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs_list))
+				(Symbolic_State_Print.string_of_gamma (ss_gamma ss_post))); 
 			raise (Failure "collapse_alocs FAILED!")
 		)
 	)
