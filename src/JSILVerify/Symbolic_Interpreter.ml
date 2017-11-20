@@ -1252,9 +1252,18 @@ and pre_symb_evaluate_cmd
 			| None   -> raise (Failure "Back edges MUST point to commands with invariants")
 			| Some a ->
 				let symb_state_inv        = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars (copy_substitution subst) (get_asrt_pvars a) in 
-				let pat_subst, spec_alocs = make_spec_var_subst subst spec_vars in 
-				let _ = Spatial_Entailment.fully_unify_symb_state !js (Normaliser.create_unification_plan symb_state_inv spec_alocs) (Some pat_subst) symb_state_inv symb_state in 
-				[])				
+				let _, spec_alocs = make_spec_var_subst subst spec_vars in 
+
+				print_normal (Printf.sprintf "Current state: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state));
+				print_normal (Printf.sprintf "Normalised invariant: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state_inv));
+				print_normal (Printf.sprintf "spec_alocs: %s\n" (String.concat ", " (SS.elements spec_alocs)));
+
+				try 
+					let outcome, (_, _, new_subst, _, _) = Spatial_Entailment.unify_symb_states (Normaliser.create_unification_plan symb_state_inv spec_alocs) None symb_state_inv symb_state in
+					print_normal (Printf.sprintf "new_subst: %s\n" (JSIL_Print.string_of_substitution new_subst)); 
+					
+					if (outcome) then [] else raise (Failure "Unification with invariant failed")
+				with _ -> raise (Failure "Unification with invariant failed"))				
 		) else (
 			(*  New next command *)
 			
@@ -1270,14 +1279,21 @@ and pre_symb_evaluate_cmd
 							(JSIL_Print.string_of_substitution subst)
 							(String.concat ", " (SS.elements spec_vars)));
 					extend_spec_vars_subst spec_vars (ss_pfs symb_state) subst; 
+					
 					let inv_lvars             = get_asrt_lvars a in
 					let symb_state_inv        = Normaliser.normalise_invariant a (ss_gamma symb_state) spec_vars (copy_substitution subst) (get_asrt_pvars a) in 
-					let pat_subst, spec_alocs = make_spec_var_subst subst spec_vars in
 					let spec_vars_inv         = SS.union inv_lvars spec_vars in 
+					let pat_subst, spec_alocs = make_spec_var_subst subst spec_vars in 
 
-					(match (Spatial_Entailment.grab_resources spec_vars_inv (Normaliser.create_unification_plan symb_state_inv spec_alocs) pat_subst symb_state_inv symb_state) with
-						| Some new_symb_state -> new_symb_state, spec_vars_inv
-						| None -> raise (Failure "Unification with invariant failed"))) in
+					print_normal (Printf.sprintf "Current state: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state));
+					print_normal (Printf.sprintf "Normalised invariant: %s\n" (Symbolic_State_Print.string_of_symb_state symb_state_inv));
+					print_normal (Printf.sprintf "substitution: %s\n" (JSIL_Print.string_of_substitution pat_subst)); 
+					print_normal (Printf.sprintf "spec_alocs: %s\n" (String.concat ", " (SS.elements spec_alocs))); 
+
+					try 
+						let outcome, _ = Spatial_Entailment.unify_symb_states (Normaliser.create_unification_plan symb_state_inv spec_alocs) (Some pat_subst) symb_state_inv symb_state in
+						if (outcome) then symb_state_inv, spec_vars_inv else raise (Failure "Unification with invariant failed")
+					with _ -> raise (Failure "Unification with invariant failed")) in 
 			 
 			(* 2. Execute the pre logical commands *)
 			let symb_states_with_spec_vars = 
