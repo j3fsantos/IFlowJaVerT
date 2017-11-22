@@ -3,11 +3,12 @@
 pred my_lseg(x, y, alpha_sum) : 
       (alpha_sum == 0) * (x == y) * types(alpha_sum: $$number_type),
       
-      (! (x == y)) * ((x, "value") -> #v) * ((x, "next") -> #z) * (alpha_sum == (#v + #beta_sum)) * 
-          my_lseg(#z, y, #beta_sum) * types(alpha_sum: $$number_type, #beta_sum: $$number_type);
+       ((x, "value") -> #v) * ((x, "next") -> #z) * (alpha_sum == (#v + #beta_sum)) * 
+          my_lseg(#z, y, #beta_sum) * types(alpha_sum: $$number_type, #beta_sum: $$number_type, #v: $$number_type);
 
 pred my_list(x, alpha_sum) : 
   (x == $$null) * (alpha_sum == 0),
+
   ((x, "value") -> #v) * ((x, "next") -> #z)  * my_list(#z, #beta_sum) * (alpha_sum == #v + #beta_sum) * 
      types(#v: $$number_type, alpha_sum: $$number_type, #beta_sum: $$number_type); 
 
@@ -15,7 +16,7 @@ pred my_list(x, alpha_sum) :
 pred my_lseg_full(x, y, alpha_sum, alpha) : 
       (alpha_sum == 0) * (x == y) * types(alpha_sum: $$number_type) * (alpha == {{ }}),
        
-      (! (x == y)) * ((x, "value") -> #v) * ((x, "next") -> #z) * (alpha_sum == (#v + #beta_sum)) * (alpha == #v :: #beta) * 
+      ((x, "value") -> #v) * ((x, "next") -> #z) * (alpha_sum == (#v + #beta_sum)) * (alpha == #v :: #beta) * 
           my_lseg_full(#z, y, #beta_sum, #beta) * types(alpha_sum: $$number_type, #beta_sum: $$number_type, #beta: $$list_type, #v: $$number_type);
 
 
@@ -61,12 +62,34 @@ lemma lsegfull2lseg(x, y, alpha_sum, alpha)
 lemma lseg2list(x, alpha_sum)
   [[ my_lseg(x, $$null, alpha_sum) * (alpha_sum == #alpha_sum) * (x == #x) ]]
   [[ my_list(#x, #alpha_sum) ]]
+  [*
+    unfold(my_lseg(#x, $$null, #alpha_sum));
+    if (not (#x = ($$null))) then {
+      assert(my_lseg(#next, $$null, #beta_sum));
+      apply lseg2list(#next, #beta_sum); 
+      fold(my_list(#x, #alpha_sum))
+    } else {
+      fold(my_list(#x, #alpha_sum))
+    }
+
+   *]
 
 
-lemma lseg_append(x, alpha_sum, y, v, z)
-  [[ my_lseg(x, y, alpha_sum) * (x == #x) * (z == #z) * (v == #v) 
-      * ((y, "value") -> v) * ((y, "next") -> z) * (#alpha_sum == alpha_sum) * types (v : $$number_type) ]]
-  [[ my_lseg(#x, #z, #alpha_sum + #v) ]]
+lemma lseg_append(x, y, alpha_sum, yval, ynext)
+  [[ my_lseg(x, y, alpha_sum) * (x == #x) * (ynext == #ynext) * (yval == #yval) 
+      * ((y, "value") -> yval) * ((y, "next") -> ynext) * (#alpha_sum == alpha_sum) * types (yval : $$number_type) ]]
+  [[ my_lseg(#x, #ynext, #alpha_sum + #yval) ]]
+  [*
+    unfold(my_lseg(#x, y, #alpha_sum));
+    if (#x = y) then {
+      fold(my_lseg(#x, #ynext, #alpha_sum + #yval))
+    } else {
+      assert(my_lseg(#next, y, #beta_sum));
+      apply lseg_append(#next, y, #beta_sum, #yval, #ynext); 
+      fold(my_lseg(#x, #ynext, #alpha_sum + #yval))
+    }
+
+   *]
 
 
 
@@ -91,7 +114,7 @@ proc list_sum_iterative(x){
            x_next := [x, "next"];
            x_val  := [x, "value"];
 
-           [*  apply lseg_append (#x, count, x, x_val, x_next) *]
+           [*  apply lseg_append (#x, x, count, x_val, x_next) *]
            count := count + x_val;
            x := x_next;
            
