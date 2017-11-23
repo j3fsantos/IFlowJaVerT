@@ -34,14 +34,14 @@ Map.prototype.put = function put (key, value) {
    } 
 }
 
-var ___p1_string = symb_string (s1);
-var ___v1_number = symb_number (n1);
+var s1 = symb_string (s1);
+var n1 = symb_number (n1);
 var m = new Map(); 
 
-if (isValidKey (___p1_string)) { 
-  m.put(___p1_string, ___v1_number); 
-  var key_val = m.get(___p1_string); 
-  jsil_assert(key_val = ___v1_number)
+if (isValidKey (s1)) { 
+  m.put(s1, n1); 
+  var key_val = m.get(s1); 
+  assert(key_val = v1)
 } else { }
 
 

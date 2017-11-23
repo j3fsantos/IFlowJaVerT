@@ -1356,9 +1356,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_assert)) ->
 			(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
 			| [ (Parser_syntax.String assert_arg_str) ] ->
-				Printf.printf "marica: %s!!!\n" assert_arg_str; 
 				let le         = JSIL_Syntax_Utils.jsil_expr_of_string assert_arg_str in
-				Printf.printf "marica!!!\n"; 
 				let xs         = JSIL_Syntax_Utils.get_expr_pvars le in 
 				let subst      = init_p_substitution [] in 
 				
