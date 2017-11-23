@@ -1166,7 +1166,7 @@ let check_entailment (existentials : SS.t)
     				if ((List.length existentials) > 0)
     					then (
   							(* Encode the types of the existentials *)
-    						let a_gamma_right   = encode_gamma gamma_right in
+    						let a_gamma_right   = encode_gamma gamma in
     						let a_right         = Boolean.mk_and ctx ( right_as_or :: a_gamma_right ) in
     						encode_quantifier true ctx existentials existentials_sorts a_right
     					) else right_as_or in
