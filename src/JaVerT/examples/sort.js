@@ -52,7 +52,7 @@ function insert(node, value) {
         result = { next: node, value: value }
     }
     
-    /** @invariant scope(result : #res) 
+    /** @tactic assert(scope(result : #res)) 
         @tactic fold SOList(#res, -u- (-{ #v }-, #E)) */
     return result;
 }

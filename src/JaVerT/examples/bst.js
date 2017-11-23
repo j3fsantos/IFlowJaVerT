@@ -62,7 +62,7 @@ function insert(v, t)
   
   	result = make_node(v);
   	
-  	/** @invariant scope(result : #r) 
+  	/** @tactic assert (scope(result : #r))
   		@tactic fold BST($$null, -{ }-)
   		@tactic fold BST($$null, -{ }-)
   		@tactic fold BST(#r, -{ #v }-) */
@@ -129,9 +129,9 @@ function find_min(t)
 {
 	/** @tactic unfold BST(#t, #K) */
 	var result;
-	
-	/** @invariant DataProp(#t, "left", #il) * BST(#il, #KL) */
-	/** @tactic flash BST(#il, #KL) */
+		
+	/** @tactic assert (DataProp(#t, "left", #il) * BST(#il, #KL)) 
+	    @tactic flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else
@@ -164,7 +164,7 @@ function remove(v, t)
 		/** @tactic fold BST(#t, #K) */
 		return null;
 
-	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
+	/** @tactic assert(DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR)) */
 	if (v === t.value) {
 		/** @tactic flash BST(#il, #KL) */
 		if (t.left === null) {	
