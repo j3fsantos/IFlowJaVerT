@@ -496,7 +496,9 @@ let output_file_debug = open_out "debugOutput.txt"
 let output_file_normalisation = open_out "normalisationOutput.txt"
 let output_file_njsil = open_out "normalisedSpecsPreds.njsil"
 
-let print_debug  msg  = output_string output_file_debug (msg ^ "\n") 
+let print_debug  msg  = 
+	let msg = Printf.sprintf "%s\n%!" msg in
+	output_string output_file_debug msg 
 let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg 
 let print_normalisation msg = output_string output_file_normalisation (msg ^ "\n") 
 let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n") 

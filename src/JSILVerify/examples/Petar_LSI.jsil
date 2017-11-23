@@ -1,0 +1,38 @@
+pred my_lseg_full(x, y, alpha, alpha_sum) : 
+	(x == y) * (alpha_sum == 0) * (alpha == {{ }}),
+	
+	types (alpha : $$list_type, alpha_sum : $$number_type) * 
+	((x, "value") -> #v) * types(#v : $$number_type) *
+	((x, "next")  -> #z) * 
+	my_lseg_full(#z, y, #beta, #beta_sum) * types (#beta_sum : $$number_type, #beta : $$list_type) *
+	(alpha == #v :: #beta) * (alpha_sum == (#v + #beta_sum));
+
+
+pred my_list_full(x, alpha, alpha_sum) : 
+  (x == $$null) * (alpha == {{ }}) * (alpha_sum == 0),
+  
+  types (alpha : $$list_type, alpha_sum : $$number_type) * 
+  ((x, "value") -> #v) * types(#v : $$number_type) *
+  ((x, "next")  -> #z) * 
+  my_list_full(#z, #beta_sum, #beta) * types(#beta_sum : $$number_type, #beta : $$list_type) *
+  (alpha == #v :: #beta) * (alpha_sum == (#v + #beta_sum));
+
+lemma lseg2list(x, alpha, alpha_sum)
+	variant (l-len(alpha))
+	[[ my_lseg_full(x, $$null, alpha, alpha_sum) ]]
+	[[ my_list_full(x, alpha, alpha_sum) ]]
+	
+	[*
+		unfold(my_lseg_full(x, $$null, alpha, alpha_sum));
+		if (not (x = ($$null))) then {
+		  assert(my_lseg_full(#next, $$null, #beta, #beta_sum));
+		  apply lseg2list(#next, #beta, #beta_sum); 
+		  fold(my_list_full(x, alpha, alpha_sum))
+		} else {
+		  fold(my_list_full(x, alpha, alpha_sum))
+		}
+	*]
+
+
+
+
