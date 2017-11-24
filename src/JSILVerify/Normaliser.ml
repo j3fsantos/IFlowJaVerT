@@ -144,6 +144,9 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 				(try LLit (String (String.make 1 (String.get s (int_of_float n))))
 				with _ -> raise (Failure "String index out of bounds"))
 			| _, _ -> LStrNth (nle1, nle2)) in
+
+
+		JSIL_Logic_Utils.infer_types result gamma;
 		result
 
 
@@ -986,7 +989,7 @@ let rec normalise_type_assertions
 								(JSIL_Print.string_of_type le_type)); 
 					false))
 			| None ->
-				let new_gamma = JSIL_Logic_Utils.reverse_type_lexpr gamma le t in
+				let new_gamma = JSIL_Logic_Utils.reverse_type_lexpr false gamma le t in
 				(match new_gamma with
 					| None ->
 						print_debug (Printf.sprintf "Only vars or lvars in the typing environment. PUTTING: %s with type %s when it CANNOT be typed or reverse-typed"

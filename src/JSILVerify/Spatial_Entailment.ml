@@ -758,7 +758,7 @@ let unify_symb_states_fold
 	List.iter
 		(fun x ->
 			match store_get_safe store x, gamma_get_type pat_gamma x with
-			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma gamma_existentials le_x x_type in ()
+			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux false gamma gamma_existentials le_x x_type in ()
 			|	_, _ -> ())
 		filtered_vars;
 	let gamma_existentials = filter_gamma gamma_existentials existentials in	
@@ -1056,7 +1056,7 @@ let unfold_predicate_definition
 		(fun x (x_type, pat_x_type) -> 
 			if ((x_type = None) && (pat_x_type <> None)) then (
 				match store_get_safe unfold_store x, pat_x_type with
-				| Some le_x, Some pat_x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux gamma gamma_existentials le_x pat_x_type in ()
+				| Some le_x, Some pat_x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux false gamma gamma_existentials le_x pat_x_type in ()
 				|	_, _ -> ())) 
 		dom_pat_store (List.combine store_types pat_store_types);
 	let gamma_existentials = filter_gamma gamma_existentials existentials in	

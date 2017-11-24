@@ -740,9 +740,21 @@ let rec type_lexpr gamma le =
 
 	result
 
+let string_of_gamma (gamma : typing_environment) : string =
+	let gamma_str =
+		Hashtbl.fold
+			(fun var var_type ac ->
+				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (JSIL_Print.string_of_type var_type) in
+				if (ac = "")
+					then var_type_pair_str
+					else ac ^ "\n\t" ^ var_type_pair_str)
+			gamma
+			"\t" in
+	gamma_str
 
-let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
-	let f = reverse_type_lexpr_aux gamma new_gamma in
+let rec reverse_type_lexpr_aux flag gamma new_gamma le le_type =
+	let f = reverse_type_lexpr_aux flag gamma new_gamma in
+	print_debug_petar (Printf.sprintf "Reverse typing %s in %s \nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (JSIL_Print.string_of_type le_type) flag); 
 	(match le with
 	(* Literals are always typable *)
 	| LLit lit -> (evaluate_type_of lit = le_type)
@@ -761,10 +773,17 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 	| ALoc _ -> if (le_type = ObjectType) then true else false
 
   	(* LEList and LESet are not reverse typable because we lose type information *)
-	| LEList _
-	| LESet  _ -> false
+	| LEList _ ->
+			(match flag with
+			| true -> (le_type = ListType)
+			| false -> false)
+			
+	| LESet  _ -> 
+			(match flag with
+			| true -> (le_type = SetType)
+			| false -> false)
 
-  	| LSetUnion les
+  | LSetUnion les
 	| LSetInter les ->
 		if (le_type = SetType)
 			then (List.fold_left (fun ac x -> ac && (f x SetType)) true les)
@@ -809,8 +828,15 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 				else false
 
 		| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
-		| UnsignedRightShift			| M_atan2			| M_pow
-		| LstCons -> false
+		| UnsignedRightShift			| M_atan2			| M_pow -> 
+			if (le_type = NumberType)
+				then ((f le1 NumberType) && (f le2 NumberType))
+				else false
+		
+		| LstCons -> 
+			if (le_type = ListType)
+				then f le2 ListType
+				else false
 
 		| LstCat ->
 			if (le_type = ListType)
@@ -832,15 +858,94 @@ let rec reverse_type_lexpr_aux gamma new_gamma le le_type =
 
 		| LNone    -> (NoneType = le_type))
 
-
-let reverse_type_lexpr gamma le le_type : typing_environment option =
+let reverse_type_lexpr flag gamma le le_type : typing_environment option =
 	let new_gamma : typing_environment = gamma_init () in
-	let ret = reverse_type_lexpr_aux gamma new_gamma le le_type in
+	let ret = reverse_type_lexpr_aux flag gamma new_gamma le le_type in
 	if (ret)
 		then Some new_gamma
 		else None
 
+(* ******************** *)
+(* ** TYPE INFERENCE ** *)
+(* ******************** *)
 
+let safe_merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
+	print_debug_petar (Printf.sprintf "Merging gammas: %s \nand %s" (string_of_gamma gamma_l) (string_of_gamma gamma_r));
+	Hashtbl.iter
+		(fun var v_type ->
+			(match (Hashtbl.mem gamma_l var) with
+			| false -> 
+					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (JSIL_Print.string_of_type v_type)); 
+					Hashtbl.add gamma_l var v_type
+			| true -> let t = Hashtbl.find gamma_l var in
+					(match (t = v_type) with
+					| true -> ()
+					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (JSIL_Print.string_of_type v_type) (JSIL_Print.string_of_type t))); 
+					)
+			)
+		)
+		gamma_r
+
+(* Destructively extend gamma with typing information *)
+let rec infer_types le gamma : unit =
+	
+	let extend_gamma le t = 
+    let new_gamma = reverse_type_lexpr true gamma le t in
+      (match new_gamma with
+      | Some new_gamma -> safe_merge_gammas gamma new_gamma
+      | None -> 
+					let msg = Printf.sprintf "Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
+					print_debug_petar msg;
+					raise (Failure msg)) in
+  	
+		(match le with
+  	
+  	(* Do nothing, these cases do not provide additional information *)
+  	| LLit  _
+  	| ALoc  _
+  	| LVar  _
+  	| PVar  _
+  	| LNone   -> ()
+  	
+  	(* Set union and intersection - all members must be sets, plus any additional information from the members themselves *)
+  	| LSetUnion lle
+  	| LSetInter lle -> 
+				extend_gamma le SetType;
+				List.iter (fun le -> infer_types le gamma) lle
+				
+		| LEList lle 
+		| LESet  lle -> 
+				List.iter (fun le -> infer_types le gamma) lle
+				
+		| LLstNth (lst, idx) ->
+				extend_gamma lst ListType;
+				extend_gamma idx NumberType
+				
+		| LLstNth (str, idx) ->
+				extend_gamma str StringType;
+				extend_gamma idx NumberType
+  		
+  	(*
+  	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
+  	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
+  	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *)
+  	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
+  	*)
+		
+		| LBinOp (le1, op, le2) ->
+			(match op with
+			| Plus ->
+					extend_gamma le1 NumberType;
+					extend_gamma le2 NumberType;
+			| LstCons ->
+					infer_types  le1 gamma;
+					extend_gamma le2 ListType;
+			| LstCat ->
+					extend_gamma le1 ListType;
+					extend_gamma le2 ListType
+			| _ -> ())
+  
+  	| _ -> ())
 
 
 (***************************************************************)

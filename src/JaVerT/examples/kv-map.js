@@ -101,16 +101,14 @@ Map.prototype.get = function (k) {
 /**
 	@id mapPut
 	
-	@pre    ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak() *
-	            types(#kvs: $$set_type, #keys: $$set_type))
+	@pre    ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak())
 	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
 
-	@pre  ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() *
-				types(#kvs: $$set_type, #keys: $$set_type) * (v == #v))
+	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak())
  	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPostWeak() 
 
 	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
-			(#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPostWeak() * types(#kvs: $$set_type, #keys: $$set_type))
+			(#kvs == -u- (-{ {{ #k, #w }} }-, #rkvs)) * initialHeapPostWeak())
 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPostWeak() 
 */
 Map.prototype.put = function (k, v) {
