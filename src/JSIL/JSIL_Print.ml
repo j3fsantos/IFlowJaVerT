@@ -329,6 +329,7 @@ let rec string_of_lcmd (lcmd : jsil_logic_command) : string =
 (** JSIL logic predicates *)
 let rec string_of_predicate (predicate : jsil_logic_predicate) : string =
   	let sle = fun e -> string_of_logic_expression e in
+		let slp = fun (e, ot) -> (sle e) ^ (Option.map_default (fun t -> " : " ^ string_of_type t) "" ot) in
   	List.fold_left
     		(fun acc_str (id, assertion) ->
        			let id_str = match id with
@@ -336,7 +337,7 @@ let rec string_of_predicate (predicate : jsil_logic_predicate) : string =
          			| Some id -> "[" ^ id ^ "]" in
        			acc_str ^ (Printf.sprintf "pred %s (%s) : %s %s;\n"
                     				predicate.name
-                    				(String.concat ", " (List.map sle predicate.params))
+                    				(String.concat ", " (List.map slp predicate.params))
                     				id_str
                     				(string_of_logic_assertion assertion)))
     		""

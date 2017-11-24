@@ -1,10 +1,9 @@
 /**
-@pred idGenerator(ig, sc_ig, c_val, prefix) :
+@pred idGenerator(ig, sc_ig, c_val : $$number_type, prefix : $$string_type) :
    JSObject(ig) * 
    DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
    DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
-   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc, makeIdGen: sc_ig) * 
-   types (c_val: $$number_type, prefix: $$string_type);
+   closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc, makeIdGen: sc_ig);
 */
 
 /**

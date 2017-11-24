@@ -159,10 +159,10 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 type unfolded_predicate = {
 	name                         : string;
 	num_params                   : int;
-	params                       : jsil_var list;
+	params                       : (jsil_var * jsil_type option) list;
 	definitions                  : ((string option) * jsil_logic_assertion) list;
-  	is_recursive                 : bool;
-  	previously_normalised_u_pred : bool
+	is_recursive                 : bool;
+	previously_normalised_u_pred : bool
 }
 
 (* Cross product of two lists, l1 and l2, combining its elements with function f *)
@@ -183,15 +183,22 @@ let rec auto_unfold
 	| LStar (a1, a2)         -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LStar (asrt1, asrt2))
 	| LPred (name, args)     ->
 		(try
-		  let pred = Hashtbl.find predicates name in
-			if pred.is_recursive then
-				(* If the predicate is recursive, return the assertion unchanged.           *)
-				[asrt]
+		  let pred : unfolded_predicate = Hashtbl.find predicates name in
+			if pred.is_recursive then (
+				(* If the predicate is recursive, only add the types of the parameters.           *)
+				let types_asrt = List.fold_left2 (fun ac (_, ot) x ->
+					(match ot with
+					| None -> ac
+					| Some t -> LStar (LTypes [ (x, t) ], ac))) LEmp pred.params args in
+				let asrt = LStar (asrt, types_asrt) in
+				[ asrt ]
+			)
 			else
 				(* If it is not, replace the predicate assertion for the list of its definitions
 				   substituting the formal parameters of the predicate with the corresponding
 				   logical expressions in the argument list *)
-				let subst = init_substitution2 pred.params args  in
+				let param_names, _ = List.split pred.params in
+				let subst = init_substitution2 param_names args  in
 				let new_asrts  = List.map (fun (_, a) -> (asrt_substitution subst false a)) pred.definitions in
 				List.concat (List.map au new_asrts)
 		 (* If the predicate is not found, raise an error *)
@@ -218,7 +225,7 @@ let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicat
 let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 	let new_params, new_asrts =
 		List.fold_right
-			(fun cur_param (params, new_asrts) ->
+			(fun (cur_param, cur_param_type) (params, new_asrts) ->
 				match cur_param with
 				| LLit _ | LNone ->
 					(* If the parameter is a JSIL literal or None...     *)
@@ -226,11 +233,14 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 			  		   constraint to each definition *)
 			  		let new_pvar = fresh_pvar () in
 						print_debug_petar (Printf.sprintf "Generated fresh PVar: %s" new_pvar); 
-			  		(new_pvar :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts)
+			  		((new_pvar, None) :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts)
 			  	| PVar x         ->
 			  		(* If the parameter is a program variable, add the
 			  		   parameter as it is *)
-			  		(x :: params), new_asrts
+						let new_asrts = (match cur_param_type with
+							| None -> new_asrts
+							| Some t -> LTypes [ PVar x, t ] :: new_asrts) in
+			  		((x, cur_param_type) :: params, new_asrts)
 			  	| _              ->
 			  		(* Otherwise, it's an error *)
 					raise (Failure ("Error in predicate " ^ pred.name ^ ": Unexpected parameter.")))
@@ -257,7 +267,9 @@ let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfold
 	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s" pred1.name in
 	  		raise (Failure msg)
 	  ) else (
-	  		let subst = init_substitution2 pred2.params (List.map (fun var -> PVar var) pred1.params) in
+				let pred1_param_names, _ = List.split pred1.params in
+				let pred2_param_names, _ = List.split pred2.params in
+	  		let subst = init_substitution2 pred2_param_names (List.map (fun var -> PVar var) pred1_param_names) in
 		  	let definitions = pred1.definitions @
 		  		(List.map (fun (oid, a) -> oid, (asrt_substitution subst true a)) pred2.definitions) in
 		  	{ pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
@@ -1698,6 +1710,7 @@ let normalise_predicate_definitions
 	let n_pred_defs = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun pred_name (pred : unfolded_predicate)  ->
+				let param_names, _ = List.split pred.params in 
     		let definitions : ((string option) * jsil_logic_assertion) list = pred.definitions in
     		print_debug (Printf.sprintf "Predicate %s previously normalised? %b" pred_name pred.previously_normalised_u_pred);
 			let n_definitions =  List.rev (List.concat (List.map
@@ -1711,7 +1724,7 @@ let normalise_predicate_definitions
               		| false ->
                 		let pred_vars = get_asrt_lvars a in
                 		let a' = JSIL_Logic_Utils.push_in_negations a in
-                		match (normalise_assertion None None (Some (SS.of_list pred.params)) a') with
+                		match (normalise_assertion None None (Some (SS.of_list param_names)) a') with
                 		| Some (ss, _) ->
                   			let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
                   			[ (os, ss', (create_unification_plan ss' SS.empty)) ]
@@ -1720,7 +1733,7 @@ let normalise_predicate_definitions
 			let n_pred = {
 				n_pred_name        = pred.name;
 				n_pred_num_params  = pred.num_params;
-				n_pred_params      = pred.params;
+				n_pred_params      = param_names;
 				n_pred_definitions = n_definitions;
 				n_pred_is_rec      = pred.is_recursive
 			} in

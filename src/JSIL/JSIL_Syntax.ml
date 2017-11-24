@@ -274,7 +274,7 @@ type jsil_logic_assertion =
 type jsil_logic_predicate = {
 	name        : string;                                        (** Name of the predicate  *)
 	num_params  : int;                                           (** Number of parameters   *)
-	params      : jsil_logic_expr list;                          (** Actual parameters      *)
+	params      : (jsil_logic_expr * jsil_type option) list;      (** Actual parameters      *)
   definitions : ((string option) * jsil_logic_assertion) list;  (** Predicate definitions  *)
   previously_normalised_pred : bool                             (** If the predicate has been previously normalised *)
 }

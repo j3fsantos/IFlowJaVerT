@@ -123,7 +123,7 @@ type js_logic_command =
 type js_logic_predicate = {
 	js_name        : string;
 	js_num_params  : int;
-	js_params      : js_logic_expr list;
+	js_params      : (js_logic_expr * jsil_type option) list;
 	js_definitions : ((string option) * js_logic_assertion) list;
 }
 
@@ -408,7 +408,7 @@ let js2jsil_predicate_def
 		(vis_tbl    : vis_tbl_type)
 		(fun_tbl    : pre_fun_tbl_type)  =
 
-	let jsil_params = List.map (js2jsil_lexpr None) pred_def.js_params in
+	let jsil_params = List.map (fun (le, ot) -> (js2jsil_lexpr None le, ot)) pred_def.js_params in
 	let jsil_definitions = List.map (fun (os, a) -> os, (js2jsil_assertion None cc_tbl vis_tbl fun_tbl None a)) pred_def.js_definitions in
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions; previously_normalised_pred = false }
 

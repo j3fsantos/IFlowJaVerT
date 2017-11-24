@@ -586,26 +586,32 @@ js_pred_head_target:
 pred_param_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { LLit lit }
+	  { LLit lit, None }
 (* None *)
 	| LNONE
-	  { LNone }
+	  { LNone, None }
+(* Program variable with type *)
+	| v = VAR; COLON; t = type_target
+	  { PVar v, Some t }
 (* Program variable *)
 	| v = VAR
-	  { PVar v }
+	  { PVar v, None }
 ;
 
 
 js_pred_param_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { JSLLit lit }
+	  { JSLLit lit, None }
 (* None *)
 	| LNONE
-	  { JSLNone }
+	  { JSLNone, None }
+(* Program variable with type *)
+	| v = VAR; COLON; t = type_target
+	  { JSPVar v, Some t }
 (* Program variable *)
 	| v = VAR
-	  { JSPVar v }
+	  { JSPVar v, None }
 ;
 
 

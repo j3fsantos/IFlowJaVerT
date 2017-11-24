@@ -23,22 +23,21 @@
 	  	(length == #len_nl + 1);
 	
 	
-	@pred Queue(pq, qp, np, max_pri, length) :
+	@pred Queue(pq, qp, np, max_pri : $$number_type, length : $$number_type) :
 		JSObjWithProto(pq, qp) * 
 		DataProp(pq, "_head",  #head) *
-		NodeList(#head, np, max_pri, length) * types(max_pri : $$number_type, length : $$number_type) *
+		NodeList(#head, np, max_pri, length) *
 		((pq, "enqueue") -> None) * 
 		((pq, "dequeue") -> None);
 	
 	
-	@pred QueuePrototype(qp, np, c, enq_sc):
+	@pred QueuePrototype(qp, np, c : $$number_type, enq_sc):
 		JSObject(qp) *
 		DataProp(qp, "enqueue", #enqueue_loc) * FunctionObject(#enqueue_loc, "enqueue", enq_sc, _) *
 		DataProp(qp, "dequeue", #dequeue_loc) * FunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _) *
 		((qp, "_head") -> None) *
 		FunctionObject(#n, "Node", #node_sc, np) * NodePrototype(np) * 
-		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc) * 
-		types(c : $$number_type);
+		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc);
 	
 	@pred PriorityQueueModule(pq) :
 	  QueuePrototype(#pqp, #np, 0, #sc) *

@@ -4,11 +4,10 @@
     types(o : $$object_type),
     (o == $$null);
 
- @pred Node(n, v, t):
+ @pred Node(n, v : $$number_type, t):
    JSObject(n) *
    DataProp(n, "value", v) *
-   DataProp(n, "next", t) *
-   types(v: $$number_type);
+   DataProp(n, "next", t);
  
  @pred NDList(l, E):
    (l == $$null) * (E == -{ }-),

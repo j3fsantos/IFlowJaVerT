@@ -8,7 +8,7 @@ pred my_lseg_full(x, y, alpha, alpha_sum) :
 
 
 
-pred my_list_full(x, alpha, alpha_sum) : 
+pred my_list_full(x, alpha : $$list_type, alpha_sum : $$number_type) : 
 	(x == $$null) * (alpha == {{ }}) * (alpha_sum == 0),
 	
 	((x, "value") -> #v) *
@@ -17,36 +17,23 @@ pred my_list_full(x, alpha, alpha_sum) :
 	(alpha == #v :: #beta) * (alpha_sum == (#v + #beta_sum));
 
 
-
-lemma my_list_full_types(x, alpha, alpha_sum)
-	[[ (x == #x) * (alpha == #alpha) * (alpha_sum == #alpha_sum) * 
-	   my_list_full(#x, #alpha, #alpha_sum) ]]
-	[[ my_list_full(#x, #alpha, #alpha_sum) * types (#alpha : $$list_type, #alpha_sum : $$number_type) ]]
-	
-	[*
-		unfold my_list_full(#x, #alpha, #alpha_sum);
-		fold   my_list_full(#x, #alpha, #alpha_sum)
-	*]
-
-
  
 lemma lseg2list_full(x, alpha, alpha_sum)
 	variant (l-len(alpha))
-	[[ my_lseg_full(x, $$null, alpha, alpha_sum) ]]
-	[[ my_list_full(x, alpha, alpha_sum) ]]
+	[[ (x == #x) * (alpha == #alpha) * (alpha_sum == #alpha_sum) * 
+	   my_lseg_full(#x, $$null, #alpha, #alpha_sum) ]]
+	[[ my_list_full(#x, #alpha, #alpha_sum) ]]
 	
 	[*
-		unfold(my_lseg_full(x, $$null, alpha, alpha_sum));
-		if (not (x = ($$null))) then {
+		unfold(my_lseg_full(#x, $$null, #alpha, #alpha_sum));
+		if (not (#x = ($$null))) then {
 		  assert(my_lseg_full(#next, $$null, #beta, #beta_sum));
 		  apply lseg2list_full(#next, #beta, #beta_sum); 
-		  fold(my_list_full(x, alpha, alpha_sum))
+		  fold(my_list_full(#x, #alpha, #alpha_sum))
 		} else {
-		  fold(my_list_full(x, alpha, alpha_sum))
+		  fold(my_list_full(#x, #alpha, #alpha_sum))
 		}
 	*]
-
-
 
 lemma lseg_append_full(x, y, alpha, alpha_sum, yval, ynext)
     variant (l-len(alpha))
@@ -74,8 +61,7 @@ spec list_sum_iterative (x)
    
 proc list_sum_iterative(x){
            
-			[* apply my_list_full_types(#x, #alpha, #alpha_sum);
-			   fold my_lseg_full (#x, #x, {{ }}, 0) *]
+			[* fold my_lseg_full (#x, #x, {{ }}, 0) *]
 			count := 0;  
 
 			[[ my_lseg_full(#x, x, #done, count) * my_list_full(x, #rest, #rest_sum) * (#alpha == (#done @ #rest)) * (#alpha_sum == (count + #rest_sum)) ]]
@@ -101,3 +87,4 @@ with
 { 
 	ret: count, rlab; 
 };
+

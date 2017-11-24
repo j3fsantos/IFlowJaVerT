@@ -754,7 +754,7 @@ let string_of_gamma (gamma : typing_environment) : string =
 
 let rec reverse_type_lexpr_aux flag gamma new_gamma le le_type =
 	let f = reverse_type_lexpr_aux flag gamma new_gamma in
-	print_debug_petar (Printf.sprintf "Reverse typing %s in %s \nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (JSIL_Print.string_of_type le_type) flag); 
+	(* print_debug_petar (Printf.sprintf "Reverse typing %s in %s \nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (JSIL_Print.string_of_type le_type) flag); *) 
 	(match le with
 	(* Literals are always typable *)
 	| LLit lit -> (evaluate_type_of lit = le_type)
@@ -870,7 +870,7 @@ let reverse_type_lexpr flag gamma le le_type : typing_environment option =
 (* ******************** *)
 
 let safe_merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
-	print_debug_petar (Printf.sprintf "Merging gammas: %s \nand %s" (string_of_gamma gamma_l) (string_of_gamma gamma_r));
+	(* print_debug_petar (Printf.sprintf "Merging gammas: %s \nand %s" (string_of_gamma gamma_l) (string_of_gamma gamma_r)); *)
 	Hashtbl.iter
 		(fun var v_type ->
 			(match (Hashtbl.mem gamma_l var) with

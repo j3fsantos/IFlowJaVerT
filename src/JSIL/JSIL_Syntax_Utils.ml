@@ -35,7 +35,7 @@ let check_all_pred_pvars
     (** Step 2 - Check all predicates
       * -----------------------------------------------------------------------------------
     *)
-    let string_of_params = List.map JSIL_Print.string_of_logic_expression predicate.params in
+    let string_of_params = List.map (fun (pvar, _) -> JSIL_Print.string_of_logic_expression pvar) predicate.params in
     List.map (fun (pvar : jsil_var) ->
         let valid_pvar = List.mem pvar string_of_params in
         (match valid_pvar || predicate.previously_normalised_pred with
