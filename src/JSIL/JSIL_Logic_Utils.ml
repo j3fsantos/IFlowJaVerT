@@ -772,7 +772,7 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le le_type =
 	(* Abstract locations are reverse-typable if the target type is ObjectType *)
 	| ALoc _ -> if (le_type = ObjectType) then true else false
 
-  	(* LEList and LESet are not reverse typable because we lose type information *)
+  (* LEList and LESet are not reverse typable because we lose type information *)
 	| LEList _ ->
 			(match flag with
 			| true -> (le_type = ListType)
