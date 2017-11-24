@@ -35,6 +35,8 @@ lemma lseg2list_full(x, alpha, alpha_sum)
 		}
 	*]
 
+
+
 lemma lseg_append_full(x, y, alpha, alpha_sum, yval, ynext)
     variant (l-len(alpha))
 	[[ (x == #x) * (y == #y) * (alpha == #alpha) * (alpha_sum == #alpha_sum) * (yval == #yval) * (ynext == #ynext) * 
