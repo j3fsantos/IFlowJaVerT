@@ -886,18 +886,20 @@ let safe_merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environme
 		)
 		gamma_r
 
-(* Destructively extend gamma with typing information *)
-let rec infer_types le gamma : unit =
-	
-	let extend_gamma le t = 
-    let new_gamma = reverse_type_lexpr true gamma le t in
-      (match new_gamma with
-      | Some new_gamma -> safe_merge_gammas gamma new_gamma
-      | None -> 
-					let msg = Printf.sprintf "Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
-					print_debug_petar msg;
-					raise (Failure msg)) in
-  	
+let safe_extend_gamma gamma le t = 
+  let new_gamma = reverse_type_lexpr true gamma le t in
+    (match new_gamma with
+    | Some new_gamma -> safe_merge_gammas gamma new_gamma
+    | None -> 
+				let msg = Printf.sprintf "Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
+				print_debug_petar msg;
+				raise (Failure msg)) 
+
+(* Destructively extend gamma with typing information from logic expressions *)
+let rec infer_types_expr gamma le : unit =
+	let f = infer_types_expr gamma in
+	let e = safe_extend_gamma gamma in
+
 		(match le with
   	
   	(* Do nothing, these cases do not provide additional information *)
@@ -910,20 +912,20 @@ let rec infer_types le gamma : unit =
   	(* Set union and intersection - all members must be sets, plus any additional information from the members themselves *)
   	| LSetUnion lle
   	| LSetInter lle -> 
-				extend_gamma le SetType;
-				List.iter (fun le -> infer_types le gamma) lle
+				e le SetType;
+				List.iter (fun le -> f le) lle
 				
 		| LEList lle 
 		| LESet  lle -> 
-				List.iter (fun le -> infer_types le gamma) lle
+				List.iter (fun le -> f le) lle
 				
 		| LLstNth (lst, idx) ->
-				extend_gamma lst ListType;
-				extend_gamma idx NumberType
+				e lst ListType;
+				e idx NumberType
 				
 		| LLstNth (str, idx) ->
-				extend_gamma str StringType;
-				extend_gamma idx NumberType
+				e str StringType;
+				e idx NumberType
   		
   	(*
   	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
@@ -934,18 +936,58 @@ let rec infer_types le gamma : unit =
 		
 		| LBinOp (le1, op, le2) ->
 			(match op with
-			| Plus ->
-					extend_gamma le1 NumberType;
-					extend_gamma le2 NumberType;
+			| Plus | Minus | Times | Div | Mod ->
+					e le1 NumberType;
+					e le2 NumberType;
 			| LstCons ->
-					infer_types  le1 gamma;
-					extend_gamma le2 ListType;
+					f le1;
+					e le2 ListType;
 			| LstCat ->
-					extend_gamma le1 ListType;
-					extend_gamma le2 ListType
+					e le1 ListType;
+					e le2 ListType
 			| _ -> ())
   
   	| _ -> ())
+
+(* Destructively extend gamma with typing information from logic assertions *)
+let rec infer_types_asrt gamma (a : jsil_logic_assertion) : unit =
+	let f = infer_types_asrt gamma in
+	let fe = infer_types_expr gamma in
+	let e = safe_extend_gamma gamma in
+
+		(match a with
+  
+    | LTrue
+    | LFalse
+		| LEmp
+		| LTypes _ -> ()
+
+    | LNot a -> f a
+		| LForAll (_, a) -> f a
+
+		| LAnd  (a1, a2)	    
+    | LOr   (a1, a2)		  	    
+    | LStar	(a1, a2) -> f a1; f a2
+		
+    | LPointsTo	(le1, le2, le3) -> fe le1; fe le2; fe le3
+		
+		| LLess	  (le1, le2)		
+    | LLessEq	(le1, le2) -> 
+				e le1 NumberType;
+				e le2 NumberType
+		
+		| _ -> ()) 
+    
+		(*
+		| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
+    
+    | LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
+    | LEmptyFields	    of jsil_logic_expr * jsil_logic_expr                       (** emptyFields assertion *)
+    | LEq			    of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
+    | LStrLess	        of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for strings *)
+    | LSetMem  	        of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)
+    | LSetSub  	        of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *) *)
+
 
 
 (***************************************************************)

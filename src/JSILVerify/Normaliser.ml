@@ -146,7 +146,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 			| _, _ -> LStrNth (nle1, nle2)) in
 
 
-		JSIL_Logic_Utils.infer_types result gamma;
+		JSIL_Logic_Utils.infer_types_expr gamma result;
 		result
 
 
@@ -689,6 +689,7 @@ let rec normalise_pure_assertion
 	| _ ->
 			let msg = Printf.sprintf "normalise_pure_assertion can only process pure assertions: %s" (JSIL_Print.string_of_logic_assertion assertion) in
 			raise (Failure msg)) in
+		infer_types_asrt gamma result;
 		result
 
 (** -------------------------------------------------------------------

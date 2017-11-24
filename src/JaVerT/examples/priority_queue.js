@@ -1,7 +1,7 @@
 /**
 	@pred Node(n, pri, val, next, np) :
-		JSObjWithProto(n, np)      * types(np : $$object_type) *
-		DataProp(n, "pri",  pri)   * types(pri : $$number_type) * (0 <# pri) *
+		JSObjWithProto(n, np)      * 
+		DataProp(n, "pri",  pri)   * (0 <# pri) *
 		DataProp(n, "val",  val)   *
 		DataProp(n, "next", next)  *
 		((n, "insert") -> None);
@@ -16,16 +16,15 @@
 		((np, "next") -> None);
 	
 	@pred NodeList(nl, np, max_pri, length) :
-		(nl == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
+		(nl == $$null) * (max_pri == 0) * (length == 0),
 	
 		Node(nl, max_pri, #val, #next, np) * (0 <# max_pri) *
 		NodeList(#next, np, #pri, #len_nl) * (#pri <=# max_pri) *
-	  	(length == #len_nl + 1) *
-		types(nl : $$object_type, np : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_nl : $$number_type);
+	  	(length == #len_nl + 1);
 	
 	
 	@pred Queue(pq, qp, np, max_pri, length) :
-		JSObjWithProto(pq, qp) * types(qp : $$object_type) *
+		JSObjWithProto(pq, qp) * 
 		DataProp(pq, "_head",  #head) *
 		NodeList(#head, np, max_pri, length) * types(max_pri : $$number_type, length : $$number_type) *
 		((pq, "enqueue") -> None) * 
@@ -70,7 +69,7 @@ var PriorityQueue = (function () {
 	
 	 	@pre (
 	 		initialHeapPostWeak() * 
-	 	   	(pri == #pri) * types(#pri: $$number_type) * (0 <# #pri) *
+	 	   	(pri == #pri) * (0 <# #pri) *
 	 	   	(val == #val) *
 	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
 	 	   	((this, "insert") -> None) *
@@ -99,8 +98,7 @@ var PriorityQueue = (function () {
 			NodeList(#nl, #np, #pri_nl, #length) *
 			Node(this, #npri, #nval, $$null, #np) *
 			NodePrototype(#np) *
-			(#pri_nl <# #npri) *
-			types(#npri : $$number_type, #pri_nl : $$number_type)
+			(#pri_nl <# #npri)
 		)
 	    @post (
 			NodeList(this, #np, #npri, #length + 1) *
@@ -113,8 +111,7 @@ var PriorityQueue = (function () {
 			NodeList(#nl, #np, #pri_nl, #length) *
 			Node(this, #npri, #nval, $$null, #np) *
 			NodePrototype(#np) *
-			(#npri <=# #pri_nl) *
-			types(#npri : $$number_type, #pri_nl : $$number_type)
+			(#npri <=# #pri_nl)
 	   	)
 	   	@post (
 	   		types(#nl : $$object_type) *
@@ -170,7 +167,7 @@ var PriorityQueue = (function () {
 				
 		@pre (
 			initialHeapPostWeak() * 
-			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
+			(pri == #pri) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
@@ -185,7 +182,7 @@ var PriorityQueue = (function () {
 		
 		@pre (
 			initialHeapPostWeak() * 
-			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
+			(pri == #pri) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *

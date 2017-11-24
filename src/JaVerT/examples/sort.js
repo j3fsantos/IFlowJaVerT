@@ -2,7 +2,7 @@
 
   @pred nullableObject(o) : 
     types(o : $$object_type),
-    (o == $$null) * types (o : $$null_type);
+    (o == $$null);
 
  @pred Node(n, v, t):
    JSObject(n) *
@@ -15,16 +15,14 @@
 
    Node(l, #v, #t) * NDList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
-   (!(#v --e-- #tE)) *
-   types(#v: $$number_type, E: $$set_type, #tE: $$set_type);
+   (!(#v --e-- #tE));
 
  @pred SOList(l, E):
    (l == $$null) * (E == -{ }-),
 
    Node(l, #v, #t) * SOList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
-   (forall #x: $$number_type. ((! (#x --e-- #tE)) \/ (#v <# #x))) *
-   types(#v: $$number_type, E: $$set_type, #tE: $$set_type);
+   (forall #x: $$number_type. ((! (#x --e-- #tE)) \/ (#v <# #x)));
  */
  
 /**
