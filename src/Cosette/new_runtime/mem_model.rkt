@@ -240,59 +240,149 @@
 (define operators-list
   (list
     (cons '= eq?)
-    (cons '< <)
-    (cons '<= <=)
-    (cons '<s string<?)
-    (cons '+ +)
-    (cons '- -)
-    (cons '* *)
-    (cons '/ /)
-    (cons '% modulo)
+
+    (cons '<
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (< x y) jundefined)))
+
+    (cons '<=
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (<= x y) jundefined)))
+
+    (cons '<s
+          (lambda (x y)
+            (if (and (string? x) (string? y)) (string<? x y) jundefined)))
+
+    (cons '+
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (+ x y) jundefined)))
+
+    (cons '-
+          (lambda (x . rest)
+            (if (eq? (length rest) 0)
+                (if (number? x) (- x) jundefined)
+                (let ((y (first rest)))
+                  (if (and (number? x) (number? y)) (- x y) jundefined)))))
+
+    (cons '*
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (* x y) jundefined)))
+
+    (cons '/
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (/ x y) jundefined)))
+
+    (cons '%
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (modulo x y) jundefined)))
+          
     (cons '<: jsil-subtype)
-    (cons '++ string-append)
-    (cons '@ (lambda (x y) (append x (cdr y))))
+
+    (cons '++
+          (lambda (x y)
+            (if (and (string? x) (string? y)) (string-append x y) jundefined)))
+          
+    (cons '@
+          (lambda (x y)
+            (displayln "I am going to die appending")
+            (if (and (is-llist? x) (is-llist? y)) (append x (cdr y)) jundefined)))
+    
     (cons 'and (lambda (x y) (error "and operator called illegally")))
-    (cons 'or  (lambda (x y) (error "or operator called illegally")))
-    (cons '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    
+    (cons 'or (lambda (x y) (error "or operator called illegally")))
+
+    (cons '& (lambda (x y)
+                (if (and (number? x) (number? y))
+                    (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    jundefined)))
+
+    (cons '^ (lambda (x y)
+                (if (and (number? x) (number? y))
+                    (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    jundefined)))
+
+    (cons '<< (lambda (x y)
+                 (if (and (number? x) (number? y))
+                     (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                     jundefined)))
+
+    (cons '>> (lambda (x y)
+                (if (and (number? x) (number? y))
+                    (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    jundefined)))
+
     (cons ':: (lambda (x y)
-               (if (eq? x '(jsil-list))
-                y
-                (append (list 'jsil-list x) (cdr y)))))
-    (cons '** expt)
-    (cons 'm_atan2 (lambda (x y) (atan y x)))
-    (cons 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '>>> unsigned_right_shift)
-    (cons 'not not)
-    (cons 'num_to_string jsil-number-to-string)
-    (cons 'string_to_num jsil_string_to_number)
-    (cons '! (lambda (x) (bitwise-not (inexact->exact x))))
+               (if (is-llist? y)
+                   (append (list 'jsil-list x) (cdr y))
+                   jundefined)))
+
+    (cons '** (lambda (x) (if (number? x) (expt x) jundefined)))
+
+    (cons 'm_atan2 (lambda (x y)
+                     (if (and (number? x) (number? y)) (atan y x) jundefined)))
+
+    (cons 'bor (lambda (x y)
+                 (if (and (number? x) (number? y))
+                      (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                      jundefined)))
+
+    (cons '>>> (lambda (x) (if (number? x) (unsigned_right_shift x) jundefined)))
+
+    (cons 'not (lambda (x) (if (boolean? x) (not x) #f)))
+
+    (cons 'num_to_string (lambda (x) (if (number? x) (jsil-number-to-string x) jundefined)))
+
+    (cons 'string_to_num (lambda (x) (if (string? x) (jsil_string_to_number x) jundefined)))
+
+    (cons '! (lambda (x) (if (number? x) (bitwise-not (inexact->exact x)) jundefined)))  
+
     (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
+
     (cons 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
-    (cons 'car (lambda (x) (car (cdr x))))
-    (cons 'cdr (lambda (x) (cons 'jsil-list (cdr (cdr x)))))
-    (cons 'm_abs abs)
-    (cons 'm_acos acos)
-    (cons 'm_asin asin)
-    (cons 'm_atan atan)
-    (cons 'm_cos cos)
-    (cons 'm_sin sin)
-    (cons 'm_tan tan)
-    (cons 'm_sgn sgn)
-    (cons 'm_sqrt sqrt)
-    (cons 'm_exp exp)
-    (cons 'm_log log)
-    (cons 'm_ceil ceiling)
-    (cons 'm_floor floor)
-    (cons 'm_round round)
-    (cons 'num_to_int jsil_num_to_int)
-    (cons 'num_to_int32 jsil_num_to_int_32)
-    (cons 'num_to_uint16 jsil_num_to_uint_16)
-    (cons 'num_to_uint32 jsil_num_to_uint_32)
-    (cons 's-len string-length)
-    (cons 'l-len (lambda (x) (- (length x) 1)))))
+
+    (cons 'car (lambda (x) (if (is-llist? x) (car (cdr x)) jundefined)))
+
+    (cons 'cdr (lambda (x) (if (is-llist? x) (cons 'jsil-list (cdr (cdr x))) jundefined)))
+
+    (cons 'm_abs (lambda (x) (if (number? x) (abs x) jundefined)))
+    
+    (cons 'm_acos (lambda (x) (if (number? x) (acos x) jundefined)))
+
+    (cons 'm_asin (lambda (x) (if (number? x) (asin x) jundefined)))
+
+    (cons 'm_atan (lambda (x) (if (number? x) (atan x) jundefined)))
+
+    (cons 'm_cos (lambda (x) (if (number? x) (cos x) jundefined)))
+
+    (cons 'm_sin (lambda (x) (if (number? x) (sin x) jundefined)))
+
+    (cons 'm_tan (lambda (x) (if (number? x) (tan x) jundefined)))
+
+    (cons 'm_sgn (lambda (x) (if (number? x) (sgn x) jundefined)))
+
+    (cons 'm_sqrt (lambda (x) (if (number? x) (sqrt x) jundefined)))
+
+    (cons 'm_exp (lambda (x) (if (number? x) (exp x) jundefined)))
+
+    (cons 'm_log (lambda (x) (if (number? x) (log x) jundefined)))
+
+    (cons 'm_ceil (lambda (x) (if (number? x) (ceiling x) jundefined)))
+
+    (cons 'm_floor (lambda (x) (if (number? x) (floor x) jundefined)))
+
+    (cons 'm_round (lambda (x) (if (number? x) (round x) jundefined)))
+
+    (cons 'num_to_int (lambda (x) (if (number? x) (jsil_num_to_int x) jundefined)))
+
+    (cons 'num_to_int32 (lambda (x) (if (number? x) (jsil_num_to_int_32 x) jundefined)))
+
+    (cons 'num_to_uint16 (lambda (x) (if (number? x) (jsil_num_to_uint_16 x) jundefined)))
+    
+    (cons 'num_to_uint32 (lambda (x) (if (number? x) (jsil_num_to_uint_32 x) jundefined)))
+
+    (cons 's-len (lambda (x) (if (string? x) (string-length x) jundefined)))
+    
+    (cons 'l-len (lambda (x) (if (is-llist? x) (- (length x) 1) jundefined)))))
 
 ;; Obtaining the operator
 (define (to-interp-op op)

@@ -9,7 +9,7 @@
 (define success #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 2)
+(define max-depth 10)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -165,6 +165,7 @@
       [(eq? cmd-type 'assert)
        (let* ((expr-arg (second bcmd))
               (expr-val (run-expr expr-arg store)))
+         (print-info proc-name (format "assert(~v)" expr-val))
          (op-assert expr-val)
          (cons heap store))]
 
@@ -173,6 +174,7 @@
       [(eq? cmd-type 'assume)
        (let* ((expr-arg (second bcmd))
               (expr-val (run-expr expr-arg store)))
+         (print-info proc-name (format "assume(~v)" expr-val))
          (op-assume expr-val)
          (cons heap store))]
       
@@ -463,14 +465,14 @@
        ;; ('l-nth l e)
        [(eq? (first expr) 'l-nth)
         (let* ((elist (second expr))
-               (vlist (run-expr elist store))
-               (eidx  (third expr))
-               (vidx  (run-expr eidx store)))
-          (if (list? vlist)
-              (list-ref vlist (inexact->exact (+ vidx 1)))
-              (begin
-                (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
-                (error "Illegal list given to l-nth"))))]
+               (eidx (third expr)))
+          (for*/all ([vlist (run-expr elist store)]
+                    [vidx (run-expr eidx store)])
+            (if (list? vlist)
+                (list-ref vlist (inexact->exact (+ vidx 1)))
+                (begin
+                  (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
+                  (error "Illegal list given to l-nth")))))]
        ;;
        ;; ('s-nth s e)
        [(eq? (first expr) 's-nth)
@@ -504,6 +506,7 @@
                   #f
                   (let ((rarg (run-expr (third expr) store)))
                     (eq? rarg #t))))]
+
            [(eq? binop 'or)
             (let ((larg (run-expr (second expr) store)))
               (if (eq? larg #t)

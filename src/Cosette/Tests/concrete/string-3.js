@@ -12,4 +12,4 @@ function top(f, n) {
 }
 
 var ret1 = top("two", 5);
-assert (ret1 = 5)
+assert (ret1 = 1)

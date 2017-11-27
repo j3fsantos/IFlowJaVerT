@@ -23,18 +23,3 @@ do
 	echo "----------------"
 	sleep 1
 done
-
-echo "Testing jsil files"
-echo "------------------"
-for f in "${jsilfiles[@]}"
-do
-	time {
-	echo "Next file: $f.jsil"
-	res=$(./jsilverify.native -file $f.jsil -js | tail -n2)
-	if [[ $res == "ALL specs succeeded"* ]]; then
-		echo "Pass: $f"
-	else
-		echo "Fail: $f"
-	fi }
-	echo "------------------"
-done
