@@ -74,7 +74,7 @@ proc get (l, prop) {
 			xret := "getProperty" (l, prop) with elab;
 			goto [xret = $$undefined] rlab ltest;	(* Does the field exist?    *)
 
-	ltest:	goto [(typeOf(xret) = $$list_type)] elab def;
+	ltest:	goto [(typeOf(xret) = $$list_type)] def elab;
 
 	def:	d := l-nth (xret, 0);					(* Get the descriptor type  *)
 			xret := l-nth (xret, 1);				(* Get the value/getter     *)
