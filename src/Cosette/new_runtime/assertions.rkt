@@ -13,15 +13,15 @@
 (define (get-assumptions) current-assumptions)
 
 (define (op-assert e) 
-  (print e)
-  (newline)
   (set! current-assertions (and current-assertions e))
+  (print current-assertions)
+  (newline)
   #t)
 
 (define (op-assume e)
-  (print e)
-  (newline)
   (set! current-assumptions (and current-assumptions e))
+  (print current-assumptions)
+  (newline)
   #t)
   
 (provide clear-assertions! get-assertions get-assumptions op-assert op-assume)

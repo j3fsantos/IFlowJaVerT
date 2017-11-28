@@ -68,8 +68,6 @@ let process_file path =
 	let e = Parser_main.exp_from_string ~force_strict:true e_str in
 
     let ext_prog, _, _ = js2jsil e offset_converter (!for_verification) in
-
-    Printf.printf "js2jsil\n"; 
 	
 	let file_name = Filename.chop_extension path in
 	(if (not (!sep_procs))
