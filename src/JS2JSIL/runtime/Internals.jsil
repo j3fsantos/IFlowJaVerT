@@ -102,7 +102,9 @@ with
 
 proc canPut (l, prop) {
             xret := "getOwnProperty" (l, prop) with elab;
-	op:		goto [xret = $$undefined] nop odesc; 	(* Does the own property exist? *)
+	op:		goto [xret = $$undefined] nop ltest; 	(* Does the own property exist? *)
+
+	ltest:	goto [(typeOf(xret) = $$list_type)] odesc elab;
 
 	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
 			goto [d = "d"] odd nop;					    (* Is the descriptor a data descriptor? *)
@@ -112,7 +114,9 @@ proc canPut (l, prop) {
 
 	nop:	e := [l, "@extensible"];				   (* Get the extensible property *)
 			xret := "getProperty" (l, prop) with elab; (* Does the property exist? *)
-			goto [xret = $$undefined] ext desc;		   (* It doesn't; return extensible *)
+			goto [xret = $$undefined] ext ltest2;		   (* It doesn't; return extensible *)
+
+	ltest2:	goto [(typeOf(xret) = $$list_type)] desc elab;
 
 	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
 			v := l-nth (xret, 2);					(* Get the writable/setter *)
@@ -153,7 +157,7 @@ proc put (l, prop, value, throw) {
     		goto remp;
 
     gp:		xret := "getProperty" (l, prop) with elab;
-    		ad := "i__isAccessorDescriptor" (xret);
+    		ad := "i__isAccessorDescriptor" (xret) with elab;
     		goto [ad] ad def;
 
     ad:		s := l-nth (xret, 2);
@@ -499,7 +503,10 @@ with
 (* *** ISACCESSORDESCRIPTOR *** *)
 
 proc i__isAccessorDescriptor (desc) {
-			goto [desc = $$undefined] rf cont;
+			goto [desc = $$undefined] rf ltest;
+
+	ltest:	goto [(typeOf(desc) = $$list_type)] cont elab;
+
 	cont:	d := l-nth (desc, 0);
 			goto [d = "a"] rt gen;
 	gen:	goto [d = "g"] test rf;
@@ -509,11 +516,13 @@ proc i__isAccessorDescriptor (desc) {
 	rt:		xret := $$t;
 			goto rlab;
 	rf:		xret := $$f;
-	rlab:	skip
+	rlab:	skip; 
+	elab:   skip 
 }
 with
 {
 	ret : xret, rlab;
+	err : xret, elab; 
 };
 
 (* *** ISGENERICDESCRIPTOR *** *)
@@ -522,16 +531,18 @@ proc i__isGenericDescriptor (desc) {
 			goto [desc = $$undefined] rf cont;
 
 	cont:	dd := "i__isDataDescriptor" (desc);
-			ad := "i__isAccessorDescriptor" (desc);
+			ad := "i__isAccessorDescriptor" (desc) with elab;
 			xret := not (dd or ad);
 			goto rlab;
 
 	rf:		xret := $$f;
-	rlab:	skip
+	rlab:	skip; 
+	elab:   skip
 }
 with
 {
 	ret: xret, rlab;
+	err: xret, elab; 
 };
 
 (* *** TODATADESCRIPTOR *** *)
@@ -620,7 +631,7 @@ proc i__fromPropertyDescriptor (desc) {
 			res := "defineOwnProperty" (xret, "writable", {{ "d", l-nth (desc, 2), $$t, $$t, $$t}}, $$f);
 			goto ec;
 
-	is_ac:	ad := "i__isAccessorDescriptor" (desc);
+	is_ac:	ad := "i__isAccessorDescriptor" (desc) with elab;
 			goto [ad] ad oops;
 
 	ad:		res := "defineOwnProperty" (xret, "get", {{ "d", l-nth (desc, 1), $$t, $$t, $$t}}, $$f);
@@ -634,11 +645,13 @@ proc i__fromPropertyDescriptor (desc) {
 			goto rlab;
 
 	undef:	xret := $$undefined;
-	rlab:	skip
+	rlab:	skip; 
+	elab:   skip
 }
 with
 {
 	ret: 	xret, rlab;
+	err:    xret, elab;
 };
 
 (* *** TOPROPERTYDESCRIPTOR *** *)
@@ -814,7 +827,7 @@ proc i__putValue (v, w) {
     		dd := "i__isDataDescriptor" (xret);
     		goto [dd] reject is_ad;
 
-   	is_ad: 	ad := "i__isAccessorDescriptor" (xret);
+   	is_ad: 	ad := "i__isAccessorDescriptor" (xret) with elab;
     		goto [ad] ad reject;
 
     ad:		s := l-nth (xret, 2);

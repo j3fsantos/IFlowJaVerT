@@ -364,14 +364,16 @@
              
              [(and (symbolic? expr-val)
                    (> (count-goto proc-name cur-index) goto-limit))
-              ;(println "I am killing an execution because I reached the goto limit")
+              (println "I am killing an execution because I reached the goto limit")
               (kill expr-val)]
              
              [(eq? expr-val #t)
-              (run-cmds-iter prog heap store ctx then-label cur-index)]
+              (for*/all ([expr-val expr-val])
+                (run-cmds-iter prog heap store ctx then-label cur-index))]
              
              [(eq? expr-val #f)
-              (run-cmds-iter prog heap store ctx else-label cur-index)]
+              (for*/all ([expr-val expr-val])
+                (run-cmds-iter prog heap store ctx else-label cur-index))]
              
              [else
               (error "Illegal Conditional Goto Guard")])))]
@@ -465,14 +467,14 @@
        ;; ('l-nth l e)
        [(eq? (first expr) 'l-nth)
         (let* ((elist (second expr))
-               (eidx (third expr)))
-          (for*/all ([vlist (run-expr elist store)]
-                    [vidx (run-expr eidx store)])
+               (eidx (third expr))
+               (vlist (run-expr elist store))
+               (vidx (run-expr eidx store)))
             (if (list? vlist)
                 (list-ref vlist (inexact->exact (+ vidx 1)))
                 (begin
                   (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
-                  (error "Illegal list given to l-nth")))))]
+                  (error "Illegal list given to l-nth"))))]
        ;;
        ;; ('s-nth s e)
        [(eq? (first expr) 's-nth)
