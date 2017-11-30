@@ -9,7 +9,7 @@
 (define success #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 1)
+(define max-depth 10)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -368,12 +368,10 @@
               (kill expr-val)]
              
              [(eq? expr-val #t)
-              (for*/all ([expr-val expr-val])
-                (run-cmds-iter prog heap store ctx then-label cur-index))]
+                (run-cmds-iter prog heap store ctx then-label cur-index)]
              
              [(eq? expr-val #f)
-              (for*/all ([expr-val expr-val])
-                (run-cmds-iter prog heap store ctx else-label cur-index))]
+                (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else
               (error "Illegal Conditional Goto Guard")])))]
@@ -446,12 +444,12 @@
        [(eq? (first expr) 'typeof) 
         (let* ((arg (second expr))
                (val (run-expr arg store)))
-            (for*/all ([val val])
+           ;; for*/all ([val val])
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
                      (new-str (string-append tabs ": " (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))))
                 (println new-str)
-                type-of)))]
+                type-of))]
        ;;
        ;; ('jsil-list l)
        [(eq? (first expr) 'jsil-list)
@@ -470,11 +468,12 @@
                (eidx (third expr))
                (vlist (run-expr elist store))
                (vidx (run-expr eidx store)))
-            (if (list? vlist)
-                (list-ref vlist (inexact->exact (+ vidx 1)))
-                (begin
-                  (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
-                  (error "Illegal list given to l-nth"))))]
+           ;; for*/all ([vlist vlist])
+              (if (list? vlist)
+                  (list-ref vlist (inexact->exact (+ vidx 1)))
+                  (begin
+                    (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
+                    (error "Illegal list given to l-nth"))))]
        ;;
        ;; ('s-nth s e)
        [(eq? (first expr) 's-nth)
