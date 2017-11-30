@@ -27,7 +27,15 @@ with
 };
 
 proc o__getOwnProperty (l, prop) {
-            x := hasField(l, prop);
+
+			xret := "Error in o__getOwnProperty";
+
+	test1:	goto [typeOf(l)    = $$object_type] test2 elab;
+	test3:	goto [typeOf(prop) = $$string_type] test3 elab;
+	test4:  goto [prop = ""]                    elab  test4;
+	test4:	goto [s-nth(prop, 0) = "@"]         elab  cont;
+
+    cont:	x := hasField(l, prop);
             goto [x] hp nhp; 			(* Does the field exist? *)
 
     nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
@@ -35,11 +43,13 @@ proc o__getOwnProperty (l, prop) {
 
     hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
 
-    rlab:   skip
+    rlab:   skip;
+    elab:	skip
 }
 with
 {
     ret: 	xret, rlab;
+    err:	xret, elab;
 };
 
 (* *********** *)

@@ -9,7 +9,7 @@
 (define success #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 10)
+(define max-depth 1)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -445,13 +445,13 @@
        ;; ('typeof e)
        [(eq? (first expr) 'typeof) 
         (let* ((arg (second expr))
-               (val (run-expr arg store))
-               (type-of
-                (begin
-                  ;; (println (format "argument of typeof ~v" val))
-                  (jsil-type-of val))))
-          ;; (println (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))
-          type-of)]
+               (val (run-expr arg store)))
+            (for*/all ([val val])
+              (let* ((type-of (jsil-type-of val))
+                     (tabs (generate-tabs call-stack-depth))
+                     (new-str (string-append tabs ": " (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))))
+                (println new-str)
+                type-of)))]
        ;;
        ;; ('jsil-list l)
        [(eq? (first expr) 'jsil-list)
