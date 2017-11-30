@@ -1110,12 +1110,11 @@ proc i__toObject (v) {
 	obj:	xret := v;
 			goto rlab;
 
-	oops:	xret := "ToObject: This should not happen.";
+	oops:	goto elab;
 
 	rlab:	skip;
 
-	throw:	xret := "Here!";
-			xret := "TypeError" ();
+	throw:	xret := "TypeError" ();
 	elab:	skip
 }
 with
