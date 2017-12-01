@@ -546,8 +546,12 @@
 
 (define (run-program prog heap)
   (jsil-discharge)
-  (let ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-        (assertions-outcome (solve (assert (and (get-assumptions) success)))))
+  (let* ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
+         (outcome-success (solve (assert success)))
+         (outcome-failure (solve (assert failure)))
+         (outcome-success-assume (solve (assert (and (get-assumptions) success))))
+         (outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
+         )
     (print "Assumptions: ")
     (println (get-assumptions))
     (print "Assertions: ")
@@ -556,7 +560,11 @@
     (println success)
     (print "Failure: ")
     (println success)
-    assertions-outcome))
+    (println (format "Outcome Success: ~v" outcome-success))
+    (println (format "Outcome Failure: ~v" outcome-failure))
+    (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
+    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
+    "Banana"))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure) ;; jtrue jfalse protop)
 
