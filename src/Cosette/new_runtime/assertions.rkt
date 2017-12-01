@@ -14,14 +14,12 @@
 
 (define (op-assert e) 
   (set! current-assertions (and current-assertions e))
-  (print current-assertions)
-  (newline)
+  (println (format "Assertions: ~v" current-assertions))
   #t)
 
 (define (op-assume e)
   (set! current-assumptions (and current-assumptions e))
-  (print current-assumptions)
-  (newline)
+  (println (format "Assumptions: ~v" current-assumptions))
   #t)
   
 (provide clear-assertions! get-assertions get-assumptions op-assert op-assume)

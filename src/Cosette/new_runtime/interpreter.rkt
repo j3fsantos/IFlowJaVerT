@@ -67,7 +67,7 @@
               (prop-val  (run-expr prop-expr store))
               (rhs-val   (run-expr rhs-expr store))
               (heap      (mutate-heap heap loc-val prop-val rhs-val)))
-	      ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
+        ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
          (print-info proc-name (format "[~v, ~v] := ~v" loc-expr prop-expr rhs-expr))
          (cons heap store))]
       ;;
@@ -198,9 +198,9 @@
 
 (define (kill x)
   (letrec ((iter (lambda (l)
-		   (assert (not (car l)))
-		   (cond ((not (null? (cdr l)))
-			  (iter (cdr l)))))))
+       (assert (not (car l)))
+       (cond ((not (null? (cdr l)))
+        (iter (cdr l)))))))
     (iter (union-guards x))))
 
 
@@ -227,9 +227,9 @@
           )
         (println "Union command, yippie woo hoo hoo")
         (letrec ((iter (lambda (l)
-		   (println (format "  ~v" l))
-		   (cond ((not (null? (cdr l)))
-			  (iter (cdr l)))))))
+       (println (format "  ~v" l))
+       (cond ((not (null? (cdr l)))
+        (iter (cdr l)))))))
           (iter values)))
       (println cmd))
 )
@@ -328,6 +328,7 @@
          (proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
+    ;;(println (pc))
     ;;(print-cmd cmd)
     ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, ctx: ~v" proc-name cur-index cmd  ctx))
     (cond
@@ -533,10 +534,13 @@
 (define (run-program prog heap)
   (jsil-discharge)
   (let ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-        (assertions-outcome (solve (assert (not (and success (get-assertions)))))))
+        (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert (and (get-assertions) success)))))
+    (print "Assumptions: ")
+    (println (get-assumptions))
+    (print "Assertions: ")
+    (println (get-assertions))
+    (print "Success: ")
+    (println success)
     assertions-outcome))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success) ;; jtrue jfalse protop)
-
-
-  
