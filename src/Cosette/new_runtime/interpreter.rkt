@@ -328,6 +328,7 @@
          (proc (get-proc prog proc-name))
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
+    (println (pc))
     ;;(print-cmd cmd)
     ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, ctx: ~v" proc-name cur-index cmd  ctx))
     (cond
