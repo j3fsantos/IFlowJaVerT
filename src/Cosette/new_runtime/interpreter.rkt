@@ -182,8 +182,20 @@
       ;;
       ;; ('success)
       [(eq? cmd-type 'success)
-        ;; (println (format "terminating success"))
+        (println (format "Terminated: success"))
+        (println (format "Success was: ~v" success))
         (set! success #t)
+        (println (format "And now it is: ~v" success))
+        (cons heap store)] 
+      ;;
+
+      ;;
+      ;; ('failure)
+      [(eq? cmd-type 'failure)
+        (println (format "Terminated: failure"))
+        (println (format "Failure was: ~v" failure))
+        (set! failure #t)
+        (println (format "And now it is: ~v" failure))
         (cons heap store)] 
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
@@ -542,9 +554,10 @@
     (println (get-assertions))
     (print "Success: ")
     (println success)
+    (print "Failure: ")
+    (println success)
     assertions-outcome))
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure) ;; jtrue jfalse protop)
-
 
 ;; (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert success))))
