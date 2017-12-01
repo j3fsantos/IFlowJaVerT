@@ -7,7 +7,6 @@
 
 (define depth 0)
 (define success #f)
-(define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
 (define max-depth 10)
@@ -182,20 +181,8 @@
       ;;
       ;; ('success)
       [(eq? cmd-type 'success)
-        (println (format "Terminated: success"))
-        (println (format "Success was: ~v" success))
+        ;; (println (format "terminating success"))
         (set! success #t)
-        (println (format "And now it is: ~v" success))
-        (cons heap store)] 
-      ;;
-
-      ;;
-      ;; ('failure)
-      [(eq? cmd-type 'failure)
-        (println (format "Terminated: failure"))
-        (println (format "Failure was: ~v" failure))
-        (set! failure #t)
-        (println (format "And now it is: ~v" failure))
         (cons heap store)] 
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
@@ -547,17 +534,13 @@
 (define (run-program prog heap)
   (jsil-discharge)
   (let ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-        (assertions-outcome (solve (assert success)))) 
+        (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert (and (get-assertions) success)))))
     (print "Assumptions: ")
     (println (get-assumptions))
     (print "Assertions: ")
     (println (get-assertions))
     (print "Success: ")
     (println success)
-    (print "Failure: ")
-    (println success)
     assertions-outcome))
   
-(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success) ;; jtrue jfalse protop)
-
-;; (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert success))))
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure) ;; jtrue jfalse protop)
