@@ -215,7 +215,8 @@ type jsil_basic_cmd =
 	| SArguments  of jsil_var                          (** Arguments of the current function *)
 	| RAssume     of jsil_expr                          
 	| RAssert     of jsil_expr
-	| STerminate
+	| STermSucc
+	| STermFail
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which

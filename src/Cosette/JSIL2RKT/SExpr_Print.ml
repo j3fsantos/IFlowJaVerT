@@ -115,7 +115,9 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	(* ('arguments var)          *)
 	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
 	(* ('terminate-successfully) *)
-    | STerminate -> Printf.sprintf "'(%ssuccess)" str_i
+    | STermSucc -> Printf.sprintf "'(%ssuccess)" str_i
+	(* ('terminate-successfully) *)
+    | STermFail -> Printf.sprintf "'(%sfailure)" str_i
     (* (assume e) *)
 	| RAssume e -> Printf.sprintf "'(%sassume %s)" str_i (se e)
 	(* (assert e) *)

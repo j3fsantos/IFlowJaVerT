@@ -4421,7 +4421,7 @@ let generate_main offset_converter e spec =
 	let cmd_ass_se = make_var_ass_se () in
 	let cmd_ass_se = annotate_cmd cmd_ass_se None in
 
-	let ctx = make_translation_ctx offset_converter main_fid [ main_fid ] sc_var_main in
+	let ctx = make_translation_ctx ?err:(Some "fail_lab") offset_converter main_fid [ main_fid ] sc_var_main in
 	let cmds_hoist_fdecls = translate_fun_decls true sc_var_main 0 e in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 	let cmds_e, x_e, errs, _, _, _ = translate_statement ctx e in
@@ -4434,12 +4434,14 @@ let generate_main offset_converter e spec =
 	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
 	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
 
-	let cmd_terminate_successfully = annotate_cmd (SLBasic STerminate) None in 
+	let cmd_terminate_successfully = annotate_cmd (SLBasic STermSucc) None in
+
+	let cmd_terminate_unsuccessfully = annotate_cmd (SLBasic STermFail) (Some "fail_lab") in
 
 	(* lab_ret: skip *)
 	let lab_ret_skip = annotate_cmd (SLBasic SSkip) (Some ctx.tr_ret_lab) in
 
-	let cmd_err_phi_node = make_final_cmd errs ctx.tr_err ctx.tr_error_var in
+	let cmd_err_phi_node = make_final_cmd errs "elab" ctx.tr_error_var in
 
 	let main_cmds =
 		setup_heap_ass @
@@ -4448,14 +4450,14 @@ let generate_main offset_converter e spec =
 		[ cmd_ass_te; cmd_ass_se ] @
 		cmds_hoist_fdecls @
 		cmds_e @
-		[ret_ass; cmd_del_te; cmd_del_se; cmd_terminate_successfully; lab_ret_skip; cmd_err_phi_node ] in
+		[ret_ass; cmd_del_te; cmd_del_se; cmd_terminate_successfully; lab_ret_skip; cmd_terminate_unsuccessfully; cmd_err_phi_node ] in
 	{
 		lproc_name = main_fid;
     	lproc_body = (Array.of_list main_cmds);
     	lproc_params = [];
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
-		lerror_label = Some ctx.tr_err;
+		lerror_label = Some "elab";
 		lerror_var = Some ctx.tr_error_var;
 		lspec = spec
 	}

@@ -7,6 +7,7 @@
 
 (define depth 0)
 (define success #f)
+(define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
 (define max-depth 10)
@@ -181,8 +182,16 @@
       ;;
       ;; ('success)
       [(eq? cmd-type 'success)
-        ;; (println (format "terminating success"))
+        (println (format "Terminated: success"))
         (set! success #t)
+        (cons heap store)] 
+      ;;
+
+      ;;
+      ;; ('failure)
+      [(eq? cmd-type 'failure)
+        (println (format "Terminated: failure"))
+        (set! failure #t)
         (cons heap store)] 
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
@@ -534,12 +543,15 @@
 (define (run-program prog heap)
   (jsil-discharge)
   (let ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-        (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert (and (get-assertions) success)))))
+        (assertions-outcome (solve (assert success)))) 
+        ;; (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert success))))
     (print "Assumptions: ")
     (println (get-assumptions))
     (print "Assertions: ")
     (println (get-assertions))
     (print "Success: ")
+    (println success)
+    (print "Failure: ")
     (println success)
     assertions-outcome))
   

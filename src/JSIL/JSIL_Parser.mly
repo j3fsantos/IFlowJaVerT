@@ -153,6 +153,7 @@ let copy_and_clear_globals () =
 %token PHI
 %token PSI
 %token SUCCESS
+%token FAILURE
 (* Logic variables *)
 %token <string> LVAR
 (* Logical expressions *)
@@ -487,7 +488,10 @@ cmd_target:
 	  { SLBasic (RAssert (e)) }
 (* success *)
 	| SUCCESS
-		{ SLBasic (STerminate) }
+		{ SLBasic (STermSucc) }
+(* failure *)
+	| FAILURE
+		{ SLBasic (STermFail) }
 ;
 
 call_with_target:
