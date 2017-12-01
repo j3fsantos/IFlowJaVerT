@@ -189,8 +189,12 @@ let rec auto_unfold
 				let types_asrt = List.fold_left2 (fun ac (_, ot) x ->
 					(match ot with
 					| None -> ac
-					| Some t -> LStar (LTypes [ (x, t) ], ac))) LEmp pred.params args in
-				let asrt = LStar (asrt, types_asrt) in
+					| Some t -> (match ac with
+						| LEmp -> LTypes [ (x, t) ]
+						| _ -> LStar (LTypes [ (x, t) ], ac)))) LEmp pred.params args in
+				let asrt = (match types_asrt with
+					| LEmp -> asrt
+					| _ -> LStar (asrt, types_asrt)) in
 				[ asrt ]
 			)
 			else
