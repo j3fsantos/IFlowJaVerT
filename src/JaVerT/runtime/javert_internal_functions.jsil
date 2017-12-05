@@ -8,8 +8,8 @@
  * Resource: None
  *
  *)
-pred isInternalProperty (prop) :
-    types (prop : $$string_type) * (! (prop == "")) * (s-nth (prop, 0) == "@");
+pred isInternalProperty (prop : $$string_type) :
+	(! (prop == "")) * (s-nth (prop, 0) == "@");
 
 (*
  * Predicate: isNamedProperty
@@ -17,8 +17,8 @@ pred isInternalProperty (prop) :
  * Resource: None
  *
  *)
-pred isNamedProperty (prop) :
-    types (prop : $$string_type) * (! (prop == "")) * (! (s-nth (prop, 0) == "@"));
+pred isNamedProperty (prop : $$string_type) :
+	(! (prop == "")) * (! (s-nth (prop, 0) == "@"));
 
 (*
  * Predicate: DataDescriptor
@@ -26,9 +26,10 @@ pred isNamedProperty (prop) :
  * Resource: None
  *
  *)
-pred DataDescriptor (d) :
-    types (d : $$list_type, #dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type) *
-    (! (#dval == $$empty)) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }});
+pred DataDescriptor (d : $$list_type) :
+	(d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
+	types (#dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type) * 
+	(! (#dval == $$empty));
     
 (*
  * Predicate: GenericDescriptor
@@ -36,8 +37,8 @@ pred DataDescriptor (d) :
  * Resource: None
  *
  *)
-pred GenericDescriptor (d) :
-    types (d : $$list_type) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
+pred GenericDescriptor (d : $$list_type) :
+	(d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
 
 (*
  * Predicate: Projection functions for descriptors
@@ -45,23 +46,23 @@ pred GenericDescriptor (d) :
  * Resource: None
  *
  *)
-pred desc_val (d, v) :
-    types (d : $$list_type) * v == l-nth(d, 1);
+pred desc_val (d : $$list_type, v) :
+    v == l-nth(d, 1);
 
-pred desc_writ (d, v) :
-    types (d : $$list_type) * v == l-nth(d, 2);
+pred desc_writ (d : $$list_type, v) :
+    v == l-nth(d, 2);
 
-pred desc_get (d, v) :
-    types (d : $$list_type) * v == l-nth(d, 1);
+pred desc_get (d : $$list_type, v) :
+    v == l-nth(d, 1);
 
-pred desc_set (d, v) :
-    types (d : $$list_type) * v == l-nth(d, 2);
+pred desc_set (d : $$list_type, v) :
+    v == l-nth(d, 2);
 
-pred desc_enum (d, v) :
-    types (d : $$list_type) * v == l-nth(d, 3);
+pred desc_enum (d : $$list_type, v) :
+    v == l-nth(d, 3);
 
-pred desc_conf (d, v) :
-    types (d : $$list_type) * v == l-nth(d, 4);
+pred desc_conf (d : $$list_type, v) :
+    v == l-nth(d, 4);
 
 (*
  * Predicate: Cell_o(l, prop, X)
@@ -71,11 +72,9 @@ pred desc_conf (d, v) :
  *
  * Note: We are not allowing accessor descriptors in the heap yet
  *)
-pred Cell_o (l, prop, None) :
-    types(l : $$object_type) * isNamedProperty(prop) * ((l, prop) -> None);
-
-pred Cell_o (l, prop, d) :
-    types(l : $$object_type) * isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
+pred Cell_o (l : $$object_type, prop : $$string_type, d) :
+    isNamedProperty(prop) * ((l, prop) -> d) * (d == None),
+    isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
 
 (*
  * Predicate: ErrorObject(l, pr)
@@ -84,18 +83,16 @@ pred Cell_o (l, prop, d) :
  *      (l, "@proto")	(l, "@class")	(l, "@extensible")
  *
  *)
-
-pred ErrorObject (l, pr) :
-	types (l : $$object_type, pr : $$object_type) *
+pred ErrorObject (l : $$object_type, pr : $$object_type) :
 	((l, "@proto") -> pr) * ((l, "@class") -> "Error") * ((l, "@extensible") -> $$t) * empty_fields(l : -{ "@proto", "@class", "@extensible" }-);
 
-pred isTypeError(l) :
+pred isTypeError(l : $$object_type) :
     ErrorObject (l, $lterr_proto);
 
-pred isSyntaxError(l) :
+pred isSyntaxError(l : $$object_type) :
     ErrorObject (l, $lserr_proto);
 
-pred isReferenceError(l) :
+pred isReferenceError(l : $$object_type) :
     ErrorObject (l, $lrferr_proto);
 
 (*
@@ -105,10 +102,11 @@ pred isReferenceError(l) :
  *      (l, "@class")
  *
  *)
-pred isClass (c, "Array")      : types (c : $$string_type) * (c == "Array");
-pred isClass (c, "String")     : types (c : $$string_type) * (c == "String");
-pred isClass (c, "Non-String") : types (c : $$string_type) * (! (c == "String"));
-pred isClass (c, "Non-Array")  : types (c : $$string_type) * (! (c == "Array"));
+pred isClass (c : $$string_type, case : $$string_type) :
+	(case == "Array") * (c == "Array"),
+	(case == "String") * (c == "String"),
+	(case == "Non-Array") * (! (c == "Array")),
+	(case == "Non-String") * (! (c == "String"));
 
 (*
  * The PI predicate
