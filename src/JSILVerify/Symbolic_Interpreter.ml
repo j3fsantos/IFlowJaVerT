@@ -329,7 +329,7 @@ let symb_evaluate_bcmd
 		 | false -> raise (Symbolic_State_Utils.SymbExecFailure (Printf.sprintf "Attempting to delete an inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1)))
 		 | true  -> heap_remove heap l; LLit (Bool true));
 
-  (* Property existence: x = hasField(e1, e2);
+  	(* Property existence: x = hasField(e1, e2);
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
 			b) Safely evaluate e2 to obtain the property name ne2 and its type te2
 			c) If ne1 is not a literal location or an abstract location, throw an error
@@ -826,6 +826,10 @@ let make_spec_var_subst (subst : substitution) (spec_vars : SS.t) : substitution
 	let subst_list  = List.map (fun aloc -> (aloc, ALoc aloc)) spec_alocs in 
 	let subst_list' = List.map (fun x -> (x, LVar x)) (SS.elements spec_vars) in 
 	let pat_subst   = init_substitution3 (subst_list @ subst_list') in 
+
+	print_debug (Printf.sprintf "make_spec_var_subst. pat_subst:\n%s" 
+		(JSIL_Print.string_of_substitution pat_subst));
+
 	pat_subst, (SS.of_list spec_alocs) 
 
 
@@ -1013,9 +1017,10 @@ let rec symb_evaluate_logic_cmd
 		symb_evaluate_logic_cmd s_prog macro_body symb_state subst spec_vars search_info print_symb_states lemma
 
  	| Assert a ->
+ 		extend_spec_vars_subst spec_vars (ss_pfs symb_state) subst;
    		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a));
 		let existentials            = get_asrt_lvars a in
-		let existentials           = SS.diff existentials spec_vars in
+		let existentials            = SS.diff existentials spec_vars in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
 		let gamma_spec_vars         = filter_gamma_f (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
