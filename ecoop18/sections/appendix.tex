@@ -23,7 +23,7 @@
  \end{tabular}
  \vspace*{-0.2cm}
  \caption{Syntax of the \jsil Language}
- \label{def:jsil-types}
+ \label{def:app:jsil-types}
  \end{minipage}
   \vspace*{-0.5cm}
  \end{figure}
@@ -152,7 +152,7 @@
   }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
 \end{mathpar}}
 \vspace*{-0.6cm}
-\caption{Execution for Basic Commands: {\scriptsize$\semtrans[][\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\caption{Execution for Basic Commands: {\scriptsize$\semtrans[][\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:app:sem:basic:commands}}
 \end{figure}
 
 \vspace*{-0.5cm}
@@ -1694,7 +1694,9 @@ $$
 $$
 \end{cormax}
 \begin{proof}
-We suppose that $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$, and will first show that $\pc'$ is satisfiable. Given the symbolic execution rules, the last rule that was applied in the symbolic execution of $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$ is the \prooflab{Basic Command} rule combined with an \prooflab{Assert - False} rule: {\footnotesize 
+We suppose that $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$, and will first show that $\pc'$ is satisfiable. Given the symbolic execution rules, the last rule that was applied in the symbolic execution of $\symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$ is the \prooflab{Basic Command} rule combined with an \prooflab{Assert - False} rule: 
+
+{\footnotesize 
 $$
   \inferrule[\textsc{Basic Command}]
    { 
@@ -1712,15 +1714,14 @@ $$
 \end{proof}
 
 \begin{cormax}[Corollary~\ref{corollary:verification} - Verification]
-\vspace*{-0.1cm}
 $$
 \begin{array}{l}
 \forall \, \prog, \sheap, \sheap_1, ..., \sheap_n, \sstore, \sstore_1, ..., \sstore_n, \sctx, \sctx_1, ..., \sctx_n, i, j_1, ..., j_n, \pc, \pc_1, ..., \pc_n, \mode, \mode_1, ..., \mode_n \, . \,  \\
-  \quad \symbtranstrans[\prog][\mode][\mode_k]{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+   \wedge_{k=1}^n \left(\symbtranstrans[\prog][\mode][\mode_k]{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n\right) 
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
-      \quad \quad \implies \left(
+       \quad \Rightarrow \left(
          \forall \heap, \store, \ctx, \senv \, . \, (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc} \right. \\
-          \quad \qquad \left. \implies \exists k, \heap', \store', \ctx' \, . \, 
+           \qquad \left. \Rightarrow \exists k, \heap', \store', \ctx' \, . \, 
                   \semtranstrans[\symbeval{\prog}{\senv}][\mode][\mode_k]{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
                   (\heap', \store', \ctx', \senv) \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k} \right)
 \end{array}

@@ -1,27 +1,14 @@
 %!TEX root = ../main.tex
 
-%\begin{itemize}
-% 
-%  \item 2.1 - describe the jsil language. give its formal syntax  and semantics (extended with assert). 
-%                   formally define symbolic execution for JSIL commands. soundness result and its corollaries.  
-% 
-%  \item 2.2 Implementation:  
-%               - describe the \rosette approach to the implementation of symbolic analysis 
-%               - describe the encoding of \jsil concrete/symbolic states in \rosette 
-%               - explain the \jsil interpreter implemented in \rosette and its connection to the \jsil concrete semantics  and symbolic semantics 
-%               		- give snippets of the interpreter 
-%	       		- discuss implementation strategies that enable \rosette to work properly
-%\end{itemize}
-
 We introduce our symbolic execution engine for \jsil~\cite{javert}. In~\S\ref{subsec:jsil:analysis:formalism}, we present 
-the theoretical underpinnings of the symbolic analysis, whereas, in \S\ref{subsec:jsil:analysis:implementation}, 
+the theoretical underpinnings of the symbolic analysis, whereas in \S\ref{subsec:jsil:analysis:implementation}, 
 we describe its implementation in \rosette~\cite{Rosette1,Rosette2}.
 
 \vspace*{-0.2cm}
 \subsection{Formalisation}\label{subsec:jsil:analysis:formalism}
 
 \vspace*{-0.2cm}
-\myparagraph{\jsil: Syntax} \jsil is a goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. 
+\myparagraph{\jsil: Syntax} \jsil is a simple goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. The syntax of \jsil is shown in Figure \ref{def:jsil-types}.
 
 \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jsundefined$ and $\jsnull$, as well as types~$\ivltype$, procedure identifiers $\fid$, and the special value $\jsilempty$. 
 \jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, and various unary and binary operators, which, for instance, provide support for sets and lists. 
@@ -41,25 +28,23 @@ we describe its implementation in \rosette~\cite{Rosette1,Rosette2}.
 	\multicolumn{5}{l}{Commands: $\ivlcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$} \\[0.1cm]
 	\multicolumn{5}{l}{Procedures : $\proc \in \procset$ \defeq \ $\procedure{\fid}{\jvec{\jvar}}{\jvec{\ivlcmd}}$}
  \end{tabular}
- \vspace*{-0.2cm}
  \caption{Syntax of the \jsil Language}
  \label{def:jsil-types}
  \end{minipage}
-  \vspace*{-0.5cm}
  \end{figure}
  
 %Most syntactic constructs of JSIL either come directly from JavaScript or are useful for JavaScript analysis. 
 
 
-\jsil \emph{basic commands} enable the management of extensible objects and do not affect control flow. 
+\jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
 They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check, property collection, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.
 %
-\jsil \emph{commands} include \jsil basic commands and several commands related to control flow: conditional gotos, unconditional gotos and dynamic procedure calls.\footnote{\jsil also has a $\phi$-node assignment, which allows \JSComp to produce code directly in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit the $\phi$-node assignment from this formalisation as they do not impact the reasoning in any way. Details can be found in \cite{javert}.} 
+\jsil \emph{commands} include \jsil basic commands and several commands related to control flow: conditional gotos, unconditional gotos and dynamic procedure calls.\footnote{\jsil also has a $\phi$-node assignment, which allows \JSComp to produce code directly in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit the $\phi$-node assignment from this formalisation as it does not impact the reasoning in any way. Details can be found in \cite{javert}.} 
 The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
 The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure name and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
 If the procedure raises an error, control is transferred to the $j$-th command, and to the next otherwise. 
 
-A \jsil program $\prog \in \ivlprogs$ can be seen as a set of top-level procedures of the form $\procedure{\fid}{\jvec{\jvar}}{\jvec{\jcmd}}$, where $\fid$ is the procedure name, $\jvec{\jvar}$ its formal parameters, and its body ${\jvec{\jcmd}}$  is a \emph{command list} consisting of a sequence of \jsil commands.
+A \jsil program $\prog \in \ivlprogs$ can be seen as a set of top-level procedures of the form $\procedure{\fid}{\jvec{\jvar}}{\jvec{\jcmd}}$, where $\fid$ is the procedure name, $\jvec{\jvar}$ are its formal parameters, and its body ${\jvec{\jcmd}}$  is a \emph{command list} consisting of a sequence of \jsil commands.
 Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denoting the entry point of the program. 
 \jsil procedures return via two dedicated indexes, $\procretlab$ and $\procerrlab$, using two dedicated variables, $\procretvar$ and $\procerrvar$. If a procedure reaches the $\procretlab$ index, it returns normally with the return value denoted by $\procretvar$; when it reaches $\procerrlab$, it returns an error, with the error value denoted by $\procerrvar$.
 
@@ -67,19 +52,17 @@ Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denot
 The basic memory model of \jsil is as follows. 
 %\jsil values contain: numbers, $\jnumber$; booleans, $\jbool$; strings, $\jstring$;  the special values \jsinline|undefined| and \jsinline|null|; and object locations,  $\loc \in \locs$.
 A \jsil heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations, and strings to heap values. 
- Given a heap $\heap$, we denote: a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $h(\loc,\jstring) = \val$; the union of two disjoint heaps by $\oheap_1 \dunion \oheap_2$; heap lookup by $\hread{\oheap}{\loc}{\jstring}$; and the empty heap by $\hemp$.
- Finally, a \jsil variable store, $\store \in \stores$, is a mapping from JSIL program variables $\jvar \in \jvars$ to JSIL values.
+ Given a heap~$\heap$, we denote: a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $h(\loc,\jstring) = \val$; the union of two disjoint heaps by $\oheap_1 \dunion \oheap_2$; heap lookup by $\hread{\oheap}{\loc}{\jstring}$; and the empty heap by $\hemp$.
+A \jsil variable store, $\store \in \stores$, is a mapping from JSIL program variables $\jvar \in \jvars$ to JSIL values. Finally, \jsil has two execution modes, ranged over by $\mode$: $\top$, which indicates that the execution can proceed; and~$\bot$, which indicates that a failure has occurred and the execution must stop. 
 
-\jsil semantics is defined in small-step style. Transitions for basic commands, given in Figure \ref{fig:sem:basic:commands}, are of the form $\semtrans{\heap, \store, \bcmd}{\heap', \store'}$, meaning that the execution of the basic command $\bcmd$ in the heap $\heap$ and store $\store$ results in the heap $\heap'$ and $\store'$. 
-We also include a transition for assertion failures, denoted by $\semtranserr{\sheap, \sstore, \bcmd}$.
-In the following we denote the semantic interpretation of a unary operator $\unoper$ by $\semop{\unoper}$; analogously for binary operators.
-
+\jsil semantics is defined in small-step style. Transitions for basic commands, given in Figure \ref{fig:sem:basic:commands}, are of the form $\semtrans[\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$, meaning that the execution of the basic command $\bcmd$ in the heap $\heap$, store $\store$, and execution mode $\mode$ results in the heap $\heap'$, $\store'$, and execution mode $\mode'$. 
+We denote the semantic interpretation of unary operators $\unoper$ by $\semop{\unoper}$, the semantic interpretation of binary operators $\binoper$ by $\semop{\binoper}$.
 
 \begin{figure}[ht!]
 {\scriptsize
 \begin{mathpar} 
 %
-\inferrule[Semantics of expressions]{}{
+\inferrule[Evaluation of expressions]{}{
 \semexpr{\val}{\store} \semeq \val
 \quad 
 \semexpr{\jvar}{\store} \semeq \store(\jvar)
@@ -90,15 +73,16 @@ In the following we denote the semantic interpretation of a unary operator $\uno
 \\
 
 \inferrule[\textsc{Skip}]{}
-	{ \semtrans{\heap, \store, \jsilskip}{\heap, \store}} 
+	{ \semtrans[][\top]{\heap, \store, \jsilskip}{\heap, \store}} 
  \qquad
 %
 \inferrule[\textsc{Object Creation}]
   { 
     \heap = \heap \dunion \hcell{\loc}{\protop}{\jsnull}
     \quad (\loc,-) \notin \domain (\heap)
-  }{\semtrans{\heap, \store, \jvar := \jsilnew()}{\heap, \store[\jvar \mapsto \loc]}}
+  }{\semtrans[][\top]{\heap, \store, \jvar := \jsilnew()}{\heap, \store[\jvar \mapsto \loc]}}
 \\
+\vspace*{-0.1cm}
 \inferrule[\textsc{Property Collection}]
   {
       \symbeval{\jsilexpr}{\store} =  \loc
@@ -106,7 +90,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \heap = \heap' \, \uplus \, \big((l, \jstring_i) \mapsto \val_i\big)\mid_{i = 0}^n   
         \quad
         (l, -) \not\in \domain(\heap')
-  }{\semtrans{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\jstring_0, ..., \jstring_n}]}} 
+  }{\semtrans[][\top]{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\jstring_0, ..., \jstring_n}]}} 
 %
 \qquad
  %
@@ -115,7 +99,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
       \symbeval{\jsilexpr}{\store} =  \val
       \quad
       \store' = \store[\jvar \mapsto \val]
-  }{\semtrans{\heap, \store, \jvar := \jsilexpr}{\heap, \store'}} 
+  }{\semtrans[][\top]{\heap, \store, \jvar := \jsilexpr}{\heap, \store'}} 
 \\
 %
 \inferrule[\textsc{Property Access}]
@@ -125,7 +109,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \symbeval{\jsilexpr_2}{\store} =  \jstring
         \quad
         \heap = - \dunion \hcell{\loc}{\jstring}{\val}
-  }{ \semtrans{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \val]}}
+  }{ \semtrans[][\top]{\heap, \store, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\heap,  \store[\jvar \mapsto \val]}}
  \and 
  \inferrule[\textsc{Property Deletion}]
   { 
@@ -134,7 +118,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \symbeval{\jsilexpr_2}{\store} =  \jstring
         \quad
         \heap = \heap' \dunion \hcell{\loc}{\jstring}{-}
-  }{\semtrans{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\heap', \store}}
+  }{\semtrans[][\top]{\heap, \store, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\heap', \store}}
  %
 \\
 %
@@ -146,7 +130,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \symbeval{\jsilexpr_3}{\store} =  \val
        \\\\
         \heap = \heap' \dunion  \hcell{\loc}{\jstring}{-}
-  }{\semtrans{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap' \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
+  }{\semtrans[][\top]{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap' \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
  \and 
  \inferrule[\textsc{Property Assignment - Not Found}]
   {     \symbeval{\jsilexpr_1}{\store} =  \loc
@@ -158,7 +142,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \heap = \heap' 
         \quad 
         (\loc, \jstring) \not\in \domain(\heap)
-  }{\semtrans{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
+  }{\semtrans[][\top]{\heap, \store, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\heap \dunion  \hcell{\loc}{\jstring}{\val}, \store}} 
 \\
 %
 \inferrule[\textsc{Member Check - True}]
@@ -168,7 +152,7 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \symbeval{\jsilexpr_2}{\store} =  \jstring
        \quad 
    	(\loc, \jstring) \in \domain(\heap) 
-  }{\semtrans{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jtrue]}}
+  }{\semtrans[][\top]{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jtrue]}}
   \and 
  \inferrule[\textsc{Member Check - False}]
   { 
@@ -177,62 +161,58 @@ In the following we denote the semantic interpretation of a unary operator $\uno
         \symbeval{\jsilexpr_2}{\store} =  \jstring
        \quad 
    	(\loc, \jstring) \not\in \domain(\heap) 
-  }{\semtrans{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jfalse]}}
+  }{\semtrans[][\top]{\heap, \store,\jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\heap, \store[\jvar \mapsto \jfalse]}}
 %
 \\
 %
 \inferrule[\textsc{Assume}]
   { 
       \symbeval{\jsilexpr}{\store} =  \jtrue
-  }{\semtrans{\heap, \store, \assume(\jsilexpr)}{\heap, \store}} 
+  }{\semtrans[][\top]{\heap, \store, \assume(\jsilexpr)}{\heap, \store}} 
 \and
 \inferrule[\textsc{Assert - True}]
   { 
       \symbeval{\jsilexpr}{\store} =  \jtrue
-  }{\semtrans{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
+  }{\semtrans[][\top]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
 \and
 \inferrule[\textsc{Assert - False}]
   { 
       \symbeval{\jsilexpr}{\store} = \jfalse
-  }{\semtranserr{\heap, \store, \assert(\jsilexpr)}} 
+  }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
 \end{mathpar}}
-\vspace*{-0.5cm}
-\caption{Semantics of \jsil Basic Commands: {$\semtrans{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
-\vspace*{-0.5cm}
+\vspace*{-0.3cm}
+\caption{Execution for Basic Commands: {\scriptsize$\semtrans[][\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \end{figure}
 
 To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$. Call stacks are lists of tuples of the form $(\pid, \store, \jvar, i, j)$, where: 
-\dtag{1}~$\pid$~is a procedure identifier, 
-\dtag{2}~$\store$~is the store of the procedure that called $\pid$, \dtag{3}~$\jvar$~is 
-the variable to which the return of $\pid$ must be assigned in $\store$, \dtag{4} $i$ is the index 
+\dtag{1}~$\pid$~is a procedure identifier;
+\dtag{2}~$\store$~is the store of the procedure that called $\pid$; 
+\dtag{3}~$\jvar$~is the variable to which the return of $\pid$ must be assigned in $\store$; 
+\dtag{4} $i$ is the index 
 of the command to which the control must jump after the execution of $\pid$ in 
-case of normal return, and \dtag{5} $j$ the index to which it must jump in case of 
-error return. Transitions for control flow commands have the form:  $\semtrans[\prog]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$, meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the call stack $\ctx$, in
-the heap $\heap$ and store $\store$, generates the heap $\heap'$, store $\store'$, call stack $\ctx'$,   
-and the next command to be evaluated is the $i'$-th command of the first procedure of the call stack~$\ctx'$. Due to space constraints and as the transitions for JSIL symbolic execution are  similar, we give the full semantics for JSIL control flow commands in the Appendix. 
-% So far, so boring.
+case of normal return; 
+and \dtag{5} $j$ the index to which it must jump in case of 
+error return. Transitions for control flow commands have the form:  $\semtrans[\prog][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$, meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the call stack $\ctx$, in
+the heap $\heap$, store $\store$, and execution mode $\mode$, generates the heap $\heap'$, store $\store'$, call stack $\ctx'$,   
+and the next command to be evaluated is the $i'$-th command of the first procedure of the call stack~$\ctx'$, in execution mode $\mode'$. Due to space constraints and as the transitions for JSIL symbolic execution are  similar, we give the full semantics for JSIL control flow commands in the~Appendix. % So far, so boring.
 
 \myparagraph{\jsil: Symbolic Semantics}
 In order to symbolically execute \jsil programs, we extend the syntax of \jsil expressions with 
 symbolic strings $\sstring \in \sstrings$ and symbolic numbers $\snumber \in \snumbers$. 
 For convenience, we use $\svars$ to denote the union of $\sstrings$ and $\snumbers$ 
-and $\svar$ to range over $\svars$. 
-
+and $\svar$ to range over $\svars$. We introduce: \jsil symbolic expressions, $\sexpr \in \sexprs$, defined as follows: $\sexpr \triangleq \val \mid \svar \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$; as well as \jsil extended symbolic expressions, $\pvsexpr \in \pvsexprs$, defined as follows: $\pvsexpr \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \pvsexpr \mid \pvsexpr \binoper \pvsexpr$. Extended expressions differ from symbolic ones in that they can contain program variables.
 
 We extend heaps, stores, and call stacks with symbolic values, obtaining symbolic 
 heaps, stores, and call stacks, respectively ranged over by $\sheap$, $\sstore$, and $\sctx$. 
 A symbolic heap, $\sheap \in \sheaps$, is a partial function mapping pairs of  
-object locations, and symbolic expressions to symbolic expressions. 
+object locations and symbolic expressions to symbolic expressions. 
 A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
-$\jvar \in \jvars$ to symbolic expressions.
+$\jvar \in \jvars$ to symbolic expressions. Therefore, an evaluation of a \jsil extended expression $\pvsexpr$ in a symbolic store $\sstore$ always yields a 
+symbolic expression $\sexpr$.
 A symbolic call stack $\sctx$ only differs from a concrete call stack in that it contains 
 symbolic stores instead of concrete stores.
 %
-Symbolic expressions $\sexpr \in \sexprs$ are \jsil expressions that do not contain 
-any program variables. Put formally, the syntax of symbolic expressions is as follows: 
-$\sexpr \triangleq \val \mid \sstring \mid \snumber \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$.
-The evaluation of a \jsil expression $\jsilexpr$ in a symbolic store $\sstore$ yields a 
-symbolic expression $\sexpr$.
+
 %Figure~\ref{fig:symb:sem:exprs} shows the rules for symbolically evaluating \jsil expressions. 
 
 %
@@ -245,49 +225,12 @@ Path conditions are given by the following grammar:
 \begin{equation*}
 \pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc \mid \jtrue \mid \jfalse
 \end{equation*}
-In order to avoid clutter, we conflate logical values with \jsil logical values and \jsil logical 
-operators with the boolean logical operators. Alternatively, we could have chosen to 
-have two different types: \jsil logical expressions and logical expressions together with a lifting 
-function for allowing the conversion of the former to the latter. Our choice simplifies both reasoning 
-and presentation. 
 
-Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for \jsil basic commands. 
-Rules have the form $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
-where: \dtag{1} $\sheap$ and $\sstore$ are the symbolic heap and store on which to evaluate $\bcmd$, 
-\dtag{2} $\pc$ the current \emph{path condition}, and \dtag{3} $\sheap'$, $\sstore'$, and $\pc'$
-the resulting symbolic heap, store, and path condition. Notice that the rules are non-deterministic.
-
-Figure~\ref{fig:symbexe:cmds} presents the symbolic execution rules for \jsil commands. 
-Rules have the form $\symbtrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$; 
-they are analogous to the semantic rules for \jsil commands, except that the heap, store, and call stack 
-are symbolic and there is the additional path condition. For clarity, we keep 
-the program and the context implicit wherever possible, and make use of a function $\ccmd{\prog, \ctx, i}$, which 
-returns the $i$-th command of the procedure that is first in $\ctx$. We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
-
-
-\begin{wrapfigure}{R}{0.4\textwidth}
-\vspace*{-0.4cm}
-{\small
-\hspace*{0.25cm} $\mathtt{0\quad o := new\ ()}$ \\
-\hspace*{0.25cm} $\mathtt{1\quad o[\hat{s}] := 42};$ \\
-\hspace*{0.25cm} $\mathtt{2\quad x := getFields(o);}$ \\
-\hspace*{0.25cm} $\mathtt{3\quad assert\ (card \ x == 2)}$
-}
-\vspace*{-0.3cm}
-\end{wrapfigure}
-The rules for skip, assignment, object creation, property collection, assume, and assert are straightforward. The remaining rules follow a specific pattern. To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
-This code: 
-	0)~creates a new object $\mathtt{o}$;
-	1)~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
-	2)~collects all the properties of $\mathtt{o}$ into a list and assigns this list to $\mathtt{x}$; and
-	3)~asserts that the length of the list in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will produce a failing symbolic execution. Let us understand why.
-
-%\begin{display}{}
-\begin{figure}[ht!]
+\begin{figure}[!t]
 {\scriptsize
 \begin{mathpar} 
 %
-\inferrule[\textsc{Symbolic semantics of expressions}]{}{
+\inferrule[\textsc{Evaluation of extended \jsil expressions}]{}{
 %
 {\begin{array}{c}
 \semexpr{\val}{\sstore} \semeq \val \\[2pt]
@@ -299,34 +242,34 @@ This code:
 %
 \qquad
 %
-\frac{\semexpr{\jsilexpr}{\sstore} = \val}
-      {\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \semop{\unoper} \val}
+\frac{\semexpr{\pvsexpr}{\sstore} = \val}
+      {\semexpr{\unoper\ \pvsexpr}{\sstore} \semeq \semop{\unoper} \val}
 %
 \qquad
 %
-\frac{\semexpr{\jsilexpr}{\sstore} = \sexpr \not\in \vals}
-       {\semexpr{\unoper\ \jsilexpr}{\sstore} \semeq \unoper \ \sexpr}
+\frac{\semexpr{\pvsexpr}{\sstore} = \sexpr \not\in \vals}
+       {\semexpr{\unoper\ \pvsexpr}{\sstore} \semeq \unoper \ \sexpr}
 %
 \qquad
-\frac{ \val = \semop{\binoper}(\semexpr{\jsilexpr_1}{\sstore}, \semexpr{\jsilexpr_2}{\sstore})} 
-       {\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val}
+\frac{ \val = \semop{\binoper}(\semexpr{\pvsexpr_1}{\sstore}, \semexpr{\pvsexpr_2}{\sstore})} 
+       {\semexpr{\pvsexpr_1 \binoper \pvsexpr_2}{\sstore} \semeq \val}
  %
  \qquad
 \frac{{\begin{array}{c}
-	\semexpr{\jsilexpr_1}{\sstore} = \sexpr_1 
+	\semexpr{\pvsexpr_1}{\sstore} = \sexpr_1 
 	  \quad 
-	  \semexpr{\jsilexpr_2}{\sstore} = \sexpr_2
+	  \semexpr{\pvsexpr_2}{\sstore} = \sexpr_2
 	  \\
 	  \sexpr_1 \not\in \vals \ \vee \ \sexpr_2 \not\in \vals 
 	  \end{array}}
 	}
-	{\semexpr{\jsilexpr_1 \binoper \jsilexpr_2}{\sstore} \semeq \val_1 \, {\binoper} \, \val_2}
+	{\semexpr{\pvsexpr_1 \binoper \pvsexpr_2}{\sstore} \semeq \sexpr_1 \, {\binoper} \, \sexpr_2}
 }
 %
 \\
 %
 \inferrule[\textsc{Skip}]{}
-	{ \symbtrans{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
+	{ \symbtrans[][\top]{\sheap, \sstore, \jsilskip, \pc}{\sheap, \sstore, \pc}} 
  \and
 %
 \inferrule[\textsc{Object Creation}]
@@ -335,32 +278,32 @@ This code:
     \and
     \sheap' = \sheap \dunion \hcell{\loc}{\protop}{\jsnull}
     \and 
-  }{\symbtrans{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \jsilnew(), \pc}{\sheap', \sstore[\jvar \mapsto \loc], \pc}}
 \\
 \inferrule[\textsc{Assignment}]
   {
-      \symbeval{\jsilexpr}{\sstore} =  \sexpr
-      \\\\
+      \symbeval{\pvsexpr}{\sstore} =  \sexpr
+      \quad
       \sstore' = \sstore[\jvar \mapsto \sexpr]
-  }{\symbtrans{\sheap, \sstore, \jvar := \jsilexpr, \pc}{\sheap, \sstore', \pc}} 
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \pvsexpr, \pc}{\sheap, \sstore', \pc}} 
   %
   \and
   %
   \inferrule[\textsc{Property Collection}]
   {
-      \symbeval{\jsilexpr}{\sstore} =  \loc
+      \symbeval{\pvsexpr}{\sstore} =  \loc
       \quad
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto - \big)\mid_{i = 0}^n   
         \quad
         (l, -) \not\in \domain(\sheap')
-  }{\semtrans{\heap, \store, \jvar := \getfields(\jsilexpr)}{\heap, \store[\jvar \mapsto \jsilset{\sexprp_0, ..., \sexprp_n}]}} 
+  }{\semtrans[][\top]{\heap, \store, \jvar := \getfields(\pvsexpr), \pc}{\heap, \store[\jvar \mapsto \jsilset{\sexprp_0, ..., \sexprp_n}],\pc}} 
 %
 \\
 \inferrule[\textsc{Property Access}]
   { 
- 	\symbeval{\jsilexpr_1}{\sstore} =  \loc
+ 	\symbeval{\pvsexpr_1}{\sstore} =  \loc
   	\quad 
-        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p
         \quad
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
         \quad
@@ -368,17 +311,17 @@ This code:
         \quad 
         0 \leq k \leq n
         \\\\
-        \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{ \symbtrans{\sheap, \sstore, \jvar := [\jsilexpr_1, \jsilexpr_2], \pc}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
+        \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \left(\wedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \right)\big)
+  }{ \symbtrans[][\top]{\sheap, \sstore, \jvar := [\pvsexpr_1, \pvsexpr_2], \pc}{\sheap,  \sstore[\jvar \mapsto \sexprv_k], \pc'}}
  %
 \\
 %
 \inferrule[\textsc{Property Assignment - Found}]
-  {     \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  {     \symbeval{\pvsexpr_1}{\sstore} =  \loc
   	\quad 
-        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p
         \quad
-        \symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v
+        \symbeval{\pvsexpr_3}{\sstore} =  \sexpr_v
        \quad 
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
         \quad
@@ -386,18 +329,18 @@ This code:
         \quad 
         0 \leq k \leq n
         \\
-          \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+          \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \left( \wedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \right)\big)
          \quad
          \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore,  [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}} 
+  }{\symbtrans[][\top]{\sheap, \sstore,  [\pvsexpr_1, \pvsexpr_2] := \pvsexpr_3, \pc}{\sheap'', \sstore, \pc'}} 
 \\
 %
 \inferrule[\textsc{Property Assignment - Not Found}]
-  {     \symbeval{\jsilexpr_1}{\sstore} =  \loc
+  {     \symbeval{\pvsexpr_1}{\sstore} =  \loc
   	\quad 
-        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p
         \quad
-        \symbeval{\jsilexpr_3}{\sstore} =  \sexpr_v
+        \symbeval{\pvsexpr_3}{\sstore} =  \sexpr_v
        \quad 
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0}^n   
         \quad
@@ -405,18 +348,18 @@ This code:
         \quad 
         0 \leq k \leq n
         \\
-          \pc' = \pc \ \wedge \, \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)
+          \pc' = \pc \ \wedge \, \left(\wedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)\right)
          \quad
          \sheap'' = \sheap \, \uplus \,  (l, \sexpr_p) \mapsto \sexpr_v
-  }{\symbtrans{\sheap, \sstore, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3, \pc}{\sheap'', \sstore, \pc'}}   
+  }{\symbtrans[][\top]{\sheap, \sstore, [\pvsexpr_1, \pvsexpr_2] := \pvsexpr_3, \pc}{\sheap'', \sstore, \pc'}}   
 %
 \\
 %
 \inferrule[\textsc{Property Deletion}]
   { 
-        \symbeval{\jsilexpr_1}{\sstore} =  \loc
+        \symbeval{\pvsexpr_1}{\sstore} =  \loc
   	\quad 
-        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p
        \quad 
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
         \quad
@@ -424,17 +367,17 @@ This code:
         \quad 
         0 \leq k \leq n
      \\ 
-      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
+      \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \left(\wedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \right)\big)
      \quad 
       \sheap'' = \sheap' \, \uplus \,  \big((l, \sexprp_i) \mapsto \sexprv_i\big)\mid_{i = 0, i \neq k}^n
-   }{\symbtrans{\sheap, \sstore, \jsildelete(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap'', \sstore, \pc'}}
+   }{\symbtrans[][\top]{\sheap, \sstore, \jsildelete(\pvsexpr_1, \pvsexpr_2), \pc}{\sheap'', \sstore, \pc'}}
  \\
  %
 \inferrule[\textsc{Member Check - True}]
   { 
-      \symbeval{\jsilexpr_1}{\sstore} =  \loc
+      \symbeval{\pvsexpr_1}{\sstore} =  \loc
   	\quad 
-        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p
        \quad 
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
         \quad
@@ -442,54 +385,55 @@ This code:
         \quad 
         0 \leq k \leq n
      \\ 
-     \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \bigwedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
+     \pc' = \pc \ \wedge \, \big( (\sexprp_k = \sexpr_p) \ \wedge \left(\wedge_{i = 0, i \neq k}^n (\sexprp_i \neq \sexpr_p) \right)\big)
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \hasfield(\pvsexpr_1, \pvsexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jtrue], \pc'}}
 %
 \\
 %
 \inferrule[\textsc{Member Check - False}]
   { 
-      \symbeval{\jsilexpr_1}{\sstore} =  \loc
+      \symbeval{\pvsexpr_1}{\sstore} =  \loc
   	\quad 
-        \symbeval{\jsilexpr_2}{\sstore} =  \sexpr_p
+        \symbeval{\pvsexpr_2}{\sstore} =  \sexpr_p
        \quad 
         \sheap = \sheap' \, \uplus \, \big((l, \sexprp_i) \mapsto -\big)\mid_{i = 0}^n   
         \quad
         (l, -) \not\in \domain(\sheap')
         \quad 
         0 \leq k \leq n
-     \\ 
-     \pc' = \pc \ \wedge \,  \bigwedge_{i = 0}^n (\sexprp_i \neq \sexpr_p) \big)
-  }{\symbtrans{\sheap, \sstore, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
+     \quad
+     \pc' = \pc \ \wedge \,  \left(\wedge_{i = 0}^n (\sexprp_i \neq \sexpr_p)\right) 
+  }{\symbtrans[][\top]{\sheap, \sstore, \jvar := \hasfield(\pvsexpr_1, \pvsexpr_2), \pc}{\sheap, \sstore[\jvar \mapsto \jfalse], \pc'}}
 \\
 %
 \inferrule[\textsc{Assert - True}]
   { 
-      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+      \symbeval{\pvsexpr}{\sstore} =  \sexpr
      \quad 
      \pc \vdash \sexpr 
-  }{\symbtrans{\sheap, \sstore, \assert(\jsilexpr), \pc}{\sheap, \sstore, \pc}} 
+  }{\symbtrans[][\top]{\sheap, \sstore, \assert(\pvsexpr), \pc}{\sheap, \sstore, \pc}} 
 \quad
 \inferrule[\textsc{Assert - False}]
   { 
-      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+      \symbeval{\pvsexpr}{\sstore} =  \sexpr
      \quad 
      (\pc \, \wedge \,  \neg\sexpr) \text{ satisfiable}
-  }{\symbtranserr{\sheap, \sstore, \assert(\jsilexpr), \pc}{}{(\pc \, \wedge \,  \neg\sexpr)}}
+  }{\symbtrans[][\top][\bot]{\sheap, \sstore, \assert(\pvsexpr), \pc}{\sheap, \sstore,  \pc \wedge \neg\sexpr}}
   \quad
 %
 \inferrule[\textsc{Assume}]
   { 
-      \symbeval{\jsilexpr}{\sstore} =  \sexpr
+      \symbeval{\pvsexpr}{\sstore} =  \sexpr
      \quad 
      \pc \vdash \sexpr 
-  }{\symbtrans{\sheap, \sstore, \assume(\jsilexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
+  }{\symbtrans[][\top]{\sheap, \sstore, \assume(\pvsexpr), \pc}{\sheap, \sstore, \pc \land \sexpr}} 
 \end{mathpar}}
-\vspace*{-0.6cm}
-\caption{Symbolic Semantics for \jsil Basic Commands: {$\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
-\vspace*{-0.6cm}
+\vspace*{-0.4cm}
+\caption{Symbolic Semantics for \jsil Basic Commands: {$\symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
+\vspace*{-0.4cm}
 \end{figure}
 %\end{display}  
+
 
 
 \begin{figure}[ht]
@@ -561,26 +505,60 @@ This code:
  \end{mathpar}}
  \vspace*{-0.4cm}
 \caption{Symbolic Semantics for \jsil Commands: {$\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:symbexe:cmds}}
- \vspace*{-0.2cm}
 \end{figure}
 
+To avoid clutter, we conflate logical values with \jsil logical values and \jsil logical 
+operators with the boolean logical operators. Alternatively, we could have chosen to 
+have two different types, \jsil logical expressions and logical expressions, together with a lifting 
+function for converting the former to the latter. Our choice simplifies both reasoning 
+and~presentation. 
 
-We start from an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state {\small $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}$}, illustrated at the top of Figure~\ref{fig:sexecexample}.
+Figure~\ref{fig:symbexe:bcmds} presents the symbolic execution rules for the \jsil basic commands. 
+Rules have the form $\symbtrans{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$, 
+where: \dtag{1} $\sheap$ and $\sstore$ are the symbolic heap and store on which to evaluate $\bcmd$, 
+\dtag{2} $\pc$ the current \emph{path condition}, and \dtag{3} $\sheap'$, $\sstore'$, and $\pc'$
+the resulting symbolic heap, store, and path condition. Notice that the rules are non-deterministic.
+
+Figure~\ref{fig:symbexe:cmds} presents the symbolic execution rules for \jsil commands. 
+Rules have the form $\symbtrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$; 
+they are analogous to the semantic rules for \jsil commands, except that the heap, store, and call stack 
+are symbolic and there is the additional path condition. For clarity, we keep 
+the program and the context implicit wherever possible, and make use of a function $\ccmd{\prog, \ctx, i}$, which 
+returns the $i$-th command of the procedure that is first in $\ctx$. We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
+
+\begin{wrapfigure}{R}{0.4\textwidth}
+\vspace*{-0.25cm}
+{\small
+\hspace*{0.25cm} $\mathtt{0\quad o := new\ ()}$ \\
+\hspace*{0.25cm} $\mathtt{1\quad o[\hat{s}] := 42};$ \\
+\hspace*{0.25cm} $\mathtt{2\quad x := getFields(o);}$ \\
+\hspace*{0.25cm} $\mathtt{3\quad assert\ (card \ x == 2)}$
+}
+\vspace*{-0.3cm}
+\end{wrapfigure}
+The rules for skip, assignment, object creation, property collection, assume, and assert are straightforward. The remaining rules follow a specific pattern. To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
+This code: 
+	0)~creates a new object $\mathtt{o}$;
+	1)~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
+	2)~collects all the properties of $\mathtt{o}$ into a set and assigns this set to $\mathtt{x}$; and
+	3)~asserts that the cardinality of the set in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will produce a failing symbolic execution. Let us understand why.
+
+We start from an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}^\top$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state {\small $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}^\top$}, illustrated at the top of Figure~\ref{fig:sexecexample}.
+The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the symbolic semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jsnull$; and $\hat{s}$, with value 42.
+The execution then continues in both branches with the property collection command $\mathtt{x := getFields(o)}$, which assigns the set of properties of the object $\mathtt{o}$ to the variable~$\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (card \ x = 2)}$, asserting that $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left.
+Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbolic execution trace, from which a concrete counter-model can be derived ($\hat{s} = \mathtt{``@proto"}$).
+
+We now present our theoretical results. We denote the reflexive-transitive closure of $\rightarrow$ by $\rightarrow^*$ and the reflexive-transitive closure of $\leadsto$ by $\leadsto^*$, and we define both in the usual way.
 
 %\vspace*{-0.3cm}
-\begin{figure*}[h!]
+\begin{figure}[!t]
 \centering
 \includegraphics[width=0.83\textwidth]{symbSemEx.png}
-\vspace*{-0.2cm}
+\vspace*{-0.1cm}
 \caption{Example of a \jilette symbolic execution}
 \label{fig:sexecexample}
-\vspace*{-0.5cm}
-\end{figure*}
-
-The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the symbolic semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jsnull$; and $\hat{s}$, with value 42. 
-The execution then continues in both branches with the property collection command $\mathtt{x := getFields(o)}$, which assigns the set of properties of the object $\mathtt{o}$ to variable~$\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (card \ x = 2)}$, asserting that the object $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left. Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbolic execution trace, from which a concrete counter-model can be derived (that being: $\hat{s} = \mathtt{``@proto"}$).
-
-We denote the reflexive-transitive closure of $\rightarrow$ by $\rightarrow^*$ and the reflexive-transitive closure of $\leadsto$ by $\leadsto^*$, and we define both in the usual way.
+\vspace*{-0.3cm}
+\end{figure}
 
 \myparagraph{Transparency} 
 Observe that a concrete state is also a symbolic state. Hence, we can feed a concrete state to the 
@@ -588,26 +566,83 @@ symbolic execution. In that case, the symbolic execution must behave exactly as 
 execution. This is captured by the transparency theorem given below. 
 
 \begin{theorem}[Transparency]\label{teo:transparency}
-$\forall \, \heap, \heap', \store, \store', i, i', \ctx, \ctx' \, . \,$
+$\forall \, \prog, \heap, \store, i, \ctx, \mode, \heap',  \store', i',  \ctx', \mode' \, . \,$
 \vspace{-5pt}
 $$
-  \semtranstrans{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+  \semtranstrans[\prog][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
   \iff
-  \symbtranstrans{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx'] 
+  \symbtranstrans[\prog][\mode][\mode']{\heap, \store, i, \jtrue}{\heap', \store', i', \jtrue}[\ctx][\ctx']. 
 $$
 \end{theorem}
 
 \vspace{-5pt}
 \myparagraph{Soundness} To establish the soundness of symbolic execution, we need to relate 
 symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
-$\senv : \svars \rightharpoonup \vals$ mapping symbolic values to concrete values. 
-A symbolic environment is said to be \emph{well-formed} if it maps symbolic 
-values to concrete values of the appropriate type (e.g. symbolic strings are mapped to strings 
-and symbolic numbers are mapped to numbers). In the following, we will always 
+$\senv : \svars \rightharpoonup \vals$, mapping symbolic values to concrete values. 
+A symbolic environment is \emph{well-formed} if it maps symbolic 
+values to concrete values of the appropriate type (i.e.~symbolic strings are mapped to strings 
+and symbolic numbers are mapped to numbers). In the following, we always 
 assume well-formed symbolic environments. 
 %
-Given a symbolic environment $\senv$, we define the interpretation of symbolic 
-expressions, heaps, stores, and contexts as shown in Figure~\ref{fig:symbolic:interp}. 
+Given a symbolic environment $\senv$, we define the interpretation of extended expressions and symbolic expressions as follows:
+
+\begin{figure*}[!h]
+{\footnotesize
+\textsc{Interpretation of Symbolic Expressions}
+\vspace*{-0.1cm}
+\begin{mathpar}
+\semexpr{\val}{\senv} \semeq \val 
+%
+\qquad
+%
+\semexpr{\svar}{\senv} \semeq \senv(\svar)
+\qquad
+%
+\semexpr{\unoper\ \sexpr}{\senv} \semeq \semop{\unoper} (\semexpr{\sexpr}{\senv})
+\qquad 
+\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \semop{\binoper}(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
+\end{mathpar}
+
+
+\textsc{Interpretation of Extended Expressions}
+\vspace*{-0.2cm}
+\begin{mathpar}
+{\begin{array}{c}
+\semexpr{\val}{\senv} \semeq \val \\[2pt]
+%
+\semexpr{\xvar}{\senv} \semeq \xvar \\[2pt]
+%
+\semexpr{\svar}{\senv} \semeq \senv(\svar)
+\end{array}}
+\quad
+%
+\frac{\semexpr{\pvsexpr}{\senv} = \val}
+      {\semexpr{\unoper\ \pvsexpr}{\senv} \semeq \semop{\unoper} \val}
+%
+\quad
+%
+\frac{\semexpr{\pvsexpr}{\senv} = \pvsexpr' \not\in \vals}
+       {\semexpr{\unoper\ \pvsexpr}{\senv} \semeq \unoper \ \pvsexpr'}
+%
+\quad
+\frac{ \val = \semop{\binoper}(\semexpr{\pvsexpr_1}{\senv}, \semexpr{\pvsexpr_2}{\sstore})} 
+       {\semexpr{\pvsexpr_1 \binoper \pvsexpr_2}{\senv} \semeq \val}
+ %
+ \quad
+\frac{{\begin{array}{c}
+	\semexpr{\pvsexpr_1}{\senv} = \pvsexpr_1' 
+	  \quad 
+	  \semexpr{\pvsexpr_2}{\senv} = \pvsexpr_2'
+	  \\
+	  \pvsexpr_1' \not\in \vals \ \vee \ \pvsexpr_2' \not\in \vals 
+	  \end{array}}
+	}
+	{\semexpr{\pvsexpr_1 \binoper \pvsexpr_2}{\senv} \semeq \pvsexpr_1' \, {\binoper} \, \pvsexpr_2'}
+\end{mathpar}}
+\vspace*{-0.4cm}
+\end{figure*}
+
+We extend this interpretation to heaps, stores, contexts, basic commands, commands, procedures, and programs in the standard way, shown in the Appendix.  
 We say that a symbolic environment is \emph{consistent} with a path condition 
 $\pc$, written $\senv \vdash \pc$,  if and only if $\semexpr{\pc}{\senv} = \jtrue$. 
 Given a symbolic state $(\sheap, \sstore, \sctx)$ and a path condition $\pc$, we define 
@@ -620,87 +655,84 @@ symbolic environments that are consistent with~$\pc$. Formally:
 \smodels{\sheap, \sstore}{\pc} & = \left\{ (\heap, \store, \senv) \mid \semexpr{\sheap}{\senv} = \heap \, \wedge \, \semexpr{\sstore}{\senv} = \store \, \wedge \,  \senv \satisfies \pc  \right\}
 \end{align}}
 
-\begin{figure}[t!]
-{\small
-\begin{tabular}{l}
-$\quad${\bf Interpretation of Symbolic Expressions:}  \\
-$
-\quad
-\semexpr{\val}{\senv} \semeq \val
-\quad 
-\semexpr{\jvar}{\senv} \semeq \jvar
-\quad 
-\semexpr{\svar}{\senv} \semeq \senv(\svar)
-\quad 
-\semexpr{\unoper\ \sexpr}{\senv} \semeq \semop{\unoper} (\semexpr{\sexpr}{\senv})
-\quad 
-\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \semop{\binoper}(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
-$
-\\[3pt]
-$\quad${\bf Symbolic Heaps:}  \\
-$
-\quad
- \semexpr{\hemp}{\senv} \semeq \hemp
-\quad
-\semexpr{\hcell{\loc}{\sexpr_p}{\sexpr_v}}{\senv} \semeq  \hcell{\loc}{\semexpr{\sexpr_p}{\senv}}{\semexpr{\sexpr_v}{\senv}}
-\quad
-\semexpr{\sheap_1 \dunion \sheap_2}{\senv} \semeq  \semexpr{\sheap_1}{\senv} \dunion \semexpr{\sheap_2}{\senv}
-$%
-%%
-%%
-\\[3pt]
-$\quad${\bf Symbolic Stores:}  
-$
- \semexpr{\storeemp}{\senv} \semeq \storeemp
-\quad 
- \semexpr{(\jvar: \sexpr) \dunion \sstore}{\senv} \semeq (\jvar: \semexpr{\sexpr}{\senv}) \dunion \semexpr{\sstore}{\senv}
-$%
-\\[3pt]
-$\quad${\bf Symbolic Contexts:}  
-$ \semexpr{\lstemp}{\senv} \semeq \lstemp
-\quad 
- \semexpr{(\pid, \sstore, \jvar, i, j) \lstcons \sctx}{\senv} \semeq (\pid, \semexpr{\sstore}{\senv}, \jvar, i, j) \lstcons \semexpr{\sctx}{\senv}
-$%
+%\begin{figure}[t!]
+%{\small
+%\begin{tabular}{l}
+%$\quad${\bf Interpretation of Symbolic Expressions:}  \\
+%$
+%\quad
+%\semexpr{\val}{\senv} \semeq \val
+%\quad 
+%\semexpr{\jvar}{\senv} \semeq \jvar
+%\quad 
+%\semexpr{\svar}{\senv} \semeq \senv(\svar)
+%\quad 
+%\semexpr{\unoper\ \sexpr}{\senv} \semeq \semop{\unoper} (\semexpr{\sexpr}{\senv})
+%\quad 
+%\semexpr{\sexpr_1 \binoper \sexpr_2}{\senv} \semeq \semop{\binoper}(\semexpr{\sexpr_1}{\senv}, \semexpr{\sexpr_2}{\senv}) 
+%$
+%\\[3pt]
+%$\quad${\bf Symbolic Heaps:}  \\
+%$
+%\quad
+% \semexpr{\hemp}{\senv} \semeq \hemp
+%\quad
+%\semexpr{\hcell{\loc}{\sexpr_p}{\sexpr_v}}{\senv} \semeq  \hcell{\loc}{\semexpr{\sexpr_p}{\senv}}{\semexpr{\sexpr_v}{\senv}}
+%\quad
+%\semexpr{\sheap_1 \dunion \sheap_2}{\senv} \semeq  \semexpr{\sheap_1}{\senv} \dunion \semexpr{\sheap_2}{\senv}
+%$%
+%%%
+%%%
+%\\[3pt]
+%$\quad${\bf Symbolic Stores:}  
+%$
+% \semexpr{\storeemp}{\senv} \semeq \storeemp
+%\quad 
+% \semexpr{(\jvar: \sexpr) \dunion \sstore}{\senv} \semeq (\jvar: \semexpr{\sexpr}{\senv}) \dunion \semexpr{\sstore}{\senv}
+%$%
+%\\[3pt]
+%$\quad${\bf Symbolic Contexts:}  
+%$ \semexpr{\lstemp}{\senv} \semeq \lstemp
+%\quad 
+% \semexpr{(\pid, \sstore, \jvar, i, j) \lstcons \sctx}{\senv} \semeq (\pid, \semexpr{\sstore}{\senv}, \jvar, i, j) \lstcons \semexpr{\sctx}{\senv}
+%$%
+%
+%\\[3pt]
+%$\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq (\semexpr{\sheap}{\senv}, \semexpr{\sstore}{\senv}, \semexpr{\sctx}{\senv})$
+%\end{tabular}
+%}
+%\caption{Interpretation of symbolic expressions, heaps, stores, and contexts.\label{fig:symbolic:interp}}
+%\vspace{-0.5cm}
+%\end{figure}
 
-\\[3pt]
-$\quad${\bf Symbolic States:}  $\semexpr{(\sheap, \sstore, \sctx)}{\senv} \semeq (\semexpr{\sheap}{\senv}, \semexpr{\sstore}{\senv}, \semexpr{\sctx}{\senv})$
-\end{tabular}
-}
-\caption{Interpretation of symbolic expressions, heaps, stores, and contexts.\label{fig:symbolic:interp}}
-\vspace{-0.5cm}
-\end{figure}
-
+\vspace*{-0.3cm}
 The soundness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
-$\symbtranstrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
-and a concrete state $(\heap, \store, \ctx)$ with a symbolic environment $\senv$
+$\symbtranstrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
+and a concrete state $(\heap, \store, \ctx)$ with a symbolic environment~$\senv$
 in the models of the initial symbolic state under 
 the final path condition $\pc'$, and $\senv$ concretises all symbolic variables of the program $\prog$, then there exists a concrete symbolic state $(\heap', \store', \ctx')$ 
 that is in the models of the final symbolic state under $\pc'$ with the same symbolic environment~$\senv$, such that: 
-$\semtranstrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$. 
+$\semtranstrans[\symbeval{\prog}{\senv}][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$. 
  We use the final path condition $\pc'$ for both the models of the initial and final 
 symbolic states because we only care about the initial concrete states for which 
 the concrete execution will follow the same path as the symbolic execution. 
 %
 \begin{theorem}[Soundness]\label{teo:soundness:jsil:symb:exe}
-$\forall \, 
-	\prog,
-	\sheap, \sstore, i, \pc, \sctx, 
-	\sheap', \sstore', i', \pc', \sctx', 
-	\heap, \store, \ctx,
-	\senv.$
+$\forall \, \prog, 
+	\sheap, \sstore, i, \pc, \sctx, \mode, 
+	\sheap', \sstore', i', \pc', \sctx', \mode', 
+	\heap, \store, \ctx, \senv \, .$
 \vspace*{-0.65cm}
 $$
 \begin{array}{l}
-  \\  
-\quad \symbtranstrans[\prog]{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
-   \, \wedge \,
-      (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \, \wedge \,
-      \svarsreallyqueen(\prog) \subseteq \domain(\senv) 
-      \\ \quad \quad
-      	 \ \implies \ \exists \heap', \store', \ctx'. \, 
-	 	 \semtranstrans[\symbeval{\prog}{\senv}]{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
+\\  
+\quad \symbtranstrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx'] 
+   \ \wedge \ 
+      (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \\ \quad \quad
+      	 \ \Rightarrow \ \exists \heap', \store', \ctx' \, . \, 
+	 	 \semtranstrans[\symbeval{\prog}{\senv}][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']
 		\, \wedge \, 
-		(\heap', \store', \ctx', \senv) \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
+		(\heap', \store', \ctx') \in \smodels{\sheap', \sstore', \sctx'}{\pc'}  
 \end{array}
 $$
 \end{theorem}
@@ -714,12 +746,13 @@ we can always instantiate its symbolic values obtaining a concrete counter-model
 failing assertion. This is essential, as \jilette is meant to be a \emph{bug-finding} tool.
 %
 \begin{corollary}[Bug-finding]\label{bug:finding}
-$\forall \, \sheap, \sstore, i, \pc, \sctx, \pc'.$
+$\forall \, \prog, \sheap, \sstore, i, \pc, \sctx, \sheap', \sstore', j, \pc', \sctx' \, .$
 \vspace*{-0.2cm}
 $$
-\begin{array}{l}
- \quad \symbtranstranserr{\sheap, \sstore, i, \pc}{\sctx}{\pc'} \implies 
-     \exists \heap, \store, \ctx \, . \, \semtranstranserr{\heap, \store, i}[\ctx]
+\begin{array}{l} 
+ \quad \symbtranstrans[\prog][\top][\bot]{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']  \\ 
+   \qquad \Rightarrow 
+     \exists \heap, \store, \ctx, \senv \, . \, (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc'} \ \wedge \ \semtranstrans[\symbeval{\prog}{\senv}][\top][\bot]{\heap, \store, i}{\_, \_, \_}[\ctx][\_]. 
 \end{array}
 $$
 \end{corollary}
@@ -735,15 +768,15 @@ As \jilette does not infer loop invariants, if a \jsil program contains loops th
 \begin{corollary}[Verification]\label{corollary:verification}
 $$
 \begin{array}{l}
-\forall \, \sheap, \sstore, i, \pc, \sctx, \sheap_1, \ldots, \sheap_n, \sstore_1, \ldots, \sstore_n, j_1, \ldots, j_n, \pc_1, \ldots, \pc_n, \sctx_1, \ldots, \sctx_n, \heap, \store, \ctx, \senv. \, \\
-  \quad \symbtranstrans{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n
+\forall \, \prog, \sheap, \sheap_1, ..., \sheap_n, \sstore, \sstore_1, ..., \sstore_n, \sctx, \sctx_1, ..., \sctx_n, i, j_1, ..., j_n, \pc, \pc_1, ..., \pc_n,\mode, \mode_1, ..., \mode_n. \\
+   \;\; \wedge_{k=1}^n \left(\symbtranstrans[\prog][\mode][\mode_k]{\sheap, \sstore, i, \pc}{\sheap_k, \sstore_k, j_k, \pc_k}[\sctx][\sctx_k]\mid_{k = 1}^n\right) 
       \ \wedge \ \pc \vdash \bigvee_{k=1}^n \pc_k \\ 
-      \qquad \implies 
-        	(\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc} \\
-          \qquad \quad \implies \exists \heap', \store', \ctx', k\, . \, 
-                  \semtranstrans{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
-                  (\heap', \store', \ctx', \senv) \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k}.
-\end{array}   
+       \;\;\;\; \Rightarrow \left(
+         \forall \heap, \store, \ctx, \senv \, . \, (\heap, \store, \ctx, \senv) \in \smodels{\sheap, \sstore, \sctx}{\pc} \right. \\
+           \;\;\;\;\;\; \left. \Rightarrow \exists k, \heap', \store', \ctx' \, . \, 
+                  \semtranstrans[\symbeval{\prog}{\senv}][\mode][\mode_k]{\heap, \store, i}{\heap', \store', j_k}[\ctx][\ctx'] \ \wedge \ 
+                  (\heap', \store', \ctx', \senv) \in \smodels{\sheap_k, \sstore_k, \sctx_k}{\pc_k} \right)
+\end{array}
 $$ 
 \end{corollary}
 %
@@ -770,6 +803,7 @@ interpreter for \jsil. %consistent with the symbolic semantics described in  \S\
 %The idea of turning a concrete interpreter into a symbolic interpreter by embedding it in 
 %
 The implementation of the concrete interpreter in \rosette must fulfil the following criteria:
+
 \begin{itemize}          
    \item \emph{Efficiency:} the implementation must promote \rosette's efficient behaviour;
    
@@ -800,7 +834,19 @@ as Racket symbols.\footnote{Racket symbols are uninterpreted values and can be v
 \jsil values with \rosette correspondents are mapped accordingly; the remaining 
 ones are modelled as Racket symbols (e.g. \jsil types, $\jsundefined$, $\jsnull$, and $\jsilempty$). 
 
-\begin{display}{\rosette implementation of \jsil symbolic state}
+The implementation of \jsil commands precisely follows their concrete semantics as 
+described in \S\ref{subsec:jsil:analysis:formalism}. 
+To show this, let us consider the fragment of the \jsil interpreter that implements 
+the \prooflab{Property Assignment} rule, shown in Figure~\ref{rosette:interpreter:fragment}.
+The figure shows three functions: \dtag{1} \schemeinline|(run-bcmd bcmd heap store)|, for 
+executing basic commands, \dtag{2} \schemeinline|(update-heap heap loc prop val)|, for 
+updating the heap \schemeinline|heap| by setting the value of the 
+the property \schemeinline|prop| of the object denoted by \schemeinline|loc| to \schemeinline|val|, 
+and \dtag{3} \schemeinline|(update-pv-list pv-list prop new-val)|,
+for updating the property-value list \schemeinline|pv-list| by setting \schemeinline|prop|
+to \schemeinline|new-val|.
+
+\begin{display}{\rosette implementation of the \jsil symbolic state}
 {\scriptsize
 \begin{mathpar}
 \inferrule[\textsc{Empty Heap}]
@@ -827,17 +873,7 @@ ones are modelled as Racket symbols (e.g. \jsil types, $\jsundefined$, $\jsnull$
 \end{mathpar}}
 \end{display}
 
-The implementation of \jsil commands precisely follows their concrete semantics as 
-described in \S\ref{subsec:jsil:analysis:formalism}. 
-To show this, let us consider the fragment of the \jsil interpreter that implements 
-the \prooflab{Property Assignment} rule, shown in Figure~\ref{rosette:interpreter:fragment}.
-The figure shows three functions: \dtag{1} \schemeinline|(run-bcmd bcmd heap store)|, for 
-executing basic commands, \dtag{2} \schemeinline|(update-heap heap loc prop val)|, for 
-updating the heap \schemeinline|heap| by setting the value of the 
-the property \schemeinline|prop| of the object denoted by \schemeinline|loc| to \schemeinline|val|, 
-and \dtag{3} \schemeinline|(update-pv-list pv-list prop new-val)|,
-for updating the property-value list \schemeinline|pv-list| by setting \schemeinline|prop|
-to \schemeinline|new-val|. 
+ 
 
 \lstset{language=Scheme, numbers = left}
 
@@ -971,6 +1007,7 @@ on a symbolic value is encountered, the symbolic execution stops.
 %Once that upper bound is reached, if a conditional goto that branches 
 %on a symbolic value is encountered, the symbolic execution simply stops.  
 
+\newpage
 \lstset{backgroundcolor=\color{white}}
 
 \section{Symbolic Testing for JavaScript}
