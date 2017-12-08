@@ -45,10 +45,9 @@
 
 %External Packages
 %\usepackage{amsthm}
-%\usepackage[utf8x]{inputenc}
-\usepackage[table]{xcolor}
+\usepackage[table,svgnames]{xcolor}
 \usepackage{amsmath}
-\usepackage{listings}
+\usepackage{listingsutf8}
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{tabularx}
@@ -60,12 +59,30 @@
 \usepackage{upgreek}
 \usepackage{xparse}
 \usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 %\usepackage{stix}
 
 %\usepackage{algorithm}
 %\usepackage{algpseudocode}
 
 \usepackage{wrapfig}
+\usepackage{fancyvrb}
+
+\makeatletter
+\newif\ifFV@bgcolor
+\newbox\FV@bgbox
+\define@key{FV}{bgcolor}{\FV@bgcolortrue\def\FV@bgcolor{#1}}
+
+\def\FV@BeginVBox{%
+  \leavevmode\ifFV@bgcolor\setbox\FV@bgbox=\fi
+  \hbox\ifx\FV@boxwidth\relax\else to\FV@boxwidth\fi\bgroup
+  \ifcase\FV@baseline\vbox\or\vtop\or$\vcenter\fi\bgroup}
+\def\FV@EndVBox{\egroup\ifmmode$\fi\hfil\egroup
+  \ifFV@bgcolor\colorbox{\FV@bgcolor}{\box\FV@bgbox}\fi}
+\makeatother
+
+\newcommand{\shat}{\^{s}}
 
 %JavaScript 
 \definecolor{SkyBlue}{rgb}{0.20,0.39,0.64}
@@ -84,6 +101,10 @@
 \definecolor{oldtalkblue}{rgb}{0.22,.20,0.69}
 \definecolor{greenish}{rgb}{.0,.65,.0}
 \definecolor{mygray}{gray}{0.9}
+
+\lstset{
+	showstringspaces=false
+}
 
 \lstdefinelanguage{JavaScript}{
   morekeywords=[1]{typeof, new, true, false, catch,
@@ -398,7 +419,6 @@ Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a
 %and regular expressions, whereas JS-2-JSIL successfully
 %contains the complexity of JavaScript itself.
 
-\newpage
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jilette}
 

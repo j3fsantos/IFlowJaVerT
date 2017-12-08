@@ -1746,6 +1746,58 @@ we conclude that there exists $k$, $1 \leq k \leq n$, such that:
  
  \section{Proofs of Section~\ref{sec:specs}}
  
+ \begin{display}{\jsil Logic Assertions - Syntax and Semantics}
+%
+{\scriptsize \begin{tabular}{lll}
+  %%%% 
+  $\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
+  %%%%
+  $\quad P_\pc\triangleq$ & $\jtrue \mid \jfalse \mid  \neg P_\pc \mid P_\pc \land P_\pc \mid P_\pc \lor P_\pc  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{~{Pure Assertions}} \\
+  $\quad P\triangleq$ & $P_\pc \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. P \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{~Assertions} \\
+\end{tabular}} \\ [7pt]
+  %%%%%
+  %%%%%
+  
+\quad 
+{\scriptsize
+\begin{tabular}{lll} 
+     \begin{tabular}{ll}
+    $\hemp, \store, \senv \satisfies \truep$                  &  $\Leftrightarrow \text{always}$   \\
+    %
+    $\hemp, \store, \senv \satisfies \falsep$                 &  $\Leftrightarrow \text{never}$   \\   
+     %
+    $\hemp, \store, \senv \satisfies \neg P_\pc$                 &  $\Leftrightarrow \hemp, \store, \env \not\satisfies P_\pc$ \\
+     %  
+     $\hemp, \store, \senv \satisfies P_\pc \land Q_\pc$           &  $ \Leftrightarrow \hemp, \store, \senv \satisfies P_\pc \land \hemp, \store, \senv \satisfies Q_\pc$   \\
+     %  
+      $\hemp, \store, \senv \satisfies \lexpr_1 = \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} = \symbeval{\lexpr_2}{\store, \senv}$   \\    
+      %
+      $\hemp, \store, \senv \satisfies \lexpr_1 \leq \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} \leq \symbeval{\lexpr_2}{\store, \senv}$   \\
+     %   
+     $\iheap, \store, \senv \satisfies  \exists \svar. P$  &  $\Leftrightarrow \exists \lit \in \lits. \, \iheap, \store, \senv[\svar \mapsto \lit] \satisfies P$  \\ 
+      \end{tabular}
+      &
+      $\phantom{x}$
+      &
+       \begin{tabular}{l}
+           $\iheap, \store, \senv  \satisfies  \lemp$ $\Leftrightarrow \iheap = \hemp$  \\[2pt]
+           %
+	   $\iheap, \store, \senv  \satisfies (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$  \\
+            $\ \Leftrightarrow \iheap =  \hcell{\symbeval{\lexpr_1}{\store, \senv}}{\symbeval{\lexpr_2}{\store, \senv}}{\symbeval{\lexpr_3}{\store, \senv}}$  \\[2pt]
+           % 
+           $\iheap, \store, \senv  \satisfies P \sep Q$ $\Leftrightarrow  \exists \iheap_1, \iheap_2.  \, \iheap = \iheap_1 \dunion \iheap_2$  \\
+                $\qquad \wedge \ \iheap_1,  \store, \senv  \satisfies P \, \wedge \, \iheap_2,  \store, \senv \satisfies Q$ \\[2pt]
+           %
+           $\iheap, \store, \senv  \satisfies  \emptyfields{\lexpr_1}{\lexpr_2}$  \\
+                $\ \Leftrightarrow \iheap = \biguplus_{s \not\in \{ \symbeval{\lexpr_2}{\store, \senv} \}} ((\symbeval{\lexpr_1}{\store, \senv}, s) \pointsto \none)$
+           
+       \end{tabular}
+\end{tabular}}
+\end{display}
+%
+
+
+ 
 
  \begin{lemma}[CA-Unification: Success] 
 \label{successful:unification}

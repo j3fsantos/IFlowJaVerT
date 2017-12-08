@@ -1,17 +1,22 @@
 %!TEX root = ../main.tex
 
 We show how to use \jilette for debugging JavaScript code annotated with 
-separation logic (SL) specifications with the goal of finding bugs in both 
- specifications and code. In \S\ref{subsec:sep:assertions}, we describe the 
-extension of the \jsil symbolic interpreter with a special construct for asserting
-an SL-assertion. 
-In \S\ref{subsec:countermodels}, we show how to implement the newly introduced
-\emph{assert} construct by giving a sound decision procedure for finding counter-models 
+separation logic (SL) specifications. Tools that allow for SL-reasoning about
+functional correctness properties in general, and those targeting 
+JavaScript in particular, require of the user to have substantial expertise
+and to go through a long and complex proof trace in order to find the precise 
+source of an error. \jilette substantially simplifies this process by providing
+concrete counter-models that invalidate the specification.
+In \S\ref{subsec:sep:assertions}, we extend the 
+ \jsil symbolic interpreter with a mechanism for asserting
+SL-assertions. 
+In \S\ref{subsec:countermodels}, we show how to implement this mechanism by giving a sound decision procedure for finding counter-models 
 for SL-assertions.
 In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
-for generating symbolic tests from SL-specifications, so that if a 
-symbolic test fails, the failure comes with a concrete counter-model that invalidates 
-the specification. Finally, in \S\ref{specs:example}, we show how to use the 
+for generating symbolic tests from SL-specifications, which guarantees 
+that if a symbolic test fails, then Cosette must produce a concrete 
+counter-model that invalidates 
+the specification. Finally, in~\S\ref{specs:example}, we show how to use the 
 proposed methodology for debugging JaVerT specifications~\cite{javert} of JavaScript code. 
 
 \subsection{\jsil Symbolic Execution with Separation Logic Assertions}
@@ -53,62 +58,39 @@ which simply removes the none-cells from the instrumented heap given as input.  
   %%%% 
   $\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
   %%%%
-  $\quad P\triangleq$ & $\jtrue \mid \jfalse \mid  \neg P \mid P \land P \mid P \lor P  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{ {Pure Assertions}} \\
-                                  & \hspace*{0.41cm} $\mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. P
-                                  \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{ Spatial Assertions} \\
-\end{tabular}} \\ [7pt]
+  $\quad P_\pc\triangleq$ & $\jtrue \mid \jfalse \mid  \neg P_\pc \mid P_\pc \land P_\pc \mid P_\pc \lor P_\pc  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{~{Pure Assertions}} \\
+  $\quad P\triangleq$ & $P_\pc \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. P \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{~Assertions} \\
+\end{tabular}} \\ [5pt]
   %%%%%
   %%%%%
   
 \quad 
 {\scriptsize
 \begin{tabular}{lll} 
-     \begin{tabular}{ll}
-    $\iheap, \store, \senv \satisfies \truep$                  &  $\Leftrightarrow \text{always}$   \\
-    %
-    $\iheap, \store, \senv \satisfies \falsep$                 &  $\Leftrightarrow \text{never}$   \\   
-     %
-    $\hemp, \store, \senv \satisfies \neg P$                 &  $\Leftrightarrow \hemp, \store, \env \not\satisfies P$ \\
-     %  
-     $\hemp, \store, \senv \satisfies P \land Q$           &  $ \Leftrightarrow \hemp, \store, \senv \satisfies P \land \hemp, \store, \senv \satisfies Q $   \\
-     %  
-      $\hemp, \store, \senv \satisfies \lexpr_1 = \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} = \symbeval{\lexpr_2}{\store, \senv}$   \\    
-      %
-      $\hemp, \store, \senv \satisfies \lexpr_1 \leq \lexpr_2$  &  $\Leftrightarrow \symbeval{\lexpr_1}{\store, \senv} \leq \symbeval{\lexpr_2}{\store, \senv}$   \\
-     %   
-     $\iheap, \store, \senv \satisfies  \exists \svar. P$  &  $\Leftrightarrow \exists \lit \in \lits. \, \iheap, \store, \senv[\svar \mapsto \lit] \satisfies P$  \\ 
-      \end{tabular}
-      &
-      $\phantom{x}$
-      &
-       \begin{tabular}{l}
-           $\iheap, \store, \senv  \satisfies  \lemp$ $\Leftrightarrow \iheap = \hemp$  \\[2pt]
+       $\iheap, \store, \senv  \satisfies  \lemp$ & $\Leftrightarrow$ & $\iheap = \hemp$  \\[2pt]
            %
-	   $\iheap, \store, \senv  \satisfies (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$  \\
-            $\ \Leftrightarrow \iheap =  \hcell{\symbeval{\lexpr_1}{\store, \senv}}{\symbeval{\lexpr_2}{\store, \senv}}{\symbeval{\lexpr_3}{\store, \senv}}$  \\[2pt]
+	   $\iheap, \store, \senv  \satisfies (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$  &
+            $\Leftrightarrow$ & $\iheap =  \hcell{\symbeval{\lexpr_1}{\store, \senv}}{\symbeval{\lexpr_2}{\store, \senv}}{\symbeval{\lexpr_3}{\store, \senv}}$  \\[2pt]
            % 
-           $\iheap, \store, \senv  \satisfies P \sep Q$ $\Leftrightarrow  \exists \iheap_1, \iheap_2.  \, \iheap = \iheap_1 \dunion \iheap_2$  \\
-                $\qquad \wedge \ \iheap_1,  \store, \senv  \satisfies P \, \wedge \, \iheap_2,  \store, \senv \satisfies Q$ \\[2pt]
+           $\iheap, \store, \senv  \satisfies P \sep Q$ & $\Leftrightarrow$ & $\exists \iheap_1, \iheap_2.  \, \iheap = \iheap_1 \dunion \iheap_2\ \wedge \ \iheap_1,  \store, \senv  \satisfies P \, \wedge \, \iheap_2,  \store, \senv \satisfies Q$ \\[2pt]
            %
-           $\iheap, \store, \senv  \satisfies  \emptyfields{\lexpr_1}{\lexpr_2}$  \\
-                $\ \Leftrightarrow \iheap = \biguplus_{s \not\in \{ \symbeval{\lexpr_2}{\store, \senv} \}} ((\symbeval{\lexpr_1}{\store, \senv}, s) \pointsto \none)$
-           
-       \end{tabular}
+           $\iheap, \store, \senv  \satisfies  \emptyfields{\lexpr_1}{\lexpr_2}$  &
+                $\Leftrightarrow$ & $\iheap = \biguplus_{s \not\in \{ \symbeval{\lexpr_2}{\store, \senv} \}} ((\symbeval{\lexpr_1}{\store, \senv}, s) \pointsto \none)$
 \end{tabular}}
 \end{display}
 %
 For convenience, we define: 
-{\small 
 \begin{align}
 \sepmodels{P} = \left\{ (\heap, \store, \senv) \mid \exists \iheap \, . \,  \heap = \deabstract{\iheap} \ \wedge \ \iheap, \store, \senv \satisfies P  \right\}
-\end{align}}
-\hspace{-2pt}Given a symbolic heap $\sheap$, a symbolic store $\sstore$, a path condition $\pc$, and 
+\end{align}
+Given a symbolic heap $\sheap$, a symbolic store $\sstore$, a path condition $\pc$, and 
 an assertion $P$, we say that  $(\sheap, \sstore, \pc)$ \emph{satisfies} $P$, 
 written $\sheap, \sstore, \pc \satisfies P$ \emph{if and only if}
 $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}$. 
 %
 We can now give an \emph{ideal} symbolic semantics for the command $\sepassert(P)$ (which checks
 if the current symbolic state satisfies $P$): 
+
 {\small \begin{mathpar}
 \inferrule[\textsc{Assert - True}]
   { 
@@ -121,7 +103,7 @@ if the current symbolic state satisfies $P$):
   }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}{}{\pc}} 
 \end{mathpar}}
 \hspace{-3pt}Determining whether or not a symbolic state satisfies an SL-assertion $P$ is, in general, 
-undecidable. Since we do not want to produce \emph{false positives}, in order to trigger 
+undecidable \cite{citemeplease}. Since we do not want to produce \emph{false positives}, in order to trigger 
 an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
 $\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must  
 report an assertion failure only if it can find a concrete state $(\heap, \store)$  and a symbolic environment 
@@ -285,11 +267,9 @@ $(\existentials, \cells, \efs, \pfs)$, consisting of:
 \dtag{4} a pure assertion $\pfs$. 
 Hence, letting $\existentials = \{ \sloc_1, ..., \sloc_k \}$, $\cells = [ \cell_i \mid_{i = 0}^n ]$, and
 $\efs = \{\efa_i \mid_{i = 0}^m \}$, we write $P \equiv (\existentials, \cells, \efs, \pfs)$ as shorthand for: 
-{\small \begin{equation}
-P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i \ \sep  \bigoast_{0 \leq i \leq m} \efa_i \big) \ \wedge \ \pfs
-\end{equation}}
-
-\vspace{-10pt}
+ \begin{equation}
+P = \exists \sloc_1, ..., \sloc_k \, . \big( \bigoast_{0 \leq i \leq n} \cell_i \ \sep  \bigoast_{0 \leq i \leq m} \efa_i \big) \ \lstar \ \pfs
+\end{equation}
 Given a symbolic state $(\sheap, \sstore, \pc)$ and an assertion $P \equiv (\existentials, \cells, \efs, \pfs)$, 
 we represent each possible mapping from the existentially quantified symbolic locations in $P$ 
 to the concrete locations in $\sheap$ as a \emph{substitution function} $\subst : \slocs \rightharpoonup \locs$.
@@ -480,7 +460,7 @@ Note that in case of failure, the algorithm
 always returns the constraints that need to be satisfied for a witness of that failure to be produced. 
 
 Below we present the rules of the unification algorithm for a general assertion $P$.
-For clarity, we use $\substs(\existentials, \sheap)$ to denote the set of all substituions
+For clarity, we use $\substs(\existentials, \sheap)$ to denote the set of all substitutions
 mapping symbolic location in $\existentials$ to concrete locations in the domain of $\sheap$. 
 %
 For the success case, we simply need to find a substitution $\subst$ 
@@ -530,11 +510,11 @@ which makes use of the unification algorithm described above:
 
 
 \myparagraph{Soundness}
-Theorem \ref{teo:unification:soundness} states that the unification algorithm is sound: given an SL-assertion $P$ and a 
+Theorem \ref{teo:unification:soundness} states that the unification algorithm is sound: given an SL-assertion~$P$ and a 
 symbolic state $(\sheap, \sstore, \pc)$, if $\unificationfullP{\sheap, \sstore, \pc}{P}{}$ then the symbolic state
-$(\sheap, \sstore, \pc)$ satisfies $P$. 
+$(\sheap, \sstore, \pc)$ satisfies~$P$. 
 The bug-finding theorem, Theorem \ref{teo:bugfinding}, is more subtle. It states that, in case of failure,  to find a counter-model 
-for $P$, one just has to pick a concretisation of the symbolic state that is consistent with 
+for $P$, one has to pick a concretisation of the symbolic state that is consistent with 
 the failing constraint generated by the unification algorithm. 
 
 
@@ -647,7 +627,9 @@ $$
       \dspc \dspc \dspc (\proc, \sheap) 
 \end{array}
 $$}
+\vspace*{-0.2cm}
 \caption{Symbolic Test Generation Algorithm~\label{fig:test:generation}}
+\vspace*{-0.2cm}
 \end{figure}
 
 
@@ -684,15 +666,14 @@ symbolic heap on which to execute the test.
 %
 Figure~\ref{fig:test:generation} presents the test generation procedure. Intuitively, $\testify{}(\specsig{P}{\fid(\jvec{x})}{Q}{\flag})$ 
 returns the symbolic test for $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$. The test generation function $\testifyfun{}$ is defined in terms 
-of two auxiliary function $\testifyfun{\fnormal}$ and $\testifyfun{\ferror}$, for generating tests for $\fnormal$-mode and 
-$\ferror$-mode specifications respectively. 
-The test program $\prog'$ is obtained from the original program $\prog$ and the test procedure $\proc$ by replacing the 
-$\jsilmain$ of $\prog$ with the new test procedure, $\proc$ (we use $\prog[\jsilmain \mapsto \proc]$
-to denote such $\prog'$). 
+of two auxiliary functions, $\testifyfun{\fnormal}$ and $\testifyfun{\ferror}$, for generating tests for $\fnormal$-mode and 
+$\ferror$-mode specifications, respectively. 
+The test program $\prog'$, denoted by $\prog[\jsilmain \mapsto \proc]$, is obtained from the original program $\prog$ and the test procedure $\proc$ by replacing the 
+$\jsilmain$ of $\prog$ with the new test procedure, $\proc$. 
 %
 Finally, Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the 
 test generated for $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$ finds a bug, then the specification 
-is not valid.
+is not~valid.
 
 \begin{theorem}[Bug-finding for SL Specifications]\label{teo:bug:finding:sl}
 $$
@@ -703,54 +684,58 @@ $$
         \prog \not\satisfies \specsig{P}{\fid(\jvec{x})}{Q}{\flag}
 \end{array}
 $$
+\noindent where $\sctxmain$ denotes the initial call stack: $[ (\jsilmain, -, -, -) ]$.
 \end{theorem}
-We use $\sctxmain$ for the initial call stack: $[ (\jsilmain, -, -, -) ]$.
 
 
-\myparagraph{Symbolic States versus Assertions} Note that the conversion of the 
-pre-condition $P$ of a \jsil procedure $\fid$ to a symbolic state $(\sheap, \sstore, \pc)$ is such that 
-the initial path condition $\pc$ includes constraints that are \underline{not} entailed by the pure part of $P$. 
-These constraints are instead entailed by the negative resource assertions in $P$ (which are not captured 
-by $\sheap$).
+\myparagraph{Symbolic States versus SL-Assertions} 
+Note that the conversion of the 
+precondition $P$ of a \jsil procedure $\fid$ to a symbolic state $(\sheap, \sstore, \pc)$ involves transforming the negative resource assertions in $P$ into pure constraints encoded by the initial path condition $\pc$ and not captured by $\sheap$.
 To illustrate this, let us consider the assertion and the symbolic heap graphically illustrated
  in Figure~\ref{fig:symb:state:versus:assertion}. One can see that the cell assertion 
  {\small $(\texttt{contents}, \texttt{"hasOwnProperty"}) \mapsto \none$} does not have a correspondent 
- cell in the symbolic heap, as all $\none$-cells disappear. 
+ cell in the symbolic heap, as all none-cells disappear. 
  However, due to the semantics of the separating conjunction, this assertion entails that 
 {\small $(\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})$}. 
 Since this constraint is not entailed by the corresponding symbolic heap, it is, instead, added to the initial path condition. 
-Negative constraints are generated in item ${\bf e.}$ of the test generation algorithm. 
+Negative constraints are generated in item ${\bf e.}$ of the test generation algorithm presented in Figure \ref{fig:test:generation}. 
 
 \myparagraph{Inductive Predicates} 
 \jilette does not have built-in abstraction mechanisms. Hence, it does not support symbolic
 execution over inductive predicates describing recursive data structures, which are 
 commonplace in separation-logic-style specifications~\cite{smallf, berdine:aplas:2005}. 
 As in~\cite{korat}, we deal with user-defined inductive predicate assertions by \emph{unfolding} 
-those assertions up to a fixed bound, which is established by the user. The unfolding mechanism 
-is routine and therefore omitted from the paper. 
+those assertions up to a fixed bound, which is established by the user. This unfolding mechanism 
+is routine
+%\footnote{Ooooooooooooooooooooooooooooooooooooooooo...} 
+and its details are, therefore, omitted from the paper. 
 
 \begin{figure}[t!]
+\centering
 \includegraphics[width=0.75\textwidth]{figures/symbolicvsass.pdf}
+
+\vspace*{-0.4cm}
 {\small $$
 \text{\emph{None-Constraints: }} (\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})
 $$}
-\vspace{-25pt}
+\vspace{-0.5cm}
 \caption{Assertion vs. Symbolic Heap}\label{fig:symb:state:versus:assertion}
+\vspace{-0.4cm}
 \end{figure}
 
 
 \subsection{Compiling JaVerT Specifications to Symbolic Tests} 
 \label{specs:example}
 
-\myparagraph{\javert Specifications} \javert specifications are analogous to \jsil specifications. 
-As for \jsil Logic specification, we say that s a \javert specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+\myparagraph{\javert Specifications} 
+\javert specifications of JavaScript functions are analogous to \jsil specifications of \jsil procedures, and are of the form $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$. A~\javert specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
 is valid for a JavaScript program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$, 
-if $\jstmt$ contains a function literal with identifier $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P_\jssuffix$, then, 
-if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mode $\flag$''.
-In~\cite{javert}, the authors present 
-a translation from \javert specifications to \jsil Logic specifications and prove the soundness 
-of that translation assuming a correct compiler $\compile$ from JavaScript to \jsil.
-In a nutshell, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+if and only if $\jstmt$ contains a function literal with identifier $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P_\jssuffix$, then, 
+if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mode $\flag$''. The assertion language used by \javert is very similar to the assertion language of \jsil Logic and is described in detail in~\cite{javert}.
+There, the authors present 
+a compiler from \javert specifications to \jsil Logic specifications, denoted by $\ltr$, and prove the soundness 
+of that compiler, assuming a correct compiler $\compile$ from JavaScript to~\jsil.
+This theoretical result ensures that the verification of \jsil programs can be lifted to  up to the verification of JavaScript programs. More concretely, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
 is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
 $\ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag})$ is valid for the compilation 
 of $\jstmt$ by a correct compiler $\compile$. Put formally:  
@@ -760,9 +745,9 @@ of $\jstmt$ by a correct compiler $\compile$. Put formally:
            \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}) 
 \end{equation}
 
-To generate symbolic tests from \javert specifications, we make use of the translation of specifications 
-described in~\cite{javert} together with the \JSComp compiler. In particular, we first convert the \javert specification into a \jsil Logic specification, 
-using the translation of specifications, and the original JavaScript program to a \jsil program, using the \JSComp compiler; then, we 
+To generate symbolic tests from \javert specifications, we make use of the compilation of specifications 
+described in~\cite{javert}, together with the \JSComp compiler. In particular, we first convert the \javert specification into a \jsil Logic specification, 
+using the compilation of specifications, and the original JavaScript program to a \jsil program, using the \JSComp compiler; then, we 
 generate a set of symbolic tests from the obtained \jsil Logic specification and \jsil program; 
 and, finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. 
 
@@ -788,7 +773,7 @@ as illustrated in Figure~\ref{fig:symb:state:versus:assertion}.
  \begin{verbatim}
 Map (m, kvs) := 
   DataProp(m, "_contents", c) * JSObject(c, Object.prototype) * KVPairs(c, kvs) *
-  (m, "get") -> None * (m, "put") ->  None * (m, "validKey") ->  None  * (c, "hasOwnProperty") ->  None 
+  (m, "get") -> None * (m, "put") -> None * (m, "validKey") -> None * (c, "hasOwnProperty") -> None 
   \end{verbatim}
   \vspace*{-0.8cm}
  \begin{verbatim}

@@ -1,8 +1,12 @@
 %!TEX root = ../main.tex
 
 We introduce our symbolic execution engine for \jsil~\cite{javert}. In~\S\ref{subsec:jsil:analysis:formalism}, we present 
-the theoretical underpinnings of the symbolic analysis, whereas in \S\ref{subsec:jsil:analysis:implementation}, 
-we describe its implementation in \rosette~\cite{Rosette1,Rosette2}.
+the theoretical underpinnings of the symbolic analysis, including
+a soundness result and a guarantee of absence of false 
+positives for bug-finding.
+In \S\ref{subsec:jsil:analysis:implementation}, 
+we describe the implementation of the \jsil symbolic analysis 
+in \rosette~\cite{Rosette1,Rosette2}.
 
 \vspace*{-0.2cm}
 \subsection{Formalisation}\label{subsec:jsil:analysis:formalism}
@@ -28,8 +32,10 @@ we describe its implementation in \rosette~\cite{Rosette1,Rosette2}.
 	\multicolumn{5}{l}{Commands: $\ivlcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$} \\[0.1cm]
 	\multicolumn{5}{l}{Procedures : $\proc \in \procset$ \defeq \ $\procedure{\fid}{\jvec{\jvar}}{\jvec{\ivlcmd}}$}
  \end{tabular}
+ \vspace*{-0.1cm}
  \caption{Syntax of the \jsil Language}
  \label{def:jsil-types}
+ \vspace*{-0.5cm}
  \end{minipage}
  \end{figure}
  
@@ -58,7 +64,7 @@ A \jsil variable store, $\store \in \stores$, is a mapping from JSIL program var
 \jsil semantics is defined in small-step style. Transitions for basic commands, given in Figure \ref{fig:sem:basic:commands}, are of the form $\semtrans[\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$, meaning that the execution of the basic command $\bcmd$ in the heap $\heap$, store $\store$, and execution mode $\mode$ results in the heap $\heap'$, $\store'$, and execution mode $\mode'$. 
 We denote the semantic interpretation of unary operators $\unoper$ by $\semop{\unoper}$, the semantic interpretation of binary operators $\binoper$ by $\semop{\binoper}$.
 
-\begin{figure}[ht!]
+\begin{figure}[t!]
 {\scriptsize
 \begin{mathpar} 
 %
@@ -180,8 +186,9 @@ We denote the semantic interpretation of unary operators $\unoper$ by $\semop{\u
       \symbeval{\jsilexpr}{\store} = \jfalse
   }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
 \end{mathpar}}
-\vspace*{-0.3cm}
+\vspace*{-0.5cm}
 \caption{Execution for Basic Commands: {\scriptsize$\semtrans[][\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
+\vspace*{-0.5cm}
 \end{figure}
 
 To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$. Call stacks are lists of tuples of the form $(\pid, \store, \jvar, i, j)$, where: 
@@ -505,6 +512,7 @@ Path conditions are given by the following grammar:
  \end{mathpar}}
  \vspace*{-0.4cm}
 \caption{Symbolic Semantics for \jsil Commands: {$\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:symbexe:cmds}}
+ \vspace*{-0.4cm}
 \end{figure}
 
 To avoid clutter, we conflate logical values with \jsil logical values and \jsil logical 
@@ -780,7 +788,7 @@ $$
 $$ 
 \end{corollary}
 %
-The {\bf proofs} of the above results are given in the Appendix. 
+The {\bf proofs} of the above results are given in the Appendix. \polish{What do these results mean with respect to related work? How is this maintainable?} 
 
 
 \subsection{Implementation}
@@ -896,19 +904,16 @@ to \schemeinline|new-val|.
   (cond
     [(null? heap) (error "Inexistent object")]
     [(equal? (caar heap) loc)
-     (cons (cons loc (update-pv-list (cdar heap) prop val)) (cdr heap))]
+       (cons (cons loc (update-pv-list (cdar heap) prop val)) (cdr heap))]
     [ else (cons (car heap) (update-heap (cdr heap) loc prop val))]))
 \end{lstlisting}
 
 \begin{lstlisting}         
 (define (update-pv-list pv-list prop new-val)
   (cond
-    [(null? pv-list)
-     (list (cons prop new-val))]
-    [(equal? (caar pv-list) prop)
-     (cons (cons prop new-val) (cdr pv-list))]
-    [ else (cons (car pv-list) 
-              (update-pv-list (cdr pv-list) prop new-val))]))
+    [(null? pv-list) (list (cons prop new-val))]
+    [(equal? (caar pv-list) prop) (cons (cons prop new-val) (cdr pv-list))]
+    [ else (cons (car pv-list) (update-pv-list (cdr pv-list) prop new-val))]))
 \end{lstlisting}
 \vspace*{-0.3cm}
 \caption{Fragment of the \jsil Interpreter in \rosette\label{rosette:interpreter:fragment}}
@@ -938,50 +943,64 @@ field-value list. If it does not find it, it will raise an error. However, due t
 \lstset{language=Scheme, numbers=none, backgroundcolor=\color{mygray}}
 \myparagraph{Efficiency}
 It is often possible for more than one transition of the symbolic 
-semantics to be applicable during symbolic execution, likely 
-giving rise to an intractable number of possible symbolic states. 
-To counter this problem, \rosette makes use of a sophisticated 
+semantics to be applicable during symbolic execution, 
+giving rise to a potentially intractable number of possible symbolic states. 
+To counter this problem, \rosette uses a sophisticated 
 symbolic state merging algorithm, which factors out the common 
 part between multiple symbolic states  in order to expose more 
-opportunities for concrete evaluation. The portions of the state 
-that are not mergeable are represented as \emph{guarded symbolic unions}. 
+opportunities for concrete evaluation. The non-mergeable portions of the state 
+are represented as \emph{guarded symbolic unions}. 
 Our goal is to write the interpreter code in a way that helps 
 \rosette merge sets of possible symbolic states, yielding minimal 
 guarded symbolic unions.
 To illustrate this point, let us consider the symbolic execution 
 of the property assignment $\mathtt{o[\hat{s}] := 42}$ in the 
 symbolic heap represented in \rosette as follows: 
-%
-\begin{lstlisting}
-(lo (("@proto" null) ("a" 0) ("b" 1)))
-\end{lstlisting}
-%
+
+\smallskip
+\noindent
+\begin{BVerbatim}[fontsize=\footnotesize,commandchars=\$\{\},bgcolor=Gainsboro]
+(lo (("@proto" null) ("a" 0) ("b" 1))) $phantom{xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+\end{BVerbatim}
+
+\smallskip
+\noindent
 with a symbolic store mapping \schemeinline|o| to \schemeinline|lo| and 
 the path condition {\small $\mathtt{\hat{s} = \text{\texttt{"a"}} \ \vee \hat{s} = \text{\texttt{"b"}}}$}.
-The two resulting symbolic heaps are represented in \rosette as :  
-%
-\begin{lstlisting}
-(lo (("@proto" null) ("a" (? (= s "a") 42 0)) ("b" (? (= s "b") 42 1)))
-\end{lstlisting}
-%
-One can see that \rosette manages to push the guarded unions to 
+The two resulting symbolic heaps are represented in \rosette as:  
+
+\smallskip
+\noindent
+\begin{BVerbatim}[fontsize=\footnotesize,commandchars=\$\{\},bgcolor=Gainsboro]
+(lo (("@proto" null) ("a" (? (= $shat "a") 42 0)) ("b" (? (= $shat "b") 42 1))) $phantom{xxxxxxxxxxxxxxxx}
+\end{BVerbatim}
+
+\smallskip
+\noindent
+Here, \rosette manages to push the guarded unions to 
 the object cells that may be affected by the property assignment, maintaining a common 
 property-value list for both resulting symbolic states. 
-%
 Now, let us change the code of line 6 of \schemeinline|update-pv-list| 
 (in Figure~\ref{rosette:interpreter:fragment}) to:  
-\begin{lstlisting}
-(append (cdr pv-list) (cons prop new-val))
-\end{lstlisting}
+
+\smallskip
+\noindent
+\begin{BVerbatim}[fontsize=\footnotesize,commandchars=\$\{\},bgcolor=Gainsboro]
+(append (cdr pv-list) (cons prop new-val)) $phantom{xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+\end{BVerbatim}
+
+\smallskip
+\noindent
 This change in the interpreter makes the order of the cells in the property-value 
 list change depending on which property gets updated. 
 Now, \rosette needs to create a single guarded union 
 with the two possible resulting property-value lists: 
-\begin{lstlisting}
-(lo (? (= s "a") 
-       (("@proto" null) ("b"  1) ("a" 42)) 
-       (("@proto" null) ("a"  0) ("b" 42))))
-\end{lstlisting}
+
+\smallskip
+\noindent
+\begin{BVerbatim}[fontsize=\footnotesize,commandchars=\$\{\},bgcolor=Gainsboro]
+(lo (? (= $shat "a") (("@proto" null) ("b" 1) ("a" 42)) (("@proto" null) ("a" 0) ("b" 42)))) 
+\end{BVerbatim}
 
 \myparagraph{Termination} The \jsil symbolic execution engine does not 
 include the abstraction mechanisms which would allow it to finitise the symbolic 
@@ -1007,31 +1026,34 @@ on a symbolic value is encountered, the symbolic execution stops.
 %Once that upper bound is reached, if a conditional goto that branches 
 %on a symbolic value is encountered, the symbolic execution simply stops.  
 
-\newpage
 \lstset{backgroundcolor=\color{white}}
 
 \section{Symbolic Testing for JavaScript}
 \label{sec:sym:exec:js}
 
-\begin{figure}[t]
+\begin{wrapfigure}{R}{0.58\textwidth}
+\vspace*{-0.4cm}
 \centering
-\includegraphics[width=0.7\textwidth]{figures/jilette.png}
+\includegraphics[width=0.57\textwidth]{figures/jilette_blue.png}
 \vspace*{-0.2cm}
 \caption{\jilette: Symbolic execution for JavaScript}
 \vspace*{-0.3cm}
 \label{fig:jilette:diagram}
-\end{figure}
+\end{wrapfigure}
 
-Symbolic execution designed directly on JavaScript is not feasible, for the same reasons verification is not~\cite{JoseCADE}: the semantics of the language is too complex, with numerous intertwined internal functions called under the hood. In particular, the simple assignment alone would have more than twenty potential branchings. Our approach is to symbolically analyse JavaScript code by first compiling it to \jsil, using~\JSComp~\cite{javert}, and then feeding the compiled \jsil code to our \jsil symbolic interpreter, described in \S\ref{sec:jsil:symb:exec}.
+Symbolic execution designed directly on JavaScript is not feasible, for the same reasons verification is not~\cite{JoseCADE}: the semantics of the language is too complex, with numerous intertwined internal functions called under the hood. 
+In particular, the simple assignment alone would have more than twenty potential branchings. 
+Our approach is to symbolically analyse JavaScript code by first compiling it to \jsil, using~\JSComp~\cite{javert}, and then feeding the compiled \jsil code to our \jsil symbolic interpreter, described in \S\ref{sec:jsil:symb:exec}.
 
 In \S\ref{symb:exec:comp}, we explain how we enable symbolic execution for JavaScript using \JSComp and Rosette, by extending the language with new constructs for the creation of symbolic values and the checking of assertions.
-In \S\ref{symbolic:testing}, we explain how this symbolic execution can be used for the symbolic testing of JavaScript code. 
-Finally, in \S\ref{builtins}, we conclude with the presentation 
-of a general approach for handling the symbolic execution of JavaScript built-in libraries.
-More concretely, it is possible to extend the \jsil symbolic interpreter with \rosette implementations of JavaScript built-in libraries in a streamlined manner.  
-These implementations are both an easy way to get a better coverage of the standard and 
-match the abstraction level of the generated JSIL code precisely with the abstraction level 
-of Rosette, maximising the use of Rosette's native solver-aided facilities.
+Next, in \S\ref{symbolic:testing}, we explain how this symbolic execution can be used for systematic symbolic testing of JavaScript code. 
+Finally, in \S\ref{builtins}, we present
+a general approach for streamlined symbolic execution of JavaScript built-in libraries, which maximises the use of Rosette's native solver-aided facilities.
+
+%More concretely, we extend the \jsil symbolic interpreter with \rosette implementations of JavaScript built-in libraries in a streamlined manner.  
+%These implementations are both an easy way to get a better coverage of the standard and 
+%match the abstraction level of the generated JSIL code precisely with the abstraction level 
+%of Rosette, maximising the use of Rosette's native solver-aided facilities.
 
 %to make sure that we make proper use of theof \rosette.    
 
@@ -1039,10 +1061,10 @@ of Rosette, maximising the use of Rosette's native solver-aided facilities.
 \label{symb:exec:comp}
 
 \myparagraph{Extending JavaScript Syntax}
-We extend the syntax of JavaScript with special logical expressions $\jslexpr$, 
+We extend the syntax of JavaScript with logical expressions $\jslexpr$, 
 and the following constructs: %(corresponding to JavaScript normal expressions): 
 \dtag{1} $\jsassert(\jslexpr)$, stating that whenever the \emph{assert} is reached, 
-the logical expression $\jslexpr$ must evaluate to $\jtrue$; 
+$\jslexpr$ must evaluate to $\jtrue$; 
 \dtag{2} $\jsassume(\jslexpr)$, stating that we \emph{assume} $\jslexpr$ to hold along the
 current program path; 
 \dtag{3} $\jssymbstring()$, for creating a fresh symbolic string; and
@@ -1069,7 +1091,7 @@ of \jsil commands for retrieving the value of $\jsvar$ from the heap cell in whi
 A full description of \JSComp is out of the scope of this paper; see~\cite{Daiva2017}
 for further details.
 %
-In the following, we will assume given a function $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$ mapping JavaScript expressions 
+In the following, we will assume to have a function $\compile : \jstmts \rightharpoonup \lists(\cmds) * \jvars$, mapping JavaScript expressions 
 and statements to lists of \jsil commands paired up with \jsil variables. 
 In a nutshell, $\compile(\jstmt) = ([ \jcmd_1, ..., \jcmd_n], \jvar)$ means that the compilation 
 of the JavaScript statement $\jstmt$ results in the list of \jsil commands $[ \jcmd_1, ..., \jcmd_n]$, 
@@ -1154,19 +1176,18 @@ for translating JavaScript logical expressions.
 \end{display}
 
 
-
+\vspace*{-0.4cm}
 \subsection{Symbolic Testing by Example} 
 \label{symbolic:testing}
 
 \lstnewenvironment{lstjsex}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}, numbers=none, backgroundcolor=\color{mygray}}}{}
 
-
-We illustrate how \jilette is used to write symbolic tests for JavaScript code by using the JavaScript implementation 
+We illustrate how \jilette can be used to write symbolic tests for JavaScript code by using the JavaScript implementation 
 of a  \emph{key-value map} given in Figure~\ref{map:example}~(left). 
 This implementation contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with the key given as input;
-\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values associated with existing keys; and
+\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values of existing keys; and
 \jsinline|validKey|, for deciding whether a key is valid.
 
 \myparagraph{Prototype chains and $\mathtt{Object.prototype}$}
@@ -1220,14 +1241,15 @@ Map.prototype.validKey = function (k) { ... }
  \end{minipage}
 \vspace*{-0.3cm}
 \caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
+\vspace*{-0.5cm}
 \end{figure}
 
 \myparagraph{Bug-finding}
-The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object used to store the map contents.  
+The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
-As the functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
-objects, they are defined as properties of \jsinline|Map.prototype|, which is the prototype 
-of the objects that are created using \jsinline|Map| as a constructor (e.g.~using~\jsinline|new Map()|). 
+The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
+objects. Therefore, they are defined in \jsinline|Map.prototype|, which is the prototype 
+of all objects created using \jsinline|Map| as a constructor (i.e.~using~\jsinline|new Map()|). 
 %
 Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
 By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
@@ -1291,8 +1313,8 @@ execute the appropriate \rosette model.
 
 Below, we show a simplified \rosette model for the built-in \jsinline|String.prototype.replace|
 function~(see Ch.15.5.4.11~\cite{ecma}).
-Observe that this model uses the natively supported function \schemeinline|string-replace|, 
-thus taking advantage of \rosette reasoning capabilities.
+This model uses the natively supported function \schemeinline|string-replace|, 
+ taking advantage of \rosette reasoning capabilities.
 This example illustrates an important point about the difference between JavaScript and
 \rosette operations: \schemeinline|string-replace| works only with strings, but \jsinline|String.|\jsinline|prototype. |\jsinline|replace| can take arguments of any type that then get coerced to strings. Since \JSComp does not have an implementation of \jsinline|String.replace|, the \rosette model will report an error if it receives non-string arguments.
 \lstset{language=Scheme, numbers=none, backgroundcolor=\color{mygray}}
