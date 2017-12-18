@@ -851,7 +851,7 @@ In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty
 The predicate \jsinline|MapProto| predicate specifying the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
 
 Now, if we forget to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we do not state that $\mathtt{k}$ needs to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| will fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
-In that case, as illustrated in Figure \ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype|, is no longer reachable from \jsinline|c|, and
+In that case, as illustrated in Figure \ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype|, is no longer reachable by property lookup from \jsinline|c|, and
 the execution of line~5 (\jsinline|if (c.hasOwnProperty(k))|) will raise an error, as it will attempt to call the \jsinline|"hasOwnProperty"| property of object \jsinline|c| as a function instead. 
 Since this specification of $\mathtt{get(k)}$ requires normal termination, the jump to the error label in the compiled \jsil code will trigger the $\assert(\jfalse)$ of the generated symbolic test and the developer will be presented with the counter-model \jsinline|k = "hasOwnProperty"|.
 
