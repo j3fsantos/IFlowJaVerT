@@ -3,7 +3,7 @@
 We show how to use \jilette for debugging JavaScript code annotated with 
 separation logic (SL) specifications. Tools that allow for SL-reasoning about
 functional correctness properties in general, and those targeting 
-JavaScript in particular, require of the user to have substantial expertise
+JavaScript in particular, require of the user to have substantial expertise 
 and to go through a long and complex proof trace in order to find the precise 
 source of an error. \jilette substantially simplifies this process by providing
 concrete counter-models that invalidate the specification.
@@ -17,7 +17,7 @@ for generating symbolic tests from SL-specifications, which guarantees
 that if a symbolic test fails, then Cosette must produce a concrete 
 counter-model that invalidates 
 the specification. Finally, in~\S\ref{specs:example}, we show how to use the 
-proposed methodology for debugging JaVerT specifications~\cite{javert} of JavaScript code. 
+proposed methodology for debugging JaVerT specifications~\cite{javert} of JavaScript~code. 
 
 \subsection{\jsil Symbolic Execution with Separation Logic Assertions}
 \label{subsec:sep:assertions}
@@ -691,14 +691,7 @@ $$
 \myparagraph{Symbolic States versus SL-Assertions} 
 Note that the conversion of the 
 precondition $P$ of a \jsil procedure $\fid$ to a symbolic state $(\sheap, \sstore, \pc)$ involves transforming the negative resource assertions in $P$ into pure constraints encoded by the initial path condition $\pc$ and not captured by $\sheap$.
-To illustrate this, let us consider the assertion and the symbolic heap graphically illustrated
- in Figure~\ref{fig:symb:state:versus:assertion}. One can see that the cell assertion 
- {\small $(\texttt{contents}, \texttt{"hasOwnProperty"}) \mapsto \none$} does not have a correspondent 
- cell in the symbolic heap, as all none-cells disappear. 
- However, due to the semantics of the separating conjunction, this assertion entails that 
-{\small $(\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})$}. 
-Since this constraint is not entailed by the corresponding symbolic heap, it is, instead, added to the initial path condition. 
-Negative constraints are generated in item ${\bf e.}$ of the test generation algorithm presented in Figure \ref{fig:test:generation}. 
+We will illustrate this with an example in the following section. 
 
 \myparagraph{Inductive Predicates} 
 \jilette does not have built-in abstraction mechanisms. Hence, it does not support symbolic
@@ -709,19 +702,6 @@ those assertions up to a fixed bound, which is established by the user. This unf
 is routine
 %\footnote{Ooooooooooooooooooooooooooooooooooooooooo...} 
 and its details are, therefore, omitted from the paper. 
-
-\begin{figure}[t!]
-\centering
-\includegraphics[width=0.75\textwidth]{figures/symbolicvsass.pdf}
-
-\vspace*{-0.4cm}
-{\small $$
-\text{\emph{None-Constraints: }} (\hat{s}_1 \neq \texttt{"hasOwnProperty"} \, \wedge \, \hat{s}_2 \neq \texttt{"hasOwnProperty"})
-$$}
-\vspace{-0.5cm}
-\caption{Assertion vs. Symbolic Heap}\label{fig:symb:state:versus:assertion}
-\vspace{-0.4cm}
-\end{figure}
 
 
 \subsection{Compiling JaVerT Specifications to Symbolic Tests} 
@@ -735,104 +715,130 @@ if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mo
 There, the authors present 
 a compiler from \javert specifications to \jsil Logic specifications, denoted by $\ltr$, and prove the soundness 
 of that compiler, assuming a correct compiler $\compile$ from JavaScript to~\jsil.
-This theoretical result ensures that the verification of \jsil programs can be lifted to  up to the verification of JavaScript programs. More concretely, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+This theoretical result ensures that the verification of \jsil programs can be lifted to   the verification of JavaScript programs. More concretely, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
 is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
 $\ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag})$ is valid for the compilation 
 of $\jstmt$ by a correct compiler $\compile$. Put formally:  
 \begin{equation}
    \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
       \iff
-           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}) 
+           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}).
 \end{equation}
 
-To generate symbolic tests from \javert specifications, we make use of the compilation of specifications 
-described in~\cite{javert}, together with the \JSComp compiler. In particular, we first convert the \javert specification into a \jsil Logic specification, 
-using the compilation of specifications, and the original JavaScript program to a \jsil program, using the \JSComp compiler; then, we 
-generate a set of symbolic tests from the obtained \jsil Logic specification and \jsil program; 
-and, finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. 
+We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. First, we convert the JavaScript program and its \javert specification to a \jsil program with its \jsil Logic specification, using the \JSComp and $\ltr$ compilers. Next, we 
+generate a set of symbolic tests from the obtained \jsil program and \jsil Logic specification, as described in \S\ref{specs:to:symbolic:tests}. 
+Finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. If \jilette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
 
+\begin{figure}[t!]
+\centering
+\includegraphics[width=0.65\textwidth]{figures/symbvsass.png}
 
+\vspace*{-0.7cm}
+{\small $$
+\text{\emph{Negative resource constraints: }} \{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}
+$$}
+\vspace{-0.8cm}
+\caption{Assertion vs. Symbolic Heap: {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}}\label{fig:symb:state:versus:assertion}
+\vspace{-0.5cm}
+\end{figure}
+
+\myparagraph{Specification Preliminaries} We separate multiple definitions of the same predicate using a comma. 
+%
+We write {\small\texttt{-u-}} for set union and omit the brackets around singleton sets. 
+%
+The predicate \jsinline|DataProp(o, p, v)| captures the property \jsinline|p| of object \jsinline|o| and states that it has value \jsinline|v|, while abstracting over other JavaScript internals associated with the property (for more details, see~\cite{javert}).
+% 
+The predicate \jsinline|JSObject(o, op)| states that the object \jsinline|o| is a standard JavaScript object with prototype \jsinline|op|.
 
 
 \myparagraph{Example}
-Below, we define a \emph{map object predicate}, \jsinline|Map|, 
-using the auxiliary predicate \jsinline|KVPairs|, which captures the resource of the key-value pairs in the map, 
-and the \jsinline|validKey(k)| predicate, which holds if and only if the 
-JavaScript function \jsinline|ValidKey(k)| returns \jsinline|true|\footnote{We treat the $\mathtt{ValidKey}$ predicate as a black box.}.
+We illustrate the debugging of SL-specifications by appealing to the \jsinline|Map| example of Figure \ref{map:example}. To reason about a key-value map,
+we define several predicates: 
+\dtag{1} the \jsinline|ValidKey(k)| predicate, which captures the validity of a given key and holds \emph{iff} the corresponding JavaScript function \jsinline|validKey(k)| returns \jsinline|true|;
+\dtag{2} the \jsinline|KVPairs(o, kvs)| predicate, which captures the resource of the key-value pairs of the map contents object \jsinline|o|; and
+\dtag{3} the \jsinline|Map(m, kvs)| predicate, which captures the resource of an entire map object \jsinline|m| with key-value pairs \jsinline|kvs| and uses the \jsinline|ValidKey| and \jsinline|KVPairs| predicates.
+%and 
+%\dtag{4} the \jsinline|MapProto(mp)| predicate, which states that the object \jsinline|mp| is a valid prototype object for key-value maps, that is, that it contains the appropriate \jsinline|get|, \jsinline|put|, and \jsinline|validKey| methods.
+Below, we show the definitions of the \jsinline|validKey|, \jsinline|KVPairs|, and \jsinline|Map| predicates, slightly simplified for presentation. 
+In the definition of \jsinline|validKey|, we highlight in red one potential source of errors on which we will focus shortly. 
 %
-Intuitively, the \jsinline|Map(m, kvs)| predicate captures the resource 
-of a map object \jsinline|m| with key-value pairs \jsinline|kvs| (a set of string-number pairs\footnote{We model pairs as lists with two elements and, for clarity, use the pair notation.}). 
-For instance, the assertion $\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$ can be unfolded
-as illustrated in Figure~\ref{fig:symb:state:versus:assertion}. 
+We highlight three aspects of the \jsinline|Map| definition. 
+First, we use the first-projection operator \jsinline|first| to obtain the set of keys from the set of key-value pairs \jsinline|kvs|. 
+Second, note that the {\small $\mathtt{emptyFields(c, first(kvs))}$} assertion ensures that the map contents object \jsinline|c| only has the properties corresponding to the keys of the map. 
+Finally, note that the uniqueness of keys is \jsinline|kvs| is guaranteed by the \jsinline|DataProp(o, k, v)| predicate of \jsinline|KVPairs| and the separating conjunction.
+To give a better intuition of how the \jsinline|Map| predicate works, we show the full unfolding of {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$} in Figure \ref{fig:symb:state:versus:assertion}.
+
+%a \emph{map object predicate}, \jsinline|Map|, 
+%which uses the auxiliary predicate \jsinline|KVPairs|, capturing the resource of the key-value pairs in the map, 
+%and the \jsinline|validKey(k)| predicate, which captures the validity of a key and holds if and only if the corresponding JavaScript function \jsinline|ValidKey(k)| returns \jsinline|true|\footnote{For the moment, we treat the $\mathtt{ValidKey}$ predicate as a black box.}.
+
+%
+%Intuitively, the \jsinline|Map(m, kvs)| predicate captures the resource 
+%of a map object \jsinline|m| with key-value pairs \jsinline|kvs| (a set of string-number pairs, modelled as two-element lists).
+%%\footnote{We model pairs as lists with two elements and, for clarity, use the pair notation.}). 
+%For instance, the assertion $\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$ can be unfolded as illustrated in Figure~\ref{fig:symb:state:versus:assertion}. 
 %Observe that the definition of \jsinline|Map| does not include the resource of a map prototype, as it is shared between all map objects, and therefore needs to be factored out.  
 %
 
-{\scriptsize
  % JSObject(m, mp) *  I took this out because it is not needed
  % *  emptyFields(c, keys -u- "hasOwnProperty")
- \begin{verbatim}
-Map (m, kvs) := 
-  DataProp(m, "_contents", c) * JSObject(c, Object.prototype) * KVPairs(c, kvs) *
-  (m, "get") -> None * (m, "put") -> None * (m, "validKey") -> None * (c, "hasOwnProperty") -> None 
-  \end{verbatim}
-  \vspace*{-0.8cm}
- \begin{verbatim}
+\begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
+ValidKey (k) := types(k : Str) * \textcolor{red}{(k <> "hasOwnProperty")}
+\end{Verbatim}
+ \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
 KVPairs (o, kvs) := 
-  (kvs = { }),
-  (kvs = (key, value) -u- kvs') * ValidKey(key) * DataProp(o, key, value) * KVPairs(o, kvs')
-\end{verbatim}}
-%
-\noindent \emph{Notation:}  We separate alternative definitions for a predicate using a comma. 
-We write \jsinline|-u-| for set union and omit the brackets around singleton sets when clear. 
-%
-The assertion \jsinline|DataProp(m, "_contents", c)| states that the property \jsinline|contents| of object \jsinline|m| has value
-\jsinline|v| (\polish{more details about the internal representation of JavaScript properties in~\cite{javert}}). 
-The assertion \jsinline|JSObject(c, Object.prototype)|  states that \jsinline|c| has prototype \jsinline|Object.prototype|.
+  (kvs = \{ \}),
+  (kvs = (k, v) -u- kvs') * ValidKey(k) * DataProp(o, k, v) * KVPairs(o, kvs')
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
+Map (m, kvs) := 
+  DataProp(m, "_contents", c) * 
+    JSObject(c, Object.prototype) * KVPairs(c, kvs) * emptyFields(c, first(kvs))
+\end{Verbatim}
 %
 
-%In the following, we assume a \jsinline|MapProto| predicate specifying the resource of 
-%a valid map prototype. In particular, the map prototype needs to define the methods 
-%\jsinline|put|, \jsinline|get|, and \jsinline|validKey|. 
+In Figure \ref{fig:symb:state:versus:assertion}, we can also see how the negative resource captured by the SL-assertion {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}, namely the resource captured by {\small$\mathtt{emptyFields(c, first(kvs))}$}, disappears from the symbolic heap and is transformed into the negative resource constraint $\{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}$, which states that all properties of the object \jsinline|c| in the symbolic heap (in our case, $\hat{s}_1$ and $\hat{s}_2$) must be in the set of properties of the corresponding \jsinline|emptyFields| assertion (in our case, {\small$\mathtt{first(\{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \}) = \{ \hat{s}_1, \hat{s}_2 \}}$}).
+Such constraints are generated in item ${\bf e.}$ of the test generation algorithm presented in Figure \ref{fig:test:generation}. 
 
+Below, we show the relevant parts of the specifications of \jsinline|get(k)| and \jsinline|put(k, v)|, for the case in which
+ \jsinline|k| already exists in the map:
 
-We are now in the position to give the specifications of the functions of the map library. In particular, 
- we show the specifications of \jsinline|get(k)| and \jsinline|put(k, v)| for the case in which
- \jsinline|k| already exists in the map. 
-
-\begin{minipage}{0.3\textwidth}
+\noindent
+\begin{minipage}{0.475\textwidth}
 \begin{displaymath} 
 {\scriptsize
+\hspace*{-0.2cm}
 \begin{array}{c}
 \left\{ {\begin{array}{c}
- \text{\texttt{Map(this, kvs -u- (k, v))}} \\ 
-  \text{\texttt{ObjProtoF()}} 
+ \text{\texttt{Map(this, kvs -u- (k, v)) * ObjProtoF() *}} \\
+ \text{\texttt{(this, "@proto") -> mp * MapProto(mp) * ...}}
 \end{array}} \right\} \\
 %
 \text{\bfseries \texttt{get(k)}} \\[0.2mm]
 %
 \left\{ {\begin{array}{c}
- \text{\texttt{Map(this, kvs -u- (k, v))}} \\
-  \text{\texttt{ObjProtoF() * (ret = v) }} \\
+ \text{\texttt{Precondition * (ret = v)}} 
 \end{array}} \right\}
 \end{array}
 } 
 \end{displaymath}
 \end{minipage}
-\begin{minipage}{0.72\textwidth}
+\quad
+\begin{minipage}{0.48\textwidth}
 %
 \begin{displaymath} 
 {\scriptsize
 \begin{array}{c}
 \left\{ {\begin{array}{c}
- \text{\texttt{Map(this, kvs -u- (k, v')) * (this, @proto) -> mp * }} \\ 
- \text{\texttt{(this, @proto) -> mp * ObjProtoF()}} 
+ \text{\texttt{Map(this, kvs -u- (k, v')) * ObjProtoF() *}} \\
+ \text{\texttt{(this, "@proto") -> mp * MapProto(mp) * ...}}
 \end{array}} \right\} \\
 %
 \text{\bfseries \texttt{put(k, v)}} \\[0.2mm]
 %
 \left\{ {\begin{array}{c}
- \text{\texttt{Map(this, kvs -u- (k, v)) * (this, @proto) -> mp * }} \\
- \text{\texttt{MapProto(mp) * ObjProtoF()}} 
+ \text{\texttt{Map(this, kvs -u- (k, v)) * ObjProtoF() *}} \\
+ \text{\texttt{(this, "@proto") -> mp * MapProto(mp) * ...}}
 \end{array}} \right\}
 \end{array}
 } 
@@ -841,28 +847,15 @@ We are now in the position to give the specifications of the functions of the ma
 
 \vspace{10pt}
 The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsinline|Object.prototype| object. 
-In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function, which is 
-defined as a property of \jsinline|Object.prototype|.
+In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function, which is defined as a property of \jsinline|Object.prototype|. 
+The predicate \jsinline|MapProto| predicate specifying the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
 
-If the predicate  $\mathtt{ValidKey(k)}$ does not state that  $\mathtt{k}$ needs to be different 
-from the string \texttt{"hasOwnProperty"}, the symbolic tests generated for both specifications 
-will fail (for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$). 
-Let us consider the symbolic execution of both methods on the symbolic heap described 
-in Figure~\ref{fig:symb:state:versus:assertion} (which can be obtained using the depth-$2$-unfolding 
-of $\mathtt{KVPairs}$). 
-\begin{itemize}
- \item \prooflab{Get Failure} The symbolic execution of  $\mathtt{get(k)}$ will fail for the cases 
-           in which either $\hat{s}_1$ or $\hat{s}_2$ is equal to \texttt{"hasOwnProperty"}. In those 
-           cases, the execution of line 5 (\jsinline|if (c.hasOwnProperty(k))|) will raise an error. 
-           Since the specification of  $\mathtt{get(k)}$ states that this method must terminate 
-           normally, the jump to the error label in the compiled \jsil code will trigger the $\assert(\jfalse)$. 
+Now, if we forget to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we do not state that $\mathtt{k}$ needs to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| will fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
+In that case, as illustrated in Figure \ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype|, is no longer reachable from \jsinline|c|, and
+the execution of line~5 (\jsinline|if (c.hasOwnProperty(k))|) will raise an error, as it will attempt to call the \jsinline|"hasOwnProperty"| property of object \jsinline|c| as a function instead. 
+Since this specification of $\mathtt{get(k)}$ requires normal termination, the jump to the error label in the compiled \jsil code will trigger the $\assert(\jfalse)$ of the generated symbolic test and the developer will be presented with the counter-model \jsinline|k = "hasOwnProperty"|.
 
- \item \prooflab{Put Failure} The symbolic execution of  $\mathtt{put(k, v)}$ will also fail for the cases 
-           in which either $\hat{s}_1$ or $\hat{s}_2$ is equal to \texttt{"hasOwnProperty"}. In those 
-           cases, the execution will terminate normally; but, then,  the final symbolic 
-           state will not entail the final postcondition, which states that the property 
-            \texttt{"hasOwnProperty"} cannot be present in the object $\mathtt{contents}$. 
-\end{itemize}
+\polish{Now, success.}
 
 
 %%
