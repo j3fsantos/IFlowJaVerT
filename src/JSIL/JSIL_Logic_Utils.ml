@@ -301,6 +301,16 @@ let get_asrt_pred_names (a : jsil_logic_assertion) : string list =
 		| _            -> List.concat ac) in
 	assertion_fold None f_ac None None a
 
+
+(* Rewrites the occurrences of the predicate --p-- in --a-- as --p'-- *)
+let rewrite_pred_name (p : string) (p' : string) (a : jsil_logic_assertion) : jsil_logic_assertion =
+	let f_a_after a = 
+		match a with 
+		| LPred (s, les) -> if (s = p) then LPred(p', les) else a 
+		| _              -> a in 
+	assertion_map None (Some f_a_after) None a 
+
+
 (***************************************************************)
 (***************************************************************)
 (** Pure Assertions                                           **)

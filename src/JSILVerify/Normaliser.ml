@@ -362,6 +362,89 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 
 
 
+(*** 
+type unfolded_predicate = {
+	name                         : string;
+	num_params                   : int;
+	params                       : jsil_var list;
+	definitions                  : ((string option) * jsil_logic_assertion) list;
+  	is_recursive                 : bool;
+  	previously_normalised_u_pred : bool
+}
+
+
+**)
+
+
+let get_new_pred_name 
+		(original_predname  : string)
+		(depth              : int) : string = 
+		"unfolded_" ^ (string_of_int depth) ^ "_" ^ original_predname 
+
+
+let concretize_rec_predicate
+		(u_pred     : unfolded_predicate)
+		(pred_defs  : (string, unfolded_predicate) Hashtbl.t)
+		(depth      : int) : unit = 
+
+	let concretize_predicate_aux i = 
+		let rec_pred_defs = 
+			List.filter (fun (_, pred_def) -> 
+				(List.length (get_asrt_pred_names pred_def)) > 0
+			) u_pred.definitions in	
+		
+		let prev_pred_name = get_new_pred_name u_pred.name (i-1) in 
+		let new_pred_name = get_new_pred_name u_pred.name (i-1) in 
+
+		let rec_pred_defs = 
+			List.map (fun (_, pred_def) -> rewrite_pred_name u_pred.name prev_pred_name pred_def) rec_pred_defs in
+
+		let unfolded_pred_defs =   
+			List.concat (List.map (fun pred_def -> auto_unfold pred_defs pred_def) rec_pred_defs) in 
+
+		let unfolded_pred_defs = List.map (fun pred_def -> None, pred_def) unfolded_pred_defs in 
+
+		let unfolded_pred =
+			{ u_pred with 
+				name         = new_pred_name; 
+				is_recursive = false; 
+				definitions  = unfolded_pred_defs 	
+			} in 
+
+		Hashtbl.replace pred_defs new_pred_name unfolded_pred; 
+
+		() in 
+
+	(* base case *)
+	let base_pred_defs =
+		List.filter (fun (_, pred_def) ->  
+			(List.length (get_asrt_pred_names pred_def)) = 0 
+		) u_pred.definitions in 
+	let base_pred_defs     = List.map (fun (_, pred_def) -> None, pred_def) base_pred_defs in 
+	let base_pred_name     = get_new_pred_name u_pred.name 0 in 
+	let unfolded_base_pred = 
+		{ u_pred with 
+			name         = base_pred_name; 
+			is_recursive = false; 
+			definitions  = base_pred_defs 	
+		} in 
+	Hashtbl.replace pred_defs base_pred_name unfolded_base_pred; 
+
+	for i=1 to depth do 
+		concretize_predicate_aux i 
+	done
+
+
+let concretize_rec_predicates 
+		(pred_defs : (string, unfolded_predicate) Hashtbl.t)
+		(depth     : int) : unit = 
+
+	Hashtbl.iter 
+		(fun pred_name u_pred -> 
+			if (u_pred.is_recursive) 
+				then concretize_rec_predicate u_pred pred_defs depth 
+		) pred_defs 
+
 
 (*  ------------------------------------------------------------------
  *  List Preprocessing

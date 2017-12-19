@@ -410,7 +410,12 @@ let js2jsil_predicate_def
 
 	let jsil_params = List.map (js2jsil_lexpr None) pred_def.js_params in
 	let jsil_definitions = List.map (fun (os, a) -> os, (js2jsil_assertion None cc_tbl vis_tbl fun_tbl None a)) pred_def.js_definitions in
-	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions; previously_normalised_pred = false }
+	{ 
+		name                       = pred_def.js_name; 
+		num_params                 = pred_def.js_num_params; 
+		params                     = jsil_params; 
+		definitions                = jsil_definitions; 
+		previously_normalised_pred = false }
 
 
 let rec js2jsil_single_spec

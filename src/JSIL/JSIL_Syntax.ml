@@ -278,11 +278,11 @@ type jsil_logic_assertion =
 
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
-	name        : string;                                        (** Name of the predicate  *)
-	num_params  : int;                                           (** Number of parameters   *)
-	params      : jsil_logic_expr list;                          (** Actual parameters      *)
-  definitions : ((string option) * jsil_logic_assertion) list;  (** Predicate definitions  *)
-  previously_normalised_pred : bool                             (** If the predicate has been previously normalised *)
+	name          : string;                                         (** Name of the predicate  *)
+	num_params    : int;                                            (** Number of parameters   *)
+	params        : jsil_logic_expr list;                           (** Actual parameters      *)
+  	definitions   : ((string option) * jsil_logic_assertion) list;  (** Predicate definitions  *)
+  	previously_normalised_pred : bool                               (** If the predicate has been previously normalised *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -316,6 +316,7 @@ type jsil_spec = {
   previously_normalised : bool           (** If the spec is already normalised *)
 }
 
+
 (**/**)
 (** Creates a JSIL specification given it's components *)
 let create_single_spec pre post flag =
@@ -324,6 +325,7 @@ let create_single_spec pre post flag =
 		post     = post;
 		ret_flag = flag
 	}
+
 
 let create_jsil_spec name params specs normalised =
 	{

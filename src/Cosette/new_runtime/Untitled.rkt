@@ -183,9 +183,9 @@
       ;; ('success)
       [(eq? cmd-type 'success)
         (println (format "Terminated: success"))
-        ;(println (format "Success was: ~v" success))
+        (println (format "Success was: ~v" success))
         (set! success #t)
-        ;(println (format "And now it is: ~v" success))
+        (println (format "And now it is: ~v" success))
         (cons heap store)] 
       ;;
 
@@ -193,9 +193,9 @@
       ;; ('failure)
       [(eq? cmd-type 'failure)
         (println (format "Terminated: failure"))
-        ;(println (format "Failure was: ~v" failure))
+        (println (format "Failure was: ~v" failure))
         (set! failure #t)
-        ;(println (format "And now it is: ~v" failure))
+        (println (format "And now it is: ~v" failure))
         (cons heap store)] 
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))

@@ -1015,7 +1015,7 @@ let rec symb_evaluate_logic_cmd
  	| Assert a ->
    		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a));
 		let existentials            = get_asrt_lvars a in
-		let existentials           = SS.diff existentials spec_vars in
+		let existentials            = SS.diff existentials spec_vars in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
 		let gamma_spec_vars         = filter_gamma_f (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in

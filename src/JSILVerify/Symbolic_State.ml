@@ -832,10 +832,6 @@ let selective_symb_state_substitution_in_place_no_gamma
 	selective_heap_substitution_in_place subst heap 
 
 
-
-
-
-
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
 (*********************************************************)
