@@ -238,3 +238,11 @@ let sexpr_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 let serialize_heap_racket h =
 	let serialized_h = sexpr_of_heap h in
 	Printf.sprintf SExpr_Templates.template_hp_racket serialized_h
+
+let print_which_pred wp =
+	Hashtbl.fold
+	  (fun k v ac ->
+		 ac ^
+		 (match k with
+			| (pn : string), (pc : int), (cc : int) -> Printf.sprintf "    (\"%s\" %d %d %d)\n" pn pc cc v))
+		wp ""
