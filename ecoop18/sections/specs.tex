@@ -91,6 +91,8 @@ $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{P}$.
 We can now give an \emph{ideal} symbolic semantics for the command $\sepassert(P)$ (which checks
 if the current symbolic state satisfies $P$): 
 
+\polish{the configurations need to be updated with the bot or top in the appropriate place. It appears 3 times: below, 
+when the rules are re-stated with a call to the decision procedure, in Theorem 8.}
 {\small \begin{mathpar}
 \inferrule[\textsc{Assert - True}]
   { 
@@ -744,7 +746,7 @@ $$}
 
 
 
-\myparagraph{Specification Preliminaries} \polish{This is not the right place for this.} We separate multiple definitions of the same predicate using a comma. 
+\myparagraph{Specification Preliminaries} \polish{This is not the right place for this. the predicates need to be explained intuitively (perhaps with the commented text). the syntax remarks comes after, and the highlights come even later. I suggest below the predicate definitions.} We separate multiple definitions of the same predicate using a comma. 
 %
 We write {\small\texttt{-u-}} for set union and omit the brackets around singleton sets. 
 %
@@ -798,6 +800,7 @@ Map (m, kvs) :=
     JSObject(c, Object.prototype) * KVPairs(c, kvs) * emptyFields(c, first(kvs))
 \end{Verbatim}
 %
+
 
 In Figure \ref{fig:symb:state:versus:assertion}, we can also see how the negative resource captured by the SL-assertion {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}, namely the resource captured by {\small$\mathtt{emptyFields(c, first(kvs))}$}, disappears from the symbolic heap and is transformed into the negative resource constraint $\{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}$, which states that all properties of the object \jsinline|c| in the symbolic heap (in our case, $\hat{s}_1$ and $\hat{s}_2$) must be in the set of properties of the corresponding \jsinline|emptyFields| assertion (in our case, {\small$\mathtt{first(\{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \}) = \{ \hat{s}_1, \hat{s}_2 \}}$}).
 Such constraints are generated in item ${\bf e.}$ of the test generation algorithm presented in Figure \ref{fig:test:generation}. 
