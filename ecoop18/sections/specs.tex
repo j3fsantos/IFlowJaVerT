@@ -742,7 +742,9 @@ $$}
 \vspace{-0.5cm}
 \end{figure}
 
-\myparagraph{Specification Preliminaries} We separate multiple definitions of the same predicate using a comma. 
+
+
+\myparagraph{Specification Preliminaries} \polish{This is not the right place for this.} We separate multiple definitions of the same predicate using a comma. 
 %
 We write {\small\texttt{-u-}} for set union and omit the brackets around singleton sets. 
 %
@@ -760,7 +762,7 @@ we define several predicates:
 %and 
 %\dtag{4} the \jsinline|MapProto(mp)| predicate, which states that the object \jsinline|mp| is a valid prototype object for key-value maps, that is, that it contains the appropriate \jsinline|get|, \jsinline|put|, and \jsinline|validKey| methods.
 Below, we show the definitions of the \jsinline|validKey|, \jsinline|KVPairs|, and \jsinline|Map| predicates, slightly simplified for presentation. 
-In the definition of \jsinline|validKey|, we highlight in red one potential source of errors on which we will focus shortly. 
+In the definition of \jsinline|ValidKey|, we highlight in red one potential source of errors on which we will focus shortly. 
 %
 We highlight three aspects of the \jsinline|Map| definition. 
 First, we use the first-projection operator \jsinline|first| to obtain the set of keys from the set of key-value pairs \jsinline|kvs|. 
@@ -848,7 +850,7 @@ Below, we show the relevant parts of the specifications of \jsinline|get(k)| and
 \vspace{10pt}
 The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsinline|Object.prototype| object. 
 In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function, which is defined as a property of \jsinline|Object.prototype|. 
-The predicate \jsinline|MapProto| predicate specifying the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
+The predicate \jsinline|MapProto| specifyies the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
 
 Now, if we forget to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we do not state that $\mathtt{k}$ needs to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| will fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
 In that case, as illustrated in Figure \ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype|, is no longer reachable by property lookup from \jsinline|c|, and
