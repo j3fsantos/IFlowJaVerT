@@ -26,8 +26,47 @@ with
 	err:	xret, elab;
 };
 
+(* ***************** *)
+(* O__GETOWNPROPERTY *)
+(* ***************** *)
+
 proc o__getOwnProperty (l, prop) {
-            x := hasField(l, prop);
+
+			xerr := "Error in o__getOwnProperty";
+			
+	t00:	goto [typeOf(l) = $$object_type]      t01  elab;
+	t01:	goto [typeOf(prop) = $$string_type]   t02  elab;
+	t02:	goto [0 < (s-len prop)]               t03  elab;
+	t03:	goto [s-nth(prop, 0) = "@"]           elab start;
+
+    start:	x := hasField(l, prop);
+            goto [x] hp nhp; 			(* Does the field exist? *)
+
+    nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
+            goto rlab;
+
+    hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
+   			
+   			goto [typeOf(xret) = $$list_type] rlab pelab;
+
+    rlab:   skip;
+    
+    pelab:	agugu := 42;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xerr, elab;
+};
+
+(* ***************** *)
+(* O__GETOWNPROPERTY *)
+(* ***************** *)
+
+proc o__getOwnProperty (l, prop) {
+
+    start:	x := hasField(l, prop);
             goto [x] hp nhp; 			(* Does the field exist? *)
 
     nhp:    xret := $$undefined;		(* Field doesn't exist; return undefined *)
@@ -35,11 +74,13 @@ proc o__getOwnProperty (l, prop) {
 
     hp:     xret := [l, prop];			(* Field exists; return the descriptor *)
 
-    rlab:   skip
+    rlab:   skip;
+    elab:	skip
 }
 with
 {
     ret: 	xret, rlab;
+    err:	xerr, elab;
 };
 
 (* *********** *)
