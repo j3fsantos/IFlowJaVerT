@@ -11,4 +11,5 @@ var f = function (x) {
 
 var a = f("a");
 var b = f("z");
-assert((a ++ b) = "abczbc")
+
+Assert((a ++ b) = "abczbc")

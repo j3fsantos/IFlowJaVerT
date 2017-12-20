@@ -11,4 +11,5 @@ function top(x, y) {
 }
 
 var ret1 = top(3, "aa");
-assert(ret1 = "aaaaaa")
+
+Assert(ret1 = "aaaaaa")

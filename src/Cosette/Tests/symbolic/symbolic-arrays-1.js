@@ -28,4 +28,4 @@ f_three();
 var n = ___n_number;
 var x = top(___s_string_1, ___s_string_2);
 
-jsil_assert (x !== 0); 
+jsil_Assert (x !== 0); 

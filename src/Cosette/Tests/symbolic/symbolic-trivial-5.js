@@ -5,4 +5,4 @@ var f = function (n) {
 }
 var y = 3 + 7 + f(n);
 var z = y + 7;
-jsil_assert(z < 0); 
+jsil_Assert(z < 0); 

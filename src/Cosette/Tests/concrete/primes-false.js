@@ -23,4 +23,4 @@ var n = 4;
 
 var ret1 = isPrime(n);
 
-assert(ret1 = $$f)
+Assert(ret1 = $$f)

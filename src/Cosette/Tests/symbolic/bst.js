@@ -134,7 +134,7 @@ var n = make_node(n1);
 
 n = insert(n2,n);
 var res = find_min(n); 
-assert(res = n2)
+Assert(res = n2)
 n = remove(n2,n);
 var res2 = find_min(n);
-assert(res2 = n1)
+Assert(res2 = n1)

@@ -38,5 +38,5 @@ var m = new Map();
 m.put("a", "banana"); 
 m.put("b", "passionfruit"); 
 var ret1 = m.get("a"); 
-assert(ret1 = "banana")
 
+Assert(ret1 = "banana")

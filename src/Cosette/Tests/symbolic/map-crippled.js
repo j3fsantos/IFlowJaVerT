@@ -22,4 +22,4 @@ var m = new Map();
 
 m._contents[s1] = 42;
 var key_val = m.get(s1); 
-assert(key_val = 42)
+Assert(key_val = 42)

@@ -41,7 +41,7 @@ var m = new Map();
 if (isValidKey (s1)) { 
   m.put(s1, n1); 
   var key_val = m.get(s1); 
-  assert(key_val = n1)
+  Assert(key_val = n1)
 } else { }
 
 

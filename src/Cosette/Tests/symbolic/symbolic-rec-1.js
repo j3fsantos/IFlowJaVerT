@@ -10,4 +10,4 @@ function top(x) {
 var x = jsil_make_symbolic_number();
 var y = top(x);
 
-jsil_assert(y == 34)
+jsil_Assert(y == 34)

@@ -21,4 +21,5 @@ function top(f, n) {
 top("one", 0);
 top("two", 1);
 var ret1 = top("three", 10);
-assert (ret1 = 1)
+
+Assert (ret1 = 1)

@@ -6,4 +6,4 @@ f.prototype.field = n;
 var o = new f(); 
 var y = 3 + 7 + o.field;
 var z = y + 7;
-jsil_assert(z < 0); 
+jsil_Assert(z < 0); 

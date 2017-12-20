@@ -18,5 +18,5 @@ var o = {
 };
 
 var ret1 = o.top("fib", 6);
-assert(ret1 = 8)
 
+Assert(ret1 = 8)

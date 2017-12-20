@@ -5,10 +5,8 @@ for filename in ./$1/*.js; do
 	echo "Next file: $filename"
 	name=$(echo $filename | cut -f 2 -d '.')
 	#echo $name
-	jname='.'$name'.jsil'
-	#echo $jname
 	./js2jsil.native -file "$filename" -cosette &> /dev/null
-	./jsil2rkt.native -file "$jname" -js 
+	./jsil2rkt.native -file ".$name" -js 
 	rname='.'$name'.rkt'
 	#echo $rname
 	mv "$rname" . 

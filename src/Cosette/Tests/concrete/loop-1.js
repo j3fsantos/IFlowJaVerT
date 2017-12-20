@@ -12,4 +12,5 @@ function top(n) {
 }
 
 var ret1 = top(6); 
-assert(ret1 = 15)
+
+Assert(ret1 = 15)

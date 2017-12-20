@@ -42,4 +42,4 @@ assume((not (s1 = "")) and (not (s-nth(s1, 0) = "@")));
 
 m.put(s1, n1); 
 var key_val = m.get(s1); 
-assert(key_val = n1)
+Assert(key_val = n1)

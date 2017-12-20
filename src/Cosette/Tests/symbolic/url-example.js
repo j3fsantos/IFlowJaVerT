@@ -21,4 +21,4 @@ if (name.length > 0) {
     }
 }
 
-jsil_assert( url.includes("access_token") );
+jsil_Assert( url.includes("access_token") );

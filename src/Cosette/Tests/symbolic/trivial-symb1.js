@@ -6,5 +6,5 @@ o["foo"] = n;
 
 if (n > 0) { 
 	var z = o[s]; 
-	assert(not (z <= 0))
+	Assert(not (z <= 0))
 }

@@ -4,6 +4,6 @@ var a = [ 17 ];
 
 var v1 = a[f1];
 
-jsil_assert (!(v1 === 17));
+jsil_Assert (!(v1 === 17));
 
 v1

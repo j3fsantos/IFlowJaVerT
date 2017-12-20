@@ -6,5 +6,5 @@ jsil_assume ((___n_number_2 > 0));
 
 var x = ___n_number_1 + ___n_number_2; 
 
-jsil_assert ((x > 0));
+jsil_Assert ((x > 0));
 x
