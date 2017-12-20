@@ -38,12 +38,12 @@ let rec stringify_assume_and_assert_aux (s_in : string) (s_out : string) (s : st
 			| TheUsual ->
 					(match next_char with
 					| "\"" -> f rest_of_string (s_out ^ "\"") InString
-					| "a"  -> 
+					| "A"  -> 
 						let next_five_chars, new_rest_of_string = string_split rest_of_string 5 in
 						(match next_five_chars, new_rest_of_string with
 						| Some next_five_chars, Some new_rest_of_string when (next_five_chars = "ssume" || next_five_chars = "ssert") -> 
-								f new_rest_of_string (s_out ^ "a" ^ next_five_chars) (InAsmOrAsrt (0, ""))
-						| _, _ -> f rest_of_string (s_out ^ "a") TheUsual)
+								f new_rest_of_string (s_out ^ "A" ^ next_five_chars) (InAsmOrAsrt (0, ""))
+						| _, _ -> f rest_of_string (s_out ^ "A") TheUsual)
 					| _    -> f rest_of_string (s_out ^ next_char) TheUsual)
 			| InString -> 
 					(match next_char with
