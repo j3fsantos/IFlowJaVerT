@@ -67,14 +67,13 @@ let main () =
 	
 	let prog, which_pred = (match !test262 with
 	| false -> 
-			let ext_prog = JSIL_Syntax_Utils.ext_program_of_path (!file ^ ".jsil") in
+			let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
 			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog
 	| true -> 
 			let harness = load_file "harness.js" in
-			let main = load_file (!file ^ ".js") in
+			let main = load_file !file in
 			let main = JSIL_PreParser.stringify_assume_and_assert main in
 			let all = harness ^ "\n\n" ^ main in
-			print_endline all;
 			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
 			let e = Parser_main.exp_from_string ~force_strict:true all in
 			let (ext_prog, _, _) = JS2JSIL_Compiler.js2jsil e offset_converter false in
@@ -96,7 +95,15 @@ let main () =
 	
 	let sprog = SExpr_Print.sexpr_of_program prog false in
 	let sprog_in_template = Printf.sprintf SExpr_Templates.template_procs_racket sprog in
-  burn_to_disk (!file ^ ".rkt") sprog_in_template)
+	let filename = Filename.chop_extension !file in
+  burn_to_disk (filename ^ ".rkt") sprog_in_template;
+	
+	(match !test262 with
+	| false -> ()
+	| true -> 
+  		let exit_code = Sys.command ("racket "^ filename ^ ".rkt") in
+  		exit(exit_code)
+	))
 	 
 
 let _ = main()
