@@ -96,12 +96,17 @@ let main () =
 	let sprog = SExpr_Print.sexpr_of_program prog false in
 	let sprog_in_template = Printf.sprintf SExpr_Templates.template_procs_racket sprog in
 	let filename = Filename.chop_extension !file in
+	let just_the_filename = Filename.basename filename in
+	print_endline just_the_filename;
   burn_to_disk (filename ^ ".rkt") sprog_in_template;
 	
 	(match !test262 with
 	| false -> ()
 	| true -> 
-  		let exit_code = Sys.command ("racket "^ filename ^ ".rkt") in
+			let exit_code = Sys.command ("pwd") in
+			let exit_code = Sys.command ("cp " ^ filename ^ ".rkt .") in
+  		let exit_code = Sys.command ("racket "^ just_the_filename ^ ".rkt") in
+			let _ = Sys.command ("rm "^ just_the_filename ^ ".rkt") in
   		exit(exit_code)
 	))
 	 

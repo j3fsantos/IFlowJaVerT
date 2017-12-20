@@ -9,7 +9,7 @@ time {
 echo "----------------------------"
 echo "Testing folder: $pathToTests"
 
-../runtests/runtests.py $fullPath --jsonparser --interp jsil 
+../runtests/runtests.py $fullPath --jsonparser --interp jsil --verbose --verbose
 
 echo "----------------------------"
 }
