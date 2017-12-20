@@ -16,14 +16,14 @@
 		((np, "next") -> None);
 	
 	@pred NodeList(nl, np, max_pri, length) :
-		(nl == $$null) * (max_pri == 0) * (length == 0),
+		(nl == null) * (max_pri == 0) * (length == 0),
 	
 		Node(nl, max_pri, #val, #next, np) * (0 <# max_pri) *
 		NodeList(#next, np, #pri, #len_nl) * (#pri <=# max_pri) *
 	  	(length == #len_nl + 1);
 	
 	
-	@pred Queue(pq, qp, np, max_pri : $$number_type, length : $$number_type) :
+	@pred Queue(pq, qp, np, max_pri : Num, length : Num) :
 		JSObjWithProto(pq, qp) * 
 		DataProp(pq, "_head",  #head) *
 		NodeList(#head, np, max_pri, length) *
@@ -31,7 +31,7 @@
 		((pq, "dequeue") -> None);
 	
 	
-	@pred QueuePrototype(qp, np, c : $$number_type, enq_sc):
+	@pred QueuePrototype(qp, np, c : Num, enq_sc):
 		JSObject(qp) *
 		DataProp(qp, "enqueue", #enqueue_loc) * FunctionObject(#enqueue_loc, "enqueue", enq_sc, _) *
 		DataProp(qp, "dequeue", #dequeue_loc) * FunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _) *
@@ -73,11 +73,11 @@ var PriorityQueue = (function () {
 	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
 	 	   	((this, "insert") -> None) *
 	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
-	 	   	scope(counter : #c) * types(#c : $$number_type) 
+	 	   	scope(counter : #c) * types(#c : Num) 
 	 	)
 	 	@post (
 	 		initialHeapPostWeak() * 
-			Node(this, #pri, #val, $$null, #np) * 
+			Node(this, #pri, #val, null, #np) * 
 			NodePrototype(#np) * 
 			scope(counter : #c + 1)
 		)
@@ -95,7 +95,7 @@ var PriorityQueue = (function () {
 		@pre (
 			(nl == #nl) * 
 			NodeList(#nl, #np, #pri_nl, #length) *
-			Node(this, #npri, #nval, $$null, #np) *
+			Node(this, #npri, #nval, null, #np) *
 			NodePrototype(#np) *
 			(#pri_nl <# #npri)
 		)
@@ -108,12 +108,12 @@ var PriorityQueue = (function () {
 	    @pre (
 			(nl == #nl) *
 			NodeList(#nl, #np, #pri_nl, #length) *
-			Node(this, #npri, #nval, $$null, #np) *
+			Node(this, #npri, #nval, null, #np) *
 			NodePrototype(#np) *
 			(#npri <=# #pri_nl)
 	   	)
 	   	@post (
-	   		types(#nl : $$object_type) *
+	   		types(#nl : Obj) *
 			NodeList(#nl, #np, #pri_nl, #length + 1) *
 			NodePrototype(#np) *
 			(ret == #nl) 
@@ -157,7 +157,7 @@ var PriorityQueue = (function () {
 	    )
 	*/
 	var PQ = function () {
-		/** @tactic fold NodeList($$null, #np, 0, 0) */
+		/** @tactic fold NodeList(null, #np, 0, 0) */
 		this._head = null;
 	};
 

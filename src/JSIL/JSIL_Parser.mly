@@ -38,7 +38,7 @@ let copy_and_clear_globals () =
 %token UNDEFTYPELIT
 %token NULLTYPELIT
 %token EMPTYTYPELIT
-%token NONETYPELIT
+%token LVALUETYPELIT
 %token BOOLTYPELIT
 %token NUMTYPELIT
 %token STRTYPELIT
@@ -1058,7 +1058,7 @@ constant_target:
 	| UNDEFTYPELIT { UndefinedType }
 	| NULLTYPELIT  { NullType }
 	| EMPTYTYPELIT { EmptyType }
-	| NONETYPELIT  { NoneType }
+	| LVALUETYPELIT  { LValueType }
 	| BOOLTYPELIT  { BooleanType }
 	| NUMTYPELIT   { NumberType }
 	| STRTYPELIT   { StringType }

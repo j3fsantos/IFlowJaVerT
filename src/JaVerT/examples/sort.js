@@ -1,35 +1,35 @@
 /**
 
   @pred nullableObject(o) : 
-    types(o : $$object_type),
-    (o == $$null);
+    types(o : Obj),
+    (o == null);
 
- @pred Node(n, v : $$number_type, t):
+ @pred Node(n, v : Num, t):
    JSObject(n) *
    DataProp(n, "value", v) *
    DataProp(n, "next", t);
  
  @pred NDList(l, E):
-   (l == $$null) * (E == -{ }-),
+   (l == null) * (E == -{ }-),
 
    Node(l, #v, #t) * NDList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
    (!(#v --e-- #tE));
 
  @pred SOList(l, E):
-   (l == $$null) * (E == -{ }-),
+   (l == null) * (E == -{ }-),
 
    Node(l, #v, #t) * SOList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
-   (forall #x: $$number_type. ((! (#x --e-- #tE)) \/ (#v <# #x)));
+   (forall #x: Num. ((! (#x --e-- #tE)) \/ (#v <# #x)));
  */
  
 /**
 	@id insert
 
-	@pre ( initialHeapPostWeak() * (node == #n) * (value == #v) * SOList(#n, #E) * types(#v: $$number_type) * 
+	@pre ( initialHeapPostWeak() * (node == #n) * (value == #v) * SOList(#n, #E) * types(#v: Num) * 
 		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
-	@post ( initialHeapPostWeak() * (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: $$object_type) *
+	@post ( initialHeapPostWeak() * (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: Obj) *
 		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto) )
 */
 function insert(node, value) {
@@ -68,7 +68,7 @@ function sort(head) {
     var result;
     /** @tactic unfold NDList(#h, #E) */
     if (head === null) {
-        /** @tactic fold SOList($$null, -{ }-) */
+        /** @tactic fold SOList(null, -{ }-) */
         result = null
     } else {
         var rec = sort(head.next);

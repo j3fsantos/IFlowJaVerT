@@ -5,77 +5,77 @@
 (* *** PUT *** *)
 
 (* 2. Property is not defined within the prototype chain at all, object not extensible, don't throw *)
-[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
-   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
-   ((#l, "@extensible") -> $$f) *
-   Pi (#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
-[[ Pi (#l, #prop, #cls, $$undefined, #g_aux_4, #g_aux_5, #g_aux_6) *
-   ((#l, "@extensible") -> $$f) *
-   (ret == $$empty) ]]
+[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == false) *
+   types (#l : Obj, #prop : Str, #cls : Str, #throw : Bool) *
+   ((#l, "@extensible") -> false) *
+   Pi (#l, #prop, #cls, undefined, #g_aux_4, #g_aux_5, #g_aux_6) ]]
+[[ Pi (#l, #prop, #cls, undefined, #g_aux_4, #g_aux_5, #g_aux_6) *
+   ((#l, "@extensible") -> false) *
+   (ret == empty) ]]
 normal;
 
 (* 4. Property is defined in the object, data descriptor that is not writable, don't throw *)
-[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
-   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
-   ((#l, "@extensible") -> $$f) *
+[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == false) *
+   types (#l : Obj, #prop : Str, #cls : Str, #throw : Bool) *
+   ((#l, "@extensible") -> false) *
    Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
-   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_1, $$f) ]]
+   DataDescriptor(#g_aux_3) * desc_writ(#g_aux_1, false) ]]
 [[ Pi (#l, #prop, #cls, #g_aux_1, {{ #l }}, #g_aux_3, #g_aux_4) *
-   ((#l, "@extensible") -> $$f) *
-   (ret == $$empty) ]]
+   ((#l, "@extensible") -> false) *
+   (ret == empty) ]]
 normal;
 
 (* 6. Property is defined in the prototype chain, not in the object, object not extensible, don't throw *)
-[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
-   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
-   ((#l, "@extensible") -> $$f) *
+[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == false) *
+   types (#l : Obj, #prop : Str, #cls : Str, #throw : Bool) *
+   ((#l, "@extensible") -> false) *
    Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
-   DataDescriptor(#g_aux_1) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : $$list_type) ]]
+   DataDescriptor(#g_aux_1) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : List) ]]
 [[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
-   ((#l, "@extensible") -> $$f) *
-   (ret == $$empty) ]]
+   ((#l, "@extensible") -> false) *
+   (ret == empty) ]]
 normal;
 
 (* 8. Property is defined in the prototype chain, not in the object, object extensible, property not writable, don't throw *)
-[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == $$f) *
-   types (#l : $$object_type, #prop : $$string_type, #cls : $$string_type, #throw : $$boolean_type) *
-   ((#l, "@extensible") -> $$t) *
+[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == false) *
+   types (#l : Obj, #prop : Str, #cls : Str, #throw : Bool) *
+   ((#l, "@extensible") -> true) *
    Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
-   DataDescriptor(#g_aux_31) * desc_writ(#g_aux_1, $$f) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : $$list_type) ]]
+   DataDescriptor(#g_aux_31) * desc_writ(#g_aux_1, false) * (1 <# l-len (#g_aux_2)) * types (#g_aux_2 : List) ]]
 [[ Pi (#l, #prop, #cls, #g_aux_1, #g_aux_2, #g_aux_3, #g_aux_4) *
-   ((#l, "@extensible") -> $$t) *
-   (ret == $$empty) ]]
+   ((#l, "@extensible") -> true) *
+   (ret == empty) ]]
 normal;
 
 (* *** DELETE *** *)
 
 
-[[ (throw == $$f) * (l == #l) * (prop == #prop) *
-   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #v : $$list_type) *
+[[ (throw == false) * (l == #l) * (prop == #prop) *
+   types(#l : Obj, #prop: Str, #cls: Str, #v : List) *
    ((#l, "@class") -> #cls) *
    isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
-   DataDescriptor(#v) * desc_conf (#v, $$f) ]]
+   DataDescriptor(#v) * desc_conf (#v, false) ]]
 [[ ((#l, "@class") -> #cls) *
    isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
-   (ret == $$f) ]]
+   (ret == false) ]]
 normal;
 
-[[ (l == #l) * (prop == #prop) * (throw == $$f) *
-   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+[[ (l == #l) * (prop == #prop) * (throw == false) *
+   types(#l : Obj, #prop: Str, #cls: Str, #pv : Str, #desc : List) *
    ((#l, "@class") -> #cls) *
    isClass(#cls, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
    DataDescriptor(#desc) ]]
 [[ ((#l, "@class") -> #cls) *
    isClass(#cls, "String") * Cell_s (#l, #prop, "SI", #desc, #pv) *
-   (ret == $$f) ]]
+   (ret == false) ]]
 normal;
 
-[[ (l == #l) * (prop == #prop) * (throw == $$f) *
-   types(#l : $$object_type, #prop: $$string_type, #cls: $$string_type, #pv : $$string_type, #desc : $$list_type) *
+[[ (l == #l) * (prop == #prop) * (throw == false) *
+   types(#l : Obj, #prop: Str, #cls: Str, #pv : Str, #desc : List) *
    ((#l, "@class") -> #cls) *
    isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
-   DataDescriptor(#desc) * desc_conf (#desc, $$f)]]
+   DataDescriptor(#desc) * desc_conf (#desc, false)]]
 [[ ((#l, "@class") -> #cls) *
    isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
-   (ret == $$f) ]]
+   (ret == false) ]]
 normal;

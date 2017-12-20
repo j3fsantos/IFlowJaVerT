@@ -1,31 +1,30 @@
 /**
 	@pred NullableObject(o) : 
-		types(o : $$object_type),
-		(o == $$null) * types (o : $$null_type);
+		types(o : Obj),
+		(o == null) * types (o : Null);
 
-	@pred Node(n, val, left, right) :
+	@pred Node(n : Obj, val : Num, left, right) :
 		JSObject(n) *
-		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right) *
-		types(val : $$number_type);
+		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right);
 
-	@pred BST(n, K) :
-		(n == $$null) * (K == -{ }-) * types (n : $$null_type, K : $$set_type),
+	@pred BST(n, K : Set) :
+		(n == null) * (K == -{ }-) * types (n : Null, K : Set),
 		
 		Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 
 		(K == -u- (#KL, -{ #val }-, #KR)) * 
-		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
-		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
-		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type);
+		(forall #x : Num. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
+		(forall #x : Num. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
+		types(#val : Num, #KL : Set, #KR : Set);
 */
 
 /**
 	@id makeNode
 	
 	@pre 
-		(v == #v) * types (#v : $$number_type)
+		(v == #v) * types (#v : Num)
 		
 	@post
-		Node(#r, #v, $$null, $$null) * types (#r : $$object_type) * (ret == #r)
+		Node(#r, #v, null, null) * types (#r : Obj) * (ret == #r)
 */
 function make_node(v)
 {
@@ -43,13 +42,13 @@ function make_node(v)
 	@pre
 		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
-		(v == #v) * types (#v : $$number_type) *
+		(v == #v) * types (#v : Num) *
 		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
 		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
 		
 	@post 
 		initialHeapPostWeak() * 
-		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : $$object_type) *
+		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : Obj) *
 		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
 		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
 */
@@ -63,8 +62,8 @@ function insert(v, t)
   	result = make_node(v);
   	
   	/** @tactic assert (scope(result : #r))
-  		@tactic fold BST($$null, -{ }-)
-  		@tactic fold BST($$null, -{ }-)
+  		@tactic fold BST(null, -{ }-)
+  		@tactic fold BST(null, -{ }-)
   		@tactic fold BST(#r, -{ #v }-) */
     return result
   }
@@ -83,12 +82,12 @@ function insert(v, t)
 	
 	@pre
 		initialHeapPostWeak() *
-		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : $$number_type) * 
+		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : Num) * 
 		scope(find : #find) * FunctionObject(#find, "find", _, _)
 
 	@post 
 		initialHeapPostWeak() * 
-		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : $$boolean_type) *
+		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : Bool) *
 		scope(find : #find) * FunctionObject(#find, "find", _, _)
 */
 function find (v, t)
@@ -116,13 +115,13 @@ function find (v, t)
 	
 	@pre
 		initialHeapPostWeak() * 
-		(t == #t) * BST(#t, #K) * types(#t : $$object_type) * 
+		(t == #t) * BST(#t, #K) * types(#t : Obj) * 
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 
 	@post 
 		initialHeapPostWeak() * 
-		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) * 
-		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
+		BST(#t, #K) * (ret == #r) * types(#r : Num) * (#r --e-- #K) * 
+		(forall #x : Num. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 */
 function find_min(t)
@@ -147,7 +146,7 @@ function find_min(t)
 	@pre
 		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
-		(v == #v) * types (#v : $$number_type) *
+		(v == #v) * types (#v : Num) *
 		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
 		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
 

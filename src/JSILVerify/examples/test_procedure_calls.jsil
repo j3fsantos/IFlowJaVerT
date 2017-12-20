@@ -4,7 +4,7 @@
 (** Expected result: YES                             **)
 spec test0 (x)
    [[ emp ]]
-   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> null) ]]
    normal
 proc test0 (x) {
   		   x := "aux0"();
@@ -13,8 +13,8 @@ proc test0 (x) {
 
 (** Expected result: YES                             **)
 spec test1 (x, y)
-   [[ ((y, "@proto") -> $$null) ]]
-   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) * ((y, "@proto") -> x) ]]
+   [[ ((y, "@proto") -> null) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> null) * ((y, "@proto") -> x) ]]
    normal
 proc test1 (x, y) {
   		   x := "aux0"();
@@ -25,8 +25,8 @@ proc test1 (x, y) {
 
 (** Expected result: NO                             **)
 spec test2 (x, y)
-   [[ ((y, "@proto") -> $$null) ]]
-   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
+   [[ ((y, "@proto") -> null) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> null) ]]
    normal
 proc test2 (x, y) {
   		   x := "aux0"();
@@ -38,8 +38,8 @@ pred xuxu (y) : xuxu(y);
 
 (** Expected result: YES                             **)
 spec test3 (y)
-   [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((ret, "cenoura") -> "jose") * ((ret, "@proto") -> $$null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ xuxu(y) * types(y: Str) ]]
+   [[ ((ret, "cenoura") -> "jose") * ((ret, "@proto") -> null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
    normal
 proc test3 (y) {
   		   x := new();
@@ -51,8 +51,8 @@ proc test3 (y) {
 
 (** Expected result: NO                             **)
 spec test4 (y)
-   [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((ret, "cenoura") -> "el_capitan") * ((ret, "@proto") -> $$null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ xuxu(y) * types(y: Str) ]]
+   [[ ((ret, "cenoura") -> "el_capitan") * ((ret, "@proto") -> null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
    normal
 proc test4 (y) {
   		   x := new();
@@ -64,8 +64,8 @@ proc test4 (y) {
 
 (** Expected result: NO                             **)
 spec test5 (y)
-   [[ xuxu(y) * types(y: $$string_type) ]]
-   [[ ((ret, "cenoura") -> "cenoura") * ((ret, "@proto") -> $$null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
+   [[ xuxu(y) * types(y: Str) ]]
+   [[ ((ret, "cenoura") -> "cenoura") * ((ret, "@proto") -> null) * ((ret, "tutifruti") -> y) * xuxu(y)  ]]
    normal
 proc test5 (y) {
   		   x := new();
@@ -78,7 +78,7 @@ proc test5 (y) {
 (** Expected result: YES                             **)
 spec aux0 (x)
    [[ emp ]]
-   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> null) ]]
    normal
 proc aux0 (x) {
   		   x := new ();
@@ -89,8 +89,8 @@ proc aux0 (x) {
 
 (** Expected result: YES                             **)
 spec aux1 (x, y)
-   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> $$null) * xuxu(y) * types(y: $$string_type) ]]
-   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> $$null) * ((x, "tutifruti") -> y) * xuxu(y) ]]
+   [[ ((x, "cenoura") -> "maria") * ((x, "@proto") -> null) * xuxu(y) * types(y: Str) ]]
+   [[ ((x, "cenoura") -> "jose") * ((x, "@proto") -> null) * ((x, "tutifruti") -> y) * xuxu(y) ]]
    normal
 proc aux1 (x, y) {
            [x, "cenoura"] := "jose";

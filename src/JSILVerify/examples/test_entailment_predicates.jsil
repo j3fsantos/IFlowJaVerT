@@ -5,7 +5,7 @@ pred alice(x, y) : alice(x, y);
 
 (** Expected result: YES                             **)
 spec test0 (x)
-   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
+   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: Str) ]]
    [[ (#x == "maria") * joe(#x) ]]
    normal
 proc test0 (x) {
@@ -15,7 +15,7 @@ proc test0 (x) {
 
 (** Expected result: YES                             **)
 spec test1 (x)
-   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
+   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: Str) ]]
    [[ (#x == "maria") * joe("maria") ]]
    normal
 proc test1 (x) {
@@ -25,7 +25,7 @@ proc test1 (x) {
 
 (** Expected result: NO                             **)
 spec test2 (x)
-   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: $$string_type) ]]
+   [[ (x == #x) * (#x == "maria") * joe(#x) * types(#x: Str) ]]
    [[ (#x == "maria") * joe("cocker") ]]
    normal
 proc test2 (x) {
@@ -35,7 +35,7 @@ proc test2 (x) {
 
 (** Expected result: YES                             **)
 spec test3 (x)
-   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * types(#x: $$string_type, #z: $$string_type) ]]
+   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * types(#x: Str, #z: Str) ]]
    [[ (#x == "maria") * joe(#z) ]]
    normal
 proc test3 (x) {
@@ -45,7 +45,7 @@ proc test3 (x) {
 
 (** Expected result: NO                             **)
 spec test4 (x)
-   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * (! (#w == "maria")) * types(#x: $$string_type, #z: $$string_type, #w: $$string_type) ]]
+   [[ (x == #x) * (#x == "maria") * joe(#x) * (#z == "maria") * (! (#w == "maria")) * types(#x: Str, #z: Str, #w: Str) ]]
    [[ (#x == "maria") * joe(#w) ]]
    normal
 proc test4 (x) {
@@ -55,7 +55,7 @@ proc test4 (x) {
 
 (** Expected result: YES                             **)
 spec test5 (x)
-   [[ joe(#x) * alice(#y, #w) * types(#x: $$string_type, #y: $$string_type, #w: $$string_type) ]]
+   [[ joe(#x) * alice(#y, #w) * types(#x: Str, #y: Str, #w: Str) ]]
    [[ joe(#x) * alice(#y, #w) ]]
    normal
 proc test5 (x) {
@@ -65,7 +65,7 @@ proc test5 (x) {
 
 (** Expected result: NO                             **)
 spec test6 (x)
-   [[ joe(#x) * alice(#y, #w) * types(#x: $$string_type, #y: $$string_type, #w: $$string_type) ]]
+   [[ joe(#x) * alice(#y, #w) * types(#x: Str, #y: Str, #w: Str) ]]
    [[ joe(#w) * alice(#y, #w) ]]
    normal
 proc test6 (x) {
@@ -75,7 +75,7 @@ proc test6 (x) {
 
 (** Expected result: YES                             **)
 spec test7 (x)
-   [[ joe(#x) * alice(#y, #w) * types(#x: $$string_type, #y: $$string_type, #w: $$string_type) * (#x == #w) ]]
+   [[ joe(#x) * alice(#y, #w) * types(#x: Str, #y: Str, #w: Str) * (#x == #w) ]]
    [[ joe(#w) * alice(#y, #w) ]]
    normal
 proc test7 (x) {
@@ -85,7 +85,7 @@ proc test7 (x) {
 
 (** Expected result: NO                             **)
 spec test8 (x)
-   [[ joe(#x) * alice(#y, #w) * types(#x: $$string_type, #y: $$string_type, #w: $$string_type) * (! (#x == #w)) ]]
+   [[ joe(#x) * alice(#y, #w) * types(#x: Str, #y: Str, #w: Str) * (! (#x == #w)) ]]
    [[ joe(#w) * alice(#y, #w) ]]
    normal
 proc test8 (x) {

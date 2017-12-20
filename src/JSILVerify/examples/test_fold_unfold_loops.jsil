@@ -2,13 +2,13 @@
 
 
 pred my_list (x) :
-	(x == $$null),
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) * my_list(#z) * types(#y: $$number_type);
+	(x == null),
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> null) * my_list(#z) * types(#y: Num);
 
 
 (** Expected result: YES             **)
 spec list_cons (x, y)
-   [[ my_list(x) * types(y: $$number_type) ]]
+   [[ my_list(x) * types(y: Num) ]]
    [[ my_list(x) ]]
    normal
 proc list_cons (x, y) {
@@ -25,11 +25,11 @@ proc list_cons (x, y) {
 (** Expected result: YES                             **)
 spec list_count (x)
    [[ (x == #x) * my_list(#x) ]]
-   [[ my_list(#x) * types(ret: $$number_type) ]]
+   [[ my_list(#x) * types(ret: Num) ]]
    normal
 proc list_count (x) {
 		   [* unfold(my_list(x)) *]
-		   goto [ x = $$null ] then1 else1;
+		   goto [ x = null ] then1 else1;
    then1:   count := 0;
            goto rlab;
    else1:   z := [x, "next"];
@@ -42,19 +42,19 @@ proc list_count (x) {
 
 (** Expected result: YES                                                     **)
 spec list_append (x, y)
-   [[ (x == #x) * (! (#x == $$null)) * (y == #y) * my_list(#x) * my_list(#y) ]]
+   [[ (x == #x) * (! (#x == null)) * (y == #y) * my_list(#x) * my_list(#y) ]]
    [[ my_list(#x) * (x == #x)                                                ]]
    normal;
-   [[ (x == #x) * (#x == $$null) * (y == #y) * my_list(#y)                   ]]
+   [[ (x == #x) * (#x == null) * (y == #y) * my_list(#y)                   ]]
    [[ my_list(#y) * (x == #y)                                                ]]
    normal
 proc list_append (x, y) {
-		   goto [ x = $$null ] then1 else1;
+		   goto [ x = null ] then1 else1;
    then1:  x := y;
            goto rlab;
            [* unfold(my_list(x)) *]
    else1:  z := [x, "next"];
-    	   goto [z = $$null] then2 else2;
+    	   goto [z = null] then2 else2;
    then2: foo := "bar"; (* Dummy variable -
 						               putting a logical assertion as the first statement in a block throws a syntax error *)
 					[* unfold(my_list(z)) *]

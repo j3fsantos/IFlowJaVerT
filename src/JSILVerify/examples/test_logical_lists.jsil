@@ -1,21 +1,21 @@
 (** Totals: 0 fails and 1 passes **)
 
 pred my_list (x, alpha) :
-	(x == $$null) * (alpha == {{ }}) * types(alpha: $$list_type, x: $$null_type),
+	(x == null) * (alpha == {{ }}) * types(alpha: List, x: Null),
 
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> null) *
 		(alpha == (#y :: #beta)) * my_list(#z, #beta) *
-		types(#y: $$number_type, #alpha: $$list_type, #beta: $$list_type);
+		types(#y: Num, #alpha: List, #beta: List);
 
 spec list_count (x)
-   [[ my_list(x, #alpha) * types(#alpha: $$list_type) ]]
+   [[ my_list(x, #alpha) * types(#alpha: List) ]]
    [[ my_list(x, #alpha) * (ret == l-len(#alpha)) ]]
    normal
 
 proc list_count (x) {
 			  skip;
    		  [* unfold my_list(x, #alpha) *]
-           goto [ x = $$null ] then1 else1;
+           goto [ x = null ] then1 else1;
    then1:  count := 0;
            goto rlab;
    else1:  z := [x, "next"];

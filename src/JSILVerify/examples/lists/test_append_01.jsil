@@ -1,13 +1,13 @@
 (* Sublist of length j starting from the i-th element *)
 only spec subList(l, i, j)
 	[[	(l == #l1 @ (#l2 @ #l3)) * (i == #i) * (j == #j) * (l-len(#l1) == #i) * (l-len(#l2) == #j) * 
-		types(l : $$list_type, #l1 : $$list_type, #l2 : $$list_type, #l3 : $$list_type, #i : $$number_type, #j : $$number_type) ]]
+		types(l : List, #l1 : List, #l2 : List, #l3 : List, #i : Num, #j : Num) ]]
 	[[ ret == #l2 ]]
 	normal
 
 spec test_01 ()
 	[[ emp ]]
-	[[ (ret == {{ 4, 5 }}) * types(ret : $$list_type) ]]
+	[[ (ret == {{ 4, 5 }}) * types(ret : List) ]]
 	normal
 
 proc test_01 ()

@@ -1,28 +1,28 @@
 pred ll_node(node, val, next):
-  types(node : $$object_type) *
+  types(node : Obj) *
   ((node, "value")  -> val) *
   ((node, "next")   -> next) *
-  ((node, "@proto") -> $$null);
+  ((node, "@proto") -> null);
 
 pred ll_seg(head, last_next, list):
-  types(list: $$list_type) *
+  types(list: List) *
   (list == {{ }}) *
   (head == last_next),
 
   (! (head == last_next)) *
   (list == (#item :: #items )) *
-  types(list: $$list_type, #items: $$list_type) *
+  types(list: List, #items: List) *
   (ll_node(head, #item, #head_next)) *
   (ll_seg(#head_next, last_next, #items));
 
 pred disjoint_ll_seg(head, last_next, list, disjoint_element):
-  types(list: $$list_type) *
+  types(list: List) *
   (list == {{ }}) * (! (head == disjoint_element)) *
   (head == last_next),
 
   (! (head == last_next)) * (! (head == disjoint_element)) *
   (list == (#item :: #items )) *
-  types(list: $$list_type, #items: $$list_type) *
+  types(list: List, #items: List) *
   (ll_node(head, #item, #head_next)) *
   (disjoint_ll_seg(#head_next, last_next, #items, disjoint_element));
 
@@ -30,14 +30,14 @@ pred disjoint_ll_seg(head, last_next, list, disjoint_element):
    of the list segment resulting from the appending of the two arguments *)
 spec append_ll_seg (head_1, last_next_1, head_2, last_next_2)
    [[ (head_1 == #head_1) * (last_next_1 == #last_next_1) * (head_2 == #head_2) * (last_next_2 == #last_next_2) *
-      types(#list_2: $$list_type) *
+      types(#list_2: List) *
       disjoint_ll_seg(#head_1, #last_next_1, #list_1, #last_next_2) *
       ll_seg(#head_2, #last_next_2, #list_2) ]]
    [[ (#appended_list == (#list_1 @ #list_2)) *
-      types(ret: $$object_type) *
+      types(ret: Obj) *
       ((ret, "head")      -> #appended_head) *
       ((ret, "last_next") -> #last_next_2) *
-      ((ret, "@proto")    -> $$null) *
+      ((ret, "@proto")    -> null) *
       ll_seg(#appended_head, #last_next_2, #appended_list) ]]
     normal
 

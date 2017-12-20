@@ -1,23 +1,23 @@
 (** Totals: 0 fails and 1 passes **)
 
 pred my_list (x, alpha, size) :
-	(x == $$null) * (alpha == {{ }}) *
-		(size == 0) * types(alpha: $$list_type, size: $$number_type),
+	(x == null) * (alpha == {{ }}) *
+		(size == 0) * types(alpha: List, size: Num),
 
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> null) *
 		(alpha == (#y :: #beta)) * my_list(#z, #beta, #size_beta) * (size == (#size_beta + 1)) *
-		types(#y: $$number_type, #alpha: $$list_type, #beta: $$list_type, size: $$number_type, #size_beta: $$number_type);
+		types(#y: Num, #alpha: List, #beta: List, size: Num, #size_beta: Num);
 
 
 
 (** Expected result: YES                             **)
 spec list_count (x)
-   [[ (x == #x) * my_list(#x, #alpha, #size) * types(#size: $$number_type, #alpha: $$list_type) ]]
-   [[ my_list(#x, #alpha, #size) * types(#size: $$number_type) * (ret == #size) ]]
+   [[ (x == #x) * my_list(#x, #alpha, #size) * types(#size: Num, #alpha: List) ]]
+   [[ my_list(#x, #alpha, #size) * types(#size: Num) * (ret == #size) ]]
    normal
 proc list_count (x) {
        [* unfold(my_list(x, #alpha, #size)) *]
-          goto [ x = $$null ] then1 else1;
+          goto [ x = null ] then1 else1;
    then1: count := 0;
           goto rlab;
    else1: z := [x, "next"];
@@ -29,8 +29,8 @@ proc list_count (x) {
 } with { ret: count, rlab; };
 
 proc make_list (list) {
-          goto [ list = $$nil] then1 else1;
-  then1:  x := $$null;
+          goto [ list = nil] then1 else1;
+  then1:  x := null;
           goto rlab;
   else1:  x := new ();
           [x, "value"] := l-nth(list, 0);

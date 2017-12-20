@@ -277,7 +277,7 @@ let rec js2jsil_assertion
 		----------------------------------------------
 		Tr(scope(x: le_x, le_sc, fid)) ::=
 			((l-nth(le_sc', i), "x") -> le_x')               if Phi(fid, x) != 0
-			((lg, "x") -> {{"d", le_x', $$t, $$t, $$f}})     if Phi(fid, x) = 0 or bot *)
+			((lg, "x") -> {{"d", le_x', true, true, false}})     if Phi(fid, x) = 0 or bot *)
 	| JSLVarSChain (fid, x, le_x, le_sc) ->
 		let i   = psi cc_tbl vis_tbl fid x in
 		let a'  =
@@ -426,7 +426,7 @@ let rec js2jsil_single_spec
 	let pre'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) pre in
 	let post' = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope_final) post in
 
-	(* x \in params -> (! (x == $$empty)) *)
+	(* x \in params -> (! (x == empty)) *)
 	let params_asrts = List.map (fun x -> (LNot (LEq (PVar x, LLit Empty)))) params in 
 
 	(*  x__this == #this                *)

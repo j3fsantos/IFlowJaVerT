@@ -1,6 +1,6 @@
 spec sets_01 ()
 	[[ emp ]]
-	[[ (ret == $$t) * types(ret : $$boolean_type) ]]
+	[[ (ret == true) * types(ret : Bool) ]]
 	normal
 
 proc sets_01 ()
@@ -9,7 +9,7 @@ proc sets_01 ()
 			xret := (xret -u- -{- "a", "b", "c" -}-);
 			xret := (-{- "a", 2, "d" -}- -i- xret);
 			xret := (xret -d- -{- 2 -}-);
-			yret := (xret -s- -{- 5, 6, $$t, "a" -}-);
+			yret := (xret -s- -{- 5, 6, true, "a" -}-);
 			xret := (yret and (not ("b" -e- xret)));
 	rlab:	skip
 }
@@ -19,8 +19,8 @@ with
 };
 
 spec sets_02 (x, y)
-	[[ (x == #x) * (y == #y) * types (#x : $$number_type, #y : $$number_type) ]]
-	[[ (ret == $$t) * types(ret : $$boolean_type) ]]
+	[[ (x == #x) * (y == #y) * types (#x : Num, #y : Num) ]]
+	[[ (ret == true) * types(ret : Bool) ]]
 	normal
 
 proc sets_02 (x, y)
@@ -36,8 +36,8 @@ with
 };
 
 spec sets_03 (x, y)
-	[[ (x == #x) * (y == #y) * types (#x : $$number_type, #y : $$number_type) ]]
-	[[ (ret == $$f) * types(ret : $$boolean_type) ]]
+	[[ (x == #x) * (y == #y) * types (#x : Num, #y : Num) ]]
+	[[ (ret == false) * types(ret : Bool) ]]
 	normal
 
 proc sets_03 (x, y)

@@ -8,9 +8,9 @@ spec main ()
 
 	[[ initialHeapPre() ]]
 	[[ initialHeapPost() *
-	   (($lg, "x") -> {{ "d", 2, $$t, $$t, $$t }}) * (($lg, "arguments") -> {{ "d", $$undefined, $$t, $$t, $$t }}) *
+	   (($lg, "x") -> {{ "d", 2, true, true, true }}) * (($lg, "arguments") -> {{ "d", undefined, true, true, true }}) *
 	   isTypeError(x__te) * isSyntaxError(x__se) *
-	   ((x__scope, "main") -> $lg) * ((x__scope, "@proto") -> $$null) *
+	   ((x__scope, "main") -> $lg) * ((x__scope, "@proto") -> null) *
 	   (ret == 2) ]]
 	normal
 
@@ -19,13 +19,13 @@ proc main () {
 			x__scope := new();
 			[x__scope, "main"] := $lg;
 			x__this := $lg;
-			[$lg, "x"] := {{ "d", $$undefined, $$t, $$t, $$t }};
-			[$lg, "arguments"] := {{ "d", $$undefined, $$t, $$t, $$t }};
+			[$lg, "x"] := {{ "d", undefined, true, true, true }};
+			[$lg, "arguments"] := {{ "d", undefined, true, true, true }};
 			x__te := "TypeError"();
 			x__se := "SyntaxError"();
-			x__true := $$t;
-			x__false := $$f;
-			x_1 := $$empty;
+			x__true := true;
+			x__false := false;
+			x_1 := empty;
 			x_2 := [x__scope, "main"];
 			x_3 := {{ "v", x_2, "x" }};
 			x_4_v := "i__getValue"(2.) with elab;

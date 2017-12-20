@@ -1,13 +1,13 @@
 (** Totals: 1 fail and 3 passes **)
 
 pred interval (x, a, b) :
-	((a <=# b) * (a <=# x) * (x <=# b) * types(x: $$number_type, a: $$number_type, b: $$number_type));
+	((a <=# b) * (a <=# x) * (x <=# b) * types(x: Num, a: Num, b: Num));
 
 
 (** Expected result: YES                                                                 **)
 spec interval_addition1 (x, a, b)
-   [[ interval(x, a, b) * types (a: $$number_type, b: $$number_type, x: $$number_type) ]]
-   [[ interval(ret, a + 1, b + 1) * types (a: $$number_type, b: $$number_type, ret: $$number_type) ]]
+   [[ interval(x, a, b) * types (a: Num, b: Num, x: Num) ]]
+   [[ interval(ret, a + 1, b + 1) * types (a: Num, b: Num, ret: Num) ]]
    normal
 proc interval_addition1 (x, a, b) {
 			x := x + 1;
@@ -21,8 +21,8 @@ with
 
 (** Expected result: YES                                                                  **)
 spec interval_multiplication1 (x, a, b)
-   [[ interval(x, a, b) * types (a: $$number_type, b: $$number_type, x: $$number_type) ]]
-   [[ interval(ret, a*4, b*4) * types (a: $$number_type, b: $$number_type, ret: $$number_type) ]]
+   [[ interval(x, a, b) * types (a: Num, b: Num, x: Num) ]]
+   [[ interval(ret, a*4, b*4) * types (a: Num, b: Num, ret: Num) ]]
    normal
 proc interval_multiplication1 (x, a, b) {
 			x := x*4;
@@ -36,8 +36,8 @@ with
 
 (** Expected result: NO                                                                  **)
 spec interval_multiplication2 (x, a, b)
-   [[ interval(x, a, b) * types (a: $$number_type, b: $$number_type, x: $$number_type) ]]
-   [[ interval(ret, a*4, b*6) * types (a: $$number_type, b: $$number_type, ret: $$number_type) ]]
+   [[ interval(x, a, b) * types (a: Num, b: Num, x: Num) ]]
+   [[ interval(ret, a*4, b*6) * types (a: Num, b: Num, ret: Num) ]]
    normal
 proc interval_multiplication2 (x, a, b) {
 			x := x*4;
@@ -51,8 +51,8 @@ with
 
 (** Expected result: YES                                                                  **)
 spec interval_multiplication3 (x, a, b)
-   [[ interval(x, a, b) * (0 <=# a) * types (a: $$number_type, b: $$number_type, x: $$number_type) ]]
-   [[ interval(ret, a*4, b*6) * types (a: $$number_type, b: $$number_type, ret: $$number_type) ]]
+   [[ interval(x, a, b) * (0 <=# a) * types (a: Num, b: Num, x: Num) ]]
+   [[ interval(ret, a*4, b*6) * types (a: Num, b: Num, ret: Num) ]]
    normal
 proc interval_multiplication3 (x, a, b) {
 			x := x*4;

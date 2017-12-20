@@ -1,6 +1,6 @@
 (** Totals: 0 fails and 1 pass **)
 
-pred int_pair (p) : (p == {{#y, #z}}) * types(#y: $$number_type, #z: $$number_type);
+pred int_pair (p) : (p == {{#y, #z}}) * types(#y: Num, #z: Num);
 
 spec sum_pairs (p1, p2)
 	[[ int_pair(p1) * int_pair(p2) ]]

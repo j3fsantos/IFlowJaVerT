@@ -3,41 +3,41 @@
  ********************)
 
 pred JSObject (l) :
-    types (l : $$object_type) *
+    types (l : Obj) *
 	((l, "@proto") -> $lobj_proto) *
 	((l, "@class") -> "Object") *
-	((l, "@extensible") -> $$t);
+	((l, "@extensible") -> true);
 
 pred DataProp (l, prop, v) :
-    types (l : $$object_type, prop : $$string_type) *
-	((l, prop) -> {{ "d", v, $$t, $$t, $$t }}) *
-	(! (v == $$empty));
+    types (l : Obj, prop : Str) *
+	((l, prop) -> {{ "d", v, true, true, true }}) *
+	(! (v == empty));
 	
 pred DataPropGen (l, prop, v, writ, enum, conf) : 
-	types (l : $$object_type, prop : $$string_type) *
+	types (l : Obj, prop : Str) *
 	((l, prop) -> {{ "d", v, writ, enum, conf }}) *
-	(! (v == $$empty)) * types (writ : $$boolean_type, enum : $$boolean_type, conf : $$boolean_type);
+	(! (v == empty)) * types (writ : Bool, enum : Bool, conf : Bool);
 	
 pred DataPropConst (l, prop, v) :
-    types (l : $$object_type, prop : $$string_type) *
-	((l, prop) -> {{ "d", v, $$f, $$f, $$f }}) *
-	(! (v == $$empty));
+    types (l : Obj, prop : Str) *
+	((l, prop) -> {{ "d", v, false, false, false }}) *
+	(! (v == empty));
 	
 pred EmptyProp (l, prop) :
-	types (l : $$object_type, prop : $$string_type) *
+	types (l : Obj, prop : Str) *
 	((l, prop) -> None);
 	
 pred JSObjWithProto (l, proto) :
-	types (l : $$object_type) *
+	types (l : Obj) *
 	((l, "@proto") -> proto) *
 	((l, "@class") -> "Object") *
-	((l, "@extensible") -> $$t);
+	((l, "@extensible") -> true);
 	
 pred ErrorObjectWithMessage (l, m) :
-  types (l : $$object_type) *
+  types (l : Obj) *
   ((l, "@proto") -> $lerr_proto) * ((l, "@class") -> "Error") *
-  ((l, "@extensible") -> $$t) *
-  ((l, "message") -> {{"d", m, $$t, $$f, $$t}});
+  ((l, "@extensible") -> true) *
+  ((l, "message") -> {{"d", m, true, false, true}});
 
 pred EmptyProp (l, prop) : 
 	((l, prop) -> None); 
@@ -48,13 +48,13 @@ pred EmptyProps (l, props) :
 pred FunctionObject (l, fid, sc, proto) : 
 	((l, "@proto") -> $lfun_proto) * 
 	((l, "@class") -> "Function") *
-	((l, "@extensible") -> $$t) * 
+	((l, "@extensible") -> true) * 
 	((l, "@call") -> fid) * 
 	((l, "@construct") -> fid) *
 	((l, "@scope")     -> sc) * 
 	((l, "length")     -> #ignore1) *
 	((l, "arguments")  -> #ignore2) *
 	((l, "caller")     -> #ignore3) *
-	((l, "prototype")  -> {{ "d", proto, $$t, $$f, $$f }}) *
-	types(sc : $$list_type, fid: $$string_type) *
+	((l, "prototype")  -> {{ "d", proto, true, false, false }}) *
+	types(sc : List, fid: Str) *
 	empty_fields(l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "arguments", "caller", "prototype" }- ); 

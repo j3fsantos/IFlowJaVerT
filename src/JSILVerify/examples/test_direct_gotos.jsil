@@ -2,8 +2,8 @@
 
 (** Expected result: YES                             **)
 spec test0 (y)
-   [[ types(y: $$boolean_type) ]]
-   [[ ((ret, "cenoura") -> #y) * ((ret, "@proto") -> $$null) ]]
+   [[ types(y: Bool) ]]
+   [[ ((ret, "cenoura") -> #y) * ((ret, "@proto") -> null) ]]
    normal
 proc test0 (y) {
   		   x := new ();
@@ -17,8 +17,8 @@ proc test0 (y) {
 
 (** Expected result: NO                             **)
 spec test1 (y)
-   [[ types(y: $$boolean_type) ]]
-   [[ ((ret, "cenoura") -> "maria") * ((ret, "@proto") -> $$null) ]]
+   [[ types(y: Bool) ]]
+   [[ ((ret, "cenoura") -> "maria") * ((ret, "@proto") -> null) ]]
    normal
 proc test1 (y) {
   		   x := new ();
@@ -32,8 +32,8 @@ proc test1 (y) {
 
 (** Expected result: YES                             **)
 spec test2 (y)
-   [[ (y == $$t) * types(y: $$boolean_type) ]]
-   [[ ((ret, "cenoura") -> "maria") * ((ret, "@proto") -> $$null) ]]
+   [[ (y == true) * types(y: Bool) ]]
+   [[ ((ret, "cenoura") -> "maria") * ((ret, "@proto") -> null) ]]
    normal
 proc test2 (y) {
   		   x := new ();
@@ -47,8 +47,8 @@ proc test2 (y) {
 
 (** Expected result: NO                             **)
 spec test3 (y)
-   [[ (y == $$f) * types(y: $$boolean_type) ]]
-   [[ ((ret, "cenoura") -> "maria") * ((ret, "@proto") -> $$null) ]]
+   [[ (y == false) * types(y: Bool) ]]
+   [[ ((ret, "cenoura") -> "maria") * ((ret, "@proto") -> null) ]]
    normal
 proc test3 (y) {
   		   x := new ();

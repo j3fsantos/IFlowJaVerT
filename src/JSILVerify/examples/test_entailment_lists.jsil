@@ -2,8 +2,8 @@
 
 (** Expected result: YES                             **)
 spec test0 (x)
-   [[ (x == #y) * (#y == {{#a, #b, #c, #d}}) * types(x: $$list_type, #y: $$list_type, #a: $$number_type, #b: $$number_type, #c: $$number_type, #d: $$number_type) ]]
-   [[ (l-nth(x, 1) == #b) * (x == #y) * (#y == {{#a, #b, #c, #d}}) * types(x: $$list_type, #y: $$list_type, #a: $$number_type, #b: $$number_type, #c: $$number_type, #d: $$number_type)  ]]
+   [[ (x == #y) * (#y == {{#a, #b, #c, #d}}) * types(x: List, #y: List, #a: Num, #b: Num, #c: Num, #d: Num) ]]
+   [[ (l-nth(x, 1) == #b) * (x == #y) * (#y == {{#a, #b, #c, #d}}) * types(x: List, #y: List, #a: Num, #b: Num, #c: Num, #d: Num)  ]]
    normal
 proc test0 (x) {
    rlab:   skip
@@ -13,8 +13,8 @@ proc test0 (x) {
 
 (** Expected result: YES                             **)
 spec test1 (x)
-   [[ (x == #y) * (#y == #z) * (#z == {{#a, #b, #c, #d}}) * types(x: $$list_type, #y: $$list_type, #z: $$list_type, #a: $$number_type, #b: $$number_type, #c: $$number_type, #d: $$number_type) ]]
-   [[ (l-nth(x, 1) == #b) * (x == #y) * (#y == {{#a, #b, #c, #d}}) * types(x: $$list_type, #y: $$list_type, #z: $$list_type, #a: $$number_type, #b: $$number_type, #c: $$number_type, #d: $$number_type)  ]]
+   [[ (x == #y) * (#y == #z) * (#z == {{#a, #b, #c, #d}}) * types(x: List, #y: List, #z: List, #a: Num, #b: Num, #c: Num, #d: Num) ]]
+   [[ (l-nth(x, 1) == #b) * (x == #y) * (#y == {{#a, #b, #c, #d}}) * types(x: List, #y: List, #z: List, #a: Num, #b: Num, #c: Num, #d: Num)  ]]
    normal
 proc test1 (x) {
    rlab:   skip

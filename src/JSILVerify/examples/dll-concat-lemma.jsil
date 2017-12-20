@@ -1,41 +1,41 @@
 pred dll_node(node, val, next, prev):
-  types(node : $$object_type) *
+  types(node : Obj) *
   ((node, "value")  -> val) *
   ((node, "next")   -> next) *
   ((node, "prev")   -> prev) *
-  ((node, "@proto") -> $$null);
+  ((node, "@proto") -> null);
 
 (* Unfolds from the left *)
 pred dll_seg(head, head_prev, last, last_next, list):
-  types(list: $$list_type) *
+  types(list: List) *
   (list == {{ }}) *
   (head_prev == last) *
   (head == last_next),
 
-  types(list: $$list_type) *
-  (list == (#item :: #items)) * types (#items : $$list_type) *
+  types(list: List) *
+  (list == (#item :: #items)) * types (#items : List) *
   (dll_node(head, #item, #next, head_prev)) *
   (dll_seg(#next, head, last, last_next, #items));
 
 (* Unfolds from the right *)
 pred dll_seg_2(head, head_prev, last, last_next, list):
-  types(list: $$list_type) *
+  types(list: List) *
   (list == {{ }}) *
   (head_prev == last) *
   (head == last_next),
 
   (list == (#items @ {{ #item }})) *
-  types(list: $$list_type, #items: $$list_type, head: $$object_type, last: $$object_type) *
+  types(list: List, #items: List, head: Obj, last: Obj) *
   (dll_node(last, #item, last_next, #last_prev)) *
   (dll_seg_2(head, head_prev, #last_prev, last, #items));
 
 pred dll_obj(obj, head, head_prev, last, last_next, list):
-  types(obj: $$object_type, list: $$list_type) *
+  types(obj: Obj, list: List) *
   ((obj, "head")      -> head) *
   ((obj, "head_prev") -> head_prev) *
   ((obj, "last")      -> last) *
   ((obj, "last_next") -> last_next) *
-  ((obj, "@proto")    -> $$null) *
+  ((obj, "@proto")    -> null) *
   dll_seg(head, head_prev, last, last_next, list);
 
 lemma prepend_dll_seg_2(head, head_prev, last, last_next, list, new_node)
@@ -106,8 +106,8 @@ lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, 
   variant(l-len(list_1) + l-len(list_2))
   [[ (head_1 == #head_1) * (head_prev_1 == #head_prev_1) * (last_1 == #last_1) * (last_next_1 == #last_next_1) * (list_1 == #list_1) *
      (head_2 == #head_2) * (head_prev_2 == #head_prev_2) * (last_2 == #last_2) * (last_next_2 == #last_next_2) * (list_2 == #list_2) *
-     dll_seg(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1) * types(#list_1 : $$list_type) * 
-     dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) * types(#list_2 : $$list_type) *
+     dll_seg(#head_1, #head_prev_1, #last_1, #last_next_1, #list_1) * types(#list_1 : List) * 
+     dll_seg(#head_2, #head_prev_2, #last_2, #last_next_2, #list_2) * types(#list_2 : List) *
      (#last_next_1 == #head_2) *
      (#head_prev_2 == #last_1) ]]
   [[ (#concat_list == (#list_1 @ #list_2)) *
@@ -125,7 +125,7 @@ lemma concat_dll_segs(head_1, head_prev_1, last_1, last_next_1, list_1, head_2, 
 spec append_dll_obj(dll_obj_1, dll_obj_2)
   (* Case 1: First list empty. Return the second. *)
   [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
-     dll_obj(#dll_obj_1, #head_1, $$null, #last, $$null, {{ }}) *
+     dll_obj(#dll_obj_1, #head_1, null, #last, null, {{ }}) *
      dll_obj(#dll_obj_2, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2) ]]
   [[ dll_obj(ret, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2) ]]
   normal;
@@ -133,8 +133,8 @@ spec append_dll_obj(dll_obj_1, dll_obj_2)
   (* Case 2: Second list empty. Return the first. *)
   [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
      dll_obj(#dll_obj_1, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *
-     dll_obj(#dll_obj_2, #head_2, $$null, #last_2, $$null, {{ }}) *
-     (! (#head_prev_1 == $$null)) * (! (#last_next_1 == $$null)) ]]
+     dll_obj(#dll_obj_2, #head_2, null, #last_2, null, {{ }}) *
+     (! (#head_prev_1 == null)) * (! (#last_next_1 == null)) ]]
   [[ dll_obj(ret, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) ]]
   normal;
 
@@ -142,8 +142,8 @@ spec append_dll_obj(dll_obj_1, dll_obj_2)
   [[ (dll_obj_1 == #dll_obj_1) * (dll_obj_2 == #dll_obj_2) *
      dll_obj(#dll_obj_1, #head_1, #head_prev_1, #last_1, #last_next_1, #list_1) *
      dll_obj(#dll_obj_2, #head_2, #head_prev_2, #last_2, #last_next_2, #list_2) *
-     (! (#head_prev_1 == $$null)) * (! (#last_next_1 == $$null)) *
-     (! (#head_prev_2 == $$null)) * (! (#last_next_2 == $$null)) *
+     (! (#head_prev_1 == null)) * (! (#last_next_1 == null)) *
+     (! (#head_prev_2 == null)) * (! (#last_next_2 == null)) *
      (! (#list_1 == {{ }})) * (! (#list_2 == {{ }}))  ]]
   [[ (#appended_list == (#list_1 @ #list_2)) *
      dll_obj(ret, #appended_head, #appended_head_prev, #appended_last, #appended_last_next, #appended_list) ]]
@@ -151,23 +151,23 @@ spec append_dll_obj(dll_obj_1, dll_obj_2)
 
 proc append_dll_obj(dll_obj_1, dll_obj_2) {
 					head_prev_1 := [dll_obj_1, "head_prev"];
-					goto [head_prev_1 = $$null] emptyList1 nonemptyList1;
+					goto [head_prev_1 = null] emptyList1 nonemptyList1;
 
 	emptyList1:		(* Return the second list *)
     				return_obj := dll_obj_2;
 
-    				[* unfold dll_seg(#head_1, $$null, #last_1, $$null, {{ }}) *]
+    				[* unfold dll_seg(#head_1, null, #last_1, null, {{ }}) *]
     				deleteObject(dll_obj_1);
 
     				goto rlab;
 
 	nonemptyList1:	head_prev_2 := [dll_obj_2, "head_prev"];
-					goto [head_prev_2 = $$null] emptyList2 nonemptyList2;
+					goto [head_prev_2 = null] emptyList2 nonemptyList2;
 
 	emptyList2:		(* Return the first list *)
 					return_obj := dll_obj_1;
 
-      				[* unfold dll_seg(#head_2, $$null, #last_2, $$null, {{ }}) *]
+      				[* unfold dll_seg(#head_2, null, #last_2, null, {{ }}) *]
       				deleteObject(dll_obj_2);
 
       				goto rlab;

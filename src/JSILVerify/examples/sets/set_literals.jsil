@@ -1,6 +1,6 @@
 spec set_literal_01 ()
 	[[ emp ]]
-	[[ (ret == -{- -}-) * types(ret : $$set_type) ]]
+	[[ (ret == -{- -}-) * types(ret : Set) ]]
 	normal
 
 proc set_literal_01 ()
@@ -15,7 +15,7 @@ with
 
 spec set_literal_02 ()
 	[[ emp ]]
-	[[ (ret == -{- 1 -}-) * types(ret : $$set_type) ]]
+	[[ (ret == -{- 1 -}-) * types(ret : Set) ]]
 	normal
 
 proc set_literal_02 ()
@@ -30,7 +30,7 @@ with
 
 spec set_literal_03 ()
 	[[ emp ]]
-	[[ (ret == -{- 1, 2, 3, 4, 5 -}-) * types(ret : $$set_type) ]]
+	[[ (ret == -{- 1, 2, 3, 4, 5 -}-) * types(ret : Set) ]]
 	normal
 
 proc set_literal_03 ()
@@ -45,7 +45,7 @@ with
 
 spec set_literal_04 ()
 	[[ emp ]]
-	[[ (ret == -{- 3, 5, 2, 4, 1 -}-) * types(ret : $$set_type) ]]
+	[[ (ret == -{- 3, 5, 2, 4, 1 -}-) * types(ret : Set) ]]
 	normal
 
 proc set_literal_04 ()
@@ -59,8 +59,8 @@ with
 };
 
 spec set_literal_05 (x, y)
-	[[ (x == #x) * (y == #y) * types(#x : $$number_type, #y : $$number_type) ]]
-	[[ (ret == -{- (#x + #y) -}-) * types(ret : $$set_type) ]]
+	[[ (x == #x) * (y == #y) * types(#x : Num, #y : Num) ]]
+	[[ (ret == -{- (#x + #y) -}-) * types(ret : Set) ]]
 	normal
 	
 proc set_literal_05 (x, y)
@@ -74,8 +74,8 @@ with
 };
 
 spec set_literal_06 (x, y)
-	[[ (x == #x) * (y == #y) * types(#x : $$number_type, #y : $$number_type) ]]
-	[[ (ret == -{- (2 * #x + 3 * #y) -}-) * types(ret : $$set_type) ]]
+	[[ (x == #x) * (y == #y) * types(#x : Num, #y : Num) ]]
+	[[ (ret == -{- (2 * #x + 3 * #y) -}-) * types(ret : Set) ]]
 	normal
 	
 proc set_literal_06 (x, y)
@@ -89,8 +89,8 @@ with
 };
 
 spec set_literal_07 (x, y)
-	[[ (x == #x) * (y == #y) * types(#x : $$number_type, #y : $$number_type) ]]
-	[[ (ret == -{- (#x + #y), (#x * #y) -}-) * types(ret : $$set_type) ]]
+	[[ (x == #x) * (y == #y) * types(#x : Num, #y : Num) ]]
+	[[ (ret == -{- (#x + #y), (#x * #y) -}-) * types(ret : Set) ]]
 	normal
 	
 proc set_literal_07 (x, y)

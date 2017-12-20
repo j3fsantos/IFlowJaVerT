@@ -3,7 +3,7 @@
 (** Tested feature: field assignment 1               **)
 (** Expected result: YES                             **)
 spec test0 (x)
-   [[ (x == #x) * types(x: $$number_type) ]]
+   [[ (x == #x) * types(x: Num) ]]
    [[ (ret == (#x + 1)) ]]
    normal
 proc test0 (x) {
@@ -15,7 +15,7 @@ proc test0 (x) {
 (**               **)
 (** Expected result: YES                             **)
 spec test1 (x)
-   [[ (x == #x) * types(#x: $$list_type) ]]
+   [[ (x == #x) * types(#x: List) ]]
    [[ (ret == l-len #x) ]]
    normal
 proc test1 (x) {

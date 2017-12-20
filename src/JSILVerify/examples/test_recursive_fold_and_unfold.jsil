@@ -1,11 +1,11 @@
 (** Totals: 0 fails and 2 passes **)
 
 pred my_list (x, alpha) :
-	(x == $$null) * (alpha == {{ }}) * types(alpha: $$list_type),
+	(x == null) * (alpha == {{ }}) * types(alpha: List),
 
-	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> null) *
 		(alpha == (#y :: #beta)) * my_list(#z, #beta) *
-		types(#y: $$number_type, alpha: $$list_type, #beta: $$list_type);
+		types(#y: Num, alpha: List, #beta: List);
 
 
 (** Expected result: YES                             **)
@@ -27,7 +27,7 @@ proc test_1 (x) {
 
 (** Expected result: YES                             **)
 spec test_2 (x)
-   [[ my_list(x, 1::(2::#alpha)) * types(#alpha: $$list_type) ]]
+   [[ my_list(x, 1::(2::#alpha)) * types(#alpha: List) ]]
    [[ my_list(#y, #alpha) ]]
    normal
 proc test_2 (x) {

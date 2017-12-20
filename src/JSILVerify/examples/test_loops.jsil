@@ -3,12 +3,12 @@
 
 (** Expected result: YES                             **)
 spec test0 (x)
-   [[ types(x: $$number_type) ]]
-   [[ types(x: $$number_type) * (x <=# 10) ]]
+   [[ types(x: Num) ]]
+   [[ types(x: Num) * (x <=# 10) ]]
    normal
 proc test0 (x) {
 		   skip;
-   [[ types(x: $$number_type) ]]
+   [[ types(x: Num) ]]
    head:   goto [(not (x <= 10))] then1 rlab;
    then1:   x := x - 1;
   		   goto head;

@@ -1,6 +1,6 @@
 spec set_union_01 ()
 	[[ emp ]]
-	[[ (ret == -{- 1 -}-) * types(ret : $$set_type) ]]
+	[[ (ret == -{- 1 -}-) * types(ret : Set) ]]
 	normal
 
 proc set_union_01 ()

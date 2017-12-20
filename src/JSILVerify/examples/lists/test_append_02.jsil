@@ -1,13 +1,13 @@
 (* Test similar property as test_append_01 but over Strings *)
 only spec subString(l, i, j)
 	[[	(l == #l1 ++ (#l2 ++ #l3)) * (i == #i) * (j == #j) * (s-len(#l1) == #i) * (s-len(#l2) == #j) * 
-		types(l : $$string_type, #l1 : $$string_type, #l2 : $$string_type, #l3 : $$string_type, #i : $$number_type, #j : $$number_type) ]]
+		types(l : Str, #l1 : Str, #l2 : Str, #l3 : Str, #i : Num, #j : Num) ]]
 	[[ ret == #l2 ]]
 	normal
 
 spec test_01 ()
 	[[ emp ]]
-	[[ (ret == "ef") * types(ret : $$string_type) ]]
+	[[ (ret == "ef") * types(ret : Str) ]]
 	normal
 
 proc test_01 ()

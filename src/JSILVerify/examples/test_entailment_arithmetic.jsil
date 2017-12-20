@@ -3,8 +3,8 @@
 (** Check if (#x <# 0) entails ((#x + 1) <# 0) **)
 (** Expected result: NO                        **)
 spec test0 (x)
-   [[ (#x <# 0) * types(#x: $$number_type) ]]
-   [[ ((#x + 1) <# 0) * types(#x: $$number_type) ]]
+   [[ (#x <# 0) * types(#x: Num) ]]
+   [[ ((#x + 1) <# 0) * types(#x: Num) ]]
    normal
 proc test0 (x) {
    rlab:   skip
@@ -14,8 +14,8 @@ proc test0 (x) {
 (** Check if (#x <# 0) entails ((#x - 1) <# 0) **)
 (** Expected result: YES                       **)
 spec test1 (x)
-   [[ (#x <# 0) * types(#x: $$number_type) ]]
-   [[ ((#x - 1) <# 0) * types(#x: $$number_type) ]]
+   [[ (#x <# 0) * types(#x: Num) ]]
+   [[ ((#x - 1) <# 0) * types(#x: Num) ]]
    normal
 proc test1 (x) {
    rlab:   skip
@@ -24,8 +24,8 @@ proc test1 (x) {
 
 (** Expected result: YES                       **)
 spec test2 (x)
-   [[ (#x <# 0) * (! (#y <# 0)) * types(#x: $$number_type, #y: $$number_type) ]]
-   [[ ((#x - #y) <# 0) * types(#x: $$number_type, #y: $$number_type) ]]
+   [[ (#x <# 0) * (! (#y <# 0)) * types(#x: Num, #y: Num) ]]
+   [[ ((#x - #y) <# 0) * types(#x: Num, #y: Num) ]]
    normal
 proc test2 (x) {
    rlab:   skip
@@ -34,8 +34,8 @@ proc test2 (x) {
 
 (** Expected result: NO                       **)
 spec test3 (x)
-   [[ (#x <# 0) * (! (#y <# 0)) * types(#x: $$number_type, #y: $$number_type) ]]
-   [[ ((#x + #y) <# 0) * types(#x: $$number_type, #y: $$number_type) ]]
+   [[ (#x <# 0) * (! (#y <# 0)) * types(#x: Num, #y: Num) ]]
+   [[ ((#x + #y) <# 0) * types(#x: Num, #y: Num) ]]
    normal
 proc test3 (x) {
    rlab:   skip

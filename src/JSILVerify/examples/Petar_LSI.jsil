@@ -8,8 +8,8 @@ pred my_lseg_full(x, y, alpha, alpha_sum) :
 
 
 
-pred my_list_full(x, alpha : $$list_type, alpha_sum : $$number_type) : 
-	(x == $$null) * (alpha == {{ }}) * (alpha_sum == 0),
+pred my_list_full(x, alpha : List, alpha_sum : Num) : 
+	(x == null) * (alpha == {{ }}) * (alpha_sum == 0),
 	
 	((x, "value") -> #v) *
 	((x, "next")  -> #z) * 
@@ -21,13 +21,13 @@ pred my_list_full(x, alpha : $$list_type, alpha_sum : $$number_type) :
 lemma lseg2list_full(x, alpha, alpha_sum)
 	variant (l-len(alpha))
 	[[ (x == #x) * (alpha == #alpha) * (alpha_sum == #alpha_sum) * 
-	   my_lseg_full(#x, $$null, #alpha, #alpha_sum) ]]
+	   my_lseg_full(#x, null, #alpha, #alpha_sum) ]]
 	[[ my_list_full(#x, #alpha, #alpha_sum) ]]
 	
 	[*
-		unfold(my_lseg_full(#x, $$null, #alpha, #alpha_sum));
-		if (not (#x = ($$null))) then {
-		  assert(my_lseg_full(#next, $$null, #beta, #beta_sum));
+		unfold(my_lseg_full(#x, null, #alpha, #alpha_sum));
+		if (not (#x = (null))) then {
+		  assert(my_lseg_full(#next, null, #beta, #beta_sum));
 		  apply lseg2list_full(#next, #beta, #beta_sum); 
 		  fold(my_list_full(#x, #alpha, #alpha_sum))
 		} else {
@@ -69,7 +69,7 @@ proc list_sum_iterative(x){
 			[[ my_lseg_full(#x, x, #done, count) * my_list_full(x, #rest, #rest_sum) * (#alpha == (#done @ #rest)) * (#alpha_sum == (count + #rest_sum)) ]]
 
 			[* unfold my_list_full(x, #rest, #rest_sum)  *]
-	head: 	goto [ x = $$null ] prlab else1;
+	head: 	goto [ x = null ] prlab else1;
 
 	else1: 	x_next := [x, "next"];
 		   	x_val  := [x, "value"];

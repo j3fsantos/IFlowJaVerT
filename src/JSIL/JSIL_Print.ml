@@ -23,18 +23,18 @@ let string_of_float (x : float) : string =
 (** JSIL types *)
 let string_of_type (t : jsil_type) : string =
   match t with
-  | UndefinedType -> "$$undefined_type"
-  	| NullType      -> "$$null_type"
-  	| EmptyType     -> "$$empty_type"
-  	| NoneType      -> "$$none_type"
-  	| BooleanType   -> "$$boolean_type"
-  	| NumberType    -> "$$number_type"
-  	| StringType    -> "$$string_type"
-  	| CharType      -> "$$char_type"
-  	| ObjectType    -> "$$object_type"
-  	| ListType      -> "$$list_type"
-  	| TypeType      -> "$$type_type"
-  	| SetType       -> "$$set_type"
+  | UndefinedType -> "Undefined"
+  | NullType      -> "Null"
+  | EmptyType     -> "Empty"
+  | LValueType    -> "LValue"
+ 	| BooleanType   -> "Bool"
+ 	| NumberType    -> "Num"
+ 	| StringType    -> "Str"
+ 	| CharType      -> "$$char_type"
+ 	| ObjectType    -> "Obj"
+ 	| ListType      -> "List"
+ 	| TypeType      -> "Type"
+ 	| SetType       -> "Set"
 
 
 (** JSIL constants *)
@@ -59,14 +59,14 @@ let string_of_constant (c : jsil_constant) : string =
 let rec string_of_literal (lit : jsil_lit) : string =
   	let sl = fun l -> string_of_literal l in
   	match lit with
-  	| Undefined -> "$$undefined"
-  	| Null -> "$$null"
-  	| Empty -> "$$empty"
+  	| Undefined -> "undefined"
+  	| Null -> "null"
+  	| Empty -> "empty"
   	| Constant c -> string_of_constant c
   	| Bool b ->
     		(match b with
-     | true -> "$$t"
-     | false -> "$$f")
+     | true -> "true"
+     | false -> "false")
   	| Num n -> string_of_float n
   	| String x ->
     		(if !escape_string
@@ -80,7 +80,7 @@ let rec string_of_literal (lit : jsil_lit) : string =
   	| Type t -> string_of_type t
   	| LList ll ->
     		(match ll with
-     		| [] -> "$$nil"
+     		| [] -> "nil"
      		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sl ll)))
   	| CList cl ->
     		(match cl with
@@ -166,7 +166,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
   	(* {{ e1, e2, ... }} *)
   	| EList ll ->
     		(match ll with
-     		| [] -> "$$nil"
+     		| [] -> "nil"
      		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
   	(* -{ e1, e2, ... }- *)
   	| ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
@@ -229,7 +229,7 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   	(* {{ e1, ..., en }} *)
   | LEList list ->
     			(match list with
-     			| [] -> "$$nil"
+     			| [] -> "nil"
      			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
   		(* -{ e1, ..., en }- *)
   | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))

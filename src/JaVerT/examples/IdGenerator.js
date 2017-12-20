@@ -1,5 +1,5 @@
 /**
-@pred idGenerator(ig, sc_ig, c_val : $$number_type, prefix : $$string_type) :
+@pred idGenerator(ig, sc_ig, c_val : Num, prefix : Str) :
    JSObject(ig) * 
    DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
    DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
@@ -21,7 +21,7 @@
 
 /**
 	@id   makeIdGen
-	@pre  ((prefix == #prefix) * types(#prefix: $$string_type))
+	@pre  ((prefix == #prefix) * types(#prefix: Str))
 	@post (idGenerator(ret, $$scope, 0, #prefix))
 */
 var makeIdGen = function (prefix) { 

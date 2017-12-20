@@ -6,11 +6,11 @@
 		(! (key == "hasOwnProperty"));
 		
 	@pred InvalidKey(key) :
-		types (key : $$undefined_type),
-		types (key : $$null_type),
-		types (key : $$boolean_type),
-		types (key : $$number_type),
-		types (key : $$string_type) * (key == "hasOwnProperty");
+		types (key : Undefined),
+		types (key : Null),
+		types (key : Bool),
+		types (key : Num),
+		types (key : Str) * (key == "hasOwnProperty");
 */
 
 /**	
@@ -64,10 +64,10 @@ function Map () {
 	@id isValidKey
 	
 	@pre  ((key == #key) * ValidKey(#key))
-	@post (ret == $$t)
+	@post (ret == true)
 		
 	@pre ((key == #key) * InvalidKey(#key))
-	@post (ret == $$f)
+	@post (ret == false)
 */
 Map.prototype.validKey = function (key) {
 	return (typeof(key) === "string" && key !== "hasOwnProperty")
@@ -80,7 +80,7 @@ Map.prototype.validKey = function (key) {
 	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
 
 	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null) * initialHeapPostWeak() 
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == null) * initialHeapPostWeak() 
 	
 	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * initialHeapPostWeak() 
 	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * initialHeapPostWeak() 

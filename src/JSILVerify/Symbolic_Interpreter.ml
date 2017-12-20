@@ -220,7 +220,7 @@ let symb_evaluate_bcmd
 	let ssee = safe_symb_evaluate_expr store gamma pure_formulae in
 	match bcmd with
 	(* Skip: skip;
-			Always return $$empty *)
+			Always return empty *)
 	| SSkip ->
 		LLit Empty
 
@@ -236,7 +236,7 @@ let symb_evaluate_bcmd
 
 	(* Object creation: x = new ();
 			a) Create fresh object location #l and add it to the heap
-			b) Set (#l, "@proto") -> $$null in the heap
+			b) Set (#l, "@proto") -> null in the heap
 			c) Update the abstract store with [x |-> #l]
 			e) Add the fact that the new location is not $lg to the pure formulae
 			f) Return the new location
@@ -1006,10 +1006,10 @@ let rec symb_evaluate_logic_cmd
 			| None, None -> LFalse in
 			if (Pure_Entailment.check_entailment SS.empty (ss_pfs_list symb_state) [ a_le_then ] (ss_gamma symb_state))
 				then (
-					print_normal (Printf.sprintf "LIf Guard -- %s ==> $$t" (JSIL_Print.string_of_logic_expression le));
+					print_normal (Printf.sprintf "LIf Guard -- %s ==> true" (JSIL_Print.string_of_logic_expression le));
 					symb_evaluate_logic_cmds s_prog then_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst lemma 
 				) else (
-					print_normal (Printf.sprintf "If Guard -- %s ==> $$f" (JSIL_Print.string_of_logic_expression le));
+					print_normal (Printf.sprintf "If Guard -- %s ==> false" (JSIL_Print.string_of_logic_expression le));
 					symb_evaluate_logic_cmds s_prog else_lcmds [ symb_state, spec_vars, search_info ] print_symb_states subst lemma)
 
 	| Macro (name, param_vals) ->
@@ -1089,17 +1089,17 @@ let rec symb_evaluate_cmd
 
 		print_debug (Printf.sprintf "Checking if:\n%s\n\tentails\n%s\n" (JSIL_Print.str_of_assertion_list (ss_pfs_list symb_state)) (JSIL_Print.str_of_assertion_list a_le_then));
 		if (Pure_Entailment.check_entailment SS.empty (ss_pfs_list symb_state) a_le_then (ss_gamma symb_state)) then
-			(** current symb_state entails that e == $$t
+			(** current symb_state entails that e == true
 				we only explore the then branch *)
 			(print_normal "ONLY THEN branch is explored";
 			post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i j)
 			else (if (Pure_Entailment.check_entailment SS.empty (ss_pfs_list symb_state) a_le_else (ss_gamma symb_state)) then
-				(** current symb_state entails that e == $$f
+				(** current symb_state entails that e == false
 				    we only explore the false branch *)
 				(print_normal "ONLY ELSE branch is explored";
 				post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i k)
 			else (
-				(** we cannot prove that the current symb_state entails that e == $$t or e == $$f
+				(** we cannot prove that the current symb_state entails that e == true or e == false
 				    both branches need to be explored *)
 				print_normal "Could NOT determine the branch.";
 				let then_symb_state  = symb_state in

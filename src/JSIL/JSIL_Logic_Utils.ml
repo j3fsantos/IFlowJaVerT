@@ -658,7 +658,7 @@ let rec type_lexpr gamma le =
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType; SetType ] in
+		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; LValueType; SetType ] in
 		let check_valid_type t types ret_type new_constraints =
 			let is_t_in_types = List.mem t types in
 			if (is_t_in_types)
@@ -734,7 +734,7 @@ let rec type_lexpr gamma le =
 				(Some SetType, true, (SA.elements constraints))) with | _ -> (None, false, []) in
 			result
 
-	| LNone    -> (Some NoneType, true, [])) in
+	| LNone    -> (Some LValueType, true, [])) in
 
 	let (tp, b, _) = result in
 
@@ -856,7 +856,7 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le le_type =
 
 		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 NumberType)
 
-		| LNone    -> (NoneType = le_type))
+		| LNone    -> (LValueType = le_type))
 
 let reverse_type_lexpr flag gamma le le_type : typing_environment option =
 	let new_gamma : typing_environment = gamma_init () in

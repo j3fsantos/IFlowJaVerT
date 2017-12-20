@@ -20,7 +20,7 @@ proc Boolean_construct (xsc, vthis, v) {
 			pv := "i__toBoolean" (v);
 
 			xret := new ();
-			xret := "create_default_object" (xret, $lbool_proto, "Boolean", $$t);
+			xret := "create_default_object" (xret, $lbool_proto, "Boolean", true);
 
 			[xret, "@primitiveValue"] := pv;
 
@@ -34,16 +34,16 @@ with
 (* *** TOSTRING *** *)
 
 proc BP_toString (xsc, vthis) {
-			goto [typeOf(vthis) = $$boolean_type] isb notb;
+			goto [typeOf(vthis) = Bool] isb notb;
 
 	isb:	xret := vthis;
 			goto test;
 
-	notb:	goto [typeOf(vthis) = $$object_type] class throw;
+	notb:	goto [typeOf(vthis) = Obj] class throw;
 	class:	c := [vthis, "@class"];
 			goto [c = "Boolean"] b throw;
 	b:		xret := [vthis, "@primitiveValue"];
-	test:	goto [xret = $$t] rt rf;
+	test:	goto [xret = true] rt rf;
 
 	rt:		xret := "true";
 			goto rlab;
@@ -64,12 +64,12 @@ with
 (* *** VALUEOF *** *)
 
 proc BP_valueOf (xsc, vthis) {
-			goto [typeOf(vthis) = $$boolean_type] isb notb;
+			goto [typeOf(vthis) = Bool] isb notb;
 
 	isb:	xret := vthis;
 			goto rlab;
 
-	notb:	goto [typeOf(vthis) = $$object_type] class throw;
+	notb:	goto [typeOf(vthis) = Obj] class throw;
 	class:	c := [vthis, "@class"];
 			goto [c = "Boolean"] b throw;
 	b:		xret := [vthis, "@primitiveValue"];

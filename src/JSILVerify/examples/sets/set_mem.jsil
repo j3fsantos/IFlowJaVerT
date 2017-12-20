@@ -1,6 +1,6 @@
 spec set_mem_01 ()
 	[[ emp ]]
-	[[ (ret == $$t) * types(ret : $$boolean_type) ]]
+	[[ (ret == true) * types(ret : Bool) ]]
 	normal
 
 proc set_mem_01 ()
@@ -18,7 +18,7 @@ with
 
 spec set_mem_02 ()
 	[[ emp ]]
-	[[ (ret == $$f) * types(ret : $$boolean_type) ]]
+	[[ (ret == false) * types(ret : Bool) ]]
 	normal
 
 proc set_mem_02 ()
@@ -37,14 +37,14 @@ with
 
 spec set_mem_03 ()
 	[[ emp ]]
-	[[ (ret == $$f) * types(ret : $$boolean_type) ]]
+	[[ (ret == false) * types(ret : Bool) ]]
 	normal
 
 proc set_mem_03 ()
 {
-			xret := -{- 1, $$f, "oogaBooga", {{ 1, $$t }}, 5, "333", {{ }} -}-;
+			xret := -{- 1, false, "oogaBooga", {{ 1, true }}, 5, "333", {{ }} -}-;
 			
-			xret := ($$t -e- xret);
+			xret := (true -e- xret);
 			
 	rlab:	skip
 }

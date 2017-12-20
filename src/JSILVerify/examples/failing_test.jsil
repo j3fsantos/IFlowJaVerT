@@ -5,8 +5,8 @@
  *
  *)
 pred DataDescriptor (d) :
-    types (d : $$list_type) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
-    types (#dwrit : $$boolean_type, #denum : $$boolean_type, #dconf : $$boolean_type); 
+    types (d : List) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
+    types (#dwrit : Bool, #denum : Bool, #dconf : Bool); 
 
 
 (*
@@ -16,7 +16,7 @@ pred DataDescriptor (d) :
  *
  *)
 pred GenericDescriptor (d) :
-    types (d : $$list_type) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
+    types (d : List) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
 
 (* ******************* *)
 (* I__ISDATADESCRIPTOR *)
@@ -25,41 +25,41 @@ pred GenericDescriptor (d) :
 spec i__isDataDescriptor (desc)
 
     (* Property not defined at all *)
-    [[ desc == $$undefined ]]
-    [[ ret == $$f ]]
+    [[ desc == undefined ]]
+    [[ ret == false ]]
     normal;
 
     (* Data descriptor *)
     [[ DataDescriptor(desc) ]]
-    [[ ret == $$t ]]
+    [[ ret == true ]]
     normal;
 
     (* Generic descriptor, no data descriptor components *)
-    [[ GenericDescriptor(desc) * (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) ]]
-    [[ ret == $$f ]]
+    [[ GenericDescriptor(desc) * (l-nth (desc, 3) == empty) * (l-nth (desc, 4) == empty) ]]
+    [[ ret == false ]]
     normal;
 
     (* Generic descriptor, with value *)
-    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == $$empty) ]]
-    [[ ret == $$t ]]
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 3) == empty) ]]
+    [[ ret == true ]]
     normal;
 
     (* Generic descriptor, with writable *)
-    [[ GenericDescriptor(desc) * (! l-nth (desc, 4) == $$empty) ]]
-    [[ ret == $$t ]]
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 4) == empty) ]]
+    [[ ret == true ]]
     normal
 
 proc i__isDataDescriptor (desc) {
-			goto [desc = $$undefined] rf cont;
+			goto [desc = undefined] rf cont;
 	cont:	d := l-nth (desc, 0);
 			goto [d = "d"] rt gen;
 	gen:	goto [d = "g"] test rf;
 	test:	v := l-nth (desc, 3);
 			w := l-nth (desc, 4);
-			goto [(v = $$empty) and (w = $$empty)] rf rt;
-	rt:		xret := $$t;
+			goto [(v = empty) and (w = empty)] rf rt;
+	rt:		xret := true;
 			goto rlab;
-	rf:		xret := $$f;
+	rf:		xret := false;
 	rlab:	skip
 }
 with
@@ -74,41 +74,41 @@ with
 spec i__isAccessorDescriptor (desc)
 
     (* Property not defined at all *)
-    [[ desc == $$undefined ]]
-    [[ ret == $$f ]]
+    [[ desc == undefined ]]
+    [[ ret == false ]]
     normal;
 
     (* Data descriptor *)
     [[ DataDescriptor(desc) ]]
-    [[ ret == $$f ]]
+    [[ ret == false ]]
     normal;
 
     (* Generic descriptor, no data descriptor components *)
-    [[ GenericDescriptor(desc) * (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
-    [[ ret == $$f ]]
+    [[ GenericDescriptor(desc) * (l-nth (desc, 5) == empty) * (l-nth (desc, 6) == empty) ]]
+    [[ ret == false ]]
     normal;
 
     (* Generic descriptor, with get *)
-    [[ GenericDescriptor(desc) * (! l-nth (desc, 5) == $$empty) ]]
-    [[ ret == $$t ]]
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 5) == empty) ]]
+    [[ ret == true ]]
     normal;
 
     (* Generic descriptor, with set *)
-    [[ GenericDescriptor(desc) * (! l-nth (desc, 6) == $$empty) ]]
-    [[ ret == $$t ]]
+    [[ GenericDescriptor(desc) * (! l-nth (desc, 6) == empty) ]]
+    [[ ret == true ]]
     normal
 
 proc i__isAccessorDescriptor (desc) {
-			goto [desc = $$undefined] rf cont;
+			goto [desc = undefined] rf cont;
 	cont:	d := l-nth (desc, 0);
 			goto [d = "a"] rt gen;
 	gen:	goto [d = "g"] test rf;
 	test:	g := l-nth (desc, 5);
 			s := l-nth (desc, 6);
-			goto [(g = $$empty) and (s = $$empty)] rf rt;
-	rt:		xret := $$t;
+			goto [(g = empty) and (s = empty)] rf rt;
+	rt:		xret := true;
 			goto rlab;
-	rf:		xret := $$f;
+	rf:		xret := false;
 	rlab:	skip
 }
 with
@@ -124,51 +124,51 @@ with
 spec i__isGenericDescriptor (desc)
 
     (* Property not defined at all *)
-    [[ desc == $$undefined ]]
-    [[ ret == $$f ]]
+    [[ desc == undefined ]]
+    [[ ret == false ]]
     normal;
 
 	(* Data descriptor *)
 	[[ DataDescriptor(desc) ]]
-	[[ ret == $$f ]]
+	[[ ret == false ]]
 	normal;
 
 	(* Generic descriptor, no data descriptor components *)
 	[[ GenericDescriptor(desc) *
-	   (l-nth (desc, 3) == $$empty) * (l-nth (desc, 4) == $$empty) *
-	   (l-nth (desc, 5) == $$empty) * (l-nth (desc, 6) == $$empty) ]]
-	[[ ret == $$t ]]
+	   (l-nth (desc, 3) == empty) * (l-nth (desc, 4) == empty) *
+	   (l-nth (desc, 5) == empty) * (l-nth (desc, 6) == empty) ]]
+	[[ ret == true ]]
 	normal;
 
 	(* Generic descriptor, with value *)
-	[[ GenericDescriptor(desc) * (! (l-nth (desc, 3) == $$empty)) ]]
-	[[ ret == $$f ]]
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 3) == empty)) ]]
+	[[ ret == false ]]
 	normal;
 
 	(* Generic descriptor, with writable *)
-	[[ GenericDescriptor(desc) * (! (l-nth (desc, 4) == $$empty)) ]]
-	[[ ret == $$f ]]
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 4) == empty)) ]]
+	[[ ret == false ]]
 	normal;
 
 	(* Generic descriptor, with get *)
-	[[ GenericDescriptor(desc) * (! (l-nth (desc, 5) == $$empty)) ]]
-	[[ ret == $$f ]]
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 5) == empty)) ]]
+	[[ ret == false ]]
 	normal;
 
 	(* Generic descriptor, with get *)
-	[[ GenericDescriptor(desc) * (! (l-nth (desc, 6) == $$empty)) ]]
-	[[ ret == $$f ]]
+	[[ GenericDescriptor(desc) * (! (l-nth (desc, 6) == empty)) ]]
+	[[ ret == false ]]
 	normal
 
 proc i__isGenericDescriptor (desc) {
-			goto [desc = $$undefined] rf cont;
+			goto [desc = undefined] rf cont;
 
 	cont:	dd := "i__isDataDescriptor" (desc);
 			ad := "i__isAccessorDescriptor" (desc);
 			xret := not (dd or ad);
 			goto rlab;
 
-	rf:		xret := $$f;
+	rf:		xret := false;
 	rlab:	skip
 }
 with

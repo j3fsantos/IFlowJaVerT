@@ -18,18 +18,18 @@ let big_tbl_size    = 1021
     JSIL expressions ({!type:jsil_expr}), and JSIL logic expressions
     ({!type:jsil_logic_expr}). *)
 type jsil_type =
-	| UndefinedType (** Type of Undefined *)
-	| NullType      (** Type of Null      *)
-	| EmptyType     (** Type of Empty     *)
-	| NoneType      (** Type of None      *)
-	| BooleanType   (** Type of booleans  *)
-	| NumberType    (** Type of floats    *)
-	| StringType    (** Type of strings   *)
-	| CharType      (** Type of chars     *)
-	| ObjectType    (** Type of objects   *)
-	| ListType      (** Type of lists     *)
-	| TypeType      (** Type of types     *)
-	| SetType       (** Type of sets      *)
+	| UndefinedType (** Type of Undefined      *)
+	| NullType      (** Type of Null           *)
+	| EmptyType     (** Type of Empty          *)
+	| LValueType    (** Type of logical values *)
+	| BooleanType   (** Type of booleans       *)
+	| NumberType    (** Type of floats         *)
+	| StringType    (** Type of strings        *)
+	| CharType      (** Type of chars          *)
+	| ObjectType    (** Type of objects        *)
+	| ListType      (** Type of lists          *)
+	| TypeType      (** Type of types          *)
+	| SetType       (** Type of sets           *)
 	[@@deriving show]
 
 (** {b JSIL constants}. They are mostly inspired by those present in JavaScript's Math

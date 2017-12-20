@@ -8,7 +8,7 @@ import Internals.jsil;
 
 proc s__getOwnProperty (l, prop) {
 			xret := "o__getOwnProperty" (l, prop);
-			goto [xret = $$undefined] str rlab;
+			goto [xret = undefined] str rlab;
 
 	str:	idx := "i__toInteger" (prop) with elab;
 			goto [idx < 0] rlab next;
@@ -22,7 +22,7 @@ proc s__getOwnProperty (l, prop) {
 			goto [len <= idx] rlab return;
 
 	return: rstr := s-nth (str, idx);
-			xret := {{ "d", rstr, $$f, $$t, $$f }};
+			xret := {{ "d", rstr, false, true, false }};
 
 	rlab: 	skip;
 	elab:	skip
@@ -68,14 +68,14 @@ proc String_construct (xsc, vthis, s) {
 			pv := xret;
 
 	norm:	xret := new ();
-			xret := "create_default_object" (xret, $lstr_proto, "String", $$t);
+			xret := "create_default_object" (xret, $lstr_proto, "String", true);
 			s := xret;
 
 			[s, "@primitiveValue"] := pv;
 
 			len := s-len (pv);
 
-			xret := "defineOwnProperty" (s, "length", {{ "d", len, $$f, $$f, $$f }}, $$t) with elab;
+			xret := "defineOwnProperty" (s, "length", {{ "d", len, false, false, false }}, true) with elab;
 			xret := s;
 
 	rlab:	skip;
@@ -90,11 +90,11 @@ with
 (* *** VALUEOF *** *)
 
 proc SP_valueOf (xsc, vthis) {
-			goto [typeOf (vthis) = $$string_type] str iostr;
+			goto [typeOf (vthis) = Str] str iostr;
 	str:	xret := vthis;
 			goto rlab;
 
-	iostr:	goto [typeOf (vthis) = $$object_type] ostr throw;
+	iostr:	goto [typeOf (vthis) = Obj] ostr throw;
 	ostr:	xret := [vthis, "@class"];
 			goto [xret = "String"] retstr throw;
 	retstr:	xret := [vthis, "@primitiveValue"];
@@ -113,11 +113,11 @@ with
 (* *** TOSTRING *** *)
 
 proc SP_toString (xsc, vthis) {
-			goto [typeOf (vthis) = $$string_type] str iostr;
+			goto [typeOf (vthis) = Str] str iostr;
 	str:	xret := vthis;
 			goto rlab;
 
-	iostr:	goto [typeOf (vthis) = $$object_type] ostr throw;
+	iostr:	goto [typeOf (vthis) = Obj] ostr throw;
 	ostr:	xret := [vthis, "@class"];
 			goto [xret = "String"] retstr throw;
 	retstr:	xret := [vthis, "@primitiveValue"];
@@ -200,7 +200,7 @@ proc SP_indexOf (xsc, vthis, searchString, position) {
 			xret := "i__toString" (searchString) with elab;
 			sStr := xret;
 
-			goto [position = $$undefined] zero nzero;
+			goto [position = undefined] zero nzero;
 	zero:	pos := 0;
 			goto leng;
 
@@ -208,9 +208,9 @@ proc SP_indexOf (xsc, vthis, searchString, position) {
 			pos := xret;
 	leng:	len := s-len (S);
 
-			xret := "M_max" ($$empty, $$empty, pos, 0) with elab;
+			xret := "M_max" (empty, empty, pos, 0) with elab;
 			max := xret;
-			xret := "M_min" ($$empty, $$empty, max, len) with elab;
+			xret := "M_min" (empty, empty, max, len) with elab;
 			start := xret;
 			slen := s-len (sStr);
 
@@ -272,9 +272,9 @@ proc SP_lastIndexOf (xsc, vthis, searchString, position) {
 	npnan:	xret := "i__toInteger" (npos) with elab;
 			pos := xret;
 
-	sta:	xret := "M_max" ($$empty, $$empty, pos, 0) with elab;
+	sta:	xret := "M_max" (empty, empty, pos, 0) with elab;
 			max := xret;
-			xret := "M_min" ($$empty, $$empty, max, len) with elab;
+			xret := "M_min" (empty, empty, max, len) with elab;
 			start := xret;
 			slen := s-len (sStr);
 			fink := -1;
@@ -330,15 +330,15 @@ proc SP_slice (xsc, vthis, start, end) {
 			S := xret;
 			len := s-len (S);
 
-			goto [start = $$undefined] sund snull;
+			goto [start = undefined] sund snull;
 	sund:	start := 0;
 			goto sdef;
 
-	snull:	goto [start = $$null] sund sdef;
+	snull:	goto [start = null] sund sdef;
 
 	sdef:	xret := "i__toInteger" (start) with elab;
 			intS := xret;
-			goto [end = $$undefined] undef def;
+			goto [end = undefined] undef def;
 	undef:	intE := len;
 			goto st;
 
@@ -347,24 +347,24 @@ proc SP_slice (xsc, vthis, start, end) {
 
 	st:		goto [intS < 0] negS posS;
 	negS:	lis := len + intS;
-			xret := "M_max" ($$empty, $$empty, lis, 0) with elab;
+			xret := "M_max" (empty, empty, lis, 0) with elab;
 			from := xret;
 			goto endd;
 
-	posS:	xret := "M_min" ($$empty, $$empty, intS, len) with elab;
+	posS:	xret := "M_min" (empty, empty, intS, len) with elab;
 			from := xret;
 
 	endd:	goto [intE < 0] negE posE;
 	negE:	lie := len + intE;
-			xret := "M_max" ($$empty, $$empty, lie, 0) with elab;
+			xret := "M_max" (empty, empty, lie, 0) with elab;
 			to := xret;
 			goto sp;
 
-	posE:	xret := "M_min" ($$empty, $$empty, intE, len) with elab;
+	posE:	xret := "M_min" (empty, empty, intE, len) with elab;
 			to := xret;
 
 	sp:		tfr := to - from;
-			xret := "M_max" ($$empty, $$empty, tfr, 0) with elab;
+			xret := "M_max" (empty, empty, tfr, 0) with elab;
 			span := xret;
 
 			R := "";
@@ -399,24 +399,24 @@ proc SP_substring (xsc, vthis, start, end) {
 
 			xret := "i__toInteger" (start) with elab;
 			intS := xret;
-			goto [end = $$undefined] undef def;
+			goto [end = undefined] undef def;
 	undef:	intE := len;
 			goto fst;
 
 	def:	xret := "i__toInteger" (end) with elab;
 			intE := xret;
 
-	fst:	xret := "M_max" ($$empty, $$empty, intS, 0) with elab;
-			xret := "M_min" ($$empty, $$empty, xret, len) with elab;
+	fst:	xret := "M_max" (empty, empty, intS, 0) with elab;
+			xret := "M_min" (empty, empty, xret, len) with elab;
 			finS := xret;
 
-			xret := "M_max" ($$empty, $$empty, intE, 0) with elab;
-			xret := "M_min" ($$empty, $$empty, xret, len) with elab;
+			xret := "M_max" (empty, empty, intE, 0) with elab;
+			xret := "M_min" (empty, empty, xret, len) with elab;
 			finE := xret;
 
-			xret := "M_min" ($$empty, $$empty, finS, finE) with elab;
+			xret := "M_min" (empty, empty, finS, finE) with elab;
 			from := xret;
-			xret := "M_max" ($$empty, $$empty, finS, finE) with elab;
+			xret := "M_max" (empty, empty, finS, finE) with elab;
 			to := xret;
 
 			span := to - from;
