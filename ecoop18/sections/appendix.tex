@@ -2004,7 +2004,7 @@ We now consider both directions of the equivalence separately.
 	 that $\senv \satisfies \pc'$ (\ieq{7}), from which it follows, with \ieq{5},  that there is an 
 	 instrumented heap $\iheap$ such that: $\iheap, -, \senv \satisfies \efproj{\efs}{L}$ (\ieq{8}). 
 	From \ieq{6} and \ieq{2}, we conclude that  $\senv \satisfies \pc_{\loc}$ (\ieq{9}), from which 
-	it follows that $\iheap', -, \senv \satisfies \efproj{\efs}{\loc}$ (\ieq{10}) for: 
+	it follows, with \ieq{3} and \ieq{4}, that $\iheap', -, \senv \satisfies \efproj{\efs}{\loc}$ (\ieq{10}) for: 
 	$$
 	  \iheap' =   \biguplus_{i = 0}^{n} \, \big((l, \symbeval{\sexprp_i}{\senv}) \mapsto  \none \big) 
 	       \dunion \biguplus_{\jstring \not\in \symbeval{\sexpr_d}{\senv}} \big((l, \jstring) \mapsto \none \big) 
@@ -2032,7 +2032,7 @@ We now consider both directions of the equivalence separately.
 
 \end{proof}
 
-
+\polish{same assumptions of the previous lemma }
 \begin{lemma}[Negative Resource Unification]\label{lemma:negative:resource}
 $$
 \begin{array}{l}
@@ -2056,13 +2056,14 @@ We proceed by induction on the size of $\efs$.
 \vspace{6pt}
 
 \noindent\prooflab{Inductive Case} We conclude that $\efs = \efa \dunion \efs'$ (\ieq{3}). 
-We conclude, from \ieq{2}, that there are two disjoint instrumented heap $\iheap'$ and $\iheap''$ 
+We conclude, from \ieq{2}, that there are two disjoint instrumented heaps $\iheap'$ and $\iheap''$ 
 such that $\iheap', \sstore, \senv \satisfies \efa$ (\ieq{4}) and  $\iheap'', \sstore, \senv \satisfies \efs'$ (\ieq{5}). 
 %
 We conclude, from the definition 
 of $\unificationef{\sheap}{\efs}$, that: $\unificationef{\sheap}{\efs} \vdash \unificationef{\sheap}{\efs'}$ (\ieq{6}).
 From \ieq{6} and the hypothesis, it follows that $\pc \vdash \unificationef{\sheap}{\efs'}$ (\ieq{7}). 
-Applying the \underline{induction hypothesis} to $\pc \vdash \unificationef{\sheap}{\efs'} \, \wedge \,  \sanity{\efs}$, 
+\polish{Justify EF'.}
+Applying the \underline{induction hypothesis} to $\pc \vdash \unificationef{\sheap}{\efs'} \, \wedge \,  \sanity{\efs'}$, 
 $(\heap, \store) \in \smodels{\sheap, \sstore}{\pc}$, $\senv \satisfies \pc$, and 
 $\iheap'', \sstore, \senv \satisfies \efs'$, we conclude that: $\iheap'' \disjoint \heap$ (\ieq{8}). 
 Now we have to prove that $\iheap' \disjoint \heap$. 
