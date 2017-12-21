@@ -733,7 +733,7 @@ Finally, we run the generated \jsil symbolic tests on the \jsil symbolic executi
 
 \begin{figure}[t!]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/symbvsass.png}
+\includegraphics[width=0.6\textwidth]{figures/symbvsass.png}
 
 \vspace*{-0.7cm}
 {\small $$
@@ -744,50 +744,14 @@ $$}
 \vspace{-0.5cm}
 \end{figure}
 
-
-
-\myparagraph{Specification Preliminaries} \polish{This is not the right place for this. the predicates need to be explained intuitively (perhaps with the commented text). the syntax remarks comes after, and the highlights come even later. I suggest below the predicate definitions.} We separate multiple definitions of the same predicate using a comma. 
-%
-We write {\small\texttt{-u-}} for set union and omit the brackets around singleton sets. 
-%
-The predicate \jsinline|DataProp(o, p, v)| captures the property \jsinline|p| of object \jsinline|o| and states that it has value \jsinline|v|, while abstracting over other JavaScript internals associated with the property (for more details, see~\cite{javert}).
-% 
-The predicate \jsinline|JSObject(o, op)| states that the object \jsinline|o| is a standard JavaScript object with prototype \jsinline|op|.
-
-
 \myparagraph{Example}
-We illustrate the debugging of SL-specifications by appealing to the \jsinline|Map| example of Figure \ref{map:example}. To reason about a key-value map,
-we define several predicates: 
-\dtag{1} the \jsinline|ValidKey(k)| predicate, which captures the validity of a given key and holds \emph{iff} the corresponding JavaScript function \jsinline|validKey(k)| returns \jsinline|true|;
-\dtag{2} the \jsinline|KVPairs(o, kvs)| predicate, which captures the resource of the key-value pairs of the map contents object \jsinline|o|; and
-\dtag{3} the \jsinline|Map(m, kvs)| predicate, which captures the resource of an entire map object \jsinline|m| with key-value pairs \jsinline|kvs| and uses the \jsinline|ValidKey| and \jsinline|KVPairs| predicates.
-%and 
-%\dtag{4} the \jsinline|MapProto(mp)| predicate, which states that the object \jsinline|mp| is a valid prototype object for key-value maps, that is, that it contains the appropriate \jsinline|get|, \jsinline|put|, and \jsinline|validKey| methods.
-Below, we show the definitions of the \jsinline|validKey|, \jsinline|KVPairs|, and \jsinline|Map| predicates, slightly simplified for presentation. 
-In the definition of \jsinline|ValidKey|, we highlight in red one potential source of errors on which we will focus shortly. 
-%
-We highlight three aspects of the \jsinline|Map| definition. 
-First, we use the first-projection operator \jsinline|first| to obtain the set of keys from the set of key-value pairs \jsinline|kvs|. 
-Second, note that the {\small $\mathtt{emptyFields(c, first(kvs))}$} assertion ensures that the map contents object \jsinline|c| only has the properties corresponding to the keys of the map. 
-Finally, note that the uniqueness of keys is \jsinline|kvs| is guaranteed by the \jsinline|DataProp(o, k, v)| predicate of \jsinline|KVPairs| and the separating conjunction.
-To give a better intuition of how the \jsinline|Map| predicate works, we show the full unfolding of {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$} in Figure \ref{fig:symb:state:versus:assertion}.
+We illustrate the debugging of SL-specifications by appealing to the \jsinline|Map| example shown in Figure \ref{map:example}. In order to reason about a key-value map,
+we define several predicates, whose definitions we show below.
 
-%a \emph{map object predicate}, \jsinline|Map|, 
-%which uses the auxiliary predicate \jsinline|KVPairs|, capturing the resource of the key-value pairs in the map, 
-%and the \jsinline|validKey(k)| predicate, which captures the validity of a key and holds if and only if the corresponding JavaScript function \jsinline|ValidKey(k)| returns \jsinline|true|\footnote{For the moment, we treat the $\mathtt{ValidKey}$ predicate as a black box.}.
-
-%
-%Intuitively, the \jsinline|Map(m, kvs)| predicate captures the resource 
-%of a map object \jsinline|m| with key-value pairs \jsinline|kvs| (a set of string-number pairs, modelled as two-element lists).
-%%\footnote{We model pairs as lists with two elements and, for clarity, use the pair notation.}). 
-%For instance, the assertion $\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$ can be unfolded as illustrated in Figure~\ref{fig:symb:state:versus:assertion}. 
-%Observe that the definition of \jsinline|Map| does not include the resource of a map prototype, as it is shared between all map objects, and therefore needs to be factored out.  
-%
-
- % JSObject(m, mp) *  I took this out because it is not needed
- % *  emptyFields(c, keys -u- "hasOwnProperty")
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-ValidKey (k) := types(k : Str) * \textcolor{red}{(k <> "hasOwnProperty")}
+Map (m, kvs) := 
+  DataProp(m, "_contents", c) * JSObject(c) * 
+    KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys)
 \end{Verbatim}
  \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
 KVPairs (o, kvs) := 
@@ -795,14 +759,35 @@ KVPairs (o, kvs) :=
   (kvs = (k, v) -u- kvs') * ValidKey(k) * DataProp(o, k, v) * KVPairs(o, kvs')
 \end{Verbatim}
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-Map (m, kvs) := 
-  DataProp(m, "_contents", c) * 
-    JSObject(c, Object.prototype) * KVPairs(c, kvs) * emptyFields(c, first(kvs))
+ValidKey (k) := types(k : Str) * \textcolor{red}{(k <> "hasOwnProperty")}
 \end{Verbatim}
+
+The \jsinline|Map| predicate captures the resource corresponding to a map object. 
+Concretely, it first states that the map object has the property \jsinline|_contents|, which points to a default JavaScript object \jsinline|c|, using the predicates \jsinline|DataProp| and \jsinline|JSObject|. 
+\jsinline|DataProp(o, p, v)| captures the property \jsinline|p| of object \jsinline|o| and states that it has value \jsinline|v|, while abstracting over other associated JavaScript internals, whereas \jsinline|JSObject(o)| states that the object \jsinline|o| is an extensible object of class \jsinline|"Object"|, whose prototype is \jsinline|Object.prototype| (for more details, see~\cite{javert}). 
+Next, using the \jsinline|KVPairs| predicate (explained shortly), it states that \jsinline|c| holds the key-value pairs \jsinline|kvs|. Finally, it states that \jsinline|c| has no other properties except the keys present in \jsinline|kvs|. For this, it first obtains the set of keys from the set of key-value pairs \jsinline|kvs| using the predicate \jsinline|first(kvs, keys)|, which states that the first projection of \jsinline|kvs| equals \jsinline|keys| (its definition is standard), and then uses the \jsinline|emptyFields| assertion to state that all other properties are absent from the object.
+
+The \jsinline|KVPairs(o, kvs)| predicate talks about key-value pairs of an object \jsinline|o|. 
+It is defined recursively on the structure of \jsinline|kvs| and it has two definitions, separated by a comma. 
+We have that \jsinline|kvs| is either empty or that it contains at least one key-value pair \jsinline|(k, v)|.\footnote{We write {\small\texttt{-u-}} for set union and omit the brackets around singleton sets.} 
+In the latter case, we state that the key \jsinline|k| must be valid, that the object \jsinline|o| has the property \jsinline|k| with value \jsinline|v|, and proceed recursively.
+Note that the uniqueness of keys in \jsinline|kvs| is guaranteed by the \jsinline|DataProp| predicate of \jsinline|KVPairs| and the separating conjunction.
+
+The \jsinline|ValidKey(k)| predicate captures the validity of a given key and holds \emph{iff} the corresponding JavaScript function \jsinline|validKey(k)| returns \jsinline|true|.
+In the definition of \jsinline|ValidKey|, we highlight in red a potential source of errors on which we will focus shortly.
+
+To give a better intuition of how the \jsinline|Map| predicate works, we show the full unfolding of {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$} in Figure \ref{fig:symb:state:versus:assertion}.
+%a \emph{map object predicate}, \jsinline|Map|, 
+%which uses the auxiliary predicate \jsinline|KVPairs|, capturing the resource of the key-value pairs in the map, 
+%and the \jsinline|validKey(k)| predicate, which captures the validity of a key and holds if and only if the corresponding JavaScript function \jsinline|ValidKey(k)| returns \jsinline|true|\footnote{For the moment, we treat the $\mathtt{ValidKey}$ predicate as a black box.}.
 %
-
-
-In Figure \ref{fig:symb:state:versus:assertion}, we can also see how the negative resource captured by the SL-assertion {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}, namely the resource captured by {\small$\mathtt{emptyFields(c, first(kvs))}$}, disappears from the symbolic heap and is transformed into the negative resource constraint $\{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}$, which states that all properties of the object \jsinline|c| in the symbolic heap (in our case, $\hat{s}_1$ and $\hat{s}_2$) must be in the set of properties of the corresponding \jsinline|emptyFields| assertion (in our case, {\small$\mathtt{first(\{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \}) = \{ \hat{s}_1, \hat{s}_2 \}}$}).
+%Intuitively, the \jsinline|Map(m, kvs)| predicate captures the resource 
+%of a map object \jsinline|m| with key-value pairs \jsinline|kvs| (a set of string-number pairs, modelled as two-element lists).
+%%\footnote{We model pairs as lists with two elements and, for clarity, use the pair notation.}). 
+%For instance, the assertion $\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$ can be unfolded as illustrated in Figure~\ref{fig:symb:state:versus:assertion}. 
+%Observe that the definition of \jsinline|Map| does not include the resource of a map prototype, as it is shared between all map objects, and therefore needs to be factored out.  
+%
+There, we can also see how the negative resource captured by the SL-assertion {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}, namely the resource captured by {\small$\mathtt{emptyFields(c, first(kvs))}$}, disappears from the symbolic heap and is transformed into the negative resource constraint $\{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}$, which states that all properties of the object \jsinline|c| in the symbolic heap (in our case, $\hat{s}_1$ and $\hat{s}_2$) must be in the set of properties of the corresponding \jsinline|emptyFields| assertion (in our case, {\small$\mathtt{first(\{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \}) = \{ \hat{s}_1, \hat{s}_2 \}}$}).
 Such constraints are generated in item ${\bf e.}$ of the test generation algorithm presented in Figure \ref{fig:test:generation}. 
 
 Below, we show the relevant parts of the specifications of \jsinline|get(k)| and \jsinline|put(k, v)|, for the case in which
@@ -853,15 +838,24 @@ Below, we show the relevant parts of the specifications of \jsinline|get(k)| and
 \vspace{10pt}
 The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsinline|Object.prototype| object. 
 In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function, which is defined as a property of \jsinline|Object.prototype|. 
-The predicate \jsinline|MapProto| specifyies the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
+The predicate \jsinline|MapProto| specifies the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
 
-Now, if we forget to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we do not state that $\mathtt{k}$ needs to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| will fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
-In that case, as illustrated in Figure \ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype|, is no longer reachable by property lookup from \jsinline|c|, and
-the execution of line~5 (\jsinline|if (c.hasOwnProperty(k))|) will raise an error, as it will attempt to call the \jsinline|"hasOwnProperty"| property of object \jsinline|c| as a function instead. 
+\begin{figure}[t!]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/heapfail.png}
+\caption{Property shadowing: \jsinline|c.hasOwnProperty(...)| cannot reach \jsinline|Object.prototype|.} 
+\label{fig:cexget}
+\vspace{-0.5cm}
+\end{figure}
+
+Now, if we forgot to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we did not state that $\mathtt{k}$ needed to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| would fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
+In that case, as illustrated in Figure~\ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype| would no longer be reachable by property lookup from \jsinline|c|, and
+the execution of line~5 (\jsinline|if (c.hasOwnProperty(k))|) would raise an error, as it would attempt to call the \jsinline|"hasOwnProperty"| property of object \jsinline|c| as a function instead. 
 Since this specification of $\mathtt{get(k)}$ requires normal termination, the jump to the error label in the compiled \jsil code will trigger the $\assert(\jfalse)$ of the generated symbolic test and the developer will be presented with the counter-model \jsinline|k = "hasOwnProperty"|.
 
-\polish{Now, success.}
-
+\begin{center}
+\polish{What else would we like to say here?}
+\end{center}
 
 %%
 %% OLD THINGS
