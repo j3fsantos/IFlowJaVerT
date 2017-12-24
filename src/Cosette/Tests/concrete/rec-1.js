@@ -11,5 +11,5 @@ function top(x) {
 }
 
 var ret1 = top(6);
-assert(ret1 = 8)
 
+Assert(ret1 = 8)

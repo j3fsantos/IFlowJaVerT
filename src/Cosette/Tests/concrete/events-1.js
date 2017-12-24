@@ -36,4 +36,4 @@ total += o[ "sum" ](2);
 
 total;
 
-assert(total = 22)
+Assert(total = 22)

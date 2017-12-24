@@ -14,8 +14,8 @@ type js_symbolic_constructs_type = {
 }
 
 let js_symbolic_constructs = {
-	js_assume      = "assume"; 
-	js_assert      = "assert"; 
+	js_assume      = "Assume"; 
+	js_assert      = "Assert"; 
 	js_symb_number = "symb_number"; 
 	js_symb_string = "symb_string" 
 }

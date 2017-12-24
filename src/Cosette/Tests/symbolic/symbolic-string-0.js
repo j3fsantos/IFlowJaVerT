@@ -11,7 +11,7 @@ if (s != s1) {
     }
 }
 
-jsil_assert(v === 5)
+jsil_Assert(v === 5)
 
 
 

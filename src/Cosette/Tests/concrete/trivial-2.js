@@ -4,4 +4,5 @@
 
 var y = "a" + "b";
 var z = y + "c";
-assert(z = "abc")
+
+Assert(z = "abc")

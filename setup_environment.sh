@@ -12,4 +12,10 @@ cp jsil2rkt.native environment
 cp testify.native environment
 cp remake.sh environment
 cp run.sh environment
+
+rm -rf test262/environment
+cp -r environment test262/environment
+
+mkdir -p environment/concrete
+cp src/Cosette/Tests/concrete/*.js environment/concrete
 cp test_concrete_cosette.sh environment

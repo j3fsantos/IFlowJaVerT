@@ -17,4 +17,5 @@ function top(z) {
 }
 
 var ret1 = top(3);
-assert(ret1 = "ababab")
+
+Assert(ret1 = "ababab")

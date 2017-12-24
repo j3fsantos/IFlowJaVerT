@@ -13,4 +13,4 @@ var o = { a: 1, b: 2, c: 3 };
 
 var ret1 = top(o);
 
-assert(ret1 = 6)
+Assert(ret1 = 6)

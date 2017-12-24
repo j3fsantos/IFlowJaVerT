@@ -4,6 +4,7 @@ open JSIL_Interpreter
 
 let file = ref ""
 let js = ref false
+let test262 = ref false
 let verbose = ref false
 
 let load_file f =
@@ -22,6 +23,8 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			(* js *)
 			"-js", Arg.Unit(fun () -> js := true), "for js";
+			(* test262 *)
+			"-test262", Arg.Unit(fun () -> js := true; test262 := true), "test262";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -56,10 +59,25 @@ let generate_js_heap_and_internal_functions () =
 	
 
 let main () =
+	Parser_main.use_json := true;
 	arguments ();
+  Parser_main.init ();
+	
 	if (!file <> "") then (
-	let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
-	let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog in
+	
+	let prog, which_pred = (match !test262 with
+	| false -> 
+			let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
+			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog
+	| true -> 
+			let harness = load_file "harness.js" in
+			let main = load_file !file in
+			let main = JSIL_PreParser.stringify_assume_and_assert main in
+			let all = harness ^ "\n\n" ^ main in
+			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
+			let e = Parser_main.exp_from_string ~force_strict:true all in
+			let (ext_prog, _, _) = JS2JSIL_Compiler.js2jsil e offset_converter false in
+			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog) in
 	
 	(* serializing JS internal functions + JS initial heap *)
 	if (!js) then (
@@ -77,8 +95,20 @@ let main () =
 	
 	let sprog = SExpr_Print.sexpr_of_program prog false in
 	let sprog_in_template = Printf.sprintf SExpr_Templates.template_procs_racket sprog in
-	let file_name = Filename.chop_extension !file in
-  burn_to_disk (file_name ^ ".rkt") sprog_in_template)
+	let filename = Filename.chop_extension !file in
+	let just_the_filename = Filename.basename filename in
+	print_endline just_the_filename;
+  burn_to_disk (filename ^ ".rkt") sprog_in_template;
+	
+	(match !test262 with
+	| false -> ()
+	| true -> 
+			let exit_code = Sys.command ("pwd") in
+			let exit_code = Sys.command ("cp " ^ filename ^ ".rkt .") in
+  		let exit_code = Sys.command ("racket "^ just_the_filename ^ ".rkt") in
+			let _ = Sys.command ("rm "^ just_the_filename ^ ".rkt") in
+  		exit(exit_code)
+	))
 	 
 
 let _ = main()

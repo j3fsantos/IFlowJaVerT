@@ -22,7 +22,7 @@ if (useAcct) {
 var useId = (id.length == 8 && id.startsWith("id"));
 if (useId) { url += ("?id"+id); }
  
-jsil_assert( (!useAcct && !useId) && (url.includes("?id") || url.includes("?acct")));
+jsil_Assert( (!useAcct && !useId) && (url.includes("?id") || url.includes("?acct")));
 
 
 

@@ -16,4 +16,4 @@ if (n1 > 0) {
 }
 
 var s = z (); 
-assert ((s-len s) <= 3)
+Assert ((s-len s) <= 3)

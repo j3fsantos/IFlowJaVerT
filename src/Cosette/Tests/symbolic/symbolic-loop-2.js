@@ -5,4 +5,4 @@ for(var i = 0; i < s.length; i++) {
     total += i;
 }
 
-jsil_assert(total === 15);
+jsil_Assert(total === 15);

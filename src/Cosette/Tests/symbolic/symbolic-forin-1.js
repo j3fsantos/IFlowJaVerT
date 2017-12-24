@@ -13,4 +13,4 @@ var o = { a: jsil_make_symbolic_number(),
 
 var v = top(o);
 
-jsil_assert(v = 100)
+jsil_Assert(v = 100)

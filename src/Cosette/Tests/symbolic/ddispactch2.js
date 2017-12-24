@@ -16,4 +16,4 @@ if (n1 > 0) {
 }
 
 var s = z (); 
-assert (not ((s-len s) < 4))
+Assert (not ((s-len s) < 4))

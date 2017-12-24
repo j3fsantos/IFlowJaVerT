@@ -2,7 +2,7 @@
 function top(o) {
     for(var p in o) {
 	var s = o[p].replace("script", "s");
-	assert(! s.contains("script"));
+	Assert(! s.contains("script"));
 	o[p] = s;
     }
     return 0;

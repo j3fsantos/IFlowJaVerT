@@ -284,7 +284,6 @@
           
     (cons '@
           (lambda (x y)
-            (displayln "I am going to die appending")
             (if (and (is-llist? x) (is-llist? y)) (append x (cdr y)) jundefined)))
     
     (cons 'and (lambda (x y) (error "and operator called illegally")))
@@ -856,8 +855,8 @@
         (let* ((method-obj-loc (third method-obj-desc))
                (heap (mutate-heap heap method-obj-loc "@call" fresh-function-name))
                (heap (mutate-heap heap method-obj-loc "@construct" fresh-function-name)))
-          (println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
-                           method-name method-obj-loc fresh-function-name))
+          ;;(println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
+          ;;                 method-name method-obj-loc fresh-function-name))
           heap))))
 
 (provide racket-js-implementations has-racket-implementation? get-racket-implementation register-js-builtin-method)

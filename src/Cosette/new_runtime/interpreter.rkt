@@ -22,10 +22,11 @@
           (loop (- i 1) (string-append tab new-tabs))))))
 
 (define (print-info proc-name str)
-  (when (and print-cmds (<= call-stack-depth max-depth))
-    (let* ((tabs (generate-tabs call-stack-depth))
-           (new-str (string-append tabs proc-name ": " str)))
-    (println new-str))))
+  42)
+  ;;(when (and print-cmds (<= call-stack-depth max-depth))
+  ;;  (let* ((tabs (generate-tabs call-stack-depth))
+  ;;         (new-str (string-append tabs proc-name ": " str)))
+  ;;  (println new-str))))
 
 ;;
 ;; SSkip      ()                  'skip       DONE
@@ -463,7 +464,7 @@
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
                      (new-str (string-append tabs ": " (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))))
-                (println new-str)
+                ;; (println new-str)
                 type-of))]
        ;;
        ;; ('jsil-list l)
@@ -566,6 +567,7 @@
     ;;(println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (set! global-outcome outcome)
     outcome-success))
+
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure global-outcome) ;; jtrue jfalse protop)
 

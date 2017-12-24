@@ -22,7 +22,7 @@
   (cons 'normal (string-index-of str x)))
 
 (define (register-racket-methods hp)
-  (displayln "register-racket-methods")
+  ;; (displayln "register-racket-methods")
   (let* ((hp (register-js-builtin-method "String" "indexOf" str-index-of hp))
          (hp (register-js-builtin-method "String" "includes" includes? hp))
          (hp (register-js-builtin-method "String" "startsWith" starts-with? hp))

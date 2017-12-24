@@ -20,4 +20,4 @@ var input = {
 
 Q.extend(input);
 
-jsil_assert(Q.n > 10);
+jsil_Assert(Q.n > 10);
