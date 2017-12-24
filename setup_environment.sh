@@ -9,6 +9,7 @@ cp src/JS2JSIL/runtime/*.jsil environment
 cp src/JS2JSIL/runtime/harness.js environment
 cp js2jsil.native environment
 cp jsil2rkt.native environment
+cp testify.native environment
 cp remake.sh environment
 cp run.sh environment
 cp test_concrete_cosette.sh environment

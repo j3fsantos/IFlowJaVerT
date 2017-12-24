@@ -1,0 +1,46 @@
+(** Totals: 0 fails and 1 passes **)
+
+pred ValidKey(key) : 
+    types (key : $$string_type) * (! (key == "")) * (! (s-nth (key, 0) == "@")) *  
+    (! (key == "hasOwnProperty"));
+
+
+pred KVPairs (o, kvs) :
+    (kvs == -{ }-),
+
+    (kvs == -u- (-{ {{ #key, #value }} }-,  #rkvs)) *
+          ValidKey(#key) * ((o, #key) -> #value) * KVPairs(o, #rkvs);
+
+
+pred KeysfromKVPairs (kvs, keys) : 
+    (kvs == -{}-) * (keys == -{}-), 
+
+    (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * 
+          (keys == -u- (-{ #key }-, #rkeys)) *  
+          KeysfromKVPairs (#rkvs, #rkeys); 
+
+
+pred Map (m, kvs) :
+    ((m, "@proto") -> $$null) * ((m, "_contents") -> #c) * 
+    ((#c, "@proto") -> $$null) * KVPairs(#c, kvs) * 
+    KeysfromKVPairs (kvs, #keys) * empty_fields(#c : #keys);
+
+
+spec map_get (m, k)
+   [[ Map (m, -u- (-{ {{ #key, #value }} }-, #rkvs)) * (k == #key) ]]
+   [[ Map (m, -u- (-{ {{ #key, #value }} }-, #rkvs)) * (ret == #value) ]]
+   normal
+proc map_get (m, k) {
+          r := "xuxu"; 
+  rlab:   skip
+} with { ret: r, rlab; };
+
+
+spec map_put (m, k, v)
+   [[ Map (m, -u- (-{ {{ #key, #value_old }} }-, #rkvs)) * (v == #value_new) ]]
+   [[ Map (m, -u- (-{ {{ #key, #value_new }} }-, #rkvs)) * (ret == #value_new) ]]
+   normal
+proc list_count (m, k, v) {
+          r := "xuxu"; 
+  rlab:   skip
+} with { ret: r, rlab; };

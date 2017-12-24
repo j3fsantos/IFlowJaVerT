@@ -626,6 +626,15 @@ let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 	let v_pr = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_sp (SS.union v_pf v_pr)))
 
+let ss_lvars_no_gamma (symb_state : symbolic_state) : SS.t =
+	let heap, store, pfs, _, preds = symb_state in
+	let v_h  = heap_lvars heap in
+	let v_s  = store_lvars store in
+	let v_pf = pfs_lvars pfs in
+	let v_pr = preds_lvars preds in
+		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
+
+
 (** conversts a symbolic state to an assertion *)
 let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion = 
 	let heap, store, pfs, gamma, preds = symb_state in

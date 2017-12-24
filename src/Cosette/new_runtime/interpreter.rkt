@@ -7,6 +7,7 @@
 
 (define depth 0)
 (define success #f)
+(define global-outcome '())
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
@@ -547,7 +548,7 @@
 (define (run-program prog heap)
   (jsil-discharge)
   (let* ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-         (outcome-success (solve (assert (or (not success) (and success (not (get-assertions))))))))
+         (outcome-success (solve (assert (or (and (get-assumptions) (not success)) (and (get-assumptions) success (not (get-assertions))))))))
          ;;(outcome-failure (solve (assert failure)))
          ;;(outcome-success-assume (solve (assert (and (get-assumptions) success))))
          ;;(outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
@@ -563,8 +564,9 @@
     ;;(println (format "Outcome Failure: ~v" outcome-failure))
     ;;(println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
     ;;(println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
+    (set! global-outcome outcome)
     outcome-success))
   
-(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure) ;; jtrue jfalse protop)
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure global-outcome) ;; jtrue jfalse protop)
 
 ;; (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert success))))

@@ -1,0 +1,92 @@
+pred my_lseg_full(x, y, alpha, alpha_sum) : 
+	(x == y) * (alpha_sum == 0) * (alpha == {{ }}),
+	
+	((x, "value") -> #v) * 
+	((x, "next")  -> #z) * 
+	my_lseg_full(#z, y, #beta, #beta_sum) *
+	(alpha == #v :: #beta) * (alpha_sum == (#v + #beta_sum));
+
+
+
+pred my_list_full(x, alpha : $$list_type, alpha_sum : $$number_type) : 
+	(x == $$null) * (alpha == {{ }}) * (alpha_sum == 0),
+	
+	((x, "value") -> #v) *
+	((x, "next")  -> #z) * 
+	my_list_full(#z, #beta, #beta_sum) *
+	(alpha == #v :: #beta) * (alpha_sum == (#v + #beta_sum));
+
+
+ 
+lemma lseg2list_full(x, alpha, alpha_sum)
+	variant (l-len(alpha))
+	[[ (x == #x) * (alpha == #alpha) * (alpha_sum == #alpha_sum) * 
+	   my_lseg_full(#x, $$null, #alpha, #alpha_sum) ]]
+	[[ my_list_full(#x, #alpha, #alpha_sum) ]]
+	
+	[*
+		unfold(my_lseg_full(#x, $$null, #alpha, #alpha_sum));
+		if (not (#x = ($$null))) then {
+		  assert(my_lseg_full(#next, $$null, #beta, #beta_sum));
+		  apply lseg2list_full(#next, #beta, #beta_sum); 
+		  fold(my_list_full(#x, #alpha, #alpha_sum))
+		} else {
+		  fold(my_list_full(#x, #alpha, #alpha_sum))
+		}
+	*]
+
+
+
+lemma lseg_append_full(x, y, alpha, alpha_sum, yval, ynext)
+    variant (l-len(alpha))
+	[[ (x == #x) * (y == #y) * (alpha == #alpha) * (alpha_sum == #alpha_sum) * (yval == #yval) * (ynext == #ynext) * 
+	   my_lseg_full(#x, #y, #alpha, #alpha_sum) * ((#y, "value") -> #yval) * ((#y, "next") -> #ynext) ]]
+	[[ my_lseg_full(#x, #ynext, #alpha @ {{ #yval }}, #alpha_sum + #yval) ]]
+	
+	[*
+		unfold(my_lseg_full(#x, #y, #alpha, #alpha_sum));
+		if (not (#alpha = {{ }})) then {
+		  assert(my_lseg_full(#next, #y, #beta, #beta_sum));
+		  apply lseg_append_full(#next, #y, #beta, #beta_sum, yval, ynext); 
+		  fold(my_lseg_full(#x, #ynext, #alpha @ {{ #yval }}, #alpha_sum + #yval))
+		} else {
+		  fold(my_lseg_full(#x, #ynext, #alpha @ {{ #yval }}, #alpha_sum + #yval))
+		}
+	*]
+
+
+
+spec list_sum_iterative (x)
+   [[ (x == #x) * my_list_full(#x, #alpha, #alpha_sum) ]]
+   [[ my_list_full(#x, #alpha, #alpha_sum) * (ret == #alpha_sum) ]]
+   normal
+   
+proc list_sum_iterative(x){
+           
+			[* fold my_lseg_full (#x, #x, {{ }}, 0) *]
+			count := 0;  
+
+			[[ my_lseg_full(#x, x, #done, count) * my_list_full(x, #rest, #rest_sum) * (#alpha == (#done @ #rest)) * (#alpha_sum == (count + #rest_sum)) ]]
+
+			[* unfold my_list_full(x, #rest, #rest_sum)  *]
+	head: 	goto [ x = $$null ] prlab else1;
+
+	else1: 	x_next := [x, "next"];
+		   	x_val  := [x, "value"];
+
+			[*  apply lseg_append_full(#x, x, #done, count, x_val, x_next) *]
+			count := count + x_val;
+			x := x_next;
+   
+		   	goto head;
+
+			[* apply lseg2list_full(#x, #alpha, #alpha_sum) *]
+	prlab:	skip; 
+
+	rlab: 	skip
+} 
+with 
+{ 
+	ret: count, rlab; 
+};
+

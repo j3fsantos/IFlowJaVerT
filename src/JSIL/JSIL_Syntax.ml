@@ -659,7 +659,7 @@ let lit_loc_prefix = "$"
 let abs_loc_prefix = "_$l_"
 let lvar_prefix = "_lvar_"
 let pvar_prefix = "_pvar_"
-let svar_prefix = "s_"
+let svar_prefix = "sv_"
 
 (* initialising the counts *)
 let fresh_aloc = fresh_sth abs_loc_prefix
@@ -707,8 +707,18 @@ let real_is_pvar_name (name : string) : bool =
 let is_spec_var_name (name : string) : bool =
 	(String.length name > 1) && (String.sub name 0 1 = "#")
 
-let fresh_spec_var () : string =
-	( "#" ^ fresh_svar ())
+let fresh_spec_var () : string = ( "#" ^ fresh_svar ())
+	
+let fresh_spec_var_with_type (v_type : jsil_type) : string =
+	match v_type with 
+	| BooleanType   -> ( "#bool_" ^ fresh_svar ())
+	| NumberType    -> ( "#num_"  ^ fresh_svar ())
+	| StringType    -> ( "#str_"  ^ fresh_svar ())
+	| ObjectType    -> ( "#loc_"  ^ fresh_svar ())
+	| ListType      -> ( "#lst_"  ^ fresh_svar ())
+	| TypeType      -> ( "#type_" ^ fresh_svar ())
+	| SetType       -> ( "#set_"  ^ fresh_svar ())
+	| _             -> ( "#"      ^ fresh_svar ())
 
 
 (*******************************************************)

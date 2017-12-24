@@ -1,0 +1,22 @@
+(* Sublist of length j starting from the i-th element *)
+only spec subList(l, i, j)
+	[[	(l == #l1 @ (#l2 @ #l3)) * (i == #i) * (j == #j) * (l-len(#l1) == #i) * (l-len(#l2) == #j) * 
+		types(l : $$list_type, #l1 : $$list_type, #l2 : $$list_type, #l3 : $$list_type, #i : $$number_type, #j : $$number_type) ]]
+	[[ ret == #l2 ]]
+	normal
+
+spec test_01 ()
+	[[ emp ]]
+	[[ (ret == {{ 4, 5 }}) * types(ret : $$list_type) ]]
+	normal
+
+proc test_01 ()
+{
+			list := {{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }};
+			xret := "subList" (list, 4, 2);
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};

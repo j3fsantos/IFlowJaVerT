@@ -1,0 +1,47 @@
+(** Totals: 0 fails and 1 passes **)
+
+pred my_list (x, alpha, size) :
+	(x == $$null) * (alpha == {{ }}) *
+		(size == 0) * types(alpha: $$list_type, size: $$number_type),
+
+	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> $$null) *
+		(alpha == (#y :: #beta)) * my_list(#z, #beta, #size_beta) * (size == (#size_beta + 1)) *
+		types(#y: $$number_type, #alpha: $$list_type, #beta: $$list_type, size: $$number_type, #size_beta: $$number_type);
+
+
+
+(** Expected result: YES                             **)
+spec list_count (x)
+   [[ (x == #x) * my_list(#x, #alpha, #size) * types(#size: $$number_type, #alpha: $$list_type) ]]
+   [[ my_list(#x, #alpha, #size) * types(#size: $$number_type) * (ret == #size) ]]
+   normal
+proc list_count (x) {
+       [* unfold(my_list(x, #alpha, #size)) *]
+          goto [ x = $$null ] then1 else1;
+   then1: count := 0;
+          goto rlab;
+   else1: z := [x, "next"];
+           (* [x, "value"] := 3; *)
+           count := "list_count"(z);
+           count := count + 1;
+           [* fold my_list(x, #alpha, #size) *]
+   rlab:   skip
+} with { ret: count, rlab; };
+
+proc make_list (list) {
+          goto [ list = $$nil] then1 else1;
+  then1:  x := $$null;
+          goto rlab;
+  else1:  x := new ();
+          [x, "value"] := l-nth(list, 0);
+          y := "make_list"(cdr list);
+          [x, "next"] := y;
+          goto rlab;
+  rlab:   skip
+} with { ret: x, rlab; };
+
+proc main () {
+        x := "make_list" ({{ 1, 2, 3}});
+        y := "list_count" (x);
+  rlab: skip
+} with { ret: y, rlab; };

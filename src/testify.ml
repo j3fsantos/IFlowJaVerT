@@ -32,16 +32,25 @@ let process_file path =
 		(String.concat ", " ext_prog.procedure_names) ^ "\n"); *)
 
 	print_debug "*** Prelude: Stage 2: building the spec table and pred table \n";
-    let u_preds  = Normaliser.auto_unfold_pred_defs ext_prog.predicates in
+    let u_preds      = Normaliser.auto_unfold_pred_defs ext_prog.predicates in
 	Normaliser.concretize_rec_predicates u_preds !depth;	
-	let spec_tbl = Normaliser.build_spec_tbl prog u_preds ext_prog.onlyspecs ext_prog.lemmas in
-	let n_pred_defs = Normaliser.normalise_predicate_definitions u_preds in
+	Printf.printf "finished concretizing non-normalised rec predicates\n"; 
+	let spec_tbl     = Normaliser.build_spec_tbl prog u_preds ext_prog.onlyspecs ext_prog.lemmas in
+	Printf.printf "finished normalizing specs\n"; 
+	let n_pred_defs  = Normaliser.normalise_predicate_definitions u_preds in
+	let n_pred_defs  = Specs2tests.simplify_preds n_pred_defs in 
+	Printf.printf "finished normalising predicate definitions\n"; 
     print_debug (Printf.sprintf "%s\n%s\nSpec Table:\n%s" str_bar str_bar (Symbolic_State_Print.string_of_n_spec_table spec_tbl));
-    Normaliser.print_normaliser_results_to_file spec_tbl n_pred_defs;
+   	let new_spec_tbl = Specs2tests.unfold_pred_in_specs n_pred_defs spec_tbl !depth in 
+    Normaliser.print_normaliser_results_to_file new_spec_tbl n_pred_defs;
 	print_debug "*** Stage 2: DONE building the spec table and pred table \n";
 
+	
+
 	print_debug "\n*** Prelude: Stage 3: compiling specs to tests. ***\n";
-	Specs2tests.make_symbolic_tests prog spec_tbl n_pred_defs;  
+	Specs2tests.make_symbolic_tests prog new_spec_tbl n_pred_defs;  
+
+
 
 	print_debug "\n*** Prelude: Stage 4: Printing the generated procedures to a file ***\n";
 	let output_file_name = String.sub path 0 (String.rindex path '.') in 

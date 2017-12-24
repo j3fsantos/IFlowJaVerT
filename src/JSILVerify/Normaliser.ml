@@ -387,14 +387,18 @@ let concretize_rec_predicate
 		(pred_defs  : (string, unfolded_predicate) Hashtbl.t)
 		(depth      : int) : unit = 
 
+	Printf.printf "About to concretize the predicate %s\n" u_pred.name; 
+
 	let concretize_predicate_aux i = 
+		Printf.printf "\tconcretizing %s for depth: %d\n" u_pred.name i;
+
 		let rec_pred_defs = 
 			List.filter (fun (_, pred_def) -> 
 				(List.length (get_asrt_pred_names pred_def)) > 0
 			) u_pred.definitions in	
 		
 		let prev_pred_name = get_new_pred_name u_pred.name (i-1) in 
-		let new_pred_name = get_new_pred_name u_pred.name (i-1) in 
+		let new_pred_name = get_new_pred_name u_pred.name i in 
 
 		let rec_pred_defs = 
 			List.map (fun (_, pred_def) -> rewrite_pred_name u_pred.name prev_pred_name pred_def) rec_pred_defs in
@@ -412,6 +416,8 @@ let concretize_rec_predicate
 			} in 
 
 		Hashtbl.replace pred_defs new_pred_name unfolded_pred; 
+		
+		Printf.printf "\tdone. added %s to pred_table\n" new_pred_name;
 
 		() in 
 
@@ -674,20 +680,31 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string 
 			| _ -> a 
 		) pfs in 
 
-	(* print_debug (Printf.sprintf "resolve_location with var %s and pfs:\n%s\n" lvar
-		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion original_pfs))); *)
+	Printf.printf "resolve_location with var %s and pfs:\n%s\n" lvar
+		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion original_pfs)); 
 
-	let rec loop pfs traversed_pfs =
+	let subst = init_substitution3 [] in 
+
+	let rec shallow_loop pfs traversed_pfs found_other_bindings =
 		(match pfs with
-		| [] -> None
+		| [] -> None, found_other_bindings
 		
 		| LEq (LVar cur_lvar, ALoc loc) :: rest
 		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
-			if (cur_lvar = lvar) then Some loc else loop rest ((List.hd pfs) :: traversed_pfs)
+			if (cur_lvar = lvar) 
+				then Some loc, found_other_bindings
+				else (
+					Hashtbl.replace subst cur_lvar (ALoc loc); 
+					shallow_loop rest ((List.hd pfs) :: traversed_pfs) true
+				)
 
 		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
 		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
-			if (cur_lvar = lvar) then Some loc else loop rest ((List.hd pfs) :: traversed_pfs)
+			if (cur_lvar = lvar) 
+				then Some loc, found_other_bindings 
+				else (
+					shallow_loop rest ((List.hd pfs) :: traversed_pfs) true
+				)
 		
 		| LEq (le1, le2) :: rest ->
 			(match le1 with 
@@ -701,18 +718,26 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string 
 					let le1_lst_l, le1_lst_r = reshape_list le1 min_len in 
 					let le2_lst_l, le2_lst_r = reshape_list le2' min_len in 
 					if ((List.length le1_lst_l) <> (List.length le2_lst_l)) then raise (Failure "DEATH") else (
-						match loop_lists le1_lst_l le2_lst_l with 
-						| None -> loop rest ((List.hd pfs) :: traversed_pfs)
-						| Some loc -> Some loc)
-				| _ -> loop rest ((List.hd pfs) :: traversed_pfs))
-			| _ -> loop rest ((List.hd pfs) :: traversed_pfs))
+						match shallow_loop_lists le1_lst_l le2_lst_l found_other_bindings with 
+						| None, new_found_other_bindings -> 
+							shallow_loop rest ((List.hd pfs) :: traversed_pfs) new_found_other_bindings
+						| Some loc, new_found_other_bindings -> 
+							Some loc, new_found_other_bindings)
+				| _ -> shallow_loop rest ((List.hd pfs) :: traversed_pfs) found_other_bindings)
+			| _ -> shallow_loop rest ((List.hd pfs) :: traversed_pfs) found_other_bindings)
 
-		| _ :: rest -> loop rest ((List.hd pfs) :: traversed_pfs)) 
+		| _ :: rest -> shallow_loop rest ((List.hd pfs) :: traversed_pfs) found_other_bindings) 
 	
-	and loop_lists lst_1 lst_2 = 
-		loop (List.map2 (fun le1 le2 -> LEq (le1, le2)) lst_1 lst_2) [] in
+	and shallow_loop_lists lst_1 lst_2 found_other_bindings = 
+		shallow_loop (List.map2 (fun le1 le2 -> LEq (le1, le2)) lst_1 lst_2) [] found_other_bindings in
 
-	loop original_pfs [] 
+	let rec loop pfs =
+		match shallow_loop pfs [] false with 
+		| Some loc, _ -> Some loc 
+		| None, false -> None 
+		| None, true  -> loop (List.map (asrt_substitution subst true) pfs) in
+
+	loop original_pfs
 
 
 let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : string option = 
@@ -1536,14 +1561,13 @@ let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) :
 	let subst     = init_substitution3 [ (aloc, LVar x) ] in 
 	let pfs_list' = List.map (asrt_substitution subst true) pfs_list in 
 
-	print_debug (Printf.sprintf "is_overlapping_aloc with aloc: %s. new_var: %s. pfs:\n%s" aloc x
-		(String.concat "; " (List.map JSIL_Print.string_of_logic_assertion pfs_list'))
-	);
+	Printf.printf "is_overlapping_aloc with aloc: %s. new_var: %s. pfs:\n%s\n" aloc x
+		(String.concat "; " (List.map JSIL_Print.string_of_logic_assertion pfs_list'));
 
 	let loc       = resolve_location x pfs_list' in	 
 	match loc with 
-	| Some loc -> print_debug (Printf.sprintf "Found the overlap %s\n" loc); Some loc 
-	| _        -> print_debug "Could NOT find the overlap\n"; None 
+	| Some loc -> Printf.printf "Found the overlap %s\n" loc; Some loc 
+	| _        -> Printf.printf "Could NOT find the overlap\n"; None 
 
 
 let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state = 
