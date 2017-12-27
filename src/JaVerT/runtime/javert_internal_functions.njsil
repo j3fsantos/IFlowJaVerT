@@ -29,9 +29,9 @@ pred GenericDescriptor (d):
 types(d : List) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
 
 pred Pi (l, prop, lcls, d, ls, ltf, lpv): 
-types(ls : List, lcls : List, d : Undefined, l : Obj, _lvar_601 : Str, #cls : Str, prop : Str, ltf : List, lpv : List) * (! (#cls == "String")) * (! (_lvar_601 == "")) * (! (s-nth(_lvar_601, 0.) == "@")) * (lpv == {{ "" }}) * (d == undefined) * (ls == {{ _$l_l }}) * (ltf == {{ false }}) * (prop == _lvar_601) * (l == _$l_l) * (lcls == {{ #cls }}) * ((_$l_l, "@proto") -> null) * ((_$l_l, "@class") -> #cls) * ((_$l_l, _lvar_601) -> None),
+types(ls : List, lcls : List, d : Undefined, l : Obj, _lvar_601 : Str, #cls : Str, prop : Str, ltf : List, lpv : List) * (! (#cls == "String")) * (! (_lvar_601 == "")) * (! (s-nth(_lvar_601, 0.) == "@")) * (lpv == {{ "" }}) * (d == undefined) * (ls == {{ _$l_l }}) * (ltf == {{ false }}) * (prop == _lvar_601) * (l == _$l_l) * (lcls == {{ #cls }}) * ((_$l_l, "@proto") -> null) * ((_$l_l, "@class") -> #cls) * ((_$l_l, _lvar_601) -> none),
  types(lcls : List, ls : List, d : List, l : Obj, _lvar_6 : Bool, prop : Str, #cls : Str, ltf : List, _lvar_5 : Bool, _lvar_595 : Str, lpv : List, _lvar_7 : Bool) * (! (#cls == "String")) * (! (_lvar_595 == "")) * (! (s-nth(_lvar_595, 0.) == "@")) * (! (_lvar_4 == empty)) * (lpv == {{ "" }}) * (d == {{ "d", _lvar_4, _lvar_5, _lvar_6, _lvar_7 }}) * (ls == {{ _$l_l }}) * (ltf == {{ false }}) * (prop == _lvar_595) * (l == _$l_l) * (lcls == {{ #cls }}) * ((_$l_l, "@class") -> #cls) * ((_$l_l, _lvar_595) -> {{ "d", _lvar_4, _lvar_5, _lvar_6, _lvar_7 }}),
- Pi(#lp, _lvar_584, (#pcls :: #ocls), _lvar_d, (#lp :: #ols), (#ptf :: #otf), (#ppv :: #otv)) * types(#ocls : List, #otv : List, #otf : List, #lcls : List, lcls : List, ls : List, #lp : Obj, l : Obj, #ols : List, prop : Str, #cls : Str, _lvar_584 : Str, #ppv : Str, #ptf : Bool, ltf : List, #lls : List, lpv : List, #pcls : Str, #ltf : List, #lpv : List) * (#lcls == (#pcls :: #ocls)) * (#lls == (#lp :: #ols)) * (#ltf == (#ptf :: #otf)) * (#lpv == (#ppv :: #otv)) * (! (#cls == "String")) * (! (_lvar_584 == "")) * (! (s-nth(_lvar_584, 0.) == "@")) * (lpv == ("" :: (#ppv :: #otv))) * (d == _lvar_d) * (ls == (_$l_l :: (#lp :: #ols))) * (ltf == (false :: (#ptf :: #otf))) * (prop == _lvar_584) * (l == _$l_l) * (lcls == (#cls :: (#pcls :: #ocls))) * ((_$l_l, "@class") -> #cls) * ((_$l_l, "@proto") -> #lp) * ((_$l_l, _lvar_584) -> None);
+ Pi(#lp, _lvar_584, (#pcls :: #ocls), _lvar_d, (#lp :: #ols), (#ptf :: #otf), (#ppv :: #otv)) * types(#ocls : List, #otv : List, #otf : List, #lcls : List, lcls : List, ls : List, #lp : Obj, l : Obj, #ols : List, prop : Str, #cls : Str, _lvar_584 : Str, #ppv : Str, #ptf : Bool, ltf : List, #lls : List, lpv : List, #pcls : Str, #ltf : List, #lpv : List) * (#lcls == (#pcls :: #ocls)) * (#lls == (#lp :: #ols)) * (#ltf == (#ptf :: #otf)) * (#lpv == (#ppv :: #otv)) * (! (#cls == "String")) * (! (_lvar_584 == "")) * (! (s-nth(_lvar_584, 0.) == "@")) * (lpv == ("" :: (#ppv :: #otv))) * (d == _lvar_d) * (ls == (_$l_l :: (#lp :: #ols))) * (ltf == (false :: (#ptf :: #otf))) * (prop == _lvar_584) * (l == _$l_l) * (lcls == (#cls :: (#pcls :: #ocls))) * ((_$l_l, "@class") -> #cls) * ((_$l_l, "@proto") -> #lp) * ((_$l_l, _lvar_584) -> none);
 
 pred isReferenceError (l): 
 types(l : Obj) * (l == _$l_l) * ((_$l_l, "@proto") -> $lrferr_proto) * ((_$l_l, "@class") -> "Error") * ((_$l_l, "@extensible") -> true) * empty_fields(_$l_l : -{ "@class", "@extensible", "@proto" }-);
@@ -59,7 +59,7 @@ types(d : List, _lvar_613 : List) * (d == _lvar_613) * (v == l-nth(_lvar_613, 1.
 
 pred Cell_o (l, prop, d): 
 types(_lvar_615 : Str, _lvar_13 : Bool, d : List, l : Obj, prop : Str, _lvar_14 : Bool, _lvar_15 : Bool) * (! (_lvar_615 == "")) * (! (s-nth(_lvar_615, 0.) == "@")) * (! (_lvar_12 == empty)) * (d == {{ "d", _lvar_12, _lvar_13, _lvar_14, _lvar_15 }}) * (prop == _lvar_615) * (l == _$l_l) * ((_$l_l, _lvar_615) -> {{ "d", _lvar_12, _lvar_13, _lvar_14, _lvar_15 }}),
- types(d : LValue, l : Obj, prop : Str, _lvar_614 : Str) * (! (_lvar_614 == "")) * (! (s-nth(_lvar_614, 0.) == "@")) * (d == None) * (prop == _lvar_614) * (l == _$l_l) * ((_$l_l, _lvar_614) -> None);
+ types(d : None, l : Obj, prop : Str, _lvar_614 : Str) * (! (_lvar_614 == "")) * (! (s-nth(_lvar_614, 0.) == "@")) * (d == none) * (prop == _lvar_614) * (l == _$l_l) * ((_$l_l, _lvar_614) -> none);
 
 pred initialHeapPostWeak (): 
 types() * (($lerr_proto, "@class") -> "Error") * (($lerr_proto, "@proto") -> $lobj_proto) * (($lerr_proto, "@extensible") -> true) * (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) * empty_fields($lerr_proto : -{ "@class", "@extensible", "@proto", "message" }-) * (($lobj_proto, "@class") -> "Object") * (($lobj_proto, "@proto") -> null) * (($lobj_proto, "@extensible") -> true) * (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) * empty_fields($lobj_proto : -{ "@class", "@extensible", "@proto", "hasOwnProperty" }-) * (($lop_hasOwnProperty, "@class") -> "Function") * (($lop_hasOwnProperty, "@proto") -> $lfun_proto) * (($lop_hasOwnProperty, "@extensible") -> true) * (($lop_hasOwnProperty, "@scope") -> empty) * (($lop_hasOwnProperty, "length") -> {{ "d", 1., false, false, false }}) * (($lop_hasOwnProperty, "@call") -> "OP_hasOwnProperty") * empty_fields($lop_hasOwnProperty : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-) * (($lg, "@class") -> "Object") * (($lg, "@proto") -> $lobj_proto) * (($lg, "@extensible") -> true) * (($lg, "Error") -> {{ "d", $lerr, true, false, true }}) * (($lerr, "@class") -> "Function") * (($lerr, "@proto") -> $lfun_proto) * (($lerr, "@extensible") -> true) * (($lerr, "@scope") -> empty) * (($lerr, "length") -> {{ "d", 1., false, false, false }}) * (($lerr, "@call") -> "Error_call") * (($lerr, "@construct") -> "Error_construct") * (($lerr, "prototype") -> {{ "d", $lerr_proto, false, false, false }}) * empty_fields($lerr : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope", "length", "prototype" }-) * (($lfun_proto, "@class") -> "Function") * (($lfun_proto, "@proto") -> $lobj_proto) * (($lfun_proto, "@extensible") -> true) * (($lfun_proto, "@scope") -> empty) * (($lfun_proto, "length") -> {{ "d", 0., false, false, false }}) * (($lfun_proto, "@call") -> "FP_default") * empty_fields($lfun_proto : -{ "@call", "@class", "@extensible", "@proto", "@scope", "length" }-);
@@ -101,11 +101,11 @@ proc TypeError (v) {
 
 
 spec i__isCallable(l)
-[[ types(l : Obj) * (l == _$l_l) * ((_$l_l, "@call") -> None) ]]
-[[ types(l : Obj, xret : Bool) * (xret == false) * (l == _$l_l) * ((_$l_l, "@call") -> None) ]]
+[[ types(l : Obj) * (l == _$l_l) * ((_$l_l, "@call") -> none) ]]
+[[ types(l : Obj, xret : Bool) * (xret == false) * (l == _$l_l) * ((_$l_l, "@call") -> none) ]]
 normal;
 
- [[ types(l : Obj) * (! (#y == None)) * (l == _$l_l) * ((_$l_l, "@call") -> #y) ]]
+ [[ types(l : Obj) * (! (#y == none)) * (l == _$l_l) * ((_$l_l, "@call") -> #y) ]]
 [[ types(l : Obj, xret : Bool) * (xret == true) * (l == _$l_l) * ((_$l_l, "@call") -> #y) ]]
 normal
 
@@ -120,15 +120,15 @@ proc i__isCallable (l) {
 
 
 spec defineOwnProperty(l, prop, desc, throw)
-[[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == true) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
-[[ types(#desc : List, #cls : Str, xret : Obj, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == _$l_xret) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@extensible") -> true) * empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) ]]
+[[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == true) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
+[[ types(#desc : List, #cls : Str, xret : Obj, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == _$l_xret) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) * ((_$l_xret, "@proto") -> $lterr_proto) * ((_$l_xret, "@class") -> "Error") * ((_$l_xret, "@extensible") -> true) * empty_fields(_$l_xret : -{ "@class", "@extensible", "@proto" }-) ]]
 error;
 
- [[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == false) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
-[[ types(#desc : List, #cls : Str, xret : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == false) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
+ [[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == false) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
+[[ types(#desc : List, #cls : Str, xret : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == false) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
 normal;
 
- [[ types(_lvar_393 : Bool, #desc : List, _lvar_394 : Bool, l : Obj, #cls : Str, #throw : Bool, _lvar_395 : Bool, #prop : Str) * (#desc == {{ "d", _lvar_392, _lvar_393, _lvar_394, _lvar_395 }}) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_392 == empty)) * (throw == #throw) * (desc == {{ "d", _lvar_392, _lvar_393, _lvar_394, _lvar_395 }}) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> true) ]]
+ [[ types(_lvar_393 : Bool, #desc : List, _lvar_394 : Bool, l : Obj, #cls : Str, #throw : Bool, _lvar_395 : Bool, #prop : Str) * (#desc == {{ "d", _lvar_392, _lvar_393, _lvar_394, _lvar_395 }}) * (! (#cls == "Array")) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_392 == empty)) * (throw == #throw) * (desc == {{ "d", _lvar_392, _lvar_393, _lvar_394, _lvar_395 }}) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> true) ]]
 [[ types(#desc : List, #cls : Str, #throw : Bool, xret : Bool, #prop : Str) * (! (#cls == "String")) * (throw == _lvar_throw) * (xret == true) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@extensible") -> true) ]]
 normal;
 
@@ -561,15 +561,15 @@ proc create_default_object (l, pr, cl, ext) {
 
 
 spec o__defineOwnProperty(l, prop, desc, throw)
-[[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == true) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
-[[ types(#desc : List, #cls : Str, xerr : Obj, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (desc == _lvar_desc) * (xerr == _$l_xerr) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_xerr, "@proto") -> $lterr_proto) * ((_$l_xerr, "@class") -> "Error") * ((_$l_xerr, "@extensible") -> true) * empty_fields(_$l_xerr : -{ "@class", "@extensible", "@proto" }-) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
+[[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == true) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
+[[ types(#desc : List, #cls : Str, xerr : Obj, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (desc == _lvar_desc) * (xerr == _$l_xerr) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_xerr, "@proto") -> $lterr_proto) * ((_$l_xerr, "@class") -> "Error") * ((_$l_xerr, "@extensible") -> true) * empty_fields(_$l_xerr : -{ "@class", "@extensible", "@proto" }-) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
 error;
 
- [[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == false) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
-[[ types(#desc : List, #cls : Str, xret : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == false) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> false) ]]
+ [[ types(#desc : List, l : Obj, #cls : Str, throw : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == false) * (desc == #desc) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
+[[ types(#desc : List, #cls : Str, xret : Bool, #prop : Str) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == false) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> false) ]]
 normal;
 
- [[ types(#desc : List, _lvar_128 : Bool, _lvar_127 : Bool, l : Obj, #cls : Str, #throw : Bool, _lvar_126 : Bool, #prop : Str) * (#desc == {{ "d", _lvar_125, _lvar_126, _lvar_127, _lvar_128 }}) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_125 == empty)) * (throw == #throw) * (desc == {{ "d", _lvar_125, _lvar_126, _lvar_127, _lvar_128 }}) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@extensible") -> true) ]]
+ [[ types(#desc : List, _lvar_128 : Bool, _lvar_127 : Bool, l : Obj, #cls : Str, #throw : Bool, _lvar_126 : Bool, #prop : Str) * (#desc == {{ "d", _lvar_125, _lvar_126, _lvar_127, _lvar_128 }}) * (! (#cls == "String")) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_125 == empty)) * (throw == #throw) * (desc == {{ "d", _lvar_125, _lvar_126, _lvar_127, _lvar_128 }}) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@extensible") -> true) ]]
 [[ types(#desc : List, #cls : Str, #throw : Bool, xret : Bool, #prop : Str) * (! (#cls == "String")) * (throw == _lvar_throw) * (xret == true) * (desc == _lvar_desc) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, "@class") -> #cls) * ((_$l_#l, #prop) -> #desc) * ((_$l_#l, "@extensible") -> true) ]]
 normal;
 
@@ -827,8 +827,8 @@ proc i__isAccessorDescriptor (desc) {
 
 
 spec o__getOwnProperty(l, prop)
-[[ types(l : Obj, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> None) ]]
-[[ types(xret : Undefined, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (xret == undefined) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> None) ]]
+[[ types(l : Obj, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> none) ]]
+[[ types(xret : Undefined, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (xret == undefined) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> none) ]]
 normal;
 
  [[ types(_lvar_50 : Bool, _lvar_48 : Bool, l : Obj, _lvar_49 : Bool, #prop : Str, #dx : List) * (#dx == {{ "d", _lvar_47, _lvar_48, _lvar_49, _lvar_50 }}) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_47 == empty)) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> {{ "d", _lvar_47, _lvar_48, _lvar_49, _lvar_50 }}) ]]
@@ -864,12 +864,12 @@ proc i__toInteger (v) {
 
 
 spec deleteProperty(l, prop, throw)
-[[ types(l : Obj, #cls : Str, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (throw == _lvar_throw) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) ]]
-[[ types(#cls : Str, xret : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == true) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) ]]
+[[ types(l : Obj, #cls : Str, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (throw == _lvar_throw) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@class") -> #cls) ]]
+[[ types(#cls : Str, xret : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == true) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@class") -> #cls) ]]
 normal;
 
  [[ types(_lvar_509 : Bool, #desc : List, _lvar_510 : Bool, l : Obj, #cls : Str, #prop : Str) * (#desc == {{ "d", _lvar_508, _lvar_509, _lvar_510, true }}) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_508 == empty)) * (! (#cls == "String")) * (throw == _lvar_throw) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> {{ "d", _lvar_508, _lvar_509, _lvar_510, true }}) * ((_$l_#l, "@class") -> #cls) ]]
-[[ types(#desc : List, #cls : Str, xret : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == true) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) ]]
+[[ types(#desc : List, #cls : Str, xret : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (throw == _lvar_throw) * (xret == true) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@class") -> #cls) ]]
 normal;
 
  [[ types(_lvar_522 : Bool, #desc : List, l : Obj, #cls : Str, _lvar_521 : Bool, throw : Bool, #prop : Str) * (#desc == {{ "d", _lvar_520, _lvar_521, _lvar_522, false }}) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_520 == empty)) * (! (#cls == "String")) * (throw == true) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> {{ "d", _lvar_520, _lvar_521, _lvar_522, false }}) * ((_$l_#l, "@class") -> #cls) ]]
@@ -896,8 +896,8 @@ proc deleteProperty (l, prop, throw) {
 
 
 spec getOwnProperty(l, prop)
-[[ types(l : Obj, #cls : Str, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) ]]
-[[ types(#cls : Str, xret : Undefined, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (xret == undefined) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> None) * ((_$l_#l, "@class") -> #cls) ]]
+[[ types(l : Obj, #cls : Str, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@class") -> #cls) ]]
+[[ types(#cls : Str, xret : Undefined, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#cls == "String")) * (xret == undefined) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#l, #prop) -> none) * ((_$l_#l, "@class") -> #cls) ]]
 normal;
 
  [[ types(_lvar_485 : Bool, _lvar_487 : Bool, l : Obj, #cls : Str, #prop : Str, #dx : List, _lvar_486 : Bool) * (#dx == {{ "d", _lvar_484, _lvar_485, _lvar_486, _lvar_487 }}) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (_lvar_484 == empty)) * (! (#cls == "String")) * (prop == #prop) * (l == _$l_#l) * ((_$l_#l, #prop) -> {{ "d", _lvar_484, _lvar_485, _lvar_486, _lvar_487 }}) * ((_$l_#l, "@class") -> #cls) ]]
@@ -1221,8 +1221,8 @@ spec OP_hasOwnProperty(xsc, vthis, v)
 [[ types(#en : Bool, #wr : Bool, xret : Bool, #co : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (! (#v == empty)) * (xret == true) * (v == _lvar_v) * (xsc == _lvar_xsc) * (vthis == _lvar_vthis) * ((_$l_#l, "@class") -> "Object") * ((_$l_#l, #prop) -> {{ "d", #v, #wr, #en, #co }}) ]]
 normal;
 
- [[ types(vthis : Obj, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (v == #prop) * (xsc == _lvar_xsc) * (vthis == _$l_#l) * ((_$l_#l, "@class") -> "Object") * ((_$l_#l, #prop) -> None) ]]
-[[ types(xret : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (xret == false) * (v == _lvar_v) * (xsc == _lvar_xsc) * (vthis == _lvar_vthis) * ((_$l_#l, "@class") -> "Object") * ((_$l_#l, #prop) -> None) ]]
+ [[ types(vthis : Obj, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (v == #prop) * (xsc == _lvar_xsc) * (vthis == _$l_#l) * ((_$l_#l, "@class") -> "Object") * ((_$l_#l, #prop) -> none) ]]
+[[ types(xret : Bool, #prop : Str) * (! (#prop == "")) * (! (s-nth(#prop, 0.) == "@")) * (xret == false) * (v == _lvar_v) * (xsc == _lvar_xsc) * (vthis == _lvar_vthis) * ((_$l_#l, "@class") -> "Object") * ((_$l_#l, #prop) -> none) ]]
 normal
 
 proc OP_hasOwnProperty (xsc, vthis, v) {
@@ -1322,11 +1322,11 @@ spec copy_object_rec(lf, fields, lt)
 [[ types() * (xret == #lt) * (lf == _lvar_lf) * (fields == _lvar_fields) * (lt == _lvar_lt) ]]
 normal;
 
- [[ types(#f : Str, lt : Obj, lf : Obj, #fields : List) * (#fields == {{ #f }}) * (! (#f == "")) * (! (s-nth(#f, 0.) == "@")) * (lf == _$l_#lf) * (fields == {{ #f }}) * (lt == _$l_#lt) * ((_$l_#lt, #f) -> None) * ((_$l_#lt, "@proto") -> null) * ((_$l_#lf, #f) -> #v) ]]
+ [[ types(#f : Str, lt : Obj, lf : Obj, #fields : List) * (#fields == {{ #f }}) * (! (#f == "")) * (! (s-nth(#f, 0.) == "@")) * (lf == _$l_#lf) * (fields == {{ #f }}) * (lt == _$l_#lt) * ((_$l_#lt, #f) -> none) * ((_$l_#lt, "@proto") -> null) * ((_$l_#lf, #f) -> #v) ]]
 [[ types(#f : Str, #fields : List, xret : Obj) * (xret == _$l_#lt) * (lf == _lvar_lf) * (fields == _lvar_fields) * (lt == _lvar_lt) * ((_$l_#lt, #f) -> #v) * ((_$l_#lt, "@proto") -> null) * ((_$l_#lf, #f) -> #v) ]]
 normal;
 
- [[ types(#f1 : Str, lt : Obj, lf : Obj, #fields : List) * (#fields == {{ #f1, "main" }}) * (! (#f1 == "")) * (! (s-nth(#f1, 0.) == "@")) * (lf == _$l_#lf) * (fields == {{ #f1, "main" }}) * (lt == _$l_#lt) * ((_$l_#lt, #f1) -> None) * ((_$l_#lt, "main") -> None) * ((_$l_#lt, "@proto") -> null) * ((_$l_#lf, #f1) -> #v1) * ((_$l_#lf, "main") -> #v2) ]]
+ [[ types(#f1 : Str, lt : Obj, lf : Obj, #fields : List) * (#fields == {{ #f1, "main" }}) * (! (#f1 == "")) * (! (s-nth(#f1, 0.) == "@")) * (lf == _$l_#lf) * (fields == {{ #f1, "main" }}) * (lt == _$l_#lt) * ((_$l_#lt, #f1) -> none) * ((_$l_#lt, "main") -> none) * ((_$l_#lt, "@proto") -> null) * ((_$l_#lf, #f1) -> #v1) * ((_$l_#lf, "main") -> #v2) ]]
 [[ types(#f1 : Str, #fields : List, xret : Obj) * (xret == _$l_#lt) * (lf == _lvar_lf) * (fields == _lvar_fields) * (lt == _lvar_lt) * ((_$l_#lt, #f1) -> #v1) * ((_$l_#lt, "main") -> #v2) * ((_$l_#lt, "@proto") -> null) * ((_$l_#lf, #f1) -> #v1) * ((_$l_#lf, "main") -> #v2) ]]
 normal
 

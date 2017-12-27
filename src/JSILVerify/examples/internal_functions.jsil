@@ -27,7 +27,7 @@ pred dataField (l, prop, v) :
 (*
  * Predicate: isInternalProperty
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred isInternalProperty (prop) :
@@ -36,7 +36,7 @@ pred isInternalProperty (prop) :
 (*
  * Predicate: isNamedProperty
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred isNamedProperty (prop) :
@@ -45,7 +45,7 @@ pred isNamedProperty (prop) :
 (*
  * Predicate: DataDescriptor
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred DataDescriptor (d) :
@@ -55,7 +55,7 @@ pred DataDescriptor (d) :
 (*
  * Predicate: GenericDescriptor
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred GenericDescriptor (d) :
@@ -64,7 +64,7 @@ pred GenericDescriptor (d) :
 (*
  * Predicate: Projection functions for descriptors
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred desc_val (d, v) :
@@ -93,8 +93,8 @@ pred desc_conf (d, v) :
  *
  * Note: We are not allowing accessor descriptors in the heap yet
  *)
-pred Cell_o (l, prop, None) :
-    types(l : Obj) * isNamedProperty(prop) * ((l, prop) -> None);
+pred Cell_o (l, prop, none) :
+    types(l : Obj) * isNamedProperty(prop) * ((l, prop) -> none);
 
 pred Cell_o (l, prop, d) :
     types(l : Obj) * isNamedProperty(prop) * ((l, prop) -> d) * DataDescriptor(d);
@@ -102,7 +102,7 @@ pred Cell_o (l, prop, d) :
 (*
  * Predicate: IsStringIndex
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred IsStringIndex(S, prop, i) :
@@ -120,14 +120,14 @@ pred IsStringIndex(S, prop, i) :
  *       otherwise (l, "@primitiveValue") WILL NOT EXIST OR BE STUPID
  *
  *)
-pred Cell_s (l, prop, "None", None, pv) :
+pred Cell_s (l, prop, "none", none, pv) :
      types (l : Obj, prop : Str, pv : Str) *
-	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+	 Cell_o (l, prop, none) * ((l, "@primitiveValue") -> pv) *
      (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i));
 
 pred Cell_s (l, prop, "SI", desc, pv) :
      types(l : Obj, prop : Str, desc : List, pv : Str, #i : $$int_type, #v : Str) *
-	 Cell_o (l, prop, None) * ((l, "@primitiveValue") -> pv) *
+	 Cell_o (l, prop, none) * ((l, "@primitiveValue") -> pv) *
      (desc == {{ "d", #v, false, true, false }}) *  (#v == s-nth(pv, #i)) *
 	 (#i == num_to_int (string_to_num prop)) * IsStringIndex(pv, prop, #i);
 
@@ -135,7 +135,7 @@ pred Cell_s (l, prop, "NSI", desc, pv) :
 	 types (l : Obj, prop : Str, desc : List, pv : Str, #i : $$int_type) *
 	 Cell_o (l, prop, desc) * ((l, "@primitiveValue") -> pv) *
 	 (#i == num_to_int (string_to_num prop)) * (! IsStringIndex(pv, prop, #i)) *
-     (! (desc == None));
+     (! (desc == none));
 
 (*
  * Predicate: ErrorObject(l, pr)
@@ -182,7 +182,7 @@ pred isClass (c, "Non-Array")  : types (c : Str) * (! (c == "Array"));
 pred Pi (l, prop, lcls, undefined, ls, ltf, lpv) :
     types(l : Obj, prop : Str, #cls : Str, lcls : List, ls : List, ltf : List, lpv : List) *
 	((l, "@proto") -> null) * ((l, "@class") -> #cls) *
-	isClass (#cls, "Non-String") * Cell_o (l, prop, None) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, none) *
     (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ false }}) * (lpv == {{ "" }});
 
 (*
@@ -193,7 +193,7 @@ pred Pi (l, prop, lcls, undefined, ls, ltf, lpv) :
 pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
     types(l : Obj, prop : Str, #cls : Str, lcls : List, d : List, ls : List, ltf : List, lpv : List) *
 	((l, "@class") -> #cls) *
-	isClass (#cls, "Non-String") * Cell_o (l, prop, d) * (! (d == None)) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, d) * (! (d == none)) *
     (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ false }}) * (lpv == {{ "" }});
 
 (*
@@ -204,7 +204,7 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
 pred Pi (l, prop, lcls, undefined, ls, ltf, lpv) :
     types(l : Obj, prop : Str, #cls : Str, lcls : List, ls : List, ltf : List, lpv : List) *
 	((l, "@proto") -> null) * ((l, "@class") -> #cls) *
-    isClass (#cls, "String") * Cell_s (l, prop, "None", None, #pv) *
+    isClass (#cls, "String") * Cell_s (l, prop, "none", none, #pv) *
     (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ true }}) * (lpv == {{ #pv }});
 
 (*
@@ -240,7 +240,7 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
     types(l : Obj, prop : Str, lcls : List, ls : List, ltf : List, lpv : List) *
 	types(#lp : Obj, #cls : Str, #pcls : List, #lsp : List, #ltfp : List, #lpvp : List) *
 	((l, "@class") -> #cls) * ((l, "@proto") -> #lp) * (! (#lp == null)) *
-	isClass (#cls, "Non-String") * Cell_o (l, prop, None) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, none) *
     Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
 	(lcls == #cls :: #pcls) * (ls == l :: #lsp) * (ltf == false :: #ltfp) * (lpv == "" :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
@@ -256,7 +256,7 @@ pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
     types(l : Obj, prop : Str, lcls : List, ls : List, ltf : List, lpv : List) *
 	types(#lp : Obj, #cls : Str, #pcls : List, #lsp : List, #ltfp : List, #lpvp : List) *
 	((l, "@class") -> #cls) * ((l, "@proto") -> #lp) * (! (#lp == null)) *
-	isClass (#cls, "String") * Cell_s (l, prop, "None", None, #pv) *
+	isClass (#cls, "String") * Cell_s (l, prop, "none", none, #pv) *
     Pi (#lp, prop, #pcls, d, #lsp, #ltfp, #lpvp) *
 	(lcls == #cls :: #pcls) * (ls == l :: #lsp) * (ltf == true :: #ltfp) * (lpv == #pv :: #lpvp) *
     (0 <# l-len #lsp) * (0 <# l-len #ltfp) * (0 <# l-len #lpvp);
@@ -300,14 +300,14 @@ spec copy_object_rec (lf, fields, lt)
 
 	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
 	   (#fields == {{ #f }}) *
-	   ((#lf, #f) -> #v) * ((#lt, #f) -> None) ]]
+	   ((#lf, #f) -> #v) * ((#lt, #f) -> none) ]]
 	[[ ((#lf, #f) -> #v) * ((#lt, #f) -> #v) * (ret == #lt) ]]
 	normal;
 
 	[[ (lf == #lf) * (fields == #fields) * (lt == #lt) *
 	   (#fields == {{ #f1, "main" }}) * isNamedProperty(#f1) *
 	   ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
-	   ((#lt, #f1) -> None) * ((#lt, "main") -> None) ]]
+	   ((#lt, #f1) -> none) * ((#lt, "main") -> none) ]]
 	[[ ((#lf, #f1) -> #v1)  * ((#lf, "main") -> #v2) *
 	   ((#lt, #f1) -> #v1)  * ((#lt, "main") -> #v2) * (ret == #lt) ]]
 	normal
@@ -1286,8 +1286,8 @@ spec o__getOwnProperty (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
 	   types (#l : Obj, #prop : Str) *
-	   Cell_o (#l, #prop, None) ]]
-    [[ Cell_o (#l, #prop, None) *
+	   Cell_o (#l, #prop, none) ]]
+    [[ Cell_o (#l, #prop, none) *
 	   (ret == undefined) ]]
     normal;
 
@@ -1321,8 +1321,8 @@ with
 spec s__getOwnProperty (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
-	   Cell_s (#l, #prop, "None", None, #pv) ]]
-    [[ Cell_s (#l, #prop, "None", None, #pv) *
+	   Cell_s (#l, #prop, "none", none, #pv) ]]
+    [[ Cell_s (#l, #prop, "none", none, #pv) *
 	   (ret == undefined) ]]
    	normal;
 
@@ -1379,8 +1379,8 @@ spec getOwnProperty (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
 	   types (#l : Obj, #prop : Str, #cls : Str) *
-	   Cell_o (#l, #prop, None) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
-    [[ Cell_o (#l, #prop, None) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") *
+	   Cell_o (#l, #prop, none) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+    [[ Cell_o (#l, #prop, none) * ((#l, "@class") -> #cls) * isClass(#cls, "Non-String") *
 	   (ret == undefined) ]]
     normal;
 
@@ -1393,8 +1393,8 @@ spec getOwnProperty (l, prop)
 
     [[ (l == #l) * (prop == #prop) *
 	   types (#l : Obj, #prop : Str, #cls : Str) *
-	   Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
-    [[ Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
+	   Cell_s (#l, #prop, "none", none, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") ]]
+    [[ Cell_s (#l, #prop, "none", none, #pv) * ((#l, "@class") -> #cls) * isClass(#cls, "String") *
 	   (ret == undefined) ]]
    	normal;
 
@@ -1695,25 +1695,25 @@ spec deleteProperty (l, prop, throw)
 	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, #v) *
 	   desc_conf (#v, true) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   (ret == true) ]]
     normal;
 
     [[ (l == #l) * (prop == #prop) *
 	   types(#l : Obj, #prop: Str) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) ]]
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   (ret == true) ]]
     normal;
 
 	[[ (l == #l) * (prop == #prop) *
 	   types(#l : Obj, #prop: Str, #cls: Str, #pv : Str) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) ]]
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) ]]
 	[[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   (ret == true)]]
 	normal;
 
@@ -1723,7 +1723,7 @@ spec deleteProperty (l, prop, throw)
 	   isClass(#cls, "String") * Cell_s (#l, #prop, "NSI", #desc, #pv) *
 	   desc_conf (#desc, true) ]]
 	[[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   (ret == true) ]]
 	normal
 
@@ -1853,10 +1853,10 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) * ((#l, "@extensible") -> false) *
 	   isTypeError(err) ]]
     error;
 
@@ -1864,10 +1864,10 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) * ((#l, "@extensible") -> false) *
 	   (ret == false) ]]
     normal;
 
@@ -1875,10 +1875,10 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) * ((#l, "@extensible") -> false) *
 	   isTypeError(err) ]]
     error;
 
@@ -1886,10 +1886,10 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) * ((#l, "@extensible") -> false) *
 	   (ret == false) ]]
     normal;
 
@@ -1897,7 +1897,7 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List, #throw : Bool) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> true) ]]
     [[ ((#l, "@class") -> #cls) *
@@ -1909,7 +1909,7 @@ spec o__defineOwnProperty (l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List, #throw : Bool) *
 	   ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> true) ]]
     [[ ((#l, "@class") -> #cls) *
@@ -2229,10 +2229,10 @@ spec defineOwnProperty(l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) * ((#l, "@extensible") -> false) *
 	   isTypeError(err) ]]
     error;
 
@@ -2240,10 +2240,10 @@ spec defineOwnProperty(l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) * ((#l, "@extensible") -> false) *
 	   (ret == false) ]]
     normal;
 
@@ -2251,10 +2251,10 @@ spec defineOwnProperty(l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) * ((#l, "@extensible") -> false) *
 	   isTypeError(err) ]]
     error;
 
@@ -2262,10 +2262,10 @@ spec defineOwnProperty(l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List) *
 	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   ((#l, "@extensible") -> false) ]]
     [[ ((#l, "@class") -> #cls) *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) * ((#l, "@extensible") -> false) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) * ((#l, "@extensible") -> false) *
 	   (ret == false) ]]
     normal;
 
@@ -2273,7 +2273,7 @@ spec defineOwnProperty(l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List, #throw : Bool) *
 	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
-	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, None) *
+	   isClass(#cls, "Non-String") * Cell_o (#l, #prop, none) *
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> true) ]]
     [[ ((#l, "@class") -> #cls) *
@@ -2285,7 +2285,7 @@ spec defineOwnProperty(l, prop, desc, throw)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
 	   types (#l : Obj, #prop : Str, #cls : Str, #desc : List, #throw : Bool) *
 	   ((#l, "@class") -> #cls) * isClass(#cls, "Non-Array") *
-	   isClass(#cls, "String") * Cell_s (#l, #prop, "None", None, #pv) *
+	   isClass(#cls, "String") * Cell_s (#l, #prop, "none", none, #pv) *
 	   DataDescriptor (#desc) *
 	   ((#l, "@extensible") -> true) ]]
     [[ ((#l, "@class") -> #cls) *

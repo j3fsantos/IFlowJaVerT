@@ -1188,7 +1188,7 @@ let check_pvar_types (store : symbolic_store) (gamma : typing_environment) : boo
 	Hashtbl.fold
 		(fun pvar le ac -> ac &&
 			(match le with
-			 | LNone -> placeholder pvar le LValueType
+			 | LNone -> placeholder pvar le NoneType
 			 | ALoc _ -> placeholder pvar le ObjectType
 			 | LLit lit -> placeholder pvar le (evaluate_type_of lit)
 			 | _ -> true

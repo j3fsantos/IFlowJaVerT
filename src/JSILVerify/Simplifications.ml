@@ -580,7 +580,7 @@ let rec reduce_assertion store gamma pfs a =
 			| LVar x, LNone -> 
 				if (Hashtbl.mem gamma x) 
 					then (let tx = Hashtbl.find gamma x in 
-						if tx = LValueType then default e1 e2 re1 re2 else LFalse)
+						if tx = NoneType then default e1 e2 re1 re2 else LFalse)
 					else default e1 e2 re1 re2
 			| LNone, e
 			| e, LNone -> LFalse
@@ -1463,7 +1463,7 @@ let type_index t =
 	| UndefinedType -> 0
 	| NullType      -> 1
 	| EmptyType     -> 2
-	| LValueType      -> 3
+	| NoneType      -> 3
 	| BooleanType   -> 4
 	| NumberType    -> 5
 	| StringType    -> 6
@@ -1510,7 +1510,7 @@ let simplify_symb_state
 					| UndefinedType -> Some (LLit Undefined)
 					| NullType -> Some (LLit Null)
 					| EmptyType -> Some (LLit Empty)
-					| LValueType -> Some LNone
+					| NoneType -> Some LNone
 					| _ -> None) in
 				(match lexpr with
 				| Some lexpr -> 

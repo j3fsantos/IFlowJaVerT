@@ -1,7 +1,7 @@
 (*
  * Predicate: DataDescriptor
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred DataDescriptor (d) :
@@ -12,7 +12,7 @@ pred DataDescriptor (d) :
 (*
  * Predicate: GenericDescriptor
  *
- * Resource: None
+ * Resource: none
  *
  *)
 pred GenericDescriptor (d) :

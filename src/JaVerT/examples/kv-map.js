@@ -17,8 +17,8 @@
 	@pred Map (m, mp, kvs, keys) :
 		JSObjWithProto(m, mp) *
 		DataProp(m, "_contents", #c) * JSObject(#c) *
-		((m, "get") -> None) * ((m, "put") -> None) * ((m, "validKey") -> None) *
-		((#c, "hasOwnProperty") -> None) * KVPairs(#c, kvs, keys) * EmptyProps(#c, -u- (keys, -{ "hasOwnProperty" }-));
+		((m, "get") -> none) * ((m, "put") -> none) * ((m, "validKey") -> none) *
+		((#c, "hasOwnProperty") -> none) * KVPairs(#c, kvs, keys) * EmptyProps(#c, -u- (keys, -{ "hasOwnProperty" }-));
   	
 	@pred KVPairs (o, kvs, keys) :
 		[def1] (kvs == -{ }-) * (keys == -{ }-),
@@ -30,7 +30,7 @@
 		DataProp(mp, "get", #get_loc) * FunctionObject(#get_loc, "mapGet", _, _) *
 		DataProp(mp, "put", #put_loc) * FunctionObject(#put_loc, "mapPut", _, _) *
 		DataProp(mp, "validKey", #vK_loc) * FunctionObject(#vK_loc, "isValidKey", _, _) *
-		((mp, "_contents") -> None);
+		((mp, "_contents") -> none);
 */
 
 /**
@@ -39,10 +39,10 @@
     @pre (
     	initialHeapPostWeak() * 
     	JSObjWithProto(this, #mp) *
-        ((this, "_contents") -> None) *
-        ((this, "get") -> None) *
-        ((this, "put") -> None) *
-        ((this, "validKey") -> None) *
+        ((this, "_contents") -> none) *
+        ((this, "get") -> none) *
+        ((this, "put") -> none) *
+        ((this, "validKey") -> none) *
         MapProto(#mp)
     )
     

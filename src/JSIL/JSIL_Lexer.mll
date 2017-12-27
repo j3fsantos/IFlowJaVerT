@@ -34,7 +34,7 @@ rule read = parse
 	| "Undefined" { JSIL_Parser.UNDEFTYPELIT  }
 	| "Null"      { JSIL_Parser.NULLTYPELIT   }
 	| "Empty"     { JSIL_Parser.EMPTYTYPELIT  }
-	| "LValue"    { JSIL_Parser.LVALUETYPELIT }
+	| "None"      { JSIL_Parser.NONETYPELIT   }
 	| "Bool"      { JSIL_Parser.BOOLTYPELIT   }
 	| "Num"       { JSIL_Parser.NUMTYPELIT    }
 	| "Str"       { JSIL_Parser.STRTYPELIT    }
@@ -153,7 +153,7 @@ rule read = parse
 	| "PHI"                { JSIL_Parser.PHI }
 	| "PSI"                { JSIL_Parser.PSI }
 (* Logical expressions: most match with the program expressions *)
-	| "None"               { JSIL_Parser.LNONE }
+	| "none"               { JSIL_Parser.LNONE }
 (* Logic assertions *)
 	| "[["                 { JSIL_Parser.OASSERT }
 	| "]]"                 { JSIL_Parser.CASSERT }

@@ -18,9 +18,9 @@ pred CommonMethods (l) :
   ((l, "@getProperty") -> "o__getProperty") * ((l, "@getOwnProperty") -> "o__getOwnProperty");
 
 pred ProtoLookup (l, prop, d) :
-  ObjectProp (l, prop, d) * (! (d == None)) * CommonMethods(l) * (! (prop == "@proto")),
-  ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> null) * (d == undefined) * (! (prop == "@proto")),
-  ObjectProp (l, prop, None) * CommonMethods(l) * ((l, "@proto") -> #lp) * (!(#lp == null)) * CommonMethods(#lp) * (! (prop == "@proto")) * ProtoLookup(#lp, prop, d);
+  ObjectProp (l, prop, d) * (! (d == none)) * CommonMethods(l) * (! (prop == "@proto")),
+  ObjectProp (l, prop, none) * CommonMethods(l) * ((l, "@proto") -> null) * (d == undefined) * (! (prop == "@proto")),
+  ObjectProp (l, prop, none) * CommonMethods(l) * ((l, "@proto") -> #lp) * (!(#lp == null)) * CommonMethods(#lp) * (! (prop == "@proto")) * ProtoLookup(#lp, prop, d);
 
 spec test1 (y)
   [[ types(y: Bool) ]]

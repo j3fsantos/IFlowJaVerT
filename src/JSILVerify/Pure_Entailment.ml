@@ -142,7 +142,7 @@ let z3_jsil_type_sort =
 		(mk_string_symb "JSIL_Type")
 		(List.map mk_string_symb
 			[
-				"UndefinedType"; "NullType"; "EmptyType"; "LValueType"; "BooleanType";
+				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType";
 				"NumberType"; "CharType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
 			])
 
@@ -463,7 +463,7 @@ let encode_type t =
 		| UndefinedType -> Expr.mk_app ctx type_operations.undefined_type_constructor []
 		| NullType      -> Expr.mk_app ctx type_operations.null_type_constructor      []
 		| EmptyType     -> Expr.mk_app ctx type_operations.empty_type_constructor     []
-		| LValueType      -> Expr.mk_app ctx type_operations.none_type_constructor      []
+		| NoneType      -> Expr.mk_app ctx type_operations.none_type_constructor      []
 		| BooleanType   -> Expr.mk_app ctx type_operations.boolean_type_constructor   []
 		| NumberType    -> Expr.mk_app ctx type_operations.number_type_constructor    []
 		| CharType	    -> Expr.mk_app ctx type_operations.char_type_constructor      []
@@ -506,7 +506,7 @@ let typeof_expression x =
   	let results =
   		List.map encode_type
   			[ SetType; UndefinedType; NullType; EmptyType; BooleanType;
- 				NumberType; CharType; StringType; ObjectType; TypeType; ListType; LValueType ] in
+ 				NumberType; CharType; StringType; ObjectType; TypeType; ListType; NoneType ] in
 
  	let rec loop guards results =
  		match guards, results with
@@ -771,7 +771,7 @@ let make_recognizer_assertion x t_x =
 	| UndefinedType -> non_set_type_recognizer lit_operations.undefined_recognizer
 	| NullType      -> non_set_type_recognizer lit_operations.null_recognizer
 	| EmptyType     -> non_set_type_recognizer lit_operations.empty_recognizer
-	| LValueType      -> non_set_type_recognizer lit_operations.none_recognizer
+	| NoneType      -> non_set_type_recognizer lit_operations.none_recognizer
 	| BooleanType   -> non_set_type_recognizer lit_operations.boolean_recognizer
 	| NumberType    -> non_set_type_recognizer lit_operations.number_recognizer
 	| CharType	    -> non_set_type_recognizer lit_operations.char_recognizer

@@ -4,16 +4,16 @@
 		DataProp(n, "pri",  pri)   * (0 <# pri) *
 		DataProp(n, "val",  val)   *
 		DataProp(n, "next", next)  *
-		((n, "insert") -> None);
+		((n, "insert") -> none);
 	
 	
 	@pred NodePrototype(np) :
 		JSObject(np) *
 		DataProp(np, "insert", #insert_loc) *
 		FunctionObject(#insert_loc, "insert", _, #insert_proto) *
-		((np, "pri") -> None) * 
-		((np, "val") -> None) * 
-		((np, "next") -> None);
+		((np, "pri") -> none) * 
+		((np, "val") -> none) * 
+		((np, "next") -> none);
 	
 	@pred NodeList(nl, np, max_pri, length) :
 		(nl == null) * (max_pri == 0) * (length == 0),
@@ -27,15 +27,15 @@
 		JSObjWithProto(pq, qp) * 
 		DataProp(pq, "_head",  #head) *
 		NodeList(#head, np, max_pri, length) *
-		((pq, "enqueue") -> None) * 
-		((pq, "dequeue") -> None);
+		((pq, "enqueue") -> none) * 
+		((pq, "dequeue") -> none);
 	
 	
 	@pred QueuePrototype(qp, np, c : Num, enq_sc):
 		JSObject(qp) *
 		DataProp(qp, "enqueue", #enqueue_loc) * FunctionObject(#enqueue_loc, "enqueue", enq_sc, _) *
 		DataProp(qp, "dequeue", #dequeue_loc) * FunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _) *
-		((qp, "_head") -> None) *
+		((qp, "_head") -> none) *
 		FunctionObject(#n, "Node", #node_sc, np) * NodePrototype(np) * 
 		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc);
 	
@@ -70,8 +70,8 @@ var PriorityQueue = (function () {
 	 		initialHeapPostWeak() * 
 	 	   	(pri == #pri) * (0 <# #pri) *
 	 	   	(val == #val) *
-	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
-	 	   	((this, "insert") -> None) *
+	 	   	((this, "pri") -> none) * ((this, "val") -> none) * ((this, "next") -> none) * 
+	 	   	((this, "insert") -> none) *
 	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
 	 	   	scope(counter : #c) * types(#c : Num) 
 	 	)
@@ -143,9 +143,9 @@ var PriorityQueue = (function () {
 	
 		@pre (
 			initialHeapPostWeak() * 
-	        ((this, "_head") -> None) *
-	        ((this, "enqueue") -> None) *
-	        ((this, "dequeue") -> None) *
+	        ((this, "_head") -> none) *
+	        ((this, "enqueue") -> none) *
+	        ((this, "dequeue") -> none) *
 	        JSObjWithProto(this, #pqp) *
 	        o_chains(enqueue: #sc, PQLib: $$scope) *
 	        QueuePrototype(#pqp, #np, #c, #sc)

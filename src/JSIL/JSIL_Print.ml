@@ -26,7 +26,7 @@ let string_of_type (t : jsil_type) : string =
   | UndefinedType -> "Undefined"
   | NullType      -> "Null"
   | EmptyType     -> "Empty"
-  | LValueType    -> "LValue"
+  | NoneType      -> "None"
  	| BooleanType   -> "Bool"
  	| NumberType    -> "Num"
  	| StringType    -> "Str"
@@ -216,7 +216,7 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   let sle = string_of_logic_expression in
   match e with
   | LLit llit -> string_of_literal llit
-  	| LNone -> "None"
+  	| LNone -> "none"
   | LVar lvar -> lvar 
   	| ALoc aloc -> aloc 
   	| PVar pvar -> pvar 

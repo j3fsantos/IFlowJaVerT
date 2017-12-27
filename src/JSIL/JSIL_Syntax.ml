@@ -21,7 +21,7 @@ type jsil_type =
 	| UndefinedType (** Type of Undefined      *)
 	| NullType      (** Type of Null           *)
 	| EmptyType     (** Type of Empty          *)
-	| LValueType    (** Type of logical values *)
+	| NoneType    (** Type of logical values *)
 	| BooleanType   (** Type of booleans       *)
 	| NumberType    (** Type of floats         *)
 	| StringType    (** Type of strings        *)

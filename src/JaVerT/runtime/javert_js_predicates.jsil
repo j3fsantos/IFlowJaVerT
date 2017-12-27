@@ -25,7 +25,7 @@ pred DataPropConst (l, prop, v) :
 	
 pred EmptyProp (l, prop) :
 	types (l : Obj, prop : Str) *
-	((l, prop) -> None);
+	((l, prop) -> none);
 	
 pred JSObjWithProto (l, proto) :
 	types (l : Obj) *
@@ -40,7 +40,7 @@ pred ErrorObjectWithMessage (l, m) :
   ((l, "message") -> {{"d", m, true, false, true}});
 
 pred EmptyProp (l, prop) : 
-	((l, prop) -> None); 
+	((l, prop) -> none); 
 
 pred EmptyProps (l, props) : 
 	empty_fields (l : -u- (props, -{ "@proto", "@extensible", "@class"}-)); 
