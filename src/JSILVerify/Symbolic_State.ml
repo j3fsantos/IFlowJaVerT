@@ -871,86 +871,62 @@ let compute_verification_statistics
 		(0, 0)
 	
 
-
-
 (*************************************)
-(** Cached symbolic state           **)
+(** Substitution for lexprs         **)
 (*************************************)
 
-type cached_symbolic_state =
-	  (string * ((jsil_logic_expr * jsil_logic_expr) list * jsil_logic_expr option)) list
-	* (string * jsil_logic_expr) list
-	* jsil_logic_assertion list
-	* (string * jsil_type) list
-	* (string * jsil_logic_expr list) list
+let rec full_expr_subst subst e = 
+	let f = full_expr_subst subst in
+	let result = (match (Hashtbl.mem subst e) with
+	| true -> Hashtbl.find subst e
+	| false -> (match e with
+			| LLit _
+    	| LVar _
+    	| ALoc _
+    	| PVar _ 
+			| LNone -> e
+			
+			| LBinOp (e1, bo, e2) -> LBinOp (f e1, bo, f e2)
+			| LUnOp (uo, e1) -> LUnOp (uo, f e1)
+    	| LTypeOf e1 -> LTypeOf (f e1)
+    	| LLstNth (e1, e2) -> LLstNth (f e1, f e2)
+    	| LStrNth (e1, e2) -> LStrNth (f e1, f e2)
+			
+    	| LEList es -> LEList (List.map f es)
+    	| LCList es -> LCList (List.map f es)
+    	| LESet  es -> LESet  (List.map f es)
+    	| LSetUnion es -> LSetUnion (List.map f es)
+    	| LSetInter es -> LSetInter (List.map f es)
+  )) in
+	if (e = result) then result else f result
 
-let cache_ss (ss : symbolic_state) : cached_symbolic_state =
-	let sort = List.sort compare in
-	let heap, store, pfs, gamma, preds = ss in
-	let lheap = lheap_to_list heap in
-	let lstore = hash_to_list store in
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let lpreds = List.sort compare (DynArray.to_list preds) in
-	lheap, lstore, lpfs, lgamma, lpreds
+let rec full_ass_subst subst a =
+	let f = full_ass_subst subst in
+	let fe = full_expr_subst subst in
+	(match a with
+	| LTrue
+	| LFalse
+	| LEmp 
 
-let uncache_ss (css : cached_symbolic_state) : symbolic_state =
-	let lheap, lstore, lpfs, lgamma, lpreds = css in
-	let heap = lheap_of_list lheap in
-	let store = hash_of_list lstore in
-	let pfs   = DynArray.of_list lpfs in
-	let gamma = hash_of_list lgamma in
-	let preds = DynArray.of_list lpreds in
-	let result = (heap, store, pfs, gamma, preds) in
-	result
+  (* These two need corrections *)
+	| LForAll _ 
+	| LTypes _ -> a
+	
+	| LNot a -> LNot (f a)
+	
+	| LAnd         (a1, a2) -> LAnd         (f a1, f a2)
+	| LOr          (a1, a2) -> LOr          (f a1, f a2)
+	| LStar	       (a1, a2) -> LStar        (f a1, f a2)
+	
+	| LPred (s, les) -> LPred (s, List.map fe les)
+	
+	| LPointsTo	(e1, e2, e3) -> LPointsTo	(fe e1, fe e2, fe e3)
 
-let ss_cache :
-	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state,
-	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
-
-let ss_encache_key vts ots exs ss =
-	let cots = List.sort compare (DynArray.to_list ots) in
-	let css = cache_ss ss in
-	vts, cots, exs, css
-
-let ss_encache_value ss subst ots exs =
-	let css = cache_ss ss in
-	let csubst = hash_to_list subst in
-	let cots = List.sort compare (DynArray.to_list ots) in
-	css, csubst, cots, exs
-
-let ss_uncache_value css csubst cots exs =
-	let ss = uncache_ss css in
-	let subst = hash_of_list csubst in
-	let ots = DynArray.of_list cots in
-	ss, subst, ots, exs
-
-(*************************************)
-(** Cached pfs state                **)
-(*************************************)
-
-let pfs_cache :
-	(jsil_logic_assertion list * (string * jsil_type) list * SS.t option option,
-	 jsil_logic_assertion list * (string * jsil_type) list) Hashtbl.t = Hashtbl.create 21019
-
-let pfs_cache_key pfs gamma lexs =
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let result = (lpfs, lgamma, lexs) in
-	result
-
-let pfs_cache_value pfs gamma =
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let result = (lpfs, lgamma) in
-	result
-
-let pfs_uncache_value value =
-	let lpfs, lgamma = value in
-	let pfs   = DynArray.of_list lpfs in
-	let gamma = hash_of_list lgamma in
-	let result = (pfs, gamma) in
-	result
-
-
-
+	| LEmptyFields (e1, e2) -> LEmptyFields (fe e1, fe e2)	
+	| LEq	         (e1, e2) -> LEq (fe e1, fe e2)	
+	| LLess        (e1, e2) -> LLess (fe e1, fe e2)	
+	| LLessEq	     (e1, e2) -> LLessEq (fe e1, fe e2)	
+	| LStrLess     (e1, e2) -> LStrLess (fe e1, fe e2)	
+	| LSetMem      (e1, e2) -> LSetMem (fe e1, fe e2)	
+	| LSetSub      (e1, e2) -> LSetSub (fe e1, fe e2)	
+	) 
