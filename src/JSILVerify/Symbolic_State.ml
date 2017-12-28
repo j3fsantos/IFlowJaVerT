@@ -840,7 +840,6 @@ let selective_symb_state_substitution_in_place_no_gamma
 	pfs_substitution_in_place            subst pfs;
 	selective_heap_substitution_in_place subst heap 
 
-
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)
 (*********************************************************)
@@ -875,8 +874,8 @@ let compute_verification_statistics
 (** Substitution for lexprs         **)
 (*************************************)
 
-let rec full_expr_subst subst e = 
-	let f = full_expr_subst subst in
+let rec lexpr_lexpr_lexpr_subst subst e = 
+	let f = lexpr_lexpr_lexpr_subst subst in
 	let result = (match (Hashtbl.mem subst e) with
 	| true -> Hashtbl.find subst e
 	| false -> (match e with
@@ -900,9 +899,9 @@ let rec full_expr_subst subst e =
   )) in
 	if (e = result) then result else f result
 
-let rec full_ass_subst subst a =
-	let f = full_ass_subst subst in
-	let fe = full_expr_subst subst in
+let rec lexpr_lexpr_ass_subst subst a =
+	let f = lexpr_lexpr_ass_subst subst in
+	let fe = lexpr_lexpr_lexpr_subst subst in
 	(match a with
 	| LTrue
 	| LFalse
@@ -930,3 +929,44 @@ let rec full_ass_subst subst a =
 	| LSetMem      (e1, e2) -> LSetMem (fe e1, fe e2)	
 	| LSetSub      (e1, e2) -> LSetSub (fe e1, fe e2)	
 	) 
+
+(**************************************************)
+(** lexpr-lexpr substitution for symbolic states **)
+(**************************************************)
+
+(** Updates --store-- to subst(store) *)
+let store_lexpr_lexpr_substitution_in_place subst store : unit =
+	Hashtbl.iter
+		(fun x le ->
+			let s_le = lexpr_lexpr_lexpr_subst subst le in
+			Hashtbl.replace store x s_le)
+		store
+
+(** Updates --preds-- to subst(preds) *)
+let preds_lexpr_lexpr_substitution_in_place subst preds : unit =
+	let pred_substitution subst (s, les) = (s, List.map (fun le -> lexpr_lexpr_lexpr_subst subst le) les) in 
+	DynArray.iteri (fun i pred -> let s_pred = pred_substitution subst pred in DynArray.set preds i s_pred) preds
+
+(** Updates pfs to subst(pfs) *)
+let pfs_lexpr_lexpr_substitution_in_place subst pfs : unit =
+	DynArray.iteri (fun i a -> let s_a = lexpr_lexpr_ass_subst subst a in DynArray.set pfs i s_a) pfs
+
+let selective_lexpr_lexpr_fv_list_substitution subst fv_list =
+	let f_subst = lexpr_lexpr_lexpr_subst subst in 
+	List.map (fun (le_field, le_val) -> (le_field, f_subst le_val)) fv_list
+
+(** Updates heap to subst(heap) *)
+let selective_lexpr_lexpr_heap_substitution_in_place subst heap =
+  LHeap.iter
+  	(fun loc (fv_list, domain) ->
+  		let s_fv_list = selective_lexpr_lexpr_fv_list_substitution subst fv_list in
+  		let s_domain = Option.map (fun le -> lexpr_lexpr_lexpr_subst subst le) domain in
+  		LHeap.replace heap loc (s_fv_list, s_domain))
+  	heap
+
+let lexpr_lexpr_symb_state_substitution_in_place_no_gamma subst symb_state =
+	let heap, store, pfs, _, preds = symb_state in
+	store_lexpr_lexpr_substitution_in_place          subst store;
+	preds_lexpr_lexpr_substitution_in_place          subst preds;
+	pfs_lexpr_lexpr_substitution_in_place            subst pfs;
+	selective_lexpr_lexpr_heap_substitution_in_place subst heap 

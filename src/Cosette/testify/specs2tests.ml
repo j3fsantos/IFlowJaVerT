@@ -317,6 +317,9 @@ let unfold_spec
 		Printf.printf "process_pre_posts. symb_state PRE:\n%s\n"
 			(Symbolic_State_Print.string_of_symb_state pre);
 
+		print_debug (Printf.sprintf "process_pre_posts. symb_state PRE:\n%s\n"
+			(Symbolic_State_Print.string_of_symb_state pre));
+
 		(* STEP 1 - simplify the pre-condition and apply resulting 
 		   substitution to posts                                             *)
 		let pre', pre_subst = Simplifications.simplify_ss_with_subst pre None in

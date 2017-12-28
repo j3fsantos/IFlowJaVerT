@@ -1985,12 +1985,17 @@ let simplify_symb_state
 													) ls1 ls2;
 												(* Now, substs, but for full logical expressions, not variables... *)
 												let subst_le = Hashtbl.create 31 in
-												Array.iter (fun (a1, a2) -> Hashtbl.add subst_le (LESet [ LEList a2 ]) (LESet [ LEList a1 ])) arr;
+												Array.iter (fun (a1, a2) -> Hashtbl.add subst_le (LESet a2) (LESet a1)) arr;
 												Hashtbl.add subst_le (LESet ls2) (LESet ls1);
 												DynArray.delete pfs !n;
-												print_debug (Printf.sprintf "PFS before:%s" (Symbolic_State_Print.string_of_pfs pfs));
-												DynArray.iteri (fun n pf -> DynArray.set pfs n (full_ass_subst subst_le pf)) pfs;
-												print_debug (Printf.sprintf "PFS after:%s" (Symbolic_State_Print.string_of_pfs pfs));
+												
+												Hashtbl.iter (fun k v -> print_debug (Printf.sprintf "\t%s --> %s" (JSIL_Print.string_of_logic_expression k) (JSIL_Print.string_of_logic_expression v))) subst_le;
+												
+                        lexpr_lexpr_symb_state_substitution_in_place_no_gamma subst_le !symb_state;
+                        pfs_lexpr_lexpr_substitution_in_place subst_le !others;
+												
+												DynArray.iteri (fun n pf -> DynArray.set pfs n (lexpr_lexpr_ass_subst subst_le pf)) pfs;
+
 												changes_made := true;
 												n := 0
 											) else
