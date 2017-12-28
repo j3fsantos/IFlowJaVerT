@@ -100,93 +100,93 @@ rule read = parse
 	| "}-"                 { JSIL_Parser.SETCLOSE      }
 (* Unary operators *)
 	(* Unary minus uses the same symbol as binary minus, token MINUS *)
-	| "not"                { JSIL_Parser.NOT           }
-	| "~"                  { JSIL_Parser.BITWISENOT    }
-	| "m_abs"              { JSIL_Parser.M_ABS         }
-	| "m_acos"             { JSIL_Parser.M_ACOS        }
-	| "m_asin"             { JSIL_Parser.M_ASIN        }
-	| "m_atan"             { JSIL_Parser.M_ATAN        }
-	| "m_ceil"             { JSIL_Parser.M_CEIL        }
-	| "m_cos"              { JSIL_Parser.M_COS         }
-	| "m_exp"              { JSIL_Parser.M_EXP         }
-	| "m_floor"            { JSIL_Parser.M_FLOOR       }
-	| "m_log"              { JSIL_Parser.M_LOG         }
-	| "m_round"            { JSIL_Parser.M_ROUND       }
-	| "m_sgn"              { JSIL_Parser.M_SGN         }
-	| "m_sin"              { JSIL_Parser.M_SIN }
-	| "m_sqrt"             { JSIL_Parser.M_SQRT }
-	| "m_tan"              { JSIL_Parser.M_TAN }
-	| "is_primitive"       { JSIL_Parser.ISPRIMITIVE }
-	| "num_to_string"      { JSIL_Parser.TOSTRING }
-	| "num_to_int"         { JSIL_Parser.TOINT }
-	| "num_to_uint16"      { JSIL_Parser.TOUINT16 }
-	| "num_to_int32"       { JSIL_Parser.TOINT32 }
-	| "num_to_uint32"      { JSIL_Parser.TOUINT32 }
-	| "string_to_num"      { JSIL_Parser.TONUMBER }
-	| "car"                { JSIL_Parser.CAR }
-	| "cdr"                { JSIL_Parser.CDR }
-	| "l-len"              { JSIL_Parser.LSTLEN }
-	| "s-len"              { JSIL_Parser.STRLEN }
+	| "not"                { JSIL_Parser.NOT             }
+	| "~"                  { JSIL_Parser.BITWISENOT      }
+	| "m_abs"              { JSIL_Parser.M_ABS           }
+	| "m_acos"             { JSIL_Parser.M_ACOS          }
+	| "m_asin"             { JSIL_Parser.M_ASIN          }
+	| "m_atan"             { JSIL_Parser.M_ATAN          }
+	| "m_ceil"             { JSIL_Parser.M_CEIL          }
+	| "m_cos"              { JSIL_Parser.M_COS           }
+	| "m_exp"              { JSIL_Parser.M_EXP           }
+	| "m_floor"            { JSIL_Parser.M_FLOOR         }
+	| "m_log"              { JSIL_Parser.M_LOG           }
+	| "m_round"            { JSIL_Parser.M_ROUND         }
+	| "m_sgn"              { JSIL_Parser.M_SGN           }
+	| "m_sin"              { JSIL_Parser.M_SIN           }
+	| "m_sqrt"             { JSIL_Parser.M_SQRT          }
+	| "m_tan"              { JSIL_Parser.M_TAN           }
+	| "is_primitive"       { JSIL_Parser.ISPRIMITIVE     }
+	| "num_to_string"      { JSIL_Parser.TOSTRING        }
+	| "num_to_int"         { JSIL_Parser.TOINT           }
+	| "num_to_uint16"      { JSIL_Parser.TOUINT16        }
+	| "num_to_int32"       { JSIL_Parser.TOINT32         }
+	| "num_to_uint32"      { JSIL_Parser.TOUINT32        }
+	| "string_to_num"      { JSIL_Parser.TONUMBER        }
+	| "car"                { JSIL_Parser.CAR             }
+	| "cdr"                { JSIL_Parser.CDR             }
+	| "l-len"              { JSIL_Parser.LSTLEN          }
+	| "s-len"              { JSIL_Parser.STRLEN          }
 (* Expression keywords *)
-	| "typeOf"             { JSIL_Parser.TYPEOF }
-	| "assume"             { JSIL_Parser.ASSUME }
-	| "make-symbol-number" { JSIL_Parser.RNUMSYM }
-	| "make-symbol-string" { JSIL_Parser.RSTRSYM }
-	| "l-nth"              { JSIL_Parser.LSTNTH }
-	| "s-nth"              { JSIL_Parser.STRNTH }
+	| "typeOf"             { JSIL_Parser.TYPEOF          }
+	| "assume"             { JSIL_Parser.ASSUME          }
+	| "make-symbol-number" { JSIL_Parser.RNUMSYM         }
+	| "make-symbol-string" { JSIL_Parser.RSTRSYM         }
+	| "l-nth"              { JSIL_Parser.LSTNTH          }
+	| "s-nth"              { JSIL_Parser.STRNTH          }
 (* Command keywords *)
-	| "skip"               { JSIL_Parser.SKIP }
-	| ":="                 { JSIL_Parser.DEFEQ }
-	| "new"                { JSIL_Parser.NEW }
-	| "delete"             { JSIL_Parser.DELETE }
-	| "deleteObject"       { JSIL_Parser.DELETEOBJ }
-	| "hasField"           { JSIL_Parser.HASFIELD }
-	| "getFields"          { JSIL_Parser.GETFIELDS }
-	| "args"               { JSIL_Parser.ARGUMENTS }
-	| "goto"               { JSIL_Parser.GOTO }
-	| "with"               { JSIL_Parser.WITH }
-	| "apply"              { JSIL_Parser.APPLY }
-	| "PHI"                { JSIL_Parser.PHI }
-	| "PSI"                { JSIL_Parser.PSI }
-	| "success"            { JSIL_Parser.SUCCESS}
-	| "failure"            { JSIL_Parser.FAILURE}
+	| "skip"               { JSIL_Parser.SKIP            }
+	| ":="                 { JSIL_Parser.DEFEQ           }
+	| "new"                { JSIL_Parser.NEW             }
+	| "delete"             { JSIL_Parser.DELETE          }
+	| "deleteObject"       { JSIL_Parser.DELETEOBJ       }
+	| "hasField"           { JSIL_Parser.HASFIELD        }
+	| "getFields"          { JSIL_Parser.GETFIELDS       }
+	| "args"               { JSIL_Parser.ARGUMENTS       }
+	| "goto"               { JSIL_Parser.GOTO            }
+	| "with"               { JSIL_Parser.WITH            }
+	| "apply"              { JSIL_Parser.APPLY           }
+	| "PHI"                { JSIL_Parser.PHI             }
+	| "PSI"                { JSIL_Parser.PSI             }
+	| "success"            { JSIL_Parser.SUCCESS         }
+	| "failure"            { JSIL_Parser.FAILURE         }
 (* Logical expressions: most match with the program expressions *)
-	| "None"               { JSIL_Parser.LNONE }
+	| "None"               { JSIL_Parser.LNONE           }
 (* Logic assertions *)
-	| "[["                 { JSIL_Parser.OASSERT }
-	| "]]"                 { JSIL_Parser.CASSERT }
-	| "/\\"                { JSIL_Parser.LAND }
-	| "\\/"                { JSIL_Parser.LOR }
-	| "!"                  { JSIL_Parser.LNOT }
-	| "true"               { JSIL_Parser.LTRUE }
-	| "false"              { JSIL_Parser.LFALSE }
-	| "=="                 { JSIL_Parser.LEQUAL }
+	| "[["                 { JSIL_Parser.OASSERT         }
+	| "]]"                 { JSIL_Parser.CASSERT         }
+	| "/\\"                { JSIL_Parser.LAND            }
+	| "\\/"                { JSIL_Parser.LOR             }
+	| "!"                  { JSIL_Parser.LNOT            }
+	| "true"               { JSIL_Parser.LTRUE           }
+	| "false"              { JSIL_Parser.LFALSE          }
+	| "=="                 { JSIL_Parser.LEQUAL          }
 	| "<#"                 { JSIL_Parser.LLESSTHAN       }
 	| "<=#"                { JSIL_Parser.LLESSTHANEQUAL  }
 	| "<s#"                { JSIL_Parser.LLESSTHANSTRING }
 	(* Separating conjunction uses the same symbol as product, token TIMES *)
-	| "->"                 { JSIL_Parser.LARROW      }
-	| "emp"                { JSIL_Parser.LEMP        }
-	| "types"              { JSIL_Parser.LTYPES      }
-	| "forall"             { JSIL_Parser.LFORALL     }
-	| "empty_fields"       { JSIL_Parser.EMPTYFIELDS }
+	| "->"                 { JSIL_Parser.LARROW          }
+	| "emp"                { JSIL_Parser.LEMP            }
+	| "types"              { JSIL_Parser.LTYPES          }
+	| "forall"             { JSIL_Parser.LFORALL         }
+	| "empty_fields"       { JSIL_Parser.EMPTYFIELDS     }
 (* Logic predicates *)
-	| "pred"               { JSIL_Parser.PRED }
+	| "pred"               { JSIL_Parser.PRED            }
 (* Logic commands *)
-	| "[*"                 { JSIL_Parser.OLCMD     }
-	| "*]"                 { JSIL_Parser.CLCMD     }
-	| "[+"                 { JSIL_Parser.OOLCMD    }
-	| "+]"                 { JSIL_Parser.CCLCMD    }
-	| "unfold*"            { JSIL_Parser.RECUNFOLD }
-	| "fold"               { JSIL_Parser.FOLD      }
-	| "flash"              { JSIL_Parser.FLASH     }
-	| "unfold"             { JSIL_Parser.UNFOLD    }
-	| "callspec"           { JSIL_Parser.CALLSPEC  }
-	| "if"                 { JSIL_Parser.LIF       }
-	| "then"               { JSIL_Parser.LTHEN     }
-	| "else"               { JSIL_Parser.LELSE     }
-	| "macro"              { JSIL_Parser.MACRO     }
-	| "assert"             { JSIL_Parser.ASSERT    }
+	| "[*"                 { JSIL_Parser.OLCMD           }
+	| "*]"                 { JSIL_Parser.CLCMD           }
+	| "[+"                 { JSIL_Parser.OOLCMD          }
+	| "+]"                 { JSIL_Parser.CCLCMD          }
+	| "unfold*"            { JSIL_Parser.RECUNFOLD       }
+	| "fold"               { JSIL_Parser.FOLD            }
+	| "flash"              { JSIL_Parser.FLASH           }
+	| "unfold"             { JSIL_Parser.UNFOLD          }
+	| "callspec"           { JSIL_Parser.CALLSPEC        }
+	| "if"                 { JSIL_Parser.LIF             }
+	| "then"               { JSIL_Parser.LTHEN           }
+	| "else"               { JSIL_Parser.LELSE           }
+	| "macro"              { JSIL_Parser.MACRO           }
+	| "assert"             { JSIL_Parser.ASSERT          }
 	(**
 		macro, assert are elsewhere
 	*)

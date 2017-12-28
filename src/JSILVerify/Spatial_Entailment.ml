@@ -986,7 +986,7 @@ let unfold_predicate_definition
 		(existentials   : SS.t)
 		(spec_vars      : SS.t)
 		(pat_symb_state : symbolic_state)
-		(symb_state     : symbolic_state) : symbolic_state option = 
+		(symb_state     : symbolic_state) : (symbolic_state * substitution) option = 
 	try ( 
 	(* PREAMBLE                                                                                                            *)
 	let symb_state = ss_copy symb_state in
@@ -1079,7 +1079,8 @@ let unfold_predicate_definition
 	let s_pat_pfs       = pfs_to_list (pfs_substitution new_pat_subst false pat_pfs) in
 	let pat_constraints = List.map (asrt_substitution new_pat_subst true) pat_constraints in 
 	let pfs_discharges  = pf_list_of_discharges new_pat_subst discharges in 
-	let pfs_subst       = substitution_to_list (filter_substitution_set (SS.union existentials spec_vars) subst) in 
+	(* let pfs_subst    = substitution_to_list (filter_substitution_set (SS.union existentials spec_vars) subst) in *)
+	let pfs_subst       = substitution_to_list (filter_substitution_set (SS.union existentials spec_vars) subst) in
 	let pfs''           = pfs' @ s_pat_pfs @ pfs_discharges @ pfs_subst @ constraints @ pat_constraints in 
 	extend_gamma gamma (gamma_substitution pat_gamma new_pat_subst false);
 	Normaliser.extend_typing_env_using_assertion_info gamma pfs'';
@@ -1105,7 +1106,7 @@ let unfold_predicate_definition
 	pfs_merge (ss_pfs unfolded_symb_state) (pfs_of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
 	extend_gamma (ss_gamma unfolded_symb_state) gamma;
 	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (pfs_to_list (ss_pfs unfolded_symb_state));
-	Some unfolded_symb_state ) with UnificationFailure _ -> None 
+	Some (unfolded_symb_state, subst)) with UnificationFailure _ -> None 
 
 let grab_resources 
 		(spec_vars            : SS.t) 

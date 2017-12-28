@@ -275,7 +275,6 @@ type jsil_logic_assertion =
 	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)
 	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *)
 
-
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
 	name          : string;                                         (** Name of the predicate  *)
@@ -884,6 +883,17 @@ let rec gamma_substitution gamma subst partial =
 						))))
 		gamma;
 	new_gamma
+
+let merge_gammas_copy (gamma_l : typing_environment) (gamma_r : typing_environment) =
+	let gamma    = Hashtbl.create medium_tbl_size in 
+	let iterator = 
+		(fun var v_type ->
+			if (not (Hashtbl.mem gamma var))
+				then Hashtbl.add gamma var v_type) in 
+	Hashtbl.iter iterator gamma_l; 
+	Hashtbl.iter iterator gamma_r; 
+	gamma 
+
 
 let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 	Hashtbl.iter

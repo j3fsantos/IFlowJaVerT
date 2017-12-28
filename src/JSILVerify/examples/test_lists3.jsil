@@ -5,25 +5,27 @@ pred ValidKey(key) :
     (! (key == "hasOwnProperty"));
 
 
-pred KVPairs (o, kvs) :
-    (kvs == -{ }-),
+pred KVPairs (o, kvs, count) :
+    (kvs == -{ }-) * (count == 0),
 
-    (kvs == -u- (-{ {{ #key, #value }} }-,  #rkvs)) *
-          ValidKey(#key) * ((o, #key) -> #value) * KVPairs(o, #rkvs);
+    (kvs == -u- (-{ {{ #key, #value }} }-,  #rkvs)) * (count == 1 + #count_rest) * 
+          ValidKey(#key) * ((o, #key) -> #value) * KVPairs(o, #rkvs, #count_rest) * 
+          types (count: $$number_type, #count_rest: $$number_type);
 
 
-pred KeysfromKVPairs (kvs, keys) : 
-    (kvs == -{}-) * (keys == -{}-), 
+pred KeysfromKVPairs (kvs, keys, count) : 
+    (kvs == -{}-) * (keys == -{}-) * (count == 0), 
 
     (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * 
-          (keys == -u- (-{ #key }-, #rkeys)) *  
-          KeysfromKVPairs (#rkvs, #rkeys); 
-
+          (count == 1 + #count_rest) * (keys == -u- (-{ #key }-, #rkeys)) *  
+          KeysfromKVPairs (#rkvs, #rkeys, #count_rest) *
+          types (count: $$number_type, #count_rest: $$number_type);
+ 
 
 pred Map (m, kvs) :
     ((m, "@proto") -> $$null) * ((m, "_contents") -> #c) * 
-    ((#c, "@proto") -> $$null) * KVPairs(#c, kvs) * 
-    KeysfromKVPairs (kvs, #keys) * empty_fields(#c : #keys);
+    ((#c, "@proto") -> $$null) * KVPairs(#c, kvs, #count) * 
+    KeysfromKVPairs (kvs, #keys, #count) * empty_fields(#c : -u- (#keys, -{ "@proto" }-));
 
 
 spec map_get (m, k)

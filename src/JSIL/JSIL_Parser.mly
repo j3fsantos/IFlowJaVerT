@@ -233,6 +233,7 @@ let copy_and_clear_globals () =
 %token LSETSUB
 %token SETOPEN
 %token SETCLOSE
+%token ALLDIFFERENT
 (* EOF *)
 %token EOF
 (***** Precedence of operators *****)
@@ -890,7 +891,7 @@ assertion_target:
 	| left_expr=lexpr_target; LSETSUB; right_expr=lexpr_target
 		{ LSetSub (left_expr, right_expr) }
 (* (P) *)
-  | LBRACE; ass=assertion_target; RBRACE
+   	| LBRACE; ass=assertion_target; RBRACE
 	  { ass }
 ;
 

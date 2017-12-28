@@ -142,7 +142,7 @@ let rec assertion_fold
 
 	| LPointsTo (le1, le2, le3) -> f_ac (fes [ le1; le2; le3 ])
 
-	| LPred (_, les) -> f_ac (fes les)
+	| LPred (_, les)            -> f_ac (fes les)
 
 	| LAnd (a1, a2)             -> f_ac [ (fold_a a1); (fold_a a2) ]
 	| LOr (a1, a2)              -> f_ac [ (fold_a a1); (fold_a a2) ]
@@ -274,6 +274,21 @@ let rec get_lexpr_alocs (le : jsil_logic_expr) : SS.t =
 		| _ -> List.concat ac in
 	SS.of_list (logic_expression_fold fe_ac None None le)
 
+
+(* Get all the logical expressions denoting sets in --le-- *)
+let rec get_lexpr_sets (le : jsil_logic_expr) : jsil_logic_expr list =
+	let fe_ac le _ _ ac =
+		match le with
+		| LESet _                 
+		| LSetUnion _             
+		| LSetInter _             
+		| LBinOp (_, SetDiff, _)   
+		| LBinOp (_, SetMem, _)  
+		| LBinOp (_, SetSub, _)  -> le :: (List.concat ac)
+		| _ -> (List.concat ac) in 
+	logic_expression_fold fe_ac None None le
+
+
 (* Get all the abstract locations in --a-- *)
 let rec get_asrt_alocs (a : jsil_logic_assertion) : SS.t =
 	let fe_ac le _ _ ac =
@@ -309,6 +324,12 @@ let rewrite_pred_name (p : string) (p' : string) (a : jsil_logic_assertion) : js
 		| LPred (s, les) -> if (s = p) then LPred(p', les) else a 
 		| _              -> a in 
 	assertion_map None (Some f_a_after) None a 
+
+
+(* Get all the expressions denoting sets in --a-- *)
+let rec get_asrt_sets (a : jsil_logic_assertion) : jsil_logic_expr list  =
+	let f_ac a _ _ ac = List.concat ac in
+ 	assertion_fold (Some get_lexpr_sets) f_ac None None a
 
 
 (***************************************************************)

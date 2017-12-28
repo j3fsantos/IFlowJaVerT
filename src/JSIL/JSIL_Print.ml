@@ -301,7 +301,7 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
 		| LSetMem (e1, e2) -> Printf.sprintf "(%s --e-- %s)" (sle e1) (sle e2)
 		(* e1 --s-- e2 *)
 		| LSetSub (e1, e2) -> Printf.sprintf "(%s --s-- %s)" (sle e1) (sle e2)
-
+		
 
 (* [def2 with #key := #k and #value := #v] *)
 let string_of_unfold_info (unfold_info : (string * ((string * jsil_logic_expr) list)) option) : string  =
