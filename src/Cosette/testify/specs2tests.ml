@@ -65,7 +65,6 @@ let filter_pre_post_with_domain_info (pre : symbolic_state) (post : symbolic_sta
 	if (not has_sets) then true else (
 
 		let heap_list = (heap_to_list heap_pre) @ (heap_to_list heap_post) in
-	
 		let asrts_per_object = 
 			List.map (fun (_, (fv_list, _)) ->  
 				let fields = List.map (fun (f_name, f_val) -> f_name) fv_list in 
@@ -74,11 +73,13 @@ let filter_pre_post_with_domain_info (pre : symbolic_state) (post : symbolic_sta
 
 		let extended_pfs = (List.concat asrts_per_object) @ (pfs_to_list pfs_pre) @ (pfs_to_list pfs_post) in 
 
-		if (Pure_Entailment.check_satisfiability extended_pfs gamma_post) then (
-			Printf.printf "EXTENDED PFS PRE-POST ARE OK\n";
+		if (Pure_Entailment.check_satisfiability extended_pfs gamma) then (
+			Printf.printf "EXTENDED PFS PRE-POST ARE OK for %s\n"
+				(JSIL_Print.str_of_assertion_list extended_pfs);
 			true
 		) else (
-			Printf.printf "EXTENDED PFS PRE-POST ARE !!!WRONG!!!\n"; 
+			Printf.printf "EXTENDED PFS PRE-POST ARE !!!WRONG!!! for %s\n"
+				(JSIL_Print.str_of_assertion_list extended_pfs); 
 			false
 		))
 
