@@ -1493,6 +1493,39 @@ let simplify_symb_state
 		| Some None     -> SS.empty, true
 		| None          -> SS.empty, false) in
 
+	let setup_equalities pfs =
+		let equality_hash : (jsil_logic_expr, jsil_logic_expr) Hashtbl.t = Hashtbl.create 101 in
+		let i = ref 0 in
+		while (!i < DynArray.length pfs) do
+			let pf = DynArray.get pfs !i in
+			(match pf with
+			| LEq (le1, le2) ->
+				(* print_debug (Printf.sprintf "Removing equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2)); *)
+				Hashtbl.add equality_hash le1 le2;
+				Hashtbl.add equality_hash le2 le1;
+				DynArray.delete pfs !i
+			| _ -> i := !i + 1);
+		done;
+		Hashtbl.iter (fun le1 le2 -> 
+			let vals = Array.of_list (le1 :: (Hashtbl.find_all equality_hash le1)) in
+			let len = Array.length vals in
+			let i = ref 0 in
+			while (!i < len) do
+				let j = ref (!i + 1) in
+				while (!j < len) do
+					let le1 = Array.get vals !i in
+					let le2 = Array.get vals !j in
+						let lpfs = DynArray.to_list pfs in
+						if (not (List.mem (LEq (le1, le2)) lpfs || List.mem (LEq (le2, le1)) lpfs))
+						then (
+							(* print_debug (Printf.sprintf "Adding equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2)); *)
+							DynArray.add pfs (LEq (le1, le2)));
+						j := !j + 1;
+				done;
+				i := !i + 1
+			done) equality_hash
+	in
+	
 	(* Pure formulae false *)
 	let pfs_false subst others exists symb_state msg =
 		let _, _, pfs, _, _ = symb_state in
@@ -1567,6 +1600,8 @@ let simplify_symb_state
 	 * and are also not in others
 	 *)
 	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
+	
+	setup_equalities p_formulae;
 	let lvars = SS.union (ss_vars_no_gamma symb_state) (pfs_lvars other_pfs) in
 	let lvars_gamma = get_gamma_all_vars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
@@ -1898,8 +1933,74 @@ let simplify_symb_state
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
 				
+				(* The insanely specific set stuff that Jose asked for *)
+        | LESet ls1, LESet ls2 -> 
+					(match (List.length ls1 = List.length ls2) with
+					| false -> n := !n + 1
+					| true -> 
+							(* All elements of the set have to be *)
+							let ohMy = ref (-1) in
+							let gammaL = ref 0 in
+							let gammaR = ref 0 in
+							let ll = List.for_all2 (fun le1 le2 -> 
+  						(match le1, le2 with
+							(* Lists of equal length *)
+  						| LEList le1, LEList le2 when 
+									(if (!ohMy = -1) 
+										then (if List.length le1 = List.length le2 
+											then (ohMy := List.length le1; true)
+											else false) 
+										else (List.length le1 = !ohMy) && (List.length le2 = !ohMy)) -> 
+									List.for_all2 (fun le1 le2 ->
+										match le1, le2 with
+										| LVar x, LVar y ->
+											if (Hashtbl.mem gamma x) then gammaL := !gammaL + 1;
+											if (Hashtbl.mem gamma y) then gammaR := !gammaR + 1;
+											true
+										| _, _ -> false
+										) le1 le2
+  						| _, _ -> false)) ls1 ls2 in
+  							(match ll with
+  								| false -> n := !n + 1
+  								| true ->
+											if (!gammaL * !gammaR = 0) && (!gammaL + !gammaR > 0) then (
+												let ls1, ls2 = if (!gammaL = 0) then ls2, ls1 else ls1, ls2 in
+												print_debug (Printf.sprintf "Candidates: %s, %s with length %d" (JSIL_Print.string_of_logic_expression (LESet ls1)) (JSIL_Print.string_of_logic_expression (LESet ls2)) !ohMy);
+												(* Now, splitting *)
+												let len = List.length ls1 in
+												let arr = Array.init !ohMy (fun _ -> [], []) in
+												List.iter2 (fun le1 le2 ->
+													(match le1, le2 with
+													| LEList le1, LEList le2 -> 
+  													let i = ref 0 in
+  													let al1 = Array.of_list le1 in
+  													let al2 = Array.of_list le2 in
+  													while !i < !ohMy do
+  														let e1 = Array.get al1 !i in
+  														let e2 = Array.get al2 !i in
+  														let l1, l2 = Array.get arr !i in
+  														Array.set arr !i (l1 @ [ e1 ], l2 @ [ e2 ]);
+  														i := !i + 1;
+  													done)
+													) ls1 ls2;
+												(* Now, substs, but for full logical expressions, not variables... *)
+												let subst_le = Hashtbl.create 31 in
+												Array.iter (fun (a1, a2) -> Hashtbl.add subst_le (LESet [ LEList a2 ]) (LESet [ LEList a1 ])) arr;
+												Hashtbl.add subst_le (LESet ls2) (LESet ls1);
+												DynArray.delete pfs !n;
+												print_debug (Printf.sprintf "PFS before:%s" (Symbolic_State_Print.string_of_pfs pfs));
+												DynArray.iteri (fun n pf -> DynArray.set pfs n (full_ass_subst subst_le pf)) pfs;
+												print_debug (Printf.sprintf "PFS after:%s" (Symbolic_State_Print.string_of_pfs pfs));
+												changes_made := true;
+												n := 0
+											) else
+											n := !n + 1
+								)
+					)
+        
 				| _, _ -> n := !n + 1)
-			
+		
+
 			(* Special cases *)
 			| LNot (LEq (ALoc _, LLit Empty)) 
 			| LNot (LEq (LLit Empty, ALoc _))
