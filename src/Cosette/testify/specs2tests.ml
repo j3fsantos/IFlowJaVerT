@@ -317,10 +317,9 @@ let unfold_spec
 		Printf.printf "process_pre_posts. symb_state PRE:\n%s\n"
 			(Symbolic_State_Print.string_of_symb_state pre);
 
-		Printf.printf "process_pre_posts in the middle of step 1.\n POSTS:\n"; 
-		List.iteri (fun i ss -> 
-			Printf.printf  "POST %d:\n%s\n" i (Symbolic_State_Print.string_of_symb_state ss)
-		) posts; 
+
+		print_debug (Printf.sprintf "process_pre_posts. symb_state PRE:\n%s\n"
+			(Symbolic_State_Print.string_of_symb_state pre));
 
 		(* STEP 1 - simplify the pre-condition and apply resulting 
 		   substitution to posts                                             *)
