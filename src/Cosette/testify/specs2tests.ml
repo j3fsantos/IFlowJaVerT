@@ -207,7 +207,7 @@ let unfold_symb_state_with_counter
 					let subst_e          = init_substitution3 [] in 
 					let pat_subst        = init_substitution3 [] in
 
-					let spec_vars_aux    = ss_lvars symb_state in
+					let spec_vars_aux    = SS.union (ss_lvars symb_state) spec_vars in
 
 					let new_symb_states : (symbolic_state * substitution) option list = 
 						List.map 
@@ -317,12 +317,19 @@ let unfold_spec
 		Printf.printf "process_pre_posts. symb_state PRE:\n%s\n"
 			(Symbolic_State_Print.string_of_symb_state pre);
 
+		Printf.printf "process_pre_posts in the middle of step 1.\n POSTS:\n"; 
+		List.iteri (fun i ss -> 
+			Printf.printf  "POST %d:\n%s\n" i (Symbolic_State_Print.string_of_symb_state ss)
+		) posts; 
+
 		(* STEP 1 - simplify the pre-condition and apply resulting 
 		   substitution to posts                                             *)
 		let pre', pre_subst = Simplifications.simplify_ss_with_subst pre None in
 		let pre'            = clean_typing_environment pre' in 
 		let spec_vars       = ss_lvars pre' in
 		let posts           = List.map (ss_substitution pre_subst true) posts in  
+
+		Printf.printf "pre_subst:\n%s\n" (JSIL_Print.string_of_substitution pre_subst); 
 
 		Printf.printf "process_pre_posts in the middle of step 1.\n POSTS:\n"; 
 		List.iteri (fun i ss -> 
@@ -389,7 +396,8 @@ let unfold_spec
 
 	Printf.printf "Unfolding the PRE-conditions\n"; 
 	let new_pres  = unfold_symb_state s_spec.n_pre preds depth s_spec.n_lvars in 
-	Printf.printf "Unfolding the POST-conditions\n";
+	Printf.printf "Unfolding the POST-conditions with spec vars: %s\n"
+		(String.concat ", " (SS.elements s_spec.n_lvars));
 	let new_posts = List.concat (List.map (fun ss -> unfold_symb_state ss preds depth s_spec.n_lvars) s_spec.n_post) in
 	let pre_posts = List.map (fun ss -> (ss, new_posts)) new_pres in 
 	Printf.printf "Connecting PRES and POSTS\n"; 
@@ -465,5 +473,13 @@ let make_symbolic_tests
 			) new_procs)
 		specs 
 
+
+(*
+let single_spec_to_test 
+		(s_name    : string)
+		(s_params  : string list)
+		(s_spec    : jsil_n_single_spec)
+
+*)
 
 	
