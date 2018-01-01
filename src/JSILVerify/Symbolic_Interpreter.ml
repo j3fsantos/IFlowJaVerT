@@ -79,7 +79,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 		| _ ->
 			(match op with
 			| Cdr ->
-			let nle = Simplifications.find_me_Im_a_list store pure_formulae nle in
+			let nle = find_me_Im_a_list store pure_formulae nle in
 				(match nle with
 				| LLit (LList list) ->
 				 	(match list with
@@ -92,7 +92,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 				 | LBinOp (el, LstCons, llist) -> llist
 				 | _ -> LUnOp (op, nle))
 			| LstLen ->
-			 	let nle = Simplifications.find_me_Im_a_list store pure_formulae nle in
+			 	let nle = find_me_Im_a_list store pure_formulae nle in
 				let len = get_list_length nle in
 					if_some len (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle))
 			| _ -> LUnOp (op, nle)))
@@ -136,7 +136,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 	| LstNth (e1, e2) ->
 		let list = f e1 in
 		let index = f e2 in
-		let list = Simplifications.find_me_Im_a_list store pure_formulae list in
+		let list = find_me_Im_a_list store pure_formulae list in
 		(match index with
 		 | LLit (Num n) when (Utils.is_int n) ->
 			let n = int_of_float n in
@@ -195,7 +195,7 @@ let safe_symb_evaluate_expr
 		(pure_formulae : pure_formulae) 
 		(expr          : jsil_expr) : jsil_logic_expr * (jsil_type option) * bool =
 	let nle = symb_evaluate_expr store gamma pure_formulae expr in
-	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in
+	let nle = replace_nle_with_lvars pure_formulae nle in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
 	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
 	if (is_typable) then
@@ -491,10 +491,10 @@ let find_and_apply_spec
 				false, (List.map (fun (symb_state, ret_flag, ret_lexpr) -> 
 					(* Code for PETAR to clean up *)
 					let pfs  = ss_pfs symb_state in 
-					let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion_no_store (ss_gamma symb_state) pfs x) pfs in
+					let rpfs = DynArray.map (fun x -> reduce_assertion_no_store (ss_gamma symb_state) pfs x) pfs in
 					Simplifications.sanitise_pfs_no_store (ss_gamma symb_state) rpfs;
 					let symb_state' = ss_replace_pfs symb_state rpfs in 
-					let ret_lexpr'  = Simplifications.reduce_expression_no_store_no_gamma_no_pfs ret_lexpr in 
+					let ret_lexpr'  = reduce_expression_no_store_no_gamma_no_pfs ret_lexpr in 
 					(symb_state', ret_flag, ret_lexpr')
 				) symb_states_and_ret_lexprs)) in  		
 
