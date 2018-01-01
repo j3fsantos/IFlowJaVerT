@@ -150,6 +150,7 @@ rule read = parse
 	| "PSI"                { JSIL_Parser.PSI             }
 	| "success"            { JSIL_Parser.SUCCESS         }
 	| "failure"            { JSIL_Parser.FAILURE         }
+	| "assert_*"           { JSIL_Parser.SEPASSERT       }
 (* Logical expressions: most match with the program expressions *)
 	| "None"               { JSIL_Parser.LNONE           }
 (* Logic assertions *)

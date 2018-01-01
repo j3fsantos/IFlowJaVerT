@@ -90,8 +90,62 @@ let rec sexpr_of_expression e =
 	(* (s-nth e n) *)
 	| StrNth (e1, e2) -> Printf.sprintf "(s-nth %s %s)" (se e1) (se e2)
 
+
+let rec sexpr_of_lexpr le = 
+	let sle = sexpr_of_lexpr in 
+	match le with 
+	| LLit lit               -> sexpr_of_literal lit 
+	| LVar v                 -> v
+	| ALoc aloc              -> aloc 
+	| PVar v                 -> v
+	| LBinOp (le1, bop, le2) -> 
+		Printf.sprintf "(%s %s %s)" (sexpr_of_binop bop) (sle le1) (sle le2)
+	| LUnOp (unop, le)       -> 
+		 Printf.sprintf "(%s %s)" (string_of_unop unop) (sle le)
+	| LTypeOf le             -> Printf.sprintf "(typeof %s)" (sle le)
+	| LLstNth (le1, le2)     -> Printf.sprintf "(l-nth %s %s)" (sle le1) (sle le2)
+	| LStrNth (le1, le2)     -> Printf.sprintf "(s-nth %s %s)" (sle le1) (sle le2)
+	| LEList les             -> Printf.sprintf "(jsil-list %s)" (String.concat " " (List.map sle les))
+	| LCList les             -> raise (Failure "DEATH. sexpr_of_lexpr")
+	| LESet les              -> Printf.sprintf "(jsil-set %s)" (String.concat " " (List.map sle les))
+	| LSetUnion les          -> Printf.sprintf "(set-union %s)" (String.concat " " (List.map sle les))
+	| LSetInter les          -> Printf.sprintf "(set-inter %s)" (String.concat " " (List.map sle les))
+	| LNone                  -> "none"
+
+
+
+let rec sexpr_of_assertion a = 
+	let sle = sexpr_of_lexpr in 
+	let sa  = sexpr_of_assertion in 
+	match a with 
+	| LTrue                     -> "#t"
+	| LFalse                    -> "#f"
+	| LNot a                    -> Printf.sprintf "(not %s)" (sa a)
+	| LAnd (a1, a2)             -> Printf.sprintf "(and %s %s)" (sa a1) (sa a2)
+	| LOr (a1, a2)              -> Printf.sprintf "(or %s %s)" (sa a1) (sa a2)
+	| LEmp                      -> "emp"
+	| LStar (a1, a2)            -> Printf.sprintf "(star %s %s)" (sa a1) (sa a2)
+	| LPointsTo (le1, le2, le3) -> Printf.sprintf "(cell %s %s %s)" (sle le1) (sle le2) (sle le3)
+	| LPred (p_name, les)       -> Printf.sprintf "(pred-asrt %s %s)" p_name (String.concat " " (List.map sle les))
+	| LForAll _                 -> raise (Failure "DEATH. sexpr_of_assertion")
+	| LTypes le_type_pairs      -> Printf.sprintf "(types %s)" 
+									(String.concat " " 
+										(List.map 
+											(fun (le, t) -> "("  ^ (sle le) ^ " " ^ (string_of_type t) ^ ")")
+											le_type_pairs))
+	| LEmptyFields (le1, le2)   -> Printf.sprintf "(empty-fields %s %s)" (sle le1) (sle le2)             
+	| LEq (le1, le2)            -> Printf.sprintf "(eq? %s %s)" (sle le1) (sle le2)
+	| LLess (le1, le2)          -> Printf.sprintf "(< %s %s)" (sle le1) (sle le2)
+	| LLessEq (le1, le2)        -> Printf.sprintf "(<= %s %s)" (sle le1) (sle le2)
+	| LStrLess (le1, le2)       -> Printf.sprintf "(string-less-eq %s %s)" (sle le1) (sle le2)
+	| LSetMem (le1, le2)        -> Printf.sprintf "(set-mem %s %s)" (sle le1) (sle le2)
+	| LSetSub (le1, le2)        -> Printf.sprintf "(set-sub %s %s)" (sle le1) (sle le2)
+	
+
+
 let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	let se = sexpr_of_expression in
+	let sa = sexpr_of_assertion in 
 	let str_i = if line_numbers_on then (string_of_int i) ^ " " else "" in
 	match bcmd with
 	(* ('skip) *)
@@ -122,7 +176,8 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| RAssume e -> Printf.sprintf "'(%sassume %s)" str_i (se e)
 	(* (assert e) *)
 	| RAssert e -> Printf.sprintf "'(%sassert %s)" str_i (se e)
-	
+	(* (assert-* asrts)*)
+	| SepAssert asrts -> Printf.sprintf "'(%sassert-* %s)" str_i (String.concat " " (List.map sa asrts))
 
 
 let rec sexpr_of_cmd sjsil_cmd tabs i line_numbers_on =

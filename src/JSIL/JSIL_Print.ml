@@ -185,43 +185,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
 	| RNumSymb x -> "make-symbol-number(" ^ (Option.default "" x) ^ ")"
 	(* make-symbol-string() *)
 	| RStrSymb x -> "make-symbol-string(" ^ (Option.default "" x) ^ ")"
-	
 
-(** JSIL Basic statements *)
-let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
-	let se = string_of_expression in
-	let str_i = (match i with 
-		| None -> "" 
-		| Some i -> if !line_numbers_on then (string_of_int i) ^ ". " else "") in
-	match bcmd with
-	(* skip *)
-	| SSkip -> Printf.sprintf "%sskip" str_i
-	(* var := e *)
-	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
-	(* x := new() *)
-	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
- 	(* x := [e1, e2]	*)
-	| SLookup (var, e1, e2) -> Printf.sprintf "%s%s := [%s, %s]" str_i var (se e1) (se e2)
-	(* [e1, e2] := e3 *)
-	| SMutation (e1, e2, e3) -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
-	(* delete(e1, e2) *)
-	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
-	(* x := deleteObj(e1) *)
-	| SDeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
-	(* x := hasField(e1, e2) *)
-	| SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
-	(* x := getFields (e1, e2) *)
-	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
-	(* x := args *)
-	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
-    (* assume(e) *)
-	| RAssume e -> Printf.sprintf "assume(%s)" (se e)
-	(* assert(e) *)
-	| RAssert e -> Printf.sprintf "assert(%s)" (se e)
-	(* terminate_successfully *)
-	| STermSucc -> Printf.sprintf "%ssuccess" str_i 
-	(* terminate_unsuccessfully *)
-	| STermFail -> Printf.sprintf "%sfailure" str_i 
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
@@ -302,6 +266,47 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
 		(* e1 --s-- e2 *)
 		| LSetSub (e1, e2) -> Printf.sprintf "(%s --s-- %s)" (sle e1) (sle e2)
 		
+
+
+
+(** JSIL Basic statements *)
+let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
+	let se = string_of_expression in
+	let str_i = (match i with 
+		| None -> "" 
+		| Some i -> if !line_numbers_on then (string_of_int i) ^ ". " else "") in
+	match bcmd with
+	(* skip *)
+	| SSkip -> Printf.sprintf "%sskip" str_i
+	(* var := e *)
+	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
+	(* x := new() *)
+	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
+ 	(* x := [e1, e2]	*)
+	| SLookup (var, e1, e2) -> Printf.sprintf "%s%s := [%s, %s]" str_i var (se e1) (se e2)
+	(* [e1, e2] := e3 *)
+	| SMutation (e1, e2, e3) -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
+	(* delete(e1, e2) *)
+	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
+	(* x := deleteObj(e1) *)
+	| SDeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
+	(* x := hasField(e1, e2) *)
+	| SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
+	(* x := getFields (e1, e2) *)
+	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
+	(* x := args *)
+	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+    (* assume(e) *)
+	| RAssume e -> Printf.sprintf "assume(%s)" (se e)
+	(* assert(e) *)
+	| RAssert e -> Printf.sprintf "assert(%s)" (se e)
+	(* terminate_successfully *)
+	| STermSucc -> Printf.sprintf "%ssuccess" str_i 
+	(* terminate_unsuccessfully *)
+	| STermFail -> Printf.sprintf "%sfailure" str_i 
+	(* assert_*(a, ..., a) *)
+	| SepAssert asrts -> Printf.sprintf "%sassert_*(%s)" str_i (String.concat ", " (List.map string_of_logic_assertion asrts))
+
 
 (* [def2 with #key := #k and #value := #v] *)
 let string_of_unfold_info (unfold_info : (string * ((string * jsil_logic_expr) list)) option) : string  =

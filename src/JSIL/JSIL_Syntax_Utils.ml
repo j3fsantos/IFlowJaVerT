@@ -100,6 +100,24 @@ let jsil_expr_substitution (subst : p_substitution) (partial : bool) (e : jsil_e
   jsil_expr_map f_before None e
 
 
+
+let conjunct_exprs (expr_list : jsil_expr list) : jsil_expr = 
+
+  let rec loop ac_expr exprs = 
+    match exprs with 
+    | []                 -> ac_expr 
+    | expr :: rest_exprs -> BinOp (expr, And, ac_expr) in 
+
+  match List.rev expr_list with 
+  | [  ]               -> Literal (Bool true)
+  | [ expr ]           -> expr 
+  | expr :: rest_exprs -> loop expr rest_exprs 
+
+
+
+
+
+
 (** ----------------------------------------------------
     ----------------------------------------------------
     JSIL Syntax Checks

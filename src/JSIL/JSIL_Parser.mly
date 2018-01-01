@@ -134,6 +134,7 @@ let copy_and_clear_globals () =
 %token TYPEOF
 %token ASSUME
 %token ASSERT
+%token SEPASSERT
 %token RNUMSYM
 %token RSTRSYM
 %token LSTNTH
@@ -426,73 +427,6 @@ cmd_with_label_and_logic:
 				| Some post_logic_cmds -> post_logic_cmds  in
 			(pre, pre_logic_cmds, post_logic_cmds, Some lab, cmd)
 		}
-;
-
-cmd_target:
-(*** Basic commands ***)
-(* skip *)
-	| SKIP
-		{ SLBasic (SSkip) }
-(* x := e *)
-	| v=VAR; DEFEQ; e=expr_target
-		{ SLBasic (SAssignment (v, e)) }
-(* x := new() *)
-	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
-		{ SLBasic (SNew v) }
-(* x := [e1, e2] *)
-	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
-		{ SLBasic (SLookup (v, e1, e2)) }
-(* [e1, e2] := e3 *)
-	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target
-		{ SLBasic (SMutation (e1, e2, e3)) }
-(* delete(e1, e2) *)
-	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SLBasic (SDelete (e1, e2)) }
-(* deleteObject(e1) *)
-	| DELETEOBJ; LBRACE; e1=expr_target; RBRACE
-		{ SLBasic (SDeleteObj (e1)) }
-(* x := hasField(e1, e2) *)
-	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SLBasic (SHasField (v, e1, e2)) }
-(* x := getFields (e1) *)
-	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
-		{ SLBasic (SGetFields (v, e)) }
-(* x := args *)
-	| v = VAR; DEFEQ; ARGUMENTS
-	  { SLBasic (SArguments v) }
-(*** Other commands ***)
-(* goto i *)
-	| GOTO; i=VAR
-		{ SLGoto i }
-(* goto [e] i j *)
-	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR
-		{ SLGuardedGoto (e, i, j) }
-(* x := e(e1, ..., en) with j *)
-	| v=VAR; DEFEQ; e=expr_target;
-	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
-		{ SLCall (v, e, es, oi) }
-(* x := apply (e1, ..., en) with j *)
-	| v=VAR; DEFEQ; APPLY;
-	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
-		{ SLApply (v, es, oi) }
-(* x := PHI(e1, e2, ... en); *)
-	| v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
-	  { SLPhiAssignment (v, Array.of_list es) }
-(* x := PSI(e1, e2, ... en); *)
-	| v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
-	  { SLPsiAssignment (v, Array.of_list es) }
-(* asssume (e) *)
-	| ASSUME; LBRACE; e=expr_target; RBRACE
-	  { SLBasic (RAssume (e)) }
-(* assert (e) *)
- 	| ASSERT; LBRACE;  e=expr_target; RBRACE
-	  { SLBasic (RAssert (e)) }
-(* success *)
-	| SUCCESS
-		{ SLBasic (STermSucc) }
-(* failure *)
-	| FAILURE
-		{ SLBasic (STermFail) }
 ;
 
 call_with_target:
@@ -829,6 +763,7 @@ mult_spec_line:
 top_level_assertion_target:
 	a = assertion_target; EOF { a }
 
+
 assertion_target:
 (* P /\ Q *)
 	| left_ass=assertion_target; LAND; right_ass=assertion_target
@@ -894,6 +829,81 @@ assertion_target:
    	| LBRACE; ass=assertion_target; RBRACE
 	  { ass }
 ;
+
+
+
+cmd_target:
+(*** Basic commands ***)
+(* skip *)
+	| SKIP
+		{ SLBasic (SSkip) }
+(* x := e *)
+	| v=VAR; DEFEQ; e=expr_target
+		{ SLBasic (SAssignment (v, e)) }
+(* x := new() *)
+	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
+		{ SLBasic (SNew v) }
+(* x := [e1, e2] *)
+	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
+		{ SLBasic (SLookup (v, e1, e2)) }
+(* [e1, e2] := e3 *)
+	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target
+		{ SLBasic (SMutation (e1, e2, e3)) }
+(* delete(e1, e2) *)
+	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
+		{ SLBasic (SDelete (e1, e2)) }
+(* deleteObject(e1) *)
+	| DELETEOBJ; LBRACE; e1=expr_target; RBRACE
+		{ SLBasic (SDeleteObj (e1)) }
+(* x := hasField(e1, e2) *)
+	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
+		{ SLBasic (SHasField (v, e1, e2)) }
+(* x := getFields (e1) *)
+	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
+		{ SLBasic (SGetFields (v, e)) }
+(* x := args *)
+	| v = VAR; DEFEQ; ARGUMENTS
+	  { SLBasic (SArguments v) }
+(*** Other commands ***)
+(* goto i *)
+	| GOTO; i=VAR
+		{ SLGoto i }
+(* goto [e] i j *)
+	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR
+		{ SLGuardedGoto (e, i, j) }
+(* x := e(e1, ..., en) with j *)
+	| v=VAR; DEFEQ; e=expr_target;
+	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
+		{ SLCall (v, e, es, oi) }
+(* x := apply (e1, ..., en) with j *)
+	| v=VAR; DEFEQ; APPLY;
+	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
+		{ SLApply (v, es, oi) }
+(* x := PHI(e1, e2, ... en); *)
+	| v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
+	  { SLPhiAssignment (v, Array.of_list es) }
+(* x := PSI(e1, e2, ... en); *)
+	| v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
+	  { SLPsiAssignment (v, Array.of_list es) }
+(* asssume (e) *)
+	| ASSUME; LBRACE; e=expr_target; RBRACE
+	  { SLBasic (RAssume (e)) }
+(* assert (e) *)
+ 	| ASSERT; LBRACE;  e=expr_target; RBRACE
+	  { SLBasic (RAssert (e)) }
+(* success *)
+	| SUCCESS
+		{ SLBasic (STermSucc) }
+(* failure *)
+	| FAILURE
+		{ SLBasic (STermFail) }
+(* assert_*(a) *)
+ 	| SEPASSERT; LBRACE; asrts = separated_list(COMMA, assertion_target); RBRACE 
+ 		{ SLBasic (SepAssert asrts) }
+;
+
+
+
 
 lvar_type_target:
 	| lvar = just_logic_variable_target; COLON; the_type = type_target

@@ -200,35 +200,6 @@ let base r = LstNth (r, lit_num 1.)
 let field r = LstNth (r, lit_num 2.)
 (**/**)
 
-(** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one
-    might expect of a language with extensible objects. *)
-type jsil_basic_cmd =
-	| SSkip                                            (** Empty command *)
-	| SAssignment of jsil_var * jsil_expr              (** Assignment *)
-	| SNew        of jsil_var                          (** Object creation *)
-	| SLookup     of jsil_var * jsil_expr * jsil_expr  (** Field lookup *)
-	| SMutation   of jsil_expr * jsil_expr * jsil_expr (** Field mutation *)
-	| SDelete     of jsil_expr * jsil_expr             (** Field deletion *)
-	| SDeleteObj  of jsil_expr                         (** Object deletion *)
-	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check *)
-	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
-	| SArguments  of jsil_var                          (** Arguments of the current function *)
-	| RAssume     of jsil_expr                          
-	| RAssert     of jsil_expr
-	| STermSucc
-	| STermFail
-
-(** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
-    affect control flow, which are goto statements, function calls, and PHI-nodes, which
-    offer direct support for SSA. *)
-type jsil_cmd =
-	| SBasic          of jsil_basic_cmd                                     (** JSIL basic commands *)
-	| SGoto           of int                                                (** Unconditional goto *)
-	| SGuardedGoto    of jsil_expr * int * int                              (** Conditional goto *)
-	| SCall           of jsil_var * jsil_expr * jsil_expr list * int option (** Classical procedure call *)
-	| SApply          of jsil_var * jsil_expr list * int option             (** Application-style procedure call *)
-	| SPhiAssignment  of jsil_var * (jsil_expr array)                       (** PHI assignment *)
-	| SPsiAssignment  of jsil_var * (jsil_expr array)
 
 (** {2 Syntax of JSIL Logic} *)
 
@@ -275,6 +246,41 @@ type jsil_logic_assertion =
 	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)
 	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *)
 
+
+(** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one
+    might expect of a language with extensible objects. *)
+type jsil_basic_cmd =
+	| SSkip                                            (** Empty command *)
+	| SAssignment of jsil_var * jsil_expr              (** Assignment *)
+	| SNew        of jsil_var                          (** Object creation *)
+	| SLookup     of jsil_var * jsil_expr * jsil_expr  (** Field lookup *)
+	| SMutation   of jsil_expr * jsil_expr * jsil_expr (** Field mutation *)
+	| SDelete     of jsil_expr * jsil_expr             (** Field deletion *)
+	| SDeleteObj  of jsil_expr                         (** Object deletion *)
+	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check *)
+	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
+	| SArguments  of jsil_var                          (** Arguments of the current function *)
+	| RAssume     of jsil_expr                          
+	| RAssert     of jsil_expr
+	| STermSucc
+	| STermFail
+	| SepAssert   of jsil_logic_assertion list 
+
+
+
+(** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
+    affect control flow, which are goto statements, function calls, and PHI-nodes, which
+    offer direct support for SSA. *)
+type jsil_cmd =
+	| SBasic          of jsil_basic_cmd                                     (** JSIL basic commands *)
+	| SGoto           of int                                                (** Unconditional goto *)
+	| SGuardedGoto    of jsil_expr * int * int                              (** Conditional goto *)
+	| SCall           of jsil_var * jsil_expr * jsil_expr list * int option (** Classical procedure call *)
+	| SApply          of jsil_var * jsil_expr list * int option             (** Application-style procedure call *)
+	| SPhiAssignment  of jsil_var * (jsil_expr array)                       (** PHI assignment *)
+	| SPsiAssignment  of jsil_var * (jsil_expr array)
+
+
 (** {b JSIL logic predicate}. *)
 type jsil_logic_predicate = {
 	name          : string;                                         (** Name of the predicate  *)
@@ -311,8 +317,8 @@ let previously_normalised = ref false;
 type jsil_spec = {
 	spec_name     : string;                (** Procedure/spec name *)
 	spec_params   : jsil_var list;         (** Procedure/spec parameters *)
-  proc_specs    : jsil_single_spec list; (** List of single specifications *)
-  previously_normalised : bool           (** If the spec is already normalised *)
+  	proc_specs    : jsil_single_spec list; (** List of single specifications *)
+  	previously_normalised : bool           (** If the spec is already normalised *)
 }
 
 
@@ -426,6 +432,18 @@ type jsil_ext_program = {
 	(* List of JSIL procedure names in order.*)
 	procedure_names : (string list);
 }
+
+let add_procs_to_ext_prog 
+		(prog : jsil_ext_program) (procs : jsil_ext_procedure list) : jsil_ext_program = 
+
+	let new_procs_names = List.map (fun proc -> proc.lproc_name) procs in 
+	List.iter (fun proc -> 
+		Printf.printf "updating the prog table\n"; 
+		Hashtbl.replace prog.procedures proc.lproc_name proc 
+	) procs; 
+	{ prog with procedure_names = new_procs_names @ prog.procedure_names }
+
+
 
 (* Normalised predicate *)
 type normalised_predicate = {

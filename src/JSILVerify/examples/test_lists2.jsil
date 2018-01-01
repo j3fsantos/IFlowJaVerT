@@ -23,7 +23,7 @@ spec list_sum (x)
       types(#sum: $$number_type, #alpha: $$list_type) ]]
    [[ my_list(#x, #alpha) * pure_list_sum (#alpha, #sum) * (ret == #sum) ]]
    normal
-proc list_count (x) {
+proc list_sum (x) {
        [* unfold(my_list(x, #alpha)); 
           unfold(pure_list_sum (#alpha, #sum))  *]
           goto [ x = $$null ] then1 else1;

@@ -1,7 +1,7 @@
 open JSIL_Syntax
 
 let file = ref ""
-let output_file_suffix = "_auto.jsil"
+let output_file_suffix = "_tests.jsil"
 let depth = ref 2
 
 let str_bar = "-----------------------------"
@@ -48,14 +48,16 @@ let process_file path =
 	
 
 	print_debug "\n*** Prelude: Stage 3: compiling specs to tests. ***\n";
-	Specs2tests.make_symbolic_tests prog new_spec_tbl n_pred_defs;  
+	let new_procs = Specs2tests.specs_to_tests ext_prog new_spec_tbl in 
+	Printf.printf "%d tests created\n" (List.length new_procs); 
 
+	let new_prog  = add_procs_to_ext_prog ext_prog new_procs in 
 
 
 	print_debug "\n*** Prelude: Stage 4: Printing the generated procedures to a file ***\n";
 	let output_file_name = String.sub path 0 (String.rindex path '.') in 
 	let output_file_name = output_file_name ^ output_file_suffix in 
-	burn_to_disk output_file_name (JSIL_Print.string_of_program prog) 
+	burn_to_disk output_file_name (JSIL_Print.string_of_ext_program new_prog) 
 
 
 let main () =
