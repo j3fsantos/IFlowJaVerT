@@ -19,7 +19,7 @@ pred KeysfromKVPairs (kvs, keys, count) :
     (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * 
           (count == 1 + #count_rest) * (keys == -u- (-{ #key }-, #rkeys)) *  
           KeysfromKVPairs (#rkvs, #rkeys, #count_rest) *
-          types (count: $$number_type, #count_rest: $$number_type);
+          types (count: $$number_type, #count_rest: $$number_type, #key: $$string_type, #value: $$string_type);
  
 
 pred Map (m, kvs) :
@@ -29,8 +29,10 @@ pred Map (m, kvs) :
 
 
 spec map_get (m, k)
-   [[ Map (m, -u- (-{ {{ #key, #value }} }-, #rkvs)) * (k == #key) ]]
-   [[ Map (m, -u- (-{ {{ #key, #value }} }-, #rkvs)) * (ret == #value) ]]
+   [[ Map (m, -u- (-{ {{ #key, #value }} }-, #rkvs)) * (k == #key) * 
+          types(#key: $$string_type, #value: $$string_type)]]
+   [[ Map (m, -u- (-{ {{ #key, #value }} }-, #rkvs)) * (ret == #value) * 
+          types(#key: $$string_type, #value: $$string_type) ]]
    normal
 proc map_get (m, k) {
           r := "xuxu"; 
@@ -39,10 +41,12 @@ proc map_get (m, k) {
 
 
 spec map_put (m, k, v)
-   [[ Map (m, -u- (-{ {{ #key, #value_old }} }-, #rkvs)) * (v == #value_new) ]]
-   [[ Map (m, -u- (-{ {{ #key, #value_new }} }-, #rkvs)) * (ret == #value_new) ]]
+   [[ Map (m, -u- (-{ {{ #key, #value_old }} }-, #rkvs)) * (v == #value_new) * 
+        types(#key: $$string_type, #value_old: $$string_type, #value_new: $$string_type) ]]
+   [[ Map (m, -u- (-{ {{ #key, #value_new }} }-, #rkvs)) * (ret == #value_new) * 
+        types(#key: $$string_type, #value_old: $$string_type, #value_new: $$string_type) ]]
    normal
-proc list_count (m, k, v) {
+proc map_put (m, k, v) {
           r := "xuxu"; 
   rlab:   skip
 } with { ret: r, rlab; };

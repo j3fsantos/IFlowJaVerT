@@ -185,6 +185,8 @@ let rec string_of_expression (e : jsil_expr) : string  =
 	| RNumSymb x -> "make-symbol-number(" ^ (Option.default "" x) ^ ")"
 	(* make-symbol-string() *)
 	| RStrSymb x -> "make-symbol-string(" ^ (Option.default "" x) ^ ")"
+	(* make-untyped-symbol() *)
+	| RUntypedSymb x -> "make-untyped-symbol(" ^ (Option.default "" x) ^ ")"
 
 
 (** JSIL logical expressions *)

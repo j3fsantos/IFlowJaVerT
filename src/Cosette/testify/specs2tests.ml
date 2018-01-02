@@ -43,10 +43,12 @@ let rec unlift_expression (subst : (string, string) Hashtbl.t) (lexpr : jsil_log
 	| LLit lit               -> Literal lit 
 	| LVar x                 -> 
 		(try Var (Hashtbl.find subst x)
-			with _ -> raise (Failure "unlift_expression. DEATH"))	
+			with _ -> 
+				let msg = Printf.sprintf "unlift_expression. DEATH - missing lvar %s" x in 
+				raise (Failure msg))	
 	| ALoc aloc              -> 
 		(try Literal (Loc (Hashtbl.find subst aloc))
-			with _ -> raise (Failure "unlift_expression. DEATH"))
+			with _ -> raise (Failure "unlift_expression. DEATH - aloc"))
 	| PVar x                 -> Var x 
 	| LBinOp (le1, bop, le2) -> BinOp (f le1, bop, f le2)
 	| LUnOp (unop, le)       -> UnOp (unop, f le)
@@ -59,7 +61,7 @@ let rec unlift_expression (subst : (string, string) Hashtbl.t) (lexpr : jsil_log
 	| LSetUnion les          -> SetUnion (List.map f les)
 	| LSetInter les          -> SetInter (List.map f les)
 	| LNone                  -> 
-		raise (Failure "unlift_expression. DEATH") 
+		raise (Failure "unlift_expression. DEATH - NONE") 
 
 
 let rec unlift_assertion (subst : (string, string) Hashtbl.t) (asrt : jsil_logic_assertion) : jsil_expr = 
@@ -598,7 +600,8 @@ let single_spec_to_test
 
 	let label_cmd_trivially cmd = empty_metadata, None, cmd in 
 
-	Printf.printf "Creating a UNIT TEST!!!!!!\n"; 
+	Printf.printf "Creating a UNIT TEST!!!!!! with PRE: %s\n"
+		(Symbolic_State_Print.string_of_symb_state s_spec.n_pre); 
 
 	let begin_lab      = "begin" in 
 	let ret_lab        = "rlab" in 
@@ -611,20 +614,38 @@ let single_spec_to_test
 	
 	let pre_lvars           = ss_lvars ss_pre in 
 	let pre_alocs           = ss_alocs ss_pre in  
+	let lvars_lst           = (SS.elements pre_lvars) in 
+
+	let typed_pre_lvars, untyped_pre_lvars = 
+		List.partition (fun x -> 
+			match gamma_get_type pre_gamma x with 
+			| Some NumberType 
+			| Some StringType -> true 
+			| _               -> false 
+		) lvars_lst in 
+	let untyped_pre_lvars   = SS.of_list untyped_pre_lvars in 
+
 	let lvars_subst_lst     = 
 		List.map (fun lvar -> 
 			lvar, (fresh_lvar_to_pvar lvar)
-		) (SS.elements pre_lvars) in 
+		) lvars_lst in 
 	let alocs_subst_lst     = List.map (fun aloc -> aloc, aloc_to_loc aloc) (SS.elements pre_alocs) in 
 	let subst               = init_substitution3 (lvars_subst_lst @ alocs_subst_lst) in 
 	
 	let pfs_guard           = pfs_to_list pre_pfs in 
 	let pre_heap_pfs        = implicit_heap_constraints pre_heap in 
     let pfs_guard           = pre_heap_pfs @ pfs_guard in
-    Printf.printf "single_spec_to_test. PFS PRE:\n%s\n"
-    	(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion pfs_guard)); 
     let pfs_guard, _        = Simplifications.simplify_pfs (pfs_of_list pfs_guard) pre_gamma None in
-    let pfs_guard           = List.map (unlift_assertion subst) (pfs_to_list pfs_guard) in 
+
+    let pfs_guard, pfs_with_untyped_vars = 
+    	List.partition (fun pf -> 
+    		let pf_lvars = JSIL_Logic_Utils.get_asrt_lvars pf in 
+    		(SS.inter pf_lvars untyped_pre_lvars) = SS.empty
+    	) (pfs_to_list pfs_guard) in 
+    Printf.printf "single_spec_to_test. PFS PRE:\n%s\n"
+    	(String.concat "\n" (List.map JSIL_Print.string_of_logic_assertion pfs_guard)); 
+
+    let pfs_guard           = List.map (unlift_assertion subst) pfs_guard in 
     let guard               = JSIL_Syntax_Utils.conjunct_exprs pfs_guard in 
 
     let f_ue                = unlift_expression subst in 
@@ -636,7 +657,8 @@ let single_spec_to_test
 				SLBasic (SAssignment (pvar, RNumSymb (Some pvar)))
 			| Some StringType -> 
 				SLBasic (SAssignment (pvar, RStrSymb (Some pvar)))
-			| _ -> raise (Failure "single_spec_to_test. DO NOT SUPPORT UNTYPED LOGICAL VARIABLES")
+			| _ ->
+				SLBasic (SAssignment (pvar, RUntypedSymb (Some pvar)))
 		) lvars_subst_lst in 
 
 	let heap_list     = heap_to_list pre_heap in 
@@ -757,7 +779,9 @@ let specs_to_tests
 
 				let proc = 
 					(try Hashtbl.find prog.procedures s_name
-						with _ -> raise (Failure "DEATH. specs_to_tests")) in 
+						with _ -> (
+							let msg = Printf.sprintf "DEATH. specs_to_tests. Missing procedure %s" s_name in 
+							raise (Failure msg))) in 
 
 				let ret_var = proc.lret_var in 
 				let err_var = proc.lerror_var in 

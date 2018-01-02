@@ -172,20 +172,21 @@ type jsil_binop =
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
-	| Literal  of jsil_lit                           (** JSIL literals ({!type:jsil_lit}) *)
-	| Var      of jsil_var                           (** JSIL variables ({!type:jsil_var}) *)
-	| BinOp    of jsil_expr * jsil_binop * jsil_expr (** Binary operators ({!type:jsil_binop}) *)
-	| UnOp     of jsil_unop * jsil_expr              (** Unary operators ({!type:jsil_unop}) *)
-	| TypeOf   of jsil_expr	                         (** Typing operator *)
-	| LstNth   of jsil_expr	* jsil_expr	             (** Nth element of a list *)
-	| StrNth   of jsil_expr	* jsil_expr	             (** Nth element of a string *)
-	| EList    of jsil_expr list                     (** Lists of expressions *)
-	| ESet     of jsil_expr list                     (** Sets of expressions *)
-	| CList    of jsil_expr list                     (** Lists of characters *)
-	| SetUnion of jsil_expr list
-	| SetInter of jsil_expr list
-	| RNumSymb of jsil_var option 
-	| RStrSymb of jsil_var option
+	| Literal       of jsil_lit                           (** JSIL literals ({!type:jsil_lit}) *)
+	| Var           of jsil_var                           (** JSIL variables ({!type:jsil_var}) *)
+	| BinOp         of jsil_expr * jsil_binop * jsil_expr (** Binary operators ({!type:jsil_binop}) *)
+	| UnOp          of jsil_unop * jsil_expr              (** Unary operators ({!type:jsil_unop}) *)
+	| TypeOf        of jsil_expr	                      (** Typing operator *)
+	| LstNth        of jsil_expr	* jsil_expr	          (** Nth element of a list *)
+	| StrNth        of jsil_expr	* jsil_expr	          (** Nth element of a string *)
+	| EList         of jsil_expr list                     (** Lists of expressions *)
+	| ESet          of jsil_expr list                     (** Sets of expressions *)
+	| CList         of jsil_expr list                     (** Lists of characters *)
+	| SetUnion      of jsil_expr list
+	| SetInter      of jsil_expr list
+	| RNumSymb      of jsil_var option 
+	| RStrSymb      of jsil_var option
+	| RUntypedSymb  of jsil_var option
 
 (**/**)
 (* Shorthand *)

@@ -29,9 +29,10 @@ proc list_sum (x) {
           goto [ x = $$null ] then1 else1;
    then1: sum := 0;
           goto rlab;
-   else1: z := [x, "next"];
-          count := "list_count"(z);
-          count := count + 1;
+   else1: v := [x, "value"]; 
+          z := [x, "next"];
+          sum := "list_sum"(z);
+          sum := sum + v;
           [* fold my_list(x, #alpha, #size); 
              fold pure_list_sum (#alpha, #sum) *]
    rlab:  skip
