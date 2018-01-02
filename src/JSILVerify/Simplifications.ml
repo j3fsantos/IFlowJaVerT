@@ -772,7 +772,7 @@ let simplify_symb_state
 			let pf = DynArray.get pfs !i in
 			(match pf with
 			| LEq (le1, le2) ->
-				(* print_debug (Printf.sprintf "Removing equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2)); *)
+				print_debug (Printf.sprintf "Removing equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2));
 				Hashtbl.add equality_hash le1 le2;
 				Hashtbl.add equality_hash le2 le1;
 				DynArray.delete pfs !i
@@ -790,8 +790,13 @@ let simplify_symb_state
 						let lpfs = DynArray.to_list pfs in
 						if (not (List.mem (LEq (le1, le2)) lpfs || List.mem (LEq (le2, le1)) lpfs))
 						then (
-							(* print_debug (Printf.sprintf "Adding equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2)); *)
-							DynArray.add pfs (LEq (le1, le2)));
+							print_debug (Printf.sprintf "Adding equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2));
+							(match le1, le2 with
+							| LESet _, LESet _ ->
+									let pf = DynArray.get pfs 0 in
+									DynArray.set pfs 0 (LEq (le1, le2));
+									DynArray.add pfs pf
+							| _, _ -> DynArray.add pfs (LEq (le1, le2))));	
 						j := !j + 1;
 				done;
 				i := !i + 1
@@ -1210,10 +1215,13 @@ let simplify_symb_state
 					(match (List.length ls1 = List.length ls2) with
 					| false -> n := !n + 1
 					| true -> 
-							(* All elements of the set have to be *)
+							let heap_lvars = heap_lvars heap in
+							(* All elements of the set have to be something *)
 							let ohMy = ref (-1) in
 							let gammaL = ref 0 in
 							let gammaR = ref 0 in
+							let heapL = ref 0 in
+							let heapR = ref 0 in
 							let ll = List.for_all2 (fun le1 le2 -> 
   						(match le1, le2 with
 							(* Lists of equal length *)
@@ -1228,6 +1236,8 @@ let simplify_symb_state
 										| LVar x, LVar y ->
 											if (Hashtbl.mem gamma x) then gammaL := !gammaL + 1;
 											if (Hashtbl.mem gamma y) then gammaR := !gammaR + 1;
+											if (SS.mem x heap_lvars) then heapL := !heapL + 1;
+											if (SS.mem y heap_lvars) then heapR := !heapR + 1;
 											true
 										| _, _ -> false
 										) le1 le2
@@ -1235,8 +1245,14 @@ let simplify_symb_state
   							(match ll with
   								| false -> n := !n + 1
   								| true ->
-											if (!gammaL * !gammaR = 0) && (!gammaL + !gammaR > 0) then (
-												let ls1, ls2 = if (!gammaL = 0) then ls2, ls1 else ls1, ls2 in
+											let ls1, ls2, proceed = 
+												if (!gammaL * !gammaR = 0) && (!gammaL + !gammaR > 0) 
+													then (if (!gammaL = 0) then ls2, ls1, true else ls1, ls2, true)
+													else if (!heapL * !heapR = 0) && (!heapL + !heapR > 0)
+														then (if (!heapL = 0) then ls2, ls1, true else ls1, ls2, true)
+														else ls1, ls2, false
+												in
+											if proceed then (
 												print_debug (Printf.sprintf "Candidates: %s, %s with length %d" (JSIL_Print.string_of_logic_expression (LESet ls1)) (JSIL_Print.string_of_logic_expression (LESet ls2)) !ohMy);
 												(* Now, splitting *)
 												let len = List.length ls1 in
