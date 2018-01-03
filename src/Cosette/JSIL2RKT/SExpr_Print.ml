@@ -80,6 +80,12 @@ let rec sexpr_of_expression e =
 			| None -> fresh_symbol () 
 			| Some x -> x in
 			Printf.sprintf "(make-symbol-string %s)" x
+	| RUntypedSymb x ->
+		let x = 
+			match x with 
+			| None -> fresh_symbol () 
+			| Some x -> x in
+			Printf.sprintf "(make-untyped-symbol %s)" x
 	(* (jsil-list sexpr-e1 ... sexpr-en) *)
 	| EList ll ->
 		(match ll with
@@ -89,6 +95,16 @@ let rec sexpr_of_expression e =
 	| LstNth (e1, e2) -> Printf.sprintf "(l-nth %s %s)" (se e1) (se e2)
 	(* (s-nth e n) *)
 	| StrNth (e1, e2) -> Printf.sprintf "(s-nth %s %s)" (se e1) (se e2)
+	(* (jsil-set e1 ... en) *)
+	| ESet es -> Printf.sprintf "(jsil-set %s)" (String.concat " " (List.map sexpr_of_expression es))
+	(* (set-inter e1 ... en) *)
+	| SetUnion es -> Printf.sprintf "(set-union %s)" (String.concat " " (List.map sexpr_of_expression es))
+    (* (set-union e1 ... en) *)
+    | SetInter es -> Printf.sprintf "(set-inter %s)" (String.concat " " (List.map sexpr_of_expression es))
+	| _ ->
+		let msg = Printf.sprintf "jsil2rkt. Unsupported expression %s\n" 
+			(JSIL_Print.string_of_expression e) in  
+		raise (Failure msg)
 
 
 let rec sexpr_of_lexpr le = 

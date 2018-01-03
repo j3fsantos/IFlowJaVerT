@@ -106,7 +106,7 @@ let conjunct_exprs (expr_list : jsil_expr list) : jsil_expr =
   let rec loop ac_expr exprs = 
     match exprs with 
     | []                 -> ac_expr 
-    | expr :: rest_exprs -> BinOp (expr, And, ac_expr) in 
+    | expr :: rest_exprs -> loop (BinOp (expr, And, ac_expr)) rest_exprs in 
 
   match List.rev expr_list with 
   | [  ]               -> Literal (Bool true)

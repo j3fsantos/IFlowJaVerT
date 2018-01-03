@@ -616,14 +616,14 @@ let single_spec_to_test
 	let pre_alocs           = ss_alocs ss_pre in  
 	let lvars_lst           = (SS.elements pre_lvars) in 
 
-	let typed_pre_lvars, untyped_pre_lvars = 
+	(* let typed_pre_lvars, untyped_pre_lvars = 
 		List.partition (fun x -> 
 			match gamma_get_type pre_gamma x with 
 			| Some NumberType 
 			| Some StringType -> true 
 			| _               -> false 
 		) lvars_lst in 
-	let untyped_pre_lvars   = SS.of_list untyped_pre_lvars in 
+	let untyped_pre_lvars   = SS.of_list untyped_pre_lvars in  *)
 
 	let lvars_subst_lst     = 
 		List.map (fun lvar -> 
@@ -637,16 +637,24 @@ let single_spec_to_test
     let pfs_guard           = pre_heap_pfs @ pfs_guard in
     let pfs_guard, _        = Simplifications.simplify_pfs (pfs_of_list pfs_guard) pre_gamma None in
 
+    (* 
     let pfs_guard, pfs_with_untyped_vars = 
     	List.partition (fun pf -> 
     		let pf_lvars = JSIL_Logic_Utils.get_asrt_lvars pf in 
     		(SS.inter pf_lvars untyped_pre_lvars) = SS.empty
     	) (pfs_to_list pfs_guard) in 
     Printf.printf "single_spec_to_test. PFS PRE:\n%s\n"
-    	(String.concat "\n" (List.map JSIL_Print.string_of_logic_assertion pfs_guard)); 
+    	(String.concat "\n" (List.map JSIL_Print.string_of_logic_assertion pfs_guard)); *)
 
-    let pfs_guard           = List.map (unlift_assertion subst) pfs_guard in 
+    let pfs_guard           = List.map (unlift_assertion subst) (pfs_to_list pfs_guard) in 
+
     let guard               = JSIL_Syntax_Utils.conjunct_exprs pfs_guard in 
+
+
+    Printf.printf "single_spec_to_test. PFS PRE:\n%s\nGuard: %s\n"
+    	(String.concat "\n" (List.map JSIL_Print.string_of_expression pfs_guard))
+    	(JSIL_Print.string_of_expression guard); 
+
 
     let f_ue                = unlift_expression subst in 
 
@@ -709,23 +717,25 @@ let single_spec_to_test
 			SLBasic (SepAssert post_asrts) in 
 	let error_ret_cmd = empty_metadata, Some pre_err_lab, error_ret_cmd in 
 
-	let cmds = List.map label_cmd_trivially (lvars_init_cmds @ heap_commands @ [ test_cmd ]) in 
-	let cmds = cmds @ [ normal_ret_cmd; jmp_to_ret_cmd; error_ret_cmd; ret_cmd ] in 
+
+	let init_cmds = List.map label_cmd_trivially lvars_init_cmds in 
+	let main_cmds = List.map label_cmd_trivially (heap_commands @ [ test_cmd ]) in 
+	let main_cmds = label_first_cmd main_cmds begin_lab in 
+	let ret_cmds  = [ normal_ret_cmd; jmp_to_ret_cmd; error_ret_cmd; ret_cmd ] in 
 
 
 	let cond_goto = empty_metadata, None, SLGuardedGoto (guard, begin_lab, ret_lab) in 
-	let cmds = label_first_cmd cmds begin_lab in 
-	let cmds = cond_goto :: cmds in 
+	
 
 	{
 		lproc_name   = test_name; 
-		lproc_body   = Array.of_list cmds; 
+		lproc_body   = Array.of_list (init_cmds @ (cond_goto :: (main_cmds @ ret_cmds))); 
 		lproc_params = []; 
 		lret_label   = Some ret_lab;
 		lret_var     = Some ret_var;
 		lerror_label = None;
 		lerror_var   = None;
-		lspec        = Some (spec_of_normalised_single_spec s_name s_params s_spec)
+		lspec        = None (* Some (spec_of_normalised_single_spec s_name s_params s_spec) *)
 	}
 
 
