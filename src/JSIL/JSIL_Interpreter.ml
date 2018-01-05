@@ -580,6 +580,9 @@ let rec evaluate_bcmd bcmd heap store =
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (JSIL_Print.string_of_literal v);
 			v
+			
+	| STermSucc  
+	| STermFail -> Bool true 
 
 let init_store params args =
 	let number_of_params = List.length params in
