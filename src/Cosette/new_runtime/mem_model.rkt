@@ -95,7 +95,7 @@
            (is-llist? val)
            (list-mem? jsil-constants val)
            (list-mem? jsil-math-constants val))))
-    ;; (println (format "literal? with ~v produced ~v" val ret))
+    ;;(println (format "literal? with ~v produced ~v" val ret))
     ret))
 
 ;; Evaluating a literal
@@ -114,7 +114,13 @@
         [(eq? lit mc-sqrt12) (sqrt 0.5)]
         [(eq? lit mc-sqrt2)  (sqrt 2.)]
       )
-      lit
+      (cond
+      	[(is-llist? lit)
+      		(let* ((tail (cdr lit))
+      		       (mtail (map eval_literal tail)))
+      		  (cons 'jsil-list mtail))]
+      	[#t lit]
+      )
   )
 )
 
@@ -128,6 +134,17 @@
     ((eq? val jnull) null-type)
     ((eq? val jundefined) undefined-type)
     ((eq? val jempty) empty-type)
+    ((eq? val mc-minval) number-type)
+    ((eq? val mc-maxval) number-type)
+    ((eq? val mc-random) number-type)
+    ((eq? val mc-pi)     number-type)
+    ((eq? val mc-e)      number-type)
+    ((eq? val mc-ln10)   number-type)
+    ((eq? val mc-ln2)    number-type)
+    ((eq? val mc-log2e)  number-type)
+    ((eq? val mc-log10e) number-type)
+    ((eq? val mc-sqrt12) number-type)
+    ((eq? val mc-sqrt2)  number-type)
     ((is-llist? val) list-type)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
@@ -239,7 +256,11 @@
 
 (define operators-list
   (list
-    (cons '= eq?)
+    (cons '= 
+    	(lambda (x y)
+    		(cond 
+    		[(and (eq? x +nan.0) (eq? y +nan.0)) #f]
+    		[else (eq? x y)])))
 
     (cons '<
           (lambda (x y)
@@ -270,7 +291,12 @@
 
     (cons '/
           (lambda (x y)
-            (if (and (number? x) (number? y)) (/ x y) jundefined)))
+            (cond 
+            [(and (number? x) (number? y)) 
+            	(let* ((ix (exact->inexact x))
+            	       (iy (exact->inexact y)))
+            		(/ ix iy))]
+            [else jundefined])))
 
     (cons '%
           (lambda (x y)
@@ -315,7 +341,7 @@
                    (append (list 'jsil-list x) (cdr y))
                    jundefined)))
 
-    (cons '** (lambda (x) (if (number? x) (expt x) jundefined)))
+    (cons '** (lambda (x y) (if (and (number? x) (number? y)) (expt x y) jundefined)))
 
     (cons 'm_atan2 (lambda (x y)
                      (if (and (number? x) (number? y)) (atan y x) jundefined)))

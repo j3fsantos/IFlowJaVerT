@@ -4,7 +4,6 @@ open JSIL_Interpreter
 
 let file = ref ""
 let js = ref false
-let test262 = ref false
 let verbose = ref false
 
 let load_file f =
@@ -24,7 +23,7 @@ let arguments () =
 			(* js *)
 			"-js", Arg.Unit(fun () -> js := true), "for js";
 			(* test262 *)
-			"-test262", Arg.Unit(fun () -> js := true; test262 := true), "test262";
+			"-test262", Arg.Unit(fun () -> js := true; JS2JSIL_Compiler.test262 := true), "test262";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -67,7 +66,7 @@ let main () =
 	
   	if (!file <> "") then (
   	
-  	let prog, which_pred = (match !test262 with
+  	let prog, which_pred = (match !JS2JSIL_Compiler.test262 with
   	| false -> 
   			let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
   			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog
@@ -102,10 +101,9 @@ let main () =
   	print_endline just_the_filename;
     burn_to_disk (filename ^ ".rkt") sprog_in_template;
   	
-  	(match !test262 with
+  	(match !JS2JSIL_Compiler.test262 with
   	| false -> ()
   	| true -> 
-  			let exit_code = Sys.command ("pwd") in
   			let exit_code = Sys.command ("cp " ^ filename ^ ".rkt .") in
     		let exit_code = Sys.command ("racket "^ just_the_filename ^ ".rkt") in
   			(* let _ = Sys.command ("rm "^ just_the_filename ^ ".rkt") in *)
@@ -117,6 +115,7 @@ let main () =
   | Parser.JS_To_XML_parser_failure
   | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1
   | JS2JSIL_Preprocessing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1
+	| JSIL_PreParser.Unparseable e -> Printf.printf "\nFile not parseable: %s\n" e; exit 1
 	 
 
 let _ = main()
