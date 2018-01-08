@@ -248,7 +248,9 @@
 )
 
 (define (jsil-number-to-string n)
-  (integer->string n))
+  (cond
+  	[(eq? n +nan.0) "NaN"]
+  	[#t (integer->string n)]))
 	
 ;  (cond
 ;    ((integer? n) (integer->string n))
@@ -295,12 +297,21 @@
             [(and (number? x) (number? y)) 
             	(let* ((ix (exact->inexact x))
             	       (iy (exact->inexact y)))
-            		(/ ix iy))]
+            		(cond
+            		[(and (eq? y 0) (< ix 0)) -inf.0]
+            		[(and (eq? y 0) (> ix 0)) +inf.0]
+            		[(and (eq? y 0) (eq? ix 0)) +nan.0]
+            		[#t (/ ix iy)] 
+            		))]
             [else jundefined])))
 
     (cons '%
           (lambda (x y)
-            (if (and (number? x) (number? y)) (modulo x y) jundefined)))
+            (if (and (number? x) (number? y)) 
+            (cond
+            [(or (eq? x +nan.0) (eq? y +nan.0)) +nan.0]
+            [#t (modulo x y)]) 
+            jundefined)))
           
     (cons '<: jsil-subtype)
 
@@ -350,8 +361,13 @@
                  (if (and (number? x) (number? y))
                       (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                       jundefined)))
+                      
+    (cons 'bnot (lambda (x)
+                 (if (and (number? x))
+                      (bitwise-not (inexact->exact (truncate x)))
+                      jundefined)))              
 
-    (cons '>>> (lambda (x) (if (number? x) (unsigned_right_shift x) jundefined)))
+    (cons '>>> (lambda (x y) (if (number? x) (unsigned_right_shift x y) jundefined)))
 
     (cons 'not (lambda (x) (if (boolean? x) (not x) #f)))
 

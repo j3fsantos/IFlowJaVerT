@@ -31,7 +31,7 @@ if (new Number(null) + "" !== "0") {
 
 // CHECK#5
 if (new Number(void 0) + "" !== "NaN") {
-  $ERROR('#5: new Number(void 0) + "" === "NaN. Actual: ' + (new Number(void 0) + ""));
+  $ERROR('#5: new Number(void 0) + "" === "NaN". Actual: ' + (new Number(void 0) + ""));
 }
 
 // CHECK#6
