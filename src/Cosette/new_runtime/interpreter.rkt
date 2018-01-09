@@ -198,7 +198,15 @@
         ;(println (format "Failure was: ~v" failure))
         (set! failure #t)
         ;(println (format "And now it is: ~v" failure))
+        (cons heap store)]
+
+      ;;
+      ;; ('assert-* a)
+      [(eq? cmd-type 'assert-*)
+        (println (format "assert-*(~v)" (second bcmd)))
+        (sep-assert (second bcmd) heap store)
         (cons heap store)] 
+      
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 

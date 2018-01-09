@@ -134,8 +134,8 @@ let rec sexpr_of_assertion a =
 	let sle = sexpr_of_lexpr in 
 	let sa  = sexpr_of_assertion in 
 	match a with 
-	| LTrue                     -> "#t"
-	| LFalse                    -> "#f"
+	| LTrue                     -> "true"
+	| LFalse                    -> "false"
 	| LNot a                    -> Printf.sprintf "(not %s)" (sa a)
 	| LAnd (a1, a2)             -> Printf.sprintf "(and %s %s)" (sa a1) (sa a2)
 	| LOr (a1, a2)              -> Printf.sprintf "(or %s %s)" (sa a1) (sa a2)

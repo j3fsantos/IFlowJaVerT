@@ -232,10 +232,26 @@
 
 (define (jsil-number-to-string n)
   (integer->string n))
-	
-;  (cond
-;    ((integer? n) (integer->string n))
-;    (#t (number->string n))))
+
+
+(define (check-logic-variable var )
+  (if (not (symbol? var))
+      #f
+      (or (string=? (substring (symbol->string var) 0 5) "_lvar")
+          (string=? (first (symbol->string var)) "#")
+          (string=? (substring (symbol->string var) 0 4) "_$l_"))))
+
+(define (expr-lvars expr)
+  (cond
+    ;; lvar
+    [(check-logic-variable expr) (set expr)]
+    ;; normal var
+    [(symbol? expr) (set)]
+    ;; literal
+    [(literal? expr) (set)]
+    ;;
+    [else (error "BANANAS")]))
+
 
 (define operators-list
   (list
