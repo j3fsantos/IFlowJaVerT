@@ -8,7 +8,7 @@ pred ValidKey(key) :
 pred KVPairs (o, kvs, count) :
     (kvs == -{ }-) * (count == 0),
 
-    (kvs == -u- (-{ {{ #key, #value }} }-,  #rkvs)) * (count == 1 + #count_rest) * (! (-{ #key, #value }- --e-- #rkvs)) *
+    (kvs == -u- (-{ {{ #key, #value }} }-,  #rkvs)) * (count == 1 + #count_rest) * (! ({{ #key, #value }} --e-- #rkvs)) *
           ValidKey(#key) * ((o, #key) -> #value) * KVPairs(o, #rkvs, #count_rest) * 
           types (count: $$number_type, #count_rest: $$number_type);
 
@@ -17,7 +17,7 @@ pred KeysfromKVPairs (kvs, keys, count) :
     (kvs == -{}-) * (keys == -{}-) * (count == 0), 
 
     (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * 
-          (count == 1 + #count_rest) * (keys == -u- (-{ #key }-, #rkeys)) * (! (-{ #key }- --e-- #rkeys)) *
+          (count == 1 + #count_rest) * (keys == -u- (-{ #key }-, #rkeys)) * (! (#key --e-- #rkeys)) *
           KeysfromKVPairs (#rkvs, #rkeys, #count_rest) *
           types (count: $$number_type, #count_rest: $$number_type, #key: $$string_type, #value: $$string_type);
  

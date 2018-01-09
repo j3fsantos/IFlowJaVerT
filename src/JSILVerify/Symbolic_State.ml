@@ -875,7 +875,7 @@ let compute_verification_statistics
 (*************************************)
 
 let rec lexpr_lexpr_lexpr_subst subst e = 
-	print_debug_petar (Printf.sprintf "LExpr-Lexpr-Subst: %s" (JSIL_Print.string_of_logic_expression e)); 
+	(* print_debug_petar (Printf.sprintf "LExpr-Lexpr-Subst: %s" (JSIL_Print.string_of_logic_expression e)); *) 
 	let f = lexpr_lexpr_lexpr_subst subst in
 	let result = (match (Hashtbl.mem subst e) with
 	| true -> Hashtbl.find subst e
@@ -900,9 +900,9 @@ let rec lexpr_lexpr_lexpr_subst subst e =
   )) in
 	if (e = result) then result else 
 		let result = f (reduce_expression_no_store_no_gamma_no_pfs result) in
-			print_debug_petar (Printf.sprintf "LExpr-Lexpr-Actual-Subst: %s ---> %s" (JSIL_Print.string_of_logic_expression e) 
-			(JSIL_Print.string_of_logic_expression result));
-		result
+			(* print_debug_petar (Printf.sprintf "LExpr-Lexpr-Actual-Subst: %s ---> %s" (JSIL_Print.string_of_logic_expression e) 
+			(JSIL_Print.string_of_logic_expression result)); *)
+			result
 
 let rec lexpr_lexpr_ass_subst subst a =
 	let f = lexpr_lexpr_ass_subst subst in
