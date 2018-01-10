@@ -1197,6 +1197,8 @@ let rec symb_evaluate_cmd
 	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 	Symbolic_State_Print.print_symb_state_and_cmd proc i symb_state;
+			let nri = Symbolic_State_Utils.collect_all_NR_information symb_state in
+				print_debug_petar (Printf.sprintf "Negative resource info: %s" (Symbolic_State_Print.string_of_pfs (DynArray.of_list nri)));
 	let metadata, cmd = get_proc_cmd proc i in
 	sec_visit_node search_info i;
 	

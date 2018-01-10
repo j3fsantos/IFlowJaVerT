@@ -793,8 +793,9 @@ let simplify_symb_state
 							print_debug (Printf.sprintf "Adding equality: %s = %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2));
 							(match le1, le2 with
 							| LESet _, LESet _ ->
-									let pf = DynArray.get pfs 0 in
-									DynArray.set pfs 0 (LEq (le1, le2));
+									if (DynArray.length pfs > 0) then 
+										let pf = DynArray.get pfs 0 in
+										DynArray.set pfs 0 (LEq (le1, le2));
 									DynArray.add pfs pf
 							| _, _ -> DynArray.add pfs (LEq (le1, le2))));	
 						j := !j + 1;
@@ -927,6 +928,7 @@ let simplify_symb_state
 		
 		let n = ref 0 in
 		while (!pfs_ok && !n < DynArray.length pfs) do
+
 			let pf = DynArray.get pfs !n in
 			(match pf with
 
@@ -962,7 +964,14 @@ let simplify_symb_state
 			(* I don't know how these could get here, but let's assume they can... *)
 			| LAnd  (a1, a2)
 			| LStar	(a1, a2) -> DynArray.set pfs !n a1; DynArray.add pfs a2
-						
+			
+			(* Or *)
+			| LOr (a1, a2) ->
+					let spfs = SA.of_list (DynArray.to_list pfs) in
+					if ((SA.mem a1 spfs) || (SA.mem a2 spfs)) then
+						(DynArray.delete pfs !n;
+						changes_made := true) else n := !n + 1
+			
 			(* Equality *)
 			| LEq (le1, le2) ->
 				(match le1, le2 with
@@ -1221,6 +1230,9 @@ let simplify_symb_state
 					(match (List.length ls1 = List.length ls2) with
 					| false -> n := !n + 1
 					| true -> 
+							(* UNSOUND FOR VERIFICATION but fine for Cosette *)
+							List.iter2 (fun x y -> DynArray.add pfs (LEq (x, y))) ls1 ls2;
+							
 							let heap_lvars = heap_lvars heap in
 							(* All elements of the set have to be something *)
 							let ohMy = ref (-1) in
@@ -1296,6 +1308,25 @@ let simplify_symb_state
 											n := !n + 1
 								)
 					)
+					
+				(* More insanely specific stuff *)
+				| LSetUnion [ LVar s; LESet lls ], LESet rls ->
+						print_debug_petar (Printf.sprintf "Found union: %s -u- { %s } = { %s}" s
+							(String.concat ", " (List.map JSIL_Print.string_of_logic_expression lls))
+							(String.concat ", " (List.map JSIL_Print.string_of_logic_expression rls)));
+						(* UNSOUND for verification, fine for Cosette: assuming disjoint union *)
+						let llen = List.length lls in
+						let rlen = List.length rls in
+						let diff = rlen - llen in
+						if (diff < 0) 
+							then (pfs_ok := false; msg := "Set union bananas.") 
+							else	
+    						(let set_elements = Array.to_list (Array.init diff (fun _ -> let v = fresh_lvar() in LVar v)) in
+    						let pf = DynArray.get pfs 0 in
+    						DynArray.add pfs pf;
+    						DynArray.set pfs 0 (LEq (LVar s, LESet set_elements));
+    						changes_made := true;
+    						n := 0)
         
 				| _, _ -> n := !n + 1)
 		
@@ -1373,7 +1404,7 @@ let simplify_symb_state
 	let ss, subst, ots, exs = if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)
 		else (pfs_false subst !others !exists !symb_state !msg) in
-	
+		
 	(* let cache_value = simpl_encache_value ss subst ots exs in
 	Hashtbl.replace simpl_cache cache_key cache_value; *)
 
