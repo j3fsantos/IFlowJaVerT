@@ -11,7 +11,7 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 10)
+(define max-depth 3)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -21,12 +21,11 @@
           new-tabs
           (loop (- i 1) (string-append tab new-tabs))))))
 
-(define (print-info proc-name str)
-  42)
-  ;;(when (and print-cmds (<= call-stack-depth max-depth))
-  ;;  (let* ((tabs (generate-tabs call-stack-depth))
-  ;;         (new-str (string-append tabs proc-name ": " str)))
-  ;;  (println new-str))))
+(define (print-info proc-name str) 42)
+	;;(when (and print-cmds (<= call-stack-depth max-depth))
+	;;(let* ((tabs (generate-tabs call-stack-depth))
+	;;	(new-str (string-append tabs proc-name ": " str)))
+	;;(println new-str))))
 
 ;;
 ;; SSkip      ()                  'skip       DONE
@@ -271,7 +270,7 @@
       [(and (eq? (car outcome) 'err) (not (null? err-label)))
        (print-info proc-name (format "ret: (error, ~v)" (cdr outcome)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
-         (list store err-label cur-index))]
+         (list store err-label (- cur-index 1)))]
     
       [(eq? (car outcome) 'err)
        (print-info proc-name (format "ret: (error, ~v)" (cdr outcome)))
@@ -332,7 +331,7 @@
                (run-cmds-iter prog heap new-store new-ctx cur-index prev-index))))]
                       
       [(eq? cur-index (get-err-index proc))
-        (let ((outcome (cons 'err (store-get store ret-var))))
+        (let ((outcome (cons 'err (store-get store err-var))))
          (if (is-top-ctx? ctx)
              outcome 
              (let* ((next-state (process-proc-outcome outcome ctx))
@@ -374,7 +373,7 @@
               (then-label (third cmd))
               (else-label (fourth cmd))
               (expr-val (run-expr expr store)))
-         (print-info proc-name (format "goto [~v] ~v ~v" expr-val then-label else-label))
+         (print-info proc-name (format "goto [~v] ~v ~v --> ~v" expr then-label else-label expr-val))
          (parameterize ([goto-stack
                          (cons (cons proc-name cur-index) (goto-stack))])
 
@@ -553,6 +552,10 @@
 
        )]))
 
+(define (terminate outcome)
+  (cond 
+  	[(eq? (car outcome) 'err) (exit 1)]
+  	[else (exit 0)]))
 
 (define (run-program prog heap)
   (jsil-discharge)
@@ -574,7 +577,8 @@
     ;;(println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
     ;;(println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (set! global-outcome outcome)
-    outcome-success))
+    (println outcome-success)
+    (terminate outcome)))
 
   
 (provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure global-outcome) ;; jtrue jfalse protop)

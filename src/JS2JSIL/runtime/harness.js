@@ -30,10 +30,23 @@ function assert(mustBeTrue, message) {
     $ERROR(message);
 }
 
+assert.isNegativeZero = function (x) {
+    if (x !== 0) return false;
+    var obj = {};
+    Object.defineProperty(obj, 'z', { value: -0, configurable: false });
+    try {
+        // Is x different from z’s previous value? Then throw exception.
+        Object.defineProperty(obj, 'z', { value: x });
+    } catch (e) {
+        return false
+    };
+    return true;
+};
+
 assert._isSameValue = function (a, b) {
     if (a === b) {
         // Handle +/-0 vs. -/+0
-        return a !== 0 || 1 / a === 1 / b;
+        return a !== 0 || (assert.isNegativeZero(a) ? assert.isNegativeZero(b) : !assert.isNegativeZero(b));
     }
 
     // Handle NaN vs. NaN

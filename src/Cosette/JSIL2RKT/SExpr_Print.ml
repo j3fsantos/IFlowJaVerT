@@ -51,8 +51,14 @@ let rec sexpr_of_literal lit =
 
 let sexpr_of_binop bop =
   match bop with
-  	| BitwiseXor -> "bor"
+  	| BitwiseXor -> "^"
+		| BitwiseOr  -> "bor"
   	| _          -> JSIL_Print.string_of_binop bop  
+
+let sexpr_of_unop unop =
+  match unop with
+  	| BitwiseNot -> "bnot"
+  	| _          -> JSIL_Print.string_of_unop unop  
 
 
 let rec sexpr_of_expression e =
@@ -63,7 +69,7 @@ let rec sexpr_of_expression e =
 	(* (bop e1 e2) *)
     | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sexpr_of_binop op) (se e1) (se e2)
 	(* (uop e1 e2) *)
-    | UnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
+    | UnOp (op, e) -> Printf.sprintf "(%s %s)" (sexpr_of_unop op) (se e)
 	(* (typeof e) *)
     | TypeOf e -> Printf.sprintf "(typeof %s)" (se e)
 	(* (make-symbol-number) *)

@@ -399,7 +399,8 @@ let string_of_js_error heap err_val =
 					| _ -> eType) in
 				(JSIL_Print.string_of_literal eType) ^ " : " ^ (JSIL_Print.string_of_literal message)
 		| _ -> (raise (Failure "Prototype object not an object.")))
-	| _ -> JSIL_Print.string_of_literal err_val
+	| _ -> 
+		JSIL_Print.string_of_literal err_val
 
 
 (********************************************)

@@ -1210,6 +1210,12 @@ let simplify_symb_state
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
 				
+				(* Sets *)
+				| LESet [ le1 ], LESet [ le2 ] ->
+						DynArray.delete pfs !n;
+						DynArray.add pfs (LEq (le1, le2));
+						changes_made := true;
+				
 				(* The insanely specific set stuff that Jose asked for *)
         | LESet ls1, LESet ls2 -> 
 					(match (List.length ls1 = List.length ls2) with
@@ -1346,8 +1352,23 @@ let simplify_symb_state
 
 	let others = ref (DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) !others) in
 
-	(* print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
+	(* Final bit - remove any duplicates and equalities that commute *)
+	let i = ref 0 in
+	while (!i < DynArray.length pfs) do
+		let spfs = SA.of_list (DynArray.to_list pfs) in
+		let pf = DynArray.get pfs !i in
+		(match pf with
+		| LEq (le1, le2) ->
+				let sorted = List.sort Pervasives.compare [le1; le2] in
+				let left = List.hd sorted in 
+				let right = List.hd (List.tl sorted) in
+				DynArray.set pfs !i (LEq (right, left))
+		| _ -> ());
+		i := !i + 1
+	done;
 	
+	sanitise_pfs_no_store_no_gamma pfs;
+
 	(* print_debug_petar (Printf.sprintf "Exiting with pfs_ok: %b\n" !pfs_ok); *)
 	let ss, subst, ots, exs = if (!pfs_ok) 
 		then (!symb_state, subst, !others, !exists)

@@ -95,7 +95,7 @@
            (is-llist? val)
            (list-mem? jsil-constants val)
            (list-mem? jsil-math-constants val))))
-    ;; (println (format "literal? with ~v produced ~v" val ret))
+    ;;(println (format "literal? with ~v produced ~v" val ret))
     ret))
 
 ;; Evaluating a literal
@@ -114,7 +114,13 @@
         [(eq? lit mc-sqrt12) (sqrt 0.5)]
         [(eq? lit mc-sqrt2)  (sqrt 2.)]
       )
-      lit
+      (cond
+      	[(is-llist? lit)
+      		(let* ((tail (cdr lit))
+      		       (mtail (map eval_literal tail)))
+      		  (cons 'jsil-list mtail))]
+      	[#t lit]
+      )
   )
 )
 
@@ -128,6 +134,17 @@
     ((eq? val jnull) null-type)
     ((eq? val jundefined) undefined-type)
     ((eq? val jempty) empty-type)
+    ((eq? val mc-minval) number-type)
+    ((eq? val mc-maxval) number-type)
+    ((eq? val mc-random) number-type)
+    ((eq? val mc-pi)     number-type)
+    ((eq? val mc-e)      number-type)
+    ((eq? val mc-ln10)   number-type)
+    ((eq? val mc-ln2)    number-type)
+    ((eq? val mc-log2e)  number-type)
+    ((eq? val mc-log10e) number-type)
+    ((eq? val mc-sqrt12) number-type)
+    ((eq? val mc-sqrt2)  number-type)
     ((is-llist? val) list-type)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
@@ -231,31 +248,138 @@
 )
 
 (define (jsil-number-to-string n)
-  (integer->string n))
+  (cond
+    [(eq? n +nan.0) "NaN"]
+    [#t (integer->string n)]))
 
 
 (define (check-logic-variable var )
   (if (not (symbol? var))
       #f
-      (or (string=? (substring (symbol->string var) 0 5) "_lvar")
-          (string=? (first (symbol->string var)) "#")
-          (string=? (substring (symbol->string var) 0 4) "_$l_"))))
+      (let ((var-string (symbol->string var)))
+        (or (and (> (string-length var-string) 5) (string=? (substring var-string 0 5) "_lvar"))
+            (and (> (string-length var-string) 1) (string=? (substring var-string 0 1) "#"))
+            (and (> (string-length var-string) 4) (string=? (substring var-string 0 4) "_$l_"))))))
+
+
+;;'= '< '<= '<s '+ '- '* '/ '% '<:  '++  '@ 'and 'or '& '^  '<< '>> ':: '** 'm_atan2 'bor 'bnot '>>> 'not 'num_to_string 'string_to_num '!
+;;'is_primitive 'length 'car 'cdr 'm_abs 'm_acos 'm_asin 'm_atan 'm_cos 'm_sin 'm_tan 'm_sgn 'm_sqrt 'm_exp 'm_log 'm_ceil 'm_floor 'm_round
+;;'num_to_int 'num_to_int32 'num_to_unint16 'num_to_unint32 's-len 'l-len
+
+
+(define (is-operator? arg)
+  (let ((operator-list
+         (list '= '< '<= '<s '+ '- '* '/ '% '<:  '++  '@ 'and 'or '& '^  '<< '>> ':: '**
+               'm_atan2 'bor 'bnot '>>> 'not 'num_to_string 'string_to_num '!'is_primitive
+               'length 'car 'cdr 'm_abs 'm_acos 'm_asin 'm_atan 'm_cos 'm_sin 'm_tan 'm_sgn
+               'm_sqrt 'm_exp 'm_log 'm_ceil 'm_floor 'm_round 'num_to_int 'num_to_int32
+               'num_to_unint16 'num_to_unint32 's-len 'l-len)))
+    (member arg operator-list)))
+
 
 (define (expr-lvars expr)
   (cond
-    ;; lvar
-    [(check-logic-variable expr) (set expr)]
-    ;; normal var
-    [(symbol? expr) (set)]
     ;; literal
     [(literal? expr) (set)]
+    ;; lvar
+    [(check-logic-variable expr)
+     (begin 
+       (println (format "found the lvar ~v" expr))
+       (set expr))]
+    ;; pvar
+    [(symbol? expr)
+     (begin 
+       (println (format "found the pvar ~v" expr))
+       (set))]
+    ;; binop 
+    [(and (list? expr) (eq? (length expr) 3) (is-operator? (car expr)))
+     (begin 
+       (println (format "found the binop expr ~v" expr))
+       (set-union (expr-lvars (second expr)) (expr-lvars (third expr))))]
+    ;; unop
+    [(and (list? expr) (eq? (length expr) 2) (is-operator? (car expr)))
+     (expr-lvars (second expr))]
+    ;; type-of
+    [(and (list? expr) (eq? (first expr) 'typeof))
+     (expr-lvars (second expr))]
+    ;; lst-nth
+    [(and (list? expr) (eq? (first expr) 'l-nth))
+     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
+    ;; s-nth
+    [(and (list? expr) (eq? (first expr) 's-nth))
+     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
+    ;; {{ le_1, ..., le_n }}
+    [(and (list? expr) (eq? (first expr) 'jsil-list))
+     (let ((le-sets (map expr-lvars (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;; -{ le_1, ..., le_n }-
+    [(and (list? expr) (eq? (first expr) 'jsil-set))
+     (let ((le-sets (map expr-lvars (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;; set-union 
+    [(and (list? expr) (eq? (first expr) 'set-union))
+     (let ((le-sets (map expr-lvars (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;; set-inter 
+    [(and (list? expr) (eq? (first expr) 'set-inter))
+     (let ((le-sets (map expr-lvars (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;;
-    [else (error "BANANAS")]))
+    [else (set)]))
+
+
+
+(define (lexpr-substitution lexpr subst)
+  (cond
+    ;; literal
+    [(literal? lexpr) lexpr]
+    ;; lvar
+    [(check-logic-variable lexpr)
+     (if (hash-has-key? subst lexpr)
+         (hash-ref subst lexpr)
+         (error "Incomplete substitution"))]
+    ;; pvar var
+    [(symbol? lexpr) lexpr]
+    ;; binop 
+    [(and (list? lexpr) (eq? (length lexpr) 3) (is-operator? (car lexpr)))
+     (list (first lexpr) (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; unop 
+    [(and (list? lexpr) (eq? (length lexpr) 2) (is-operator? (car lexpr)))
+     (list (first lexpr) (lexpr-substitution (second lexpr) subst))]
+    ;; type-of
+    [(and (list? lexpr) (eq? (first lexpr) 'typeof))
+     (list 'typeof (lexpr-substitution (second lexpr) subst))]
+    ;; lst-nth
+    [(and (list? lexpr) (eq? (first lexpr) 'l-nth))
+     (list 'l-nth (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; s-nth
+    [(and (list? lexpr) (eq? (first lexpr) 's-nth))
+      (list 's-nth (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; {{ le_1, ..., le_n }}
+    [(and (list? lexpr) (eq? (first lexpr) 'jsil-list))
+     (let ((sles (map (lambda (le) (lexpr-substitution le subst)) (cdr lexpr))))
+       (cons 'jsil-list sles))]
+    ;; -{ le_1, ..., le_n }-
+    [(and (list? lexpr) (eq? (first lexpr) 'jsil-set))
+     (let ((sles (map (lambda (le) (lexpr-substitution le subst)) (cdr lexpr))))
+       (cons 'jsil-set sles))]
+    ;; set-union
+    [(and (list? lexpr) (eq? (first lexpr) 'set-union))
+     (list 'set-union (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; set-inter 
+    [(and (list? lexpr) (eq? (first lexpr) 'set-inter))
+     (list 'set-inter (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+     ;;
+    [else (error "DEATH. lexpr-substitution")]))
 
 
 (define operators-list
   (list
-    (cons '= eq?)
+    (cons '= 
+    	(lambda (x y)
+    		(cond 
+    		[(and (eq? x +nan.0) (eq? y +nan.0)) #f]
+    		[else (eq? x y)])))
 
     (cons '<
           (lambda (x y)
@@ -279,18 +403,32 @@
                 (if (number? x) (- x) jundefined)
                 (let ((y (first rest)))
                   (if (and (number? x) (number? y)) (- x y) jundefined)))))
-
+    
     (cons '*
           (lambda (x y)
             (if (and (number? x) (number? y)) (* x y) jundefined)))
 
     (cons '/
           (lambda (x y)
-            (if (and (number? x) (number? y)) (/ x y) jundefined)))
+            (cond 
+            [(and (number? x) (number? y)) 
+            	(let* ((ix (exact->inexact x))
+            	       (iy (exact->inexact y)))
+            		(cond
+            		[(and (eq? y 0) (< ix 0)) -inf.0]
+            		[(and (eq? y 0) (> ix 0)) +inf.0]
+            		[(and (eq? y 0) (eq? ix 0)) +nan.0]
+            		[#t (/ ix iy)] 
+            		))]
+            [else jundefined])))
 
     (cons '%
           (lambda (x y)
-            (if (and (number? x) (number? y)) (modulo x y) jundefined)))
+            (if (and (number? x) (number? y)) 
+            (cond
+            [(or (eq? x +nan.0) (eq? y +nan.0)) +nan.0]
+            [#t (modulo x y)]) 
+            jundefined)))
           
     (cons '<: jsil-subtype)
 
@@ -315,7 +453,7 @@
                 (if (and (number? x) (number? y))
                     (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                     jundefined)))
-
+    
     (cons '<< (lambda (x y)
                  (if (and (number? x) (number? y))
                      (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))
@@ -331,7 +469,7 @@
                    (append (list 'jsil-list x) (cdr y))
                    jundefined)))
 
-    (cons '** (lambda (x) (if (number? x) (expt x) jundefined)))
+    (cons '** (lambda (x y) (if (and (number? x) (number? y)) (expt x y) jundefined)))
 
     (cons 'm_atan2 (lambda (x y)
                      (if (and (number? x) (number? y)) (atan y x) jundefined)))
@@ -340,8 +478,13 @@
                  (if (and (number? x) (number? y))
                       (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                       jundefined)))
+    
+    (cons 'bnot (lambda (x)
+                 (if (and (number? x))
+                      (bitwise-not (inexact->exact (truncate x)))
+                      jundefined)))              
 
-    (cons '>>> (lambda (x) (if (number? x) (unsigned_right_shift x) jundefined)))
+    (cons '>>> (lambda (x y) (if (number? x) (unsigned_right_shift x y) jundefined)))
 
     (cons 'not (lambda (x) (if (boolean? x) (not x) #f)))
 
@@ -376,7 +519,7 @@
     (cons 'm_sgn (lambda (x) (if (number? x) (sgn x) jundefined)))
 
     (cons 'm_sqrt (lambda (x) (if (number? x) (sqrt x) jundefined)))
-
+    
     (cons 'm_exp (lambda (x) (if (number? x) (exp x) jundefined)))
 
     (cons 'm_log (lambda (x) (if (number? x) (log x) jundefined)))
@@ -413,7 +556,7 @@
 (define (apply-unop op arg)
   (apply op (list arg)))
 
-(provide to-interp-op apply-binop apply-unop)
+(provide to-interp-op apply-binop apply-unop expr-lvars lexpr-substitution check-logic-variable)
 
 ;; heaps that can be handled by rosette - God help us all
 
@@ -616,7 +759,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap cell get-new-loc make-jsil-list heap-delete-prop heap-delete-object) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap cell get-new-loc make-jsil-list heap-delete-prop heap-delete-object is-loc? is-operator?) ;; heap-contains?
 
 
 ;; stores - my stuff
