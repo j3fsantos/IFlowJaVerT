@@ -338,16 +338,13 @@
                     (loop (cdr fv-pairs) (cons (car fv-pairs) visited-fv-pairs) (cons unification viable-unifications)))
                   (loop (cdr fv-pairs) (cons (car fv-pairs) visited-fv-pairs) viable-unifications)))))))) 
                   
-           
-      
-      
-      
       
 
-      
-    
+;;(define (unify-ass heap n-ass)
+;;  (let ((cells (normalised-assertion-ncells n-ass))
+;;        (subst (make-hash)))
+;;    (let loop ((cells  
   
-
     
 (define (expr-lvars expr)
   (cond
