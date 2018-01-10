@@ -951,6 +951,11 @@ let rec reduce_assertion store gamma pfs a =
 			f (LAnd (LNot al, LNot ar))
 	| LNot (LAnd (al, ar)) -> 
 			f (LOr (LNot al, LNot ar))
+	| LNot (LEq (LEList le1, LEList le2)) when (List.length le1 <> List.length le2) -> LFalse
+	| LNot (LEq (LEList le1, LEList le2)) when (List.length le1 = List.length le2) -> 
+			(List.fold_left2 (fun ac e1 e2 -> 
+				let eq = LNot (LEq (e1, e2)) in
+					if (ac = LEmp) then eq else LOr (ac, eq)) LEmp le1 le2)
 	| LNot a1 ->
 		let ra1 = f a1 in
 		let a' = LNot ra1 in
@@ -1133,6 +1138,12 @@ let rec reduce_assertion store gamma pfs a =
 			print_debug_petar (Printf.sprintf "SET_MEM: from %s to %s" (JSIL_Print.string_of_logic_assertion a) 
 				(JSIL_Print.string_of_logic_assertion result)); 
 			f result
+
+	| LSetSub (le1, le2) ->
+			let sle1 = fe le1 in
+			let sle2 = fe le2 in
+				if (sle1 = sle2) then LTrue 
+					else LSetSub (sle1, sle2)
 
 	| LForAll (bt, a) -> 
 			let ra = f a in

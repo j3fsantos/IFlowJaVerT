@@ -349,3 +349,71 @@ let collect_garbage (symb_state : symbolic_state) =
 			(String.concat ", " (SS.elements collectable_locs)));
 	symb_state)
 
+(*************************************)
+(** Negative resource constraints   **)
+(*************************************)
+
+let collect_properties fv_list =
+	List.map (fun (f, _) -> f) fv_list
+
+let collect_none_properties fv_list = 
+	let nones = List.fold_left (fun ac (f, v) ->
+		let current = (match v with
+			| LNone -> [ f ]
+			| _ -> [ ]) in
+			ac @ current) [] fv_list
+	in Array.of_list nones
+
+let collect_negative_resource_constraints heap =
+	(* print_debug_petar "Collecting negative resource constraints."; *)
+	LHeap.fold (fun l (fv_list, empty_fields) ac -> 
+		print_debug_petar (Printf.sprintf "\tObject: %s" l);
+		let sprops = SLExpr.of_list (collect_properties fv_list) in
+		let props = SLExpr.elements sprops in
+		let nones = Array.to_list (collect_none_properties fv_list) in
+		(* print_debug_petar (Printf.sprintf "\tFound %d none-properties." (List.length nones)); *)
+		let lc = List.fold_left (fun ac le ->
+			let sprops = SLExpr.elements (SLExpr.remove le sprops) in
+			ac @ (List.map (fun le' -> LNot (LEq (le, le'))) sprops)
+		) [] nones in
+		let efc : jsil_logic_assertion list = (match empty_fields with
+  		| None -> []
+  		| Some (efs : jsil_logic_expr) -> 
+					(* print_debug_petar "\tFound an empty_fields assertion."; *)
+					[ LSetSub (LESet props, efs) ]
+		) in
+		ac @ lc @ efc
+	) heap []
+
+let collect_separation_constraints heap = 
+	(* print_debug_petar "Collecting separation constraints."; *)
+	LHeap.fold (fun l (fv_list, empty_fields) ac -> 
+		(* print_debug_petar (Printf.sprintf "\tObject: %s" l); *)
+		let nones = collect_none_properties fv_list in
+		(* print_debug_petar (Printf.sprintf "\tFound %d none-properties." (Array.length nones)); *)
+		let lc = ref [] in
+		let i = ref 0 in
+		while (!i < Array.length nones) do
+			let j = ref (!i + 1) in
+				while (!j < Array.length nones) do
+					lc := !lc @ [ LNot (LEq (Array.get nones !i, Array.get nones !j)) ];
+					j := !j + 1;
+				done;
+			i := !i + 1;
+		done;
+		let efc : jsil_logic_assertion list = (match empty_fields with
+  		| None -> []
+  		| Some (efs : jsil_logic_expr) -> 
+					(* print_debug_petar "\tFound an empty_fields assertion."; *)
+					List.map (fun f -> LSetMem (f, efs)) (Array.to_list nones)
+		) in
+		ac @ !lc @ efc
+	) heap []
+
+let collect_all_NR_information symb_state =
+	let heap, store, pfs, gamma, preds = symb_state in
+		let nr = collect_negative_resource_constraints heap in
+		let sr = collect_separation_constraints heap in
+			let all = DynArray.of_list nr in
+			let pfs, _ = Simplifications.simplify_pfs all gamma None in
+				DynArray.to_list pfs
