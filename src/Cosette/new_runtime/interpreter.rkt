@@ -519,6 +519,11 @@
        [(eq? (first expr) 'make-symbol-string)
         (constant (second expr) string?)]
 
+       ;;
+       ;; (make-untyped-symbol symb-name)
+       [(eq? (first expr) 'make-untyped-symbol)
+        (second expr)]
+
       ;;
       ;; (binop e e)
       [(= (length expr) 3) 
