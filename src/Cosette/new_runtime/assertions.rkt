@@ -340,7 +340,7 @@
                   
       
 
-;;(define (unify-ass heap n-ass)
+(define (unify-ass heap n-ass)
 ;;  (let ((cells (normalised-assertion-ncells n-ass))
 ;;        (subst (make-hash)))
 ;;    (let loop ((cells  
