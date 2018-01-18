@@ -231,8 +231,8 @@ let translate_named_function_literal (top_level : bool) x_sc f_name f_id params 
 		(* [x_er, f_name] := x_f *)
 		(* [x_er, f_name] := {{ "d", x_f, true, true, false }} *)
 		let cmd_f = if top_level
-			then (None, SLBasic (SMutation (Var x_er, lit_str f_name, EList [ Literal (String "d"); Var x_f; Literal (Bool true); Literal (Bool true); Literal (Bool false) ])))
-			else (None, SLBasic (SMutation (Var x_er, lit_str f_name, Var x_f))) in
+			then (None, SLBasic (SMutation (Var x_er, lit_str f_name, EList [ Literal (String "d"); Var x_f; Literal (Bool true); Literal (Bool true); Literal (Bool false) ], None)))
+			else (None, SLBasic (SMutation (Var x_er, lit_str f_name, Var x_f, None))) in
 
 		let cmds = [ cmd_cfoc; cmd_ass_xer; cmd_f ] in
 		cmds, Var x_f, []
@@ -865,14 +865,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	| Parser_syntax.Array eos -> (* raise (Failure "not implemented yet - array literal") *)
 		(* x_arr := new () *)
 		let x_arr = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew x_arr)) None in
+		(* TODO: METADATA *)
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_arr, None))) None in
 
 		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *)
 		let x_cdo = fresh_var () in
 		let cmd_cdo_call = annotate_cmd (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None)) None in
 
 		(* [x_arr, "length"] := {{ "d", num, true, false, false }} *)
-		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ]))) None in
+		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ], None))) None in
 
     	let translate_array_property_definition x_obj e err num =
 			let cmds, x, errs = f e in
@@ -951,7 +952,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_obj := new () *)
 		let x_obj = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew x_obj)) None in
+		(* TODO: METADATA *)
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_obj, None))) None in
 
 		(* x_cdo := create_default_object (x_obj, $lobj_proto) *)
 		let x_cdo = fresh_var () in
@@ -1177,7 +1179,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
-		let cmd_bcreate_xobj = SLBasic (SNew x_bthis) in
+		(* TODO: METADATA *)
+		let cmd_bcreate_xobj = SLBasic (SNew (x_bthis, None)) in
 
 		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *)
 		let x_bref_fprototype = fresh_var () in
@@ -1234,7 +1237,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in
-		let cmd_create_xobj = SLBasic (SNew x_this) in
+		(* TODO: METADATA *)
+		let cmd_create_xobj = SLBasic (SNew (x_this, None)) in
 
 		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *)
 		let x_ref_fprototype = fresh_var () in
@@ -2578,7 +2582,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_f_outer_er := new ();  *)
 		let x_f_outer_er = fresh_er_var () in
-		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in
+		(* TODO: METADATA *)
+		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er, None)) in
 
 		(* x_sc_f := x_sc @ {{ x_f_outer_er }}  *)
 		let x_sc_f = fresh_scope_chain_var () in
@@ -2588,7 +2593,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_f, cmd_fun_constr = make_create_function_object_call x_sc_f f_id params in
 
 		(* [x_f_outer_er, f] := x_f *)
-		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in
+		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
 		let x_cae = fresh_var () in
@@ -2825,14 +2830,15 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = SLBasic (SNew x_er) in
+		(* TODO: METADATA *)
+		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
 		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
 
 		(* [x_er, "x"] := x_err *)
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err, None)) in
 
 		(* x_sc_new := x_sc @ {{ x_er }}  *)
 		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
@@ -2929,14 +2935,15 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = SLBasic (SNew x_er) in
+		(* TODO: METADATA *)
+		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
 		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
 
 		(* [x_er, "x"] := x_err *)
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err, None)) in
 
 		(* x_sc_new := x_sc @ {{ x_er }} *)
 		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
@@ -4333,7 +4340,7 @@ let generate_main offset_converter e spec =
 		List.map
 			(fun global_v ->
 				(annotate_cmd
-					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]))))
+					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]), None)))
 					None))
 			(var_decls e) in
 
@@ -4393,16 +4400,17 @@ let generate_proc_eval new_fid e vis_fid =
 
 	(* x_er := new () *)
 	let x_er = JS2JSIL_Constants.var_er in
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew x_er)) None in
+	(* TODO: METADATA *)
+	let cmd_er_creation = annotate_cmd (SLBasic (SNew (x_er, None))) None in
 
 	(* [x_er, "@er"] := true *)
-  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_er, Literal (String erFlagPropName), Literal (Bool true)))) None in
+  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_er, Literal (String erFlagPropName), Literal (Bool true), None))) None in
 
 	(* [x_er, decl_var_i] := undefined *)
 	let new_fid_vars = var_decls e in
 	let cmds_decls =
 		List.map (fun decl_var ->
-			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined, None)) in
 			(annotate_cmd cmd None))
 		new_fid_vars in
 
@@ -4472,22 +4480,23 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 
 	(* x_er := new () *)
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew var_er)) None in
+	(* TODO: METADATA *)
+	let cmd_er_creation = annotate_cmd (SLBasic (SNew (var_er, None))) None in
 
 	(* [x_er, "@er"] := true *)
-  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er, Literal (String JS2JSIL_Constants.erFlagPropName), Literal (Bool true)))) None in
+  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er, Literal (String JS2JSIL_Constants.erFlagPropName), Literal (Bool true), None))) None in
 
 	(* [x_er, "arg_i"] := x_{i+2} *)
 	let cmds_params =
 		List.map (fun param ->
-			let cmd = SLBasic (SMutation (Var var_er, Literal (String param), Var param)) in
+			let cmd = SLBasic (SMutation (Var var_er, Literal (String param), Var param, None)) in
 			(annotate_cmd cmd None))
 		params in
 
 	(* [x_er, decl_var_i] := undefined *)
 	let cmds_decls =
 		List.map (fun decl_var ->
-			let cmd = SLBasic (SMutation (Var var_er, Literal (String decl_var), Literal Undefined)) in
+			let cmd = SLBasic (SMutation (Var var_er, Literal (String decl_var), Literal Undefined, None)) in
 			(annotate_cmd cmd None))
 		(var_decls e) in
 
@@ -4507,7 +4516,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
 			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
 			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], None));
-			(empty_metadata, None, SLBasic (SMutation (Var var_er, Literal (String "arguments"), Var x_args)))
+			(empty_metadata, None, SLBasic (SMutation (Var var_er, Literal (String "arguments"), Var x_args, None)))
 		] in 
 
 	(* x_sc_0 = x_scope @ {{ x_er }} *)

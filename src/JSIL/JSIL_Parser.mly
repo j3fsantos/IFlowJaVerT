@@ -34,6 +34,10 @@ let copy_and_clear_globals () =
 %token OCHAINS
 %token SCHAIN
 %token UNDERSCORE
+(* Permissions *)
+%token READABLE  
+%token MUTABLE    
+%token DELETABLE  
 (* Type literals *)
 %token UNDEFTYPELIT
 %token NULLTYPELIT
@@ -81,6 +85,7 @@ let copy_and_clear_globals () =
 (* Binary operators *)
 %token EQUAL
 %token LESSTHAN
+%token GREATERTHAN
 %token LESSTHANEQUAL
 %token LESSTHANSTRING
 %token PLUS
@@ -422,6 +427,21 @@ cmd_with_label_and_logic:
 		}
 ;
 
+
+permission_target: 
+(* r *)
+	| READABLE   { Readable  }
+	| MUTABLE    { Mutable   }
+	| DELETABLE  { Deletable }
+; 
+
+
+ass_permission_target: 
+(*<p>*)
+	| LESSTHAN; p=permission_target; GREATERTHAN 
+		{ p }
+;
+
 cmd_target:
 (*** Basic commands ***)
 (* skip *)
@@ -430,15 +450,15 @@ cmd_target:
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target
 		{ SLBasic (SAssignment (v, e)) }
-(* x := new() *)
-	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
-		{ SLBasic (SNew v) }
+(* x := new(metada) *)
+	| v=VAR; DEFEQ; NEW; LBRACE; metadata=option(expr_target); RBRACE
+		{ SLBasic (SNew (v, metadata)) }
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
 		{ SLBasic (SLookup (v, e1, e2)) }
-(* [e1, e2] := e3 *)
-	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; e3=expr_target
-		{ SLBasic (SMutation (e1, e2, e3)) }
+(* [e1, e2] := <p> e3 *)
+	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; op=option(ass_permission_target); e3=expr_target
+		{ SLBasic (SMutation (e1, e2, e3, op)) }
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
 		{ SLBasic (SDelete (e1, e2)) }

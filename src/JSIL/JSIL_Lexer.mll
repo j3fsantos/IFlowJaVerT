@@ -57,6 +57,11 @@ rule read = parse
 	| "$$sqrt2"            { JSIL_Parser.SQRT2         }
 	| "$$UTCTime"          { JSIL_Parser.UTCTIME       }
 	| "$$LocalTime"        { JSIL_Parser.LOCALTIME     }
+
+(* permissions *)
+	| "@r"                 { JSIL_Parser.READABLE  }  
+    | "@m"                 { JSIL_Parser.MUTABLE   }
+	| "@d"                 { JSIL_Parser.DELETABLE }
 	
   (* Literals (scroll down for more) *)
 	| "undefined" { JSIL_Parser.UNDEFINED }
@@ -73,6 +78,7 @@ rule read = parse
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL         }
 	| "<"                  { JSIL_Parser.LESSTHAN      }
+	| ">"                  { JSIL_Parser.GREATERTHAN   }
 	| "<="                 { JSIL_Parser.LESSTHANEQUAL }
 	| "<s"                 { JSIL_Parser.LESSTHANSTRING}
 	| "+"                  { JSIL_Parser.PLUS          }

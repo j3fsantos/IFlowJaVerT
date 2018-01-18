@@ -198,19 +198,28 @@ let base r = LstNth (r, lit_num 1.)
 let field r = LstNth (r, lit_num 2.)
 (**/**)
 
+
+type permission = 
+	| Readable 
+	| Mutable 
+	| Deletable
+
 (** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one
     might expect of a language with extensible objects. *)
 type jsil_basic_cmd =
-	| SSkip                                            (** Empty command *)
-	| SAssignment of jsil_var * jsil_expr              (** Assignment *)
-	| SNew        of jsil_var                          (** Object creation *)
-	| SLookup     of jsil_var * jsil_expr * jsil_expr  (** Field lookup *)
-	| SMutation   of jsil_expr * jsil_expr * jsil_expr (** Field mutation *)
-	| SDelete     of jsil_expr * jsil_expr             (** Field deletion *)
-	| SDeleteObj  of jsil_expr                         (** Object deletion *)
-	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check *)
-	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
-	| SArguments  of jsil_var                          (** Arguments of the current function *)
+	| SSkip                                                                  (** Empty command *)
+	| SAssignment of jsil_var * jsil_expr                                    (** Assignment *)
+	| SNew        of jsil_var * (jsil_expr option)                           (** Object creation *)
+	| SLookup     of jsil_var * jsil_expr * jsil_expr                        (** Field lookup *)
+	| SMutation   of jsil_expr * jsil_expr * jsil_expr * (permission option) (** Field mutation *)
+	| SDelete     of jsil_expr * jsil_expr                                   (** Field deletion *)
+	| SDeleteObj  of jsil_expr                                               (** Object deletion *)
+	| SHasField   of jsil_var * jsil_expr * jsil_expr                        (** Field check *)
+	| SGetFields  of jsil_var * jsil_expr                                    (** All* fields of an object *)
+	| SArguments  of jsil_var                                                (** Arguments of the current function *)
+	| Seal        of jsil_var                                                (** Seals the object *)
+	| MetaData    of jsil_var * jsil_expr                                    (** Reads the metadata and assigns it to the first var *)
+
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which

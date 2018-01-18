@@ -456,6 +456,8 @@ let rec proto_obj heap l1 l2 =
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
 let rec evaluate_bcmd bcmd heap store =
+	let string_of_op = Option.map_default JSIL_Print.string_of_permission "" in 
+
 	match bcmd with
 	| SSkip -> Empty
 
@@ -465,11 +467,11 @@ let rec evaluate_bcmd bcmd heap store =
 		Hashtbl.replace store x v_e;
 		v_e
 
-	| SNew x ->
+	(* TODO: METADATA *)
+	| SNew (x, metadata) ->
 		let new_loc = fresh_loc () in
 		let obj = SHeap.create 1021 in
-		SHeap.add obj proto_f Null;
-		SHeap.add heap new_loc obj;
+		SHeap.add heap new_loc (obj, metadata, true);
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 
@@ -491,24 +493,43 @@ let rec evaluate_bcmd bcmd heap store =
 			v
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2))))
 
-	| SMutation (e1, e2, e3) ->
+	| SMutation (e1, e2, e3, op) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
 		let v_e3 = evaluate_expr e3 store in
+
+		let str_of_mutacao = JSIL_Print.string_of_bcmd (SMutation (v_e1, v_e2, v_e3, op)) in
+		let error_msg = "Illegal Mutation: " ^ str_of_mutacao in
+
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
 			if (SHeap.mem heap l)
 			then
-				let obj = SHeap.find heap l in ();
-				SHeap.replace obj f v_e3;
-				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2) (JSIL_Print.string_of_literal v_e3);
+				let obj, ext, _ = SHeap.find heap l in ();
+
+				if (Hashtbl.mem obj f) then (
+
+					let f_p, _ = Hashtbl.find obj f in 
+					(match f_p, op with 
+					| Readable, _ -> raise (Failure error_msg) 
+					| _, None     -> Hashtbl.replace obj f (f_p, v_e3)
+					| _, Some p   -> Hashtbl.replace obj f ((permission_lower_bound f_p p), v_e3))
+				) else (
+					match ext, op with 
+					| false, _     -> raise (Failure error_msg)
+					| true, Some p -> Hashtbl.replace obj f (p, v_e3)
+					| true, None   -> Hashtbl.replace obj f (Deletable, v_e3)
+				);
+				if (!verbose) then Printf.printf "Mutation: " ^ str_of_mutacao ^ "\n";
 				v_e3
 			else
 				let obj = SHeap.create 1021 in
-				SHeap.add obj proto_f Null;
-				SHeap.add heap l obj;
-				SHeap.replace obj f v_e3;
-				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2) (JSIL_Print.string_of_literal v_e3);
+				SHeap.add heap l (obj, Null, true);
+				SHeap.replace obj f (Deletable, v_e3);
+				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? *)
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" 
+						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
+						(JSIL_Print.string_of_literal v_e3) (string_of_op op);
 				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 

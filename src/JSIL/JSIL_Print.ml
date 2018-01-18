@@ -183,9 +183,16 @@ let rec string_of_expression (e : jsil_expr) : string  =
   	| SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
 
 
+let string_of_permission (p : permission) : string = 
+  match p with 
+  | Readable   -> "@r"
+  | Mutable    -> "@m"
+  | Deletable  -> "@d"
+
 (** JSIL Basic statements *)
 let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	let se = string_of_expression in
+    let sp = string_of_permission in 
   	let str_i = (match i with 
       		| None -> "" 
       		| Some i -> if !line_numbers_on then (string_of_int i) ^ ". " else "") in
@@ -195,11 +202,17 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	(* var := e *)
   	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
   	(* x := new() *)
-  	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
+  	| SNew (var, metadata) -> 
+      (match metadata with 
+      | None          -> Printf.sprintf "%s%s := new()" str_i var  
+      | Some metadata -> Printf.sprintf "%s%s := new(%s)" str_i var (se metadata))
   	(* x := [e1, e2]	*)
   	| SLookup (var, e1, e2) -> Printf.sprintf "%s%s := [%s, %s]" str_i var (se e1) (se e2)
   	(* [e1, e2] := e3 *)
-  	| SMutation (e1, e2, e3) -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
+  	| SMutation (e1, e2, e3, e4) -> 
+      (match e4 with 
+      | None   -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
+      | Some p -> Printf.sprintf "%s[%s, %s] := <%s> %s" str_i (se e1) (se e2) (se e3) (sp p))
   	(* delete(e1, e2) *)
   	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
   	(* x := deleteObj(e1) *)
