@@ -510,10 +510,10 @@ let rec evaluate_bcmd bcmd heap store =
 				if (Hashtbl.mem obj f) then (
 
 					let f_p, _ = Hashtbl.find obj f in 
-					(match f_p, op with 
-					| Readable, _ -> raise (Failure error_msg) 
-					| _, None     -> Hashtbl.replace obj f (f_p, v_e3)
-					| _, Some p   -> Hashtbl.replace obj f ((permission_lower_bound f_p p), v_e3))
+					(match op with
+					| None                  -> Hashtbl.replace obj f (f_p, v_e3)
+					| Some p when (f_p = p) -> Hashtbl.replace obj f (f_p, v_e3)
+					| _                     -> raise (Failure error_msg))
 				) else (
 					match ext, op with 
 					| false, _     -> raise (Failure error_msg)
@@ -526,7 +526,7 @@ let rec evaluate_bcmd bcmd heap store =
 				let obj = SHeap.create 1021 in
 				SHeap.add heap l (obj, Null, true);
 				SHeap.replace obj f (Deletable, v_e3);
-				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? *)
+				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? NOPE! PERMISSIONS INVARIANT! *)
 				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" 
 						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
 						(JSIL_Print.string_of_literal v_e3) (string_of_op op);
