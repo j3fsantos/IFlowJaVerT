@@ -455,7 +455,7 @@ let rec proto_obj heap l1 l2 =
 		| Null -> Bool (false)
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
-let rec evaluate_bcmd bcmd heap store =
+let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) * jsil_lit * bool) SHeap.t) store =
 	let string_of_op = Option.map_default JSIL_Print.string_of_permission "" in 
 
 	match bcmd with
@@ -469,9 +469,14 @@ let rec evaluate_bcmd bcmd heap store =
 
 	(* TODO: METADATA *)
 	| SNew (x, metadata) ->
-		let new_loc = fresh_loc () in
-		let obj = SHeap.create 1021 in
-		SHeap.add heap new_loc (obj, metadata, true);
+		let new_loc      = fresh_loc () in
+		let metadata_val = 
+			(match metadata with 
+			| None          -> Null 
+			| Some metadata -> evaluate_expr metadata store) in
+		
+		let obj          = Hashtbl.create 1021 in
+		SHeap.add heap new_loc (obj, metadata_val, true);
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 
@@ -480,9 +485,9 @@ let rec evaluate_bcmd bcmd heap store =
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj = (try SHeap.find heap l with
+			let (obj : (string, permission * jsil_lit) Hashtbl.t), _, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
-			let v = (try SHeap.find obj f with
+			let _, v = (try Hashtbl.find obj f with
 				| _ ->
 					(* let final_heap_str = JSIL_Print.sexpr_of_heap heap in
 					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
@@ -498,14 +503,14 @@ let rec evaluate_bcmd bcmd heap store =
 		let v_e2 = evaluate_expr e2 store in
 		let v_e3 = evaluate_expr e3 store in
 
-		let str_of_mutacao = JSIL_Print.string_of_bcmd (SMutation (v_e1, v_e2, v_e3, op)) in
-		let error_msg = "Illegal Mutation: " ^ str_of_mutacao in
+		let str_of_mutacao : string = JSIL_Print.string_of_bcmd None (SMutation (Literal v_e1, Literal v_e2, Literal v_e3, op)) in
+		let error_msg      = "Illegal Mutation: " ^ str_of_mutacao in
 
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
 			if (SHeap.mem heap l)
 			then
-				let obj, ext, _ = SHeap.find heap l in ();
+				let obj, metadata, ext = SHeap.find heap l in ();
 
 				if (Hashtbl.mem obj f) then (
 
@@ -520,16 +525,16 @@ let rec evaluate_bcmd bcmd heap store =
 					| true, Some p -> Hashtbl.replace obj f (p, v_e3)
 					| true, None   -> Hashtbl.replace obj f (Deletable, v_e3)
 				);
-				if (!verbose) then Printf.printf "Mutation: " ^ str_of_mutacao ^ "\n";
+				if (!verbose) then Printf.printf "Mutation: %s\n" str_of_mutacao;
 				v_e3
 			else
-				let obj = SHeap.create 1021 in
+				let obj = Hashtbl.create 1021 in
 				SHeap.add heap l (obj, Null, true);
-				SHeap.replace obj f (Deletable, v_e3);
+				Hashtbl.replace obj f (Deletable, v_e3);
 				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? NOPE! PERMISSIONS INVARIANT! *)
-				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" 
+				if (!verbose) then Printf.printf "Mutation: [%s, %s] = <%s>%s \n" 
 						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
-						(JSIL_Print.string_of_literal v_e3) (string_of_op op);
+						(string_of_op op) (JSIL_Print.string_of_literal v_e3);
 				v_e3
 		| _, _ ->  raise (Failure "Illegal field inspection"))
 
@@ -538,14 +543,20 @@ let rec evaluate_bcmd bcmd heap store =
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj = (try SHeap.find heap l with
-			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
-			if (SHeap.mem obj f)
-			then
-				(if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2);
-				SHeap.remove obj f;
-				Bool true)
-			else raise (Failure "Deleting inexisting field")
+			(match (SHeap.mem heap l) with
+			| false -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))
+			| true -> 
+				let obj, ext, _ = SHeap.find heap l in
+				(match (Hashtbl.mem obj f) with 
+				| false -> raise (Failure "Field to be deleted does not exist")
+				| true -> 
+					let f_p, _ = Hashtbl.find obj f in
+					(match f_p with
+					| Deletable -> 
+						if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2);
+						Hashtbl.remove obj f; 
+						Bool true; 
+					| _ -> raise (Failure (Printf.sprintf "Object %s not deletable" (JSIL_Print.string_of_literal v_e1))))))
 		| _, _ -> raise (Failure "Illegal field deletion"))
 
 	| SDeleteObj e1 ->
@@ -566,7 +577,7 @@ let rec evaluate_bcmd bcmd heap store =
 		| Loc l, String f ->
 			let obj = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" pv_e1))) in
-			let v = Bool (SHeap.mem obj f) in
+			let v = Bool (Hashtbl.mem obj f) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x pv_e1 pv_e2 (JSIL_Print.string_of_literal v);
 			v
@@ -579,7 +590,7 @@ let rec evaluate_bcmd bcmd heap store =
 			let obj = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e)))) in
 			let fields =
-				SHeap.fold
+				Hashtbl.fold
 				(fun field value acc ->
 					let t = evaluate_type_of value in
 					if (t = ListType) then
