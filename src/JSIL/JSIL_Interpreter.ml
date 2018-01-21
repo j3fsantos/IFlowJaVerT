@@ -140,45 +140,52 @@ let copy_object heap loc fields =
 		fields;
 	new_obj
 
-(* Default objects *)
+(* Default objects - create two objects - the "real" one and the metadata one *)
 let create_default_object proto cls ext =
-	let obj = SHeap.create 1021 in
-		SHeap.add obj "@proto" (Loc proto);
-		SHeap.add obj "@class" (String cls);
-		SHeap.add obj "@extensible" (Bool ext);
-		obj
+	let obj : (permission * jsil_lit) SHeap.t = SHeap.create 1021 in
+	let mtd : (permission * jsil_lit) SHeap.t = SHeap.create 1021 in
+		SHeap.add mtd "@proto"      (Readable, Loc proto);
+		SHeap.add mtd "@class"      (Readable, String cls);
+		SHeap.add mtd "@extensible" (Mutable,  Bool ext);
+		obj, mtd
 
 (* Call-construct objects *)
 let create_object_with_call_construct call construct len =
-	let obj = create_default_object "$lfun_proto" "Function" true in
-		SHeap.add obj "length" (LList [String "d"; Num len; Bool false; Bool false; Bool false]);
-		SHeap.replace obj "@call" (String call);
-		SHeap.replace obj "@construct" (String construct);
-		SHeap.replace obj "@scope" Empty;
-		obj
+	let obj, mtd = create_default_object "$lfun_proto" "Function" true in
+		SHeap.add     obj "length"     (Deletable, LList [String "d"; Num len; Bool false; Bool false; Bool false]);
+		SHeap.replace mtd "@call"      (Readable, String call);
+		SHeap.replace mtd "@construct" (Readable, String construct);
+		SHeap.replace mtd "@scope"     (Readable, Empty);
+		obj, mtd
 
 (* Function objects - with heap addition *)
-let create_anonymous_function_object heap call construct params =
-	let loc = fresh_loc () in
+let create_anonymous_function_object (heap : jsil_heap) call construct params =
 	let len = float_of_int (List.length params) in
-	let obj = create_object_with_call_construct call construct len in
 
-		SHeap.replace obj "@scope" (LList [ Loc "$lg" ]);
+	let lobj = fresh_loc () in
+	let lmtd = fresh_loc () in
 
-		SHeap.replace obj "@formalParameters" (LList (List.map (fun x -> String x) params));
-		SHeap.add obj "caller"    (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
-		SHeap.add obj "arguments" (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+	let obj, mtd = create_object_with_call_construct call construct len in
 
-		let loc_proto = fresh_loc () in
-		let proto_obj = create_default_object "$lobj_proto" "Object" true in
-			SHeap.add proto_obj "constructor" (LList [String "d"; Loc loc; Bool true; Bool false; Bool true]);
-			SHeap.add obj "prototype" (LList [String "d"; Loc loc_proto; Bool true; Bool false; Bool false]);
+		SHeap.replace mtd "@scope" (Readable, LList [ Loc "$lg" ]);
+
+		SHeap.replace mtd "@formalParameters" (Readable,  LList (List.map (fun x -> String x) params));
+		SHeap.add     obj "caller"            (Deletable, LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+		SHeap.add     obj "arguments"         (Deletable, LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+
+		let lproto    : string = fresh_loc () in
+		let lprotomtd : string = fresh_loc () in
+		let proto_obj, proto_mtd = create_default_object "$lobj_proto" "Object" true in
+			SHeap.add proto_obj "constructor" (Deletable, LList [String "d"; Loc lobj; Bool true; Bool false; Bool true]);
+			SHeap.add obj       "prototype"   (Deletable, LList [String "d"; Loc lproto; Bool true; Bool false; Bool false]);
 
 			(* Add to the heap *)
-			SHeap.add heap loc_proto proto_obj;
-			SHeap.add heap loc obj;
+			SHeap.add heap lproto    (proto_obj, Loc lprotomtd, true);
+			SHeap.add heap lprotomtd (proto_mtd, Null,          true);
+			SHeap.add heap lobj      (obj, Loc lmtd, true);
+			SHeap.add heap lmtd      (mtd, Null,     true);
 
-			loc
+			lobj
 
 (* END SPECIAL STUFF *)
 
@@ -455,7 +462,10 @@ let rec proto_obj heap l1 l2 =
 		| Null -> Bool (false)
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
-let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) * jsil_lit * bool) SHeap.t) store =
+
+
+
+let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 	let string_of_op = Option.map_default JSIL_Print.string_of_permission "" in 
 
 	match bcmd with
@@ -475,7 +485,7 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 			| None          -> Null 
 			| Some metadata -> evaluate_expr metadata store) in
 		
-		let obj          = Hashtbl.create 1021 in
+		let obj = SHeap.create 1021 in
 		SHeap.add heap new_loc (obj, metadata_val, true);
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
@@ -485,9 +495,9 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let (obj : (string, permission * jsil_lit) Hashtbl.t), _, _ = (try SHeap.find heap l with
+			let (obj : (permission * jsil_lit) SHeap.t), _, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
-			let _, v = (try Hashtbl.find obj f with
+			let _, v = (try SHeap.find obj f with
 				| _ ->
 					(* let final_heap_str = JSIL_Print.sexpr_of_heap heap in
 					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
@@ -512,25 +522,25 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 			then
 				let obj, metadata, ext = SHeap.find heap l in ();
 
-				if (Hashtbl.mem obj f) then (
+				if (SHeap.mem obj f) then (
 
-					let f_p, _ = Hashtbl.find obj f in 
+					let f_p, _ = SHeap.find obj f in 
 					(match op with
-					| None                  -> Hashtbl.replace obj f (f_p, v_e3)
-					| Some p when (f_p = p) -> Hashtbl.replace obj f (f_p, v_e3)
+					| None                  -> SHeap.replace obj f (f_p, v_e3)
+					| Some p when (f_p = p) -> SHeap.replace obj f (f_p, v_e3)
 					| _                     -> raise (Failure error_msg))
 				) else (
 					match ext, op with 
 					| false, _     -> raise (Failure error_msg)
-					| true, Some p -> Hashtbl.replace obj f (p, v_e3)
-					| true, None   -> Hashtbl.replace obj f (Deletable, v_e3)
+					| true, Some p -> SHeap.replace obj f (p, v_e3)
+					| true, None   -> SHeap.replace obj f (Deletable, v_e3)
 				);
 				if (!verbose) then Printf.printf "Mutation: %s\n" str_of_mutacao;
 				v_e3
 			else
-				let obj = Hashtbl.create 1021 in
+				let obj = SHeap.create 1021 in
 				SHeap.add heap l (obj, Null, true);
-				Hashtbl.replace obj f (Deletable, v_e3);
+				SHeap.replace obj f (Deletable, v_e3);
 				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? NOPE! PERMISSIONS INVARIANT! *)
 				if (!verbose) then Printf.printf "Mutation: [%s, %s] = <%s>%s \n" 
 						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
@@ -547,14 +557,14 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 			| false -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))
 			| true -> 
 				let obj, ext, _ = SHeap.find heap l in
-				(match (Hashtbl.mem obj f) with 
+				(match (SHeap.mem obj f) with 
 				| false -> raise (Failure "Field to be deleted does not exist")
 				| true -> 
-					let f_p, _ = Hashtbl.find obj f in
+					let f_p, _ = SHeap.find obj f in
 					(match f_p with
 					| Deletable -> 
 						if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2);
-						Hashtbl.remove obj f; 
+						SHeap.remove obj f; 
 						Bool true; 
 					| _ -> raise (Failure (Printf.sprintf "Object %s not deletable" (JSIL_Print.string_of_literal v_e1))))))
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -575,9 +585,9 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 		let pv_e2 = JSIL_Print.string_of_literal v_e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj = (try SHeap.find heap l with
+			let obj, _, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" pv_e1))) in
-			let v = Bool (Hashtbl.mem obj f) in
+			let v = Bool (SHeap.mem obj f) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x pv_e1 pv_e2 (JSIL_Print.string_of_literal v);
 			v
@@ -587,11 +597,11 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 		let v_e = evaluate_expr e store in
 		(match v_e with
 		| Loc l ->
-			let obj = (try SHeap.find heap l with
+			let obj, _, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e)))) in
 			let fields =
-				Hashtbl.fold
-				(fun field value acc ->
+				SHeap.fold
+				(fun field (_, value) acc ->
 					let t = evaluate_type_of value in
 					if (t = ListType) then
 						(String field) :: acc
@@ -605,9 +615,9 @@ let rec evaluate_bcmd bcmd (heap : (((string, permission * jsil_lit) Hashtbl.t) 
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
   | SArguments x ->
-		let arg_obj = (try SHeap.find heap larguments with
+		let arg_obj, _, _ = (try SHeap.find heap larguments with
 		| _ -> raise (Failure "The arguments object doesn't exist.")) in
-		let v = (try SHeap.find arg_obj "args" with
+		let _, v = (try SHeap.find arg_obj "args" with
 		| _ -> raise (Failure "The arguments are not available.")) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (JSIL_Print.string_of_literal v);
@@ -645,7 +655,13 @@ let init_store params args =
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store;
 	new_store
 
-let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl =
+let rec evaluate_cmd 
+			prog 
+			cur_proc_name 
+			which_pred 
+			(heap : jsil_heap) 
+			store 
+			cur_cmd prev_cmd cc_tbl vis_tbl =
 
 	let execute_function_constructor proc x e_args j = (
 			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
@@ -805,23 +821,23 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 	let execute_procedure_body proc x e e_args j = (
 		let call_proc_name_val = evaluate_expr e store in
 		let call_proc_name = (match call_proc_name_val with
-		| String call_proc_name ->
+			| String call_proc_name ->
 				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name;
 				call_proc_name
-		| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (JSIL_Print.string_of_literal call_proc_name_val)))) in
-		let arg_vals = List.map
-			(fun e_arg -> evaluate_expr e_arg store)
-			e_args in
+			| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (JSIL_Print.string_of_literal call_proc_name_val)))) in
+		let arg_vals = List.map (fun e_arg -> evaluate_expr e_arg store) e_args in
 		let call_proc = try Hashtbl.find prog call_proc_name with
-		| _ -> raise (Failure (Printf.sprintf "CALL: The procedure %s you're trying to call doesn't exist." call_proc_name)) in
+			| _ -> raise (Failure (Printf.sprintf "CALL: The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in
 
+		(* WHAT THE FUCK IS HAPPENING HERE AND WHY? *)
 		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
 		begin
 			let args_obj = SHeap.create 1 in
-				SHeap.replace args_obj largvals (LList arg_vals);
-				SHeap.replace heap larguments args_obj;
+				SHeap.replace args_obj largvals (Readable, LList arg_vals);
+				SHeap.replace heap larguments (args_obj, Null, false);
 		end;
+
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
 		| Normal, v ->
 				if (!verbose) then Printf.printf "Procedure %s normal return: %s := %s\n" call_proc_name x (JSIL_Print.string_of_literal v);

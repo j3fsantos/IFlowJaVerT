@@ -462,6 +462,9 @@ module SHeap = Hashtbl.Make(
 		let hash = Hashtbl.hash   (* and default hash function *)
 	end)
 
+type jsil_heap = (((permission * jsil_lit) SHeap.t) * jsil_lit * bool) SHeap.t
+
+
 (* creates a heap of the appropiate size *)
 let make_initial_heap is_big =
 	let size = if (is_big) then big_tbl_size else small_tbl_size in (* 2 options for size of the heap *)
