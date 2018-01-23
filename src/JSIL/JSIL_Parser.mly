@@ -151,6 +151,7 @@ let copy_and_clear_globals () =
 %token DELETEOBJ
 %token HASFIELD
 %token GETFIELDS
+%token METADATA
 %token ARGUMENTS
 %token GOTO
 %token WITH
@@ -450,7 +451,7 @@ cmd_target:
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target
 		{ SLBasic (SAssignment (v, e)) }
-(* x := new(metada) *)
+(* x := new(metadata) *)
 	| v=VAR; DEFEQ; NEW; LBRACE; metadata=option(expr_target); RBRACE
 		{ SLBasic (SNew (v, metadata)) }
 (* x := [e1, e2] *)
@@ -474,6 +475,9 @@ cmd_target:
 (* x := args *)
 	| v = VAR; DEFEQ; ARGUMENTS
 	  { SLBasic (SArguments v) }
+(* x := metadata (e) *)
+	| v = VAR; DEFEQ; METADATA; LBRACE; e=expr_target; RBRACE
+	  { SLBasic (MetaData (v, e)) }
 (*** Other commands ***)
 (* goto i *)
 	| GOTO; i=VAR

@@ -152,6 +152,7 @@ rule read = parse
 	| "deleteObject"       { JSIL_Parser.DELETEOBJ }
 	| "hasField"           { JSIL_Parser.HASFIELD }
 	| "getFields"          { JSIL_Parser.GETFIELDS }
+	| "metadata"           { JSIL_Parser.METADATA } 
 	| "args"               { JSIL_Parser.ARGUMENTS }
 	| "goto"               { JSIL_Parser.GOTO }
 	| "with"               { JSIL_Parser.WITH }

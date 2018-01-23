@@ -913,6 +913,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 
 	| Parser_syntax.Obj xs ->
+		
 		(**
 	 	 Section 11.1.5 - Object Initializer
 	 	 C({ pd_1, ..., pd_n } ) =

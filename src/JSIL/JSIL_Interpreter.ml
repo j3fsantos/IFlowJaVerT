@@ -477,7 +477,6 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		Hashtbl.replace store x v_e;
 		v_e
 
-	(* TODO: METADATA *)
 	| SNew (x, metadata) ->
 		let new_loc      = fresh_loc () in
 		let metadata_val = 
@@ -622,6 +621,27 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (JSIL_Print.string_of_literal v);
 			v
+			
+	| MetaData (x, e) ->
+		let v_e = evaluate_expr e store in
+		(match v_e with
+		| Loc l ->
+				(match (SHeap.mem heap l) with
+				| false -> (* !!!!! TOFIX !!!!! *)
+						(* Generate empty object with metadata null as metadata *) 
+						let m = SHeap.create 1021 in
+						let lm = fresh_loc () in
+						SHeap.replace heap lm (m, Null, true);
+						
+						(* Generate new object in the heap *)
+						let o = SHeap.create 1021 in
+						SHeap.replace heap l (o, Loc lm, true);
+						Loc lm
+						
+				| true -> 
+						let _, metadata, _ = SHeap.find heap l in
+							metadata) 
+		| _ -> raise (Failure (Printf.sprintf "Looking up metadata of non-object: %s" (JSIL_Print.string_of_literal v_e))))	
 
 let init_store params args =
 	let number_of_params = List.length params in

@@ -52,7 +52,6 @@ let syntaxErrorName                   = "SyntaxError"                    (* 15.1
 let typeErrorName                     = "TypeError"                      (* 15.1.4.14         *)
 let createFunctionObjectName          = "create_function_object"
 let isCallableName                    = "i__isCallable"
-let copyObjectName                    = "copy_object"
 let checkObjectCoercibleName          = "i__checkObjectCoercible"
 let jsTypeOfName                      = "i__typeOf"                      (* 11.4.3 - Table 20 *)
 let toNumberName                      = "i__toNumber"                    (* 9.3 - Table 12    *)
