@@ -28,13 +28,13 @@ let js2jsil_logic_imports = [
 
 let setupHeapName = "setupInitialHeap"
 
-let callPropName              = "@call"
-let constructPropName         = "@construct"
-let scopePropName             = "@scope"
-let classPropName             = "@class"
-let extensiblePropName        = "@extensible"
-let internalProtoFieldName    = "@proto"
-let erFlagPropName            = "@er"
+let _callPropName              = "@call"
+let _constructPropName         = "@construct"
+let _scopePropName             = "@scope"
+let _classPropName             = "@class"
+let _extensiblePropName        = "@extensible"
+let _internalProtoFieldName    = "@proto"
+let _erFlagPropName            = "@er"
 
 let locGlobName        = "$lg"
 let locObjPrototype    = "$lobj_proto"
@@ -356,32 +356,36 @@ let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_
 	}
 
 
-let string_of_js_error heap err_val =
+let string_of_js_error (heap : jsil_heap) err_val =
 	match err_val with
 	| Loc loc ->
-		let obj =
-			(try SHeap.find heap loc with
-				| _ -> (raise (Failure "Error object without a prototype."))) in
-		let lproto =
-			(try SHeap.find obj "@proto" with
-				| _ -> (raise (Failure "Error object without a prototype."))) in
-		(match lproto with
-		| Loc loc ->
-				let objproto =
-					(try SHeap.find heap loc with
-						| _ -> (raise (Failure "Error object without a prototype."))) in
-				let eType =
-					(try SHeap.find objproto "name" with
-						| _ -> String "") in
-				let message =
-					(try SHeap.find obj "message" with
-						| _ -> String "") in
-				let eType =
-					(match eType with
-					| LList list -> List.nth list 1
-					| _ -> eType) in
-				(JSIL_Print.string_of_literal eType) ^ " : " ^ (JSIL_Print.string_of_literal message)
-		| _ -> (raise (Failure "Prototype object not an object.")))
+		(* Get the error object in the heap *)
+		let obj = SHeap.find_opt heap loc in
+		(match obj with
+		| None -> raise (Failure "Error object doesn't exist in the heap.")
+		| Some (_, Loc metadata, _) ->
+				(* Get its metadata *)
+				let obj = SHeap.find_opt heap metadata in
+				(match obj with
+				| None -> raise (Failure "Error metadata object doesn't exist in the heap.")
+				| Some (obj, _, _) ->
+						(* Get the proto field *)
+						let lproto = SHeap.find_opt obj "@proto" in
+						(match lproto with
+						| None -> raise (Failure "Error object without a prototype.")
+						| Some (_, Loc lproto) ->
+								(* Get the proto object *)
+								let objproto = SHeap.find_opt heap lproto in
+								(match objproto with
+								| None -> raise (Failure "Prototype object doesn't exist in the heap.")
+								| Some (objproto, _, _) -> 
+										let eType = (try let _, result = SHeap.find objproto "name" in result with | _ -> String "") in
+										let message = (try let _, result = SHeap.find obj "message" in result with | _ -> String "") in
+											(JSIL_Print.string_of_literal eType) ^ " : " ^ (JSIL_Print.string_of_literal message)
+								)
+						| _ -> raise (Failure "Prototype is not an object."))
+				)
+		| _ -> raise (Failure "Metadata is not an object."))
 	| _ -> JSIL_Print.string_of_literal err_val
 
 
