@@ -401,9 +401,9 @@ proc AP_toLocaleString(xsc, vthis) {
 
 			sep := ",";
 			k := 0;
-			goto [len = 0] empty fill;
+			goto [len = 0] _empty fill;
 
-	empty:	xret := "";
+	_empty:	xret := "";
 			goto rlab;
 
 	fill:	xret := "i__toString" (k) with elab;

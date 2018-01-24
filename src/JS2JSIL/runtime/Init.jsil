@@ -17,7 +17,7 @@ proc create_default_object (l, pr, cl, ext) {
 	text:	goto [ext = undefined] sext setall;
 	sext:	ext := true;
 
-			(* Get the metadata *)
+			(* Get the metadata, creating the object in the process *)
 	setall:	m := metadata(l);
 	
 			(* ASSERT: m is an empty object with metadata null *)
