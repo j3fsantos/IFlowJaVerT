@@ -8,7 +8,8 @@
  *)
 proc getOwnProperty (l, prop) {
 
-			class := [l, "@class"];
+			m := metadata(l);
+			class := [m, "@class"];
 
 			goto [class = "String"] sgop ogop;
 
@@ -51,7 +52,8 @@ proc getProperty (l, prop) {
 			xret := "getOwnProperty" (l, prop) with elab;
 			goto [xret = undefined] next rlab;
 
-	next:	proto := [l, "@proto"];
+	next:	m := metadata(l);
+			proto := [m, "@proto"];
 			goto [proto = null] rlab call;
 
 	call:	xret := "getProperty" (proto, prop) with elab;
@@ -79,8 +81,9 @@ proc get (l, prop) {
 			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
 
 	acc:	goto [xret = undefined] rlab get;		(* Is the getter defined?               *)
-	get:	xsc := [xret, "@scope"];				(* Get the scope of the getter          *)
-			fun := [xret, "@call"];					(* Get the name of the getter           *)
+	get:	m := metadata(xret);
+			xsc := [m, "@scope"];				(* Get the scope of the getter          *)
+			fun := [m, "@call"];					(* Get the name of the getter           *)
 			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
 			goto [xret = empty] undef rlab;
 	undef:	xret := undefined;
@@ -108,7 +111,8 @@ proc canPut (l, prop) {
 	odd:	xret := l-nth (xret, 2);					(* It is; return the Writable attribute *)
 			goto rlab;
 
-	nop:	e := [l, "@extensible"];				   (* Get the extensible property *)
+	nop:	m := metadata(l);
+			e := [m, "@extensible"];				   (* Get the extensible property *)
 			xret := "getProperty" (l, prop) with elab; (* Does the property exist? *)
 			goto [xret = undefined] ext desc;		   (* It doesn't; return extensible *)
 
@@ -155,8 +159,9 @@ proc put (l, prop, value, throw) {
     		goto [ad] ad def;
 
     ad:		s := l-nth (xret, 2);
-    		xsc := [s, "@scope"];
-    		fun := [s, "@call"];
+    		m := metadata(s);
+    		xsc := [m, "@scope"];
+    		fun := [m, "@call"];
     		xret := fun (xsc, l, value) with elab;
     		goto remp;
 
@@ -229,7 +234,8 @@ proc defaultValue (l, hint) {
 			goto [hint = empty] hint init;
 
 	hint:	hint := "Number";
-			class := [l, "@class"];
+			m := metadata(l);
+			class := [m, "@class"];
 			goto [class = "Date"] hs init;
 	hs:		hint := "String";
 
@@ -245,8 +251,9 @@ proc defaultValue (l, hint) {
     is_c:	c := "i__isCallable" (xret);
             goto [c] call next;
 
-    call:	xsc := [xret, "@scope"];
-            fun := [xret, "@call"];
+    call:	m := metadata(xret);
+    		xsc := [m, "@scope"];
+            fun := [m, "@call"];
             xret := fun (xsc, l) with elab;
 			goto [xret = empty] undef ispr;
 	undef:	xret := undefined;
@@ -279,7 +286,8 @@ with
  *)
 proc defineOwnProperty (l, prop, desc, throw) {
 
-			class := [l, "@class"];
+			m := metadata(l);
+			class := [m, "@class"];
 
 			goto [class = "Array"] adop odop;
 
@@ -302,7 +310,8 @@ proc o__defineOwnProperty (l, prop, desc, throw) {
 			xret := true;
 
 			current := "getOwnProperty" (l, prop) with celab;
-			extensible := [l, "@extensible"];
+			m := metadata(l);
+			extensible := [m, "@extensible"];
 
 			goto [(current = undefined) and (extensible = false)] reject l4;
 	l4:		goto [(current = undefined) and (extensible = true)] l4a getall;
@@ -735,8 +744,9 @@ proc i__getValue (v) {
 			goto [d = "d"] rlab acc;	(* Is it a data descriptor? *)
 
 	acc:	goto [xret = undefined] rlab get;	(* Is the getter defined? *)
-	get:	xsc := [xret, "@scope"];	(* Get the scope of the getter *)
-			fun := [xret, "@call"];	(* Get the name of the getter *)
+	get:	m := metadata(xret);
+			xsc := [m, "@scope"];	(* Get the scope of the getter *)
+			fun := [m, "@call"];	(* Get the name of the getter *)
 			xret := fun (xsc, rbase) with elab;	(* Call the getter, errors could happen *)
 			goto [xret = empty] undef rlab;
 	undef:	xret := undefined;
@@ -816,8 +826,9 @@ proc i__putValue (v, w) {
     		goto [ad] ad reject;
 
     ad:		s := l-nth (xret, 2);
-    		xsc := [s, "@scope"];
-    		fun := [s, "@call"];
+    		m := metadata(s);
+    		xsc := [m, "@scope"];
+    		fun := [m, "@call"];
     		xret := fun (xsc, rbase, w) with elab;
     		goto dflt;
 
@@ -1144,7 +1155,8 @@ with
 proc i__isCallable (l) {
 			xret := false;
 			goto [typeOf(l) = Obj] obj rlab;
-	obj:	xret := hasField(l, "@call");
+	obj:	m := metadata(l);
+			xret := hasField(m, "@call");
 	rlab:	skip
 }
 with
@@ -1295,7 +1307,8 @@ proc i__typeOf (v) {
 			goto rlab;
 
 	io:		goto [typeOf(v) = Obj] obj oops;
-	obj:	xret := hasField(v, "@call");
+	obj:	m := metadata(v);
+			xret := hasField(m, "@call");
 			goto [xret] isfun isobj;
 
 	isobj:	xret := "object";
@@ -1469,7 +1482,8 @@ with
 (* *********** *)
 
 proc hasInstance(v1, v2) {
-			bind := hasField(v1, "@targetFunction");
+			m := metadata(v1);
+			bind := hasField(m, "@targetFunction");
 			goto [bind] bind norm;
 
 	bind:	xret := "FP_hasInstanceAfterBind" (v1, v2) with elab;
@@ -1493,7 +1507,8 @@ proc f__hasInstance(v1, v2) {
 	s2:		xret := "get" (v1, "prototype") with elab;
 			goto [not (typeOf (xret) = Obj)] throw s4;
 
-	s4:		v2 := [v2, "@proto"];
+	s4:		m := metadata(v2);
+			v2 := [m, "@proto"];
 			goto [v2 = null] rf s4c;
 	s4c:	goto [xret = v2] rt s4;
 
