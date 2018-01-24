@@ -17,7 +17,8 @@ proc s__getOwnProperty (l, prop) {
 
 			goto [sidx = prop] index rlab;
 
-	index:	str := [l, "@primitiveValue"];
+	index:	m := metadata(l);
+			str := [m, "@primitiveValue"];
 			len := s-len (str);
 			goto [len <= idx] rlab return;
 
@@ -71,7 +72,8 @@ proc String_construct (xsc, vthis, s) {
 			xret := "create_default_object" (xret, $lstr_proto, "String", true);
 			s := xret;
 
-			[s, "@primitiveValue"] := pv;
+			m := metadata(s);
+			[m, "@primitiveValue"] := pv;
 
 			len := s-len (pv);
 
@@ -95,9 +97,10 @@ proc SP_valueOf (xsc, vthis) {
 			goto rlab;
 
 	iostr:	goto [typeOf (vthis) = Obj] ostr throw;
-	ostr:	xret := [vthis, "@class"];
+	ostr:	m := metadata(vthis);	
+			xret := [m, "@class"];
 			goto [xret = "String"] retstr throw;
-	retstr:	xret := [vthis, "@primitiveValue"];
+	retstr:	xret := [m, "@primitiveValue"];
 
 	rlab:	skip;
 
@@ -118,9 +121,10 @@ proc SP_toString (xsc, vthis) {
 			goto rlab;
 
 	iostr:	goto [typeOf (vthis) = Obj] ostr throw;
-	ostr:	xret := [vthis, "@class"];
+	ostr:	m := metadata(vthis);
+			xret := [m, "@class"];
 			goto [xret = "String"] retstr throw;
-	retstr:	xret := [vthis, "@primitiveValue"];
+	retstr:	xret := [m, "@primitiveValue"];
 
 	rlab:	skip;
 

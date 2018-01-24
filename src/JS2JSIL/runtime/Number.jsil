@@ -38,7 +38,8 @@ proc Number_construct (xsc, vthis, v) {
 			xret := new ();
 			xret := "create_default_object" (xret, $lnum_proto, "Number", true);
 
-			[xret, "@primitiveValue"] := pv;
+			m := metadata(xret);
+			[m, "@primitiveValue"] := pv;
 
 	rlab:	skip;
 	elab:	skip
@@ -57,9 +58,10 @@ proc NP_valueOf (xsc, vthis) {
 			goto rlab;
 
 	ionum:	goto [typeOf (vthis) = Obj] onum throw;
-	onum:	xret := [vthis, "@class"];
+	onum:	m := metadata(vthis);
+			xret := [m, "@class"];
 			goto [xret = "Number"] retnum throw;
-	retnum:	xret := [vthis, "@primitiveValue"];
+	retnum:	xret := [m, "@primitiveValue"];
 
 	rlab:	skip;
 
@@ -80,9 +82,10 @@ proc NP_toString (xsc, vthis, radix) {
 			goto retstr;
 
 	ionum:	goto [typeOf (vthis) = Obj] onum throw;
-	onum:	xret := [vthis, "@class"];
+	onum:	m := metadata(vthis);
+			xret := [m, "@class"];
 			goto [xret = "Number"] retnum throw;
-	retnum:	xret := [vthis, "@primitiveValue"];
+	retnum:	xret := [m, "@primitiveValue"];
 	retstr:	xret := num_to_string (xret);
 
 	rlab:	skip;

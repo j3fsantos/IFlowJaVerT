@@ -22,8 +22,9 @@ with
 proc Error_construct (xsc, vthis, v) {
 			xret := vthis;
 
-			[vthis, "@class"] := "Error";
-			[vthis, "@extensible"] := true;
+			m := metadata(vthis);
+			[m, "@class"] := "Error";
+			[m, "@extensible"] := true;
 
 			goto [v = undefined] rlab mess;
 

@@ -31,8 +31,9 @@ proc FP_call () {
 			goto [3 < len] spar body;
 	spar:	pars := cdr (cdr (cdr arguments));
 
-	body:	body   := [vthis, "@call"];
-			xscope := [vthis, "@scope"];
+	body:	m := metadata(vthis);
+			body   := [m, "@call"];
+			xscope := [m, "@scope"];
 
 			x__se := "SyntaxError" ();
 
@@ -87,8 +88,9 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			goto loop;
 
 	call:	xthis := this_arg;
-			body   := [vthis, "@call"];
-			xscope := [vthis, "@scope"];
+			m := metadata(vthis)
+			body   := [m, "@call"];
+			xscope := [m, "@scope"];
 
 			new_args := xscope :: (xthis :: params);
 
@@ -113,7 +115,8 @@ with
 
 proc FP_toString (xsc, vthis) {
 			goto [typeOf (vthis) = Obj] ofun throw;
-	ofun:	xret := [vthis, "@class"];
+	ofun:	m := metadata(vthis);
+			xret := [m, "@class"];
 			goto [xret = "Function"] retfun throw;
 	retfun:	xret := "function () {}";
 
@@ -132,9 +135,11 @@ with
 
 proc FP_hasInstanceAfterBind (v1, v2) {
 
-			target := [v1, "@targetFunction"];
+			m := metadata(v1);
+			target := [m, "@targetFunction"];
 
-			tclass := [target, "@class"];
+			m := metadata(target);
+			tclass := [m, "@class"];
 			goto [tclass = "Function"] cont throw;
 
 	cont:	xret := "hasInstance" (target, v2);
@@ -170,20 +175,22 @@ proc FP_bind (xsc, vthis, thisArg) {
 			F := xret;
 
 			(* Set up properties *)
-			[F, "@targetFunction"] := Target;
-			[F, "@boundThis"] := thisArg;
-			[F, "@boundArguments"] := A;
+			m := metadata(F);
+			[m, "@targetFunction"] := Target;
+			[m, "@boundThis"] := thisArg;
+			[m, "@boundArguments"] := A;
 
 			(* Adapting for our call *)
-			field_call := [Target, "@call"];
-			[F, "@call"] := field_call;
+			mt := metadata(Target);
+			field_call := [mt, "@call"];
+			[m, "@call"] := field_call;
 
 			(* Adapting for our construct *)
-			field_constr := [Target, "@construct"];
-			[F, "@construct"] := field_constr;
+			field_constr := [mt, "@construct"];
+			[m, "@construct"] := field_constr;
 
 			(* Step 15 onward *)
-			targetClass := [Target, "@class"];
+			targetClass := [mt, "@class"];
 			goto [targetClass = "Function"] fun nofun;
 
 	fun:	xret := "get" (Target, "length") with elab;

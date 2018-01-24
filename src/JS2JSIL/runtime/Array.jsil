@@ -218,7 +218,9 @@ proc Array_isArray (xsc, vthis, array) {
 			xret := false;
 
 			goto [typeOf (array) = Obj] cls rlab;
-	cls:	class := [array, "@class"];
+			
+	cls:	m := metadata(array);
+			class := [m, "@class"];
 			goto [class = "Array"] rt rlab;
 
 	rt:		xret := true;
@@ -246,8 +248,9 @@ proc AP_toString (xsc, vthis) {
 
 	setfun:	func := $lop_toString;
 
-	norm:	xsc := [func, "@scope"];
-			fun := [func, "@call"];
+	norm:	m := metadata(func);
+			xsc := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (xsc, vthis) with elab;
 			goto [xret = empty] undef rlab;
 	undef:	xret := undefined;
@@ -421,8 +424,9 @@ proc AP_toLocaleString(xsc, vthis) {
 			xret := "i__isCallable" (func);
 			goto [xret] call throw;
 
-	call:	xsc := [func, "@scope"];
-			fun := [func, "@call"];
+	call:	m := metadata(func);
+			xsc := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (xsc, eothis) with elab;
 			goto [xret = empty] undef setR;
 	undef:	xret := undefined;
@@ -490,7 +494,8 @@ proc AP_concat() {
 			f := 1;
 
 	cont:	goto [typeOf (elem) = Obj] cls narr;
-	cls:	c := [elem, "@class"];
+	cls:	m := metadata(elem);
+			c := [m, "@class"];
 			goto [c = "Array"] arr narr;
 
 	arr:	k := 0;
@@ -1114,8 +1119,9 @@ proc AP_every() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			tr := xret;
 			xret := "i__toBoolean" (tr) with elab;
@@ -1178,8 +1184,9 @@ proc AP_some() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			tr := xret;
 			xret := "i__toBoolean" (tr) with elab;
@@ -1241,8 +1248,9 @@ proc AP_forEach() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 
 	ff:		k := k + 1;
@@ -1300,8 +1308,9 @@ proc AP_map() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			mapv := xret;
 			xret := "a__defineOwnProperty" (A, pk, {{ "d", mapv, true, true, true }}, false) with elab;
@@ -1361,8 +1370,9 @@ proc AP_filter() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			goto [xret = empty] udef sel;
 	udef:	xret := undefined;
@@ -1446,8 +1456,9 @@ proc AP_reduce() {
 
 	t:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, undefined, acc, kval, k, vthis) with elab;
 			acc := xret;
 
@@ -1520,8 +1531,9 @@ proc AP_reduceRight() {
 
 	t:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, undefined, acc, kval, k, vthis) with elab;
 			acc := xret;
 
@@ -1705,8 +1717,9 @@ proc a__sortCompare(j, k, compfn, vthis) {
 
 	lif:	xret := "i__isCallable" (compfn);
 			goto [xret] call throw;
-	call:	scp := [compfn, "@scope"];
-			fun := [compfn, "@call"];
+	call:	m := metadata(compfn);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, undefined, x, y) with elab;
 			goto rlab;
 

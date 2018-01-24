@@ -4,15 +4,25 @@ import Internals.jsil;
 (* THE OBJECT LIBRARY *)
 (* ****************** *)
 
-(* *** GETFIELDS *** *)
+(*  
+	Procedure: i__getFields
 
+	Returns the list of properties of 
+		object at a given location l
+	
+	The list does not include internals
+		
+	If the object is a string object,
+		then it has additional properties
+*)
 proc i__getFields (l) {
 			xret := getFields (l);
 
-			class := [l, "@class"];
+			m := metadata(l);
+			class := [m, "@class"];
 			goto [class = "String"] add rlab;
 
-	add:	str := [l, "@primitiveValue"];
+	add:	str := [m, "@primitiveValue"];
 			len := s-len (str);
 
 			n := len - 1;
@@ -30,52 +40,10 @@ with
 	ret:	xret, rlab;
 };
 
-(* *** GETOWNFIELDS *** *)
-
-proc i__getOwnFields (l) {
-			prop_list := "i__getFields" (l);
-			xret := "i__getOwnFieldsIter" (prop_list);
-	rlab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-};
-
-(* *** GETOWNFIELDSITER *** *)
-
-proc i__getOwnFieldsIter (prop_list) {
-			goto [prop_list = nil] nil init;
-
-	nil:	xret := nil;
-			goto rlab;
-
-	init:	xh := car prop_list;
-			xt := cdr prop_list;
-
-			goto [0 < s-len (xh)] maybe yes;
-	maybe:	test := s-nth (xh, 0);
-			goto [test = "@"] no yes;
-
-	no:		fh := nil;
-			goto rcall;
-
-	yes:	fh := xh;
-
-	rcall:	ft := "i__getOwnFieldsIter" (xt);
-
-			xret := fh :: ft;
-	rlab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-};
-
 (* *** GETENUMERABLEFIELDS *** *)
 
 proc i__getEnumerableFields (l) {
-			prop_list := "i__getOwnFields" (l);
+			prop_list := "i__getFields" (l);
 			xret := "i__getEnumerableFieldsIter" (l, prop_list);
 
 	rlab:	skip
@@ -96,17 +64,13 @@ proc i__getEnumerableFieldsIter (l, prop_list) {
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
 
-			prop := "getOwnProperty" (l, xh);
-			goto [l-nth (prop, 3) = true] yes no;
+			prop := [l, xh];
+			xret := "i__getEnumerableFieldsIter" (l, xt);
+			
+			goto [l-nth (prop, 3) = true] yes rlab;
 
-	no:		fh := nil;
-			goto rcall;
+	yes:	xret := xh :: xret;
 
-	yes:	fh := xh;
-
-	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt);
-
-			xret := fh :: ft;
 	rlab:	skip
 }
 with
@@ -189,7 +153,8 @@ proc i__getAllEnumerableFieldsIter (l, props, b) {
 	inc:	n := n + 1;
 			goto loop;
 
-	next:	l := [l, "@proto"];
+	next:	m := metadata(l);
+			l := [m, "@proto"];
 			goto [l = null] end deeper;
 
 	deeper:	xret := "i__getAllEnumerableFieldsIter" (l, props, b);
@@ -249,7 +214,8 @@ with
 proc Object_getPrototypeOf (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] proto throw;
 
-	proto:	xret := [o, "@proto"];
+	proto:	m := metadata(o);
+			xret := [m, "@proto"];
 
 	rlab:	skip;
 
@@ -292,7 +258,7 @@ proc Object_getOwnPropertyNames (xsc, vthis, o) {
 
 			n := 0;
 			l := xret;
-			props := "i__getOwnFields" (o);
+			props := "i__getFields" (o);
 			len := l-len (props);
 
 	loop:	goto [n < len] head end;
@@ -318,7 +284,8 @@ proc Object_create (xsc, vthis, o, props) {
 			goto [(typeOf(o) = Obj) or (o = null)] main throw;
 
 	main:	xret := "Object_construct" () with elab;
-			[xret, "@proto"] := o;
+			m := metadata(xret);
+			[m, "@proto"] := o;
 
 			goto [props = undefined] rlab props;
 
@@ -397,7 +364,8 @@ with
 proc Object_preventExtensions (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] start throw;
 
-	start:	[o, "@extensible"] := false;
+	start:	m := metadata(o);
+			[m, "@extensible"] := false;
 			xret := o;
 
 	rlab: 	skip;
@@ -416,7 +384,7 @@ with
 proc Object_seal (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] start throw;
 
-	start:	props := "i__getOwnFields" (o);
+	start:	props := "i__getFields" (o);
 
 			n := 0;
 			len := l-len (props);
@@ -427,7 +395,8 @@ proc Object_seal (xsc, vthis, o) {
 	next:	n := n + 1;
 			goto loop;
 
-	ext:	[o, "@extensible"] := false;
+	ext:	m := metadata(o);
+			[m, "@extensible"] := false;
 			xret := o;
 
 	rlab:	skip;
@@ -446,7 +415,7 @@ with
 proc Object_isSealed (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] start throw;
 
-	start:	props := "i__getOwnFields" (o);
+	start:	props := "i__getFields" (o);
 
 			n := 0;
 			len := l-len (props);
@@ -457,7 +426,8 @@ proc Object_isSealed (xsc, vthis, o) {
 	next:	n := n + 1;
 			goto loop;
 
-	ext:	xret := [o, "@extensible"];
+	ext:	m := metadata(o);
+			xret := [m, "@extensible"];
 			goto [xret] r_f r_t;
 
 	r_t:	xret := true;
@@ -481,7 +451,7 @@ with
 proc Object_freeze (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] start throw;
 
-	start:	props := "i__getOwnFields" (o);
+	start:	props := "i__getFields" (o);
 
 			n := 0;
 			len := l-len (props);
@@ -495,7 +465,8 @@ proc Object_freeze (xsc, vthis, o) {
 	next:	n := n + 1;
 			goto loop;
 
-	ext:	[o, "@extensible"] := false;
+	ext:	m := metadata(o);
+			[m, "@extensible"] := false;
 			xret := o;
 
 	rlab:	skip;
@@ -514,7 +485,7 @@ with
 proc Object_isFrozen (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] start throw;
 
-	start:	props := "i__getOwnFields" (o);
+	start:	props := "i__getFields" (o);
 
 			n := 0;
 			len := l-len (props);
@@ -526,7 +497,8 @@ proc Object_isFrozen (xsc, vthis, o) {
 	next:	n := n + 1;
 			goto loop;
 
-	ext:	xret := [o, "@extensible"];
+	ext:	m := metadata(o);
+			xret := [m, "@extensible"];
 			goto [xret] r_f r_t;
 
 	r_t:	xret := true;
@@ -550,7 +522,8 @@ with
 proc Object_isExtensible (xsc, vthis, o) {
 			goto [typeOf(o) = Obj] start throw;
 
-	start: 	xret := [o, "@extensible"];
+	start: 	m := metadata(o);
+			xret := [m, "@extensible"];
 	rlab:	skip;
 
 	throw:	xerr := "TypeError" ();
@@ -609,7 +582,8 @@ proc OP_toString(xsc, vthis) {
 			goto rlab;
 
 	nnull:	xret := "i__toObject" (vthis) with elab;
-			c := [xret, "@class"];
+			m := metadata(xret);
+			c := [m, "@class"];
 			xret := "[object " ++ c ++ "]";
 
 	rlab:	skip;
@@ -631,8 +605,9 @@ proc OP_toLocaleString(xsc, vthis) {
 			c := "i__isCallable" (xret);
             goto [c] call throw;
 
-	call:	scp := [xret, "@scope"];
-			fun := [xret, "@call"];
+	call:	m := metadata(xret);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, vthis) with elab;
 
 	rlab:	skip;
@@ -694,7 +669,8 @@ proc OP_isPrototypeOf(xsc, vthis, v) {
 
 	obj:	xret := "i__toObject" (vthis) with elab;
 
-	rep:	v := [v, "@proto"];
+	rep:	m := metadata(v);
+			v := [m, "@proto"];
 			goto [v = null] fret nnull;
 
 	nnull:  goto [v = xret] tret rep;
