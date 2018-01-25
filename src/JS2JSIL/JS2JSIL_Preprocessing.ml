@@ -1,5 +1,5 @@
-open Common
 open Parser_syntax
+open JSIL_Syntax
 open Utils
 open Batteries
 open JS2JSIL_Constants
@@ -8,7 +8,6 @@ open JS_Utils
 exception CannotHappen
 exception No_Codename
 exception EarlyError of string
-
 
 (********************************************)
 (********************************************)
@@ -118,7 +117,6 @@ let get_top_level_annot e =
   | _ -> []
 
 
-
 (********************************************)
 (********************************************)
 (***       IDs and CodeNames              ***)
@@ -144,9 +142,7 @@ let get_codename exp =
 
 
 let rec add_codenames exp =
-
   let f_m e =
-
     match e.exp_stx with
     | FunctionExp _ ->
       let new_annot = update_codename_annotation e.exp_annot fresh_anonymous in
@@ -164,13 +160,11 @@ let rec add_codenames exp =
   js_map f_m exp
 
 
-
 (********************************************)
 (********************************************)
 (***         Closure Clarification        ***)
 (********************************************)
 (********************************************)
-
 
 let closure_clarification
     (cc_tbl       : JS2JSIL_Constants.cc_tbl_type)
@@ -228,28 +222,11 @@ let closure_clarification
   js_fold f_ac f_state (Some (f_id, visited_funs)) exp
 
 
-
 (********************************************)
 (********************************************)
 (***         Folds and Unfolds            ***)
 (********************************************)
 (********************************************)
-
-(*
-
-let rec expand_flashes e =
-  let f_m e =
-    let annots = e.exp_annot in
-    let new_annots = List.concat (List.map
-      (fun annot ->
-        let formula = annot.annot_formula in
-        match annot.annot_type with
-        | Flash -> [ { annot_type = Unfold; annot_formula = formula }; { annot_type = Fold; annot_formula = formula } ]
-        | _     -> [ annot ]) annots) in
-    { e with exp_annot = new_annots } in
-  js_map f_m e
-*)
-
 
 let rec propagate_annotations e =
 
@@ -269,8 +246,8 @@ let rec propagate_annotations e =
       let spec_annots = List.filter is_spec_annot exp.exp_annot in
       let lcmd_annots = List.filter is_logic_cmd_annot exp.exp_annot in
       if (((List.length (spec_annots)) + (List.length (lcmd_annots))) > 0)
-        then Printf.printf "I found the annots %s in %s\n"
-                (Pretty_print.string_of_annots (spec_annots @ lcmd_annots)) (Pretty_print.string_of_exp_syntax_1 exp.exp_stx true);
+        then print_debug (Printf.sprintf "I found the annots %s in %s"
+                (Pretty_print.string_of_annots (spec_annots @ lcmd_annots)) (Pretty_print.string_of_exp_syntax_1 exp.exp_stx true));
       false, (prev_annots @ spec_annots @ lcmd_annots) in
 
   let f_transform exp new_exp_stx state_i state_f =
@@ -350,17 +327,25 @@ let parse_annots_formulae annots =
       lcmds) annots in
   List.concat lcmds
 
-let translate_lannots_in_exp cc_tbl vis_tbl fun_tbl inside_stmt_compilation e =
+
+let translate_lannots_in_exp 
+    (cc_tbl                  : cc_tbl_type)
+    (vis_tbl                 : vis_tbl_type)
+    (fun_tbl                 : pre_fun_tbl_type)
+    (fid                     : string) 
+    (scope_var               : string)
+    (inside_stmt_compilation : bool) 
+    e =
   let is_e_expr = not (is_stmt e) in
   if (is_e_expr && inside_stmt_compilation) then ([], []) else (
     let lcmds   = parse_annots_formulae (List.filter is_logic_cmd_annot e.exp_annot) in
-    let t_lcmds = List.concat (List.map (JSLogic.js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl) lcmds) in
+    let t_lcmds = List.concat (List.map (JSLogic.js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl fid scope_var) lcmds) in
 
     if ((List.length t_lcmds) > 0)
       then (
         let t_lcmds_str = List.map JSIL_Print.string_of_lcmd t_lcmds in
         let t_lcmds_str = String.concat "; " t_lcmds_str in
-        Printf.printf "translate_lannots_in_exp. got the following commands: %s\n" t_lcmds_str
+        print_debug (Printf.sprintf "translate_lannots_in_exp. got the following commands: %s\n" t_lcmds_str)
       );
 
     let rec fold_partition lcmds lcmds_so_far =
@@ -431,7 +416,7 @@ let translate_single_func_specs
       let post_js = JSIL_Syntax_Utils.js_assertion_of_string post_str in
       (* Printf.printf "I managed to parse the js assertions\n"; *)
 
-      let pre_jsil, post_jsil = JSLogic.js2jsil_single_spec pre_js post_js cc_tbl vis_tbl fun_tbl fid in
+      let pre_jsil, post_jsil = JSLogic.js2jsil_single_spec pre_js post_js cc_tbl vis_tbl fun_tbl fid fun_args in
       let new_spec  = JSIL_Syntax.create_single_spec pre_jsil [ post_jsil ] ret_flag in
       new_spec)
     preconditions
@@ -478,7 +463,7 @@ let translate_only_specs cc_tbl old_fun_tbl fun_tbl vis_tbl js_only_specs =
   (fun { JSLogic.js_spec_name; JSLogic.js_spec_params; JSLogic.js_proc_specs } ->
     Hashtbl.replace vis_tbl js_spec_name [ js_spec_name; main_fid ];
     let proc_specs = List.map (fun { JSLogic.js_pre; JSLogic.js_post; JSLogic.js_ret_flag } ->
-      let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name in
+      let pre, post = JSLogic.js2jsil_single_spec  js_pre  js_post cc_tbl vis_tbl (Hashtbl.create 0) js_spec_name js_spec_params in
         { JSIL_Syntax.pre = pre; JSIL_Syntax.post = [ post ]; JSIL_Syntax.ret_flag = js_ret_flag }) js_proc_specs in
     let spec = { JSIL_Syntax.spec_name = js_spec_name; JSIL_Syntax.spec_params = [JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this] @ js_spec_params; JSIL_Syntax.proc_specs = proc_specs; JSIL_Syntax.previously_normalised = false } in
     Hashtbl.replace only_specs  js_spec_name spec;
@@ -506,9 +491,9 @@ let preprocess
   test_early_errors e;
 
   (* 1 - propagating annotations                   *)
-  print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e));
+  JSIL_Syntax.print_debug (Printf.sprintf "AST before grounding the annotations:\n%s\n" (Pretty_print.string_of_exp true e));
   let e, _ = propagate_annotations e in
-  print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e));
+  JSIL_Syntax.print_debug (Printf.sprintf "AST after grounding annotations:\n%s\n" (Pretty_print.string_of_exp true e));
 
   (* 2 - obtaining and compiling only-specs        *)
   let top_annots = get_top_level_annot e in
@@ -558,15 +543,14 @@ let preprocess_eval
   let fun_tbl            = Hashtbl.create small_tbl_size in
 
   let vislist =
-    try (Hashtbl.find vis_tbl fid_parent) @ [ fid ] 
+    try (Hashtbl.find vis_tbl fid_parent) @ [ fid ]
       with _ -> raise (Failure (Printf.sprintf "Function %s not found in visibility table" fid_parent)) in
 
   (* 0 - testing early errors                      *)
-  (* HACK WARNING *)
-  let hacked_e = (match e.exp_stx with
-  | Block les -> { e with exp_stx = Script (true, les) }
-  | _ -> e) in
-  test_early_errors hacked_e;
+   let hacked_e = (match e.exp_stx with
+    | Block les -> { e with exp_stx = Script (true, les) }
+    | _ -> e) in
+    test_early_errors hacked_e;
 
   (* 1 - Add unique ids to function literals       *)
   let e : Parser_syntax.exp = add_codenames e in

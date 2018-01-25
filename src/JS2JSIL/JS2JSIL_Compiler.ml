@@ -1,4 +1,3 @@
-open Common
 open Utils
 open Lexing
 open JSIL_Syntax
@@ -11,12 +10,10 @@ let fun_tbl     : fun_tbl_type     = Hashtbl.create medium_tbl_size
 let old_fun_tbl : pre_fun_tbl_type = Hashtbl.create medium_tbl_size
 let vis_tbl     : vis_tbl_type     = Hashtbl.create medium_tbl_size
 
-let annot = ref true
-
 let if_verification a b = 
 	let cond = !for_verification in
 	 	if cond then a else b
-
+		
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
@@ -232,10 +229,10 @@ let translate_named_function_literal (top_level : bool) x_sc f_name f_id params 
 		let cmd_ass_xer = (None, (SLBasic (SAssignment (x_er, LstNth(Var x_sc, Literal (Num (float_of_int index))))))) in
 
 		(* [x_er, f_name] := x_f *)
-		(* [x_er, f_name] := {{ "d", x_f, $$t, $$t, $$f }} *)
+		(* [x_er, f_name] := {{ "d", x_f, true, true, false }} *)
 		let cmd_f = if top_level
-			then (None, SLBasic (SMutation (Var x_er, lit_str f_name, EList [ Literal (String "d"); Var x_f; Literal (Bool true); Literal (Bool true); Literal (Bool false) ])))
-			else (None, SLBasic (SMutation (Var x_er, lit_str f_name, Var x_f))) in
+			then (None, SLBasic (SMutation (Var x_er, lit_str f_name, EList [ Literal (String "d"); Var x_f; Literal (Bool true); Literal (Bool true); Literal (Bool false) ], None)))
+			else (None, SLBasic (SMutation (Var x_er, lit_str f_name, Var x_f, None))) in
 
 		let cmds = [ cmd_cfoc; cmd_ass_xer; cmd_f ] in
 		cmds, Var x_f, []
@@ -312,7 +309,7 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 	(* x2_p := i__toPrimitive (x2_v) with err *)
 	let x2_p, cmd_tp_x2 = make_to_primitive_call x2 x2_v err in
 
-	(*  goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else *)
+	(*  goto [((typeOf x1_p) = Str) or ((typeOf x2_p) = Str)] then else *)
 	let then_lab = fresh_then_label () in
 	let else_lab = fresh_else_label () in
 	let end_lab = fresh_endif_label () in
@@ -348,7 +345,7 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 	let new_cmds = [
 		(None,          cmd_tp_x1);       (*       x1_p := i__toPrimitive (x1_v) with err                                                 *)
 		(None,          cmd_tp_x2);       (*       x2_p := i__toPrimitive (x2_v) with err                                                 *)
-		(None,          cmd_goto);        (*       goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else    *)
+		(None,          cmd_goto);        (*       goto [((typeOf x1_p) = Str) or ((typeOf x2_p) = Str)] then else    *)
 		(Some then_lab, cmd_ts_x1);       (* then: x1_s := i__toString (x1_p) with err                                                    *)
 		(None,          cmd_ts_x2);       (*       x2_s := i__toString (x2_p) with err                                                    *)
 		(None,          cmd_ass_xrthen);  (*       x_rthen := x1_s :: x2_s                                                                *)
@@ -464,7 +461,7 @@ let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err =
 
 
 let make_check_empty_test x_prev x_new =
-(**        goto [x_new = $$empty] next1 next2
+(**        goto [x_new = empty] next1 next2
 			next1: skip
 			next2: x := PHI(x_new, x_previous)
 *)
@@ -486,7 +483,7 @@ let make_check_empty_test x_prev x_new =
 			x_new_var, [ cmd_ass_new ]
 		| _ -> raise (Failure "make_check_empty_test: x_new needs to be either a literal or a var")) in
 
-	(* goto [x_new = $$empty] next1 next2 *)
+	(* goto [x_new = empty] next1 next2 *)
 	let next1 = fresh_next_label () in
 	let next2 = fresh_next_label () in
 	let cmd_goto = (None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in
@@ -504,7 +501,7 @@ let make_check_empty_test x_prev x_new =
 let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 (**
     	end_loop: x_ret_4 := PHI(break_vars, cur_val_var)
-			          goto [ x_ret_4 = $$empty ] next3 next4
+			          goto [ x_ret_4 = empty ] next3 next4
 			next3:    skip
 			next4:    x_ret_5 := PHI(x_ret_4, prev_val_var)
 *)
@@ -522,7 +519,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 	let phi_args = Array.of_list phi_args in
 	let cmd_ass_ret4 = SLPhiAssignment (x_ret_4, phi_args) in
 
-	(* goto [ x_ret_4 = $$empty ] next3 next4 *)
+	(* goto [ x_ret_4 = empty ] next3 next4 *)
 	let cmd_goto = SLGuardedGoto ((BinOp (Var x_ret_4, Equal, Literal Empty), next3, next4)) in
 
 	(* next4:    x_ret_5 := PHI(x_ret_4, prev_val_var) *)
@@ -530,7 +527,7 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 
 	let cmds = [
 		(Some end_lab, cmd_ass_ret4);    (* end_loop:   x_ret_4 := PHI(cur_val_var, break_vars) *)
-		(None,         cmd_goto);        (*             goto [ x_ret_4 = $$empty ] next3 next4  *)
+		(None,         cmd_goto);        (*             goto [ x_ret_4 = empty ] next3 next4  *)
 		(Some next3,   SLBasic SSkip);   (* next3:      skip                                    *)
 		(Some next4,   cmd_ass_ret5)     (* next4:      x_ret_5 := PHI(x_ret_4, prev_val_var)   *)
 	]	in
@@ -597,13 +594,13 @@ let annotate_cmd_top_level metadata lcmd =
 		(* No other cases handled *)
 		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
 
-	if (!annot && ((is_get_value_call cmd) || (is_put_value_call cmd)))  then (
+	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
 		(* Printf.printf "I found a call to GetValue/PutValue.\n"; *)
 		let fold_lcmds, unfold_lcmds = fold_unfold_pi_macro_for_put_and_get_value (get_args cmd) in
 		let new_metadata =
 			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
-	) else if (!annot && (is_hasProperty_call cmd)) then (
+	) else if (is_hasProperty_call cmd) then (
 			let fold_lcmds, unfold_lcmds = fold_unfold_pi_for_hasProperty (get_args cmd) in
 			(* Printf.printf "I found a call to hasProperty.\n\t%n Folds: %s.\n\tUnfolds: %n!\n"
 				(List.length fold_lcmds)
@@ -654,7 +651,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	let annotate_cmd            = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	(* The first command must get the logic commands and the invariants *)
-	let lcmds, call_lcmds       = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl false e in
+	let lcmds, call_lcmds       = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid tr_ctx.tr_sc_var false e in
 	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid tr_ctx.tr_sc_var e in
 	let annotate_first_cmd      = add_more_metadata metadata lcmds invariant in
 	let annotate_first_call_cmd = add_more_metadata metadata call_lcmds None in
@@ -791,7 +788,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 					goto [x_1] then else
 			then: 	x_then := v-ref($lg, "x");
 		      		goto end;
-			else: 	x_else := v-ref($$undefined, "x");
+			else: 	x_else := v-ref(undefined, "x");
 			end:  	x_r = PHI(x_then, x_else)
  		*)
 
@@ -810,7 +807,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			let x_then = fresh_var () in
 			let cmd_ass_xthen = SLBasic (SAssignment (x_then, EList [lit_refv; lit_loc locGlobName; lit_str v]))  in
 
-			(* x_then := v-ref($$undefined, "x");  *)
+			(* x_then := v-ref(undefined, "x");  *)
 			let x_else = fresh_var () in
 			let cmd_ass_xelse = SLBasic (SAssignment (x_else, EList [lit_refv; Literal Undefined; lit_str v])) in
 
@@ -823,7 +820,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				(None,          cmd_goto_unres_ref);  (*       goto [x_1] then else                        *)
 				(Some then_lab, cmd_ass_xthen);       (* then: x_then := v-ref($lg, "x")                   *)
 				(None,          SLGoto end_lab);      (*       goto end                                    *)
-				(Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref($$undefined, "x")           *)
+				(Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref(undefined, "x")           *)
 				(Some end_lab,  cmd_ass_xr)           (*       x_r = PHI(x_then, x_else)                   *)
 			] in
 			let cmds = annotate_cmds cmds in
@@ -866,23 +863,29 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	 Section 11.1.4 - Array Initialiser
 	*)
 	| Parser_syntax.Array eos -> (* raise (Failure "not implemented yet - array literal") *)
+		
+		(* xfvm := metadata (x_f_val) *)
+		let xarrm = fresh_var () in
+		let cmd_xarrm = annotate_cmd (SLBasic (SNew (xarrm, Some (Literal Null)))) None in
+		
 		(* x_arr := new () *)
 		let x_arr = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew x_arr)) None in
+		(* TODO: METADATA *)
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_arr, Some (Var xarrm)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *)
 		let x_cdo = fresh_var () in
 		let cmd_cdo_call = annotate_cmd (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None)) None in
 
-		(* [x_arr, "length"] := {{ "d", num, $$t, $$f, $$f }} *)
-		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ]))) None in
+		(* [x_arr, "length"] := {{ "d", num, true, false, false }} *)
+		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ], None))) None in
 
     	let translate_array_property_definition x_obj e err num =
 			let cmds, x, errs = f e in
 			(* x_v := i__getValue (x) with err *)
 			let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
 
-			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *)
+			(* x_desc := {{ "d", x_v, true, true, true}}  *)
 			let x_desc = fresh_desc_var () in
 			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in
 
@@ -893,7 +896,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			let cmds = cmds @ (annotate_cmds [
 				(None, cmd_gv_x);           (* x_v := i__getValue (x) with err                                            *)
-				(None, cmd_ass_xdesc);      (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                     *)
+				(None, cmd_ass_xdesc);      (* x_desc := {{ "d", x_v, true, true, true}}                                     *)
 				(None, cmd_adop_x)          (* x_dop := a__defineOwnProperty(x_obj, toString(num), x_desc, true) with err *)
 			]) in
 			let errs = errs @ errs_x_v @ [ x_adop ] in
@@ -910,11 +913,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				(cmds @ new_cmds, errs @ new_errs, num + 1))
 				([], [], 0)
 				eos in
-		let cmds = annotate_first_cmd (cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: cmds)) in
+		let cmds = annotate_first_cmd (cmd_xarrm :: cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: cmds)) in
 		cmds, (Var x_arr), errs
 
 
 	| Parser_syntax.Obj xs ->
+		
 		(**
 	 	 Section 11.1.5 - Object Initializer
 	 	 C({ pd_1, ..., pd_n } ) =
@@ -934,27 +938,31 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			----------------------
 			C_pd (pn:e) =   cmds
 			                x_v := i__getValue (x) with err
-			                x_desc := {{ "d", x_v, $$t, $$t, $$t}}
+			                x_desc := {{ "d", x_v, true, true, true}}
 			                x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 
 			-----------------------
 			C_pd ( get pn () { s }^getter_id ) =
 				          	x1 := copy_object (x_scope, {{main, fid1, ..., fidn }})
 							x_f := create_function_object(x1, getter_id, {{}})
-							x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }}
+							x_desc := {{ "g", true, true, empty, empty, x_f, empty }}
 							x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 
 			-----------------------
 		 	C_pd ( set pn (x1, ..., xn) { s }^setter_id ) =
 							x1 := copy_object (x_scope, {{main, fid1, ..., fidn }})
 							x_f := create_function_object(x1, setter_id, {{x1, ..., xn}})
-							x_desc := {{ "g", $$t, $$t, $$empty, $$empty, $$empty, x_f }}
+							x_desc := {{ "g", true, true, empty, empty, empty, x_f }}
 							x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 		*)
 
+		(* xfvm := metadata (x_f_val) *)
+		let x_obj_m = fresh_var () in
+		let cmd_xobjm = annotate_cmd (SLBasic (SNew (x_obj_m, Some (Literal Null)))) None in
+		
 		(* x_obj := new () *)
 		let x_obj = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew x_obj)) None in
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_obj, Some (Var x_obj_m)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $lobj_proto) *)
 		let x_cdo = fresh_var () in
@@ -971,7 +979,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(* x_v := i__getValue (x) with err *)
 			let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
 
-			(* x_desc := {{ "d", x_v, $$t, $$t, $$t}}  *)
+			(* x_desc := {{ "d", x_v, true, true, true}}  *)
 			let x_desc = fresh_desc_var () in
 			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in
 
@@ -980,7 +988,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			let cmds = cmds @ (annotate_cmds [
 				(None, cmd_gv_x);          (* x_v := i__getValue (x) with err                                          *)
-				(None, cmd_ass_xdesc);     (* x_desc := {{ "d", x_v, $$t, $$t, $$t}}                                   *)
+				(None, cmd_ass_xdesc);     (* x_desc := {{ "d", x_v, true, true, true}}                                   *)
 				(None, cmd_dop_x)          (* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err    *)
 			]) in
 			let errs = errs @ errs_x_v @ [ x_dop ] in
@@ -997,8 +1005,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(* x_f := create_function_object(x_sc, f_id, f_id, params) *)
 			let x_f, cmd_cfo = make_create_function_object_call tr_ctx.tr_sc_var f_id params in
 
-			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, x_f, $$empty }} *)
-			(* x_desc := {{ "g", $$t, $$t, $$empty, $$empty, $$empty, x_f }} *)
+			(* x_desc := {{ "g", true, true, empty, empty, x_f, empty }} *)
+			(* x_desc := {{ "g", true, true, empty, empty, empty, x_f }} *)
 			let x_desc = fresh_desc_var () in
 			let desc_params =
 				match is_getter with
@@ -1011,7 +1019,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			let cmds = annotate_cmds [
 				(None, cmd_cfo);           (* x_f := create_function_object(x_sc, f_id, f_id, params)                  *)
-				(None, cmd_ass_xdesc);     (* x_desc := x_desc := {{ "g", $$t, $$t, $$empty, $$empty, -, - }}          *)
+				(None, cmd_ass_xdesc);     (* x_desc := x_desc := {{ "g", true, true, empty, empty, -, - }}          *)
 				(None, cmd_dop_x)          (* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err    *)
 			] in
 			cmds, [ x_dop ] in
@@ -1027,7 +1035,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				cmds @ new_cmds, errs @ new_errs)
 				([], [])
 				xs in
-		let cmds = annotate_first_cmd (cmd_new_obj :: (cmd_cdo_call :: cmds)) in
+		let cmds = annotate_first_cmd (cmd_xobjm :: cmd_new_obj :: (cmd_cdo_call :: cmds)) in
 		cmds, (Var x_obj), errs
 
 
@@ -1126,20 +1134,21 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		       				x_argn_val := i__getValue (x_argn) with err;
 			     				goto [ typeOf(x_f_val) != Object] err next1;
 					next1:  x_hp := [x_f_val, "@construct"];
-					        goto [ x_hp = $$empty ] err next2;
+					        goto [ x_hp = empty ] err next2;
 					next2:	x_this := new ();
 					        x_ref_prototype := ref-o(x_f_val, "prototype");
 									x_f_prototype := i__getValue(x_ref_prototype) with err;
-									goto [typeof (x_f_prototype) = $$object_type] then0 else0;
+									goto [typeof (x_f_prototype) = Obj] then0 else0;
 					then0:	x_f_prototype := $lobj_proto;
 					else0:	x_cdo := i__createDefaultObject (x_this, x_f_prototype);
 								 	x_body := [x_f_val, "@construct"];
 		       				x_scope := [x_f_val, "@scope"];
 					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err;
-					 				goto [typeOf(x_r1) = $$object_type ] next4 next3;
+					 				goto [typeOf(x_r1) = Obj ] next4 next3;
         	next3:  skip
 					next4:  x_r3 := PHI(x_r1, x_this)
 		*)
+		
 		let cmds_ef, x_ef, errs_ef = f e_f in
 
 		(* x_f_val := i__getValue (x_f) with err1;  *)
@@ -1151,19 +1160,23 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next1 = fresh_next_label () in
 		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
+		
+		(* xfvm := metadata (x_f_val) *)
+		let xfvm = fresh_var () in
+		let cmd_xfvm = SLBasic (MetaData (xfvm, Var x_f_val)) in
 
-		(* x_hp := [x_f_val, "@construct"]; *)
+		(* x_hp := [xfvm, "@construct"]; *)
 		let x_hp = fresh_var () in
-		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var x_f_val, Literal (String constructPropName))) in
+		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var xfvm, Literal (String _constructPropName))) in
 
-		(* goto [ x_hp = $$empty ] err next2; *)
+		(* goto [ x_hp = empty ] err next2; *)
 		let call = fresh_then_label () in
 		let get_bt = fresh_then_label () in
 		let jump = if_verification call get_bt in
 		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, jump, tr_ctx.tr_err) in
 
 		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SHasField (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
+		let cmd_get_bt = SLBasic (SHasField (x_bt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_bt) in
@@ -1172,14 +1185,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* BIND *)
 
 		let x_ba = fresh_var () in
-		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
+		let cmd_get_ba = SLBasic (SLookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
 
 		let x_tf = fresh_var () in
-		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
+		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
+
+		(* xfvm := metadata (x_f_val) *)
+		let xbthism = fresh_var () in
+		let cmd_xobjm = SLBasic (SNew (xbthism, Some (Literal Null))) in
 
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
-		let cmd_bcreate_xobj = SLBasic (SNew x_bthis) in
+		let cmd_bcreate_xobj = SLBasic (SNew (x_bthis, Some (Var xbthism))) in
 
 		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *)
 		let x_bref_fprototype = fresh_var () in
@@ -1203,11 +1220,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_bcdo = fresh_var () in
 		let cmd_bcdo_call = SLCall (x_bcdo, Literal (String createDefaultObjectName), [ Var x_bthis; Var x_bprototype ], None) in
 
+		(* xtfm := metadata (x_tf) *)
+		let xtfm = fresh_var () in
+		let cmd_xtfm = SLBasic (MetaData (xtfm, Var x_tf)) in
+
 		let x_bbody = fresh_body_var () in
-		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String constructPropName))) in
+		let cmd_bbody = SLBasic (SLookup (x_bbody, Var xtfm, Literal (String _constructPropName))) in
 
 		let x_bfscope = fresh_fscope_var () in
-		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in
+		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var xtfm, Literal (String _scopePropName))) in
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
@@ -1216,7 +1237,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_bconstruct = fresh_var () in
 		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some tr_ctx.tr_err) in
 
-		(* goto [ x_bconstruct = $$empty ] next3 next4; *)
+		(* goto [ x_bconstruct = empty ] next3 next4; *)
 		let bnext3 = fresh_next_label () in
 		let bnext4 = fresh_next_label () in
 		let goto_guard_expr = BinOp (TypeOf (Var x_bconstruct), Equal, Literal (Type ObjectType)) in
@@ -1234,9 +1255,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let join = fresh_label () in
 		let cmd_sync = SLGoto join in 
 
+		(* xfvm := metadata (x_f_val) *)
+		let xthism = fresh_var () in
+		let cmd_xobjm = SLBasic (SNew (xthism, Some (Literal Null))) in
+
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in
-		let cmd_create_xobj = SLBasic (SNew x_this) in
+		let cmd_create_xobj = SLBasic (SNew (x_this, Some (Var xthism))) in
 
 		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *)
 		let x_ref_fprototype = fresh_var () in
@@ -1260,20 +1285,20 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_cdo = fresh_var () in
 		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_prototype ], None) in
 
-		(* x_body := [x_f_val, "@construct"];  *)
+		(* x_body := [xfvm, "@construct"];  *)
 		let x_body = fresh_body_var () in
-		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String constructPropName))) in
+		let cmd_body = SLBasic (SLookup (x_body, Var xfvm, Literal (String _constructPropName))) in
 
-		(* x_fscope := [x_f_val, "@scope"]; *)
+		(* x_fscope := [xfvm, "@scope"]; *)
 		let x_fscope = fresh_fscope_var () in
-		let cmd_scope = SLBasic (SLookup (x_fscope, Var x_f_val, Literal (String scopePropName))) in
+		let cmd_scope = SLBasic (SLookup (x_fscope, Var xfvm, Literal (String _scopePropName))) in
 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_r1 = fresh_var () in
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in
 		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some tr_ctx.tr_err) in
 
-		(* goto [ x_r1 = $$empty ] next3 next4; *)
+		(* goto [ x_r1 = empty ] next3 next4; *)
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
 		let goto_guard_expr = BinOp (TypeOf (Var x_r1), Equal, Literal (Type ObjectType)) in
@@ -1290,56 +1315,59 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_phi_join = SLPhiAssignment (x_final, [| Var x_rbind; Var x_rcall |]) in 
 
 		let cmds = annotate_first_cmd (
-			cmds_ef @ [                             (*        cmds_ef                                                                  *)
-			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                    *)
+			cmds_ef @ [                             (*        cmds_ef                                                                 *)
+			(annotate_cmd cmd_gv_f None)            (*        x_f_val := i__getValue (x_f) with err                                   *)
 		] @ annotate_first_call_cmd (
-			cmds_args @ (annotate_cmds [            (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                *)
-			(None,         cmd_goto_is_obj);        (*        goto [ typeOf(x_f_val) != Object] err next1                              *)
-			(Some next1,   cmd_hf_construct);       (* next1: x_hp := [x_f_val, "@construct"];                                         *)
-			(None,         cmd_goto_xhp);           (*        goto [ x_hp = $$empty ] err next2                                        *) ]
+			cmds_args @ (annotate_cmds [            (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err               *)
+			(None,         cmd_goto_is_obj);        (*        goto [ typeOf(x_f_val) != Object] err next1                             *)
+			(Some next1,   cmd_xfvm);               (*        xfvm := metadata(x_f_val)                                               *)
+			(None,         cmd_hf_construct);       (* next1: x_hp := [xfvm, "@construct"];                                           *)
+			(None,         cmd_goto_xhp);           (*        goto [ x_hp = empty ] err next2                                         *) ]
 
 		@ (if_verification [] (annotate_cmds [
 
 			(* PREP *)
 
-			(Some get_bt,    cmd_get_bt);           (*        x_bt := [x_f_val, "@boundTarget"];                                       *)
-			(None,           cmd_bind_test);        (*        goto [x_bt = $$empty] call bind                                          *)
+			(Some get_bt,    cmd_get_bt);           (*        x_bt := [xfvm, "@boundTarget"];                                         *)
+			(None,           cmd_bind_test);        (*        goto [x_bt = empty] call bind                                           *)
 
 			(* BIND *)
 
-			(Some bind,    cmd_get_ba);              (*         x_ba := [x_f_val, "@boundArgs"];                                       *)
-			(None,         cmd_get_tf);              (*         x_tf := [x_f_val, "@targetFunction"];                                  *)
-			(None,         cmd_bcreate_xobj);        (*         x_bthis := new ()                                                      *)
-			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                          *)
-			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err               *)
-			(None,         cmd_bis_object);          (*         goto [typeof (x_bf_prototype) = $$object_type] else1 then1;            *)
-			(Some bthen1,  cmd_bset_proto);          (* bthen1:	x_bwhyGodwhy := $lobj_proto                                            *)
-			(Some belse1,  cmd_bproto_phi);          (* belse1: x_bprototype := PHI (x_bf_prototype, x_bwhyGodwhy)		               *)
-			(None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
-			(None,         cmd_bbody);               (*         x_bbody := [x_tf, "@construct"];                                       *)
-			(None,         cmd_bscope);              (*         x_fscope := [x_tf, "@scope"]                                           *) ]))
+			(Some bind,    cmd_get_ba);              (*         x_ba := [xfvm, "@boundArgs"];                                         *)
+			(None,         cmd_get_tf);              (*         x_tf := [xfvm, "@targetFunction"];                                    *)
+			(None,         cmd_xobjm);               (*         xobjm := new (null)                                                   *)
+			(None,         cmd_bcreate_xobj);        (*         x_bthis := new (xobjm)                                                *)
+			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                         *)
+			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err              *)
+			(None,         cmd_bis_object);          (*         goto [typeof (x_bf_prototype) = Obj] else1 then1;                     *)
+			(Some bthen1,  cmd_bset_proto);          (* bthen1:	x_bwhyGodwhy := $lobj_proto                                           *)
+			(Some belse1,  cmd_bproto_phi);          (* belse1: x_bprototype := PHI (x_bf_prototype, x_bwhyGodwhy)		                *)
+			(None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)               *)
+			(None,         cmd_xtfm);                (*         xtfm := metadata(x_tf)                                                *)
+			(None,         cmd_bbody);               (*         x_bbody := [xtfm, "@construct"];                                      *)
+			(None,         cmd_bscope);              (*         x_fscope := [xtfm, "@scope"]                                          *) 
+			(None,         cmd_append);              (*        SOMETHING ABOUT PARAMETERS                                             *)
+			(None,         cmd_bind);                (*        MAGICAL FLATTENING CALL                                                *)
+			(None,         cmd_bgoto_test_type);     (*        goto [typeOf(x_r1) = Obj ] next4 next3;                                *)
+			(Some bnext3,  cmd_bret_this);           (* next3: skip                                                                   *)
+			(Some bnext4,  cmd_bphi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                           *)
+			(None,         cmd_sync);                (*        goto join                                                              *) ]))
 
 		@ (annotate_cmds [ 
-			(None,         cmd_append);              (*        SOMETHING ABOUT PARAMETERS                                               *)
-			(None,         cmd_bind);                (*        MAGICAL FLATTENING CALL                                                  *)
-			(None,         cmd_bgoto_test_type);     (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
-			(Some bnext3,  cmd_bret_this);           (* next3: skip                                                                     *)
-			(Some bnext4,  cmd_bphi_final);          (* next4: x_rcall := PHI(x_r1, x_this)                                             *)
-			(None,         cmd_sync);                (*        goto join                                                                *) 
-
-			(Some call,    cmd_create_xobj);         (* next2: x_this := new ()                                                         *)
-			(None,         cmd_ass_xreffprototype);  (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
-			(None,         cmd_gv_xreffprototype);   (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
-			(None,         cmd_is_object);           (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
-			(Some then1,   cmd_set_proto);           (* then1:	x_whyGodwhy := $lobj_proto                                              *)
+			(Some call,    cmd_xobjm);               (* next2: xthism := new (null)                                                   *)
+			(None,         cmd_create_xobj);         (* next2: x_this := new (xthism)                                                 *)
+			(None,         cmd_ass_xreffprototype);  (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                        *)
+			(None,         cmd_gv_xreffprototype);   (*        x_f_prototype := i__getValue(x_ref_prototype) with err                 *)
+			(None,         cmd_is_object);           (*        goto [typeof (x_f_prototype) = Obj] else1 then1;                       *)
+			(Some then1,   cmd_set_proto);           (* then1:	x_whyGodwhy := $lobj_proto                                            *)
 			(Some else1,   cmd_proto_phi);         	 (* else1: x_prototype := PHI (x_f_prototype, x_whyGodwhy)		                    *)
-			(None,         cmd_cdo_call);            (*        x_cdo := create_default_object (x_this, x_prototype)                     *)
-			(None,         cmd_body);                (*        x_body := [x_f_val, "@construct"]                                        *)
-			(None,         cmd_scope);               (*        x_fscope := [x_f_val, "@scope"]                                          *)
-			(None,         cmd_proc_call);           (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err   *)
-			(None,         cmd_goto_test_type);      (*        goto [typeOf(x_r1) = $$object_type ] next4 next3;                        *)
-			(Some next3,   cmd_ret_this);            (* next3: skip                                                                     *)
-			(Some next4,   cmd_phi_final);           (* next4: x_rcall := PHI(x_r1, x_this)                                             *) ])
+			(None,         cmd_cdo_call);            (*        x_cdo := create_default_object (x_this, x_prototype)                   *)
+			(None,         cmd_body);                (*        x_body := [xfvm, "@construct"]                                         *)
+			(None,         cmd_scope);               (*        x_fscope := [xfvm, "@scope"]                                           *)
+			(None,         cmd_proc_call);           (*        x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err *)
+			(None,         cmd_goto_test_type);      (*        goto [typeOf(x_r1) = Obj ] next4 next3;                                *)
+			(Some next3,   cmd_ret_this);            (* next3: skip                                                                   *)
+			(Some next4,   cmd_phi_final);           (* next4: x_rcall := PHI(x_r1, x_this)                                           *) ])
 		
 		@ (if_verification [] (annotate_cmds [
 			(Some join,    cmd_phi_join);            (*        x_final := PHI (x_rbind, x_rcall);                                       *) 
@@ -1368,11 +1396,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 					then1:  x_this := base(x_f);
 					 				goto end;
 					else1: 	x_this := undefined;
-					end1: 	x_body := [x_f_val, "@call"];
-		       				x_scope := [x_f_val, "@scope"];
+					end1: 	xfvm := metadata(x_f_val);
+									x_body := [xfvm, "@call"];
+		       				x_scope := [xfvm, "@scope"];
 					 				x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err;
-					 				goto [ x_r1 = $$empty ] next3 next4;
-        	next3:  x_r2 := $$undefined;
+					 				goto [ x_r1 = empty ] next3 next4;
+        	next3:  x_r2 := undefined;
 					next4:  x_r3 := PHI(x_r1, x_r2)
 		*)
 
@@ -1399,8 +1428,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let jump = if_verification call get_bt in
 		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, jump, tr_ctx.tr_err) in
 
+		let xfvm = fresh_var () in
+		let cmd_xfvm = SLBasic (MetaData (xfvm, Var x_f_val)) in
+
 		let x_ibt = fresh_var () in
-		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var x_f_val, Literal (String "@boundThis"))) in
+		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_ibt) in
@@ -1409,19 +1441,23 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* BIND *)
 
 		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SLookup (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
+		let cmd_get_bt = SLBasic (SLookup (x_bt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let x_ba = fresh_var () in
-		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
+		let cmd_get_ba = SLBasic (SLookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
 
 		let x_tf = fresh_var () in
-		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
+		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
+
+		(* xtfm := metadata (x_tf) *)
+		let xtfm = fresh_var () in
+		let cmd_xtfm = SLBasic (MetaData (xtfm, Var x_tf)) in
 
 		let x_bbody = fresh_body_var () in
-		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String callPropName))) in
+		let cmd_bbody = SLBasic (SLookup (x_bbody, Var xtfm, Literal (String _callPropName))) in
 
 		let x_bfscope = fresh_fscope_var () in
-		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in
+		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var xtfm, Literal (String _scopePropName))) in
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
@@ -1459,11 +1495,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_body := [x_f_val, "@call"]; *)
 		let x_body = fresh_body_var () in
-		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String callPropName))) in
+		let cmd_body = SLBasic (SLookup (x_body, Var xfvm, Literal (String _callPropName))) in
 
 		(* x_fscope := [x_f_val, "@scope"]; *)
 		let x_fscope = fresh_fscope_var () in
-		let cmd_scope = SLBasic (SLookup (x_fscope, Var x_f_val, Literal (String scopePropName))) in
+		let cmd_scope = SLBasic (SLookup (x_fscope, Var xfvm, Literal (String _scopePropName))) in
 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_rcall = fresh_var () in
@@ -1473,13 +1509,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_r1 = fresh_var () in
 		let cmd_phi_join = SLPhiAssignment (x_r1, [| (Var x_rbind); (Var x_rcall) |]) in 
 
-		(* goto [ x_r1 = $$empty ] next3 next4; *)
+		(* goto [ x_r1 = empty ] next3 next4; *)
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
 		let goto_guard_expr = BinOp (Var (if_verification x_rcall x_r1), Equal, Literal Empty) in
 		let cmd_goto_test_empty = SLGuardedGoto (goto_guard_expr, next3, next4) in
 
-		(* next3: x_r2 := $$undefined; *)
+		(* next3: x_r2 := undefined; *)
 		let x_r2 = fresh_var () in
 		let cmd_ret_undefined = SLBasic (SAssignment (x_r2, Literal Undefined)) in
 
@@ -1500,16 +1536,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(* PREP *)
 
-			(Some get_bt,    cmd_get_ibt);          (*        x_bt := [x_f_val, "@boundTarget"];                                        *)
-			(None,           cmd_bind_test);        (*        goto [x_bt = $$empty] call bind                                           *)
+			(Some get_bt,    cmd_xfvm);             (*        xfvm := metadata(x_f_val)                                               *)
+			(None,           cmd_get_ibt);          (*        x_bt := [xfvm, "@boundTarget"];                                      *)
+			(None,           cmd_bind_test);        (*        goto [x_bt = empty] call bind                                           *)
 
 			(* BIND *)
 
-			(Some bind,      cmd_get_bt);           (*        x_bt := [x_f_val, "@boundThis"];                                          *)
-			(None,           cmd_get_ba);           (*        x_ba := [x_f_val, "@boundArgs"];                                          *)
-			(None,           cmd_get_tf);           (*        x_tf := [x_f_val, "@targetFunction"];                                     *)
-			(None,           cmd_bbody);            (*        x_bbody := [x_tf, "@call"];                                               *)
-			(None,           cmd_bscope);           (*        x_fscope := [x_tf, "@scope"]                                              *)
+			(Some bind,      cmd_get_bt);           (*        x_bt := [xfvm, "@boundThis"];                                          *)
+			(None,           cmd_get_ba);           (*        x_ba := [xfvm, "@boundArgs"];                                          *)
+			(None,           cmd_get_tf);           (*        x_tf := [xfvm, "@targetFunction"];                                     *)
+			(None,           cmd_xtfm);             (*        xtfm := metadata(x_tf)                                                  *)
+			(None,           cmd_bbody);            (*        x_bbody := [xtfm, "@call"];                                               *)
+			(None,           cmd_bscope);           (*        x_fscope := [xtfm, "@scope"]                                              *)
 
 			(None,           cmd_append);           (*        SOMETHING ABOUT PARAMETERS                                                *)
 			(None,           cmd_bind);             (*        MAGICAL FLATTENING CALL                                                   *)
@@ -1523,8 +1561,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,           cmd_goto_end);         (*        goto end                                                                  *)
 			(Some else_lab,  cmd_this_undefined);   (* else:  x_else_this := undefined                                                  *)
 			(Some end_lab,   cmd_ass_xthis);        (* end:   x_this := PHI(x_then_this, x_else_this)                                   *)
-			(None,           cmd_body);             (*        x_body := [x_f_val, "@call"]                                              *)
-			(None,           cmd_scope);            (*        x_fscope := [x_f_val, "@scope"]                                           *)
+			(None,           cmd_body);             (*        x_body := [xfvm, "@call"]                                              *)
+			(None,           cmd_scope);            (*        x_fscope := [xfvm, "@scope"]                                           *)
 			(None,           cmd_proc_call);        (*        x_rcall := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err *) ]
 
 		@ (if_verification [] (annotate_cmds [
@@ -1534,8 +1572,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some join,      cmd_phi_join);         (*        x_r1 := PHI (x_rbind, x_rcall);                                           *) ]))
 
 		@ annotate_cmds [
-			(None,           cmd_goto_test_empty);  (*        goto [ x_r1 = $$empty ] next3 next4                                       *)
-			(Some next3,     cmd_ret_undefined);    (* next3: x_r2 := $$undefined                                                       *)
+			(None,           cmd_goto_test_empty);  (*        goto [ x_r1 = empty ] next3 next4                                       *)
+			(Some next3,     cmd_ret_undefined);    (* next3: x_r2 := undefined                                                       *)
 			(Some next4,     cmd_phi_final)         (* next4: x_r3 := PHI(x_r1, x_r2)                                                   *)
 		]))) in
 		let errs = errs_ef @ errs_xf_val @ errs_args @ [ var_te; var_te ] @ (if_verification [] [ x_rbind ]) @ [ x_rcall ] in
@@ -1588,12 +1626,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			C(delete e) =
 			       cmds
 			       goto [ (is-ref x) ] next1 next4
-			next1: goto [ ((base(x) = $$null) or (base(x) = $$undefined)) ] err next2
+			next1: goto [ ((base(x) = null) or (base(x) = undefined)) ] err next2
 			next2: goto [ (typeOf x) = $$v-reference_type ] err next3
 			next3: x_obj := toObject(base(x)) with err
-				   x_r1 := deleteProperty(x_obj, field(x), $$t) with err
+				   x_r1 := deleteProperty(x_obj, field(x), true) with err
 				   goto next5
-			next4: x_r2 := $$t
+			next4: x_r2 := true
 			next5: x_r := PHI(x_r1; x_r2)
         *)
 
@@ -1607,7 +1645,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let goto_guard = is_ref x in
 		let cmd_goto_isref = SLGuardedGoto (goto_guard, next1, next4) in
 
-		(* next1: goto [ ((base(x) = $$null) or (base(x) = $$undefined)) ] err next2 *)
+		(* next1: goto [ ((base(x) = null) or (base(x) = undefined)) ] err next2 *)
 		let cmd_goto_is_resolvable_ref = SLGuardedGoto (make_unresolvable_ref_test x , tr_ctx.tr_err, next2) in
 
 		(* next2: goto [ (typeOf x) = $$v-reference_type ] err next3 *)
@@ -1618,7 +1656,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_obj = fresh_obj_var () in
 		let cmd_to_obj = SLCall (x_obj, lit_str toObjectName, [ (base x) ], Some tr_ctx.tr_err) in
 
-		(* x_r1 := deleteProperty(x_obj, field(x), $$t) with err *)
+		(* x_r1 := deleteProperty(x_obj, field(x), true) with err *)
 		let x_r1 = fresh_var () in
 		let cmd_delete = SLCall (x_r1, lit_str deletePropertyName,
 			[ (Var x_obj); (field x); (Literal (Bool true)) ], Some tr_ctx.tr_err) in
@@ -1629,12 +1667,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmds = annotate_first_cmd (
 			cmds @ (annotate_cmds [                                                     (*        cmds                                                                     *)
 			(None,       cmd_goto_isref);                                               (*        goto [ (typeOf x) <: $$reference_type ] next1 next4                      *)
-			(Some next1, cmd_goto_is_resolvable_ref);                                   (* next1: goto [ ((base(x_e) = $$null) or (base(x_e) = $$undefined)) ] err next2   *)
+			(Some next1, cmd_goto_is_resolvable_ref);                                   (* next1: goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] err next2   *)
 			(Some next2, cmd_goto_is_vref);                                             (* next2: goto [ (typeOf x) = $$v-reference_type ] err next3                       *)
 			(Some next3, cmd_to_obj);                                                   (* next3: x_obj := toObject(base(x)) err3                                          *)
-			(None,       cmd_delete);                                                   (*        x_r1 := deleteProperty(x_obj, field(x), $$t) with err                    *)
+			(None,       cmd_delete);                                                   (*        x_r1 := deleteProperty(x_obj, field(x), true) with err                    *)
 			(None,       SLGoto next5);                                                 (*        goto next5                                                               *)
-			(Some next4, SLBasic (SAssignment (x_r2, Literal (Bool true))));            (* next4: x_r2 := $$t                                                              *)
+			(Some next4, SLBasic (SAssignment (x_r2, Literal (Bool true))));            (* next4: x_r2 := true                                                              *)
 			(Some next5, SLPhiAssignment (x_r, [| (Var x_r1); (Var x_r2) |]))           (* next5: x_r := PHI(x_r1, x_r2)                                                   *)
 		])) in
 		let errs = errs @ [ var_se; var_se; x_obj; x_r1 ] in
@@ -1647,7 +1685,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	  	C(void e) =
 	  				cmds
 			        x_v := getValue (x) with err
-					x_r := $$undefined
+					x_r := undefined
        *)
 		let cmds, x, errs = f e in
 		(* x_v := getValue (x) with err *)
@@ -1655,7 +1693,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_r = fresh_var () in
 		let cmds = annotate_first_cmd ( cmds @ (annotate_cmds [        (*  cmds                                *)
 			(None, cmd_gv_x);                                          (*  x_v := getValue (x) with err        *)
-			(None, SLBasic (SAssignment (x_r, Literal Undefined)));    (*  x_r := $$undefined                  *)
+			(None, SLBasic (SAssignment (x_r, Literal Undefined)));    (*  x_r := undefined                  *)
 		])) in
 		let errs = errs @ errs_x_v in
 		cmds, Var x_r, errs
@@ -1667,8 +1705,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		C(typeof e) =
 						cmds
 		                goto [ is-ref(typeof (x)) ] next1 next4
-			   next1:   goto [ ((base(x) = $$null) or (base(x) = $$undefined)) ] next2 next3
-			   next2:   x1 := $$undefined
+			   next1:   goto [ ((base(x) = null) or (base(x) = undefined)) ] next2 next3
+			   next2:   x1 := undefined
 					    goto next4
 			   next3:   x2 := getValue (x) with err
 			   next4:   x3 := PHI (x, x1, x2)
@@ -1686,7 +1724,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_goto_ref_guard = is_ref x in
 		let cmd_goto_ref = SLGuardedGoto (cmd_goto_ref_guard, next1, next4) in
 
-		(* goto [ ((base(x_e) = $$null) or (base(x_e) = $$undefined)) ] next2 next3 *)
+		(* goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] next2 next3 *)
 		let cmd_goto_unres_ref = SLGuardedGoto (make_unresolvable_ref_test x, next2, next3) in
 
 		(* x2 := getValue (x) with err *)
@@ -1703,7 +1741,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		    cmds @ (annotate_cmds [                                                              (*             cmds                                                  *)
 			(None, cmd_goto_ref);                                                                (*             goto [ typeof (x) <: $$reference-type ] next1 next4   *)
 			(Some next1, cmd_goto_unres_ref);                                                    (* next1:      goto [ base(x) = undefined] next2 next3               *)
-			(Some next2, SLBasic (SAssignment (x1, Literal Undefined)));                         (* next2:      x1 := $$undefined                                     *)
+			(Some next2, SLBasic (SAssignment (x1, Literal Undefined)));                         (* next2:      x1 := undefined                                     *)
 			(None,       SLGoto next4);                                                          (*             goto next4                                            *)
 			(Some next3, cmd_gv_x);                                                              (* next3:      x2 := getValue (x) with err                           *)
 			(Some next4, SLPhiAssignment (x3, [| (Var x_name); (Var x1); (Var x2) |]));          (* next4:      x3 := PHI (x, x1, x2)                                 *)
@@ -1925,7 +1963,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 											      x2_v := i__getValue (x2) with err
 														x1_p := i__toPrimitive (x1_v) with err
 														x2_p := i__toPrimitive (x2_v) with err
-											      goto [((typeOf x1_p) = $$string_type) or ((typeOf x2_p) = $$string_type)] then else
+											      goto [((typeOf x1_p) = Str) or ((typeOf x2_p) = Str)] then else
 									    then: x1_s := i__toString (x1_p) with err
 											      x2_s := i__toString (x2_p) with err
 														x_rthen := x1_s :: x2_s
@@ -2153,9 +2191,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			    x1_v := i__getValue (x1) with err
 				cmds2
 				x2_v := i__getValue (x2) with err
-				goto [ (typeOf x2_v) = $$object_type ] next1 err
+				goto [ (typeOf x2_v) = Obj ] next1 err
 		next1:  x_cond := [x2_v, "@hasInstance"];
-				goto [ x_cond = $$empty ] err next2
+				goto [ x_cond = empty ] err next2
 		next2:  x_hi := [x2_v, "@hasInstance"]
 				x_r := x_hi (x2_v, x1_v) with err
      *)
@@ -2168,7 +2206,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
-		(* goto [ (typeOf x2_v) = $$object_type ] next1 err *)
+		(* goto [ (typeOf x2_v) = Obj ] next1 err *)
 		let next1 = fresh_label () in
 		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
@@ -2176,7 +2214,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_cond = fresh_var () in
 		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String "@class"))) in
 
-		(* goto [ x_cond = $$empty ] err next2 *)
+		(* goto [ x_cond = empty ] err next2 *)
 		let next2 = fresh_label () in
 		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal (String "Function")), next2, tr_ctx.tr_err) in
 
@@ -2189,9 +2227,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			annotate_cmd cmd_gv_x1 None         (*         x1_v := i__getValue (x1) with err                  *)
 		] @ cmds2 @ (annotate_cmds [            (*         cmds2                                              *)
 			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
-			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err   *)
+			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = Obj ] next1 err   *)
 			(Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "@hasInstance")          *)
-			(None,         cmd_goto_xcond);     (*         goto [ x_cond = $$empty ] err next2                *)
+			(None,         cmd_goto_xcond);     (*         goto [ x_cond = empty ] err next2                *)
 			(Some next2,         cmd_ass_xr)    (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		])) in
 		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ var_te; var_te; x_r ] in
@@ -2207,7 +2245,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			    	x1_v := i__getValue (x1) with err
 					cmds2
 					x2_v := i__getValue (x2) with err
-					goto [ (typeOf x2_v) = $$object_type ] next1 err
+					goto [ (typeOf x2_v) = Obj ] next1 err
 			next1:  x1_s := i__toString (x1_v) with err
 					x_r := o__hasProperty (x2_v, x1_s) with err
      *)
@@ -2220,7 +2258,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x2_v := getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
-		(* goto [ (typeOf x2_v) = $$object_type ] next1 err *)
+		(* goto [ (typeOf x2_v) = Obj ] next1 err *)
 		let next1 = fresh_label () in
 		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
@@ -2236,7 +2274,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			annotate_cmd cmd_gv_x1 None         (*         x1_v := getValue (x1) with err                    *)
 		] @ cmds2 @ (annotate_cmds [            (*         cmds2                                             *)
 			(None,         cmd_gv_x2);          (*         x2_v := getValue (x2) with err                    *)
-			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err  *)
+			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = Obj ] next1 err  *)
 			(Some next1,   cmd_ts_x1);          (* next1:  x1_s := i__toString (x1_v) with err               *)
 			(None,         cmd_ass_xr);         (*         x_r := o__hasProperty (x2_v, x1_s) with err       *)
 		])) in
@@ -2581,7 +2619,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_f_outer_er := new ();  *)
 		let x_f_outer_er = fresh_er_var () in
-		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in
+		(* METADATA: null, since environment record *)
+		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er, None)) in
 
 		(* x_sc_f := x_sc @ {{ x_f_outer_er }}  *)
 		let x_sc_f = fresh_scope_chain_var () in
@@ -2591,7 +2630,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_f, cmd_fun_constr = make_create_function_object_call x_sc_f f_id params in
 
 		(* [x_f_outer_er, f] := x_f *)
-		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f)) in
+		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
 		let x_cae = fresh_var () in
@@ -2661,7 +2700,7 @@ and translate_statement tr_ctx e  =
 	let annotate_cmd            = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	(* The first command must get the logic commands and the invariants *)
-	let lcmds, _                = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl true e in
+	let lcmds, _                = JS2JSIL_Preprocessing.translate_lannots_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid tr_ctx.tr_sc_var true e in
 	let invariant               = JS2JSIL_Preprocessing.translate_invariant_in_exp cc_tbl vis_tbl old_fun_tbl tr_ctx.tr_fid tr_ctx.tr_sc_var e in
 	let annotate_first_cmd      = add_more_metadata metadata lcmds invariant in
 
@@ -2828,14 +2867,15 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = SLBasic (SNew x_er) in
+		(* METADATA: null, since environment record *)
+		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
 		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
 
 		(* [x_er, "x"] := x_err *)
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err, None)) in
 
 		(* x_sc_new := x_sc @ {{ x_er }}  *)
 		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
@@ -2932,14 +2972,15 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = SLBasic (SNew x_er) in
+		(* METADATA: null, since environment record *)
+		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
 		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
 
 		(* [x_er, "x"] := x_err *)
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err)) in
+		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err, None)) in
 
 		(* x_sc_new := x_sc @ {{ x_er }} *)
 		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
@@ -3095,7 +3136,7 @@ and translate_statement tr_ctx e  =
 		(**
      Section 12.1 - Block
 
-		 C_iter({}) = [], $$empty
+		 C_iter({}) = [], empty
 
 		 C(stmts) = cmds, x
 		 C(stmt) = cmds', x'
@@ -3103,7 +3144,7 @@ and translate_statement tr_ctx e  =
 		 -------------------------
 		 C_iter(stmts; stmt) =      cmds
 						      		cmds'
-									goto [x' = $$empty] next end
+									goto [x' = empty] next end
 							 next:  skip
 							 end:   x'' := PHI(x', x)
 
@@ -3187,7 +3228,7 @@ and translate_statement tr_ctx e  =
 			C_dec(vdecs) = cmds
 			--------------------------
 		  C(var vdecs) = cmds
-			              x := $$empty
+			              x := empty
 
      *)
 		let rec loop decs cmds errs =
@@ -3326,12 +3367,12 @@ and translate_statement tr_ctx e  =
      *  C(e1) = cmds1, x1; C(e2) = cmds2, x2
 		 *
 		 *  C(do { e1 } while (e2) ) =
-			          x_ret_0 := $$empty
+			          x_ret_0 := empty
 			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)
 								cmds1
 			          x1_v := i__getValue (x1) with err
 			cont:	    x_ret_2 := PHI(cont_vars, x1_v)
-					      goto [ not (x_ret_2 = $$empty) ] next1 next2
+					      goto [ not (x_ret_2 = empty) ] next1 next2
 		  next1:    skip
 			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
 			guard:    cmds2
@@ -3339,7 +3380,7 @@ and translate_statement tr_ctx e  =
 								x2_b := i__toBoolean (x2_v) with err
 								goto [x2_b] head end_loop
 		  end_loop: x_ret_4 := PHI(break_vars, x_ret_3)
-			          goto [ x_ret_4 = $$empty ] next3 next4
+			          goto [ x_ret_4 = empty ] next3 next4
 			next3:    skip
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1)
 		 *)
@@ -3355,7 +3396,7 @@ and translate_statement tr_ctx e  =
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks1 tr_ctx.tr_js_lab true in
 		let cur_conts, outer_conts = filter_cur_jumps conts1 tr_ctx.tr_js_lab true in
 
-		(* x_ret_0 := $$empty *)
+		(* x_ret_0 := empty *)
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in
 
 		(* x_ret_1 := PHI(x_ret_0, x_ret_3)  *)
@@ -3373,7 +3414,7 @@ and translate_statement tr_ctx e  =
 		let cont_vars = Array.of_list cur_conts in
 		let cmd_ass_ret_2 = SLPhiAssignment (x_ret_2, cont_vars) in
 
-		(*  goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
+		(*  goto [ not (x_ret_2 = empty) ] next1 next2 *)
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
@@ -3395,12 +3436,12 @@ and translate_statement tr_ctx e  =
 		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_3 x_ret_1 cur_breaks end_loop false in
 
 		let cmds = (annotate_cmds [
-					(None,             cmd_ass_ret_0);         (*              x_ret_0 := $$empty                           *)
+					(None,             cmd_ass_ret_0);         (*              x_ret_0 := empty                           *)
 					(Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_3)             *)
 				]) @ cmds1 @ (annotate_cmds [                  (*              cmds1                                        *)
 				  (None,             cmd_gv_x1);               (*              x1_v := i__getValue (x1) with err            *)
 					(Some cont,        cmd_ass_ret_2);         (* cont:	       x_ret_2 := PHI(cont_vars, x1_v) 	            *)
-					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
+					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = empty) ] next1 next2 *)
 					(Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
 					(Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)
 				]) @ cmds2 @ (annotate_cmds [                  (* guard:       cmds2                                        *)
@@ -3419,7 +3460,7 @@ and translate_statement tr_ctx e  =
      *  C(e1) = cmds1, x1; C(e2) = cmds2, x2
 		 *
 		 *  C(while (e1) { e2 } ) =
-			          x_ret_0 := $$empty
+			          x_ret_0 := empty
 			head:     x_ret_1 := PHI(x_ret_0, x_ret_3)
 					      cmds1
 						    x1_v := i__getValue (x1) with err
@@ -3428,12 +3469,12 @@ and translate_statement tr_ctx e  =
 			body:     cmds2
 						    x2_v := i__getValue (x2) with err
 			cont:	    x_ret_2 := PHI(cont_vars, x2_v)
-								goto [not (x_ret_2 = $$empty)] next1 next2
+								goto [not (x_ret_2 = empty)] next1 next2
 			next1:    skip;
 			next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)
 			          goto head
 			end_loop: x_ret_4 := PHI(x_ret_1, break_vars)
-			          goto [ x_ret_4 = $$empty ] next3 next4
+			          goto [ x_ret_4 = empty ] next3 next4
 			next3:    skip
 			next4:    x_ret_5 := PHI(x_ret_4, x_ret_1)
 		 *)
@@ -3448,7 +3489,7 @@ and translate_statement tr_ctx e  =
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks2 tr_ctx.tr_js_lab true in
 		let cur_conts, outer_conts = filter_cur_jumps conts2 tr_ctx.tr_js_lab true in
 
-		(* x_ret_0 := $$empty *)
+		(* x_ret_0 := empty *)
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in
 		let x_ret_1 = fresh_var () in
 
@@ -3475,7 +3516,7 @@ and translate_statement tr_ctx e  =
 		let cont_vars = Array.of_list cur_conts in
 		let cmd_ass_ret_2 = SLPhiAssignment (x_ret_2, cont_vars) in
 
-		(* goto [not (x_ret_2 = $$empty)] next1 next2 *)
+		(* goto [not (x_ret_2 = empty)] next1 next2 *)
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
@@ -3489,7 +3530,7 @@ and translate_statement tr_ctx e  =
 
 		let cmds2 = add_initial_label cmds2 body metadata in
 		let cmds = (annotate_cmds [
-				(None,           cmd_ass_ret_0);         (*           x_ret_0 := $$empty                         *)
+				(None,           cmd_ass_ret_0);         (*           x_ret_0 := empty                         *)
 				(Some head,      cmd_ass_ret_1);         (* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)           *)
 			]) @ cmds1 @ (annotate_cmds [                (*           cmds1                                      *)
 			  (None,           cmd_gv_x1);               (*           x1_v := i__getValue (x1) with err          *)
@@ -3498,7 +3539,7 @@ and translate_statement tr_ctx e  =
 			]) @ cmds2 @ (annotate_cmds [                (* body:     cmds2                                      *)
 			  (None,           cmd_gv_x2);               (*           x2_v := i__getValue (x2) with err          *)
 				(Some cont,      cmd_ass_ret_2);         (* cont:     x_ret_2 := PHI(cont_vars, x2_v)            *)
-				(None,           cmd_goto_empty_test);   (*           goto [not (x_ret_2 = $$empty)] next1 next2 *)
+				(None,           cmd_goto_empty_test);   (*           goto [not (x_ret_2 = empty)] next1 next2 *)
 			  (Some next1,     SLBasic SSkip);           (* next1:    skip                                       *)
 				(Some next2,     cmd_ass_ret_3);         (* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)           *)
 				(None,           SLGoto head);           (*           goto head                                  *)
@@ -3516,9 +3557,9 @@ and translate_statement tr_ctx e  =
 		 *  C( for (e1 in e2) { e3 } ) =
 			        cmds2 																		1.	Understand what the object is
 					x2_v := i__getValue (x2) with err											2.	and get its value
-					x_ret_0 := $$empty 															5.	Set V to $$empty
-					goto [(x2_v = $$null) or
-					(x2_v = $$undefined)] next6 next0;											3.	If the object is $$null or $$undefined, we're done
+					x_ret_0 := empty 															5.	Set V to empty
+					goto [(x2_v = null) or
+					(x2_v = undefined)] next6 next0;											3.	If the object is null or undefined, we're done
 			next0:	x4 := "i__toObject" (x2_v) with err											4.	Otherwise, convert whatever we have to an object
 					xlf := "i__getAllEnumerableFields" (x4)  with err								Put all of its enumerable properties (protochain included) in xlf
 					xf  := getFields (xlf) 															Get all of those properties
@@ -3536,13 +3577,13 @@ and translate_statement tr_ctx e  =
 					cmds3																				6d. Evaluate the statement
 					x3_v = "i__getValue" (x3) with err
 			cont:   x_ret_2 := PHI(cont_vars, x3_v)
-					goto [ not (x_ret_2 = $$empty) ] next2 next3
+					goto [ not (x_ret_2 = empty) ] next2 next3
 		  next2:    skip
 			next3:  x_ret_3 := PHI(x_ret_1, x_ret_2)
 			next4:	x_c_2 := x_c_1 + 1
 					goto head
 		  end_loop:	x_ret_4 := PHI(x_ret_1, x_ret_1, break_vars)
-			        goto [ x_ret_4 = $$empty ] next5 next6
+			        goto [ x_ret_4 = empty ] next5 next6
 			next5:  skip
 			next6:  x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)
 
@@ -3561,7 +3602,7 @@ and translate_statement tr_ctx e  =
 			(* x2_v := i__getValue (x2) with err *)
 			let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 
-			(* 	x_ret_0 := $$empty *)
+			(* 	x_ret_0 := empty *)
 			let x_ret_0 = fresh_var () in
 			let x_ret_1 = fresh_var () in
 			let x_ret_2 = fresh_var () in
@@ -3570,7 +3611,7 @@ and translate_statement tr_ctx e  =
 			let x_ret_5 = fresh_var () in
 			let cmd_ass_xret0 = SLBasic (SAssignment (x_ret_0, Literal Empty)) in
 
-			(* goto [(x2_v = $$null) or (x2_v = $$undefined)] next6 next0;	*)
+			(* goto [(x2_v = null) or (x2_v = undefined)] next6 next0;	*)
 			let next0 = fresh_next_label () in
 			let next1 = fresh_next_label () in
 			let next2 = fresh_next_label () in
@@ -3646,7 +3687,7 @@ and translate_statement tr_ctx e  =
 			let phi_args = Array.of_list phi_args in
 			let cmd_phi_cont = SLPhiAssignment (x_ret_2, phi_args) in
 
-			(* goto [ not (x_ret_2 = $$empty) ] next2 next3 *)
+			(* goto [ not (x_ret_2 = empty) ] next2 next3 *)
 			let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
 			let expr_goto_guard = UnOp (Not, expr_goto_guard) in
 			let cmd_goto_xret2 = SLGuardedGoto (expr_goto_guard, next2, next3) in
@@ -3663,7 +3704,7 @@ and translate_statement tr_ctx e  =
 			let phi_args = Array.of_list phi_args in
 			let cmd_phi_xret4 = SLPhiAssignment (x_ret_4, phi_args) in
 
-			(* goto [ x_ret_4 = $$empty ] next5 next6 *)
+			(* goto [ x_ret_4 = empty ] next5 next6 *)
 			let cmd_goto_xret4_empty = SLGuardedGoto (
 				BinOp (Var x_ret_4, Equal, Literal Empty), next5, next6) in
 
@@ -3673,8 +3714,8 @@ and translate_statement tr_ctx e  =
 			let cmds1 = add_initial_label cmds1 next1 metadata in
 			let cmds = cmds2 @ (annotate_cmds [           (*           cmds2                                                        *)
 				(None,          cmd_gv_x2);               (*           x2_v := i__getValue (x2) with err                            *)
-				(None,          cmd_ass_xret0);           (*           x_ret_0 := $$empty 		                                    *)
-				(None,          cmd_goto_null_undef);     (*           goto [(x2_v = $$null) or (x2_v = $$undefined)] next6 next0   *)
+				(None,          cmd_ass_xret0);           (*           x_ret_0 := empty 		                                    *)
+				(None,          cmd_goto_null_undef);     (*           goto [(x2_v = null) or (x2_v = undefined)] next6 next0   *)
 				(Some next0,    cmd_to_obj_call);         (* next0:	   x4 := "i__toObject" (x2_v) with err			                *)
 				(None,          cmd_get_enum_fields);     (*           xlf := "i__getAllEnumerableFields" (x4)  with err            *)
 				(None,          cmd_xf_ass);              (*           xf  := getFields (xlf)                                       *)
@@ -3693,13 +3734,13 @@ and translate_statement tr_ctx e  =
 			]) @ cmds3 @ (annotate_cmds [                 (*           cmds3                                                        *)
 			    (None,          cmd_gv_x3);               (*           x3_v = "i__getValue" (x3) with err                           *)
 				(Some cont,     cmd_phi_cont);            (* cont:     x_ret_2 := PHI(cont_vars, x3_v)                              *)
-			    (None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = $$empty) ] next2 next3                 *)
+			    (None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = empty) ] next2 next3                 *)
 				(Some next2,    SLBasic SSkip);           (* next2:    skip                                                         *)
 			    (Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_1, x_ret_2)                    *)
 				(Some next4,    cmd_ass_incr);            (* next4:	   x_c_2 := x_c_1 + 1                                           *)
 				(None,          SLGoto head);             (*           goto head                                                    *)
 				(Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
-			    (None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = $$empty ] next5 next6                       *)
+			    (None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = empty ] next5 next6                       *)
 			    (Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
 				(Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)                    *)
 			]) in
@@ -3716,7 +3757,7 @@ and translate_statement tr_ctx e  =
 		 *  C( for(e1; e2; e3) { e4 } ) =
 			        cmds1
 					x1_v := i__getValue (x1) with err
-					x_ret_0 := $$empty
+					x_ret_0 := empty
 			head:   x_ret_1 := PHI(x_ret_0, x_ret_3)
 					cmds2
 			        x2_v := i__getValue (x2) with err
@@ -3725,13 +3766,13 @@ and translate_statement tr_ctx e  =
 			body: 	cmds4
 					x4_v := i__getValue (x4) with err
 			cont:   x_ret_2 := PHI(cont_vars, x4_v)
-					goto [ not (x_ret_2 = $$empty) ] next1 next2
+					goto [ not (x_ret_2 = empty) ] next1 next2
 		  	next1: 	skip
 			next2:  x_ret_3 := PHI(x_ret_1, x_ret_2)
 			        cmds3
 					goto head
 		  end_loop:	x_ret_4 := PHI(x_ret_1, break_vars)
-			        goto [ x_ret_4 = $$empty ] next3 next4
+			        goto [ x_ret_4 = empty ] next3 next4
 			next3:  skip
 			next4:  x_ret_5 := PHI(x_ret_4, x_ret_1)
 		 *)
@@ -3770,7 +3811,7 @@ and translate_statement tr_ctx e  =
 		let cur_breaks, outer_breaks = filter_cur_jumps breaks4 tr_ctx.tr_js_lab true in
 		let cur_conts, outer_conts = filter_cur_jumps conts4 tr_ctx.tr_js_lab true in
 
-		(* x_ret_0 := $$empty  *)
+		(* x_ret_0 := empty  *)
 		let x_ret_0, cmd_ass_ret_0 = make_empty_ass () in
 
 		(* head:     x_ret_1 := PHI(x_ret_0, x_ret_3)  *)
@@ -3798,7 +3839,7 @@ and translate_statement tr_ctx e  =
 		let cont_vars = Array.of_list cur_conts in
 		let cmd_ass_ret_2 = SLPhiAssignment (x_ret_2, cont_vars) in
 
-		(* 	goto [ not (x_ret_2 = $$empty) ] next1 next2  *)
+		(* 	goto [ not (x_ret_2 = empty) ] next1 next2  *)
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
@@ -3813,7 +3854,7 @@ and translate_statement tr_ctx e  =
 		let cmds4 = add_initial_label cmds4 body metadata in
 
 		let cmds = cmds1 @ (annotate_cmds [                    (*              cmds1                                        *)
-					(None,             cmd_ass_ret_0);         (*              x_ret_0 := $$empty                           *)
+					(None,             cmd_ass_ret_0);         (*              x_ret_0 := empty                           *)
 					(Some head,        cmd_ass_ret_1);         (* head:        x_ret_1 := PHI(x_ret_0, x_ret_3)             *)
 				]) @ cmds2 @ (annotate_cmds [                  (*              cmds2                                        *)
 					(None,             cmd_gv_x2);             (*              x2_v := i__getValue (x2) with err            *)
@@ -3822,7 +3863,7 @@ and translate_statement tr_ctx e  =
 				]) @ cmds4 @ (annotate_cmds [                  (* body:        cmds4                                        *)
 					(None,             cmd_gv_x4);             (*              x4_v := i__getValue (x4) with err            *)
 					(Some cont,        cmd_ass_ret_2);         (* cont:        x_ret_2 := PHI(cont_vars, x4_v)              *)
-					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = $$empty) ] next1 next2 *)
+					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = empty) ] next1 next2 *)
 					(Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
 					(Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)
 				]) @ cmds3 @ (annotate_cmds [                  (*              cmds3                                        *)
@@ -3838,7 +3879,7 @@ and translate_statement tr_ctx e  =
       Section 12.9
 
 			C(return) =
-      			x_r := $$undefined;
+      			x_r := undefined;
       			goto ret_lab
 
 			C(e) = cmds, x
@@ -3851,7 +3892,7 @@ and translate_statement tr_ctx e  =
 		(match e with
 		| None ->
 			let x_r = fresh_var () in
-			(* x_r := $$undefined *)
+			(* x_r := undefined *)
 			let cmd_xr_ass = annotate_cmd (SLBasic (SAssignment (x_r, Literal Undefined))) None in
 			(* goto lab_ret *)
 			let cmd_goto_ret = annotate_cmd (SLGoto tr_ctx.tr_ret_lab) None in
@@ -3878,13 +3919,13 @@ and translate_statement tr_ctx e  =
 			find_continue_lab (lab) = jsil_lab
 			---------------------------
 			C(continue lab) =
-      			x_r := $$empty;
+      			x_r := empty;
       			goto jsil_lab
 
 			next_continue_lab () = jsil_lab
 			---------------------------
 			C(continue) =
-      			x_r := $$empty;
+      			x_r := empty;
       			goto jsil_lab
 		*)
 
@@ -3912,7 +3953,7 @@ and translate_statement tr_ctx e  =
 	| Parser_syntax.Break lab ->
 		(**
       	Section 12.8
-      		x_r := $$empty;
+      		x_r := empty;
       		goto lab_r
 		*)
 
@@ -4195,7 +4236,7 @@ and translate_statement tr_ctx e  =
 		let cmd_gv_xguardv = annotate_cmd cmd_gv_xguardv None in
 		(* x_found := false *)
 		let cmd_x_found_init = annotate_cmd (SLBasic (SAssignment (x_found_init, Literal (Bool false)))) None in
-		(* x_init_val := $$empty *)
+		(* x_init_val := empty *)
 		let x_init = fresh_var () in
 		let cmd_val_init = annotate_cmd (SLBasic (SAssignment (x_init, Literal Empty))) None in
 
@@ -4324,19 +4365,19 @@ let generate_main offset_converter e spec =
 	let init_scope_chain_ass = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
 
 	let sc_var_main = JS2JSIL_Constants.var_sc_first in
-
-	(* x_sc_fst := {{ $lg }} *)
-	let init_scope_chain_ass_again = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
+ 
+ 	(* x_sc_fst := {{ $lg }} *)
+ 	let init_scope_chain_ass_again = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
 
 	(* __this := $lg *)
 	let this_ass = annotate_cmd (SLBasic (SAssignment (var_this, Literal (Loc locGlobName)))) None in
 
-	(* global vars init assignments: [$lg, y] := {{ "d", $$undefined, $$t, $$t, $$t }} *)
+	(* global vars init assignments: [$lg, y] := {{ "d", undefined, true, true, true }} *)
 	let global_var_asses =
 		List.map
 			(fun global_v ->
 				(annotate_cmd
-					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]))))
+					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]), None)))
 					None))
 			(var_decls e) in
 
@@ -4392,20 +4433,23 @@ let generate_proc_eval new_fid e vis_fid =
 				(empty_metadata, lab, cmd))
 		cmds in
 	let offset_converter x = 0 in
-	let var_sc_proc = JS2JSIL_Constants.var_sc_first (* fresh_scope_chain_var () *) in
+	let var_sc_proc = JS2JSIL_Constants.var_sc_first in
 
-	(* x_er := new () *)
+	(* x_er_m := new (null)   *)
+	(* x_er   := new (x_er_m) *)
 	let x_er = JS2JSIL_Constants.var_er in
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew x_er)) None in
+	let x_erm = JS2JSIL_Constants.var_er_metadata in
+	let cmd_er_m_creation = annotate_cmd (SLBasic (SNew (x_erm, Some (Literal Null)))) None in
+	let cmd_er_creation = annotate_cmd (SLBasic (SNew (x_er, Some (Var x_erm)))) None in
 
-	(* [x_er, "@er"] := $$t *)
-  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_er, Literal (String erFlagPropName), Literal (Bool true)))) None in
+	(* [x_er, "@er"] := true *)
+  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_erm, Literal (String _erFlagPropName), Literal (Bool true), None))) None in
 
 	(* [x_er, decl_var_i] := undefined *)
 	let new_fid_vars = var_decls e in
 	let cmds_decls =
 		List.map (fun decl_var ->
-			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined)) in
+			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined, None)) in
 			(annotate_cmd cmd None))
 		new_fid_vars in
 
@@ -4443,12 +4487,12 @@ let generate_proc_eval new_fid e vis_fid =
 	let cmd_error_phi = make_final_cmd (errs @ errs_xe_v) ctx.tr_err ctx.tr_error_var in
 
 	let fid_cmds =
-		[ cmd_er_creation; cmd_er_flag ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @ cmds_hoist_fdecls @ cmds_e
+		[ cmd_er_m_creation; cmd_er_creation; cmd_er_flag ] @ cmds_decls @ [ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @ cmds_hoist_fdecls @ cmds_e
 		@ [ cmd_gv_xe; cmd_dr_ass; cmd_fake_ret; cmd_error_phi] in
 	{
 		lproc_name = new_fid;
-        lproc_body = (Array.of_list fid_cmds);
-        lproc_params = [ var_scope; var_this ];
+    lproc_body = (Array.of_list fid_cmds);
+		lproc_params = [ var_scope; var_this ];
 		lret_label = Some ctx.tr_ret_lab;
 		lret_var = Some ctx.tr_ret_var;
 		lerror_label = Some ctx.tr_err;
@@ -4467,30 +4511,32 @@ let generate_proc offset_converter e fid params vis_fid spec =
 				(empty_metadata, lab, cmd))
 		cmds in
 
-	let var_sc_proc = JS2JSIL_Constants.var_sc_first (* fresh_scope_chain_var () *) in
+	let var_sc_proc = JS2JSIL_Constants.var_sc_first in
 	let ctx = make_translation_ctx offset_converter fid vis_fid var_sc_proc in
 
 	let new_ctx = { ctx with tr_ret_lab = ("pre_" ^ ctx.tr_ret_lab); tr_err = ("pre_" ^ ctx.tr_err) } in
 	let cmds_hoist_fdecls = translate_fun_decls false var_sc_proc ((List.length vis_fid)-1) e in
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 
-	(* x_er := new () *)
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew var_er)) None in
+	(* x_er_m := new (null)   *)
+	(* x_er   := new (x_er_m) *)
+	let cmd_er_m_creation = annotate_cmd (SLBasic (SNew (var_er_metadata, Some (Literal Null)))) None in
+	let cmd_er_creation = annotate_cmd (SLBasic (SNew (var_er, Some (Var var_er_metadata)))) None in
 
-	(* [x_er, "@er"] := $$t *)
-  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er, Literal (String JS2JSIL_Constants.erFlagPropName), Literal (Bool true)))) None in
+	(* [x_er, "@er"] := true *)
+  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er_metadata, Literal (String _erFlagPropName), Literal (Bool true), None))) None in
 
 	(* [x_er, "arg_i"] := x_{i+2} *)
 	let cmds_params =
 		List.map (fun param ->
-			let cmd = SLBasic (SMutation (Var var_er, Literal (String param), Var param)) in
+			let cmd = SLBasic (SMutation (Var var_er, Literal (String param), Var param, None)) in
 			(annotate_cmd cmd None))
 		params in
 
 	(* [x_er, decl_var_i] := undefined *)
 	let cmds_decls =
 		List.map (fun decl_var ->
-			let cmd = SLBasic (SMutation (Var var_er, Literal (String decl_var), Literal Undefined)) in
+			let cmd = SLBasic (SMutation (Var var_er, Literal (String decl_var), Literal Undefined, None)) in
 			(annotate_cmd cmd None))
 		(var_decls e) in
 
@@ -4510,7 +4556,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
 			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
 			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], None));
-			(empty_metadata, None, SLBasic (SMutation (Var var_er, Literal (String "arguments"), Var x_args)))
+			(empty_metadata, None, SLBasic (SMutation (Var var_er, Literal (String "arguments"), Var x_args, None)))
 		] in 
 
 	(* x_sc_0 = x_scope @ {{ x_er }} *)
@@ -4527,7 +4573,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	(* List.iter (fun ({ line_offset; invariant; pre_logic_cmds; post_logic_cmds }, _, _) ->
 		Printf.printf "Length: pre: %d \t post: %d\n" (List.length pre_logic_cmds) (List.length post_logic_cmds)) cmds_e; *)
 
-	(* x_dr := $$empty *)
+	(* x_dr := empty *)
 	let x_dr = fresh_var () in
 	let cmd_dr_ass = annotate_cmd (SLBasic (SAssignment (x_dr, Literal Empty))) None in
 	let rets = rets @ [ x_dr ] in
@@ -4576,10 +4622,10 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 
 	let cc_tbl, vis_tbl =
 		(match cc_tbl, vis_tbl with
-		| None, None -> raise (Failure "Wrong call to eval: both cc_table and vis_tbl undefined")
-		| None, _ -> raise (Failure "Wrong call to eval: cc_table undefined")
+ 		| None, None -> raise (Failure "Wrong call to eval: both cc_table and vis_tbl undefined")
+ 		| None, _ -> raise (Failure "Wrong call to eval: cc_table undefined")
 		| _, None -> raise (Failure "Wrong call to eval: vis_tbl undefined")
-		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
+ 		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
 	let e, fid_eval, vislist_eval, eval_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e fid_parent [] in
 
@@ -4596,12 +4642,10 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 										with _ ->
 											(let msg = Printf.sprintf "EV: Function %s not found in visibility table" f_id in
 											raise (Failure msg)) in
-
+								let f_params = List.tl (List.tl f_params) in
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
-
-					(* let proc_eval_str = JSIL_Print.string_of_ext_procedure proc in
-		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;  *)
-
+					(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in
+		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.add prog f_id proc;
 					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)
@@ -4618,10 +4662,10 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 
 	let cc_tbl, vis_tbl =
 		(match cc_tbl, vis_tbl with
-		| None, None -> raise (Failure "Wrong call to function constructor: both cc_table and vis_tbl undefined")
-		| None, _ -> raise (Failure "Wrong call to function constructor: cc_table undefined")
-		| _, None -> raise (Failure "Wrong call to function constructor: vis_tbl undefined")
-		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
+ 		| None, None -> raise (Failure "Wrong call to function constructor: both cc_table and vis_tbl undefined")
+ 		| None, _ -> raise (Failure "Wrong call to function constructor: cc_table undefined")
+ 		| _, None -> raise (Failure "Wrong call to function constructor: vis_tbl undefined")
+ 		| Some cc_tbl, Some vis_tbl -> cc_tbl, vis_tbl) in
 
 	let e, new_fid, vislist, new_fun_tbl = JS2JSIL_Preprocessing.preprocess_eval cc_tbl vis_tbl e "main" params in
 
@@ -4634,21 +4678,15 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	  					with _ ->
 	  						(let msg = Printf.sprintf "Function %s not found in visibility table" f_id in
 	  						raise (Failure msg)) in
-	  				
-	  				(* Printf.printf "Parameters: %s\n" (String.concat ", " f_params); *)
-
-	  				(* Remove the x__scope and x__this *)
-	  				let f_params = 
+						let f_params = 
 	  					(match f_params with
 	  					| "x__scope" :: "x__this" :: rest -> rest
 	  					| "x__scope" :: rest -> rest
 	  					| _ -> f_params) in
+						let f_params = List.tl (List.tl f_params) in
 	  				generate_proc offset_converter f_body f_id f_params vis_fid None) in
-			  		
-			  		(* PRINT! 
-			  		let proc_str = JSIL_Print.string_of_ext_procedure proc in
+			  		(* let proc_str = JSIL_Print.string_of_ext_procedure proc in
 			  		Printf.printf "FC:\n %s\n" proc_str; *)
-					
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.replace prog f_id proc;
 					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)
@@ -4681,9 +4719,7 @@ let js2jsil e offset_converter for_verification =
 			fun_tbl
 			[] in
 
-	let cur_imports = if for_verification 
-		then (if !annot then js2jsil_logic_imports else js2jsil_logic_imports_nospecs) 
-		else js2jsil_imports in
+	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
   (* TODO: Populate table with actual lemmas *)
   let lemmas : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511 in
 	{ imports = cur_imports; lemmas; predicates; onlyspecs = only_specs; procedures; procedure_names = proc_names;}, cc_tbl, vis_tbl

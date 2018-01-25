@@ -1,7 +1,6 @@
-open Common
+open Set
 open JSIL_Syntax
 open JS2JSIL_Constants
-open JSIL_Logic_Utils
 
 module SS = Set.Make(String)
 let small_tbl_size = 31
@@ -46,7 +45,6 @@ let o_psi (vis_tbl : vis_tbl_type) (fid1 : string) (fid2 : string) =
 	let vis_list_2 = try get_vis_list vis_tbl fid2
 		with Not_found -> raise (Failure "DEATH. o_psi: get_vis_list") in
 	let i_overlap = list_overlap vis_list_1 vis_list_2 in
-	Printf.printf "TUDO A TOA. overlap: %i\n" i_overlap;
 	i_overlap
 
 
@@ -125,7 +123,7 @@ type js_logic_command =
 type js_logic_predicate = {
 	js_name        : string;
 	js_num_params  : int;
-	js_params      : js_logic_expr list;
+	js_params      : (js_logic_expr * jsil_type option) list;
 	js_definitions : ((string option) * js_logic_assertion) list;
 }
 
@@ -142,14 +140,14 @@ type js_spec = {
 }
 
 
-let js_star_assertions asrts =
+let js_star_asses asses =
 	List.fold_left
 		(fun ac a ->
 			if (not (a = JSLEmp))
 				then (if (ac = JSLEmp) then a else JSLStar (a, ac))
 				else ac)
-		JSLEmp
-		asrts
+		 JSLEmp
+		asses
 
 
 (******************)
@@ -270,7 +268,7 @@ let rec js2jsil_assertion
 				| [ _; JSLLit (String fid); le_sc; _ ] -> LStar (a', f (JSSChain (fid, le_sc)))
 				| _ ->
 					let les_str = String.concat ", "
-						(List.map (fun le -> JSIL_Print.string_of_logic_expression (fe le) false) les) in
+						(List.map (fun le -> JSIL_Print.string_of_logic_expression (fe le)) les) in
 					raise (Failure ("Illegal FunctionObject Pred Assertion")))
 			) else a'
 
@@ -279,7 +277,7 @@ let rec js2jsil_assertion
 		----------------------------------------------
 		Tr(scope(x: le_x, le_sc, fid)) ::=
 			((l-nth(le_sc', i), "x") -> le_x')               if Phi(fid, x) != 0
-			((lg, "x") -> {{"d", le_x', $$t, $$t, $$f}})     if Phi(fid, x) = 0 or bot *)
+			((lg, "x") -> {{"d", le_x', true, true, false}})     if Phi(fid, x) = 0 or bot *)
 	| JSLVarSChain (fid, x, le_x, le_sc) ->
 		let i   = psi cc_tbl vis_tbl fid x in
 		let a'  =
@@ -307,7 +305,7 @@ let rec js2jsil_assertion
 			let asrt = LEq (LLstNth (le_sc1', LLit (Num (float_of_int j))), LLstNth (le_sc2', LLit (Num (float_of_int j)))) in
 			(* add_extra_scope_chain_info fid2 le_sc2 (add_extra_scope_chain_info fid1 le_sc1 asrt) *)
 			asrt in
-		star_assertions (List.map f is)
+		JSIL_Logic_Utils.star_asses (List.map f is)
 
 	(*	Tr(scope(x: le_x)) ::= Tr(scope(x: le_x, sc, fid)) *)
 	| JSLScope (x, le)                    ->
@@ -326,7 +324,7 @@ let rec js2jsil_assertion
 
 		let asrt_vars = List.map (fun (x, le_x) -> JSLVarSChain (fid_1, x, le_x, le_sc_1)) var_les in
 		let asrt_scs  = List.map (fun (fid_j, le_sc_j) -> JSOSChains (fid_j, le_sc_j, fid_1, le_sc_1)) rest_fid_sc_les in
-		f (js_star_assertions (asrt_vars @ asrt_scs))
+		f (js_star_asses (asrt_vars @ asrt_scs))
 
 	(*
 		le_fid = "fid"
@@ -343,13 +341,34 @@ let rec js2jsil_assertion
 	| _ -> raise (Failure "js2jsil_logic: new assertions not implemented")
 
 
+let rec js2jsil_tactic_assertion
+		(cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type)
+		(fid : string) (scope_var : string) (a : js_logic_assertion) : jsil_logic_assertion =
+
+	print_debug (Printf.sprintf "Inside js2jsil_tactic_assertion for procedure %s\n" fid);
+
+	let vis_list = get_vis_list vis_tbl fid in
+	let scope_chain_list = vislist_2_les vis_list (List.length vis_list) in
+	let a'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some scope_var) a in
+
+	(*  x__scope == {{ #x1, ..., #xn }} *)
+	let a''  = LEq (PVar scope_var, LEList scope_chain_list) in
+
+	(*  x__this == #this                *)
+	let a_this       = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in
+	
+	JSIL_Logic_Utils.star_asses [ a'; a''; a_this ] 
+
+
 let rec js2jsil_logic_cmd
 		(cc_tbl     : cc_tbl_type)
 		(vis_tbl    : vis_tbl_type)
 		(fun_tbl    : pre_fun_tbl_type)
-		(logic_cmd : js_logic_command) =
+		(fid        : string) 
+		(scope_var  : string)
+		(logic_cmd  : js_logic_command) =
 
-	let f = js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl in
+	let f = js2jsil_logic_cmd cc_tbl vis_tbl fun_tbl fid scope_var in
 	let fe = js2jsil_lexpr None in
 
 	let translate_unfold_info unfold_info =
@@ -370,7 +389,7 @@ let rec js2jsil_logic_cmd
 		[ Unfold ((LPred (s, List.map fe les)), (translate_unfold_info unfold_info)) ]  
 	
 	| JSAssert assertion -> 
-		let a' = js2jsil_assertion None cc_tbl vis_tbl fun_tbl None assertion in 
+		let a' = js2jsil_tactic_assertion cc_tbl vis_tbl fun_tbl fid scope_var assertion in 
 		[ Assert a' ] 
 
 
@@ -388,7 +407,8 @@ let js2jsil_predicate_def
 		(cc_tbl     : cc_tbl_type)
 		(vis_tbl    : vis_tbl_type)
 		(fun_tbl    : pre_fun_tbl_type)  =
-	let jsil_params = List.map (js2jsil_lexpr None) pred_def.js_params in
+
+	let jsil_params = List.map (fun (le, ot) -> (js2jsil_lexpr None le, ot)) pred_def.js_params in
 	let jsil_definitions = List.map (fun (os, a) -> os, (js2jsil_assertion None cc_tbl vis_tbl fun_tbl None a)) pred_def.js_definitions in
 	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions; previously_normalised_pred = false }
 
@@ -396,7 +416,7 @@ let js2jsil_predicate_def
 let rec js2jsil_single_spec
 		(pre : js_logic_assertion) (post: js_logic_assertion)
 		(cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type)
-		(fid : string) : jsil_logic_assertion * jsil_logic_assertion =
+		(fid : string) (params: string list) : jsil_logic_assertion * jsil_logic_assertion =
 
 	print_debug (Printf.sprintf "Inside js2jsil_single_spec for procedure %s\n" fid);
 	let vis_list = get_vis_list vis_tbl fid in
@@ -406,6 +426,9 @@ let rec js2jsil_single_spec
 	let pre'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope) pre in
 	let post' = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some JS2JSIL_Constants.var_scope_final) post in
 
+	(* x \in params -> (! (x == empty)) *)
+	let params_asrts = List.map (fun x -> (LNot (LEq (PVar x, LLit Empty)))) params in 
+
 	(*  x__this == #this                *)
 	let a_this       = LEq (PVar JS2JSIL_Constants.var_this, LVar this_logic_var_name) in
 	(*  x__scope == {{ #x1, ..., #xn }} *)
@@ -414,19 +437,4 @@ let rec js2jsil_single_spec
 
 	if (fid = main_fid)
 		then pre', post'
-		else star_assertions [ pre'; a_scope_pre; a_this ], star_assertions [ post'; a_scope_post ]
-
-
-let rec js2jsil_tactic_assertion
-		(cc_tbl : cc_tbl_type) (vis_tbl : vis_tbl_type) (fun_tbl : pre_fun_tbl_type)
-		(fid : string) (scope_var : string) (a : js_logic_assertion) : jsil_logic_assertion =
-
-	print_debug (Printf.sprintf "Inside js2jsil_tactic_assertion for procedure %s\n" fid);
-
-	let vis_list = get_vis_list vis_tbl fid in
-	let scope_chain_list = vislist_2_les vis_list (List.length vis_list) in
-	let a'  = js2jsil_assertion (Some fid) cc_tbl vis_tbl fun_tbl (Some scope_var) a in
-
-	(*  x__scope == {{ #x1, ..., #xn }} *)
-	let a''  = LEq (PVar scope_var, LEList scope_chain_list) in
-	LStar (a', a'')
+		else JSIL_Logic_Utils.star_asses ([ pre'; a_scope_pre; a_this ] @ params_asrts), JSIL_Logic_Utils.star_asses [ post'; a_scope_post; a_this ]

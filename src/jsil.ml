@@ -1,6 +1,6 @@
-open Common
 open Lexing
 open JSIL_Syntax
+(* JAVERT open Symbolic_State *)
 open JSIL_Interpreter
 
 let file    = ref ""
@@ -25,7 +25,7 @@ let arguments () =
 			"-file", Arg.String(fun f -> file := f), "file to run";
 
 			(* access debugging information *)
-			"-debug", Arg.Unit(fun () -> debug := true), "debug information";
+			"-debug", Arg.Unit(fun () -> debug := true; verbose := true), "debug information";
 
 			(* it is a compiled js program *)
 			"-js", Arg.Unit(fun () -> js := true), "input is a compiled js program";
@@ -52,7 +52,7 @@ let return_to_exit rettype =
 
 let string_of_ret_val heap ret_flag v =
 	match ret_flag with
-	| Normal -> JSIL_Print.string_of_literal v false
+	| Normal -> JSIL_Print.string_of_literal v
 	| Error -> if (!js) then JS2JSIL_Constants.string_of_js_error heap v else ""
 
 let run_jsil_prog prog which_pred cc_tbl vis_tbl =
@@ -81,13 +81,15 @@ let main () =
    		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog in
       run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
     with
-      | Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
+    	|	Parser.ParserFailure file -> Printf.printf "\nParsing problems with the file '%s'.\n" file; exit 1
       | Parser.JS_To_XML_parser_failure
       | Parser.XmlParserException -> Printf.printf "\nXML parsing issues.\n"; exit 1
       | JS2JSIL_Preprocessing.EarlyError e -> Printf.printf "\nParser post-processing threw an EarlyError: %s\n" e; exit 1)
 	else (
 		let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
+		Printf.printf "I got the program to run:\n%s\n" (JSIL_Print.string_of_ext_program ext_prog);
 		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog in
+		Printf.printf "I de-labeled the program to run\n";
 		run_jsil_prog prog which_pred None None
 	)
 

@@ -157,3 +157,16 @@ let try_find table entry =
 		Some (Hashtbl.find table entry)
 	with _ -> None in
 	value
+	
+let try_find_with_error table entry =
+	let value = try
+		Hashtbl.find table entry
+	with _ -> print_endline (Printf.sprintf "Entry %s not found" entry); raise Not_found in
+	value
+
+let split3 (lst : ('a * 'b * 'c) list) : ('a list) * ('b list) * ('c list) =   
+	List.fold_left 
+		(fun (ass, bs, cs) (a, b, c) -> a :: ass, b :: bs, c :: cs) 
+		([], [], [])
+		lst  
+

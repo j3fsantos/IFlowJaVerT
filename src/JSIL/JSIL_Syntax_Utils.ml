@@ -1,7 +1,7 @@
-open Common
 open JSIL_Syntax
 open JSIL_Logic_Utils
 open JSIL_Parser
+(* JAVERT open Symbolic_State *)
 open JSLogic
 
 let js = ref false
@@ -9,6 +9,7 @@ let syntax_checks_enabled = ref false;
 
 type global_which_pred_type = (string * int * int, int) Hashtbl.t
 type which_pred_type = (int * int, int) Hashtbl.t
+
 
 (** ----------------------------------------------------
     ----------------------------------------------------
@@ -29,12 +30,12 @@ let check_all_pred_pvars
     (** Step 1 - Extract all the program variables used in the definition
       * -----------------------------------------------------------------------------------
     *)
-    let all_pred_pvars : jsil_var list = List.concat (List.map (fun (_, ass) -> get_assertion_pvars ass) predicate.definitions) in
+    let all_pred_pvars : jsil_var list = List.concat (List.map (fun (_, ass) -> SS.elements (get_asrt_pvars ass)) predicate.definitions) in
 
     (** Step 2 - Check all predicates
       * -----------------------------------------------------------------------------------
     *)
-    let string_of_params = List.map (fun le -> JSIL_Print.string_of_logic_expression le false) predicate.params in
+    let string_of_params = List.map (fun (pvar, _) -> JSIL_Print.string_of_logic_expression pvar) predicate.params in
     List.map (fun (pvar : jsil_var) ->
         let valid_pvar = List.mem pvar string_of_params in
         (match valid_pvar || predicate.previously_normalised_pred with
@@ -101,7 +102,7 @@ let check_specs_pvars
          | true -> ()
          | false -> raise (Failure (Printf.sprintf "Undefined variable %s in the %s of %s." pvar msg_construct_type spec_name)))
       )
-      (get_assertion_pvars assertion); ()
+      (SS.elements (get_asrt_pvars assertion)); ()
   in
 
   (** Step 3 - Run this function on the pre and all the post's of every spec
@@ -165,6 +166,51 @@ let syntax_checks
   )
 
 (** ----------------------------------------------------
+    Checking logical commands only use program variables they are allowed to
+    -----------------------------------------------------
+*)
+(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+(*
+let check_logic_command_pvars
+    (assertion_type : string) (* eg "fold", "unfold", "assert" *)
+    (target_name : string)
+    (symb_state : symbolic_state)
+    (args : jsil_logic_expr list) : unit =
+
+  (** Step 1 - Attempt to look up each argument in the store
+    * -----------------------------------------------------------------------------------
+  *)
+  let args_pvars = List.concat (List.map get_logic_expression_pvars_list args) in
+  let (_, store, _, _, _) = symb_state in
+  List.map (fun pvar ->
+      (match Hashtbl.mem store pvar with
+      | true -> ()
+      | false -> raise (Failure (Printf.sprintf "Undefined program variable %s when trying to %s %s." pvar assertion_type target_name)))
+    )
+    (List.concat (List.map get_logic_expression_pvars_list args));
+  ()
+*)
+
+(** ----------------------------------------------------
+    Checking predicates are called with the correct number of arguments
+    -----------------------------------------------------
+*)
+(* -------- Check disabled, needs to be rewritten to perform a DFS -------- *)
+(*
+let check_pred_arg_count
+    (pred_name : string)
+    (args : 'a list)
+    (params : 'b list) : unit =
+
+  (** Step 1 - Check same number of args and params
+    * -----------------------------------------------------------------------------------
+  *)
+  (match ((List.length args) == (List.length params)) with
+  | true -> ()
+  | false -> raise (Failure (Printf.sprintf "Incorrect number of arguments to predicate %s." pred_name)))
+*)
+
+(** ----------------------------------------------------
     Extracting the jsil variables from a procedure
     -----------------------------------------------------
 *)
@@ -197,7 +243,7 @@ let get_proc_variables
         *)
        | SBasic (SAssignment (var, _))
        | SBasic (SLookup (var, _, _))
-       | SBasic (SNew var)
+       | SBasic (SNew (var, _))
        | SBasic (SHasField (var, _, _))
        | SBasic (SGetFields (var, _))
        | SBasic (SArguments var)
@@ -242,13 +288,13 @@ let desugar_labs
 		let cmds_nolab = Array.map (fun x -> (match x with | (spec, _, cmd) -> (spec, cmd))) lproc.lproc_body in
 		let cmds = Array.map (fun x ->
       match x with
-      | spec, x ->
+      | spec, x -> 
 				let x = match x with
 						| SLBasic cmd -> SBasic cmd
-			      | SLGoto lab -> SGoto (Hashtbl.find mapping lab)
-			      | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Hashtbl.find mapping lt, Hashtbl.find mapping lf)
-			      | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
-						| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Hashtbl.find mapping lab))
+			      | SLGoto lab -> SGoto (Utils.try_find_with_error mapping lab)
+			      | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Utils.try_find_with_error mapping lt, Utils.try_find_with_error mapping lf)
+			      | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Utils.try_find_with_error mapping lab))
+						| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Utils.try_find_with_error mapping lab))
 						| SLPhiAssignment (x, args) -> SPhiAssignment (x, args)
 						| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
 				(spec, x)
@@ -277,7 +323,7 @@ let desugar_labs
 			error_var = lproc.lerror_var;
 			spec = lproc.lspec;
 		} in
-	print_debug_petar (Printf.sprintf "%s" (JSIL_Print.string_of_procedure proc false));
+	print_debug_petar (JSIL_Print.string_of_procedure proc);
 	proc
 
 (** ----------------------------------------------------
@@ -311,7 +357,7 @@ let parse
   in
 
   (** ----------------------------------------------------
-      Start the intetpreter
+      Start the interpreter
       -----------------------------------------------------
   *)
   JPMI.loop_handle
@@ -334,6 +380,7 @@ let parse
     (JPMI.lexer_lexbuf_to_supplier lexer lexbuf)
     (start lexbuf.Lexing.lex_curr_p)
 
+
 (** ----------------------------------------------------
     Open the file given by 'path' and run the parser on its contents.
     Detect previously normalised files.
@@ -342,12 +389,16 @@ let parse
 let ext_program_of_path
     (path : string) : jsil_ext_program =
 
-  let file_previously_normalised = Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.njsil") path 0 in
+  print_debug (Printf.sprintf "Creating ext_program_of_path %s" path);
+
+  let extension = List.hd (List.rev (Str.split (Str.regexp "\.") path)) in
+  let file_previously_normalised = String.equal "njsil" extension in
+
   print_debug (Printf.sprintf "%s is previously normalised? %b" path file_previously_normalised);
   JSIL_Syntax.previously_normalised := file_previously_normalised;
 
   (* Check that the file is of a valid type *)
-  (match (file_previously_normalised || (Str.string_match (Str.regexp "[a-zA-Z0-9/_-]+\.jsil") path 0)) with
+  (match (file_previously_normalised || (String.equal "jsil" extension)) with
     | true -> ()
     | false -> raise (Failure (Printf.sprintf "Failed to import %s: not a .jsil or .njsil file." path)));
 
@@ -356,7 +407,10 @@ let ext_program_of_path
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = path };
   let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
   close_in inx;
+
+  print_debug (Printf.sprintf "CREATED ext_program_of_path %s" path);
   prog
+
 
 (** ----------------------------------------------------
     Run the parser on the given string.
@@ -370,6 +424,7 @@ let ext_program_of_string
 	let prog = parse JSIL_Parser.Incremental.main_target lexbuf in
 	prog
 
+
 (** ----------------------------------------------------
     Run the parser on a string of an assertion.
     -----------------------------------------------------
@@ -377,10 +432,11 @@ let ext_program_of_string
 let js_assertion_of_string
     (str : string) : js_logic_assertion =
 
-Printf.printf "Parsing the following js assertion: %s\n" str;
+	print_debug_petar (Printf.sprintf "Parsing the following js assertion: %s" str);
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.top_level_js_assertion_target lexbuf
+
 
 (** ----------------------------------------------------
     Run the parser on a string of a predicate definition.
@@ -389,10 +445,11 @@ Printf.printf "Parsing the following js assertion: %s\n" str;
 let js_logic_pred_def_of_string
     (str : string) : JSLogic.js_logic_predicate =
 
- Printf.printf "Parsing the following pred def: %s\n" str;
+  print_debug_petar (Printf.sprintf "Parsing the following pred def: %s" str);
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_pred_target lexbuf
+
 
 (** ----------------------------------------------------
     Run the parser on a string of an only spec
@@ -401,7 +458,7 @@ let js_logic_pred_def_of_string
 let js_only_spec_from_string
     (str : string) : JSLogic.js_spec =
 
- Printf.printf "Parsing the following only spec: %s\n" str;
+  print_debug_petar (Printf.sprintf "Parsing the following only spec: %s" str);
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_only_spec_target lexbuf
@@ -413,10 +470,11 @@ let js_only_spec_from_string
 let js_logic_commands_of_string
     (str : string) : js_logic_command list =
 
- Printf.printf "Parsing the following logic commands: %s\n" str;
+	print_debug_petar (Printf.sprintf "Parsing the following logic commands: %s" str);
   let lexbuf = Lexing.from_string str in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = "" };
 	parse JSIL_Parser.Incremental.js_logic_cmds_target lexbuf
+
 
 (** ----------------------------------------------------
     Add the declarations in 'program_from' to 'program_to'.
@@ -437,15 +495,26 @@ let extend_declarations
 		  Hashtbl.add program_to.predicates pred_name pred)
    program_from.predicates;
 
- (** Step 1 - Extend the procedures, except where a procedure with the same name already exists
+ (** Step 2 - Extend the procedures, except where a procedure with the same name already exists
    * -----------------------------------------------------------------------------------
    *)
 	Hashtbl.iter
 		(fun proc_name proc ->
 			if (not (Hashtbl.mem program_to.procedures proc_name))
-				then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
+				then (print_debug (Printf.sprintf "*** MESSAGE: Adding onlyspec procedure: %s.\n" proc_name); Hashtbl.add program_to.procedures proc_name proc)
 				else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
-		program_from.procedures
+		program_from.procedures;
+		
+  (** Step 3 - Extend the onlyspecs
+    * -----------------------------------------------------------------------------------
+    *)
+   Hashtbl.iter
+   	(fun proc_name proc ->
+   		if (not (Hashtbl.mem program_to.onlyspecs proc_name))
+   			then (print_debug (Printf.sprintf "*** MESSAGE: Adding procedure: %s.\n" proc_name); Hashtbl.add program_to.onlyspecs proc_name proc)
+   			else (print_debug (Printf.sprintf "*** WARNING: Procedure %s already exists.\n" proc_name)))
+   	program_from.onlyspecs
+
 
 (** ----------------------------------------------------
   * Load the programs imported in 'program' and add its declarations to 'program' itself.
@@ -487,111 +556,6 @@ let resolve_imports
 
 	resolve_imports_iter program.imports
 
-(* Understand the successors and predecessors of commands *)
-let get_succ_pred cmds opt_ret_label opt_error_label =
-
-  let cmds = Array.map (fun x -> match x with (_, cmd) -> cmd) cmds in
-
-  let ret_label =
-    (match opt_ret_label with
-    | None -> -1021
-    | Some l -> l) in
-
-  let err_label =
-    (match opt_error_label with
-    | None -> -1021
-    | Some l -> l) in
-
-  let number_of_cmds = Array.length cmds in
-  let succ_table = Array.make number_of_cmds [] in
-  let pred_table = Array.make number_of_cmds [] in
-
-  (* adding i to the predecessors of j *)
-  let update_pred_table i j =
-    (if ((j < number_of_cmds) && (i < number_of_cmds))
-      then pred_table.(j) <- i :: pred_table.(j)
-      else ()) in
-
-  (* adding i to the successors of j *)
-  let update_succ_table i j =
-    (if ((j < number_of_cmds) && (i < number_of_cmds))
-      then succ_table.(j) <- i :: succ_table.(j)
-      else ()) in
-
-  for u=0 to number_of_cmds-1 do
-      (match cmds.(u) with
-      | SBasic _
-      | SPhiAssignment (_, _)
-      | SPsiAssignment (_, _) ->
-        if (not ((u == ret_label) || (u == err_label)))
-          then
-          begin
-            update_succ_table (u + 1) u;
-            update_pred_table u (u + 1)
-          end
-
-      | SGoto i ->
-        if (not ((u == ret_label) || (u == err_label)))
-          then
-          begin
-            update_succ_table i u;
-            update_pred_table u i
-          end
-
-      | SGuardedGoto (e, i, j) ->
-        if (not ((u == ret_label) || (u == err_label)))
-          then
-          begin
-            update_succ_table i u;
-            update_pred_table u i;
-            update_succ_table j u;
-            update_pred_table u j
-          end
-
-      | SCall (_, _, _, i) ->
-        (match i with
-        | None -> ()
-        | Some i -> (update_succ_table i u; update_pred_table u i));
-        if (not ((u == ret_label) || (u == err_label)))
-          then
-          begin
-            update_succ_table (u+1) u;
-            update_pred_table u (u+1)
-          end
-
-      | SApply (_, _, i) ->
-        (match i with
-        | None -> ()
-        | Some i -> (update_succ_table i u; update_pred_table u i));
-        if (not ((u == ret_label) || (u == err_label)))
-          then
-          begin
-            update_succ_table (u+1) u;
-            update_pred_table u (u+1)
-          end)
-  done;
-
-  for k = 0 to (number_of_cmds - 1) do
-    succ_table.(k) <- List.rev succ_table.(k);
-    pred_table.(k) <- List.rev pred_table.(k);
-  done;
-  succ_table, pred_table
-
-(* Compute the which_pred table *)
-let compute_which_preds pred =
-  let which_pred = Hashtbl.create 1021 in
-  let number_of_nodes = Array.length pred in
-
-  for u=0 to number_of_nodes-1 do
-    let cur_preds = pred.(u) in
-    List.iteri
-      (fun i v ->
-        Hashtbl.add which_pred (v, u) i)
-      cur_preds
-  done;
-
-  which_pred
-
 
 (** ----------------------------------------------------
   * Converts an extended JSIL program into a set of basic procedures.
@@ -629,13 +593,13 @@ let prog_of_ext_prog
     (** Step 4 - Get the succ and pred tables
       * -----------------------------------------------------------------------------------
       *)
-		 let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+		 let succ_table, pred_table = Graph.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
 		 print_debug_petar "succ and pred tables fetched.\n";
 
      (** Step 5 - Compute the which_pred table
        * -----------------------------------------------------------------------------------
      *)
-		 let which_pred = compute_which_preds pred_table in
+		 let which_pred = Graph.compute_which_preds pred_table in
 		 print_debug_petar "which pred table computed\n";
 
      (** Step 6 - Update the global_which_pred table with the correct indexes
@@ -650,6 +614,7 @@ let prog_of_ext_prog
 	ext_program.procedures;
 	prog, global_which_pred
 
+
 (** ----------------------------------------------------
     Add the which_pred table to the global_which_pred table
     -----------------------------------------------------
@@ -658,10 +623,46 @@ let extend_which_pred
     (global_which_pred : global_which_pred_type)
     (proc : jsil_procedure) : unit =
 
-	let succ_table, pred_table = get_succ_pred proc.proc_body proc.ret_label proc.error_label in
-	let which_pred = compute_which_preds pred_table in
+	let succ_table, pred_table = Graph.get_succ_pred proc.proc_body proc.ret_label proc.error_label in
+	let which_pred = Graph.compute_which_preds pred_table in
 	let proc_name = proc.proc_name in
 	Hashtbl.iter
 		(fun (prev_cmd, cur_cmd) i ->
 			Hashtbl.replace global_which_pred (proc_name, prev_cmd, cur_cmd) i)
 		which_pred
+
+
+(** ----------------------------------------------------
+    Parse a line_numbers file. 
+    Proc: proc_name 
+    (0, 0)
+    ...
+    -----------------------------------------------------
+*)
+let parse_line_numbers (ln_str : string) : (string * int, int * bool) Hashtbl.t = 
+  
+  let strs            = Str.split (Str.regexp_string "Proc: ") ln_str in
+  let line_info       = Hashtbl.create big_tbl_size in 
+  List.iter (fun str -> 
+    let memory         = Hashtbl.create small_tbl_size in 
+    let index          = String.index str '\n' in 
+    let proc_name      = String.sub str 0 index in 
+    let proc_line_info = String.sub str (index+1) ((String.length str) - (index+1))  in 
+    let lines          = Str.split (Str.regexp_string "\n") proc_line_info in 
+    List.iter 
+      (fun line -> Scanf.sscanf line "(%d, %d)" 
+        (fun x y -> 
+            if (Hashtbl.mem memory y)
+              then Hashtbl.replace line_info (proc_name, x) (y, false)
+              else (
+                Hashtbl.replace memory y true; 
+                Hashtbl.replace line_info (proc_name, x) (y, true) 
+              )
+        )) lines;  
+  ) strs; 
+
+  line_info 
+
+
+
+

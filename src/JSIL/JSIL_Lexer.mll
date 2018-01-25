@@ -5,10 +5,15 @@ open Lexing
 let digit = ['0'-'9']
 let float = '-'? digit+ ('.' digit*)?
 let letter = ['a'-'z''A'-'Z']
-let var = (letter|'_')(letter|digit|'_')*
+let var = letter(letter|digit|'_')*
+let var2 = "_pvar_" (letter|digit|'_')*
 let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
 let lvar = '#' (letter|digit|'_'|'$')*
+let lvar2 = "_lvar_" (letter|digit|'_')*
+let normalised_lvar = "##NORMALISED_LVAR" (letter|digit|'_'|'$')*
 let loc = "$l" (letter|digit|'_')*
+let aloc = "_$l_" (letter|digit|'_')*
+let normalised_aloc = "_$l_#" (letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 
@@ -24,18 +29,20 @@ rule read = parse
 	| "sc_scope"           { JSIL_Parser.SCSCOPE       }
 	| "o_chains"           { JSIL_Parser.OCHAINS       }
 	| "_"                  { JSIL_Parser.UNDERSCORE    }
-(* Type literals *)
-	| "$$undefined_type"   { JSIL_Parser.UNDEFTYPELIT  }
-	| "$$null_type"        { JSIL_Parser.NULLTYPELIT   }
-	| "$$empty_type"       { JSIL_Parser.EMPTYTYPELIT  }
-	| "$$none_type"        { JSIL_Parser.NONETYPELIT   }
-	| "$$boolean_type"     { JSIL_Parser.BOOLTYPELIT   }
-	| "$$number_type"      { JSIL_Parser.NUMTYPELIT    }
-	| "$$string_type"      { JSIL_Parser.STRTYPELIT    }
-	| "$$object_type"      { JSIL_Parser.OBJTYPELIT    }
-	| "$$list_type"        { JSIL_Parser.LISTTYPELIT   }
-	| "$$type_type"        { JSIL_Parser.TYPETYPELIT   }
-	| "$$set_type"         { JSIL_Parser.SETTYPELIT    }
+	
+	(* Type literals *)
+	| "Undefined" { JSIL_Parser.UNDEFTYPELIT  }
+	| "Null"      { JSIL_Parser.NULLTYPELIT   }
+	| "Empty"     { JSIL_Parser.EMPTYTYPELIT  }
+	| "None"      { JSIL_Parser.NONETYPELIT   }
+	| "Bool"      { JSIL_Parser.BOOLTYPELIT   }
+	| "Num"       { JSIL_Parser.NUMTYPELIT    }
+	| "Str"       { JSIL_Parser.STRTYPELIT    }
+	| "Obj"       { JSIL_Parser.OBJTYPELIT    }
+	| "List"      { JSIL_Parser.LISTTYPELIT   }
+	| "Type"      { JSIL_Parser.TYPETYPELIT   }
+	| "Set"       { JSIL_Parser.SETTYPELIT    }
+	
 (* Constants *)
 	| "$$min_float"        { JSIL_Parser.MIN_FLOAT     }
 	| "$$max_float"        { JSIL_Parser.MAX_FLOAT     }
@@ -50,20 +57,28 @@ rule read = parse
 	| "$$sqrt2"            { JSIL_Parser.SQRT2         }
 	| "$$UTCTime"          { JSIL_Parser.UTCTIME       }
 	| "$$LocalTime"        { JSIL_Parser.LOCALTIME     }
-(* Literals (scroll down for more) *)
-	| "$$undefined"        { JSIL_Parser.UNDEFINED     }
-	| "$$null"             { JSIL_Parser.NULL          }
-	| "$$empty"            { JSIL_Parser.EMPTY         }
- 	| "$$t"                { JSIL_Parser.TRUE          }
-	| "$$f"                { JSIL_Parser.FALSE         }
-	| "nan"                { JSIL_Parser.NAN           }
-	| "inf"                { JSIL_Parser.INFINITY      }
-	| "$$nil"              { JSIL_Parser.LSTNIL        }
-	| "{{"                 { JSIL_Parser.LSTOPEN       }
-	| "}}"                 { JSIL_Parser.LSTCLOSE      }
+
+(* permissions *)
+	| "@r"                 { JSIL_Parser.READABLE  }  
+    | "@m"                 { JSIL_Parser.MUTABLE   }
+	| "@d"                 { JSIL_Parser.DELETABLE }
+	
+  (* Literals (scroll down for more) *)
+	| "undefined" { JSIL_Parser.UNDEFINED }
+	| "null"      { JSIL_Parser.NULL      }
+	| "empty"     { JSIL_Parser.EMPTY     }
+ 	| "true"      { JSIL_Parser.TRUE      }
+	| "false"     { JSIL_Parser.FALSE     }
+	| "nan"       { JSIL_Parser.NAN       }
+	| "inf"       { JSIL_Parser.INFINITY  }
+	| "nil"       { JSIL_Parser.LSTNIL    }
+	| "{{"        { JSIL_Parser.LSTOPEN   }
+	| "}}"        { JSIL_Parser.LSTCLOSE  }
+	
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL         }
 	| "<"                  { JSIL_Parser.LESSTHAN      }
+	| ">"                  { JSIL_Parser.GREATERTHAN   }
 	| "<="                 { JSIL_Parser.LESSTHANEQUAL }
 	| "<s"                 { JSIL_Parser.LESSTHANSTRING}
 	| "+"                  { JSIL_Parser.PLUS          }
@@ -137,6 +152,7 @@ rule read = parse
 	| "deleteObject"       { JSIL_Parser.DELETEOBJ }
 	| "hasField"           { JSIL_Parser.HASFIELD }
 	| "getFields"          { JSIL_Parser.GETFIELDS }
+	| "metadata"           { JSIL_Parser.METADATA } 
 	| "args"               { JSIL_Parser.ARGUMENTS }
 	| "goto"               { JSIL_Parser.GOTO }
 	| "with"               { JSIL_Parser.WITH }
@@ -144,7 +160,7 @@ rule read = parse
 	| "PHI"                { JSIL_Parser.PHI }
 	| "PSI"                { JSIL_Parser.PSI }
 (* Logical expressions: most match with the program expressions *)
-	| "None"               { JSIL_Parser.LNONE }
+	| "none"               { JSIL_Parser.LNONE }
 (* Logic assertions *)
 	| "[["                 { JSIL_Parser.OASSERT }
 	| "]]"                 { JSIL_Parser.CASSERT }
@@ -186,6 +202,7 @@ rule read = parse
   (* Procedure specification keywords *)
   | "only"               { JSIL_Parser.ONLY      }
 	| "lemma"              { JSIL_Parser.LEMMA     }
+	| "variant"            { JSIL_Parser.VARIANT   }
 	| "spec"               { JSIL_Parser.SPEC      }
 	| "normal"             { JSIL_Parser.NORMAL    }
 	| "error"              { JSIL_Parser.ERROR     }
@@ -217,15 +234,20 @@ rule read = parse
 	                           JSIL_Parser.FLOAT n }
 	| '"'                  { read_string (Buffer.create 17) lexbuf }
 	| loc                  { JSIL_Parser.LOC (Lexing.lexeme lexbuf) }
+	| aloc                  { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
+	| normalised_aloc       { JSIL_Parser.ALOC (Lexing.lexeme lexbuf) }
 (* Filenames *)
   | filename             { JSIL_Parser.FILENAME (Lexing.lexeme lexbuf) }
 (* Variables *)
 	| var                  { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
+	| var2                 { JSIL_Parser.VAR (Lexing.lexeme lexbuf) }
 (* Logic variables *)
 	| lvar                 { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+	| lvar2                { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
+	| normalised_lvar      { JSIL_Parser.LVAR (Lexing.lexeme lexbuf) }
 (* EOF *)
 	| eof                  { JSIL_Parser.EOF }
-	| _                    { raise (Common.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 and
 (* Read strings *)
 read_string buf =
@@ -243,12 +265,12 @@ read_string buf =
 		                       Buffer.add_string buf (Lexing.lexeme lexbuf);
     											 read_string buf lexbuf
     			               }
-  | _                    { raise (Common.Syntax_error ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
-  | eof                  { raise (Common.Syntax_error ("String is not terminated")) }
+  | _                    { raise (JSIL_Syntax.Syntax_error ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
+  | eof                  { raise (JSIL_Syntax.Syntax_error ("String is not terminated")) }
 and
 (* Read comments *)
 read_comment =
   parse
 	| "*)"                 { read lexbuf }
-	| eof                  { raise (Common.Syntax_error ("Comment is not terminated")) }
+	| eof                  { raise (JSIL_Syntax.Syntax_error ("Comment is not terminated")) }
 	| _                    { read_comment lexbuf }
