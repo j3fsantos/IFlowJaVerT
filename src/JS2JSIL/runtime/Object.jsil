@@ -200,7 +200,8 @@ proc Object_construct (xsc, vthis, l) {
 	to_obj:	xret := "i__toObject" (l);
 			goto rlab;
 
-	norm:	xret := new ();
+	norm:	xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lobj_proto, "Object", true);
 	rlab:	skip
 }

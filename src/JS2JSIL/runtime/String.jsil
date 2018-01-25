@@ -68,7 +68,8 @@ proc String_construct (xsc, vthis, s) {
 	to_str:	xret := "i__toString" (s) with elab;
 			pv := xret;
 
-	norm:	xret := new ();
+	norm:	xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lstr_proto, "String", true);
 			s := xret;
 

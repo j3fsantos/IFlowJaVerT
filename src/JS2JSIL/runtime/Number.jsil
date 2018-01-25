@@ -35,7 +35,8 @@ proc Number_construct (xsc, vthis, v) {
 
 	init:	pv := "i__toNumber" (v) with elab;
 
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lnum_proto, "Number", true);
 
 			m := metadata(xret);

@@ -2210,9 +2210,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next1 = fresh_label () in
 		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
+		(* get the metadata *)
+		let x2vm = fresh_var () in
+		let cmd_x2vm = SLBasic (MetaData (x2vm, Var x2_v)) in
+
 		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in
-		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String "@class"))) in
+		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2vm, Literal (String "@class"))) in
 
 		(* goto [ x_cond = empty ] err next2 *)
 		let next2 = fresh_label () in
@@ -2223,14 +2227,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_ass_xr = SLCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some tr_ctx.tr_err) in
 
 		let cmds = annotate_first_cmd (
-			cmds1 @ [                           (*         cmds1                                              *)
-			annotate_cmd cmd_gv_x1 None         (*         x1_v := i__getValue (x1) with err                  *)
-		] @ cmds2 @ (annotate_cmds [            (*         cmds2                                              *)
-			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
-			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = Obj ] next1 err   *)
-			(Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "@hasInstance")          *)
-			(None,         cmd_goto_xcond);     (*         goto [ x_cond = empty ] err next2                *)
-			(Some next2,         cmd_ass_xr)    (*         x_r := x_hi (x2_v, x1_v) with err                  *)
+			cmds1 @ [                           (*        cmds1                                     *)
+			annotate_cmd cmd_gv_x1 None         (*        x1_v := i__getValue (x1) with err         *)
+		] @ cmds2 @ (annotate_cmds [          (*        cmds2                                     *)
+			(None,         cmd_gv_x2);          (*        x2_v := i__getValue (x2) with err         *)
+			(None,         cmd_goto_ot);        (*        goto [ (typeOf x2_v) = Obj ] next1 err    *)
+			(Some next1,   cmd_x2vm);           (* next1: x2vm := metadata(x2_v)                    *)
+			(None,         cmd_hasfield);       (*        x_cond := hasField (x2_v, "@hasInstance") *)
+			(None,         cmd_goto_xcond);     (*        goto [ x_cond = empty ] err next2         *)
+			(Some next2,   cmd_ass_xr)          (*        x_r := x_hi (x2_v, x1_v) with err         *)
 		])) in
 		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ var_te; var_te; x_r ] in
 		cmds, Var x_r, errs
@@ -4597,7 +4602,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let cmd_err_final =  annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_err) in
 
 	let fid_cmds =
-		[ cmd_er_creation; cmd_er_flag ] @
+		[ cmd_er_m_creation; cmd_er_creation; cmd_er_flag ] @
 		cmds_decls @ cmds_params @
 		(if_verification [] cmds_arg_obj) @
 		[ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @

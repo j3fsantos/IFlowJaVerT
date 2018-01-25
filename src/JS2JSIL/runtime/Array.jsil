@@ -23,7 +23,8 @@ proc Array_construct () {
 			la := args;
 			len := l-len (la);
 
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $larr_proto, "Array", true);
 
 			[xret, "length"] := {{ "d", 0, true, false, true }};

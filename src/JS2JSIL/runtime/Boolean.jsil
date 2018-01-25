@@ -19,7 +19,8 @@ with
 proc Boolean_construct (xsc, vthis, v) {
 			pv := "i__toBoolean" (v);
 
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lbool_proto, "Boolean", true);
 
 			m := metadata(xret);

@@ -545,8 +545,8 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
 						(string_of_op op) (JSIL_Print.string_of_literal v_e3);
 				v_e3
-		| _, _ ->  raise (Failure "Illegal field inspection"))
-
+		| _, _ ->  raise (Failure (Printf.sprintf "Illegal mutation: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2))))
+		
 	| SDelete (e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
@@ -636,10 +636,12 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 						(* Generate new object in the heap *)
 						let o = SHeap.create 1021 in
 						SHeap.replace heap l (o, Loc lm, true);
+						Hashtbl.replace store x (Loc lm);
 						Loc lm
 						
 				| true -> 
 						let _, metadata, _ = SHeap.find heap l in
+							Hashtbl.replace store x metadata;
 							metadata) 
 		| _ -> raise (Failure (Printf.sprintf "Looking up metadata of non-object: %s" (JSIL_Print.string_of_literal v_e))))	
 
