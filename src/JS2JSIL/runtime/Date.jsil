@@ -279,7 +279,7 @@ with
 proc DP_getTime (xsc, vthis) {
 
 			goto [typeOf(vthis) = Obj] class tt;
-	class:	m := metadata(vthis)
+	class:	m := metadata(vthis);
 			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
 

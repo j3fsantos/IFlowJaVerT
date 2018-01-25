@@ -56,9 +56,9 @@ with
 (* *** GETENUMERABLEFIELDSITER *** *)
 
 proc i__getEnumerableFieldsIter (l, prop_list) {
-			goto [prop_list = nil] nil init;
+			goto [prop_list = nil] nill init;
 
-	nil:	xret := nil;
+	nill:	xret := nil;
 			goto rlab;
 
 	init:	xh := car prop_list;
@@ -96,9 +96,9 @@ with
 (* *** GETENUMERABLEFIELDSWITHVALUESITER *** *)
 
 proc i__getEnumerableFieldsWithValuesIter (l, prop_list, g) {
-			goto [prop_list = nil] nil init;
+			goto [prop_list = nil] nill init;
 
-	nil:	xret := {{ nil, nil }};
+	nill:	xret := {{ nil, nil }};
 			goto rlab;
 
 	init:	xh := car prop_list;
@@ -576,9 +576,9 @@ proc OP_toString(xsc, vthis) {
 	undef: 	xret := "[object Undefined]";
 			goto rlab;
 
-	def:	goto [vthis = null] null nnull;
+	def:	goto [vthis = null] nul nnull;
 
-	null:	xret := "[object Null]";
+	nul:	xret := "[object Null]";
 			goto rlab;
 
 	nnull:	xret := "i__toObject" (vthis) with elab;

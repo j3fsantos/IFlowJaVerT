@@ -88,7 +88,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			goto loop;
 
 	call:	xthis := this_arg;
-			m := metadata(vthis)
+			m := metadata(vthis);
 			body   := [m, "@call"];
 			xscope := [m, "@scope"];
 

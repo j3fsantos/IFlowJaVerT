@@ -40,9 +40,9 @@ proc String_call (xsc, vthis, s) {
 			la := args;
 			len := l-len (la);
 
-			goto [len < 3] empty to_str;
+			goto [len < 3] empt to_str;
 
-	empty:	xret := "";
+	empt:	xret := "";
 			goto rlab;
 
 	to_str:	xret := "i__toString" (s) with elab;
@@ -62,8 +62,8 @@ proc String_construct (xsc, vthis, s) {
 			la := args;
 			len := l-len (la);
 
-			goto [len < 3] empty to_str;
-	empty:	pv := "";
+			goto [len < 3] empt to_str;
+	empt:	pv := "";
 			goto norm;
 	to_str:	xret := "i__toString" (s) with elab;
 			pv := xret;

@@ -165,11 +165,6 @@ proc setupInitialHeap () {
 
 
 
-
-
-
-
-
   			(* Object object *)
 
   			xret := "create_object_with_call_construct" ($lobj, "Object_call", "Object_construct", 1);
@@ -226,11 +221,6 @@ proc setupInitialHeap () {
 
 
 
-
-
-
-
-
   			(* Function object *)
 
   			xret := "create_object_with_call_construct" ($lfun, "Function_call", "Function_construct", 1);
@@ -253,10 +243,6 @@ proc setupInitialHeap () {
   			xret := "create_object_with_call_construct" ($lfp_call, "FP_call", empty, 1);
  			xret := "create_object_with_call_construct" ($lfp_apply, "FP_apply", empty, 2);
   			xret := "create_object_with_call_construct" ($lfp_bind, "FP_bind", empty, 1);
-
-
-
-
 
 
 
@@ -325,11 +311,6 @@ proc setupInitialHeap () {
 
 
 
-
-
-
-
-
 			(* String object *)
 
 			xret := "create_object_with_call_construct" ($lstr, "String_call", "String_construct", 1);
@@ -344,7 +325,7 @@ proc setupInitialHeap () {
 			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", true);
 
 			m := metadata($lstr_proto);
-			[$m, "@primitiveValue"]   := "";
+			[m, "@primitiveValue"]             := "";
 			[$lstr_proto, "length"]            := {{ "d", 0, false, false, false }};
 			[$lstr_proto, "constructor"]       := {{ "d", $lstr, true, false, true }};
 			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, true, false, true }};
@@ -391,11 +372,6 @@ proc setupInitialHeap () {
 
 
 
-
-
-
-
-
 			(* Boolean object *)
 
 			xret := "create_object_with_call_construct" ($lbool, "Boolean_call", "Boolean_construct", 1);
@@ -415,11 +391,6 @@ proc setupInitialHeap () {
 
 			xret := "create_object_with_call_construct" ($lbp_toString, "BP_toString", empty, 0);
 			xret := "create_object_with_call_construct" ($lbp_valueOf, "BP_valueOf", empty, 0);
-
-
-
-
-
 
 
 
@@ -456,11 +427,6 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lnp_toFixed, "NP_toFixed", empty, 1);
 			xret := "create_object_with_call_construct" ($lnp_toExponential, "NP_toExponential", empty, 1);
 			xret := "create_object_with_call_construct" ($lnp_toPrecision, "NP_toPrecision", empty, 1);
-
-
-
-
-
 
 
 
@@ -516,11 +482,6 @@ proc setupInitialHeap () {
 			xret := "create_object_with_call_construct" ($lmath_sin, "M_sin", empty, 1);
 			xret := "create_object_with_call_construct" ($lmath_sqrt, "M_sqrt", empty, 1);
 			xret := "create_object_with_call_construct" ($lmath_tan, "M_tan", empty, 1);
-
-
-
-
-
 
 
 
@@ -640,11 +601,6 @@ proc setupInitialHeap () {
 
 
 
-
-
-
-
-
 			(* RegExp object *)
 
 			xret := "create_object_with_call_construct" ($lregexp, "RegExp_call", "RegExp_construct", 2);
@@ -668,11 +624,6 @@ proc setupInitialHeap () {
 
 
 
-
-
-
-
-
 			(* JSON object *)
 
 			xret := "create_default_object" ($ljson, $lobj_proto, "JSON", true);
@@ -682,11 +633,6 @@ proc setupInitialHeap () {
 
 			xret := "create_object_with_call_construct" ($ljson_parse, "JSON_parse", empty, 2);
 			xret := "create_object_with_call_construct" ($ljson_stringify, "JSON_stringify", empty, 3);
-
-
-
-
-
 
 
 
@@ -708,6 +654,7 @@ proc setupInitialHeap () {
 			[$lerr_proto, "toString"]    := {{ "d", $lep_toString, true, false, true }};
 
 			xret := "create_object_with_call_construct" ($lep_toString, "EP_toString", empty, 0);
+
 
 
 
@@ -733,7 +680,6 @@ proc setupInitialHeap () {
 			[$lserr,  "name"] := {{ "d", "SyntaxError", true, false, true }};
 			[$lterr,  "name"] := {{ "d", "TypeError", true, false, true }};
 			[$luerr,  "name"] := {{ "d", "URIError", true, false, true }};
-
 
 			(* Native error prototypes *)
 
@@ -773,9 +719,7 @@ proc setupInitialHeap () {
 			[m, "@scope"] := empty;
 			[m, "@formalParameters"] := {{ }};
 			[m, "@call"] := "ThrowTypeError";
-			[xret, "length"] := {{ "d", 0, false, false, false }};
-			
-
+			[xret, "length"] := {{ "d", 0, false, false, false }};			  			
 	rlab:	xret := empty
 }
 with

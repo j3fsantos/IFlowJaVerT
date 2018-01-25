@@ -223,6 +223,8 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
   	(* x := args *)
   	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+		(* x := metadata(e) *)
+		| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
