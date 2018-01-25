@@ -799,7 +799,7 @@ let string_of_store store =
 let string_of_heap (h : jsil_heap) =
 	SHeap.fold
 		(fun loc (obj, metadata, extensibility) printed_heap ->
-			let pre_str = "\t[ " ^ loc ^ " : " in
+			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (string_of_literal metadata) ^ "\n  Extensible : " ^ (if extensibility then "true" else "false") in
 			let post_str = "]\n" in
 			  let printed_object =
 					(SHeap.fold
