@@ -893,11 +893,12 @@ let rec evaluate_cmd
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
 		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e))))
 
+	(* EVAL *)
 	| SCall (x, e, e_args, j)
 		when  evaluate_expr e store = String "Object_eval" ->
-		if (!verbose) then Printf.printf "Call to eval intercepted!\n"; 
+		if (!verbose) then Printf.printf "Call to eval intercepted!\n";  
 		if (!verbose) then print_endline (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_expression x) e_args)));
- 		if (!verbose) then print_endline (Printf.sprintf "The store is: %s" (JSIL_Print.string_of_store store));
+		if (!verbose) then print_endline (Printf.sprintf "The store is: %s" (JSIL_Print.string_of_store store));
 		let e_args =
 			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
 		let str_e = List.nth e_args 2 in
@@ -905,18 +906,17 @@ let rec evaluate_cmd
 		(match str_e with
 		| String code ->
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-				(* Printf.printf "\n%s\n" code; *)
 				let x_scope, x_this =
-					(match Utils.try_find store (JS2JSIL_Constants.var_scope), Utils.try_find store (JS2JSIL_Constants.var_this)  with
- 					| Some x_scope, Some x_this -> x_scope, x_this
- 					| None, None -> raise (Failure "No var_scope AND no var_this to give to eval")
- 					| None, _ -> raise (Failure "No var_scope to give to eval") 
- 					| _, None -> raise (Failure "No var_this to give to eval")) in
+					(match Utils.try_find store (JS2JSIL_Constants.var_sc_first), Utils.try_find store (JS2JSIL_Constants.var_this)  with
+					| Some x_scope, Some x_this -> x_scope, x_this
+					| None, None -> raise (Failure "No var_scope AND no var_this to give to eval")
+					| None, _ -> raise (Failure "No var_scope to give to eval") 
+					| _, None -> raise (Failure "No var_this to give to eval")) in
 				if (!verbose) then Printf.printf "Scope: %s\nThis: %s\n" (JSIL_Print.string_of_literal x_scope) (JSIL_Print.string_of_literal x_this);
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
 					Some (JS2JSIL_Compiler.js2jsil_eval prog which_pred cc_tbl vis_tbl cur_proc_name e_js)
-					with e -> raise e) with
+					with _ -> None) with
 				| Some proc_eval ->
 					(let new_store = init_store [ JS2JSIL_Constants.var_scope; JS2JSIL_Constants.var_this ] [ x_scope; x_this ] in
 					match evaluate_cmd prog proc_eval.proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
@@ -931,6 +931,7 @@ let rec evaluate_cmd
 							Hashtbl.replace store x v;
 							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
 				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
+					if (!verbose) then print_endline "Could not quite parse the eval body.";
 					(match Utils.try_find store (JS2JSIL_Constants.var_se), j with
 					| Some v, Some j ->
 						Hashtbl.replace store x v;
@@ -940,6 +941,7 @@ let rec evaluate_cmd
 
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
+
 
 	| SCall (x, e, e_args, j)
 	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
