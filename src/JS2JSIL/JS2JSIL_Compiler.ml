@@ -863,10 +863,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	 Section 11.1.4 - Array Initialiser
 	*)
 	| Parser_syntax.Array eos -> (* raise (Failure "not implemented yet - array literal") *)
+		
+		(* xfvm := metadata (x_f_val) *)
+		let xarrm = fresh_var () in
+		let cmd_xarrm = annotate_cmd (SLBasic (SNew (xarrm, Some (Literal Null)))) None in
+		
 		(* x_arr := new () *)
 		let x_arr = fresh_obj_var () in
 		(* TODO: METADATA *)
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_arr, None))) None in
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_arr, Some (Var xarrm)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *)
 		let x_cdo = fresh_var () in
@@ -908,7 +913,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				(cmds @ new_cmds, errs @ new_errs, num + 1))
 				([], [], 0)
 				eos in
-		let cmds = annotate_first_cmd (cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: cmds)) in
+		let cmds = annotate_first_cmd (cmd_xarrm :: cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: cmds)) in
 		cmds, (Var x_arr), errs
 
 
@@ -951,10 +956,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 							x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 		*)
 
+		(* xfvm := metadata (x_f_val) *)
+		let x_obj_m = fresh_var () in
+		let cmd_xobjm = annotate_cmd (SLBasic (SNew (x_obj_m, Some (Literal Null)))) None in
+		
 		(* x_obj := new () *)
 		let x_obj = fresh_obj_var () in
-		(* TODO: METADATA *)
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_obj, None))) None in
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_obj, Some (Var x_obj_m)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $lobj_proto) *)
 		let x_cdo = fresh_var () in
@@ -1027,7 +1035,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				cmds @ new_cmds, errs @ new_errs)
 				([], [])
 				xs in
-		let cmds = annotate_first_cmd (cmd_new_obj :: (cmd_cdo_call :: cmds)) in
+		let cmds = annotate_first_cmd (cmd_xobjm :: cmd_new_obj :: (cmd_cdo_call :: cmds)) in
 		cmds, (Var x_obj), errs
 
 
@@ -1182,10 +1190,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_tf = fresh_var () in
 		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
 
+		(* xfvm := metadata (x_f_val) *)
+		let xbthism = fresh_var () in
+		let cmd_xobjm = SLBasic (SNew (xbthism, Some (Literal Null))) in
+
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
-		(* TODO: METADATA *)
-		let cmd_bcreate_xobj = SLBasic (SNew (x_bthis, None)) in
+		let cmd_bcreate_xobj = SLBasic (SNew (x_bthis, Some (Var xbthism))) in
 
 		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *)
 		let x_bref_fprototype = fresh_var () in
@@ -1244,10 +1255,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let join = fresh_label () in
 		let cmd_sync = SLGoto join in 
 
+		(* xfvm := metadata (x_f_val) *)
+		let xthism = fresh_var () in
+		let cmd_xobjm = SLBasic (SNew (xthism, Some (Literal Null))) in
+
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in
-		(* TODO: METADATA *)
-		let cmd_create_xobj = SLBasic (SNew (x_this, None)) in
+		let cmd_create_xobj = SLBasic (SNew (x_this, Some (Var xthism))) in
 
 		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *)
 		let x_ref_fprototype = fresh_var () in
@@ -1321,7 +1335,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(Some bind,    cmd_get_ba);              (*         x_ba := [xfvm, "@boundArgs"];                                         *)
 			(None,         cmd_get_tf);              (*         x_tf := [xfvm, "@targetFunction"];                                    *)
-			(None,         cmd_bcreate_xobj);        (*         x_bthis := new ()                                                     *)
+			(None,         cmd_xobjm);               (*         xobjm := new (null)                                                   *)
+			(None,         cmd_bcreate_xobj);        (*         x_bthis := new (xobjm)                                                *)
 			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                         *)
 			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err              *)
 			(None,         cmd_bis_object);          (*         goto [typeof (x_bf_prototype) = Obj] else1 then1;                     *)
@@ -1339,7 +1354,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,         cmd_sync);                (*        goto join                                                              *) ]))
 
 		@ (annotate_cmds [ 
-			(Some call,    cmd_create_xobj);         (* next2: x_this := new ()                                                       *)
+			(Some call,    cmd_xobjm);               (* next2: xthism := new (null)                                                   *)
+			(None,         cmd_create_xobj);         (* next2: x_this := new (xthism)                                                 *)
 			(None,         cmd_ass_xreffprototype);  (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                        *)
 			(None,         cmd_gv_xreffprototype);   (*        x_f_prototype := i__getValue(x_ref_prototype) with err                 *)
 			(None,         cmd_is_object);           (*        goto [typeof (x_f_prototype) = Obj] else1 then1;                       *)
@@ -2603,7 +2619,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_f_outer_er := new ();  *)
 		let x_f_outer_er = fresh_er_var () in
-		(* TODO: METADATA *)
+		(* METADATA: null, since environment record *)
 		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er, None)) in
 
 		(* x_sc_f := x_sc @ {{ x_f_outer_er }}  *)
@@ -2851,7 +2867,7 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		(* TODO: METADATA *)
+		(* METADATA: null, since environment record *)
 		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
@@ -2956,7 +2972,7 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		(* TODO: METADATA *)
+		(* METADATA: null, since environment record *)
 		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
