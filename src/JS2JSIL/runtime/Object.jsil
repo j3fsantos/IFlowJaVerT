@@ -64,13 +64,17 @@ proc i__getEnumerableFieldsIter (l, prop_list) {
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
 
-			prop := [l, xh];
-			xret := "i__getEnumerableFieldsIter" (l, xt);
-			
-			goto [l-nth (prop, 3) = true] yes rlab;
+			prop := "getOwnProperty" (l, xh);
+			goto [l-nth (prop, 3) = true] yes no;
 
-	yes:	xret := xh :: xret;
+	no:		fh := nil;
+			goto rcall;
 
+	yes:	fh := xh;
+
+	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt);
+
+			xret := fh :: ft;
 	rlab:	skip
 }
 with

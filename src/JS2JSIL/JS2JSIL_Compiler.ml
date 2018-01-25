@@ -1192,7 +1192,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* xfvm := metadata (x_f_val) *)
 		let xbthism = fresh_var () in
-		let cmd_xobjm = SLBasic (SNew (xbthism, Some (Literal Null))) in
+		let cmd_xbthism = SLBasic (SNew (xbthism, Some (Literal Null))) in
 
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
@@ -1335,7 +1335,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(Some bind,    cmd_get_ba);              (*         x_ba := [xfvm, "@boundArgs"];                                         *)
 			(None,         cmd_get_tf);              (*         x_tf := [xfvm, "@targetFunction"];                                    *)
-			(None,         cmd_xobjm);               (*         xobjm := new (null)                                                   *)
+			(None,         cmd_xbthism);             (*         xobjm := new (null)                                                   *)
 			(None,         cmd_bcreate_xobj);        (*         x_bthis := new (xobjm)                                                *)
 			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                         *)
 			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err              *)

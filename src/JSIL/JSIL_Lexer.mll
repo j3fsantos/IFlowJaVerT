@@ -36,7 +36,7 @@ rule read = parse
 	| "Empty"     { JSIL_Parser.EMPTYTYPELIT  }
 	| "None"      { JSIL_Parser.NONETYPELIT   }
 	| "Bool"      { JSIL_Parser.BOOLTYPELIT   }
-	| "Tum"       { JSIL_Parser.NUMTYPELIT    }
+	| "Num"       { JSIL_Parser.NUMTYPELIT    }
 	| "Str"       { JSIL_Parser.STRTYPELIT    }
 	| "Obj"       { JSIL_Parser.OBJTYPELIT    }
 	| "List"      { JSIL_Parser.LISTTYPELIT   }
