@@ -36,7 +36,7 @@ rule read = parse
 	| "Empty"     { JSIL_Parser.EMPTYTYPELIT  }
 	| "None"      { JSIL_Parser.NONETYPELIT   }
 	| "Bool"      { JSIL_Parser.BOOLTYPELIT   }
-	| "Num"       { JSIL_Parser.NUMTYPELIT    }
+	| "Tum"       { JSIL_Parser.NUMTYPELIT    }
 	| "Str"       { JSIL_Parser.STRTYPELIT    }
 	| "Obj"       { JSIL_Parser.OBJTYPELIT    }
 	| "List"      { JSIL_Parser.LISTTYPELIT   }
@@ -60,7 +60,7 @@ rule read = parse
 
 (* permissions *)
 	| "@r"                 { JSIL_Parser.READABLE  }  
-    | "@m"                 { JSIL_Parser.MUTABLE   }
+  | "@m"                 { JSIL_Parser.MUTABLE   }
 	| "@d"                 { JSIL_Parser.DELETABLE }
 	
   (* Literals (scroll down for more) *)

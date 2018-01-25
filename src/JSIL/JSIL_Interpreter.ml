@@ -686,16 +686,17 @@ let rec evaluate_cmd
 			cur_cmd prev_cmd cc_tbl vis_tbl =
 
 	let execute_function_constructor proc x e_args j = (
-			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
+			Printf.printf "\nFunction call or constructor encountered.\n"; 
 
-			(* let len = List.length e_args in
+			let len = List.length e_args in
 			let args n = (evaluate_expr (List.nth e_args n) store) in
 			Printf.printf "Arguments: ";
 			for i = 0 to (len - 1) do
-				Printf.printf "%d: %s " i (JSIL_Print.string_of_literal (args i) false);
+				Printf.printf "(%d : %s) " i (JSIL_Print.string_of_literal (args i));
 			done;
-			Printf.printf "\n";  *)
+			Printf.printf "\n"; 
 
+			(* Get the syntax error object *)
 			let se = (evaluate_expr (Var (JS2JSIL_Constants.var_se)) store) in
 
 			let error = ref false in
@@ -714,13 +715,21 @@ let rec evaluate_cmd
 								evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl) in
 						tse) in
 
-			let argCount = (List.length e_args - 2) in
+			(* Get the real arguments and their count *)
+			let e_args = List.tl (List.tl e_args) in
+			let argCount = List.length e_args in
+			
+			(* Initialise parameters and body *)
 			let params = ref "" in
 			let body = ref "" in
+			
+			(* No arguments, no processing *)
 			if (argCount = 0) then () else
+			(* Major processing *)
 			begin
+				(* Only one argument, it is the function body *)
 				if (argCount = 1) then
-				let bd = List.nth e_args 2 in
+				let bd = List.hd e_args in
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
@@ -734,7 +743,8 @@ let rec evaluate_cmd
       					             | _ -> message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
         		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
 				else
-			  	let firstArg = List.nth e_args 2 in
+					(* Process the first argument *)
+			  	let firstArg = List.hd e_args in
 					let evalFirstArg = evaluate_expr firstArg store in
 					let new_store = init_store ["v"] [evalFirstArg] in
 					if (!verbose) then
@@ -748,7 +758,8 @@ let rec evaluate_cmd
         		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
 					if (not !error) then
 					begin
-					for i = 3 to argCount do
+					(* Process the remaining parameters *)
+					for i = 1 to (argCount - 2) do
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
 					  let new_store = init_store ["v"] [evalArg] in
@@ -764,7 +775,8 @@ let rec evaluate_cmd
 					done;
 					if (not !error) then
 					begin
-					let bd = List.nth e_args (argCount + 1) in
+					(* Process the body *)
+					let bd = List.nth e_args (argCount - 1) in
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
@@ -782,7 +794,7 @@ let rec evaluate_cmd
 					end;
       end;
 
-			(* Printf.printf "Error status: %b, message: %s\n" !error !message; *)
+			Printf.printf "Error status: %b, message: %s\n" !error !message;
 
 			if (!error) then (throw_syntax_error !message) else
 			begin
@@ -792,7 +804,7 @@ let rec evaluate_cmd
   			(* Parsing the parameters as a FormalParametersList *)
   			let lexbuf = Lexing.from_string !params in
   			let parsed_params =
-  				(try (Some (JSIL_Syntax_Utils.parse JSIL_Parser.Incremental.param_list_FC_target lexbuf)) with
+  				(try (Some (JSIL_Syntax_Utils.parse_fc FC_Parser.Incremental.param_list_FC_target lexbuf)) with
   				 | _ -> None) in
   			(match parsed_params with
   			| None -> throw_syntax_error "Parameters not parseable."
@@ -945,7 +957,6 @@ let rec evaluate_cmd
 
 	| SCall (x, e, e_args, j)
 	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
-			(* Printf.printf "Call: Entering FC from %s\n"  (JSIL_Print.string_of_literal (evaluate_expr e store) false); *)
 			execute_function_constructor proc x e_args j
 
 	| SCall (x, e, e_args, j) ->

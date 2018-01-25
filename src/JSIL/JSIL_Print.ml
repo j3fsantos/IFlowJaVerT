@@ -30,7 +30,7 @@ let string_of_type (t : jsil_type) : string =
  	| BooleanType   -> "Bool"
  	| NumberType    -> "Num"
  	| StringType    -> "Str"
- 	| CharType      -> "$$char_type"
+ 	| CharType      -> "Char"
  	| ObjectType    -> "Obj"
  	| ListType      -> "List"
  	| TypeType      -> "Type"
