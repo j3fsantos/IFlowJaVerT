@@ -130,31 +130,31 @@ let uint32_right_shift = (fun x y ->
 (* SPECIAL STUFF FOR OBJECTS *)
 
 let copy_object heap loc fields =
-	let obj = (try SHeap.find heap loc with _ -> raise (Failure (Printf.sprintf "Not found: object %s" loc))) in
-	let new_obj = SHeap.create 1021 in
+	let obj = (try Heap.find heap loc with _ -> raise (Failure (Printf.sprintf "Not found: object %s" loc))) in
+	let new_obj = Heap.create 1021 in
 	List.iter
 		(fun x ->
-			let value = (try SHeap.find obj x with _ -> raise (Failure (Printf.sprintf "Not found: [%s, %s]" loc x))) in
-			SHeap.add new_obj x value)
+			let value = (try Heap.find obj x with _ -> raise (Failure (Printf.sprintf "Not found: [%s, %s]" loc x))) in
+			Heap.add new_obj x value)
 		fields;
 	new_obj
 
 (* Default objects - create two objects - the "real" one and the metadata one *)
 let create_default_object proto cls ext =
-	let obj : (permission * jsil_lit) SHeap.t = SHeap.create 1021 in
-	let mtd : (permission * jsil_lit) SHeap.t = SHeap.create 1021 in
-		SHeap.add mtd "@proto"      (Readable, Loc proto);
-		SHeap.add mtd "@class"      (Readable, String cls);
-		SHeap.add mtd "@extensible" (Mutable,  Bool ext);
+	let obj : (permission * jsil_lit) Heap.t = Heap.create 1021 in
+	let mtd : (permission * jsil_lit) Heap.t = Heap.create 1021 in
+		Heap.add mtd "@proto"      (Readable, Loc proto);
+		Heap.add mtd "@class"      (Readable, String cls);
+		Heap.add mtd "@extensible" (Mutable,  Bool ext);
 		obj, mtd
 
 (* Call-construct objects *)
 let create_object_with_call_construct call construct len =
 	let obj, mtd = create_default_object "$lfun_proto" "Function" true in
-		SHeap.add     obj "length"     (Deletable, LList [String "d"; Num len; Bool false; Bool false; Bool false]);
-		SHeap.replace mtd "@call"      (Readable, String call);
-		SHeap.replace mtd "@construct" (Readable, String construct);
-		SHeap.replace mtd "@scope"     (Readable, Empty);
+		Heap.add     obj "length"     (Deletable, LList [String "d"; Num len; Bool false; Bool false; Bool false]);
+		Heap.replace mtd "@call"      (Readable, String call);
+		Heap.replace mtd "@construct" (Readable, String construct);
+		Heap.replace mtd "@scope"     (Readable, Empty);
 		obj, mtd
 
 (* Function objects - with heap addition *)
@@ -166,23 +166,23 @@ let create_anonymous_function_object (heap : jsil_heap) call construct params =
 
 	let obj, mtd = create_object_with_call_construct call construct len in
 
-		SHeap.replace mtd "@scope" (Readable, LList [ Loc "$lg" ]);
+		Heap.replace mtd "@scope" (Readable, LList [ Loc "$lg" ]);
 
-		SHeap.replace mtd "@formalParameters" (Readable,  LList (List.map (fun x -> String x) params));
-		SHeap.add     obj "caller"            (Deletable, LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
-		SHeap.add     obj "arguments"         (Deletable, LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+		Heap.replace mtd "@formalParameters" (Readable,  LList (List.map (fun x -> String x) params));
+		Heap.add     obj "caller"            (Deletable, LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+		Heap.add     obj "arguments"         (Deletable, LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
 
 		let lproto    : string = fresh_loc () in
 		let lprotomtd : string = fresh_loc () in
 		let proto_obj, proto_mtd = create_default_object "$lobj_proto" "Object" true in
-			SHeap.add proto_obj "constructor" (Deletable, LList [String "d"; Loc lobj; Bool true; Bool false; Bool true]);
-			SHeap.add obj       "prototype"   (Deletable, LList [String "d"; Loc lproto; Bool true; Bool false; Bool false]);
+			Heap.add proto_obj "constructor" (Deletable, LList [String "d"; Loc lobj; Bool true; Bool false; Bool true]);
+			Heap.add obj       "prototype"   (Deletable, LList [String "d"; Loc lproto; Bool true; Bool false; Bool false]);
 
 			(* Add to the heap *)
-			SHeap.add heap lproto    (proto_obj, Loc lprotomtd, true);
-			SHeap.add heap lprotomtd (proto_mtd, Null,          true);
-			SHeap.add heap lobj      (obj, Loc lmtd, true);
-			SHeap.add heap lmtd      (mtd, Null,     true);
+			Heap.add heap lproto    (proto_obj, Loc lprotomtd, true);
+			Heap.add heap lprotomtd (proto_mtd, Null,          true);
+			Heap.add heap lobj      (obj, Loc lmtd, true);
+			Heap.add heap lmtd      (mtd, Null,     true);
 
 			lobj
 
@@ -435,13 +435,13 @@ evaluate_expr (e : jsil_expr) store =
 	| _ -> raise (Failure (Printf.sprintf "Unknown expression: %s" (JSIL_Print.string_of_expression e)))
 
 let rec proto_field heap loc field =
-	let obj = (try SHeap.find heap loc with
+	let obj = (try Heap.find heap loc with
 	| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" loc))) in
-	if (SHeap.mem obj field)
+	if (Heap.mem obj field)
 	then
 		(Loc loc)
 	else
-		let proto_loc = (try SHeap.find obj proto_f with
+		let proto_loc = (try Heap.find obj proto_f with
 		| _ -> raise (Failure "Object does not have proto field: this should not happen")) in
 		match proto_loc with
 		| Loc pl -> proto_field heap pl field
@@ -449,12 +449,12 @@ let rec proto_field heap loc field =
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
 let rec proto_obj heap l1 l2 =
-	let obj = (try SHeap.find heap l1 with
+	let obj = (try Heap.find heap l1 with
 	| _ -> raise (Failure "Looking up an inexistent object!")) in
 	if (l1 = l2)
 		then (Bool true)
 	else
-		let proto_loc = (try SHeap.find obj proto_f with
+		let proto_loc = (try Heap.find obj proto_f with
 		| _ -> raise (Failure "Object does not have proto field: this should not happen")) in
 		match proto_loc with
 		| Loc pl -> proto_obj heap pl l2
@@ -483,8 +483,8 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 			| None          -> Null 
 			| Some metadata -> evaluate_expr metadata store) in
 		
-		let obj = SHeap.create 1021 in
-		SHeap.add heap new_loc (obj, metadata_val, true);
+		let obj = Heap.create 1021 in
+		Heap.add heap new_loc (obj, metadata_val, true);
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 
@@ -493,9 +493,9 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let (obj : (permission * jsil_lit) SHeap.t), _, _ = (try SHeap.find heap l with
+			let (obj : (permission * jsil_lit) Heap.t), _, _ = (try Heap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
-			let _, v = (try SHeap.find obj f with
+			let _, v = (try Heap.find obj f with
 				| _ ->
 					(* let final_heap_str = JSIL_Print.sexpr_of_heap heap in
 					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
@@ -516,29 +516,29 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			if (SHeap.mem heap l)
+			if (Heap.mem heap l)
 			then
-				let obj, metadata, ext = SHeap.find heap l in ();
+				let obj, metadata, ext = Heap.find heap l in ();
 
-				if (SHeap.mem obj f) then (
+				if (Heap.mem obj f) then (
 
-					let f_p, _ = SHeap.find obj f in 
+					let f_p, _ = Heap.find obj f in 
 					(match op with
-					| None                  -> SHeap.replace obj f (f_p, v_e3)
-					| Some p when (f_p = p) -> SHeap.replace obj f (f_p, v_e3)
+					| None                  -> Heap.replace obj f (f_p, v_e3)
+					| Some p when (f_p = p) -> Heap.replace obj f (f_p, v_e3)
 					| _                     -> raise (Failure error_msg))
 				) else (
 					match ext, op with 
 					| false, _     -> raise (Failure error_msg)
-					| true, Some p -> SHeap.replace obj f (p, v_e3)
-					| true, None   -> SHeap.replace obj f (Deletable, v_e3)
+					| true, Some p -> Heap.replace obj f (p, v_e3)
+					| true, None   -> Heap.replace obj f (Deletable, v_e3)
 				);
 				if (!verbose) then Printf.printf "Mutation: %s\n" str_of_mutacao;
 				v_e3
 			else
-				let obj = SHeap.create 1021 in
-				SHeap.add heap l (obj, Null, true);
-				SHeap.replace obj f (Deletable, v_e3);
+				let obj = Heap.create 1021 in
+				Heap.add heap l (obj, Null, true);
+				Heap.replace obj f (Deletable, v_e3);
 				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? NOPE! PERMISSIONS INVARIANT! *)
 				if (!verbose) then Printf.printf "Mutation: [%s, %s] = <%s>%s \n" 
 						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
@@ -551,18 +551,18 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			(match (SHeap.mem heap l) with
+			(match (Heap.mem heap l) with
 			| false -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))
 			| true -> 
-				let obj, ext, _ = SHeap.find heap l in
-				(match (SHeap.mem obj f) with 
+				let obj, ext, _ = Heap.find heap l in
+				(match (Heap.mem obj f) with 
 				| false -> raise (Failure "Field to be deleted does not exist")
 				| true -> 
-					let f_p, _ = SHeap.find obj f in
+					let f_p, _ = Heap.find obj f in
 					(match f_p with
 					| Deletable -> 
 						if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2);
-						SHeap.remove obj f; 
+						Heap.remove obj f; 
 						Bool true; 
 					| _ -> raise (Failure (Printf.sprintf "Object %s not deletable" (JSIL_Print.string_of_literal v_e1))))))
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -571,9 +571,9 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		let v_e1 = evaluate_expr e1 store in
 		(match v_e1 with
 		| Loc l ->
-		  (match (SHeap.mem heap l) with
+		  (match (Heap.mem heap l) with
 		   | false -> raise (Failure (Printf.sprintf "Attempting to delete inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))
-		   | true -> SHeap.remove heap l; Bool true)
+		   | true -> Heap.remove heap l; Bool true)
 		| _ -> raise (Failure (Printf.sprintf "Attempting to delete something that's not an object: %s" (JSIL_Print.string_of_literal v_e1))))
 
 	| SHasField (x, e1, e2) ->
@@ -583,9 +583,9 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		let pv_e2 = JSIL_Print.string_of_literal v_e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj, _, _ = (try SHeap.find heap l with
+			let obj, _, _ = (try Heap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" pv_e1))) in
-			let v = Bool (SHeap.mem obj f) in
+			let v = Bool (Heap.mem obj f) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "hasField: %s := hf (%s, %s) = %s \n" x pv_e1 pv_e2 (JSIL_Print.string_of_literal v);
 			v
@@ -595,10 +595,10 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		let v_e = evaluate_expr e store in
 		(match v_e with
 		| Loc l ->
-			let obj, _, _ = (try SHeap.find heap l with
+			let obj, _, _ = (try Heap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e)))) in
 			let fields =
-				SHeap.fold
+				Heap.fold
 				(fun field (_, value) acc ->
 					let t = evaluate_type_of value in
 					if (t = ListType) then
@@ -613,9 +613,9 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
   | SArguments x ->
-		let arg_obj, _, _ = (try SHeap.find heap larguments with
+		let arg_obj, _, _ = (try Heap.find heap larguments with
 		| _ -> raise (Failure "The arguments object doesn't exist.")) in
-		let _, v = (try SHeap.find arg_obj "args" with
+		let _, v = (try Heap.find arg_obj "args" with
 		| _ -> raise (Failure "The arguments are not available.")) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (JSIL_Print.string_of_literal v);
@@ -625,21 +625,21 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		let v_e = evaluate_expr e store in
 		(match v_e with
 		| Loc l ->
-				(match (SHeap.mem heap l) with
+				(match (Heap.mem heap l) with
 				| false -> (* !!!!! TOFIX !!!!! *)
 						(* Generate empty object with metadata null as metadata *) 
-						let m = SHeap.create 1021 in
+						let m = Heap.create 1021 in
 						let lm = fresh_loc () in
-						SHeap.replace heap lm (m, Null, true);
+						Heap.replace heap lm (m, Null, true);
 						
 						(* Generate new object in the heap *)
-						let o = SHeap.create 1021 in
-						SHeap.replace heap l (o, Loc lm, true);
+						let o = Heap.create 1021 in
+						Heap.replace heap l (o, Loc lm, true);
 						Hashtbl.replace store x (Loc lm);
 						Loc lm
 						
 				| true -> 
-						let _, metadata, _ = SHeap.find heap l in
+						let _, metadata, _ = Heap.find heap l in
 							Hashtbl.replace store x metadata;
 							metadata) 
 		| _ -> raise (Failure (Printf.sprintf "Looking up metadata of non-object: %s" (JSIL_Print.string_of_literal v_e))))	
@@ -866,9 +866,9 @@ let rec evaluate_cmd
 		(* WHAT THE FUCK IS HAPPENING HERE AND WHY? *)
 		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
 		begin
-			let args_obj = SHeap.create 1 in
-				SHeap.replace args_obj largvals (Readable, LList arg_vals);
-				SHeap.replace heap larguments (args_obj, Null, false);
+			let args_obj = Heap.create 1 in
+				Heap.replace args_obj largvals (Readable, LList arg_vals);
+				Heap.replace heap larguments (args_obj, Null, false);
 		end;
 
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
@@ -1015,9 +1015,9 @@ let rec evaluate_cmd
   		let new_store = init_store call_proc.proc_params arg_vals in
   		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
   		begin
-  			let args_obj = SHeap.create 1 in
-  				SHeap.replace args_obj largvals (LList arg_vals);
-  				SHeap.replace heap larguments args_obj;
+  			let args_obj = Heap.create 1 in
+  				Heap.replace args_obj largvals (LList arg_vals);
+  				Heap.replace heap larguments args_obj;
   		end;
   		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
   		| Normal, v ->

@@ -181,6 +181,8 @@ let copy_and_clear_globals () =
 (*%token LEXISTS *)
 %token LFORALL
 %token LTYPES
+%token LMETADATA
+%token LEXTENSIBLE
 (* Logic predicates *)
 %token PRED
 (* Logic commands *)
@@ -864,8 +866,16 @@ assertion_target:
 	| left_ass=assertion_target; TIMES; right_ass=assertion_target
 		{ LStar (left_ass, right_ass) } %prec separating_conjunction
 (* (E, E) -> E *)
-	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; val_expr=lexpr_target
-		{ LPointsTo (obj_expr, prop_expr, val_expr) }
+	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; perm = option(permission_target); val_expr=lexpr_target
+		{ let perm = Option.default Deletable perm in LPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
+(* Metadata (eo, em) *)
+	| LMETADATA; LBRACE; eo = lexpr_target; em = lexpr_target; RBRACE
+	  { (* validate_pred_assertion (name, params); *)
+			LMetaData (eo, em)
+		}
+(* Extensible (eo, b) *)
+	| LEXTENSIBLE; LBRACE; eo = lexpr_target; b = bool_target; RBRACE
+	  { LExtensible (eo, b) }
 (* emp *)
 	| LEMP;
 		{ LEmp }
@@ -1003,6 +1013,10 @@ lit_target:
 	| LSTOPEN LSTCLOSE          { LList [] }
 ;
 
+bool_target:
+	| TRUE                      { true }
+	| FALSE                     { false }
+
 %inline binop_target:
 	| EQUAL              { Equal }
 	| LESSTHAN           { LessThan }
@@ -1131,8 +1145,8 @@ js_assertion_target:
 	| left_ass=js_assertion_target; TIMES; right_ass=js_assertion_target
 		{ JSLStar (left_ass, right_ass) } %prec separating_conjunction
 (* (E, E) -> E *)
-	| LBRACE; obj_expr=js_lexpr_target; COMMA; prop_expr=js_lexpr_target; RBRACE; LARROW; val_expr=js_lexpr_target
-		{ JSLPointsTo (obj_expr, prop_expr, val_expr) }
+	| LBRACE; obj_expr=js_lexpr_target; COMMA; prop_expr=js_lexpr_target; RBRACE; LARROW; perm = option(permission_target); val_expr=js_lexpr_target
+		{ let perm = Option.default Deletable perm in JSLPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
 (* emp *)
 	| LEMP;
 		{ JSLEmp }
@@ -1172,6 +1186,14 @@ js_assertion_target:
 (* empty_fields (le : le_domain) *)
 	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; domain=js_lexpr_target; RBRACE
 		{ JSEmptyFields (le, domain) }
+(* Metadata (eo, em) *)
+	| LMETADATA; LBRACE; eo = js_lexpr_target; em = js_lexpr_target; RBRACE
+	  { (* validate_pred_assertion (name, params); *)
+			JSLMetaData (eo, em)
+		}
+(* Extensible (eo, b) *)
+	| LEXTENSIBLE; LBRACE; eo = js_lexpr_target; b = bool_target; RBRACE
+	  { JSLExtensible (eo, b) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
 	  { ass }

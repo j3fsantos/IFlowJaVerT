@@ -1942,11 +1942,13 @@ let simplify_symb_state
 	
 	(* Convert Store, Heap and Preds back, which should only change new additions *)
 	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) store;
-	LHeap.filter_map_inplace (fun loc (fv_list, default) -> 
+	Heap.filter_map_inplace (fun loc ((fv_list, default), metadata, ext) -> 
+		let no_strings = logic_expression_map le_list_to_string None in
 		let fn, fv = List.split fv_list in
-		let fn = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fn in
-		let fv = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fv in
-		Some (List.combine fn fv, default)
+		let fn = List.map no_strings fn in
+		let fv = List.map (fun (perm, le) -> (perm, no_strings le)) fv in
+		let md = no_strings metadata in
+		Some ((List.combine fn fv, default), md, ext)
 		) heap; 
 	DynArray.iteri (fun i (pname, pparams) ->
 		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) pparams in
@@ -1978,22 +1980,22 @@ let simplify_ss_with_subst symb_state vars_to_save =
 	symb_state, subst
 
 let simplify_pfs pfs gamma vars_to_save =
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
 	pfs, gamma
 			
 let simplify_pfs_with_subst pfs gamma =
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
 	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
 	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
-	let fake_symb_state = (LHeap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
 	lpfs, rpfs, exists, gamma
 

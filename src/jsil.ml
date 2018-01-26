@@ -56,7 +56,7 @@ let string_of_ret_val heap ret_flag v =
 	| Error -> if (!js) then JS2JSIL_Constants.string_of_js_error heap v else ""
 
 let run_jsil_prog prog which_pred cc_tbl vis_tbl =
-	let heap = SHeap.create 1021 in
+	let heap = Heap.create 1021 in
   let (ret_flag, ret_val) = evaluate_prog prog which_pred heap cc_tbl vis_tbl  in
 	let final_heap_str = Symbolic_State_Print.string_of_heap heap in
   if (!debug) then Printf.printf "Final heap: \n%s\n" final_heap_str;

@@ -362,27 +362,27 @@ let string_of_js_error (heap : jsil_heap) err_val =
 	match err_val with
 	| Loc loc ->
 		(* Get the error object in the heap *)
-		let err_obj = SHeap.find_opt heap loc in
+		let err_obj = Heap.find_opt heap loc in
 		(match err_obj with
 		| None -> raise (Failure "Error object doesn't exist in the heap.")
 		| Some (err_obj, Loc err_obj_metadata, _) ->
 				(* Get its metadata *)
-				let err_obj_metadata = SHeap.find_opt heap err_obj_metadata in
+				let err_obj_metadata = Heap.find_opt heap err_obj_metadata in
 				(match err_obj_metadata with
 				| None -> raise (Failure "Error metadata object doesn't exist in the heap.")
 				| Some (err_obj_metadata, _, _) ->
 						(* Get the proto field *)
-						let lproto = SHeap.find_opt err_obj_metadata "@proto" in
+						let lproto = Heap.find_opt err_obj_metadata "@proto" in
 						(match lproto with
 						| None -> raise (Failure "Error object without a prototype.")
 						| Some (_, Loc lproto) ->
 								(* Get the proto object *)
-								let objproto = SHeap.find_opt heap lproto in
+								let objproto = Heap.find_opt heap lproto in
 								(match objproto with
 								| None -> raise (Failure "Prototype object doesn't exist in the heap.")
 								| Some (objproto, _, _) -> 
-										let eType = (try let _, result = SHeap.find objproto "name" in result with | _ -> String "") in
-										let message = (try let _, result = SHeap.find err_obj "message" in result with | _ -> String "") in
+										let eType = (try let _, result = Heap.find objproto "name" in result with | _ -> String "") in
+										let message = (try let _, result = Heap.find err_obj "message" in result with | _ -> String "") in
 											(JSIL_Print.string_of_literal eType) ^ " : " ^ (JSIL_Print.string_of_literal message)
 								)
 						| _ -> raise (Failure "Prototype is not an object."))

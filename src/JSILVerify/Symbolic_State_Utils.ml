@@ -329,7 +329,7 @@ let get_locs_symb_state symb_state =
 	
 let collect_garbage (symb_state : symbolic_state) = 
 	let heap, store, pfs, gamma, preds = symb_state in
-	let dangling_locations = 	LHeap.fold
+	let dangling_locations = 	Heap.fold
 		(fun loc (fv_list, default) locs ->
 			match (is_abs_loc_name loc), default, fv_list with
 			| true, None, [] 
@@ -341,7 +341,7 @@ let collect_garbage (symb_state : symbolic_state) =
 	if (dangling_locations = SS.empty) then symb_state else (
 	let ss_vars = get_locs_symb_state symb_state in
 	let collectable_locs = SS.diff dangling_locations ss_vars in
-	SS.iter (fun loc -> LHeap.remove heap loc) collectable_locs;
+	SS.iter (fun loc -> Heap.remove heap loc) collectable_locs;
 		print_debug (Printf.sprintf "GCOL: Found locations: %s"
 			(String.concat ", " (SS.elements ss_vars)));
 		print_debug (Printf.sprintf "GCOL: Dangling locations: %s"

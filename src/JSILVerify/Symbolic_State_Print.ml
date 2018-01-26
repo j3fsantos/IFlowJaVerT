@@ -8,11 +8,11 @@ let escape_string = ref false
 (***
  Generate strings from JSIL memory types
 *)
-let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
-	SHeap.fold
+let string_of_heap (h : jsil_lit Heap.t Heap.t) =
+	Heap.fold
 		(fun loc obj printed_heap ->
 			  let printed_props =
-					(SHeap.fold
+					(Heap.fold
 						(fun prop hval printed_obj ->
 							let printed_hval = string_of_literal hval in
 							let printed_cell = 
@@ -29,10 +29,11 @@ let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 
 let string_of_fv_list (fv_list : symbolic_field_value_list) : string =
 	List.fold_left
-		(fun ac (field, value) ->
+		(fun ac (field, (perm, value)) ->
 				let field_str = string_of_logic_expression field in
+				let perm_str = string_of_permission perm in
 				let value_str = string_of_logic_expression value in
-				let field_value_str = "(" ^ field_str ^ ": " ^ value_str ^ ")"  in
+				let field_value_str = "(" ^ field_str ^ ":" ^ perm_str ^ " " ^ value_str ^ ")"  in
 				if (ac = "")
 					then field_value_str
 					else ac ^ ", " ^ field_value_str)
@@ -40,11 +41,13 @@ let string_of_fv_list (fv_list : symbolic_field_value_list) : string =
 		fv_list
 
 let string_of_symb_heap (heap : symbolic_heap) : string=
-	LHeap.fold
-		(fun loc (fv_pairs, domain) ac ->
+	Heap.fold
+		(fun loc ((fv_pairs, domain), metadata, ext) ac ->
 			let str_fv_pairs = string_of_fv_list fv_pairs in
 			let domain_str = Option.map_default string_of_logic_expression "" domain in
-			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "]" in
+			let meta_str = string_of_logic_expression metadata in
+			let ext_str = if ext then "extensible" else "non-extensible" in
+			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "] " ^ ext_str ^ " with metadata " ^ meta_str in
 			if (ac = "\n\t") then (ac ^ symb_obj_str) else ac ^ "\n\t" ^ symb_obj_str)
 		heap
 		"\n\t"

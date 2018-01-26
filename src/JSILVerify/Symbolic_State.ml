@@ -7,13 +7,23 @@ open Z3
 (** Types                           **)
 (*************************************)
 
-type symbolic_field_value_list = ((jsil_logic_expr * jsil_logic_expr) list)
-type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
-type symbolic_heap             = (symbolic_field_value_list * (jsil_logic_expr option)) LHeap.t
+(* Symbolic field-value lists: symbolic property name * (concrete permission * symbolic property value) *)
+type symbolic_field_value_list = (jsil_logic_expr * (permission * jsil_logic_expr)) list
+
+(** Symbolic heaps: (symbolic field-value list * optional set of non-none properties) * symbolic metadata * concrete extensibility) *)
+type symbolic_heap = ((symbolic_field_value_list * (jsil_logic_expr option)) * jsil_logic_expr * bool) Heap.t
+
+(** The rest is as-is *)
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
+
+(**
+	Symbolic discharge list: a list of the form
+		symbolic expression * symbolic expression,
+*)
+type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 
 type symbolic_state       = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
 type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
@@ -105,9 +115,6 @@ type symbolic_execution_context = {
 	pred_info           : (string, int Stack.t) Hashtbl.t
 }
 
-
-
-
 (*************************************)
 (** Field Value Lists               **)
 (*************************************)
@@ -116,13 +123,13 @@ let fv_list_substitution
 		(subst   : substitution) (partial : bool) 
 		(fv_list : symbolic_field_value_list) : symbolic_field_value_list =
 	let f_subst = lexpr_substitution subst partial in 
-	List.map (fun (le_field, le_val) -> f_subst le_field, f_subst le_val) fv_list
+	List.map (fun (le_field, (perm, le_val)) -> f_subst le_field, (perm, f_subst le_val)) fv_list
 
 let selective_fv_list_substitution 
 		(subst   : substitution) (partial : bool) 
 		(fv_list : symbolic_field_value_list) : symbolic_field_value_list =
 	let f_subst = JSIL_Logic_Utils.lexpr_selective_substitution subst partial in 
-	List.map (fun (le_field, le_val) -> (le_field, f_subst le_val)) fv_list
+	List.map (fun (le_field, (perm, le_val)) -> (le_field, (perm, f_subst le_val))) fv_list
 
 (*************************************)
 (** Heap functions                  **)
@@ -130,44 +137,45 @@ let selective_fv_list_substitution
 
 (** Returns an empty symbolic heap *)
 let heap_init () : symbolic_heap =
-	LHeap.create big_tbl_size
+	Heap.create big_tbl_size
 
 (** Symbolic heap read heap(loc) *)
 let heap_get (heap : symbolic_heap) (loc : string) =
-	try Some (LHeap.find heap loc) with _ -> None
+	try Some (Heap.find heap loc) with _ -> None
 
 let heap_get_unsafe (heap : symbolic_heap) (loc : string) =
-	try LHeap.find heap loc with _ -> raise (Failure "DEATH. heap_get_unsafe")
+	try Heap.find heap loc with _ -> raise (Failure "DEATH. heap_get_unsafe")
 
 (** Symbolic heap put heap(loc) is assigned to fv_list *)
-let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (dom : jsil_logic_expr option) =
-	LHeap.replace heap loc (fv_list, dom)
+let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (dom : jsil_logic_expr option) (metadata : jsil_logic_expr) (ext : bool) =
+	Heap.replace heap loc ((fv_list, dom), metadata, ext)
 
 let heap_has_loc (heap : symbolic_heap) (loc : string) : bool = 
-	LHeap.mem heap loc 
+	Heap.mem heap loc 
 
-(** Symbolic heap put heap(loc, field) is assgined to value. 
+(** Symbolic heap put heap (loc, field) is assgined to value. 
     The domain remains unchanged *) 
-let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) =
-	let fv_list, domain = try LHeap.find heap loc with _ -> ([], None) in
-	LHeap.replace heap loc (((field, value) :: fv_list), domain)
+let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (perm : permission) (field : jsil_logic_expr) (value : jsil_logic_expr) =
+	let ((fv_list, domain), metadata, ext) = try Heap.find heap loc with _ -> (([], None), LLit Null, true) in
+	Heap.replace heap loc ((((field, (perm, value)) :: fv_list), domain), metadata, ext)
 
 (** Removes the fv-list associated with --loc-- in --heap-- *)
 let heap_remove (heap : symbolic_heap) (loc : string) =
-	LHeap.remove heap loc
+	Heap.remove heap loc
 
 (** Removes the domain of --heap-- *)
 let heap_domain (heap : symbolic_heap) : SS.t =
-	SS.of_list (LHeap.fold (fun l _ ac -> l :: ac) heap [])
+	SS.of_list (Heap.fold (fun l _ ac -> l :: ac) heap [])
 
 (** Returns a copie of --heap-- *)
-let heap_copy (heap : symbolic_heap) : symbolic_heap = LHeap.copy heap
+let heap_copy (heap : symbolic_heap) : symbolic_heap = Heap.copy heap
 
 (** Returns subst(heap) *)
-let heap_substitution (subst : substitution) (partial : bool) (heap : symbolic_heap)  : symbolic_heap =
-	let new_heap = LHeap.create 1021 in
-	LHeap.iter
-		(fun loc (fv_list, domain) ->
+let heap_substitution (subst : substitution) (partial : bool) (heap : symbolic_heap) : symbolic_heap =
+	let le_subst = lexpr_substitution subst partial in 
+	let new_heap = Heap.create 1021 in
+	Heap.iter
+		(fun loc ((fv_list, domain), metadata, ext) ->
 			let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
 				try Hashtbl.find subst loc with _ -> 
 					if (partial) then (ALoc loc) else (
@@ -177,57 +185,60 @@ let heap_substitution (subst : substitution) (partial : bool) (heap : symbolic_h
 			let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
 				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 
 			let s_fv_list = fv_list_substitution subst partial fv_list in
-			let s_domain = Option.map (fun le -> lexpr_substitution subst partial le) domain in
-			LHeap.add new_heap s_loc (s_fv_list, s_domain))			
+			let s_domain = Option.map (fun le -> le_subst le) domain in
+			Heap.add new_heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext))			
 		heap;
 	new_heap
 
 (** Modifies --heap-- in place updating it to subst(heap) *)
 let heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) : unit =
-  LHeap.iter
-  	(fun loc (fv_list, domain) ->
+	let le_subst = lexpr_substitution subst true in 
+  Heap.iter
+  	(fun loc ((fv_list, domain), metadata, ext) ->
   		let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
 			try Hashtbl.find subst loc with _ -> ALoc loc) in 
   		let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
 			| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 		
   		let s_fv_list = fv_list_substitution subst true fv_list in
-  		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst true le) domain in
-  		LHeap.replace heap s_loc (s_fv_list, s_domain))
+  		let s_domain = Option.map (fun le -> le_subst le) domain in
+  		Heap.replace heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext))
   	heap
 
 (** Returns the logical variables occuring in --heap-- *)
 let heap_lvars (heap : symbolic_heap) : SS.t =
-	LHeap.fold
-		(fun _ (fv_list, domain) ac ->
+	Heap.fold
+		(fun _ ((fv_list, domain), e_metadata, _) ac ->
 			let v_fv = List.fold_left
-				(fun ac (e_field, e_val) -> SS.union ac (SS.union (get_lexpr_lvars e_field) (get_lexpr_lvars e_val)))
+				(fun ac (e_field, (_, e_val)) -> SS.union ac (SS.union (get_lexpr_lvars e_field) (get_lexpr_lvars e_val)))
 				SS.empty fv_list in
 			let v_domain = Option.map_default (fun domain -> get_lexpr_lvars domain) SS.empty domain in
-			SS.union ac (SS.union v_fv v_domain))
+			let v_metadata = get_lexpr_lvars e_metadata in
+			SS.union ac (SS.union v_fv (SS.union v_domain v_metadata)))
 		heap SS.empty
 
 (** Returns the abstract locations occuring in --heap-- *)
 let heap_alocs (heap : symbolic_heap) : SS.t =
-	LHeap.fold
-		(fun _ (fv_list, _) ac ->
+	Heap.fold
+		(fun _ ((fv_list, _), e_metadata, _) ac ->
 			let v_fv = List.fold_left
-				(fun ac (e_field, e_val) -> SS.union ac (SS.union (get_lexpr_alocs e_field) (get_lexpr_alocs e_val)))
+				(fun ac (e_field, (_, e_val)) -> SS.union ac (SS.union (get_lexpr_alocs e_field) (get_lexpr_alocs e_val)))
 				SS.empty fv_list in
-			SS.union ac v_fv)
+			let v_metadata = get_lexpr_alocs e_metadata in
+			SS.union ac (SS.union v_fv v_metadata))
 		heap SS.empty
 
 (** Returns the serialization of --heap-- as a list *)
-let heap_to_list (heap : symbolic_heap) : (string * (symbolic_field_value_list * (jsil_logic_expr option))) list =
-	LHeap.fold (fun loc obj ac -> ((loc, obj) :: ac)) heap []
+let heap_to_list (heap : symbolic_heap) : (string * ((symbolic_field_value_list * (jsil_logic_expr option)) * jsil_logic_expr * bool)) list =
+	Heap.fold (fun loc obj ac -> ((loc, obj) :: ac)) heap []
 
 (** Calls --f-- on all objects of --heap--; f(loc, (fv_list, dom)) *)
-let heap_iterator (heap: symbolic_heap) (f : string -> (symbolic_field_value_list * (jsil_logic_expr option) -> unit)) =
-	LHeap.iter f heap
+let heap_iterator (heap: symbolic_heap) (f : string -> (((symbolic_field_value_list * (jsil_logic_expr option)) * jsil_logic_expr * bool) -> unit)) =
+	Heap.iter f heap
 
 (** Returns true if --heap-- is empty *)
 let is_heap_empty (heap : symbolic_heap) : bool =
-	LHeap.fold
-		(fun loc (fv_list, dom) ac -> if (not ac) then ac else (fv_list = []) && (dom = None))
+	Heap.fold
+		(fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = []) && (dom = None) && (metadata = LLit Null))
 		heap
 		true
 
@@ -236,11 +247,16 @@ let assertions_of_heap (h : symbolic_heap) : jsil_logic_assertion list=
 	let make_loc_lexpr loc = 
 		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
 	
-	let rec assertions_of_object (loc, (fv_list, set)) =
+	(* TODO : Deal with metadata and extensibility *)
+	let rec assertions_of_object (loc, ((fv_list, domain), metadata, ext)) =
 	 	let le_loc = make_loc_lexpr loc in
-		let fv_assertions = List.map (fun (field, value) -> LPointsTo (le_loc, field, value)) fv_list in 
-		Option.map_default (fun set -> (LEmptyFields (le_loc, set)) :: fv_assertions) fv_assertions set in 
-
+		let fv_assertions = List.map (fun (field, (perm, value)) -> LPointsTo (le_loc, field, (perm, value))) fv_list in 
+		let domain = Option.map_default (fun domain -> [ LEmptyFields (le_loc, domain) ]) [] domain in
+		let metadata = [ LMetaData (le_loc, metadata) ] in
+		let ext = [ LExtensible (le_loc, ext) ] in 
+			fv_assertions @ domain @ metadata @ ext 
+		in
+		
 	List.concat (List.map assertions_of_object (heap_to_list h))
 
 (*************************************)
@@ -804,8 +820,9 @@ let sec_create_new_info_node
 (****************************************)
 
 let selective_heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) =
-  LHeap.iter
-  	(fun loc (fv_list, domain) ->
+	let le_subst = lexpr_substitution subst true in
+  Heap.iter
+  	(fun loc ((fv_list, domain), metadata, ext) ->
   		let s_loc =
   			(try Hashtbl.find subst loc
   				with _ ->
@@ -819,8 +836,9 @@ let selective_heap_substitution_in_place (subst : substitution) (heap : symbolic
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
   		let s_fv_list = selective_fv_list_substitution subst true fv_list in
-  		let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst true le) domain in
-  		LHeap.replace heap s_loc (s_fv_list, s_domain))
+  		let s_domain = Option.map (fun le -> le_subst le) domain in
+			let s_metadata = le_subst metadata in
+  		Heap.replace heap s_loc ((s_fv_list, s_domain), s_metadata, ext))
   	heap
 
 let selective_symb_state_substitution_in_place_no_gamma 
@@ -865,88 +883,3 @@ let compute_verification_statistics
 			))
 		spec_table
 		(0, 0)
-	
-
-
-
-(*************************************)
-(** Cached symbolic state           **)
-(*************************************)
-
-type cached_symbolic_state =
-	  (string * ((jsil_logic_expr * jsil_logic_expr) list * jsil_logic_expr option)) list
-	* (string * jsil_logic_expr) list
-	* jsil_logic_assertion list
-	* (string * jsil_type) list
-	* (string * jsil_logic_expr list) list
-
-let cache_ss (ss : symbolic_state) : cached_symbolic_state =
-	let sort = List.sort compare in
-	let heap, store, pfs, gamma, preds = ss in
-	let lheap = lheap_to_list heap in
-	let lstore = hash_to_list store in
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let lpreds = List.sort compare (DynArray.to_list preds) in
-	lheap, lstore, lpfs, lgamma, lpreds
-
-let uncache_ss (css : cached_symbolic_state) : symbolic_state =
-	let lheap, lstore, lpfs, lgamma, lpreds = css in
-	let heap = lheap_of_list lheap in
-	let store = hash_of_list lstore in
-	let pfs   = DynArray.of_list lpfs in
-	let gamma = hash_of_list lgamma in
-	let preds = DynArray.of_list lpreds in
-	let result = (heap, store, pfs, gamma, preds) in
-	result
-
-let ss_cache :
-	(SS.t option option * jsil_logic_assertion list * SS.t * cached_symbolic_state,
-	 cached_symbolic_state * (string * jsil_logic_expr) list * jsil_logic_assertion list * SS.t) Hashtbl.t = Hashtbl.create 21019
-
-let ss_encache_key vts ots exs ss =
-	let cots = List.sort compare (DynArray.to_list ots) in
-	let css = cache_ss ss in
-	vts, cots, exs, css
-
-let ss_encache_value ss subst ots exs =
-	let css = cache_ss ss in
-	let csubst = hash_to_list subst in
-	let cots = List.sort compare (DynArray.to_list ots) in
-	css, csubst, cots, exs
-
-let ss_uncache_value css csubst cots exs =
-	let ss = uncache_ss css in
-	let subst = hash_of_list csubst in
-	let ots = DynArray.of_list cots in
-	ss, subst, ots, exs
-
-(*************************************)
-(** Cached pfs state                **)
-(*************************************)
-
-let pfs_cache :
-	(jsil_logic_assertion list * (string * jsil_type) list * SS.t option option,
-	 jsil_logic_assertion list * (string * jsil_type) list) Hashtbl.t = Hashtbl.create 21019
-
-let pfs_cache_key pfs gamma lexs =
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let result = (lpfs, lgamma, lexs) in
-	result
-
-let pfs_cache_value pfs gamma =
-	let lpfs   = List.sort compare (DynArray.to_list pfs) in
-	let lgamma = hash_to_list gamma in
-	let result = (lpfs, lgamma) in
-	result
-
-let pfs_uncache_value value =
-	let lpfs, lgamma = value in
-	let pfs   = DynArray.of_list lpfs in
-	let gamma = hash_of_list lgamma in
-	let result = (pfs, gamma) in
-	result
-
-
-

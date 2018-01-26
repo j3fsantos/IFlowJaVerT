@@ -948,8 +948,8 @@ let rec normalise_cell_assertions
 	let fe = normalise_logic_expression store gamma subst in
 
 	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (le_v : jsil_logic_expr) : unit = 
-		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
-		LHeap.replace heap loc (((fe le_f, fe le_v) :: field_val_pairs), default_val) in 
+		let field_val_pairs, default_val = (try Heap.find heap loc with _ -> ([], None)) in
+		Heap.replace heap loc (((fe le_f, fe le_v) :: field_val_pairs), default_val) in 
 
 	match a with
 	| LStar (a1, a2) -> f a1; f a2
@@ -1135,8 +1135,8 @@ let normalise_ef_assertions
 				| _ -> print_debug_petar "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
 			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
-		let fv_list, _ = try LHeap.find heap le_loc_name with Not_found -> [], None in
-		LHeap.replace heap le_loc_name (fv_list, Some domain) in
+		let fv_list, _ = try Heap.find heap le_loc_name with Not_found -> [], None in
+		Heap.replace heap le_loc_name (fv_list, Some domain) in
 
 	List.iter add_domain (get_all_empty_fields a)
 
@@ -1229,7 +1229,7 @@ let get_heap_well_formedness_constraints heap =
 	(* print_debug (Printf.sprintf "get_heap_well_formedness_constraints of heap:\n%s\n"
 		(Symbolic_State_Print.string_of_shallow_symb_heap heap false));*)
 
-	LHeap.fold
+	Heap.fold
 		(fun field (fv_list, _) constraints ->
 			(match constraints with
 			| [ LFalse ] -> [ LFalse ]
@@ -1339,13 +1339,13 @@ let normalise_normalised_assertion
 		| LPointsTo (ALoc loc, le2, le3)
     | LPointsTo (LLit (Loc loc), le2, le3) ->
       (* TODO: prefix locations with _ ? *)
-      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+      let field_val_pairs, default_val = (try Heap.find heap loc with _ -> ([], None)) in
+      Heap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
       (a, false)
 		| LEmptyFields (obj, domain) ->
       let loc = JSIL_Print.string_of_logic_expression obj in
-      let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc ((field_val_pairs), (Some domain));
+      let field_val_pairs, _ = (try Heap.find heap loc with _ -> ([], None)) in
+      Heap.replace heap loc ((field_val_pairs), (Some domain));
 			(a, false)
 			
     | LEq ((PVar v), le)
@@ -1391,7 +1391,7 @@ let create_unification_plan
 		(reachable_alocs : SS.t) : (jsil_logic_assertion list) =
 	let heap, store, pf, gamma, preds = symb_state in 
 	
-	let heap                    = LHeap.copy heap in 
+	let heap                    = Heap.copy heap in 
 	let locs_to_visit           = Queue.create () in 
 	let unification_plan        = Queue.create () in 
 	let marked_alocs            = ref SS.empty in 
@@ -1424,7 +1424,7 @@ let create_unification_plan
  					search_for_new_alocs_in_lexpr le_v
  				) (fv_list_c @ fv_list_nc); 
  				Option.may (fun le_domain -> Queue.add (LEmptyFields (le_loc, le_domain)) unification_plan) le_domain;
- 				LHeap.remove heap loc; 
+ 				Heap.remove heap loc; 
  				true) in 
 
 	(** Step 1 -- add concrete locs and the reachable alocs to locs to visit *)
@@ -1446,7 +1446,7 @@ let create_unification_plan
 	while (inspect_aloc ()) do () done; 
 
 	(** Step 6 -- return *)
-	if ((LHeap.length heap) = 0) then (
+	if ((Heap.length heap) = 0) then (
 		(* We found all the locations in the symb_state - we are fine! *)
 		let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
 		let unification_plan_lst = List.rev unification_plan_lst in 

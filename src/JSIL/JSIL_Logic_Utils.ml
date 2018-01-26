@@ -75,24 +75,26 @@ let rec assertion_map
   	if not recurse then a' else ( 
   		let a'' =
   			match a' with
-  			| LAnd (a1, a2)          -> LAnd (map_a a1, map_a a2)
-  			| LOr (a1, a2)           -> LOr (map_a a1, map_a a2)
-  			| LNot a                 -> LNot (map_a a)
-  			| LTrue                  -> LTrue
-  			| LFalse                 -> LFalse
-  			| LEq (e1, e2)           -> LEq (map_e e1, map_e e2)
-  			| LLess (e1, e2)         -> LLess (map_e e1, map_e e2)
-  			| LLessEq (e1, e2)       -> LLessEq (map_e e1, map_e e2)
-  			| LStrLess (e1, e2)      -> LStrLess (map_e e1, map_e e2)
-  			| LStar (a1, a2)         -> LStar (map_a a1, map_a a2)
-  			| LPointsTo (e1, e2, e3) -> LPointsTo (map_e e1, map_e e2, map_e e3)
-  			| LEmp                   -> LEmp
-  			| LPred (s, le)          -> LPred (s, List.map map_e le)
-  			| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
-  			| LEmptyFields (o, ls)   -> LEmptyFields (map_e o, map_e ls)
-  			| LSetMem (e1, e2)       -> LSetMem (map_e e1, map_e e2)
-  			| LSetSub (e1, e2)       -> LSetSub (map_e e1, map_e e2)
-  			| LForAll (bt, a)        -> LForAll (bt, map_a a) in
+  			| LAnd (a1, a2)                  -> LAnd (map_a a1, map_a a2)
+  			| LOr (a1, a2)                   -> LOr (map_a a1, map_a a2)
+  			| LNot a                         -> LNot (map_a a)
+  			| LTrue                          -> LTrue
+  			| LFalse                         -> LFalse
+  			| LEq (e1, e2)                   -> LEq (map_e e1, map_e e2)
+  			| LLess (e1, e2)                 -> LLess (map_e e1, map_e e2)
+  			| LLessEq (e1, e2)               -> LLessEq (map_e e1, map_e e2)
+  			| LStrLess (e1, e2)              -> LStrLess (map_e e1, map_e e2)
+  			| LStar (a1, a2)                 -> LStar (map_a a1, map_a a2)
+  			| LPointsTo (e1, e2, (perm, e3)) -> LPointsTo (map_e e1, map_e e2, (perm, map_e e3))
+				| LMetaData (e1, e2)             -> LMetaData (map_e e1, map_e e2)
+				| LExtensible (e1, b)            -> LExtensible (map_e e1, b)
+  			| LEmp                           -> LEmp
+  			| LPred (s, le)                  -> LPred (s, List.map map_e le)
+  			| LTypes lt                      -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
+  			| LEmptyFields (o, ls)           -> LEmptyFields (map_e o, map_e ls)
+  			| LSetMem (e1, e2)               -> LSetMem (map_e e1, map_e e2)
+  			| LSetSub (e1, e2)               -> LSetSub (map_e e1, map_e e2)
+  			| LForAll (bt, a)                -> LForAll (bt, map_a a) in
   		f_a_after a''
   	)
 
@@ -135,10 +137,13 @@ let rec assertion_fold
 	| LTrue | LFalse | LEmp -> f_ac []
 
 	| LEq (le1, le2) | LLess (le1, le2) | LLessEq (le1, le2)
-		| LStrLess (le1, le2) |  LSetMem (le1, le2)
-		| LSetSub (le1, le2)  | LEmptyFields (le1, le2) -> f_ac (fes [ le1; le2 ])
+	| LStrLess (le1, le2) |  LSetMem (le1, le2)
+	| LSetSub (le1, le2)  | LEmptyFields (le1, le2) -> f_ac (fes [ le1; le2 ])
 
-	| LPointsTo (le1, le2, le3) -> f_ac (fes [ le1; le2; le3 ])
+	(* Not convinced these are correct *)
+	| LPointsTo (le1, le2, (_, le3)) -> f_ac (fes [ le1; le2; le3 ])
+	| LMetaData (le1, le2) -> f_ac (fes [ le1; le2 ])
+	| LExtensible (le1, _) -> f_ac (fes [ le1 ])
 
 	| LPred (_, les) -> f_ac (fes les)
 
@@ -967,7 +972,10 @@ let rec infer_types_asrt gamma (a : jsil_logic_assertion) : unit =
     | LOr   (a1, a2)		  	    
     | LStar	(a1, a2) -> f a1; f a2
 		
-    | LPointsTo	(le1, le2, le3) -> fe le1; fe le2; fe le3
+		(* Why isn't le1 required to be an object type? *)
+    | LPointsTo	(le1, le2, (_, le3)) -> fe le1; fe le2; fe le3
+		| LMetaData (le1, le2) -> fe le1; fe le2
+		| LExtensible (le1, _) -> fe le1
 		
 		| LLess	  (le1, le2)		
     | LLessEq	(le1, le2) -> 

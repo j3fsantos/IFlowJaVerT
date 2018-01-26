@@ -94,7 +94,9 @@ type js_logic_assertion =
 	| JSLLessEq	   			of js_logic_expr * js_logic_expr
 	| JSLStrLess    		of js_logic_expr * js_logic_expr
 	| JSLStar				of js_logic_assertion * js_logic_assertion
-	| JSLPointsTo			of js_logic_expr * js_logic_expr * js_logic_expr
+	| JSLPointsTo			of js_logic_expr * js_logic_expr * (permission * js_logic_expr)
+	| JSLMetaData    of js_logic_expr * js_logic_expr
+	| JSLExtensible  of js_logic_expr * bool
 	| JSLEmp
 	| JSLPred				of string  * (js_logic_expr list)
 	| JSLForAll             of (jsil_var * jsil_type) list * js_logic_assertion
@@ -241,6 +243,7 @@ let rec js2jsil_assertion
 	let f = js2jsil_assertion cur_fid cc_tbl vis_tbl fun_tbl scope_var in
 	let fe = js2jsil_lexpr scope_var in
 
+	(* What about metadata here? Or extensibility *)
 	match a with
 	| JSLAnd (a1, a2)                     -> LAnd ((f a1), (f a2))
 	| JSLOr (a1, a2)                      -> LOr ((f a1), (f a2))
@@ -252,13 +255,15 @@ let rec js2jsil_assertion
 	| JSLLessEq (le1, le2)                -> LLessEq ((fe le1), (fe le2))
 	| JSLStrLess (le1, le2)               -> LStrLess ((fe le1), (fe le2))
 	| JSLStar (a1, a2)                    -> LStar ((f a1), (f a2))
-	| JSLPointsTo	(le1, le2, le3)       -> LPointsTo ((fe le1), (fe le2), (fe le3))
+	| JSLPointsTo	(le1, le2, (perm, le3)) -> LPointsTo (fe le1, fe le2, (perm, fe le3))
+	| JSLMetaData (le1, le2)              -> LMetaData (fe le1, fe le2)
+	| JSLExtensible (le1, b)              -> LExtensible (fe le1, b)
 	| JSLEmp                              -> LEmp
 	| JSLForAll (s, a)                    -> LForAll (s, f a)
 	| JSLTypes (vts)                      -> LTypes (List.map (fun (v, t) -> (LVar v, t)) vts)
 	| JSLSetMem (le1, le2) 	              -> LSetMem (fe le1, fe le2)
 	| JSLSetSub (le1, le2)                -> LSetSub (fe le1, fe le2)
-	| JSEmptyFields (e, domain) 		  -> LEmptyFields (fe e, fe domain)
+	| JSEmptyFields (e, domain) 		      -> LEmptyFields (fe e, fe domain)
 
 	| JSLPred (s, les)                    ->
 		let a' = LPred (s, (List.map fe les)) in
@@ -284,10 +289,10 @@ let rec js2jsil_assertion
 			(match i with
 			| None | Some 0 ->
 				let desc = LEList [ LLit (String "d"); (fe le_x); LLit (Bool true); LLit (Bool true); LLit (Bool false) ] in
-				LPointsTo (LLit (Loc JS2JSIL_Constants.locGlobName), LLit (String x), desc)
+				LPointsTo (LLit (Loc JS2JSIL_Constants.locGlobName), LLit (String x), (Deletable, desc))
 			| Some i ->
 				let le_er = LLstNth (fe le_sc, LLit (Num (float_of_int i))) in
-				LPointsTo (le_er, LLit (String x), fe le_x)) in
+				LPointsTo (le_er, LLit (String x), (Deletable, fe le_x))) in
 		(* add_extra_scope_chain_info fid le_sc a'*)
 		a'
 

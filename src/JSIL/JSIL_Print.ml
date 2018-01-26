@@ -285,7 +285,7 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
   		(* a1 * a2 *)
   		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
   		(* (e1, e2) -> e3 *)
-  		| LPointsTo (e1, e2, e3) -> Printf.sprintf "((%s, %s) -> %s)" (sle e1) (sle e2) (sle e3)
+  		| LPointsTo (e1, e2, (perm, e3)) -> Printf.sprintf "((%s, %s) ->%s %s)" (sle e1) (sle e2) (string_of_permission perm) (sle e3)
   		(* emp *)
   		| LEmp -> "emp"
   		(* exists vars . a
@@ -762,11 +762,11 @@ let rec full_string_of_logic_expression e  =
   	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
 
 
-let string_of_heap (h : jsil_lit SHeap.t SHeap.t) : string =
-  	SHeap.fold
+let string_of_heap (h : jsil_lit Heap.t Heap.t) : string =
+  	Heap.fold
     		(fun loc obj printed_heap ->
        			  let printed_object =
-         					(SHeap.fold
+         					(Heap.fold
             						(fun prop hval print_obj ->
                							let printed_hval = string_of_literal hval in
                							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
@@ -799,12 +799,12 @@ let string_of_store store =
     		"Store: "
 
 let string_of_heap (h : jsil_heap) =
-	SHeap.fold
+	Heap.fold
 		(fun loc (obj, metadata, extensibility) printed_heap ->
 			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (string_of_literal metadata) ^ "\n  Extensible : " ^ (if extensibility then "true" else "false") in
 			let post_str = "]\n" in
 			  let printed_object =
-					(SHeap.fold
+					(Heap.fold
 						(fun prop (permission, hval) print_obj ->
 							let printed_hval = string_of_literal hval in
 							let printed_cell = Printf.sprintf "(%s : %s) " prop printed_hval in

@@ -248,24 +248,26 @@ type jsil_logic_expr =
 
 (** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =
-	| LTrue                                                                        (** Logical true *)
-	| LFalse                                                                       (** Logical false *)
-	| LNot			    of jsil_logic_assertion                                    (** Logical negation *)
-	| LAnd			    of jsil_logic_assertion * jsil_logic_assertion             (** Logical conjunction *)
-	| LOr		  	    of jsil_logic_assertion * jsil_logic_assertion             (** Logical disjunction *)
-	| LEmp                                                                         (** Empty heap *)
-	| LStar			    of jsil_logic_assertion * jsil_logic_assertion             (** Separating conjunction *)
-	| LPointsTo	        of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr     (** Heap cell assertion *)
-	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
-	| LForAll           of (jsil_var * jsil_type) list * jsil_logic_assertion      (** Forall *)
-	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
-	| LEmptyFields	    of jsil_logic_expr * jsil_logic_expr                       (** emptyFields assertion *)
-	| LEq			    of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
-	| LLess			    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for numbers *)
-	| LLessEq		    of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than-or-equal for numbers *)
-	| LStrLess	        of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for strings *)
-	| LSetMem  	        of jsil_logic_expr * jsil_logic_expr                       (** Set membership *)
-	| LSetSub  	        of jsil_logic_expr * jsil_logic_expr                       (** Set subsetness *)
+	| LTrue                                                                              (** Logical true *)
+	| LFalse                                                                             (** Logical false *)
+	| LNot         of jsil_logic_assertion                                               (** Logical negation *)
+	| LAnd         of jsil_logic_assertion * jsil_logic_assertion                        (** Logical conjunction *)
+	| LOr          of jsil_logic_assertion * jsil_logic_assertion                        (** Logical disjunction *)
+	| LEmp                                                                               (** Empty heap *)
+	| LStar			   of jsil_logic_assertion * jsil_logic_assertion                        (** Separating conjunction *)
+	| LPointsTo	   of jsil_logic_expr * jsil_logic_expr * (permission * jsil_logic_expr) (** Heap cell assertion *)
+	| LMetaData    of jsil_logic_expr * jsil_logic_expr                                  (** MetaData *)
+	| LExtensible  of jsil_logic_expr * bool                                             (** Extensibility *)
+	| LPred			   of string * (jsil_logic_expr list)                                    (** Predicates *)
+	| LForAll      of (jsil_var * jsil_type) list * jsil_logic_assertion                 (** Forall *)
+	| LTypes       of (jsil_logic_expr * jsil_type) list                                 (** Typing assertion *)
+	| LEmptyFields of jsil_logic_expr * jsil_logic_expr                                  (** emptyFields assertion *)
+	| LEq          of jsil_logic_expr * jsil_logic_expr                                  (** Expression equality *)
+	| LLess			   of jsil_logic_expr * jsil_logic_expr                                  (** Expression less-than for numbers *)
+	| LLessEq		   of jsil_logic_expr * jsil_logic_expr                                  (** Expression less-than-or-equal for numbers *)
+	| LStrLess	   of jsil_logic_expr * jsil_logic_expr                                  (** Expression less-than for strings *)
+	| LSetMem  	   of jsil_logic_expr * jsil_logic_expr                                  (** Set membership *)
+	| LSetSub      of jsil_logic_expr * jsil_logic_expr                                  (** Set subsetness *)
 
 
 (** {b JSIL logic predicate}. *)
@@ -444,20 +446,20 @@ let macro_table : (string, jsil_logic_macro) Hashtbl.t = Hashtbl.create 511
 (*************************************)
 
 (* a heap is a hash-table mapping strings to a new type 'a *)
-module SHeap = Hashtbl.Make(
+module Heap = Hashtbl.Make(
 	struct
 		type t = string           (* keys are of type string *)
 		let equal = (=)           (* use standard equality operator *)
 		let hash = Hashtbl.hash   (* and default hash function *)
 	end)
 
-type jsil_heap = (((permission * jsil_lit) SHeap.t) * jsil_lit * bool) SHeap.t
+type jsil_heap = (((permission * jsil_lit) Heap.t) * jsil_lit * bool) Heap.t
 
 
 (* creates a heap of the appropiate size *)
 let make_initial_heap is_big =
 	let size = if (is_big) then big_tbl_size else small_tbl_size in (* 2 options for size of the heap *)
-	let heap = SHeap.create size in
+	let heap = Heap.create size in
 	heap
 
 (** Basic functions **)
@@ -678,16 +680,6 @@ let extend_substitution (subst : substitution) (vars : string list) (les : jsil_
 	List.iter2 (fun v le -> Hashtbl.replace subst v le) vars les
 
 
-
-(* Symbolic heaps *)
-module LHeap = Hashtbl.Make(
-	struct
-		type t = string
-		let equal = (=)
-		let hash = Hashtbl.hash
-	end)
-
-
 (*******************************************************)
 (*******************************************************)
 (* Typing Environment                                  *)
@@ -814,11 +806,11 @@ let hash_of_list hash =
 	result
 
 let lheap_to_list hash =
-	List.sort compare (LHeap.fold (fun k v ac -> (k, v) :: ac) hash [])
+	List.sort compare (Heap.fold (fun k v ac -> (k, v) :: ac) hash [])
 
 let lheap_of_list hash =
-	let result = LHeap.create 523 in
-	List.iter (fun (v, t) -> LHeap.add result v t) hash;
+	let result = Heap.create 523 in
+	List.iter (fun (v, t) -> Heap.add result v t) hash;
 	result
 	
 (* JS2JSIL *)
