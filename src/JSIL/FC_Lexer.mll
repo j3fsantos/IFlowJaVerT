@@ -1,5 +1,6 @@
 {
-open Lexing
+	open Lexing
+	open CCommon
 }
 
 let digit = ['0'-'9']
@@ -14,4 +15,4 @@ rule read = parse
 	| var                  { FC_Parser.VAR (Lexing.lexeme lexbuf) }
 	| ','                  { FC_Parser.COMMA }
 	| eof                  { FC_Parser.EOF }
-	| _                    { raise (JSIL_Syntax.Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+	| _                    { raise (Syntax_error ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

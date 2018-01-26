@@ -1,9 +1,8 @@
 (***
- SJSIL - Interpreter
+ JSIL - Interpreter
 *)
 open Batteries
 open JSIL_Syntax
-(* JAVERT open Symbolic_State *)
 
 let larguments = "$largs"
 let largvals = "args"

@@ -1,3 +1,4 @@
+open CCommon
 open JSIL_Syntax
 
 let small_tbl_size = 31

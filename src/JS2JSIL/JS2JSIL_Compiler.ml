@@ -1,5 +1,7 @@
 open Utils
 open Lexing
+
+open CCommon
 open JSIL_Syntax
 open JS2JSIL_Constants
 open JSLogic

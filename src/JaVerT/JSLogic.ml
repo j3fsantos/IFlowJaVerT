@@ -1,4 +1,4 @@
-open Set
+open CCommon
 open JSIL_Syntax
 open JS2JSIL_Constants
 

@@ -1,7 +1,6 @@
+open CCommon
 open JSIL_Syntax
 open JSIL_Logic_Utils
-open JSIL_Parser
-(* JAVERT open Symbolic_State *)
 open JSLogic
 
 let js = ref false

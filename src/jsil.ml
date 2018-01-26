@@ -1,6 +1,6 @@
 open Lexing
+open CCommon
 open JSIL_Syntax
-(* JAVERT open Symbolic_State *)
 open JSIL_Interpreter
 
 let file    = ref ""
