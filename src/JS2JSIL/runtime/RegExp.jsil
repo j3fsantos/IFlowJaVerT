@@ -1,5 +1,6 @@
 proc RegExp_construct (xsc, vthis) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lre_proto, "RegExp", true);
 	rlab:	skip
 }

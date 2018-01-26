@@ -1,3 +1,5 @@
+open CCommon
+open SCommon
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
@@ -957,10 +959,10 @@ let make_relevant_axioms a list_vars string_vars list_exprs =
 (** For a given set of pure formulae and its associated gamma, return the corresponding encoding *)
 let encode_assertions (assertions : SA.t) gamma = 
 	(* Check if the assertions have previously been cached *)
-	let cached = Hashtbl.mem JSIL_Syntax.encoding_cache assertions in
+	let cached = Hashtbl.mem encoding_cache assertions in
 	let result = (match cached with
 	(* Cached, return from cache *)
-	| true -> Hashtbl.find JSIL_Syntax.encoding_cache assertions 
+	| true -> Hashtbl.find encoding_cache assertions 
 	(* Not cached *)
 	| false -> 
 			(* Encode assertions *)
@@ -968,7 +970,7 @@ let encode_assertions (assertions : SA.t) gamma =
 			(* Encode gamma *)
 			let encoded_assertions = (encode_gamma gamma) @ encoded_assertions in
 			(* Cache *)
-			Hashtbl.replace JSIL_Syntax.encoding_cache assertions encoded_assertions;
+			Hashtbl.replace encoding_cache assertions encoded_assertions;
 			encoded_assertions) in
 	(* Return *)
 	result
@@ -1013,15 +1015,15 @@ let get_axioms assertions gamma =
 	let start_time = Sys.time () in
 	
 	(* Check if the SAT check was previously cached *) 
-	let cached = Hashtbl.mem JSIL_Syntax.sat_cache assertions in
+	let cached = Hashtbl.mem sat_cache assertions in
 	let result = (match cached with
 	(* Cached, return from cache *)
-	| true -> let result = Hashtbl.find JSIL_Syntax.sat_cache assertions in
+	| true -> let result = Hashtbl.find sat_cache assertions in
 			print_debug_petar (Printf.sprintf "Cached with result: %b" result);
 			result, true
 	(* Not cached *)
 	| false -> 
-  		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length JSIL_Syntax.sat_cache));
+  		print_debug_petar (Printf.sprintf "Not found in cache. Cache length %d." (Hashtbl.length sat_cache));
   		
 			let assertions_list = SA.elements assertions in
 			
@@ -1052,21 +1054,21 @@ let get_axioms assertions gamma =
   		let ret = (ret = Solver.SATISFIABLE) in
 			
 			let end_time = Sys.time () in
-  		JSIL_Syntax.update_statistics "solver_call" 0.;
-  		JSIL_Syntax.update_statistics "SOLVER CALL: check_satisfiability" (end_time -. start_time);
+  		update_statistics "solver_call" 0.;
+  		update_statistics "SOLVER CALL: check_satisfiability" (end_time -. start_time);
 			
 			(* Cache *)
-  		Hashtbl.replace JSIL_Syntax.sat_cache assertions ret;
+  		Hashtbl.replace sat_cache assertions ret;
   		
 			print_debug_petar (Printf.sprintf "Adding %s to cache. Cache length %d."
-  			(JSIL_Print.string_of_logic_assertion (star_asses (SA.elements assertions))) (Hashtbl.length JSIL_Syntax.sat_cache));
+  			(JSIL_Print.string_of_logic_assertion (star_asses (SA.elements assertions))) (Hashtbl.length sat_cache));
 
 			(* Return *) 
   		ret, false
 	) in
 	
 	let end_time = Sys.time () in
-	JSIL_Syntax.update_statistics "check_satisfiability_core" (end_time -. start_time);
+	update_statistics "check_satisfiability_core" (end_time -. start_time);
 	result
 	
 (** 
@@ -1089,7 +1091,7 @@ let check_satisfiability assertions gamma =
 	let ret, _ = check_satisfiability_core (SA.of_list (DynArray.to_list new_assertions)) new_gamma in
 	
 	let end_time = Sys.time () in
-	JSIL_Syntax.update_statistics "check_satisfiability" (end_time -. start_time);
+	update_statistics "check_satisfiability" (end_time -. start_time);
 	ret
 
 (** ************
@@ -1181,8 +1183,8 @@ let check_entailment (existentials : SS.t)
   				(* Entailment check *)
     			let ret = Solver.check masterSolver [ ] in
     			let end_time = Sys.time () in
-    			JSIL_Syntax.update_statistics "solver_call" 0.;
-    			JSIL_Syntax.update_statistics "SOLVER CALL: check_entailment" (end_time -. start_time);
+    			update_statistics "solver_call" 0.;
+    			update_statistics "SOLVER CALL: check_entailment" (end_time -. start_time);
     
   				print_debug_petar (Printf.sprintf "The solver returned: %s"
     				(match ret with
@@ -1200,7 +1202,7 @@ let check_entailment (existentials : SS.t)
     			ret)) in
 			let end_time = Sys.time () in
 				print_debug_petar (Printf.sprintf "Entailment took: %f" (end_time -. start_time));
-				JSIL_Syntax.update_statistics "check_entailment" (end_time -. start_time);
+				update_statistics "check_entailment" (end_time -. start_time);
 				result
 
 let is_equal_on_lexprs e1 e2 pfs : bool option =

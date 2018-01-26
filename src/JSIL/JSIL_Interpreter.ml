@@ -1,9 +1,8 @@
 (***
- SJSIL - Interpreter
+ JSIL - Interpreter
 *)
 open Batteries
 open JSIL_Syntax
-open Symbolic_State
 
 let larguments = "$largs"
 let largvals = "args"
@@ -545,8 +544,8 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 						(JSIL_Print.string_of_literal v_e1)(JSIL_Print.string_of_literal v_e2) 
 						(string_of_op op) (JSIL_Print.string_of_literal v_e3);
 				v_e3
-		| _, _ ->  raise (Failure "Illegal field inspection"))
-
+		| _, _ ->  raise (Failure (Printf.sprintf "Illegal mutation: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2))))
+		
 	| SDelete (e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
@@ -636,10 +635,12 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 						(* Generate new object in the heap *)
 						let o = SHeap.create 1021 in
 						SHeap.replace heap l (o, Loc lm, true);
+						Hashtbl.replace store x (Loc lm);
 						Loc lm
 						
 				| true -> 
 						let _, metadata, _ = SHeap.find heap l in
+							Hashtbl.replace store x metadata;
 							metadata) 
 		| _ -> raise (Failure (Printf.sprintf "Looking up metadata of non-object: %s" (JSIL_Print.string_of_literal v_e))))	
 
@@ -684,16 +685,17 @@ let rec evaluate_cmd
 			cur_cmd prev_cmd cc_tbl vis_tbl =
 
 	let execute_function_constructor proc x e_args j = (
-			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
+			Printf.printf "\nFunction call or constructor encountered.\n"; 
 
-			(* let len = List.length e_args in
+			let len = List.length e_args in
 			let args n = (evaluate_expr (List.nth e_args n) store) in
 			Printf.printf "Arguments: ";
 			for i = 0 to (len - 1) do
-				Printf.printf "%d: %s " i (JSIL_Print.string_of_literal (args i) false);
+				Printf.printf "(%d : %s) " i (JSIL_Print.string_of_literal (args i));
 			done;
-			Printf.printf "\n";  *)
+			Printf.printf "\n"; 
 
+			(* Get the syntax error object *)
 			let se = (evaluate_expr (Var (JS2JSIL_Constants.var_se)) store) in
 
 			let error = ref false in
@@ -712,13 +714,21 @@ let rec evaluate_cmd
 								evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl) in
 						tse) in
 
-			let argCount = (List.length e_args - 2) in
+			(* Get the real arguments and their count *)
+			let e_args = List.tl (List.tl e_args) in
+			let argCount = List.length e_args in
+			
+			(* Initialise parameters and body *)
 			let params = ref "" in
 			let body = ref "" in
+			
+			(* No arguments, no processing *)
 			if (argCount = 0) then () else
+			(* Major processing *)
 			begin
+				(* Only one argument, it is the function body *)
 				if (argCount = 1) then
-				let bd = List.nth e_args 2 in
+				let bd = List.hd e_args in
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
@@ -732,7 +742,8 @@ let rec evaluate_cmd
       					             | _ -> message := Printf.sprintf "toString didn't return string!"; propagate := false; error := true)
         		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
 				else
-			  	let firstArg = List.nth e_args 2 in
+					(* Process the first argument *)
+			  	let firstArg = List.hd e_args in
 					let evalFirstArg = evaluate_expr firstArg store in
 					let new_store = init_store ["v"] [evalFirstArg] in
 					if (!verbose) then
@@ -746,7 +757,8 @@ let rec evaluate_cmd
         		| Error, v -> message := "Couldn't do toString!"; propagate := true; retvalue := v; error := true);
 					if (not !error) then
 					begin
-					for i = 3 to argCount do
+					(* Process the remaining parameters *)
+					for i = 1 to (argCount - 2) do
 						let arg = List.nth e_args i in
 						let evalArg = evaluate_expr arg store in
 					  let new_store = init_store ["v"] [evalArg] in
@@ -762,7 +774,8 @@ let rec evaluate_cmd
 					done;
 					if (not !error) then
 					begin
-					let bd = List.nth e_args (argCount + 1) in
+					(* Process the body *)
+					let bd = List.nth e_args (argCount - 1) in
 					let ebd = evaluate_expr bd store in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
@@ -780,7 +793,7 @@ let rec evaluate_cmd
 					end;
       end;
 
-			(* Printf.printf "Error status: %b, message: %s\n" !error !message; *)
+			Printf.printf "Error status: %b, message: %s\n" !error !message;
 
 			if (!error) then (throw_syntax_error !message) else
 			begin
@@ -790,7 +803,7 @@ let rec evaluate_cmd
   			(* Parsing the parameters as a FormalParametersList *)
   			let lexbuf = Lexing.from_string !params in
   			let parsed_params =
-  				(try (Some (JSIL_Syntax_Utils.parse JSIL_Parser.Incremental.param_list_FC_target lexbuf)) with
+  				(try (Some (JSIL_Syntax_Utils.parse_fc FC_Parser.Incremental.param_list_FC_target lexbuf)) with
   				 | _ -> None) in
   			(match parsed_params with
   			| None -> throw_syntax_error "Parameters not parseable."
@@ -891,11 +904,12 @@ let rec evaluate_cmd
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
 		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e))))
 
+	(* EVAL *)
 	| SCall (x, e, e_args, j)
 		when  evaluate_expr e store = String "Object_eval" ->
-		if (!verbose) then Printf.printf "Call to eval intercepted!\n"; 
+		if (!verbose) then Printf.printf "Call to eval intercepted!\n";  
 		if (!verbose) then print_endline (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_expression x) e_args)));
- 		if (!verbose) then print_endline (Printf.sprintf "The store is: %s" (JSIL_Print.string_of_store store));
+		if (!verbose) then print_endline (Printf.sprintf "The store is: %s" (JSIL_Print.string_of_store store));
 		let e_args =
 			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
 		let str_e = List.nth e_args 2 in
@@ -903,13 +917,12 @@ let rec evaluate_cmd
 		(match str_e with
 		| String code ->
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
-				(* Printf.printf "\n%s\n" code; *)
 				let x_scope, x_this =
-					(match Utils.try_find store (JS2JSIL_Constants.var_scope), Utils.try_find store (JS2JSIL_Constants.var_this)  with
- 					| Some x_scope, Some x_this -> x_scope, x_this
- 					| None, None -> raise (Failure "No var_scope AND no var_this to give to eval")
- 					| None, _ -> raise (Failure "No var_scope to give to eval") 
- 					| _, None -> raise (Failure "No var_this to give to eval")) in
+					(match Utils.try_find store (JS2JSIL_Constants.var_sc_first), Utils.try_find store (JS2JSIL_Constants.var_this)  with
+					| Some x_scope, Some x_this -> x_scope, x_this
+					| None, None -> raise (Failure "No var_scope AND no var_this to give to eval")
+					| None, _ -> raise (Failure "No var_scope to give to eval") 
+					| _, None -> raise (Failure "No var_this to give to eval")) in
 				if (!verbose) then Printf.printf "Scope: %s\nThis: %s\n" (JSIL_Print.string_of_literal x_scope) (JSIL_Print.string_of_literal x_this);
 				(match (try
 					let e_js = Parser_main.exp_from_string ~force_strict:true code in
@@ -929,6 +942,7 @@ let rec evaluate_cmd
 							Hashtbl.replace store x v;
 							evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl)
 				| None -> (* Any sort of error from Parsing and JS2JSIL compilation *)
+					if (!verbose) then print_endline "Could not quite parse the eval body.";
 					(match Utils.try_find store (JS2JSIL_Constants.var_se), j with
 					| Some v, Some j ->
 						Hashtbl.replace store x v;
@@ -939,9 +953,9 @@ let rec evaluate_cmd
 		| _ -> Hashtbl.replace store x str_e;
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
 
+
 	| SCall (x, e, e_args, j)
 	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
-			(* Printf.printf "Call: Entering FC from %s\n"  (JSIL_Print.string_of_literal (evaluate_expr e store) false); *)
 			execute_function_constructor proc x e_args j
 
 	| SCall (x, e, e_args, j) ->

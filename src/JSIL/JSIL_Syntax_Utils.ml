@@ -1,7 +1,6 @@
+open CCommon
 open JSIL_Syntax
 open JSIL_Logic_Utils
-open JSIL_Parser
-open Symbolic_State
 open JSLogic
 
 let js = ref false
@@ -337,7 +336,8 @@ let print_position
   Format.fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-type token = [%import: JSIL_Parser.token] [@@deriving show]
+type jp_token = [%import: JSIL_Parser.token] [@@deriving show]
+type fc_token = [%import: FC_Parser.token] [@@deriving show]
 
 (** ----------------------------------------------------
     Initiates the parsing, of the contents in 'lexbuf', from the starting symbol 'start'.
@@ -372,12 +372,53 @@ let parse
               let csn = JPMI.current_state_number e in
               Format.eprintf "%a, last token: %s: %s.@."
                 print_position lexbuf
-                (show_token !last_token)
+                (show_jp_token !last_token)
                 "Error message found";
               raise JSIL_Parser.Error
             | _ -> failwith "Unexpected state in failure handler!"
     )
     (JPMI.lexer_lexbuf_to_supplier lexer lexbuf)
+    (start lexbuf.Lexing.lex_curr_p)
+
+(** ----------------------------------------------------
+    Initiates the parsing, of the contents in 'lexbuf', from the starting symbol 'start'.
+    Terminates if an error occours.
+    -----------------------------------------------------
+*)
+let parse_fc
+    start
+    (lexbuf : Lexing.lexbuf) (** Can't specify a return type as depends on target *) =
+
+  let module FCMI = FC_Parser.MenhirInterpreter in
+
+  let last_token = ref FC_Parser.EOF
+  in let lexer lexbuf =
+       let token = FC_Lexer.read lexbuf in
+       last_token := token; token
+  in
+
+  (** ----------------------------------------------------
+      Start the interpreter
+      -----------------------------------------------------
+  *)
+  FCMI.loop_handle
+    (fun result -> result)
+
+    (** ----------------------------------------------------
+        Terminate if an error occurs
+        -----------------------------------------------------
+    *)
+    (function FCMI.Rejected -> failwith "Parser rejected input"
+            | FCMI.HandlingError e ->
+              let csn = FCMI.current_state_number e in
+              Format.eprintf "%a, last token: %s: %s.@."
+                print_position lexbuf
+                (show_fc_token !last_token)
+                "Error message found";
+              raise FC_Parser.Error
+            | _ -> failwith "Unexpected state in failure handler!"
+    )
+    (FCMI.lexer_lexbuf_to_supplier lexer lexbuf)
     (start lexbuf.Lexing.lex_curr_p)
 
 

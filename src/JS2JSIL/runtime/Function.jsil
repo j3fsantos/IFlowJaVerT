@@ -88,7 +88,7 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			goto loop;
 
 	call:	xthis := this_arg;
-			m := metadata(vthis)
+			m := metadata(vthis);
 			body   := [m, "@call"];
 			xscope := [m, "@scope"];
 
@@ -170,7 +170,8 @@ proc FP_bind (xsc, vthis, thisArg) {
 			goto [(l-len arguments) < 4] cont2 setarg;
 	setarg:	A := cdr (cdr (cdr arguments));
 
-	cont2:	xret := new ();
+	cont2:	xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lfun_proto, "Function", true);
 			F := xret;
 

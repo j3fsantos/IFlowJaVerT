@@ -1,16 +1,6 @@
+open CCommon
+
 (** JSIL_Syntax *)
-
-open Set
-open Queue
-
-(**/**)
-(* Exceptions *)
-exception Syntax_error of string
-
-let small_tbl_size  = 31
-let medium_tbl_size = 101 
-let big_tbl_size    = 1021
-(**/**)
 
 (** {2 Syntax of the JSIL language} *)
 
@@ -197,7 +187,6 @@ let rtype r = LstNth (r, lit_num 0.)
 let base r = LstNth (r, lit_num 1.)
 let field r = LstNth (r, lit_num 2.)
 (**/**)
-
 
 type permission = 
 	| Readable 
@@ -496,43 +485,6 @@ let get_proc_args proc = proc.proc_params (* shorthand *)
 let get_proc_cmd proc i =
 	proc.proc_body.(i)
 
-
-(* STATISTICS *)
-
-let im_petar = ref true
-let debug = ref false
-let newencoding = ref false
-
-let output_file = open_out "normalOutput.txt"
-let output_file_debug = open_out "debugOutput.txt"
-let output_file_normalisation = open_out "normalisationOutput.txt"
-let output_file_njsil = open_out "normalisedSpecsPreds.njsil"
-
-let print_debug  msg  = 
-	let msg = Printf.sprintf "%s\n%!" msg in
-	output_string output_file_debug msg 
-let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg 
-let print_normalisation msg = output_string output_file_normalisation (msg ^ "\n") 
-let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n") 
-
-let close_output_files () =
-	close_out output_file;
-  close_out output_file_debug;
-  close_out output_file_normalisation
-
-let print_debug_petar msg =
-	if (!im_petar) then (print_debug msg) else ()
-
-let print_time msg =
-	let time = Sys.time () in
-	print_normal (msg ^ (Printf.sprintf " Time: %f" time))
-
-let print_time_debug msg =
-  if (!im_petar) then
-		let time = Sys.time () in
-			print_debug (msg ^ (Printf.sprintf " Time: %f" time))
-		else ()
-
 (* SETS *)
 
 (*** Defining the real types and comparators of each of the set types ***)
@@ -597,53 +549,6 @@ module SExpr = Set.Make(MyExpr)
 module SLExpr = Set.Make(MyLExpr)
 
 module SFV = Set.Make(MyFieldValueList)
-
-
-
-(* Satisfiability cache *)
-(* Maps each assertion to true or false (if it's sasisfiable) *)
-let sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create 513
-let encoding_cache : (SA.t, Z3.Expr.expr list) Hashtbl.t = Hashtbl.create 513
-
-(* Default values *)
-let initialise_caches =
-	Hashtbl.add sat_cache (SA.singleton LTrue) true;
-	Hashtbl.add sat_cache (SA.singleton LFalse) false;
-	Hashtbl.add encoding_cache (SA.singleton LTrue) [];
-  Hashtbl.add encoding_cache (SA.singleton LFalse) []
-
-let statistics = Hashtbl.create 511
-
-(* Updates the value of the fname statistic in the table, or adds it if not present *)
-let update_statistics (fname : string) (time : float) =
-	if (Hashtbl.mem statistics fname)
-		then let stat = Hashtbl.find statistics fname in
-		Hashtbl.replace statistics fname (time :: stat)
-		else Hashtbl.add statistics fname [ time ]
-
-let process_statistics () =
-	print_normal "\n STATISTICS \n ========== \n";
-	print_normal (Printf.sprintf "Check sat cache: %d\n" (Hashtbl.length sat_cache));
-	(* Process each item in statistics table *)
-	Hashtbl.iter (fun f lt ->
-		(* Calculate average, min, max *)
-		let min = ref infinity in
-		let max = ref 0. in
-		let tot = ref 0. in
-		let avg = ref 0. in
-		let std = ref 0. in
-		let len = float_of_int (List.length lt) in
-		tot := List.fold_left (fun ac t ->
-			(if t < !min then min := t); (if t > !max then max := t);
-			ac +. t) 0. lt;
-		avg := !tot/.len;
-		std := ((List.fold_left (fun ac t -> ac +. (!avg -. t) ** 2.) 0. lt) /. len) ** 0.5;
-		print_normal (Printf.sprintf "\t%s\n" f);
-		print_normal (Printf.sprintf "Tot: %f\tCll: %d\nMin: %f\tMax: %f\nAvg: %f\tStd: %f\n" !tot (int_of_float len) !min !max !avg !std)) statistics
-(**/**)
-
-(* Interactive mode *)
-let interactive = ref false
 
 (********************************************************)
 (** Auxiliar functions for generating new program/logical

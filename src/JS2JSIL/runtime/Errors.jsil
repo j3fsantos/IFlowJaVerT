@@ -5,7 +5,8 @@ import Internals.jsil, Init.jsil;
 (* ***************** *)
 
 proc Error_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lerr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;
@@ -102,7 +103,8 @@ with
 (* *** EVALERROR *** *)
 
 proc EvalError_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $leerr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;
@@ -131,7 +133,8 @@ with
 (* *** RANGEERROR *** *)
 
 proc RangeError_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lrgerr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;
@@ -160,7 +163,8 @@ with
 (* *** REFERENCEERROR *** *)
 
 proc ReferenceError_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lrferr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;
@@ -189,7 +193,8 @@ with
 (* *** SYNTAXERROR *** *)
 
 proc SyntaxError_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lserr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;
@@ -218,7 +223,8 @@ with
 (* *** TYPEERROR *** *)
 
 proc TypeError_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lterr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;
@@ -249,7 +255,8 @@ with
 (* *** URIERROR *** *)
 
 proc URIError_call (xsc, vthis, v) {
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $luerr_proto, "Error", true);
 
 			xret := "Error_construct" (undefined, xret, v) with elab;

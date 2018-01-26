@@ -1,5 +1,7 @@
 open Utils
 open Lexing
+
+open CCommon
 open JSIL_Syntax
 open JS2JSIL_Constants
 open JSLogic
@@ -1192,7 +1194,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* xfvm := metadata (x_f_val) *)
 		let xbthism = fresh_var () in
-		let cmd_xobjm = SLBasic (SNew (xbthism, Some (Literal Null))) in
+		let cmd_xbthism = SLBasic (SNew (xbthism, Some (Literal Null))) in
 
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
@@ -1335,7 +1337,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(Some bind,    cmd_get_ba);              (*         x_ba := [xfvm, "@boundArgs"];                                         *)
 			(None,         cmd_get_tf);              (*         x_tf := [xfvm, "@targetFunction"];                                    *)
-			(None,         cmd_xobjm);               (*         xobjm := new (null)                                                   *)
+			(None,         cmd_xbthism);             (*         xobjm := new (null)                                                   *)
 			(None,         cmd_bcreate_xobj);        (*         x_bthis := new (xobjm)                                                *)
 			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                         *)
 			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err              *)
@@ -2210,9 +2212,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next1 = fresh_label () in
 		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
+		(* get the metadata *)
+		let x2vm = fresh_var () in
+		let cmd_x2vm = SLBasic (MetaData (x2vm, Var x2_v)) in
+
 		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in
-		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String "@class"))) in
+		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2vm, Literal (String "@class"))) in
 
 		(* goto [ x_cond = empty ] err next2 *)
 		let next2 = fresh_label () in
@@ -2223,14 +2229,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_ass_xr = SLCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some tr_ctx.tr_err) in
 
 		let cmds = annotate_first_cmd (
-			cmds1 @ [                           (*         cmds1                                              *)
-			annotate_cmd cmd_gv_x1 None         (*         x1_v := i__getValue (x1) with err                  *)
-		] @ cmds2 @ (annotate_cmds [            (*         cmds2                                              *)
-			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
-			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = Obj ] next1 err   *)
-			(Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "@hasInstance")          *)
-			(None,         cmd_goto_xcond);     (*         goto [ x_cond = empty ] err next2                *)
-			(Some next2,         cmd_ass_xr)    (*         x_r := x_hi (x2_v, x1_v) with err                  *)
+			cmds1 @ [                           (*        cmds1                                     *)
+			annotate_cmd cmd_gv_x1 None         (*        x1_v := i__getValue (x1) with err         *)
+		] @ cmds2 @ (annotate_cmds [          (*        cmds2                                     *)
+			(None,         cmd_gv_x2);          (*        x2_v := i__getValue (x2) with err         *)
+			(None,         cmd_goto_ot);        (*        goto [ (typeOf x2_v) = Obj ] next1 err    *)
+			(Some next1,   cmd_x2vm);           (* next1: x2vm := metadata(x2_v)                    *)
+			(None,         cmd_hasfield);       (*        x_cond := hasField (x2_v, "@hasInstance") *)
+			(None,         cmd_goto_xcond);     (*        goto [ x_cond = empty ] err next2         *)
+			(Some next2,   cmd_ass_xr)          (*        x_r := x_hi (x2_v, x1_v) with err         *)
 		])) in
 		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ [ var_te; var_te; x_r ] in
 		cmds, Var x_r, errs
@@ -4597,7 +4604,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let cmd_err_final =  annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_err) in
 
 	let fid_cmds =
-		[ cmd_er_creation; cmd_er_flag ] @
+		[ cmd_er_m_creation; cmd_er_creation; cmd_er_flag ] @
 		cmds_decls @ cmds_params @
 		(if_verification [] cmds_arg_obj) @
 		[ cmd_ass_er_to_sc; cmd_ass_te; cmd_ass_se ] @
@@ -4642,10 +4649,14 @@ let js2jsil_eval prog which_pred cc_tbl (vis_tbl : vis_tbl_type option) fid_pare
 										with _ ->
 											(let msg = Printf.sprintf "EV: Function %s not found in visibility table" f_id in
 											raise (Failure msg)) in
-								let f_params = List.tl (List.tl f_params) in
+    						let f_params = 
+    	  					(match f_params with
+    	  					| "x__scope" :: "x__this" :: rest -> rest
+    	  					| "x__scope" :: rest -> rest
+    	  					| _ -> f_params) in
 								generate_proc offset_converter f_body f_id f_params vislist None)) in
-					(* let proc_eval_str = SSyntax_Print.string_of_ext_procedure proc in
-		   			Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str; *)
+					  let proc_eval_str = JSIL_Print.string_of_ext_procedure proc in
+		   			  Printf.printf "EVAL wants to run the following proc:\n %s\n" proc_eval_str;
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.add prog f_id proc;
 					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)
@@ -4683,10 +4694,10 @@ let js2jsil_function_constructor_prop prog which_pred cc_tbl vis_tbl fid_parent 
 	  					| "x__scope" :: "x__this" :: rest -> rest
 	  					| "x__scope" :: rest -> rest
 	  					| _ -> f_params) in
-						let f_params = List.tl (List.tl f_params) in
+						(* WHY WAS THIS HERE????? let f_params = List.tl (List.tl f_params) in *)
 	  				generate_proc offset_converter f_body f_id f_params vis_fid None) in
 			  		(* let proc_str = JSIL_Print.string_of_ext_procedure proc in
-			  		Printf.printf "FC:\n %s\n" proc_str; *)
+			  		  Printf.printf "Function constructor proc to execute:\n%s\n" proc_str; *)
 					let proc = JSIL_Syntax_Utils.desugar_labs proc in
 					Hashtbl.replace prog f_id proc;
 					JSIL_Syntax_Utils.extend_which_pred which_pred proc) f_body)

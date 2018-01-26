@@ -56,21 +56,25 @@ with
 (* *** GETENUMERABLEFIELDSITER *** *)
 
 proc i__getEnumerableFieldsIter (l, prop_list) {
-			goto [prop_list = nil] nil init;
+			goto [prop_list = nil] nill init;
 
-	nil:	xret := nil;
+	nill:	xret := nil;
 			goto rlab;
 
 	init:	xh := car prop_list;
 			xt := cdr prop_list;
 
-			prop := [l, xh];
-			xret := "i__getEnumerableFieldsIter" (l, xt);
-			
-			goto [l-nth (prop, 3) = true] yes rlab;
+			prop := "getOwnProperty" (l, xh);
+			goto [l-nth (prop, 3) = true] yes no;
 
-	yes:	xret := xh :: xret;
+	no:		fh := nil;
+			goto rcall;
 
+	yes:	fh := xh;
+
+	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt);
+
+			xret := fh :: ft;
 	rlab:	skip
 }
 with
@@ -96,9 +100,9 @@ with
 (* *** GETENUMERABLEFIELDSWITHVALUESITER *** *)
 
 proc i__getEnumerableFieldsWithValuesIter (l, prop_list, g) {
-			goto [prop_list = nil] nil init;
+			goto [prop_list = nil] nill init;
 
-	nil:	xret := {{ nil, nil }};
+	nill:	xret := {{ nil, nil }};
 			goto rlab;
 
 	init:	xh := car prop_list;
@@ -200,7 +204,8 @@ proc Object_construct (xsc, vthis, l) {
 	to_obj:	xret := "i__toObject" (l);
 			goto rlab;
 
-	norm:	xret := new ();
+	norm:	xmet := new ();
+			xret := new (xmet);
 			xret := "create_default_object" (xret, $lobj_proto, "Object", true);
 	rlab:	skip
 }
@@ -576,9 +581,9 @@ proc OP_toString(xsc, vthis) {
 	undef: 	xret := "[object Undefined]";
 			goto rlab;
 
-	def:	goto [vthis = null] null nnull;
+	def:	goto [vthis = null] nul nnull;
 
-	null:	xret := "[object Null]";
+	nul:	xret := "[object Null]";
 			goto rlab;
 
 	nnull:	xret := "i__toObject" (vthis) with elab;

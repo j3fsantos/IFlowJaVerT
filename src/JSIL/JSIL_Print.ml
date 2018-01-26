@@ -30,7 +30,7 @@ let string_of_type (t : jsil_type) : string =
  	| BooleanType   -> "Bool"
  	| NumberType    -> "Num"
  	| StringType    -> "Str"
- 	| CharType      -> "$$char_type"
+ 	| CharType      -> "Char"
  	| ObjectType    -> "Obj"
  	| ListType      -> "List"
  	| TypeType      -> "Type"
@@ -223,6 +223,8 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
   	(* x := args *)
   	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+		(* x := metadata(e) *)
+		| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
@@ -796,6 +798,18 @@ let string_of_store store =
     		store
     		"Store: "
 
-
-
-
+let string_of_heap (h : jsil_heap) =
+	SHeap.fold
+		(fun loc (obj, metadata, extensibility) printed_heap ->
+			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (string_of_literal metadata) ^ "\n  Extensible : " ^ (if extensibility then "true" else "false") in
+			let post_str = "]\n" in
+			  let printed_object =
+					(SHeap.fold
+						(fun prop (permission, hval) print_obj ->
+							let printed_hval = string_of_literal hval in
+							let printed_cell = Printf.sprintf "(%s : %s) " prop printed_hval in
+							print_obj ^ printed_cell)
+						obj "") in
+			printed_heap ^ (pre_str ^ printed_object ^ post_str))
+		h
+		""

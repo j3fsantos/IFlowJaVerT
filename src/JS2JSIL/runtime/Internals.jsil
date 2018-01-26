@@ -904,8 +904,8 @@ proc i__toBoolean (v) {
 	undef:	xret := false;
 			goto rlab;
 
-	in:		goto [v = null] null ib;
-	null:	xret := false;
+	in:		goto [v = null] nll ib;
+	nll:	xret := false;
 			goto rlab;
 
 	ib:		goto [typeOf(v) = Bool] bool inum;
@@ -944,8 +944,8 @@ proc i__toNumber (v) {
 	undef:	xret := nan;
 			goto rlab;
 
-	in:		goto [v = null] null ib;
-	null:	xret := 0;
+	in:		goto [v = null] nll ib;
+	nll:	xret := 0;
 			goto rlab;
 
 	ib:		goto [typeOf(v) = Bool] bool inum;
@@ -1048,8 +1048,8 @@ proc i__toString (v) {
 	undef:	xret := "undefined";
 			goto rlab;
 
-	in:		goto [v = null] null ib;
-	null:	xret := "null";
+	in:		goto [v = null] nll ib;
+	nll:	xret := "null";
 			goto rlab;
 
 	ib:		goto [typeOf(v) = Bool] bool inum;
@@ -1290,8 +1290,8 @@ proc i__typeOf (v) {
 	undef:	xret := "undefined";
 			goto rlab;
 
-	in:		goto [v = null] null ib;
-	null:	xret := "object";
+	in:		goto [v = null] nll ib;
+	nll:	xret := "object";
 			goto rlab;
 
 	ib:		goto [typeOf(v) = Bool] bool inum;

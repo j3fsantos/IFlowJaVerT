@@ -154,7 +154,8 @@ proc Date_construct (xsc, vthis) {
 			len := l-len (arguments);
 			argc := len - 2;
 
-			xret := new ();
+			xmet := new ();
+			xret := new (xmet);
 			date := "create_default_object" (xret, $ldt_proto, "Date", true);
 
 			goto [argc = 0] arg0 test1;
@@ -279,7 +280,7 @@ with
 proc DP_getTime (xsc, vthis) {
 
 			goto [typeOf(vthis) = Obj] class tt;
-	class:	m := metadata(vthis)
+	class:	m := metadata(vthis);
 			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
 

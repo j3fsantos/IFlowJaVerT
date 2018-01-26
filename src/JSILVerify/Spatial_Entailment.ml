@@ -1,3 +1,5 @@
+open CCommon
+open SCommon
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
@@ -32,7 +34,7 @@ let consistent_subst_list
 	) (Some []) subst_list in
 		
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "consistent_subst_list" (end_time -. start_time);
+	update_statistics "consistent_subst_list" (end_time -. start_time);
 	result 
 
 
@@ -156,7 +158,7 @@ let unify_lexprs
 	) with _ -> None in
 	
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_lexprs" (end_time -. start_time);
+	update_statistics "unify_lexprs" (end_time -. start_time);
 	result 
 
 
@@ -264,7 +266,7 @@ let unify_cell_assertion
 	let result = dom_frame @ fv_list_frames in
 
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_cell_assertion" (end_time -. start_time);
+	update_statistics "unify_cell_assertion" (end_time -. start_time);
 	result 
 
 let unify_pred_assertion 
@@ -310,7 +312,7 @@ let unify_pred_assertion
 	let frames = List.map Option.get (List.filter (fun x -> x <> None) frames) in
 	
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_pred_assertion" (end_time -. start_time);
+	update_statistics "unify_pred_assertion" (end_time -. start_time);
 	frames  
 
 
@@ -434,7 +436,7 @@ let unify_domains
 		with _ -> []) in
 	
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_empty_fields_assertion" (end_time -. start_time);
+	update_statistics "unify_empty_fields_assertion" (end_time -. start_time);
 	result
 
 
@@ -469,7 +471,7 @@ let unify_spatial_assertion
 	| _ -> raise (Failure "DEATH")) in
 	
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_spatial_assertion" (end_time -. start_time);
+	update_statistics "unify_spatial_assertion" (end_time -. start_time);
 	
 	result
 
@@ -501,7 +503,7 @@ let unify_gammas
 				with Not_found -> true)) pat_gamma true in 
 	
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_gammas" (end_time -. start_time);
+	update_statistics "unify_gammas" (end_time -. start_time);
 	print_debug (Printf.sprintf "unify_gammas result: %b" result); 
 	
 	result
@@ -581,7 +583,7 @@ let unify_pfs
 	let result = entailment_check_ret, pfs_existentials, pfs_discharges, gamma', (SS.of_list fresh_names_for_pat_existentials) in
 	
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_pfs" (end_time -. start_time);
+	update_statistics "unify_pfs" (end_time -. start_time);
 	
 	result
 
@@ -671,7 +673,7 @@ let unify_symb_states
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] [] in
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_ss : search" (end_time -. start_time);
+	update_statistics "unify_ss : search" (end_time -. start_time);
 	result
 
 
@@ -841,7 +843,7 @@ let unify_symb_states_fold
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] in
 	let end_time = Sys.time() in
-	JSIL_Syntax.update_statistics "unify_ss_fold : search" (end_time -. start_time);
+	update_statistics "unify_ss_fold : search" (end_time -. start_time);
 	result
 
 
