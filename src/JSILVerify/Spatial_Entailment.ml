@@ -199,10 +199,10 @@ let unify_cell_assertion
 	let start_time = Sys.time () in
 
 	(* 1. Obtain the cell to unify *)
-	let pat_loc, pat_field, pat_val = 
+	let pat_loc, pat_field, pat_perm, pat_val = 
 		match pat_cell_asrt with 
-		| LPointsTo (LLit (Loc loc), le_field, le_val) 
-		| LPointsTo (ALoc loc, le_field, le_val) -> loc, le_field, le_val
+		| LPointsTo (LLit (Loc loc), le_field, (perm, le_val)) 
+		| LPointsTo (ALoc loc, le_field, (perm, le_val)) -> loc, le_field, perm, le_val
 		| _ -> raise (Failure "DEATH. unify_cell_assertion. no cell assertion") in 
 
     (* 2. Find the location corresponding to that cell *) 
@@ -216,15 +216,15 @@ let unify_cell_assertion
 			raise (Failure msg)) in 
 
 	(* 3. Get the fv_list and domain *)
-	let fv_list, dom = 
+	let fv_list, dom, metadata, ext = 
 		match heap_get heap loc with 
-		| Some (fv_list, dom) -> fv_list, dom 
+		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
 		| None                -> raise (Failure "DEATH. unify_cell_assertion. loc not in the heap") in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
 	let fv_list_set = SFV.of_list fv_list in
 	let fv_list_frames = 
-		SFV.fold (fun (field, value) ac -> 
+		SFV.fold (fun (field, (perm, value)) ac -> 
 			(match un_les pat_field field with 
 			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
@@ -238,9 +238,9 @@ let unify_cell_assertion
 							let pat_subst     = Hashtbl.copy pat_subst in 
           		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
           			let heap_frame    = heap_copy heap in 
-          			let fv_list_frame = SFV.remove (field, value) fv_list_set in 
+          			let fv_list_frame = SFV.remove (field, (perm, value)) fv_list_set in 
           			let fv_list_frame = SFV.elements fv_list_frame in 
-          			heap_put heap_frame loc fv_list_frame dom; 
+          			heap_put heap_frame loc fv_list_frame dom metadata ext; 
           			(heap_frame, pat_subst, discharges) :: ac
 							) else ac					
 					| _, _ -> ac)))) fv_list_set [] in 
@@ -253,13 +253,13 @@ let unify_cell_assertion
 		| Some (subst_field, discharges_field), Some le_dom ->
 			let pat_subst = Hashtbl.copy pat_subst in 
     		if (not (safe_substitution_extension pfs gamma pat_subst subst_field)) then [] else (
-    			let s_pat_field     = lexpr_substitution pat_subst true pat_field in
+    			let s_pat_field  = lexpr_substitution pat_subst true pat_field in
 				let a_set_inclusion = LNot (LSetMem (s_pat_field, le_dom)) in 
 				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
 					let heap_frame = heap_copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
 					let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
-					heap_put heap_frame loc fv_list (Some new_domain); 
+					heap_put heap_frame loc fv_list (Some new_domain) metadata ext; 
 					[ (heap_frame, pat_subst, (discharges_field)) ]
 			))) in 
 
@@ -349,10 +349,11 @@ let unify_domains
 		(pat_subst : substitution)
 		(pat_dom   : jsil_logic_expr) 
 		(dom       : jsil_logic_expr) 
-		(fv_list   : symbolic_field_value_list) : symbolic_field_value_list =
+		(fv_list   : symbolic_field_value_list) 
+		(perm      : permission) : symbolic_field_value_list =
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
-	let none_fv_list, non_none_fv_list = List.partition (fun (field, value) -> (value = LNone)) fv_list in
+	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
 	
 	(* 2. Find domain_difference = -{ f_1, ..., f_n }- = dom \ subst(pat_dom) 
 	      The fields f_1, ..., f_n MUST be NONE                                           *) 
@@ -381,8 +382,8 @@ let unify_domains
 
 	(* 6. When dom is smaller than pat_dom, then the footprint of the associated EF 
 	      assertion is bigger. In this case, the fields in (pat_dom / dom) need to be 
-	      explicitly none cells in the framed heap                                        *)
-	let new_none_fv_list = List.map (fun le -> (le, LNone)) domain_frame_difference in
+	      explicitly none cells in the framed heap - but with which permission?! TODO       *)
+	let new_none_fv_list = List.map (fun le -> (le, (perm, LNone))) domain_frame_difference in
 
 	(* 7. The returned framed fv_list is composed of:   
 	        i)  the non-NONE fields in the original fv-list 
@@ -416,10 +417,10 @@ let unify_domains
 		) with _ -> raise (Failure "DEATH. unify_empty_fields_assertion. unmatched pat_loc")) in 
 
 	(* 3. Get the fv_list and domain *)
-	let fv_list, dom = 
+	let fv_list, dom, metadata, ext = 
 		match heap_get heap loc with 
-		| Some (fv_list, dom) -> fv_list, dom 
-		| None                -> print_debug "DEATH 3"; raise (Failure "DEATH") in 
+		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
+		| None                                 -> print_debug "DEATH 3"; raise (Failure "DEATH") in 
 
 	(* 4. Unifying the domains if they exist *)
 	let result = (match dom with
@@ -429,9 +430,10 @@ let unify_domains
 	| Some dom ->     
 		(* ii. pat_domain and domain exist -> we have to check the entailment *)                      
 		try 
-			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom fv_list in 
+			let perm = if ext then Deletable else Readable in (* TODO *)
+			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom fv_list perm in 
 			let heap_frame     = heap_copy heap in 
-			heap_put heap_frame loc fv_list_frame None;
+			heap_put heap_frame loc fv_list_frame None metadata ext;
 			[ (heap_frame, pat_subst, []) ]
 		with _ -> []) in
 	
@@ -439,6 +441,87 @@ let unify_domains
 	update_statistics "unify_empty_fields_assertion" (end_time -. start_time);
 	result
 
+(* TODO : THIS IS NOT SPATIAL?! *)
+let unify_metadata_assertion
+		(pfs           : pure_formulae) 
+		(gamma         : typing_environment)
+		(pat_subst     : substitution) 
+		(pat_cell_asrt : jsil_logic_assertion)
+		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list = 
+			
+	let un_les = unify_lexprs pfs gamma pat_subst in 
+
+	(* 1. Obtain the cell to unify *)
+	let pat_loc, pat_metadata = 
+		match pat_cell_asrt with 
+		| LMetaData (LLit (Loc loc), metadata) 
+		| LMetaData (ALoc loc, metadata) -> loc, metadata
+		| _ -> raise (Failure "Unify_metadata_assertion: no metadata assertion") in 
+
+    (* 2. Find the location corresponding to that cell *) 
+	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
+		try (
+			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
+			| Some loc -> loc
+			| None     -> raise (Failure "")   
+		)  with _ -> 
+			let msg = Printf.sprintf "Unify_metadata_assertion: unmatched pat_loc: %s" pat_loc in 
+				raise (Failure msg)) in 
+
+	(* 3. Get the metadata *)
+	let metadata = 
+		match heap_get heap loc with 
+		| Some ((_, _), metadata, _) -> metadata 
+		| None                -> raise (Failure "Unify_metadata_assertion: loc not in the heap") in 
+
+	(* 4. Try to unify the metadata *)
+	let result = 
+		(match un_les pat_metadata metadata with
+		| None -> [ ]
+		| Some (subst_meta, discharges_meta) ->
+				(match (consistent_subst_list subst_meta pfs gamma), (pre_check_discharges discharges_meta) with
+				| Some subst_meta, Some discharges_meta ->
+						let pat_subst = Hashtbl.copy pat_subst in
+						if (safe_substitution_extension pfs gamma pat_subst subst_meta) then (
+							[ (heap, pat_subst, discharges_meta) ] (* EVERYTHING IS FRAME?! *)
+						) else [ ]
+				| _, _ -> [ ])) in
+	
+	result
+
+(* TODO : THIS IS NOT SPATIAL?! *)
+let unify_extensible_assertion
+		(pfs           : pure_formulae) 
+		(gamma         : typing_environment)
+		(pat_subst     : substitution) 
+		(pat_cell_asrt : jsil_logic_assertion)
+		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list =
+
+	(* 1. Obtain the cell to unify *)
+	let pat_loc, pat_ext = 
+		match pat_cell_asrt with 
+		| LExtensible (LLit (Loc loc), b) 
+		| LExtensible (ALoc loc, b) -> loc, b
+		| _ -> raise (Failure "Unify_extensible_assertion: no extensible assertion") in 
+
+  (* 2. Find the location corresponding to that cell *) 
+	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
+		try (
+			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
+			| Some loc -> loc
+			| None     -> raise (Failure "")   
+		)  with _ -> 
+			let msg = Printf.sprintf "Unify_metadata_assertion: unmatched pat_loc: %s" pat_loc in 
+				raise (Failure msg)) in 
+
+	(* 3. Get the extensibility *)
+	let ext = 
+		match heap_get heap loc with 
+		| Some ((_, _), _, ext) -> ext 
+		| None                -> raise (Failure "Unify_extensible_assertion: loc not in the heap") in 
+
+	(* 4. Unify the extensibility *)
+  if (pat_ext = ext) then [ (heap, Hashtbl.copy pat_subst, [ ]) ] else [ ]
 
 type intermediate_frame = symbolic_heap * predicate_set * discharge_list * substitution 
 
@@ -467,6 +550,16 @@ let unify_spatial_assertion
 		List.map 
 			(fun (h_f, pat_subst, discharges) -> (h_f, preds_copy preds, discharges, pat_subst)) 
 			(unify_empty_fields_assertion pfs gamma pat_subst pat_s_asrt heap)  
+	
+	| LMetaData _ ->
+		List.map 
+			(fun (h_f, pat_subst, discharges) -> (h_f, preds_copy preds, discharges, pat_subst)) 
+			(unify_metadata_assertion pfs gamma pat_subst pat_s_asrt heap)
+
+	| LExtensible _ ->
+		List.map 
+			(fun (h_f, pat_subst, discharges) -> (h_f, preds_copy preds, discharges, pat_subst)) 
+			(unify_extensible_assertion pfs gamma pat_subst pat_s_asrt heap)
 
 	| _ -> raise (Failure "DEATH")) in
 	

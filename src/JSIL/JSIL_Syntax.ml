@@ -528,7 +528,7 @@ module MyLExpr =
 
 module MyFieldValueList =
 	struct
-		type t = jsil_logic_expr * jsil_logic_expr
+		type t = jsil_logic_expr * (permission * jsil_logic_expr)
 		let compare = Pervasives.compare
 	end
 
