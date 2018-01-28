@@ -1793,7 +1793,7 @@ let build_spec_tbl
    	 let create_dummy_proc spec =
    	  let dummy_proc = {
    	 	proc_name   = spec.spec_name;
-			proc_body   = Array.make 0 (empty_metadata, SBasic SSkip);
+			proc_body   = Array.make 0 (empty_metadata, Basic Skip);
 			proc_params = spec.spec_params;
 			ret_label   = None; ret_var = Some "xret";
 			error_label = None; error_var = Some "xerr";

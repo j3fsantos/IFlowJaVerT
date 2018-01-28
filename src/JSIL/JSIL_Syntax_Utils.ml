@@ -240,13 +240,13 @@ let get_proc_variables
        (** Step 3 - Pattern match on the command type to extract the variable
         * -----------------------------------------------------------------------------------
         *)
-       | SBasic (SAssignment (var, _))
-       | SBasic (SLookup (var, _, _))
-       | SBasic (SNew (var, _))
-       | SBasic (SHasField (var, _, _))
-       | SBasic (SGetFields (var, _))
-       | SBasic (SArguments var)
-       | SCall (var, _, _, _) when (not (Hashtbl.mem var_table var)) ->
+       | Basic (Assignment (var, _))
+       | Basic (Lookup (var, _, _))
+       | Basic (New (var, _))
+       | Basic (HasField (var, _, _))
+       | Basic (GetFields (var, _))
+       | Basic (Arguments var)
+       | Call (var, _, _, _) when (not (Hashtbl.mem var_table var)) ->
 
          (** Step 4 - Store the variable in the global hashtable and recurse
           * -----------------------------------------------------------------------------------
@@ -289,13 +289,13 @@ let desugar_labs
       match x with
       | spec, x -> 
 				let x = match x with
-						| SLBasic cmd -> SBasic cmd
-			      | SLGoto lab -> SGoto (Utils.try_find_with_error mapping lab)
-			      | SLGuardedGoto (e, lt, lf) -> SGuardedGoto (e, Utils.try_find_with_error mapping lt, Utils.try_find_with_error mapping lf)
-			      | SLCall (x, e, le, ol) -> SCall (x, e, le, match ol with | None -> None | Some lab -> Some (Utils.try_find_with_error mapping lab))
-						| SLApply (x, le, ol) -> SApply (x, le, match ol with | None -> None | Some lab -> Some (Utils.try_find_with_error mapping lab))
-						| SLPhiAssignment (x, args) -> SPhiAssignment (x, args)
-						| SLPsiAssignment (x, args) -> SPsiAssignment (x, args) in
+						| LBasic cmd -> Basic cmd
+			      | LGoto lab -> Goto (Utils.try_find_with_error mapping lab)
+			      | LGuardedGoto (e, lt, lf) -> GuardedGoto (e, Utils.try_find_with_error mapping lt, Utils.try_find_with_error mapping lf)
+			      | LCall (x, e, le, ol) -> Call (x, e, le, match ol with | None -> None | Some lab -> Some (Utils.try_find_with_error mapping lab))
+						| LApply (x, le, ol) -> Apply (x, le, match ol with | None -> None | Some lab -> Some (Utils.try_find_with_error mapping lab))
+						| LPhiAssignment (x, args) -> PhiAssignment (x, args)
+						| LPsiAssignment (x, args) -> PsiAssignment (x, args) in
 				(spec, x)
 			) cmds_nolab in
       cmds,

@@ -468,15 +468,15 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 	let string_of_op = Option.map_default JSIL_Print.string_of_permission "" in 
 
 	match bcmd with
-	| SSkip -> Empty
+	| Skip -> Empty
 
-	| SAssignment (x, e) ->
+	| Assignment (x, e) ->
 		let v_e = evaluate_expr e store in
 		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (JSIL_Print.string_of_literal v_e);
 		Hashtbl.replace store x v_e;
 		v_e
 
-	| SNew (x, metadata) ->
+	| New (x, metadata) ->
 		let new_loc      = fresh_loc () in
 		let metadata_val = 
 			(match metadata with 
@@ -488,7 +488,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 
-	| SLookup (x, e1, e2) ->
+	| Lookup (x, e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
@@ -506,12 +506,12 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 			v
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2))))
 
-	| SMutation (e1, e2, e3, op) ->
+	| Mutation (e1, e2, e3, op) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
 		let v_e3 = evaluate_expr e3 store in
 
-		let str_of_mutacao : string = JSIL_Print.string_of_bcmd None (SMutation (Literal v_e1, Literal v_e2, Literal v_e3, op)) in
+		let str_of_mutacao : string = JSIL_Print.string_of_bcmd None (Mutation (Literal v_e1, Literal v_e2, Literal v_e3, op)) in
 		let error_msg      = "Illegal Mutation: " ^ str_of_mutacao in
 
 		(match v_e1, v_e2 with
@@ -546,7 +546,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 				v_e3
 		| _, _ ->  raise (Failure (Printf.sprintf "Illegal mutation: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2))))
 		
-	| SDelete (e1, e2) ->
+	| Delete (e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
@@ -567,7 +567,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 					| _ -> raise (Failure (Printf.sprintf "Object %s not deletable" (JSIL_Print.string_of_literal v_e1))))))
 		| _, _ -> raise (Failure "Illegal field deletion"))
 
-	| SDeleteObj e1 ->
+	| DeleteObj e1 ->
 		let v_e1 = evaluate_expr e1 store in
 		(match v_e1 with
 		| Loc l ->
@@ -576,7 +576,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 		   | true -> Heap.remove heap l; Bool true)
 		| _ -> raise (Failure (Printf.sprintf "Attempting to delete something that's not an object: %s" (JSIL_Print.string_of_literal v_e1))))
 
-	| SHasField (x, e1, e2) ->
+	| HasField (x, e1, e2) ->
 		let v_e1 = evaluate_expr e1 store in
 		let v_e2 = evaluate_expr e2 store in
 		let pv_e1 = JSIL_Print.string_of_literal v_e1 in
@@ -591,7 +591,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 			v
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal Field Check: [%s, %s]" pv_e1 pv_e2)))
 
-	| SGetFields (x, e) ->
+	| GetFields (x, e) ->
 		let v_e = evaluate_expr e store in
 		(match v_e with
 		| Loc l ->
@@ -612,7 +612,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
-  | SArguments x ->
+  | Arguments x ->
 		let arg_obj, _, _ = (try Heap.find heap larguments with
 		| _ -> raise (Failure "The arguments object doesn't exist.")) in
 		let _, v = (try Heap.find arg_obj "args" with
@@ -890,14 +890,14 @@ let rec evaluate_cmd
 
 	let metadata, cmd = cmd in
 	match cmd with
-	| SBasic bcmd ->
+	| Basic bcmd ->
 		let _ = evaluate_bcmd bcmd heap store in
 	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 
-	| SGoto i ->
+	| Goto i ->
 		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 
-	| SGuardedGoto (e, i, j) ->
+	| GuardedGoto (e, i, j) ->
 		let v_e = evaluate_expr e store in
 		(match v_e with
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
@@ -905,7 +905,7 @@ let rec evaluate_cmd
 		| _ -> raise (Failure (Printf.sprintf "So you're really trying to do a goto based on %s? Ok..." (JSIL_Print.string_of_literal v_e))))
 
 	(* EVAL *)
-	| SCall (x, e, e_args, j)
+	| Call (x, e, e_args, j)
 		when  evaluate_expr e store = String "Object_eval" ->
 		if (!verbose) then Printf.printf "Call to eval intercepted!\n";  
 		if (!verbose) then print_endline (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_expression x) e_args)));
@@ -954,15 +954,15 @@ let rec evaluate_cmd
 					 evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl)
 
 
-	| SCall (x, e, e_args, j)
+	| Call (x, e, e_args, j)
 	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
 			execute_function_constructor proc x e_args j
 
-	| SCall (x, e, e_args, j) ->
+	| Call (x, e, e_args, j) ->
 		  (* Printf.printf "Nothing was intercepted!!!\n"; *)
 		  execute_procedure_body proc x e e_args j
 
-	| SApply (x, e_args, j) ->
+	| Apply (x, e_args, j) ->
 		let arguments = evaluate_expr (EList e_args) store in
 		let args =
 			(match arguments with
@@ -1029,16 +1029,16 @@ let rec evaluate_cmd
   			| Some j -> Hashtbl.replace store x v;
   				evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl))) *)
 
-	| SPhiAssignment (x, x_arr) ->
+	| PhiAssignment (x, x_arr) ->
 		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd cur_cmd x x_arr cc_tbl vis_tbl
 
-	| SPsiAssignment (x, x_arr) ->
+	| PsiAssignment (x, x_arr) ->
 		let rec find_prev_non_psi_cmd index =
 			(if (index < 0)
 				then raise (Failure "Psi node does not have non-psi antecedent")
 				else
 					match proc.proc_body.(index) with
-					| _, SPsiAssignment (_, _) -> find_prev_non_psi_cmd (index - 1)
+					| _, PsiAssignment (_, _) -> find_prev_non_psi_cmd (index - 1)
 					| _ -> index) in
 		let ac_cur_cmd = find_prev_non_psi_cmd cur_cmd in
 		evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd x x_arr cc_tbl vis_tbl
@@ -1074,7 +1074,7 @@ evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vi
 					else None) in
 			let next_prev =
 				match next_cmd with
-				| Some (_, SPsiAssignment (_, _)) -> prev_cmd
+				| Some (_, PsiAssignment (_, _)) -> prev_cmd
 				| _ -> cur_cmd in
 			evaluate_cmd prog proc.proc_name which_pred heap store (cur_cmd + 1) next_prev cc_tbl vis_tbl))
 and

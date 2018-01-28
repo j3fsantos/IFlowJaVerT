@@ -198,31 +198,31 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
       		| Some i -> if !line_numbers_on then (string_of_int i) ^ ". " else "") in
   	match bcmd with
   	(* skip *)
-  	| SSkip -> Printf.sprintf "%sskip" str_i
+  	| Skip -> Printf.sprintf "%sskip" str_i
   	(* var := e *)
-  	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
+  	| Assignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
   	(* x := new() *)
-  	| SNew (var, metadata) -> 
+  	| New (var, metadata) -> 
       (match metadata with 
       | None          -> Printf.sprintf "%s%s := new()" str_i var  
       | Some metadata -> Printf.sprintf "%s%s := new(%s)" str_i var (se metadata))
   	(* x := [e1, e2]	*)
-  	| SLookup (var, e1, e2) -> Printf.sprintf "%s%s := [%s, %s]" str_i var (se e1) (se e2)
+  	| Lookup (var, e1, e2) -> Printf.sprintf "%s%s := [%s, %s]" str_i var (se e1) (se e2)
   	(* [e1, e2] := e3 *)
-  	| SMutation (e1, e2, e3, e4) -> 
+  	| Mutation (e1, e2, e3, e4) -> 
       (match e4 with 
       | None   -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
       | Some p -> Printf.sprintf "%s[%s, %s] := <%s> %s" str_i (se e1) (se e2) (se e3) (sp p))
   	(* delete(e1, e2) *)
-  	| SDelete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
+  	| Delete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
   	(* x := deleteObj(e1) *)
-  	| SDeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
+  	| DeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
   	(* x := hasField(e1, e2) *)
-  	| SHasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
+  	| HasField (var, e1, e2) -> Printf.sprintf "%s%s := hasField(%s,%s)" str_i var (se e1) (se e2)
   	(* x := getFields (e1, e2) *)
-  	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
+  	| GetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
   	(* x := args *)
-  	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+  	| Arguments var -> Printf.sprintf "%s%s := args" str_i var
 		(* x := metadata(e) *)
 		| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
 
@@ -371,26 +371,26 @@ let string_of_cmd_aux
   	let str_i = if !line_numbers_on then (string_of_int i) ^ ". " else "" in
   	match sjsil_cmd with
   	(* Basic command *)
-  	| SBasic bcmd -> str_tabs ^ (string_of_bcmd (Some i) bcmd)
+  	| Basic bcmd -> str_tabs ^ (string_of_bcmd (Some i) bcmd)
   	(* goto j *)
-  	| SGoto j -> str_tabs ^ Printf.sprintf "%sgoto %s" str_i (string_of_int j)
+  	| Goto j -> str_tabs ^ Printf.sprintf "%sgoto %s" str_i (string_of_int j)
   	(* goto [e] j k *)
-  	| SGuardedGoto (e, j, k) ->
+  	| GuardedGoto (e, j, k) ->
     		str_tabs ^ Printf.sprintf "%sgoto [%s] %s %s" str_i (se e) (string_of_int j) (string_of_int k)
   	(* x := f(y1, ..., yn) with j *)
-  	| SCall (var, name, args, error) ->
+  	| Call (var, name, args, error) ->
     		str_tabs ^  Printf.sprintf "%s%s := %s(%s) %s" str_i var (se name) (String.concat ", " (List.map se args))
       			(match error with
        			| None -> ""
        			| Some index -> ("with " ^ (string_of_int index)))
   	(* x := apply(y1, ..., yn) with j *)
-  	| SApply (var, args, error) ->
+  	| Apply (var, args, error) ->
     		Printf.sprintf "%s := apply(%s)%s" var (String.concat ", " (List.map se args))
       		  (match error with
        			| None -> ""
        			| Some index -> (" with " ^ (string_of_int index)))
   	(* var := PHI(var_1, var_2, ..., var_n) *)
-  	| SPhiAssignment (var, var_arr) ->
+  	| PhiAssignment (var, var_arr) ->
     		let len = Array.length var_arr in
     		let rec loop i str_ac =
       			if (i >= len)
@@ -403,7 +403,7 @@ let string_of_cmd_aux
     		let var_arr_str = loop 0 "" in
     		Printf.sprintf "%s%s := PHI(%s)" str_i var var_arr_str
   	(* var := PSI(var_1, var_2, ..., var_n) *)
-  	| SPsiAssignment (var, var_arr) ->
+  	| PsiAssignment (var, var_arr) ->
     		let len = Array.length var_arr in
     		let rec loop i str_ac =
       			if (i >= len)
@@ -538,26 +538,26 @@ let string_of_lab_cmd (lcmd : jsil_lab_cmd) : string =
   	let se = string_of_expression in
   	match lcmd with
   	(* Basic command *)
-  	| SLBasic bcmd -> (string_of_bcmd None bcmd)
+  	| LBasic bcmd -> (string_of_bcmd None bcmd)
   	(* goto j *)
-  	| SLGoto j -> Printf.sprintf "goto %s" j
+  	| LGoto j -> Printf.sprintf "goto %s" j
   	(* goto [e] j k *)
-  	| SLGuardedGoto (e, j, k) ->
+  	| LGuardedGoto (e, j, k) ->
     		Printf.sprintf "goto [%s] %s %s" (se e) j k
   	(* x := f(y1, ..., yn) with j *)
-  	| SLCall (var, name, args, error) ->
+  	| LCall (var, name, args, error) ->
     		Printf.sprintf "%s := %s(%s)%s" var (se name) (String.concat ", " (List.map se args))
       		  (match error with
        			| None -> ""
        			| Some label -> (" with " ^ label))
   	(* x := apply(y1, ..., yn) with j *)
-  	| SLApply (var, args, error) ->
+  	| LApply (var, args, error) ->
     		Printf.sprintf "%s := apply(%s)%s" var (String.concat ", " (List.map se args))
       		  (match error with
        			| None -> ""
        			| Some label -> (" with " ^ label))
   	(* var := PHI(var_1, var_2, ..., var_n) *)
-  	| SLPhiAssignment (var, var_arr) ->
+  	| LPhiAssignment (var, var_arr) ->
     		let len = Array.length var_arr in
     		let rec loop i str_ac =
       			if (i >= len)
@@ -570,7 +570,7 @@ let string_of_lab_cmd (lcmd : jsil_lab_cmd) : string =
     		let var_arr_str = loop 0 "" in
     		Printf.sprintf "%s := PHI(%s)" var var_arr_str
   	(* var := PSI(var_1, var_2, ..., var_n) *)
-  	| SLPsiAssignment (var, var_arr) ->
+  	| LPsiAssignment (var, var_arr) ->
     		let len = Array.length var_arr in
     		let rec loop i str_ac =
       			if (i >= len)

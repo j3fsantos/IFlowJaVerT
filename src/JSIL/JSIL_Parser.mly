@@ -449,58 +449,58 @@ cmd_target:
 (*** Basic commands ***)
 (* skip *)
 	| SKIP
-		{ SLBasic (SSkip) }
+		{ LBasic (Skip) }
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target
-		{ SLBasic (SAssignment (v, e)) }
+		{ LBasic (Assignment (v, e)) }
 (* x := new(metadata) *)
 	| v=VAR; DEFEQ; NEW; LBRACE; metadata=option(expr_target); RBRACE
-		{ SLBasic (SNew (v, metadata)) }
+		{ LBasic (New (v, metadata)) }
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
-		{ SLBasic (SLookup (v, e1, e2)) }
+		{ LBasic (Lookup (v, e1, e2)) }
 (* [e1, e2] := <p> e3 *)
 	| LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET; DEFEQ; op=option(ass_permission_target); e3=expr_target
-		{ SLBasic (SMutation (e1, e2, e3, op)) }
+		{ LBasic (Mutation (e1, e2, e3, op)) }
 (* delete(e1, e2) *)
 	| DELETE; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SLBasic (SDelete (e1, e2)) }
+		{ LBasic (Delete (e1, e2)) }
 (* deleteObject(e1) *)
 	| DELETEOBJ; LBRACE; e1=expr_target; RBRACE
-		{ SLBasic (SDeleteObj (e1)) }
+		{ LBasic (DeleteObj (e1)) }
 (* x := hasField(e1, e2) *)
 	| v=VAR; DEFEQ; HASFIELD; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
-		{ SLBasic (SHasField (v, e1, e2)) }
+		{ LBasic (HasField (v, e1, e2)) }
 (* x := getFields (e1) *)
 	| v = VAR; DEFEQ; GETFIELDS; LBRACE; e=expr_target; RBRACE
-		{ SLBasic (SGetFields (v, e)) }
+		{ LBasic (GetFields (v, e)) }
 (* x := args *)
 	| v = VAR; DEFEQ; ARGUMENTS
-	  { SLBasic (SArguments v) }
+	  { LBasic (Arguments v) }
 (* x := metadata (e) *)
 	| v = VAR; DEFEQ; METADATA; LBRACE; e=expr_target; RBRACE
-	  { SLBasic (MetaData (v, e)) }
+	  { LBasic (MetaData (v, e)) }
 (*** Other commands ***)
 (* goto i *)
 	| GOTO; i=VAR
-		{ SLGoto i }
+		{ LGoto i }
 (* goto [e] i j *)
 	| GOTO LBRACKET; e=expr_target; RBRACKET; i=VAR; j=VAR
-		{ SLGuardedGoto (e, i, j) }
+		{ LGuardedGoto (e, i, j) }
 (* x := e(e1, ..., en) with j *)
 	| v=VAR; DEFEQ; e=expr_target;
 	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
-		{ SLCall (v, e, es, oi) }
+		{ LCall (v, e, es, oi) }
 (* x := apply (e1, ..., en) with j *)
 	| v=VAR; DEFEQ; APPLY;
 	  LBRACE; es=separated_list(COMMA, expr_target); RBRACE; oi = option(call_with_target)
-		{ SLApply (v, es, oi) }
+		{ LApply (v, es, oi) }
 (* x := PHI(e1, e2, ... en); *)
   | v=VAR; DEFEQ; PHI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
-	  { SLPhiAssignment (v, Array.of_list es) }
+	  { LPhiAssignment (v, Array.of_list es) }
 (* x := PSI(e1, e2, ... en); *)
   | v=VAR; DEFEQ; PSI; LBRACE; es = separated_list(COMMA, expr_target); RBRACE
-	  { SLPsiAssignment (v, Array.of_list es) }
+	  { LPsiAssignment (v, Array.of_list es) }
 ;
 
 call_with_target:
@@ -1317,7 +1317,7 @@ js_logic_cmd_target:
 	| CALLSPEC; spec_name = VAR; LBRACE; params = separated_list(COMMA, js_lexpr_target); RBRACE;
 	  {
 	  	match params with
-	  	| (JSLVar ret_var) :: rest_params ->  JSCallSpec (spec_name, ret_var, rest_params)
+	  	| (JSLVar ret_var) :: rest_params ->  JCallSpec (spec_name, ret_var, rest_params)
 	  	| _ -> raise (Failure "DEATH: Parser: CALLSPEC ")
 	 }
 

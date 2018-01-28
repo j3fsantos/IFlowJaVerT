@@ -115,7 +115,7 @@ type js_logic_command =
 	| JSFold             of js_logic_assertion
 	| JSUnfold           of js_logic_assertion * ((string * ((string * js_logic_expr) list)) option)
 	| JSFlash            of js_logic_assertion                                                                                                     (** Single unfold *)
-	| JSCallSpec		 of string * string * (js_logic_expr list)                                     (** Spec calling *)
+	| JCallSpec		 of string * string * (js_logic_expr list)                                     (** Spec calling *)
 	| JSRecUnfold        of string                                                                     (** Recursive unfold of everything *)
 	| JSLogicIf          of js_logic_expr * (js_logic_command list) * (js_logic_command list)          (** If-then-else *)
 	| JSMacro            of string * (js_logic_expr list)                                              (** Macro *)

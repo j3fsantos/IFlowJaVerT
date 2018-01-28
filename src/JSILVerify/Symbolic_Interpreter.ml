@@ -221,7 +221,7 @@ let symb_evaluate_bcmd
 	match bcmd with
 	(* Skip: skip;
 			Always return empty *)
-	| SSkip ->
+	| Skip ->
 		LLit Empty
 
   	(* Assignment: x = e;
@@ -229,7 +229,7 @@ let symb_evaluate_bcmd
 			b) Update the abstract store with [x |-> nle]
 			c) Update the typing environment with [x |-> tle]
 			d) Return nle *)
-	| SAssignment (x, e) ->
+	| Assignment (x, e) ->
 		let nle, tle, _ = ssee e in
 		store_put store x nle;
 		nle
@@ -241,7 +241,7 @@ let symb_evaluate_bcmd
 			e) Add the fact that the new location is not $lg to the pure formulae
 			f) Return the new location
 	*)
-	| SNew x ->
+	| New x ->
 		let new_loc = fresh_aloc () in
 		heap_put heap new_loc []  (domain_from_single_lit JS2JSIL_Constants.internalProtoFieldName);
 		heap_put_fv_pair heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null); 
@@ -249,6 +249,10 @@ let symb_evaluate_bcmd
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
 		ALoc new_loc
+		
+	| MetaData (x, md)
+
+	| Extensible (x)
 
   (* Property lookup: x = [e1, e2];
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
@@ -258,14 +262,14 @@ let symb_evaluate_bcmd
 			e) If successful, update the store with [x |-> ne]
 			f) Return ne
 	*)
-	| SLookup (x, e1, e2) ->
+	| Lookup (x, e1, e2) ->
 		let ne1, te1, _ = ssee e1 in
 		let ne2, te2, _ = ssee e2 in
 		let l = 
 			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
-				let msg = Printf.sprintf "SLookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				let msg = Printf.sprintf "Lookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 		let ne = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2  in
 		store_put store x ne;
@@ -279,7 +283,7 @@ let symb_evaluate_bcmd
 			e) Update the heap with (ne1, ne2) -> ne3
 			f) Return ne3
 	*)
-	| SMutation (e1, e2, e3) ->
+	| Mutation (e1, e2, e3) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let ne3, _, _ = ssee e3 in
@@ -287,7 +291,7 @@ let symb_evaluate_bcmd
 			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
-				let msg = Printf.sprintf "SMutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				let msg = Printf.sprintf "Mutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 ne3; 
 		ne3
@@ -299,14 +303,14 @@ let symb_evaluate_bcmd
 			e) Delete (ne1, ne2) from the heap
 			f) Return true
 	*)
-	| SDelete (e1, e2) ->
+	| Delete (e1, e2) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let l = 
 			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
-				let msg = Printf.sprintf "SDelete. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				let msg = Printf.sprintf "Delete. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 LNone; 
 		LLit (Bool true)
@@ -317,13 +321,13 @@ let symb_evaluate_bcmd
 			c) If the object at ne1 does not exist in the heap, throw an error
 			c) Delete the entire object ne1 from the heap
 			d) Return true *)
-	| SDeleteObj e1 ->
+	| DeleteObj e1 ->
 		let ne1, t_le1, _ = ssee e1 in
 		let l = 
 			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
-				let msg = Printf.sprintf "SDeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				let msg = Printf.sprintf "DeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 		(match (heap_has_loc heap l) with
 		 | false -> raise (Symbolic_State_Utils.SymbExecFailure (Printf.sprintf "Attempting to delete an inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1)))
@@ -339,14 +343,14 @@ let symb_evaluate_bcmd
 			e) If successful, update the store with [x |-> ne]
 			f) Return ne
 	*)
-	| SHasField (x, e1, e2) ->
+	| HasField (x, e1, e2) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let l = 
 			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
-				let msg = Printf.sprintf "SDeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				let msg = Printf.sprintf "DeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 	
 		let f_val = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2 in
@@ -1206,18 +1210,18 @@ let rec symb_evaluate_cmd
 	sec_visit_node search_info i;
 	
 	match cmd with
-	| SBasic bcmd ->
+	| Basic bcmd ->
 		let _ = symb_evaluate_bcmd bcmd symb_state in
 		post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i (i+1)
 
-	| SGoto j -> post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i j
+	| Goto j -> post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i j
 
-	| SGuardedGoto (e, j, k) -> symb_evaluate_guarded_goto symb_state e j k
+	| GuardedGoto (e, j, k) -> symb_evaluate_guarded_goto symb_state e j k
 
-	| SCall (x, e, e_args, j) -> symb_evaluate_call symb_state x e e_args j
+	| Call (x, e, e_args, j) -> symb_evaluate_call symb_state x e e_args j
 
-	| SPhiAssignment (x, x_arr)
-	| SPsiAssignment (x, x_arr) -> symb_evaluate_phi_psi symb_state x x_arr
+	| PhiAssignment (x, x_arr)
+	| PsiAssignment (x, x_arr) -> symb_evaluate_phi_psi symb_state x x_arr
 
 	| _ -> raise (Failure "not implemented yet")
 

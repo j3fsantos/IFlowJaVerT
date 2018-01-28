@@ -196,31 +196,30 @@ type permission =
 (** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one
     might expect of a language with extensible objects. *)
 type jsil_basic_cmd =
-	| SSkip                                                                  (** Empty command *)
-	| SAssignment of jsil_var * jsil_expr                                    (** Assignment *)
-	| SNew        of jsil_var * (jsil_expr option)                           (** Object creation *)
-	| SLookup     of jsil_var * jsil_expr * jsil_expr                        (** Field lookup *)
-	| SMutation   of jsil_expr * jsil_expr * jsil_expr * (permission option) (** Field mutation *)
-	| SDelete     of jsil_expr * jsil_expr                                   (** Field deletion *)
-	| SDeleteObj  of jsil_expr                                               (** Object deletion *)
-	| SHasField   of jsil_var * jsil_expr * jsil_expr                        (** Field check *)
-	| SGetFields  of jsil_var * jsil_expr                                    (** All* fields of an object *)
-	| SArguments  of jsil_var                                                (** Arguments of the current function *)
-	| Seal        of jsil_var                                                (** Seals the object *)
-	| MetaData    of jsil_var * jsil_expr                                    (** Reads the metadata and assigns it to the first var *)
-
+	| Skip                                                                  (** Empty command *)
+	| Assignment of jsil_var * jsil_expr                                    (** Assignment *)
+	| New        of jsil_var * (jsil_expr option)                           (** Object creation *)
+	| Lookup     of jsil_var * jsil_expr * jsil_expr                        (** Field lookup *)
+	| Mutation   of jsil_expr * jsil_expr * jsil_expr * (permission option) (** Field mutation *)
+	| Delete     of jsil_expr * jsil_expr                                   (** Field deletion *)
+	| DeleteObj  of jsil_expr                                               (** Object deletion *)
+	| HasField   of jsil_var * jsil_expr * jsil_expr                        (** Field check *)
+	| GetFields  of jsil_var * jsil_expr                                    (** All* fields of an object *)
+	| Arguments  of jsil_var                                                (** Arguments of the current function *)
+	| Seal        of jsil_var                                               (** Seals the object *)
+	| MetaData    of jsil_var * jsil_expr                                   (** Reads the metadata and assigns it to the first var *)
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which
     offer direct support for SSA. *)
 type jsil_cmd =
-	| SBasic          of jsil_basic_cmd                                     (** JSIL basic commands *)
-	| SGoto           of int                                                (** Unconditional goto *)
-	| SGuardedGoto    of jsil_expr * int * int                              (** Conditional goto *)
-	| SCall           of jsil_var * jsil_expr * jsil_expr list * int option (** Classical procedure call *)
-	| SApply          of jsil_var * jsil_expr list * int option             (** Application-style procedure call *)
-	| SPhiAssignment  of jsil_var * (jsil_expr array)                       (** PHI assignment *)
-	| SPsiAssignment  of jsil_var * (jsil_expr array)
+	| Basic          of jsil_basic_cmd                                     (** JSIL basic commands *)
+	| Goto           of int                                                (** Unconditional goto *)
+	| GuardedGoto    of jsil_expr * int * int                              (** Conditional goto *)
+	| Call           of jsil_var * jsil_expr * jsil_expr list * int option (** Classical procedure call *)
+	| Apply          of jsil_var * jsil_expr list * int option             (** Application-style procedure call *)
+	| PhiAssignment  of jsil_var * (jsil_expr array)                       (** PHI assignment *)
+	| PsiAssignment  of jsil_var * (jsil_expr array)
 
 (** {2 Syntax of JSIL Logic} *)
 
@@ -384,13 +383,13 @@ type jsil_program = (string, jsil_procedure) Hashtbl.t
 
 (***** Alternative Procedure Syntax with Labels *****)
 type jsil_lab_cmd =
-	| SLBasic          of jsil_basic_cmd
-	| SLGoto           of string
-	| SLGuardedGoto    of jsil_expr * string * string
-	| SLCall           of jsil_var  * jsil_expr * jsil_expr list * string option
-	| SLApply          of jsil_var  * jsil_expr list * string option
-	| SLPhiAssignment  of jsil_var  * (jsil_expr array)
-	| SLPsiAssignment  of jsil_var  * (jsil_expr array)
+	| LBasic          of jsil_basic_cmd
+	| LGoto           of string
+	| LGuardedGoto    of jsil_expr * string * string
+	| LCall           of jsil_var  * jsil_expr * jsil_expr list * string option
+	| LApply          of jsil_var  * jsil_expr list * string option
+	| LPhiAssignment  of jsil_var  * (jsil_expr array)
+	| LPsiAssignment  of jsil_var  * (jsil_expr array)
 
 (* JSIL procedures extended with string labels *)
 type jsil_ext_procedure = {

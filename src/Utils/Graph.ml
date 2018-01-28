@@ -42,9 +42,9 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 
 	for u=0 to number_of_cmds-1 do
 			(match cmds.(u) with
-			| SBasic _
-			| SPhiAssignment (_, _)
-			| SPsiAssignment (_, _) ->
+			| Basic _
+			| PhiAssignment (_, _)
+			| PsiAssignment (_, _) ->
 				if (not ((u == ret_label) || (u == err_label)))
 					then
 					begin
@@ -52,7 +52,7 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 						update_pred_table u (u + 1)
 					end
 
-			| SGoto i ->
+			| Goto i ->
 				if (not ((u == ret_label) || (u == err_label)))
 					then
 					begin
@@ -60,7 +60,7 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 						update_pred_table u i
 					end
 
-			| SGuardedGoto (e, i, j) ->
+			| GuardedGoto (e, i, j) ->
 				if (not ((u == ret_label) || (u == err_label)))
 					then
 					begin
@@ -70,7 +70,7 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 						update_pred_table u j
 					end
 
-			| SCall (_, _, _, i) ->
+			| Call (_, _, _, i) ->
 				(match i with
 				| None -> ()
 				| Some i -> (update_succ_table i u; update_pred_table u i));
@@ -81,7 +81,7 @@ let get_succ_pred cmds opt_ret_label opt_error_label =
 						update_pred_table u (u+1)
 					end
 
-			| SApply (_, _, i) ->
+			| Apply (_, _, i) ->
 				(match i with
 				| None -> ()
 				| Some i -> (update_succ_table i u; update_pred_table u i));
@@ -248,12 +248,12 @@ let remove_unreachable_code proc throw =
 	for u = 0 to (length - 1) do
 		let spec, cmd = cmds.(u) in
 		match cmd with
-		| SGoto i ->
-				cmds.(u) <- (spec, SGoto (lnum_shift.(i)))
-		| SGuardedGoto (e, i, j) ->
-				cmds.(u) <- (spec, SGuardedGoto (e, (lnum_shift.(i)), (lnum_shift.(j))))
-		| SCall (v, e, le, i) ->
-				cmds.(u) <- (spec, SCall (v, e, le, match i with | None -> None | Some i -> Some (lnum_shift.(i))))
+		| Goto i ->
+				cmds.(u) <- (spec, Goto (lnum_shift.(i)))
+		| GuardedGoto (e, i, j) ->
+				cmds.(u) <- (spec, GuardedGoto (e, (lnum_shift.(i)), (lnum_shift.(j))))
+		| Call (v, e, le, i) ->
+				cmds.(u) <- (spec, Call (v, e, le, match i with | None -> None | Some i -> Some (lnum_shift.(i))))
 		| _ -> ()
 	done;
 
@@ -261,7 +261,7 @@ let remove_unreachable_code proc throw =
 
 	(* Remove unvisited commands *)
 	let new_length = length - !shift in
-		let new_cmds = Array.make new_length (empty_metadata, SBasic SSkip) in
+		let new_cmds = Array.make new_length (empty_metadata, Basic Skip) in
 			let shift = ref 0 in
 				for i = 0 to (length - 1) do
 					if (visited.(i))

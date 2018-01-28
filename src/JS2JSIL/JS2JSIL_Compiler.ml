@@ -43,8 +43,8 @@ let fresh_switch_labels () =
 
 let add_initial_label cmds lab metadata =
 	(match cmds with
-	| [] -> [ (metadata, Some lab, SLBasic SSkip) ]
-	| (_, Some lab_s, _) :: rest -> (metadata, Some lab, SLBasic SSkip) :: cmds
+	| [] -> [ (metadata, Some lab, LBasic Skip) ]
+	| (_, Some lab_s, _) :: rest -> (metadata, Some lab, LBasic Skip) :: cmds
 	| (cmd_metadata, None, cmd) :: rest -> (cmd_metadata, Some lab, cmd) :: rest)
 
 
@@ -55,7 +55,7 @@ let add_more_metadata def_metadata lcmds invariant cmds =
 			then []
 			else
 				(let new_metadata = { def_metadata with pre_logic_cmds = lcmds; invariant = invariant } in
-				[ (new_metadata, None, SLBasic SSkip)])
+				[ (new_metadata, None, LBasic Skip)])
 	| (metadata, lab, cmd) :: rest ->
 		let pre_l_cmds = metadata.pre_logic_cmds in
 		let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ lcmds; invariant = invariant } in
@@ -137,20 +137,20 @@ let add_skip_if_empty cmds x metadata =
 	| Var _ -> cmds, x
 	| Literal lit ->
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, Literal lit)) in
+		let cmd_ass_xr = LBasic (Assignment (x_r, Literal lit)) in
 		cmds @ [ (metadata, None, cmd_ass_xr) ], Var x_r
 	| _ -> raise (Failure "The compiler must always generate a variable or a literal"))
 
-let make_var_ass_se () = SLCall (var_se, lit_str syntaxErrorName, [ ], None)
+let make_var_ass_se () = LCall (var_se, lit_str syntaxErrorName, [ ], None)
 
-let make_var_ass_te () = SLCall (var_te, lit_str typeErrorName, [ ], None)
+let make_var_ass_te () = LCall (var_te, lit_str typeErrorName, [ ], None)
 
 let add_final_var cmds x metadata =
 	match x with
 	| Var x_name -> cmds, x_name
 	| Literal lit ->
 		let x_new = fresh_var () in
-		let cmd_ass_new = (metadata, None, SLBasic (SAssignment (x_new, Literal lit))) in
+		let cmd_ass_new = (metadata, None, LBasic (Assignment (x_new, Literal lit))) in
 	 	cmds @ [ cmd_ass_new ], x_new
 	| _ -> raise (Failure "add_final_var: x needs to be a variable or a literal")
 
@@ -171,51 +171,51 @@ let make_get_value_call x err =
 	match is_get_value_var x with
 	| None ->
 		let x_v = val_var_of_var x in
-		(x_v, SLCall (x_v, (Literal (String getValueName)), [ x ], Some err), [x_v])
-	| Some x_v -> (x_v, SLBasic SSkip, [])
+		(x_v, LCall (x_v, (Literal (String getValueName)), [ x ], Some err), [x_v])
+	| Some x_v -> (x_v, LBasic Skip, [])
 
 let make_to_number_call x x_v err =
 	let x_n = number_var_of_var x in
-	(x_n, SLCall (x_n, (Literal (String toNumberName)), [ Var x_v ], Some err))
+	(x_n, LCall (x_n, (Literal (String toNumberName)), [ Var x_v ], Some err))
 
 let make_to_boolean_call x x_v err =
 	let x_b = boolean_var_of_var x in
-	(x_b, SLCall (x_b, (Literal (String toBooleanName)), [ Var x_v ], Some err))
+	(x_b, LCall (x_b, (Literal (String toBooleanName)), [ Var x_v ], Some err))
 
 let make_to_primitive_call x x_v err =
 	let x_p = primitive_var_of_var x in
-	(x_p, SLCall (x_p, (Literal (String toPrimitiveName)), [ Var x_v ], Some err))
+	(x_p, LCall (x_p, (Literal (String toPrimitiveName)), [ Var x_v ], Some err))
 
 let make_to_string_call x x_v err =
 	let x_s = string_var_of_var x in
-	(x_s, SLCall (x_s, (Literal (String toStringName)), [ Var x_v ], Some err))
+	(x_s, LCall (x_s, (Literal (String toStringName)), [ Var x_v ], Some err))
 
 let make_to_i32_call x x_v err =
 	let x_i32 = i32_var_of_var x in
-	(x_i32,  SLCall (x_i32, (Literal (String toInt32Name)), [ Var x_v ], Some err))
+	(x_i32,  LCall (x_i32, (Literal (String toInt32Name)), [ Var x_v ], Some err))
 
 let make_put_value_call x x_r err =
 	let x_pv = fresh_var () in
-	(x_pv, SLCall (x_pv, Literal (String putValueName), [x; Var x_r], Some err))
+	(x_pv, LCall (x_pv, Literal (String putValueName), [x; Var x_r], Some err))
 
 let make_dop_call x_obj prop x_desc b err =
 	let x_dop = fresh_var () in
-	(x_dop, SLCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err))
+	(x_dop, LCall (x_dop, Literal (String defineOwnPropertyName), [Var x_obj; prop; Var x_desc; Literal (Bool b)], Some err))
 
 let make_cae_call x err =
 	let x_cae = fresh_var () in
-	x_cae,  SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ x ], Some err)
+	x_cae,  LCall (x_cae, Literal (String checkAssignmentErrorsName), [ x ], Some err)
 
 let make_empty_ass () =
 	let x = fresh_var () in
-	let empty_ass = SLBasic (SAssignment (x, (Literal Empty))) in
+	let empty_ass = LBasic (Assignment (x, (Literal Empty))) in
 	x, empty_ass
 
 
 let make_create_function_object_call x_sc fun_id params =
 	let x_f = fresh_fun_var () in
 	let processed_params = List.map (fun p -> String p) params in
-	let cmd = SLCall (x_f, Literal (String createFunctionObjectName),
+	let cmd = LCall (x_f, Literal (String createFunctionObjectName),
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in
 	x_f, cmd
 
@@ -228,13 +228,13 @@ let translate_named_function_literal (top_level : bool) x_sc f_name f_id params 
 
 		(* x_er := l-nth(x_sc, index) *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = (None, (SLBasic (SAssignment (x_er, LstNth(Var x_sc, Literal (Num (float_of_int index))))))) in
+		let cmd_ass_xer = (None, (LBasic (Assignment (x_er, LstNth(Var x_sc, Literal (Num (float_of_int index))))))) in
 
 		(* [x_er, f_name] := x_f *)
 		(* [x_er, f_name] := {{ "d", x_f, true, true, false }} *)
 		let cmd_f = if top_level
-			then (None, SLBasic (SMutation (Var x_er, lit_str f_name, EList [ Literal (String "d"); Var x_f; Literal (Bool true); Literal (Bool true); Literal (Bool false) ], None)))
-			else (None, SLBasic (SMutation (Var x_er, lit_str f_name, Var x_f, None))) in
+			then (None, LBasic (Mutation (Var x_er, lit_str f_name, EList [ Literal (String "d"); Var x_f; Literal (Bool true); Literal (Bool true); Literal (Bool false) ], None)))
+			else (None, LBasic (Mutation (Var x_er, lit_str f_name, Var x_f, None))) in
 
 		let cmds = [ cmd_cfoc; cmd_ass_xer; cmd_f ] in
 		cmds, Var x_f, []
@@ -250,7 +250,7 @@ let translate_inc_dec x is_plus err =
  *)
 	(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next *)
 	let next = fresh_label () in
-	let cmd_goto_legalass = SLGuardedGoto ((non_writable_ref_test x), err, next) in
+	let cmd_goto_legalass = LGuardedGoto ((non_writable_ref_test x), err, next) in
 
 	(* next:  x_v := getValue (x) with err *)
 	let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
@@ -262,7 +262,7 @@ let translate_inc_dec x is_plus err =
 	let x_r = fresh_var () in
 	let cmd_ass_xr =
 		let op = if is_plus then Plus else Minus in
-		SLBasic (SAssignment (x_r, (BinOp (Var x_n, op,  Literal (Num 1.))))) in
+		LBasic (Assignment (x_r, (BinOp (Var x_n, op,  Literal (Num 1.))))) in
 
 	(* x_pv = putValue (x, x_r) with err4 *)
 	let x_pv, cmd_pv_x = make_put_value_call x x_r err in
@@ -293,7 +293,7 @@ let translate_multiplicative_binop x1 x2 x1_v x2_v aop err =
 	let x2_n, cmd_tn_x2 = make_to_number_call x2 x2_v err in
 	(* x_r := x1_n * x2_n *)
 	let x_r = fresh_var () in
-	let cmd_ass_xr = SLBasic (SAssignment (x_r, BinOp (Var x1_n, jsil_aop, Var x2_n))) in
+	let cmd_ass_xr = LBasic (Assignment (x_r, BinOp (Var x1_n, jsil_aop, Var x2_n))) in
 
 	let new_cmds = [
 		(None, cmd_tn_x1);       (*  x1_n := i__toNumber (x1_v) with err  *)
@@ -318,7 +318,7 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 	let goto_guard_left = BinOp ((TypeOf (Var x1_p)), Equal, (Literal (Type StringType))) in
 	let goto_guard_right = BinOp ((TypeOf (Var x2_p)), Equal, (Literal (Type StringType))) in
 	let goto_guard = BinOp (goto_guard_left, Or, goto_guard_right) in
-	let cmd_goto = SLGuardedGoto (goto_guard, then_lab, else_lab) in
+	let cmd_goto = LGuardedGoto (goto_guard, then_lab, else_lab) in
 
 	(* then: x1_s := i__toString (x1_p) with err *)
 	let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_p err in
@@ -328,7 +328,7 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 
 	(* x_rthen := x1_s ++ x2_s  *)
 	let x_rthen = fresh_var () in
-	let cmd_ass_xrthen = SLBasic (SAssignment (x_rthen, BinOp((Var x1_s), StrCat, (Var x2_s)))) in
+	let cmd_ass_xrthen = LBasic (Assignment (x_rthen, BinOp((Var x1_s), StrCat, (Var x2_s)))) in
 
 	(* else: x1_n := i__toNumber (x1_p) with err *)
 	let x1_n, cmd_tn_x1 = make_to_number_call x1 x1_p err in
@@ -338,11 +338,11 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 
 	(* x_relse := x1_n + x2_n  *)
 	let x_relse = fresh_var () in
-	let cmd_ass_xrelse = SLBasic (SAssignment (x_relse, BinOp((Var x1_n), Plus, (Var x2_n)))) in
+	let cmd_ass_xrelse = LBasic (Assignment (x_relse, BinOp((Var x1_n), Plus, (Var x2_n)))) in
 
 	(* end:  x_r := PHI (x_rthen, x_relse) *)
 	let x_r = fresh_var () in
-	let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x_rthen); (Var x_relse) |]) in
+	let cmd_ass_xr = LPhiAssignment (x_r, [| (Var x_rthen); (Var x_relse) |]) in
 
 	let new_cmds = [
 		(None,          cmd_tp_x1);       (*       x1_p := i__toPrimitive (x1_v) with err                                                 *)
@@ -351,7 +351,7 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 		(Some then_lab, cmd_ts_x1);       (* then: x1_s := i__toString (x1_p) with err                                                    *)
 		(None,          cmd_ts_x2);       (*       x2_s := i__toString (x2_p) with err                                                    *)
 		(None,          cmd_ass_xrthen);  (*       x_rthen := x1_s :: x2_s                                                                *)
-		(None,          SLGoto end_lab);  (*       goto end                                                                               *)
+		(None,          LGoto end_lab);  (*       goto end                                                                               *)
 		(Some else_lab, cmd_tn_x1);       (* else: x1_n := i__toNumber (x1_p) with err                                                    *)
 		(None,          cmd_tn_x2);       (*       x2_n := i__toNumber (x2_p) with err                                                    *)
 		(None,          cmd_ass_xrelse);  (* 	     x_relse := x1_n + x2_n                                                                 *)
@@ -368,22 +368,22 @@ let translate_binop_comparison x1 x2 x1_v x2_v is_first_first flag_arg bool_unde
 		(match is_first_first with
 		| true -> [ Var x1_v; Var x2_v ]
 		| false -> [ Var x2_v; Var x1_v ]) in
-	let cmd_ac = SLCall (x_ac, (Literal (String abstractComparisonName)), args @ [ Literal (Bool flag_arg) ], Some err) in
+	let cmd_ac = LCall (x_ac, (Literal (String abstractComparisonName)), args @ [ Literal (Bool flag_arg) ], Some err) in
 
 	(*  goto [ x_ac = undefined ] then end *)
 	let then_lab = fresh_label () in
 	let end_lab = fresh_label () in
-	let cmd_goto = SLGuardedGoto (BinOp (Var x_ac, Equal, Literal Undefined), then_lab, end_lab) in
+	let cmd_goto = LGuardedGoto (BinOp (Var x_ac, Equal, Literal Undefined), then_lab, end_lab) in
 
 	(* x_r := PHI(x_ac, x_undef) *)
 	let x_undef = fresh_var () in
 	let x_r = fresh_var () in
-	let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x_ac); (Var x_undef) |]) in
+	let cmd_ass_xr = LPhiAssignment (x_r, [| (Var x_ac); (Var x_undef) |]) in
 
 	let new_cmds = [
 		(None, cmd_ac);  	                                                          (*        x_ac := i__abstractComparison (xi_v, xk_v, flag_arg) with err; where: i != k and i,k \in {1,2}  *)
 		(None, cmd_goto);                                                             (*        goto [ x_ac = undefined ] then end                                                              *)
-		(Some then_lab, SLBasic (SAssignment (x_undef, Literal (Bool bool_undef))));  (* then:  x_undef := bool_undef                                                                           *)
+		(Some then_lab, LBasic (Assignment (x_undef, Literal (Bool bool_undef))));  (* then:  x_undef := bool_undef                                                                           *)
 		(Some end_lab, cmd_ass_xr)                                                    (* end:   x_r := PHI(x_ac, x_undef)                                                                       *)
 	] in
 	let errs = [ x_ac ] in
@@ -393,15 +393,15 @@ let translate_binop_comparison x1 x2 x1_v x2_v is_first_first flag_arg bool_unde
 let translate_bitwise_shift x1 x2 x1_v x2_v left_fun_name right_fun_name op err =
 	(* x1_f := left_fun_name (x1_v) with err *)
 	let x1_f = fresh_var () in
-	let cmd_fc_x1 = SLCall (x1_f, (Literal (String left_fun_name)), [ Var x1_v ], Some err) in
+	let cmd_fc_x1 = LCall (x1_f, (Literal (String left_fun_name)), [ Var x1_v ], Some err) in
 
 	(* x2_f := right_fun_name (x2_v) with err *)
 	let x2_f = fresh_var () in
-	let cmd_fc_x2 = SLCall (x2_f, (Literal (String right_fun_name)), [ Var x2_v ], Some err) in
+	let cmd_fc_x2 = LCall (x2_f, (Literal (String right_fun_name)), [ Var x2_v ], Some err) in
 
 	(* x_r := x1_f op x2_f *)
 	let x_r = fresh_var () in
-	let cmd_ass_xr = SLBasic (SAssignment (x_r, (BinOp (Var x1_f, op, Var x2_f)))) in
+	let cmd_ass_xr = LBasic (Assignment (x_r, (BinOp (Var x1_f, op, Var x2_f)))) in
 
 	let new_cmds = [
 		(None,  cmd_fc_x1);       (*  x1_f := left_fun_name (x1_v) with err     *)
@@ -419,7 +419,7 @@ let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
 		(match non_strict with
 		| true -> abstractEqualityComparisonName
 		| false -> strictEqualityComparisonName) in
-	let cmd_ass_xr1 = SLCall (x_r1, (Literal (String f_name)), [ Var x1_v; Var x2_v ], Some err) in
+	let cmd_ass_xr1 = LCall (x_r1, (Literal (String f_name)), [ Var x1_v; Var x2_v ], Some err) in
 
 	let cmd_ass_xr2, ret =
 		(match non_negated with
@@ -427,7 +427,7 @@ let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
 		| false ->
 			(let x_r2 = fresh_var () in
 			(* x_r2 := (not x_r1) *)
-			[ (None, SLBasic (SAssignment (x_r2, UnOp (Not, Var x_r1)))) ], x_r2)) in
+			[ (None, LBasic (Assignment (x_r2, UnOp (Not, Var x_r1)))) ], x_r2)) in
 
 	let new_cmds =	[
 		(None, cmd_ass_xr1)
@@ -451,7 +451,7 @@ let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err =
 
 	(*  x_r := (x1_i32 bbop x2_i32) *)
 	let x_r = fresh_var () in
-	let cmd_ass_xr = SLBasic (SAssignment (x_r, BinOp (Var x1_i32, bbop, Var x2_i32))) in
+	let cmd_ass_xr = LBasic (Assignment (x_r, BinOp (Var x1_i32, bbop, Var x2_i32))) in
 
 	let new_cmds =	[
 		(None, cmd_ti32_x1);
@@ -472,7 +472,7 @@ let make_check_empty_test x_prev x_new =
 		| Var x_prev -> x_prev, []
 		| Literal lit ->
 			let x_prev_var = fresh_var () in
-			let cmd_ass_prev = (None, SLBasic (SAssignment (x_prev_var, Literal lit))) in
+			let cmd_ass_prev = (None, LBasic (Assignment (x_prev_var, Literal lit))) in
 			x_prev_var, [ cmd_ass_prev ]
 		| _ -> raise (Failure "make_check_empty_test: x_prev needs to be either a literal or a var")) in
 
@@ -481,21 +481,21 @@ let make_check_empty_test x_prev x_new =
 		| Var x_new -> x_new, []
 		| Literal lit ->
 			let x_new_var = fresh_var () in
-			let cmd_ass_new = (None, SLBasic (SAssignment (x_new_var, Literal lit))) in
+			let cmd_ass_new = (None, LBasic (Assignment (x_new_var, Literal lit))) in
 			x_new_var, [ cmd_ass_new ]
 		| _ -> raise (Failure "make_check_empty_test: x_new needs to be either a literal or a var")) in
 
 	(* goto [x_new = empty] next1 next2 *)
 	let next1 = fresh_next_label () in
 	let next2 = fresh_next_label () in
-	let cmd_goto = (None, SLGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in
+	let cmd_goto = (None, LGuardedGoto (BinOp (Var x_new, Equal, Literal Empty), next1, next2)) in
 
 	(* next1: skip  *)
-	let cmd_skip = (Some next1, SLBasic SSkip) in
+	let cmd_skip = (Some next1, LBasic Skip) in
 
 	(* next2: x := PHI(x_new, x_previous) *)
 	let x = fresh_var () in
-	let cmd_phi = (Some next2, SLPhiAssignment (x, [| (Var x_new); (Var x_prev) |])) in
+	let cmd_phi = (Some next2, LPhiAssignment (x, [| (Var x_new); (Var x_prev) |])) in
 
 	cmd_ass_xprev @ cmd_ass_new @ [ cmd_goto; cmd_skip; cmd_phi], x
 
@@ -519,40 +519,40 @@ let make_loop_end cur_val_var prev_val_var break_vars end_lab cur_first =
 		| false -> break_vars @ [ cur_val_var ] in
 	let phi_args = List.map (fun x -> Var x) break_vars in
 	let phi_args = Array.of_list phi_args in
-	let cmd_ass_ret4 = SLPhiAssignment (x_ret_4, phi_args) in
+	let cmd_ass_ret4 = LPhiAssignment (x_ret_4, phi_args) in
 
 	(* goto [ x_ret_4 = empty ] next3 next4 *)
-	let cmd_goto = SLGuardedGoto ((BinOp (Var x_ret_4, Equal, Literal Empty), next3, next4)) in
+	let cmd_goto = LGuardedGoto ((BinOp (Var x_ret_4, Equal, Literal Empty), next3, next4)) in
 
 	(* next4:    x_ret_5 := PHI(x_ret_4, prev_val_var) *)
-	let cmd_ass_ret5 = SLPhiAssignment (x_ret_5, [| (Var x_ret_4); (Var prev_val_var) |]) in
+	let cmd_ass_ret5 = LPhiAssignment (x_ret_5, [| (Var x_ret_4); (Var prev_val_var) |]) in
 
 	let cmds = [
 		(Some end_lab, cmd_ass_ret4);    (* end_loop:   x_ret_4 := PHI(cur_val_var, break_vars) *)
 		(None,         cmd_goto);        (*             goto [ x_ret_4 = empty ] next3 next4  *)
-		(Some next3,   SLBasic SSkip);   (* next3:      skip                                    *)
+		(Some next3,   LBasic Skip);   (* next3:      skip                                    *)
 		(Some next4,   cmd_ass_ret5)     (* next4:      x_ret_5 := PHI(x_ret_4, prev_val_var)   *)
 	]	in
 	cmds, x_ret_5
 
 let is_get_value_call cmd =
 	match cmd with
-	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = getValueName)
+	| LCall (_, (Literal (String proc_name)), _, _) -> (proc_name = getValueName)
 	| _ -> false
 
 let is_put_value_call cmd =
 	match cmd with
-	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = putValueName)
+	| LCall (_, (Literal (String proc_name)), _, _) -> (proc_name = putValueName)
 	| _ -> false
 
 let is_hasProperty_call cmd =
 	match cmd with
-	| SLCall (_, (Literal (String proc_name)), _, _) -> (proc_name = hasPropertyName)
+	| LCall (_, (Literal (String proc_name)), _, _) -> (proc_name = hasPropertyName)
 	| _ -> false
 
 let get_args cmd =
 	match cmd with
-	| SLCall (_, (Literal (String proc_name)), args, _) -> Some args
+	| LCall (_, (Literal (String proc_name)), args, _) -> Some args
 	| _ -> None
 
 
@@ -673,11 +673,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x_sf := l-nth(x_sc, index) *)
 		let index = find_var_er_index x in
 		let x_sf = fresh_var () in
-		let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
+		let cmd_xsf_ass = LBasic (Assignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
 
 		(* x_ref := {{ v, x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
-		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
+		let cmd_xref_ass = LBasic (Assignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
 
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae, cmd_cae = make_cae_call (Var x_ref)  tr_ctx.tr_err in
@@ -700,11 +700,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x_sf := l-nth(x_sc, index) *)
 		let index = find_var_er_index x in
 		let x_sf = fresh_var () in
-		let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
+		let cmd_xsf_ass = LBasic (Assignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
 
 		(* x_ref := {{ v, x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
-		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
+		let cmd_xref_ass = LBasic (Assignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
 
 
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
@@ -731,13 +731,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let end_lab = fresh_end_label () in
 		let cmd_goto =
 			(match lbop with
-			| Parser_syntax.And -> SLGuardedGoto (Var x1_b, next, end_lab)
-			| Parser_syntax.Or -> SLGuardedGoto (Var x1_b, end_lab, next)) in
+			| Parser_syntax.And -> LGuardedGoto (Var x1_b, next, end_lab)
+			| Parser_syntax.Or -> LGuardedGoto (Var x1_b, end_lab, next)) in
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 err in
 		(* x_r := PHI(x1_v, x2_v) *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x1_v); (Var x2_v) |]) in
+		let cmd_ass_xr = LPhiAssignment (x_r, [| (Var x1_v); (Var x2_v) |]) in
 
 		let cmds2 = add_initial_label cmds2 next metadata in
 		let cmds = annotate_first_cmd (
@@ -772,7 +772,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			C(this) =  		x := __this
 		*)
 		let new_var = fresh_var () in
-		let cmd = SLBasic (SAssignment (new_var, (Var var_this))) in
+		let cmd = LBasic (Assignment (new_var, (Var var_this))) in
 		let cmds = annotate_first_cmd [
 			annotate_cmd cmd None
 		] in
@@ -797,31 +797,31 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let translate_var_not_found v =
 			(* 	x_1 := o__hasProperty($lg, "x") with err *)
 			let x_1 = fresh_var () in
-		  	let cmd_ass_x1 = SLCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some tr_ctx.tr_err) in
+		  	let cmd_ass_x1 = LCall (x_1, Literal (String hasPropertyName), [ Literal (Loc locGlobName); Literal (String v) ], Some tr_ctx.tr_err) in
 
 			(* goto [x_1] then else *)
 			let then_lab = fresh_then_label () in
 			let else_lab = fresh_else_label () in
 			let end_lab = fresh_end_label () in
-			let cmd_goto_unres_ref = SLGuardedGoto (Var x_1, then_lab, else_lab) in
+			let cmd_goto_unres_ref = LGuardedGoto (Var x_1, then_lab, else_lab) in
 
 			(* x_then := v-ref($lg, "x");   *)
 			let x_then = fresh_var () in
-			let cmd_ass_xthen = SLBasic (SAssignment (x_then, EList [lit_refv; lit_loc locGlobName; lit_str v]))  in
+			let cmd_ass_xthen = LBasic (Assignment (x_then, EList [lit_refv; lit_loc locGlobName; lit_str v]))  in
 
 			(* x_then := v-ref(undefined, "x");  *)
 			let x_else = fresh_var () in
-			let cmd_ass_xelse = SLBasic (SAssignment (x_else, EList [lit_refv; Literal Undefined; lit_str v])) in
+			let cmd_ass_xelse = LBasic (Assignment (x_else, EList [lit_refv; Literal Undefined; lit_str v])) in
 
 			(* x_r = PHI(x_then, x_else)  *)
 			let x_r = fresh_var () in
-		 	let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x_then); (Var x_else) |]) in
+		 	let cmd_ass_xr = LPhiAssignment (x_r, [| (Var x_then); (Var x_else) |]) in
 
 			let cmds = [
 				(None,          cmd_ass_x1);          (*       x_1 := o__hasProperty($lg, "x") with err    *)
 				(None,          cmd_goto_unres_ref);  (*       goto [x_1] then else                        *)
 				(Some then_lab, cmd_ass_xthen);       (* then: x_then := v-ref($lg, "x")                   *)
-				(None,          SLGoto end_lab);      (*       goto end                                    *)
+				(None,          LGoto end_lab);      (*       goto end                                    *)
 				(Some else_lab, cmd_ass_xelse);       (* else: x_else := v-ref(undefined, "x")           *)
 				(Some end_lab,  cmd_ass_xr)           (*       x_r = PHI(x_then, x_else)                   *)
 			] in
@@ -833,11 +833,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let translate_var_found v index =
 			(* x_1 := l-nth(x_sc, index) *)
 			let x_1 = fresh_var () in
-			let cmd_ass_x1 = SLBasic (SAssignment (x_1, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
+			let cmd_ass_x1 = LBasic (Assignment (x_1, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
 
 			(* x_r := {{ "v", x_1, "x" }} *)
 			let x_r = fresh_var () in
-			let cmd_ass_xret = SLBasic (SAssignment (x_r, EList [lit_refv; Var x_1; lit_str v])) in
+			let cmd_ass_xret = LBasic (Assignment (x_r, EList [lit_refv; Var x_1; lit_str v])) in
 
 			let cmds = [
 				(None, cmd_ass_x1);     (*   x_1 := l-nth(x_sc, index)    *)
@@ -868,19 +868,19 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		
 		(* xfvm := metadata (x_f_val) *)
 		let xarrm = fresh_var () in
-		let cmd_xarrm = annotate_cmd (SLBasic (SNew (xarrm, Some (Literal Null)))) None in
+		let cmd_xarrm = annotate_cmd (LBasic (New (xarrm, Some (Literal Null)))) None in
 		
 		(* x_arr := new () *)
 		let x_arr = fresh_obj_var () in
 		(* TODO: METADATA *)
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_arr, Some (Var xarrm)))) None in
+		let cmd_new_obj = annotate_cmd (LBasic (New (x_arr, Some (Var xarrm)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *)
 		let x_cdo = fresh_var () in
-		let cmd_cdo_call = annotate_cmd (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None)) None in
+		let cmd_cdo_call = annotate_cmd (LCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_arr; Literal (Loc locArrPrototype); Literal (String "Array") ], None)) None in
 
 		(* [x_arr, "length"] := {{ "d", num, true, false, false }} *)
-		let cmd_set_len num = annotate_cmd (SLBasic (SMutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ], None))) None in
+		let cmd_set_len num = annotate_cmd (LBasic (Mutation (Var x_arr,  Literal (String "length"), EList [ Literal (String "d"); Literal (Num (float_of_int num)); Literal (Bool true); Literal (Bool false); Literal (Bool false) ], None))) None in
 
     	let translate_array_property_definition x_obj e err num =
 			let cmds, x, errs = f e in
@@ -889,7 +889,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(* x_desc := {{ "d", x_v, true, true, true}}  *)
 			let x_desc = fresh_desc_var () in
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in
+			let cmd_ass_xdesc = LBasic (Assignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in
 
 			let prop = Literal (String (string_of_int num)) in
 
@@ -960,15 +960,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* xfvm := metadata (x_f_val) *)
 		let x_obj_m = fresh_var () in
-		let cmd_xobjm = annotate_cmd (SLBasic (SNew (x_obj_m, Some (Literal Null)))) None in
+		let cmd_xobjm = annotate_cmd (LBasic (New (x_obj_m, Some (Literal Null)))) None in
 		
 		(* x_obj := new () *)
 		let x_obj = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_obj, Some (Var x_obj_m)))) None in
+		let cmd_new_obj = annotate_cmd (LBasic (New (x_obj, Some (Var x_obj_m)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $lobj_proto) *)
 		let x_cdo = fresh_var () in
-		let cmd_cdo_call = annotate_cmd (SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_obj; Literal (Loc locObjPrototype) ], None)) None in
+		let cmd_cdo_call = annotate_cmd (LCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_obj; Literal (Loc locObjPrototype) ], None)) None in
 
 		let translate_property_name pname =
 			(match pname with
@@ -983,7 +983,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(* x_desc := {{ "d", x_v, true, true, true}}  *)
 			let x_desc = fresh_desc_var () in
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in
+			let cmd_ass_xdesc = LBasic (Assignment (x_desc, EList [ Literal (String "d"); Var x_v; Literal (Bool true); Literal (Bool true); Literal (Bool true) ] )) in
 
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
 			let x_dop, cmd_dop_x = make_dop_call x_obj prop x_desc true err in
@@ -1014,7 +1014,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				match is_getter with
 				| true ->  [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Var x_f; Literal Empty ]
 				| false -> [ Literal (String "g"); Literal (Bool true); Literal (Bool true); Literal Empty; Literal Empty; Literal Empty; Var x_f ] in
-			let cmd_ass_xdesc = SLBasic (SAssignment (x_desc, EList desc_params)) in
+			let cmd_ass_xdesc = LBasic (Assignment (x_desc, EList desc_params)) in
 
 			(* x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err *)
 			let x_dop, cmd_dop_x = make_dop_call x_obj prop x_desc true err in
@@ -1066,14 +1066,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_oc := i__checkObjectCoercible (x1_v) with err *)
 		let x_oc = fresh_var () in
-		let cmd_coc_x1 = SLCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x1_v ], Some tr_ctx.tr_err) in
+		let cmd_coc_x1 = LCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x1_v ], Some tr_ctx.tr_err) in
 
 		(* x2_s := i__toString (x2_v) with err *)
 		let x2_s, cmd_ts_x2 = make_to_string_call x2 x2_v tr_ctx.tr_err in
 
 		(* 	x_r := ref-o(x1_v, x2_s) *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, EList [lit_refo; Var x1_v; Var x2_s])) in
+		let cmd_ass_xr = LBasic (Assignment (x_r, EList [lit_refo; Var x1_v; Var x2_s])) in
 
 		let cmds =  annotate_first_cmd (cmds1 @ [              (* cmds1                       *)
 			(annotate_cmd cmd_gv_x1 None) (* x1_v := i__getValue (x1) with err                *)
@@ -1105,11 +1105,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_oc := i__checkObjectCoercible (x_v) with err *)
 		let x_oc = fresh_var () in
-		let cmd_coc_x = SLCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x_v ], Some tr_ctx.tr_err) in
+		let cmd_coc_x = LCall (x_oc, Literal (String checkObjectCoercibleName), [ Var x_v ], Some tr_ctx.tr_err) in
 
 		(* 	x_r := ref-o(x_v, "p") *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLBasic (SAssignment (x_r, EList [lit_refo; Var x_v; lit_str p])) in
+		let cmd_ass_xr = LBasic (Assignment (x_r, EList [lit_refo; Var x_v; lit_str p])) in
 
 		let cmds = annotate_first_cmd (
 			cmds @ (annotate_cmds [           (* cmds                                             *)
@@ -1161,48 +1161,48 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
 		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
-		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
+		let cmd_goto_is_obj = LGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 		
 		(* xfvm := metadata (x_f_val) *)
 		let xfvm = fresh_var () in
-		let cmd_xfvm = SLBasic (MetaData (xfvm, Var x_f_val)) in
+		let cmd_xfvm = LBasic (MetaData (xfvm, Var x_f_val)) in
 
 		(* x_hp := [xfvm, "@construct"]; *)
 		let x_hp = fresh_var () in
-		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var xfvm, Literal (String _constructPropName))) in
+		let cmd_hf_construct = LBasic (HasField (x_hp, Var xfvm, Literal (String _constructPropName))) in
 
 		(* goto [ x_hp = empty ] err next2; *)
 		let call = fresh_then_label () in
 		let get_bt = fresh_then_label () in
 		let jump = if_verification call get_bt in
-		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, jump, tr_ctx.tr_err) in
+		let cmd_goto_xhp = LGuardedGoto (Var x_hp, jump, tr_ctx.tr_err) in
 
 		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SHasField (x_bt, Var xfvm, Literal (String "@boundThis"))) in
+		let cmd_get_bt = LBasic (HasField (x_bt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_bt) in
-		let cmd_bind_test = SLGuardedGoto (goto_guard_expr, bind, call) in
+		let cmd_bind_test = LGuardedGoto (goto_guard_expr, bind, call) in
 
 		(* BIND *)
 
 		let x_ba = fresh_var () in
-		let cmd_get_ba = SLBasic (SLookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
+		let cmd_get_ba = LBasic (Lookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
 
 		let x_tf = fresh_var () in
-		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
+		let cmd_get_tf = LBasic (Lookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
 
 		(* xfvm := metadata (x_f_val) *)
 		let xbthism = fresh_var () in
-		let cmd_xbthism = SLBasic (SNew (xbthism, Some (Literal Null))) in
+		let cmd_xbthism = LBasic (New (xbthism, Some (Literal Null))) in
 
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
-		let cmd_bcreate_xobj = SLBasic (SNew (x_bthis, Some (Var xbthism))) in
+		let cmd_bcreate_xobj = LBasic (New (x_bthis, Some (Var xbthism))) in
 
 		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *)
 		let x_bref_fprototype = fresh_var () in
-		let cmd_bass_xreffprototype = SLBasic (SAssignment (x_bref_fprototype, EList [lit_refo; Var x_tf; lit_str "prototype"])) in
+		let cmd_bass_xreffprototype = LBasic (Assignment (x_bref_fprototype, EList [lit_refo; Var x_tf; lit_str "prototype"])) in
 
 		(* x_bf_prototype := i__getValue(x_bref_prototype) with err; *)
 		let x_bf_prototype, cmd_bgv_xreffprototype, errs_bf_prototype = make_get_value_call (Var x_bref_fprototype) tr_ctx.tr_err in
@@ -1210,64 +1210,64 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let bthen1 = fresh_then_label () in
 		let belse1 = fresh_else_label () in
 		let goto_guard_expr = BinOp (TypeOf (Var x_bf_prototype), Equal, Literal (Type ObjectType)) in
-		let cmd_bis_object = SLGuardedGoto (goto_guard_expr, belse1, bthen1) in
+		let cmd_bis_object = LGuardedGoto (goto_guard_expr, belse1, bthen1) in
 
 		let x_bwhyGodwhy = fresh_var () in
-		let cmd_bset_proto = SLBasic (SAssignment (x_bwhyGodwhy, Literal (Loc locObjPrototype))) in
+		let cmd_bset_proto = LBasic (Assignment (x_bwhyGodwhy, Literal (Loc locObjPrototype))) in
 
 		let x_bprototype = fresh_var () in
-		let cmd_bproto_phi = SLPhiAssignment (x_bprototype, [| Var x_bf_prototype; Var x_bwhyGodwhy |]) in
+		let cmd_bproto_phi = LPhiAssignment (x_bprototype, [| Var x_bf_prototype; Var x_bwhyGodwhy |]) in
 
 		(* x_cdo := i__createDefaultObject (x_this, x_f_prototype); *)
 		let x_bcdo = fresh_var () in
-		let cmd_bcdo_call = SLCall (x_bcdo, Literal (String createDefaultObjectName), [ Var x_bthis; Var x_bprototype ], None) in
+		let cmd_bcdo_call = LCall (x_bcdo, Literal (String createDefaultObjectName), [ Var x_bthis; Var x_bprototype ], None) in
 
 		(* xtfm := metadata (x_tf) *)
 		let xtfm = fresh_var () in
-		let cmd_xtfm = SLBasic (MetaData (xtfm, Var x_tf)) in
+		let cmd_xtfm = LBasic (MetaData (xtfm, Var x_tf)) in
 
 		let x_bbody = fresh_body_var () in
-		let cmd_bbody = SLBasic (SLookup (x_bbody, Var xtfm, Literal (String _constructPropName))) in
+		let cmd_bbody = LBasic (Lookup (x_bbody, Var xtfm, Literal (String _constructPropName))) in
 
 		let x_bfscope = fresh_fscope_var () in
-		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var xtfm, Literal (String _scopePropName))) in
+		let cmd_bscope = LBasic (Lookup (x_bfscope, Var xtfm, Literal (String _scopePropName))) in
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
+		let cmd_append = LBasic (Assignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
 
 		let x_bconstruct = fresh_var () in
-		let cmd_bind = SLApply (x_bconstruct, [ Var x_params ], Some tr_ctx.tr_err) in
+		let cmd_bind = LApply (x_bconstruct, [ Var x_params ], Some tr_ctx.tr_err) in
 
 		(* goto [ x_bconstruct = empty ] next3 next4; *)
 		let bnext3 = fresh_next_label () in
 		let bnext4 = fresh_next_label () in
 		let goto_guard_expr = BinOp (TypeOf (Var x_bconstruct), Equal, Literal (Type ObjectType)) in
-		let cmd_bgoto_test_type = SLGuardedGoto (goto_guard_expr, bnext4, bnext3) in
+		let cmd_bgoto_test_type = LGuardedGoto (goto_guard_expr, bnext4, bnext3) in
 
 		(* next3: skip; *)
-		let cmd_bret_this = SLBasic SSkip in
+		let cmd_bret_this = LBasic Skip in
 
 		(* next4: x_rbind := PHI(x_bconstruct, x_bt) *)
 		let x_rbind = fresh_var () in
-		let cmd_bphi_final = SLPhiAssignment (x_rbind, [| Var x_bconstruct; Var x_bthis |]) in
+		let cmd_bphi_final = LPhiAssignment (x_rbind, [| Var x_bconstruct; Var x_bthis |]) in
 
 		(* SYNC *)
 
 		let join = fresh_label () in
-		let cmd_sync = SLGoto join in 
+		let cmd_sync = LGoto join in 
 
 		(* xfvm := metadata (x_f_val) *)
 		let xthism = fresh_var () in
-		let cmd_xobjm = SLBasic (SNew (xthism, Some (Literal Null))) in
+		let cmd_xobjm = LBasic (New (xthism, Some (Literal Null))) in
 
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in
-		let cmd_create_xobj = SLBasic (SNew (x_this, Some (Var xthism))) in
+		let cmd_create_xobj = LBasic (New (x_this, Some (Var xthism))) in
 
 		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *)
 		let x_ref_fprototype = fresh_var () in
-		let cmd_ass_xreffprototype = SLBasic (SAssignment (x_ref_fprototype, EList [lit_refo; Var x_f_val; lit_str "prototype"])) in
+		let cmd_ass_xreffprototype = LBasic (Assignment (x_ref_fprototype, EList [lit_refo; Var x_f_val; lit_str "prototype"])) in
 
 		(* x_f_prototype := i__getValue(x_ref_prototype) with err; *)
 		let x_f_prototype, cmd_gv_xreffprototype, errs_xf_prototype = make_get_value_call (Var x_ref_fprototype) tr_ctx.tr_err in
@@ -1275,46 +1275,46 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let then1 = fresh_then_label () in
 		let else1 = fresh_else_label () in
 		let goto_guard_expr = BinOp (TypeOf (Var x_f_prototype), Equal, Literal (Type ObjectType)) in
-		let cmd_is_object = SLGuardedGoto (goto_guard_expr, else1, then1) in
+		let cmd_is_object = LGuardedGoto (goto_guard_expr, else1, then1) in
 
 		let x_whyGodwhy = fresh_var () in
-		let cmd_set_proto = SLBasic (SAssignment (x_whyGodwhy, Literal (Loc locObjPrototype))) in
+		let cmd_set_proto = LBasic (Assignment (x_whyGodwhy, Literal (Loc locObjPrototype))) in
 
 		let x_prototype = fresh_var () in
-		let cmd_proto_phi = SLPhiAssignment (x_prototype, [| (Var x_f_prototype); (Var x_whyGodwhy) |]) in
+		let cmd_proto_phi = LPhiAssignment (x_prototype, [| (Var x_f_prototype); (Var x_whyGodwhy) |]) in
 
 		(* x_cdo := i__createDefaultObject (x_this, x_f_prototype); *)
 		let x_cdo = fresh_var () in
-		let cmd_cdo_call = SLCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_prototype ], None) in
+		let cmd_cdo_call = LCall (x_cdo, Literal (String createDefaultObjectName), [ Var x_this; Var x_prototype ], None) in
 
 		(* x_body := [xfvm, "@construct"];  *)
 		let x_body = fresh_body_var () in
-		let cmd_body = SLBasic (SLookup (x_body, Var xfvm, Literal (String _constructPropName))) in
+		let cmd_body = LBasic (Lookup (x_body, Var xfvm, Literal (String _constructPropName))) in
 
 		(* x_fscope := [xfvm, "@scope"]; *)
 		let x_fscope = fresh_fscope_var () in
-		let cmd_scope = SLBasic (SLookup (x_fscope, Var xfvm, Literal (String _scopePropName))) in
+		let cmd_scope = LBasic (Lookup (x_fscope, Var xfvm, Literal (String _scopePropName))) in
 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_r1 = fresh_var () in
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in
-		let cmd_proc_call = SLCall (x_r1, (Var x_body), proc_args, Some tr_ctx.tr_err) in
+		let cmd_proc_call = LCall (x_r1, (Var x_body), proc_args, Some tr_ctx.tr_err) in
 
 		(* goto [ x_r1 = empty ] next3 next4; *)
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
 		let goto_guard_expr = BinOp (TypeOf (Var x_r1), Equal, Literal (Type ObjectType)) in
-		let cmd_goto_test_type = SLGuardedGoto (goto_guard_expr, next4, next3) in
+		let cmd_goto_test_type = LGuardedGoto (goto_guard_expr, next4, next3) in
 
 		(* next3: skip; *)
-		let cmd_ret_this = SLBasic SSkip in
+		let cmd_ret_this = LBasic Skip in
 
 		(* next4: x_r2 := PHI(x_r1, x_this) *)
 		let x_rcall = fresh_var () in
-		let cmd_phi_final = SLPhiAssignment (x_rcall, [| (Var x_r1); (Var x_this) |]) in
+		let cmd_phi_final = LPhiAssignment (x_rcall, [| (Var x_r1); (Var x_this) |]) in
 
 		let x_final = fresh_var () in
-		let cmd_phi_join = SLPhiAssignment (x_final, [| Var x_rbind; Var x_rcall |]) in 
+		let cmd_phi_join = LPhiAssignment (x_final, [| Var x_rbind; Var x_rcall |]) in 
 
 		let cmds = annotate_first_cmd (
 			cmds_ef @ [                             (*        cmds_ef                                                                 *)
@@ -1417,113 +1417,113 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
 		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
-		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
+		let cmd_goto_is_obj = LGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 
 		(* next1: x_ic := isCallable(x_f_val); *)
 		let x_ic = fresh_var () in
-		let cmd_ic = SLCall (x_ic, Literal (String isCallableName), [ Var x_f_val ], None) in
+		let cmd_ic = LCall (x_ic, Literal (String isCallableName), [ Var x_f_val ], None) in
 
 		(* goto [ x_ic ] getbt err; -> typeerror *)
 
 		let call = fresh_label () in
 		let get_bt = fresh_next_label () in
 		let jump = if_verification call get_bt in
-		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, jump, tr_ctx.tr_err) in
+		let cmd_goto_is_callable = LGuardedGoto (Var x_ic, jump, tr_ctx.tr_err) in
 
 		let xfvm = fresh_var () in
-		let cmd_xfvm = SLBasic (MetaData (xfvm, Var x_f_val)) in
+		let cmd_xfvm = LBasic (MetaData (xfvm, Var x_f_val)) in
 
 		let x_ibt = fresh_var () in
-		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var xfvm, Literal (String "@boundThis"))) in
+		let cmd_get_ibt = LBasic (HasField (x_ibt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_ibt) in
-		let cmd_bind_test = SLGuardedGoto (goto_guard_expr, bind, call) in
+		let cmd_bind_test = LGuardedGoto (goto_guard_expr, bind, call) in
 
 		(* BIND *)
 
 		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SLookup (x_bt, Var xfvm, Literal (String "@boundThis"))) in
+		let cmd_get_bt = LBasic (Lookup (x_bt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let x_ba = fresh_var () in
-		let cmd_get_ba = SLBasic (SLookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
+		let cmd_get_ba = LBasic (Lookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
 
 		let x_tf = fresh_var () in
-		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
+		let cmd_get_tf = LBasic (Lookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
 
 		(* xtfm := metadata (x_tf) *)
 		let xtfm = fresh_var () in
-		let cmd_xtfm = SLBasic (MetaData (xtfm, Var x_tf)) in
+		let cmd_xtfm = LBasic (MetaData (xtfm, Var x_tf)) in
 
 		let x_bbody = fresh_body_var () in
-		let cmd_bbody = SLBasic (SLookup (x_bbody, Var xtfm, Literal (String _callPropName))) in
+		let cmd_bbody = LBasic (Lookup (x_bbody, Var xtfm, Literal (String _callPropName))) in
 
 		let x_bfscope = fresh_fscope_var () in
-		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var xtfm, Literal (String _scopePropName))) in
+		let cmd_bscope = LBasic (Lookup (x_bfscope, Var xtfm, Literal (String _scopePropName))) in
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
-		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
+		let cmd_append = LBasic (Assignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
 
 		let x_rbind = fresh_var () in
-		let cmd_bind = SLApply (x_rbind, [ Var x_params ], Some tr_ctx.tr_err) in
+		let cmd_bind = LApply (x_rbind, [ Var x_params ], Some tr_ctx.tr_err) in
 
 		(* SYNC *)
 
 		let join = fresh_label () in
-		let cmd_sync = SLGoto join in 
+		let cmd_sync = LGoto join in 
 
 		(* join: goto [ typeOf(x_f) = ObjReference ] then else;  *)
 		let then_lab = fresh_then_label () in
 		let else_lab = fresh_else_label () in
 		let end_lab = fresh_endif_label () in
 		let goto_guard_expr = is_oref x_ef in
-		let cmd_goto_obj_ref = SLGuardedGoto (goto_guard_expr, then_lab, else_lab) in
+		let cmd_goto_obj_ref = LGuardedGoto (goto_guard_expr, then_lab, else_lab) in
 
 		(* then: x_then_this := base(x_f); *)
 		let x_this_then = fresh_this_var () in
-		let cmd_this_base = SLBasic (SAssignment (x_this_then, base x_ef)) in
+		let cmd_this_base = LBasic (Assignment (x_this_then, base x_ef)) in
 
 		(*  goto end; *)
-		let cmd_goto_end = SLGoto end_lab in
+		let cmd_goto_end = LGoto end_lab in
 
 		(* else: x_else_this := undefined; *)
 		let x_this_else = fresh_this_var () in
-		let cmd_this_undefined = SLBasic (SAssignment (x_this_else, Literal Undefined)) in
+		let cmd_this_undefined = LBasic (Assignment (x_this_else, Literal Undefined)) in
 
 		(* end: x_this := PHI(x_then_this, x_else_this) *)
 		let x_this = fresh_this_var () in
-		let cmd_ass_xthis = SLPhiAssignment (x_this, [| (Var x_this_then); (Var x_this_else) |]) in
+		let cmd_ass_xthis = LPhiAssignment (x_this, [| (Var x_this_then); (Var x_this_else) |]) in
 
 		(* x_body := [x_f_val, "@call"]; *)
 		let x_body = fresh_body_var () in
-		let cmd_body = SLBasic (SLookup (x_body, Var xfvm, Literal (String _callPropName))) in
+		let cmd_body = LBasic (Lookup (x_body, Var xfvm, Literal (String _callPropName))) in
 
 		(* x_fscope := [x_f_val, "@scope"]; *)
 		let x_fscope = fresh_fscope_var () in
-		let cmd_scope = SLBasic (SLookup (x_fscope, Var xfvm, Literal (String _scopePropName))) in
+		let cmd_scope = LBasic (Lookup (x_fscope, Var xfvm, Literal (String _scopePropName))) in
 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_rcall = fresh_var () in
 		let proc_args = (Var x_fscope) :: (Var x_this) :: x_args_gv in
-		let cmd_proc_call = SLCall (x_rcall, (Var x_body), proc_args, Some tr_ctx.tr_err) in
+		let cmd_proc_call = LCall (x_rcall, (Var x_body), proc_args, Some tr_ctx.tr_err) in
 
 		let x_r1 = fresh_var () in
-		let cmd_phi_join = SLPhiAssignment (x_r1, [| (Var x_rbind); (Var x_rcall) |]) in 
+		let cmd_phi_join = LPhiAssignment (x_r1, [| (Var x_rbind); (Var x_rcall) |]) in 
 
 		(* goto [ x_r1 = empty ] next3 next4; *)
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
 		let goto_guard_expr = BinOp (Var (if_verification x_rcall x_r1), Equal, Literal Empty) in
-		let cmd_goto_test_empty = SLGuardedGoto (goto_guard_expr, next3, next4) in
+		let cmd_goto_test_empty = LGuardedGoto (goto_guard_expr, next3, next4) in
 
 		(* next3: x_r2 := undefined; *)
 		let x_r2 = fresh_var () in
-		let cmd_ret_undefined = SLBasic (SAssignment (x_r2, Literal Undefined)) in
+		let cmd_ret_undefined = LBasic (Assignment (x_r2, Literal Undefined)) in
 
 		(* next4: x_r3 := PHI(x_r1, x_r2) *)
 		let x_r3 = fresh_var () in
-		let cmd_phi_final = SLPhiAssignment (x_r3, [| Var (if_verification x_rcall x_r1); Var x_r2 |]) in
+		let cmd_phi_final = LPhiAssignment (x_r3, [| Var (if_verification x_rcall x_r1); Var x_r2 |]) in
 
 		let cmds = annotate_first_cmd (
 			cmds_ef @ [                             (*        cmds_ef                                                                   *)
@@ -1645,22 +1645,22 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
 		let goto_guard = is_ref x in
-		let cmd_goto_isref = SLGuardedGoto (goto_guard, next1, next4) in
+		let cmd_goto_isref = LGuardedGoto (goto_guard, next1, next4) in
 
 		(* next1: goto [ ((base(x) = null) or (base(x) = undefined)) ] err next2 *)
-		let cmd_goto_is_resolvable_ref = SLGuardedGoto (make_unresolvable_ref_test x , tr_ctx.tr_err, next2) in
+		let cmd_goto_is_resolvable_ref = LGuardedGoto (make_unresolvable_ref_test x , tr_ctx.tr_err, next2) in
 
 		(* next2: goto [ (typeOf x) = $$v-reference_type ] err next3 *)
 		let goto_guard = is_vref x in
-		let cmd_goto_is_vref = SLGuardedGoto (goto_guard, tr_ctx.tr_err, next3) in
+		let cmd_goto_is_vref = LGuardedGoto (goto_guard, tr_ctx.tr_err, next3) in
 
 		(* next3: x_obj := toObject(base(x)) err *)
 		let x_obj = fresh_obj_var () in
-		let cmd_to_obj = SLCall (x_obj, lit_str toObjectName, [ (base x) ], Some tr_ctx.tr_err) in
+		let cmd_to_obj = LCall (x_obj, lit_str toObjectName, [ (base x) ], Some tr_ctx.tr_err) in
 
 		(* x_r1 := deleteProperty(x_obj, field(x), true) with err *)
 		let x_r1 = fresh_var () in
-		let cmd_delete = SLCall (x_r1, lit_str deletePropertyName,
+		let cmd_delete = LCall (x_r1, lit_str deletePropertyName,
 			[ (Var x_obj); (field x); (Literal (Bool true)) ], Some tr_ctx.tr_err) in
 
 		let x_r2 = fresh_var () in
@@ -1673,9 +1673,9 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some next2, cmd_goto_is_vref);                                             (* next2: goto [ (typeOf x) = $$v-reference_type ] err next3                       *)
 			(Some next3, cmd_to_obj);                                                   (* next3: x_obj := toObject(base(x)) err3                                          *)
 			(None,       cmd_delete);                                                   (*        x_r1 := deleteProperty(x_obj, field(x), true) with err                    *)
-			(None,       SLGoto next5);                                                 (*        goto next5                                                               *)
-			(Some next4, SLBasic (SAssignment (x_r2, Literal (Bool true))));            (* next4: x_r2 := true                                                              *)
-			(Some next5, SLPhiAssignment (x_r, [| (Var x_r1); (Var x_r2) |]))           (* next5: x_r := PHI(x_r1, x_r2)                                                   *)
+			(None,       LGoto next5);                                                 (*        goto next5                                                               *)
+			(Some next4, LBasic (Assignment (x_r2, Literal (Bool true))));            (* next4: x_r2 := true                                                              *)
+			(Some next5, LPhiAssignment (x_r, [| (Var x_r1); (Var x_r2) |]))           (* next5: x_r := PHI(x_r1, x_r2)                                                   *)
 		])) in
 		let errs = errs @ [ var_se; var_se; x_obj; x_r1 ] in
 		cmds, Var x_r, errs
@@ -1695,7 +1695,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_r = fresh_var () in
 		let cmds = annotate_first_cmd ( cmds @ (annotate_cmds [        (*  cmds                                *)
 			(None, cmd_gv_x);                                          (*  x_v := getValue (x) with err        *)
-			(None, SLBasic (SAssignment (x_r, Literal Undefined)));    (*  x_r := undefined                  *)
+			(None, LBasic (Assignment (x_r, Literal Undefined)));    (*  x_r := undefined                  *)
 		])) in
 		let errs = errs @ errs_x_v in
 		cmds, Var x_r, errs
@@ -1724,29 +1724,29 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
 		let cmd_goto_ref_guard = is_ref x in
-		let cmd_goto_ref = SLGuardedGoto (cmd_goto_ref_guard, next1, next4) in
+		let cmd_goto_ref = LGuardedGoto (cmd_goto_ref_guard, next1, next4) in
 
 		(* goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] next2 next3 *)
-		let cmd_goto_unres_ref = SLGuardedGoto (make_unresolvable_ref_test x, next2, next3) in
+		let cmd_goto_unres_ref = LGuardedGoto (make_unresolvable_ref_test x, next2, next3) in
 
 		(* x2 := getValue (x) with err *)
 		let x1 = fresh_var () in
 		let x2 = fresh_var () in
-		let cmd_gv_x = SLCall (x2, (Literal (String getValueName)), [ x ], Some tr_ctx.tr_err) in
+		let cmd_gv_x = LCall (x2, (Literal (String getValueName)), [ x ], Some tr_ctx.tr_err) in
 
 		(* x_r := i__typeOf (x3) with err *)
 		let x3 = fresh_var () in
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, (Literal (String jsTypeOfName)), [ Var x3 ], Some tr_ctx.tr_err) in
+		let cmd_ass_xr = LCall (x_r, (Literal (String jsTypeOfName)), [ Var x3 ], Some tr_ctx.tr_err) in
 
 		let cmds = annotate_first_cmd (
 		    cmds @ (annotate_cmds [                                                              (*             cmds                                                  *)
 			(None, cmd_goto_ref);                                                                (*             goto [ typeof (x) <: $$reference-type ] next1 next4   *)
 			(Some next1, cmd_goto_unres_ref);                                                    (* next1:      goto [ base(x) = undefined] next2 next3               *)
-			(Some next2, SLBasic (SAssignment (x1, Literal Undefined)));                         (* next2:      x1 := undefined                                     *)
-			(None,       SLGoto next4);                                                          (*             goto next4                                            *)
+			(Some next2, LBasic (Assignment (x1, Literal Undefined)));                         (* next2:      x1 := undefined                                     *)
+			(None,       LGoto next4);                                                          (*             goto next4                                            *)
 			(Some next3, cmd_gv_x);                                                              (* next3:      x2 := getValue (x) with err                           *)
-			(Some next4, SLPhiAssignment (x3, [| (Var x_name); (Var x1); (Var x2) |]));          (* next4:      x3 := PHI (x, x1, x2)                                 *)
+			(Some next4, LPhiAssignment (x3, [| (Var x_name); (Var x1); (Var x2) |]));          (* next4:      x3 := PHI (x, x1, x2)                                 *)
 			(None,       cmd_ass_xr)                                                             (*             x_r := i__typeOf (x3) with err                        *)
 		])) in
 		let errs = errs @ [ x2; x_r ] in
@@ -1837,19 +1837,19 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let then_lab = fresh_then_label () in
 		let else_lab = fresh_else_label () in
 		let end_lab = fresh_endif_label () in
-		let cmd_goto_nan = SLGuardedGoto (BinOp (Var x_n, Equal, Literal (Num nan)), then_lab, else_lab) in
+		let cmd_goto_nan = LGuardedGoto (BinOp (Var x_n, Equal, Literal (Num nan)), then_lab, else_lab) in
 
 		(* then: x_then := nan *)
 		let x_then = fresh_var () in
-		let cmd_ass_xthen = SLBasic (SAssignment (x_then, Literal (Num nan))) in
+		let cmd_ass_xthen = LBasic (Assignment (x_then, Literal (Num nan))) in
 
 		(* else: x_else := (negative x_n) *)
 		let x_else = fresh_var () in
-		let cmd_ass_xelse = SLBasic (SAssignment (x_else, UnOp (UnaryMinus, (Var x_n)))) in
+		let cmd_ass_xelse = LBasic (Assignment (x_else, UnOp (UnaryMinus, (Var x_n)))) in
 
 		(* end:  x_r := PHI(x_then, x_else) *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x_then); (Var x_else) |]) in
+		let cmd_ass_xr = LPhiAssignment (x_r, [| (Var x_then); (Var x_else) |]) in
 
 		let cmds = annotate_first_cmd (
 		    cmds @ (annotate_cmds [                 (*            cmds                                *)
@@ -1857,7 +1857,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,          cmd_tn_x);              (*            x_n := i__toNumber (x_v) with err   *)
 			(None,          cmd_goto_nan);          (*            goto [x_n = nan] then else          *)
 			(Some then_lab, cmd_ass_xthen);         (* then:      x_then := nan                       *)
-			(None,          SLGoto end_lab);        (*            goto end                            *)
+			(None,          LGoto end_lab);        (*            goto end                            *)
 			(Some else_lab, cmd_ass_xelse);         (* else:      x_else := (negative x_n)            *)
 			(Some end_lab,  cmd_ass_xr)             (* end:       x_r := PHI(x_then, x_else)          *)
 		])) in
@@ -1890,8 +1890,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		    cmds @ (annotate_cmds [                                                  (*  cmds                                *)
 			(None, cmd_gv_x);                                                        (*  x_v := i__getValue (x) with err     *)
 			(None, cmd_tn_x);                                                        (*  x_n := i__toNumber (x_v) with err   *)
-			(None, SLBasic (SAssignment (x_i32, UnOp (ToInt32Op, Var x_n))));        (*  x_i32 := (num_to_int32 x_n)         *)
-			(None, SLBasic (SAssignment (x_r, UnOp (BitwiseNot, Var x_i32))))        (*  x_r := (! x_i32)                    *)
+			(None, LBasic (Assignment (x_i32, UnOp (ToInt32Op, Var x_n))));        (*  x_i32 := (num_to_int32 x_n)         *)
+			(None, LBasic (Assignment (x_r, UnOp (BitwiseNot, Var x_i32))))        (*  x_r := (! x_i32)                    *)
 		])) in
 		let errs = errs @ errs_x_v @ [ x_n ] in
 		cmds, Var x_r, errs
@@ -1917,7 +1917,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(*  x_r := (not x_b)   *)
 		let x_r = fresh_var () in
-		let cmd_xr_ass = SLBasic (SAssignment (x_r, UnOp (Not, Var x_b))) in
+		let cmd_xr_ass = LBasic (Assignment (x_r, UnOp (Not, Var x_b))) in
 
 		let cmds = annotate_first_cmd (
 		    cmds @ (annotate_cmds [            (* cmds                               *)
@@ -2147,7 +2147,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v false false true tr_ctx.tr_err in
 		let x_r2 = fresh_var () in
-		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
+		let new_cmd = LBasic (Assignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = annotate_first_cmd (cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ]) in
 		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r2, errs
@@ -2178,7 +2178,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let new_cmds, new_errs, x_r1 = translate_binop_comparison x1 x2 x1_v x2_v true true true tr_ctx.tr_err in
 		let x_r2 = fresh_var () in
-		let new_cmd = SLBasic (SAssignment (x_r2, UnOp (Not, (Var x_r1)))) in
+		let new_cmd = LBasic (Assignment (x_r2, UnOp (Not, (Var x_r1)))) in
 		let cmds = annotate_first_cmd (cmds1 @ [ annotate_cmd cmd_gv_x1 None ] @ cmds2 @ [ annotate_cmd cmd_gv_x2 None ] @ (annotate_cmds new_cmds) @ [ annotate_cmd new_cmd None ]) in
 		let errs = errs1 @ errs_x1_v @ errs2 @ errs_x2_v @ new_errs in
 		cmds, Var x_r2, errs
@@ -2210,23 +2210,23 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* goto [ (typeOf x2_v) = Obj ] next1 err *)
 		let next1 = fresh_label () in
-		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
+		let cmd_goto_ot = LGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
 		(* get the metadata *)
 		let x2vm = fresh_var () in
-		let cmd_x2vm = SLBasic (MetaData (x2vm, Var x2_v)) in
+		let cmd_x2vm = LBasic (MetaData (x2vm, Var x2_v)) in
 
 		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in
-		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2vm, Literal (String "@class"))) in
+		let cmd_hasfield = LBasic (Lookup (x_cond, Var x2vm, Literal (String "@class"))) in
 
 		(* goto [ x_cond = empty ] err next2 *)
 		let next2 = fresh_label () in
-		let cmd_goto_xcond = SLGuardedGoto (BinOp (Var x_cond, Equal, Literal (String "Function")), next2, tr_ctx.tr_err) in
+		let cmd_goto_xcond = LGuardedGoto (BinOp (Var x_cond, Equal, Literal (String "Function")), next2, tr_ctx.tr_err) in
 
 		(* x_r := x_hi (x2_v, x1_v) with err *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some tr_ctx.tr_err) in
+		let cmd_ass_xr = LCall (x_r, Literal (String "hasInstance"), [Var x2_v; Var x1_v], Some tr_ctx.tr_err) in
 
 		let cmds = annotate_first_cmd (
 			cmds1 @ [                           (*        cmds1                                     *)
@@ -2267,14 +2267,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* goto [ (typeOf x2_v) = Obj ] next1 err *)
 		let next1 = fresh_label () in
-		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
+		let cmd_goto_ot = LGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
 		(* next1: x1_s := i__toString (x1_v) with err   *)
 		let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_v tr_ctx.tr_err in
 
 		(*  x_r := o__hasProperty (x2_v, x1_s) with err   *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLCall (x_r, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some tr_ctx.tr_err) in
+		let cmd_ass_xr = LCall (x_r, (Literal (String hasPropertyName)), [ Var x2_v; Var x1_s ], Some tr_ctx.tr_err) in
 
 		let cmds = annotate_first_cmd (
 			cmds1 @ [                           (*         cmds1                                             *)
@@ -2462,14 +2462,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let then_lab = fresh_then_label () in
 		let else_lab = fresh_else_label () in
 		let end_if_lab = fresh_endif_label () in
-		let cmd_goto = SLGuardedGoto (Var x1_b, then_lab, else_lab) in
+		let cmd_goto = LGuardedGoto (Var x1_b, then_lab, else_lab) in
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
 		(* x3_v := i__getValue (x3) with err *)
 		let x3_v, cmd_gv_x3, errs_x3_v = make_get_value_call x3 tr_ctx.tr_err in
 		(* x_r := PHI(x2_v, x3_v) *)
 		let x_r = fresh_var () in
-		let cmd_ass_xr = SLPhiAssignment (x_r, [| (Var x2_v); (Var x3_v) |]) in
+		let cmd_ass_xr = LPhiAssignment (x_r, [| (Var x2_v); (Var x3_v) |]) in
 
 		let cmds2 = add_initial_label cmds2 then_lab metadata in
 		let cmds3 = add_initial_label cmds3 else_lab metadata in
@@ -2480,7 +2480,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,            cmd_goto)          (*         goto [x1_b] then else                              *)
 		]) @ cmds2 @ (annotate_cmds [            (* then:   cmds2                                              *)
 			(None,            cmd_gv_x2);        (*         x2_v := i__getValue (x2) with err                  *)
-			(None,            SLGoto end_if_lab) (*         goto end_if                                        *)
+			(None,            LGoto end_if_lab) (*         goto end_if                                        *)
 		]) @ cmds3 @ (annotate_cmds [            (* else:   cmds3                                              *)
 			(None,            cmd_gv_x3);        (*         x3_v := i__getValue (x3) with err                  *)
 			(Some end_if_lab, cmd_ass_xr)        (* end_if: x_r := PHI(x2_v, x3_v)                             *)
@@ -2627,21 +2627,21 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* x_f_outer_er := new ();  *)
 		let x_f_outer_er = fresh_er_var () in
 		(* METADATA: null, since environment record *)
-		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er, None)) in
+		let cmd_ass_xfouter = LBasic (New (x_f_outer_er, None)) in
 
 		(* x_sc_f := x_sc @ {{ x_f_outer_er }}  *)
 		let x_sc_f = fresh_scope_chain_var () in
-		let cmd_xscf_ass = SLBasic (SAssignment (x_sc_f, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_f_outer_er ]))) in
+		let cmd_xscf_ass = LBasic (Assignment (x_sc_f, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_f_outer_er ]))) in
 
 		(* x_f := create_function_object(x_sc_f, f_id, params) *)
 		let x_f, cmd_fun_constr = make_create_function_object_call x_sc_f f_id params in
 
 		(* [x_f_outer_er, f] := x_f *)
-		let cmd_fname_updt = SLBasic (SMutation (Var x_f_outer_er, Literal (String f_name), Var x_f, None)) in
+		let cmd_fname_updt = LBasic (Mutation (Var x_f_outer_er, Literal (String f_name), Var x_f, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_f_outer_er, "f")) with err *)
 		let x_cae = fresh_var () in
-		let cmd_cae = SLCall (x_cae, lit_str checkAssignmentErrorsName, [ EList [lit_refv; Var x_f_outer_er; lit_str f_name] ], Some tr_ctx.tr_err) in
+		let cmd_cae = LCall (x_cae, lit_str checkAssignmentErrorsName, [ EList [lit_refv; Var x_f_outer_er; lit_str f_name] ], Some tr_ctx.tr_err) in
 
 		let cmds = [
 		  (None, cmd_ass_xfouter);      (*  x_f_outer_er := new ()                                                *)
@@ -2720,15 +2720,15 @@ and translate_statement tr_ctx e  =
 
 		(* x_sf := l-nth(x__sc, index)  *)
 		let x_sf = fresh_var () in
-	  let cmd_xsf_ass = SLBasic (SAssignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
+	  let cmd_xsf_ass = LBasic (Assignment (x_sf, LstNth (Var tr_ctx.tr_sc_var, lit_num (float_of_int index)))) in
 
 		(* x_ref := {{ "v", x_sf, "x" }}  *)
 		let x_ref = fresh_var () in
-		let cmd_xref_ass = SLBasic (SAssignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
+		let cmd_xref_ass = LBasic (Assignment (x_ref, EList [lit_refv; Var x_sf; lit_str x])) in
 
 		(* x_cae := i__checkAssignmentErrors (x_ref) with err *)
 		let x_cae = fresh_var () in
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some tr_ctx.tr_err) in
+		let cmd_cae = LCall (x_cae, Literal (String checkAssignmentErrorsName), [ (Var x_ref) ], Some tr_ctx.tr_err) in
 
 		(* x_pv := i__putValue(x_ref, x_v) with err2 *)
 		let x_pv, cmd_pv = make_put_value_call (Var x_ref) x_v tr_ctx.tr_err in
@@ -2752,14 +2752,14 @@ and translate_statement tr_ctx e  =
 				| Var x_name -> x_name, []
 				| Literal lit ->
 					let x_name = fresh_var () in
-					let cmd_new_x = annotate_cmd (SLBasic (SAssignment (x_name, Literal lit))) None in
+					let cmd_new_x = annotate_cmd (LBasic (Assignment (x_name, Literal lit))) None in
 					x_name, [ cmd_new_x ]
 				| _ -> raise (Failure "translate. Block: the result of the compilation must be a variable or a literal")) in
 			let x_ret = fresh_var () in
 			let phi_args = cur_breaks @ [ x_name ] in
 			let phi_args = List.map (fun x -> Var x)  phi_args in
 			let phi_args = Array.of_list phi_args in
-			let cmd_ass_phi = annotate_cmd (SLPhiAssignment (x_ret, phi_args)) break_label in
+			let cmd_ass_phi = annotate_cmd (LPhiAssignment (x_ret, phi_args)) break_label in
 			(cmds @ cmd_new_x @ [ cmd_ass_phi ], Var x_ret, errs, rets, outer_breaks, conts)) in
 
 	(**
@@ -2806,7 +2806,7 @@ and translate_statement tr_ctx e  =
 					let new_tr_ctx = update_tr_ctx ~loop_list:tr_ctx.tr_loop_list ~lab:None ~previous:None tr_ctx in
 					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement new_tr_ctx e in
 					let cmds_cur = add_initial_label cmds_cur jump metadata in
-					let new_finally_block = cmds_cur @ [ annotate_cmd (SLGoto original_jump) None ] in
+					let new_finally_block = cmds_cur @ [ annotate_cmd (LGoto original_jump) None ] in
 					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
           make_finally_blocks_iter rest (finally_blocks @ new_finally_block) cur_break_vars (errs @ errs_cur) (rets @ rets_cur) (outer_breaks @ cur_outer_breaks @ [ (js_lab, var, original_jump) ]) (inner_breaks @ cur_inner_breaks) (conts @ conts_cur) )
 					with _ ->
@@ -2829,7 +2829,7 @@ and translate_statement tr_ctx e  =
 					let new_ctx = update_tr_ctx ~loop_list:new_loop_list ~lab:None ~previous:None tr_ctx in
 					let cmds_cur, _, errs_cur, rets_cur, breaks_cur, conts_cur = translate_statement new_ctx e in
 					let cmds_cur = add_initial_label cmds_cur jump metadata in
-					let new_finally_block = cmds_cur @ [ annotate_cmd (SLGoto original_jump) None ] in
+					let new_finally_block = cmds_cur @ [ annotate_cmd (LGoto original_jump) None ] in
 					let cur_inner_breaks, cur_outer_breaks = filter_cur_jumps breaks_cur tcf_lab false in
           make_finally_blocks_iter rest (finally_blocks @ new_finally_block) (errs @ errs_cur) (rets @ rets_cur) (outer_breaks @ cur_outer_breaks) (inner_breaks @ cur_inner_breaks) (conts @ conts_cur @ [ (js_lab, var, original_jump) ]) )
 					with _ -> raise (Failure (Printf.sprintf "make_finally_cont_blocks: unknown jump %s\n" jump))) in
@@ -2870,47 +2870,47 @@ and translate_statement tr_ctx e  =
 		let x_err = fresh_err_var () in
 		let phi_args1 = List.map (fun x -> Var x) errs1 in
 		let phi_args1 = Array.of_list phi_args1 in
-		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in
+		let cmd_ass_xerr = LPhiAssignment (x_err, phi_args1) in
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
 		(* METADATA: null, since environment record *)
-		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
+		let cmd_ass_xer = LBasic (New (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
+		let cmd_cae = LCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
 
 		(* [x_er, "x"] := x_err *)
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err, None)) in
+		let cmd_mutate_x = LBasic (Mutation (Var x_er, Literal (String x), Var x_err, None)) in
 
 		(* x_sc_new := x_sc @ {{ x_er }}  *)
-		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
+		let cmd_sc_updt = LBasic (Assignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
 
 	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in
 		let phi_args2 = List.map (fun x -> Var x) (x_cae :: errs2) in
 		let phi_args2 = Array.of_list phi_args2 in
-		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
+		let cmd_ass_xret1 = LPhiAssignment (x_ret_1, phi_args2) in
 
 		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2) *)
 		let x_ret_2 = fresh_var () in
 		let phi_args3 = cur_breaks1 @ [ x1_v ] @ cur_breaks2 @ [ x2_v ] in
 		let phi_args3 = List.map (fun x -> Var x) phi_args3 in
 		let phi_args3 = Array.of_list phi_args3 in
-		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in
+		let cmd_ass_xret2 = LPhiAssignment (x_ret_2, phi_args3) in
 
 		let cmds = cmds1 @ (annotate_cmds [
-			(None,           SLGoto finally);
+			(None,           LGoto finally);
 			(Some new_err1,  cmd_ass_xerr);
 			(None,           cmd_ass_xer);
 			(None,           cmd_cae);
 			(None,           cmd_mutate_x);
 			(None,           cmd_sc_updt)
 		]) @ cmds2 @ (annotate_cmds [
-			(None,           SLGoto finally);
+			(None,           LGoto finally);
 			(Some new_err2,  cmd_ass_xret1);
-			(None,           SLGoto tr_ctx.tr_err);
+			(None,           LGoto tr_ctx.tr_err);
 			(Some finally,   cmd_ass_xret2)
 		]) in
 
@@ -2975,49 +2975,49 @@ and translate_statement tr_ctx e  =
 		let x_err = fresh_err_var () in
 		let phi_args1 = List.map (fun x -> Var x) errs1 in
 		let phi_args1 = Array.of_list phi_args1 in
-		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in
+		let cmd_ass_xerr = LPhiAssignment (x_err, phi_args1) in
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
 		(* METADATA: null, since environment record *)
-		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
+		let cmd_ass_xer = LBasic (New (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
-		let cmd_cae = SLCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
+		let cmd_cae = LCall (x_cae, Literal (String checkAssignmentErrorsName), [ EList [lit_refv; Var x_er; lit_str x] ], Some new_err2) in
 
 		(* [x_er, "x"] := x_err *)
-		let cmd_mutate_x = SLBasic (SMutation (Var x_er, Literal (String x), Var x_err, None)) in
+		let cmd_mutate_x = LBasic (Mutation (Var x_er, Literal (String x), Var x_err, None)) in
 
 		(* x_sc_new := x_sc @ {{ x_er }} *)
-		let cmd_sc_updt = SLBasic (SAssignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
+		let cmd_sc_updt = LBasic (Assignment (x_sc_new, BinOp (Var tr_ctx.tr_sc_var, LstCat, EList [ Var x_er ]))) in
 
 	  (* err2:     x_ret_1 := PHI(x_cae, errs2) *)
 		let x_ret_1 = fresh_var () in
 		let phi_args2 = List.map (fun x -> Var x) (x_cae :: errs2) in
 		let phi_args2 = Array.of_list phi_args2 in
-		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args2) in
+		let cmd_ass_xret1 = LPhiAssignment (x_ret_1, phi_args2) in
 
 		(* x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2, x_ret_1) *)
 		let x_ret_2 = fresh_var () in
 		let phi_args3 = cur_break_vars_1 @ [ x1_v ] @ cur_break_vars_2 @ [ x2_v ] in
 		let phi_args3 = List.map (fun x -> Var x) phi_args3 in
 		let phi_args3 = Array.of_list phi_args3 in
-		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args3) in
+		let cmd_ass_xret2 = LPhiAssignment (x_ret_2, phi_args3) in
 
 		(* x_ret_3 := PHI(rets1, rets2)  *)
 		let x_ret_3 = fresh_var () in
 		let phi_args4 = rets1 @ rets2 in
 		let phi_args4 = List.map (fun x -> Var x) phi_args4 in
 		let phi_args4 = Array.of_list phi_args4 in
-		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args4) in
+		let cmd_ass_xret3 = LPhiAssignment (x_ret_3, phi_args4) in
 
 		(* x_ret_4 := PHI(inner_breaks_finally, x_ret_2) *)
 		let x_ret_4 = fresh_var () in
 		let phi_args5 = inner_breaks3_1 @ inner_breaks3_2 @ [ x_ret_2 ] @ inner_breaks3_3 @ inner_breaks_b1 @ inner_breaks_c1 @ inner_breaks_b2 @ inner_breaks_c2 in
 		let phi_args5 = List.map (fun x -> Var x) phi_args5 in
 		let phi_args5 = Array.of_list phi_args5 in
-		let cmd_ass_xret4 = SLPhiAssignment (x_ret_4, phi_args5) in
+		let cmd_ass_xret4 = LPhiAssignment (x_ret_4, phi_args5) in
 
 		let ret_label = tr_ctx.tr_ret_lab in
 		let errs = errs3_1 @ [ x_ret_1 ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 @ errs_b2 @ errs_c2 in
@@ -3026,23 +3026,23 @@ and translate_statement tr_ctx e  =
 		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 @ conts_b2 @ conts_c2 in
 
 		let cmds = cmds1 @ (annotate_cmds [                 (*            cmds1                                                            *)
-			(None,           SLGoto finally);                 (*            goto finally                                                     *)
+			(None,           LGoto finally);                 (*            goto finally                                                     *)
 			(Some new_err1,  cmd_ass_xerr);                   (*  err1:     x_err := PHI(errs1)                                              *)
 			(None,           cmd_ass_xer);                    (*            x_er := new ()                                                   *)
 			(None,           cmd_cae);                        (*            x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2   *)
 			(None,           cmd_mutate_x);                   (*            [x_er, "x"] := x_err                                             *)
 			(None,           cmd_sc_updt)                     (*            x_sc_new := x_er :: x_sc                                         *)
 		]) @ cmds2 @ (annotate_cmds [                       (*            cmds2                                                            *)
-			(None,           SLGoto finally);                 (*            goto finally                                                     *)
+			(None,           LGoto finally);                 (*            goto finally                                                     *)
 			(Some new_err2,  cmd_ass_xret1);                  (*  err2:     x_ret_1 := PHI(x_cae, errs2)                                     *)
 		]) @ cmds3_1 @ (annotate_cmds [                     (*            cmds3_1                                                          *)
-		  (None,           SLGoto tr_ctx.tr_err);           (*            goto err                                                         *)
+		  (None,           LGoto tr_ctx.tr_err);           (*            goto err                                                         *)
 			(Some finally,   cmd_ass_xret2)                   (*  finally:  x_ret_2 := PHI(cur_breaks1, x_1, cur_breaks2, x_2)               *)
 		]) @ cmds3_2 @ (annotate_cmds [                     (*            cmds3_2                                                          *)
-		  (None,           SLGoto end_label);               (*            goto end                                                         *)
+		  (None,           LGoto end_label);               (*            goto end                                                         *)
 			(Some tcf_ret,   cmd_ass_xret3)                   (*  tcf_ret:  x_ret_3 := PHI(rets1, rets2)                                     *)
 		]) @ cmds3_3 @ (annotate_cmds [                     (*            cmds3_3                                                          *)
-		  (None,           SLGoto ret_label)                (*            goto ret_label                                                   *)
+		  (None,           LGoto ret_label)                (*            goto ret_label                                                   *)
 		]) @ finally_cmds_breaks1 @ finally_cmds_conts1     (*            break_cont_finally_blocks_1                                      *)
 		   @ finally_cmds_breaks2 @ finally_cmds_conts2 @ [ (*            break_cont_finally_blocks_2                                      *)
 	    annotate_cmd cmd_ass_xret4 (Some end_label)       (*  end:      x_ret_4 := PHI(x_ret_2, inner_breaks_finally)                    *)
@@ -3090,28 +3090,28 @@ and translate_statement tr_ctx e  =
 		let x_err = fresh_err_var () in
 		let phi_args1 = List.map (fun x -> Var x) errs1 in
 		let phi_args1 = Array.of_list phi_args1 in
-		let cmd_ass_xerr = SLPhiAssignment (x_err, phi_args1) in
+		let cmd_ass_xerr = LPhiAssignment (x_err, phi_args1) in
 
 		(* x_ret_1 := PHI(cur_breaks1, x_1) *)
 		let x_ret_1 = fresh_var () in
 		let phi_args = cur_break_vars_1 @ [ x1_v ] in
 		let phi_args = List.map (fun x -> Var x) phi_args in
 		let phi_args = Array.of_list phi_args in
-		let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, phi_args) in
+		let cmd_ass_xret1 = LPhiAssignment (x_ret_1, phi_args) in
 
 		(* x_ret_2 := PHI(rets1)  *)
 		let x_ret_2 = fresh_var () in
 		let phi_args = rets1 in
 		let phi_args = List.map (fun x -> Var x) phi_args in
 		let phi_args = Array.of_list phi_args in
-		let cmd_ass_xret2 = SLPhiAssignment (x_ret_2, phi_args) in
+		let cmd_ass_xret2 = LPhiAssignment (x_ret_2, phi_args) in
 
 		(* x_ret_3 := PHI(inner_breaks_finally, x_ret_1) *)
 		let x_ret_3 = fresh_var () in
 		let phi_args = inner_breaks3_1 @ inner_breaks3_2 @  [ x_ret_1 ] @ inner_breaks3_3 @ inner_breaks_b1 @ inner_breaks_c1 in
 		let phi_args = List.map (fun x -> Var x) phi_args in
 		let phi_args = Array.of_list phi_args in
-		let cmd_ass_xret3 = SLPhiAssignment (x_ret_3, phi_args) in
+		let cmd_ass_xret3 = LPhiAssignment (x_ret_3, phi_args) in
 
 		let ret_label = tr_ctx.tr_ret_lab in
 		let errs = errs3_1 @ [ x_err ] @ errs3_2 @ errs3_3 @ errs_b1 @ errs_c1 in
@@ -3120,16 +3120,16 @@ and translate_statement tr_ctx e  =
 		let conts = conts3_1 @ conts3_2 @ conts3_3 @ conts_b1 @ conts_c1 in
 
 		let cmds = cmds1 @ (annotate_cmds [                 (*            cmds1                                                       *)
-			(None,            SLGoto finally);                (*            goto finally                                                *)
+			(None,            LGoto finally);                (*            goto finally                                                *)
 			(Some new_err1,   cmd_ass_xerr);                  (*  err1:     x_err := PHI(errs1)                                         *)
 		]) @ cmds3_1 @ (annotate_cmds [                     (*            cmds3_1                                                     *)
-		  (None,           SLGoto tr_ctx.tr_err);           (*            goto err                                                    *)
+		  (None,           LGoto tr_ctx.tr_err);           (*            goto err                                                    *)
 			(Some finally,   cmd_ass_xret1)                   (*  finally:  x_ret_1 := PHI(breaks_1, x_1)                               *)
 		]) @ cmds3_2 @ (annotate_cmds [                     (*            cmds3_2                                                     *)
-		  (None,           SLGoto end_label);               (*            goto end                                                    *)
+		  (None,           LGoto end_label);               (*            goto end                                                    *)
 			(Some tcf_ret,   cmd_ass_xret2)                   (*  tcf_ret:  x_ret_2 := PHI(rets1)                                       *)
 		]) @ cmds3_3 @ (annotate_cmds [                     (*            cmds3_3                                                     *)
-		  (None,           SLGoto ret_label)                (*            goto ret_label                                              *)
+		  (None,           LGoto ret_label)                (*            goto ret_label                                              *)
 		]) @ finally_cmds_breaks1 @ finally_cmds_conts1 @ [ (*            break_cont_finally_blocks_1                                 *)
 	    annotate_cmd cmd_ass_xret3 (Some end_label)       (*  end:      x_ret_3 := PHI(inner_breaks_finally, x_ret_2)               *)
 		] in
@@ -3332,7 +3332,7 @@ and translate_statement tr_ctx e  =
 		let then_lab = fresh_then_label () in
 		let else_lab = fresh_else_label () in
 		let end_lab = fresh_end_label () in
-		let cmd_goto_if = SLGuardedGoto (Var x1_b, then_lab, else_lab) in
+		let cmd_goto_if = LGuardedGoto (Var x1_b, then_lab, else_lab) in
 
 		let cmds2 = add_initial_label cmds2 then_lab metadata in
 		let cmds3 = add_initial_label cmds3 else_lab metadata in
@@ -3341,7 +3341,7 @@ and translate_statement tr_ctx e  =
 		let cmds3, x3 = add_skip_if_empty cmds3 x3 metadata in
 
 		(* goto end *)
-		let cmd_goto_endif = SLGoto end_lab in
+		let cmd_goto_endif = LGoto end_lab in
 
 		(* end: x_if := PHI(x2, x3) *)
 		let x2_name, x3_name =
@@ -3349,7 +3349,7 @@ and translate_statement tr_ctx e  =
 			| Var x2_name, Var x3_name -> x2_name, x3_name
 			| _, _ -> raise (Failure "the compilation of the then and else parts of the an if statement must generate a variable each")) in
 		let x_if = fresh_var () in
-		let cmd_end_if = SLPhiAssignment (x_if, [| (Var x2_name); (Var x3_name) |]) in
+		let cmd_end_if = LPhiAssignment (x_if, [| (Var x2_name); (Var x3_name) |]) in
 
 		let cmds =
 			    cmds1 @ (annotate_cmds [   (*       cmds1                               *)
@@ -3410,7 +3410,7 @@ and translate_statement tr_ctx e  =
 		let x_ret_1 = fresh_var () in
 		let x_ret_2 = fresh_var () in
 		let x_ret_3 = fresh_var () in
-		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
+		let cmd_ass_ret_1 = LPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
@@ -3419,17 +3419,17 @@ and translate_statement tr_ctx e  =
 		let cur_conts = cur_conts @ [ x1_v ] in
 		let cur_conts = List.map (fun x -> Var x) cur_conts in
 		let cont_vars = Array.of_list cur_conts in
-		let cmd_ass_ret_2 = SLPhiAssignment (x_ret_2, cont_vars) in
+		let cmd_ass_ret_2 = LPhiAssignment (x_ret_2, cont_vars) in
 
 		(*  goto [ not (x_ret_2 = empty) ] next1 next2 *)
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
 		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
-		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
+		let cmd_goto_empty_test = LGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* x_ret_3 := PHI(x_ret_1, x_ret_2)  *)
-		let cmd_ass_ret_3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
+		let cmd_ass_ret_3 = LPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
 
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
@@ -3438,7 +3438,7 @@ and translate_statement tr_ctx e  =
 		let x2_b, cmd_tb_x2 = make_to_boolean_call x2 x2_v tr_ctx.tr_err in
 
 		(* goto [x2_b] head end_loop *)
-		let cmd_dowhile_goto =  SLGuardedGoto (Var x2_b, head, end_loop) in
+		let cmd_dowhile_goto =  LGuardedGoto (Var x2_b, head, end_loop) in
 
 		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_3 x_ret_1 cur_breaks end_loop false in
 
@@ -3449,7 +3449,7 @@ and translate_statement tr_ctx e  =
 				  (None,             cmd_gv_x1);               (*              x1_v := i__getValue (x1) with err            *)
 					(Some cont,        cmd_ass_ret_2);         (* cont:	       x_ret_2 := PHI(cont_vars, x1_v) 	            *)
 					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = empty) ] next1 next2 *)
-					(Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
+					(Some next1,       LBasic Skip);         (* next1:       skip                                         *)
 					(Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)
 				]) @ cmds2 @ (annotate_cmds [                  (* guard:       cmds2                                        *)
 				  (None,             cmd_gv_x2);               (*              x2_v := i__getValue (x2) with err            *)
@@ -3503,7 +3503,7 @@ and translate_statement tr_ctx e  =
 		(* x_ret_1 := PHI(x_ret_0, x_ret_3) *)
 		let x_ret_2 = fresh_var () in
 		let x_ret_3 = fresh_var () in
-		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
+		let cmd_ass_ret_1 = LPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x1_v := i__getValue (x1) with err *)
 		let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
@@ -3512,7 +3512,7 @@ and translate_statement tr_ctx e  =
 		let x1_b, cmd_tb_x1 = make_to_boolean_call x1 x1_v tr_ctx.tr_err in
 
 		(* goto [x1_b] body endwhile  *)
-		let cmd_goto_while = SLGuardedGoto (Var x1_b, body, end_loop) in
+		let cmd_goto_while = LGuardedGoto (Var x1_b, body, end_loop) in
 
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
@@ -3521,17 +3521,17 @@ and translate_statement tr_ctx e  =
 		let cur_conts = cur_conts @ [ x2_v ] in
 		let cur_conts = List.map (fun x -> Var x) cur_conts in
 		let cont_vars = Array.of_list cur_conts in
-		let cmd_ass_ret_2 = SLPhiAssignment (x_ret_2, cont_vars) in
+		let cmd_ass_ret_2 = LPhiAssignment (x_ret_2, cont_vars) in
 
 		(* goto [not (x_ret_2 = empty)] next1 next2 *)
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
 		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
-		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
+		let cmd_goto_empty_test = LGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
-		let cmd_ass_ret_3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
+		let cmd_ass_ret_3 = LPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
 
 		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_1 x_ret_1 cur_breaks end_loop true in
 
@@ -3547,9 +3547,9 @@ and translate_statement tr_ctx e  =
 			  (None,           cmd_gv_x2);               (*           x2_v := i__getValue (x2) with err          *)
 				(Some cont,      cmd_ass_ret_2);         (* cont:     x_ret_2 := PHI(cont_vars, x2_v)            *)
 				(None,           cmd_goto_empty_test);   (*           goto [not (x_ret_2 = empty)] next1 next2 *)
-			  (Some next1,     SLBasic SSkip);           (* next1:    skip                                       *)
+			  (Some next1,     LBasic Skip);           (* next1:    skip                                       *)
 				(Some next2,     cmd_ass_ret_3);         (* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2)           *)
-				(None,           SLGoto head);           (*           goto head                                  *)
+				(None,           LGoto head);           (*           goto head                                  *)
 			]) @ (annotate_cmds cmds_end_loop) in
 		let errs = errs1 @ errs_x1_v @ [ x1_b ] @ errs2 @ errs_x2_v in
 		let cmds = annotate_first_cmd cmds in
@@ -3616,7 +3616,7 @@ and translate_statement tr_ctx e  =
 			let x_ret_3 = fresh_var () in
 			let x_ret_4 = fresh_var () in
 			let x_ret_5 = fresh_var () in
-			let cmd_ass_xret0 = SLBasic (SAssignment (x_ret_0, Literal Empty)) in
+			let cmd_ass_xret0 = LBasic (Assignment (x_ret_0, Literal Empty)) in
 
 			(* goto [(x2_v = null) or (x2_v = undefined)] next6 next0;	*)
 			let next0 = fresh_next_label () in
@@ -3630,57 +3630,57 @@ and translate_statement tr_ctx e  =
 				BinOp (Var x2_v, Equal, Literal Null),
 				Or,
 				BinOp (Var x2_v, Equal, Literal Undefined)) in
-			let cmd_goto_null_undef = SLGuardedGoto (expr_goto_guard, next6, next0) in
+			let cmd_goto_null_undef = LGuardedGoto (expr_goto_guard, next6, next0) in
 
 			(* x4 := "i__toObject" (x2_v) with err	 *)
 			let x4 = fresh_var () in
-			let cmd_to_obj_call = SLCall (x4, Literal (String toObjectName), [ Var x2_v ], Some tr_ctx.tr_err) in
+			let cmd_to_obj_call = LCall (x4, Literal (String toObjectName), [ Var x2_v ], Some tr_ctx.tr_err) in
 
 			(* xlf := "i__getAllEnumerableFields" (x4)  with err	*)
 			let xlf = fresh_var () in
-			let cmd_get_enum_fields = SLCall (xlf, Literal (String getEnumFieldsName), [ Var x4 ], Some tr_ctx.tr_err) in
+			let cmd_get_enum_fields = LCall (xlf, Literal (String getEnumFieldsName), [ Var x4 ], Some tr_ctx.tr_err) in
 
 			(* xf  := getFields (xlf)  *)
 			let xf = fresh_var () in
-			let cmd_xf_ass = SLBasic (SGetFields (xf, Var xlf)) in
+			let cmd_xf_ass = LBasic (GetFields (xf, Var xlf)) in
 
 			(* len := l-len (xf)	 *)
 			let len = fresh_var () in
-			let cmd_ass_len = SLBasic (SAssignment (len, UnOp (LstLen, Var xf))) in
+			let cmd_ass_len = LBasic (Assignment (len, UnOp (LstLen, Var xf))) in
 
 			(* x_c := 0 *)
 			let x_c = fresh_var () in
-			let cmd_ass_xc = SLBasic (SAssignment (x_c, Literal (Num 0.))) in
+			let cmd_ass_xc = LBasic (Assignment (x_c, Literal (Num 0.))) in
 
 			(*   x_ret_1 := PHI(x_ret_0, x_ret_3)	 *)
-			let cmd_ass_xret1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
+			let cmd_ass_xret1 = LPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 			(* x_c_1 := PSI(x_c, x_c_2);	 *)
 			let x_c_1 = fresh_var () in
 			let x_c_2 = fresh_var () in
-			let cmd_ass_xc1 = SLPsiAssignment (x_c_1, [| (Var x_c); (Var x_c_2) |]) in
+			let cmd_ass_xc1 = LPsiAssignment (x_c_1, [| (Var x_c); (Var x_c_2) |]) in
 
 			(* goto [x_c_1 < len] body end_loop  *)
-			let cmd_goto_len = SLGuardedGoto (BinOp (Var x_c_1, LessThan, Var len), body, end_loop) in
+			let cmd_goto_len = LGuardedGoto (BinOp (Var x_c_1, LessThan, Var len), body, end_loop) in
 
 			(* xp := l-nth (xf, x_c_1)	*)
 			let xp = fresh_var () in
-			let cmd_ass_xp = SLBasic (SAssignment (xp, LstNth (Var xf, Var x_c_1))) in
+			let cmd_ass_xp = LBasic (Assignment (xp, LstNth (Var xf, Var x_c_1))) in
 
 			(* xl := [xlf, xp];	*)
 			let xl = fresh_var () in
-			let cmd_ass_xl = SLBasic (SLookup (xl, Var xlf, Var xp)) in
+			let cmd_ass_xl = LBasic (Lookup (xl, Var xlf, Var xp)) in
 
 			(*  xxl := l-nth (xl, 1)   *)
 			let xxl = fresh_var () in
-			let cmd_ass_xxl = SLBasic (SAssignment (xxl, LstNth (Var xl, Literal (Num 1.)))) in
+			let cmd_ass_xxl = LBasic (Assignment (xxl, LstNth (Var xl, Literal (Num 1.)))) in
 
 			(* 	xhf := hasField (xxl, xp) *)
 			let xhf = fresh_var () in
-			let cmd_ass_hf = SLBasic (SHasField (xhf, Var xxl, Var xp)) in
+			let cmd_ass_hf = LBasic (HasField (xhf, Var xxl, Var xp)) in
 
 			(* goto [xhf] next1 next3	 *)
-			let cmd_goto_xhf = SLGuardedGoto (Var xhf, next1, next3) in
+			let cmd_goto_xhf = LGuardedGoto (Var xhf, next1, next3) in
 
 			(* x5 := "i__putValue" (x1, xp) with err	 *)
 			let x5, cmd_pv_x1 = make_put_value_call x1 xp tr_ctx.tr_err in
@@ -3692,31 +3692,31 @@ and translate_statement tr_ctx e  =
 			let phi_args = cur_conts @ [ x3_v ] in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
-			let cmd_phi_cont = SLPhiAssignment (x_ret_2, phi_args) in
+			let cmd_phi_cont = LPhiAssignment (x_ret_2, phi_args) in
 
 			(* goto [ not (x_ret_2 = empty) ] next2 next3 *)
 			let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
 			let expr_goto_guard = UnOp (Not, expr_goto_guard) in
-			let cmd_goto_xret2 = SLGuardedGoto (expr_goto_guard, next2, next3) in
+			let cmd_goto_xret2 = LGuardedGoto (expr_goto_guard, next2, next3) in
 
 			(* x_ret_3 := PHI(x_ret_1, x_ret_2) *)
-			let cmd_phi_xret3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_1); (Var x_ret_2) |]) in
+			let cmd_phi_xret3 = LPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_1); (Var x_ret_2) |]) in
 
 			(* x_c_2 := x_c_1 + 1 *)
-			let cmd_ass_incr = SLBasic (SAssignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Num 1.)))) in
+			let cmd_ass_incr = LBasic (Assignment (x_c_2, BinOp (Var x_c_1, Plus, Literal (Num 1.)))) in
 
 			(* 	x_ret_4 := PHI(x_ret_1, break_vars)  *)
 			let phi_args = x_ret_1 :: cur_breaks in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
-			let cmd_phi_xret4 = SLPhiAssignment (x_ret_4, phi_args) in
+			let cmd_phi_xret4 = LPhiAssignment (x_ret_4, phi_args) in
 
 			(* goto [ x_ret_4 = empty ] next5 next6 *)
-			let cmd_goto_xret4_empty = SLGuardedGoto (
+			let cmd_goto_xret4_empty = LGuardedGoto (
 				BinOp (Var x_ret_4, Equal, Literal Empty), next5, next6) in
 
 			(* x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4) *)
-			let cmd_phi_xret5 = SLPhiAssignment (x_ret_5, [| (Var x_ret_0); (Var x_ret_1); (Var x_ret_4) |]) in
+			let cmd_phi_xret5 = LPhiAssignment (x_ret_5, [| (Var x_ret_0); (Var x_ret_1); (Var x_ret_4) |]) in
 
 			let cmds1 = add_initial_label cmds1 next1 metadata in
 			let cmds = cmds2 @ (annotate_cmds [           (*           cmds2                                                        *)
@@ -3742,13 +3742,13 @@ and translate_statement tr_ctx e  =
 			    (None,          cmd_gv_x3);               (*           x3_v = "i__getValue" (x3) with err                           *)
 				(Some cont,     cmd_phi_cont);            (* cont:     x_ret_2 := PHI(cont_vars, x3_v)                              *)
 			    (None,          cmd_goto_xret2);          (*           goto [ not (x_ret_2 = empty) ] next2 next3                 *)
-				(Some next2,    SLBasic SSkip);           (* next2:    skip                                                         *)
+				(Some next2,    LBasic Skip);           (* next2:    skip                                                         *)
 			    (Some next3,    cmd_phi_xret3);           (* next3:    x_ret_3 := PHI(x_ret_1, x_ret_1, x_ret_2)                    *)
 				(Some next4,    cmd_ass_incr);            (* next4:	   x_c_2 := x_c_1 + 1                                           *)
-				(None,          SLGoto head);             (*           goto head                                                    *)
+				(None,          LGoto head);             (*           goto head                                                    *)
 				(Some end_loop, cmd_phi_xret4);           (* end_loop: x_ret_4 := PHI(x_ret_1, break_vars)                          *)
 			    (None,          cmd_goto_xret4_empty);    (*           goto [ x_ret_4 = empty ] next5 next6                       *)
-			    (Some next5,    SLBasic SSkip);           (* next5:    skip                                                         *)
+			    (Some next5,    LBasic Skip);           (* next5:    skip                                                         *)
 				(Some next6,    cmd_phi_xret5)            (* next6:    x_ret_5 := PHI(x_ret_0, x_ret_1, x_ret_4)                    *)
 			]) in
 			let errs = errs2 @ errs_x2_v @ [x4; xlf] @ errs1 @ [ x5 ] @ errs3 @ errs_x3_v in
@@ -3799,7 +3799,7 @@ and translate_statement tr_ctx e  =
 			| Some e2 -> fe e2
 			| None ->
 				let x2 = fresh_var () in
-				let cmd_ass_x2 = annotate_cmd (SLBasic (SAssignment (x2, Literal (Bool true)))) None in
+				let cmd_ass_x2 = annotate_cmd (LBasic (Assignment (x2, Literal (Bool true)))) None in
 				[ cmd_ass_x2 ], Var x2, []) in
 
 		let cmds3, _, errs3 =
@@ -3825,7 +3825,7 @@ and translate_statement tr_ctx e  =
 		let x_ret_1 = fresh_var () in
 		let x_ret_2 = fresh_var () in
 		let x_ret_3 = fresh_var () in
-		let cmd_ass_ret_1 = SLPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
+		let cmd_ass_ret_1 = LPhiAssignment (x_ret_1, [| (Var x_ret_0); (Var x_ret_3) |]) in
 
 		(* x2_v := i__getValue (x2) with err *)
 		let x2_v, cmd_gv_x2, errs_x2_v = make_get_value_call x2 tr_ctx.tr_err in
@@ -3835,7 +3835,7 @@ and translate_statement tr_ctx e  =
 
 		(* goto [x2_b] body end_loop *)
 		let body = fresh_loop_body_label () in
-		let cmd_for_goto =  SLGuardedGoto (Var x2_b, body, end_loop) in
+		let cmd_for_goto =  LGuardedGoto (Var x2_b, body, end_loop) in
 
 		(* x4_v := i__getValue (x4) with err *)
 		let x4_v, cmd_gv_x4, errs_x4_v = make_get_value_call x4 tr_ctx.tr_err in
@@ -3844,17 +3844,17 @@ and translate_statement tr_ctx e  =
 		let cur_conts = cur_conts @ [ x4_v ] in
 		let cur_conts = List.map (fun x -> Var x) cur_conts in
 		let cont_vars = Array.of_list cur_conts in
-		let cmd_ass_ret_2 = SLPhiAssignment (x_ret_2, cont_vars) in
+		let cmd_ass_ret_2 = LPhiAssignment (x_ret_2, cont_vars) in
 
 		(* 	goto [ not (x_ret_2 = empty) ] next1 next2  *)
 		let next1 = fresh_next_label () in
 		let next2 = fresh_next_label () in
 		let expr_goto_guard = BinOp (Var x_ret_2, Equal, Literal Empty) in
 		let expr_goto_guard = UnOp (Not, expr_goto_guard) in
-		let cmd_goto_empty_test = SLGuardedGoto (expr_goto_guard, next1, next2) in
+		let cmd_goto_empty_test = LGuardedGoto (expr_goto_guard, next1, next2) in
 
 		(* next2:    x_ret_3 := PHI(x_ret_1, x_ret_2) *)
-		let cmd_ass_ret_3 = SLPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
+		let cmd_ass_ret_3 = LPhiAssignment (x_ret_3, [| (Var x_ret_1); (Var x_ret_2) |]) in
 
 		let cmds_end_loop, x_ret_5 = make_loop_end x_ret_1 x_ret_1 cur_breaks end_loop true in
 
@@ -3871,10 +3871,10 @@ and translate_statement tr_ctx e  =
 					(None,             cmd_gv_x4);             (*              x4_v := i__getValue (x4) with err            *)
 					(Some cont,        cmd_ass_ret_2);         (* cont:        x_ret_2 := PHI(cont_vars, x4_v)              *)
 					(None,             cmd_goto_empty_test);   (*              goto [ not (x_ret_2 = empty) ] next1 next2 *)
-					(Some next1,       SLBasic SSkip);         (* next1:       skip                                         *)
+					(Some next1,       LBasic Skip);         (* next1:       skip                                         *)
 					(Some next2,       cmd_ass_ret_3);         (* next2:       x_ret_3 := PHI(x_ret_1, x_ret_2)             *)
 				]) @ cmds3 @ (annotate_cmds [                  (*              cmds3                                        *)
-				  (None,             SLGoto head);             (*              goto head                                    *)
+				  (None,             LGoto head);             (*              goto head                                    *)
 				]) @ (annotate_cmds cmds_end_loop) in
 		let errs = errs1 @ errs2 @ errs_x2_v @ [ x2_b ] @ errs4 @ errs_x4_v @ errs3 in
 		let cmds = annotate_first_cmd cmds in
@@ -3900,9 +3900,9 @@ and translate_statement tr_ctx e  =
 		| None ->
 			let x_r = fresh_var () in
 			(* x_r := undefined *)
-			let cmd_xr_ass = annotate_cmd (SLBasic (SAssignment (x_r, Literal Undefined))) None in
+			let cmd_xr_ass = annotate_cmd (LBasic (Assignment (x_r, Literal Undefined))) None in
 			(* goto lab_ret *)
-			let cmd_goto_ret = annotate_cmd (SLGoto tr_ctx.tr_ret_lab) None in
+			let cmd_goto_ret = annotate_cmd (LGoto tr_ctx.tr_ret_lab) None in
 			let cmds = [ cmd_xr_ass; cmd_goto_ret] in
 			let cmds = annotate_first_cmd cmds in
 			cmds, Var x_r, [], [ x_r ], [], []
@@ -3913,7 +3913,7 @@ and translate_statement tr_ctx e  =
 			let x_r, cmd_gv_x, errs_x_r = make_get_value_call x tr_ctx.tr_err in
 			let cmd_gv_x = annotate_cmd cmd_gv_x None in
 			(* goto ret_lab *)
-			let cmd_goto_ret = annotate_cmd (SLGoto tr_ctx.tr_ret_lab) None in
+			let cmd_goto_ret = annotate_cmd (LGoto tr_ctx.tr_ret_lab) None in
 			let cmds = cmds @ [ cmd_gv_x; cmd_goto_ret] in
 			let cmds = annotate_first_cmd cmds in
 			cmds, Var x_r, errs @ errs_x_r, [ x_r ], [], [])
@@ -3943,14 +3943,14 @@ and translate_statement tr_ctx e  =
 				x_r, [ annotate_cmd cmd None ]
 			| Some (Literal lit) ->
 				let x_r = fresh_var () in
-				let cmd = SLBasic (SAssignment (x_r, Literal lit)) in
+				let cmd = LBasic (Assignment (x_r, Literal lit)) in
 				x_r, [ annotate_cmd cmd None ]
 			| Some (Var x) -> x, []
 			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in
 
 		(* goto lab_c *)
 		let lab_c = get_continue_lab tr_ctx.tr_loop_list lab in
-		let cmd_goto =  [ annotate_cmd (SLGoto lab_c) None ] in
+		let cmd_goto =  [ annotate_cmd (LGoto lab_c) None ] in
 
 		let cmds = cmd_ret @ cmd_goto in
 		let cmds = annotate_first_cmd cmds in
@@ -3971,14 +3971,14 @@ and translate_statement tr_ctx e  =
 				x_r, [ annotate_cmd cmd None ]
 			| Some (Literal lit) ->
 				let x_r = fresh_var () in
-				let cmd = SLBasic (SAssignment (x_r, Literal lit)) in
+				let cmd = LBasic (Assignment (x_r, Literal lit)) in
 				x_r,  [ annotate_cmd cmd None ]
 			| Some (Var x) -> x, []
 			| Some _ -> raise (Failure ("Continue: The return of the compilation must be either a variable or a literal"))) in
 
 		(* goto lab_r *)
 		let lab_r = get_break_lab tr_ctx.tr_loop_list lab in
-		let cmd_goto = [ (annotate_cmd (SLGoto lab_r) None) ] in
+		let cmd_goto = [ (annotate_cmd (LGoto lab_r) None) ] in
 
 		let cmds = cmd_ret @ cmd_goto in
 		let cmds = annotate_first_cmd cmds in
@@ -4007,7 +4007,7 @@ and translate_statement tr_ctx e  =
 		let cmd_gv_x = [ annotate_cmd cmd_gv_x None ] in
 
 		(* goto err  *)
-		let cmd_goto = [ annotate_cmd (SLGoto tr_ctx.tr_err) None ] in
+		let cmd_goto = [ annotate_cmd (LGoto tr_ctx.tr_err) None ] in
 
 		let cmds = cmds @                    (*  cmds                            *)
 		           cmd_gv_x @                (*  x_v := i__getValue (x) with err *)
@@ -4154,7 +4154,7 @@ and translate_statement tr_ctx e  =
 			let cmds2 = add_initial_label cmds2 next2 metadata in
 
 			(* goto [ not x_prev_found ] next1 next2 *)
-			let cmd_goto_1 = SLGuardedGoto ( UnOp(Not, Var x_prev_found), next1, next2) in
+			let cmd_goto_1 = LGuardedGoto ( UnOp(Not, Var x_prev_found), next1, next2) in
 
 			(* x1_v := getValue (x1) with err *)
 			let x1_v, cmd_gv_x1, errs_x1_v = make_get_value_call x1 tr_ctx.tr_err in
@@ -4162,14 +4162,14 @@ and translate_statement tr_ctx e  =
 			(* goto [ x1_v = x_switch_guard ] next2 end_case *)
 			let next1 = fresh_next_label () in
 			let end_case = fresh_end_case_label () in
-			let cmd_goto_2 = SLGuardedGoto ( BinOp(Var x1_v, Equal, Var x_switch_guard), next2, end_case) in
+			let cmd_goto_2 = LGuardedGoto ( BinOp(Var x1_v, Equal, Var x_switch_guard), next2, end_case) in
 
 			(* x_found_2 := PHI(x_false, x_true)  *)
-			let cmd_ass_xfound = SLPhiAssignment (x_found, [| (Literal (Bool false)); (Literal (Bool true)) |]) in
+			let cmd_ass_xfound = LPhiAssignment (x_found, [| (Literal (Bool false)); (Literal (Bool true)) |]) in
 
 			(* x_case := PSI(x_prev_case, x_2) *)
 			let x_case = fresh_case_var () in
-			let cmd_ass_case = SLPsiAssignment (x_case, [| (Var x_prev_case); (Var x2) |]) in
+			let cmd_ass_case = LPsiAssignment (x_case, [| (Var x_prev_case); (Var x2) |]) in
 
 			let cmds = (annotate_cmds [
 				(None,          cmd_goto_1)           (*           goto [ not x_prev_found ] next1 next2          *)
@@ -4204,7 +4204,7 @@ and translate_statement tr_ctx e  =
 
 			(* goto [ not (x_found_b) ] next end_switch *)
 			let next = fresh_next_label () in
-			let cmd_goto = SLGuardedGoto( UnOp( Not, Var x_found_b), next, end_switch) in
+			let cmd_goto = LGuardedGoto( UnOp( Not, Var x_found_b), next, end_switch) in
 			let cmds_def = add_initial_label cmds_def next metadata in
 
 			(* x_r := PHI(breaks_ab, x_ab, breaks_def, breaks_b, x_b) *)
@@ -4212,7 +4212,7 @@ and translate_statement tr_ctx e  =
 			let phi_args : string list = cur_breaks_ab @ [ x_old_b ] @ cur_breaks_def @ cur_breaks_b @ [ x_b ] in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
-			let cmd_ass_xr = SLPhiAssignment (x_r, phi_args) in
+			let cmd_ass_xr = LPhiAssignment (x_r, phi_args) in
 
 			let cmds =  [
 				annotate_cmd cmd_goto None                 (*             goto [ not (x_found_b) ] next end_switch                *)
@@ -4242,10 +4242,10 @@ and translate_statement tr_ctx e  =
 		let x_guard_v, cmd_gv_xguardv, errs_x_guard_v = make_get_value_call x_guard tr_ctx.tr_err in
 		let cmd_gv_xguardv = annotate_cmd cmd_gv_xguardv None in
 		(* x_found := false *)
-		let cmd_x_found_init = annotate_cmd (SLBasic (SAssignment (x_found_init, Literal (Bool false)))) None in
+		let cmd_x_found_init = annotate_cmd (LBasic (Assignment (x_found_init, Literal (Bool false)))) None in
 		(* x_init_val := empty *)
 		let x_init = fresh_var () in
-		let cmd_val_init = annotate_cmd (SLBasic (SAssignment (x_init, Literal Empty))) None in
+		let cmd_val_init = annotate_cmd (LBasic (Assignment (x_init, Literal Empty))) None in
 
 		let cmds_as, x_as, errs_as, rets_as, breaks_as, conts_as, x_found_as =
 			List.fold_left
@@ -4273,7 +4273,7 @@ and translate_statement tr_ctx e  =
 			let phi_args = cur_breaks_as @ [ x_as ] in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
-			let cmd_end_switch = (annotate_cmd (SLPhiAssignment (x_r, phi_args)) (Some end_switch)) in
+			let cmd_end_switch = (annotate_cmd (LPhiAssignment (x_r, phi_args)) (Some end_switch)) in
 			let cmds = cmds_as @ [ cmd_end_switch ] in
 			let cmds = annotate_first_cmd cmds in
 			cmds, Var x_r, errs_as, rets_as, outer_breaks_as, conts_as
@@ -4292,7 +4292,7 @@ and translate_statement tr_ctx e  =
 			let phi_args = cur_breaks_as @ cur_breaks_def @ [ x_def ] in
 			let phi_args = List.map (fun x -> Var x) phi_args in
 			let phi_args = Array.of_list phi_args in
-			let cmd_end_switch = (annotate_cmd (SLPhiAssignment (x_r, phi_args)) (Some end_switch)) in
+			let cmd_end_switch = (annotate_cmd (LPhiAssignment (x_r, phi_args)) (Some end_switch)) in
 			let cmds = cmds_as @ cmds_def @ [ cmd_end_switch ] in
 			let cmds = annotate_first_cmd cmds in
 			cmds, Var x_r, errs_as @ errs_def, rets_as @ rets_def, outer_breaks_as @ outer_breaks_def, conts_as @ conts_def
@@ -4302,11 +4302,11 @@ and translate_statement tr_ctx e  =
 			let cmds_bs = add_initial_label cmds_bs b_cases_lab metadata in
 
 			(* goto [ x_found_a ] default b_cases *)
-			let cmd_goto_xfounda = (annotate_cmd (SLGuardedGoto (Var x_found_as, default_lab, b_cases_lab)) None) in
+			let cmd_goto_xfounda = (annotate_cmd (LGuardedGoto (Var x_found_as, default_lab, b_cases_lab)) None) in
 
 			(* default:		x_found_b := PHI(x_false, x_found_b) *)
 			let x_found_b = fresh_xfoundb_var () in
-			let cmd_ass_xfoundb = (annotate_cmd (SLPhiAssignment (x_found_b, [| (Literal (Bool false)); (Var x_found_bs) |])) (Some default_lab)) in
+			let cmd_ass_xfoundb = (annotate_cmd (LPhiAssignment (x_found_b, [| (Literal (Bool false)); (Var x_found_bs) |])) (Some default_lab)) in
 
 			let cur_breaks_as, outer_breaks_as = filter_cur_jumps breaks_as tr_ctx.tr_js_lab true in
 			let cur_breaks_bs, outer_breaks_bs = filter_cur_jumps breaks_bs tr_ctx.tr_js_lab true in
@@ -4329,12 +4329,12 @@ and translate_statement tr_ctx e  =
 let make_final_cmd vars final_lab final_var =
 	let cmd_final =
 		(match vars with
-		| [] -> SLBasic SSkip
-		| [ x ] -> SLBasic (SAssignment (final_var, Var x))
+		| [] -> LBasic Skip
+		| [ x ] -> LBasic (Assignment (final_var, Var x))
 		| _ ->
 			let vars = List.map (fun x_r -> (Var x_r)) vars in
 			let vars = Array.of_list vars in
-			SLPhiAssignment (final_var, vars)) in
+			LPhiAssignment (final_var, vars)) in
 	(empty_metadata, (Some final_lab), cmd_final)
 
 
@@ -4365,26 +4365,26 @@ let generate_main offset_converter e spec =
 		cmds in
 
 	let new_var = fresh_var () in
-	let setup_heap_ass =  annotate_cmd (SLCall (new_var, Literal (String setupHeapName), [ ], None)) None in
+	let setup_heap_ass =  annotate_cmd (LCall (new_var, Literal (String setupHeapName), [ ], None)) None in
 	let sc_var_main = JS2JSIL_Constants.var_scope in
 
 	(* x_sc := {{ $lg }} *)
-	let init_scope_chain_ass = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
+	let init_scope_chain_ass = annotate_cmd (LBasic (Assignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
 
 	let sc_var_main = JS2JSIL_Constants.var_sc_first in
  
  	(* x_sc_fst := {{ $lg }} *)
- 	let init_scope_chain_ass_again = annotate_cmd (SLBasic (SAssignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
+ 	let init_scope_chain_ass_again = annotate_cmd (LBasic (Assignment (sc_var_main, Literal (LList [ Loc locGlobName ])))) None in
 
 	(* __this := $lg *)
-	let this_ass = annotate_cmd (SLBasic (SAssignment (var_this, Literal (Loc locGlobName)))) None in
+	let this_ass = annotate_cmd (LBasic (Assignment (var_this, Literal (Loc locGlobName)))) None in
 
 	(* global vars init assignments: [$lg, y] := {{ "d", undefined, true, true, true }} *)
 	let global_var_asses =
 		List.map
 			(fun global_v ->
 				(annotate_cmd
-					(SLBasic (SMutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]), None)))
+					(LBasic (Mutation(Literal (Loc locGlobName),  Literal (String global_v), Literal (LList [(String "d"); Undefined; (Bool true); (Bool true); (Bool false)]), None)))
 					None))
 			(var_decls e) in
 
@@ -4404,13 +4404,13 @@ let generate_main offset_converter e spec =
 		Printf.printf "Length: pre: %d \t post: %d\n" (List.length pre_logic_cmds) (List.length post_logic_cmds)) cmds_e; *)
 
 	(* x_ret := x_e *)
-	let ret_ass = annotate_cmd (SLBasic (SAssignment (ctx.tr_ret_var, x_e))) None in
+	let ret_ass = annotate_cmd (LBasic (Assignment (ctx.tr_ret_var, x_e))) None in
 
-	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
-	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
+	let cmd_del_te = annotate_cmd (LBasic (DeleteObj (Var var_te))) None in
+	let cmd_del_se = annotate_cmd (LBasic (DeleteObj (Var var_se))) None in
 
 	(* lab_ret: skip *)
-	let lab_ret_skip = annotate_cmd (SLBasic SSkip) (Some ctx.tr_ret_lab) in
+	let lab_ret_skip = annotate_cmd (LBasic Skip) (Some ctx.tr_ret_lab) in
 
 	let cmd_err_phi_node = make_final_cmd errs ctx.tr_err ctx.tr_error_var in
 
@@ -4446,22 +4446,22 @@ let generate_proc_eval new_fid e vis_fid =
 	(* x_er   := new (x_er_m) *)
 	let x_er = JS2JSIL_Constants.var_er in
 	let x_erm = JS2JSIL_Constants.var_er_metadata in
-	let cmd_er_m_creation = annotate_cmd (SLBasic (SNew (x_erm, Some (Literal Null)))) None in
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew (x_er, Some (Var x_erm)))) None in
+	let cmd_er_m_creation = annotate_cmd (LBasic (New (x_erm, Some (Literal Null)))) None in
+	let cmd_er_creation = annotate_cmd (LBasic (New (x_er, Some (Var x_erm)))) None in
 
 	(* [x_er, "@er"] := true *)
-  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_erm, Literal (String _erFlagPropName), Literal (Bool true), None))) None in
+  let cmd_er_flag = annotate_cmd (LBasic (Mutation (Var x_erm, Literal (String _erFlagPropName), Literal (Bool true), None))) None in
 
 	(* [x_er, decl_var_i] := undefined *)
 	let new_fid_vars = var_decls e in
 	let cmds_decls =
 		List.map (fun decl_var ->
-			let cmd = SLBasic (SMutation (Var x_er, Literal (String decl_var), Literal Undefined, None)) in
+			let cmd = LBasic (Mutation (Var x_er, Literal (String decl_var), Literal Undefined, None)) in
 			(annotate_cmd cmd None))
 		new_fid_vars in
 
 	(* x_sc_0 = x_scope @ {{ x_er }}  *)
-	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
+	let cmd_ass_er_to_sc = annotate_cmd  (LBasic (Assignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
 
 
 	(* x__te := TypeError () *)
@@ -4486,7 +4486,7 @@ let generate_proc_eval new_fid e vis_fid =
 	let cmd_gv_xe = annotate_cmd cmd_gv_xe None in
 
 	(* ret_lab: x_ret := xe_v *)
-	let cmd_dr_ass = annotate_cmd (SLBasic (SAssignment (ctx.tr_ret_var, Var xe_v))) (Some ctx.tr_ret_lab) in
+	let cmd_dr_ass = annotate_cmd (LBasic (Assignment (ctx.tr_ret_var, Var xe_v))) (Some ctx.tr_ret_lab) in
 
 	(* fake_ret_lab: x_fake_ret := PHI(rets) *)
 	let cmd_fake_ret = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
@@ -4527,23 +4527,23 @@ let generate_proc offset_converter e fid params vis_fid spec =
 
 	(* x_er_m := new (null)   *)
 	(* x_er   := new (x_er_m) *)
-	let cmd_er_m_creation = annotate_cmd (SLBasic (SNew (var_er_metadata, Some (Literal Null)))) None in
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew (var_er, Some (Var var_er_metadata)))) None in
+	let cmd_er_m_creation = annotate_cmd (LBasic (New (var_er_metadata, Some (Literal Null)))) None in
+	let cmd_er_creation = annotate_cmd (LBasic (New (var_er, Some (Var var_er_metadata)))) None in
 
 	(* [x_er, "@er"] := true *)
-  let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er_metadata, Literal (String _erFlagPropName), Literal (Bool true), None))) None in
+  let cmd_er_flag = annotate_cmd (LBasic (Mutation (Var var_er_metadata, Literal (String _erFlagPropName), Literal (Bool true), None))) None in
 
 	(* [x_er, "arg_i"] := x_{i+2} *)
 	let cmds_params =
 		List.map (fun param ->
-			let cmd = SLBasic (SMutation (Var var_er, Literal (String param), Var param, None)) in
+			let cmd = LBasic (Mutation (Var var_er, Literal (String param), Var param, None)) in
 			(annotate_cmd cmd None))
 		params in
 
 	(* [x_er, decl_var_i] := undefined *)
 	let cmds_decls =
 		List.map (fun decl_var ->
-			let cmd = SLBasic (SMutation (Var var_er, Literal (String decl_var), Literal Undefined, None)) in
+			let cmd = LBasic (Mutation (Var var_er, Literal (String decl_var), Literal Undefined, None)) in
 			(annotate_cmd cmd None))
 		(var_decls e) in
 
@@ -4560,14 +4560,14 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let x_args = fresh_var () in
 	let cmds_arg_obj =
 		[
-			(empty_metadata, None, SLBasic (SArguments (x_argList_pre)));
-			(empty_metadata, None, SLBasic (SAssignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
-			(empty_metadata, None, SLCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], None));
-			(empty_metadata, None, SLBasic (SMutation (Var var_er, Literal (String "arguments"), Var x_args, None)))
+			(empty_metadata, None, LBasic (Arguments (x_argList_pre)));
+			(empty_metadata, None, LBasic (Assignment (x_argList_act, UnOp (Cdr, (UnOp (Cdr, Var x_argList_pre))))));
+			(empty_metadata, None, LCall  (x_args, Literal (String createArgsName), [ Var x_argList_act ], None));
+			(empty_metadata, None, LBasic (Mutation (Var var_er, Literal (String "arguments"), Var x_args, None)))
 		] in 
 
 	(* x_sc_0 = x_scope @ {{ x_er }} *)
-	let cmd_ass_er_to_sc = annotate_cmd  (SLBasic (SAssignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
+	let cmd_ass_er_to_sc = annotate_cmd  (LBasic (Assignment (var_sc_proc, (BinOp ((Var var_scope), LstCat, EList [ (Var var_er) ]))))) None in
 
 	(* x__te := TypeError () *)
 	let cmd_ass_te = make_var_ass_te () in
@@ -4582,18 +4582,18 @@ let generate_proc offset_converter e fid params vis_fid spec =
 
 	(* x_dr := empty *)
 	let x_dr = fresh_var () in
-	let cmd_dr_ass = annotate_cmd (SLBasic (SAssignment (x_dr, Literal Empty))) None in
+	let cmd_dr_ass = annotate_cmd (LBasic (Assignment (x_dr, Literal Empty))) None in
 	let rets = rets @ [ x_dr ] in
 
 	(* x_scope_final := x_scope *)
-	let cmd_xscope_final = annotate_cmd (SLBasic (SAssignment (JS2JSIL_Constants.var_scope_final, Var var_sc_proc))) None in
+	let cmd_xscope_final = annotate_cmd (LBasic (Assignment (JS2JSIL_Constants.var_scope_final, Var var_sc_proc))) None in
 
 	(* pre_lab_ret: x_return := PHI(...) *)
 	let cmd_return_phi = make_final_cmd rets new_ctx.tr_ret_lab new_ctx.tr_ret_var in
 
-	let cmd_del_te = annotate_cmd (SLBasic (SDeleteObj (Var var_te))) None in
-	let cmd_del_se = annotate_cmd (SLBasic (SDeleteObj (Var var_se))) None in
-	let cmd_ret_final = annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_ret_lab) in
+	let cmd_del_te = annotate_cmd (LBasic (DeleteObj (Var var_te))) None in
+	let cmd_del_se = annotate_cmd (LBasic (DeleteObj (Var var_se))) None in
+	let cmd_ret_final = annotate_cmd (LBasic (Skip)) (Some ctx.tr_ret_lab) in
 
 	(*
 	let cmds_restore_er_ret = generate_proc_er_restoring_code fid x_er_old ctx.tr_ret_lab in
@@ -4601,7 +4601,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 
 	let errs = errs in
 	let cmd_error_phi = make_final_cmd errs new_ctx.tr_err new_ctx.tr_error_var in
-	let cmd_err_final =  annotate_cmd (SLBasic (SSkip)) (Some ctx.tr_err) in
+	let cmd_err_final =  annotate_cmd (LBasic (Skip)) (Some ctx.tr_err) in
 
 	let fid_cmds =
 		[ cmd_er_m_creation; cmd_er_creation; cmd_er_flag ] @
