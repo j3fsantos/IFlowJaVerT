@@ -947,32 +947,32 @@ let rec normalise_cell_assertions
 	let f = normalise_cell_assertions heap store p_formulae gamma subst in
 	let fe = normalise_logic_expression store gamma subst in
 
-	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (le_v : jsil_logic_expr) : unit = 
-		let field_val_pairs, default_val = (try Heap.find heap loc with _ -> ([], None)) in
-		Heap.replace heap loc (((fe le_f, fe le_v) :: field_val_pairs), default_val) in 
+	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (perm : permission) (le_v : jsil_logic_expr) : unit = 
+		let (field_val_pairs, default_val), metadata, ext = (try Heap.find heap loc with _ -> (([], None), LLit Null, false)) in
+		Heap.replace heap loc ((((fe le_f, (perm, fe le_v)) :: field_val_pairs), default_val), fe metadata, ext) in 
 
 	match a with
 	| LStar (a1, a2) -> f a1; f a2
 
-	| LPointsTo (LVar var, le2, le3) -> 
+	| LPointsTo (LVar var, le2, (perm, le3)) -> 
 		let aloc = (try
 			(match Hashtbl.find subst var with
 			| ALoc aloc -> aloc
 			| _ -> print_debug_petar ("oopsie!"); raise (Failure (Printf.sprintf "Not an ALoc in subst: %s" (JSIL_Print.string_of_logic_expression (Hashtbl.find store var)))))
 			with _ -> raise (Failure (Printf.sprintf "Variable %s not found in subst table: %s!" var (JSIL_Print.string_of_substitution subst)))) in
-		normalise_cell_assertion aloc le2 le3
+		normalise_cell_assertion aloc le2 perm le3
 
-	| LPointsTo (PVar var, le2, le3) ->
+	| LPointsTo (PVar var, le2, (perm, le3)) ->
 		let aloc = (try
 			(match Hashtbl.find store var with
 			| ALoc aloc -> aloc
 			| _ -> raise (Failure (Printf.sprintf "Not an ALoc in subst: %s" (JSIL_Print.string_of_logic_expression (Hashtbl.find subst var)))))
 			with _ -> raise (Failure (Printf.sprintf "Variable %s not found in store!" var))) in
-		normalise_cell_assertion aloc le2 le3
+		normalise_cell_assertion aloc le2 perm le3
 
-	| LPointsTo (LLit (Loc loc), le2, le3) -> normalise_cell_assertion loc le2 le3
+	| LPointsTo (LLit (Loc loc), le2, (perm, le3)) -> normalise_cell_assertion loc le2 perm le3
 
-	| LPointsTo (ALoc loc, le2, le3) -> normalise_cell_assertion loc le2 le3
+	| LPointsTo (ALoc loc, le2, (perm, le3)) -> normalise_cell_assertion loc le2 perm le3
 
 	| LPointsTo (_, _, _) ->
 		let msg = Printf.sprintf "" in
@@ -1135,8 +1135,8 @@ let normalise_ef_assertions
 				| _ -> print_debug_petar "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
 			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
-		let fv_list, _ = try Heap.find heap le_loc_name with Not_found -> [], None in
-		Heap.replace heap le_loc_name (fv_list, Some domain) in
+		let (fv_list, _), metadata, ext = try Heap.find heap le_loc_name with Not_found -> ([], None), LLit Null, false in
+		Heap.replace heap le_loc_name ((fv_list, Some domain), metadata, ext) in
 
 	List.iter add_domain (get_all_empty_fields a)
 
@@ -1156,6 +1156,92 @@ let extend_typing_env_using_assertion_info
 		| _ -> ()
 	) a_list
 
+(** -----------------------------------------------------
+  * Normalise Metadata
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+**)
+let normalise_metadata
+	(heap : symbolic_heap) (store : symbolic_store)
+	(p_formulae : pure_formulae) (gamma : typing_environment)
+	(subst : substitution) (a : jsil_logic_assertion) : unit =
+
+	let rec get_all_metadata a =
+		let n_lexpr = normalise_lexpr ~store:store ~subst:subst gamma in
+		let f_ac a _ _ ac =
+			match a with
+			| LMetaData (le, md) ->
+				let nle = n_lexpr le in
+				let nmd = n_lexpr md in
+				 (nle, nmd) :: (List.concat ac)
+			| _ -> List.concat ac in
+		let result = assertion_fold None f_ac None None a in
+			print_debug_petar (Printf.sprintf "Normalising metadata:\n\t%s"
+				(String.concat "\n\t" (List.map (fun (le1, le2) -> "(" ^ (JSIL_Print.string_of_logic_expression le1) ^ ", " ^ (JSIL_Print.string_of_logic_expression le2) ^ ")") result)));
+			result in
+	
+	let metadata = get_all_metadata a in
+	
+	(** 
+			What should be done? Iterate on the list: (l, md)
+			
+			H1: The l has to exist in the heap already - we don't want only metadata assertions for an object
+			H2: If the md is an object, then its abstract location should be in the heap, we don't allocate a new object based on metadata 
+	*)
+	List.iter (fun (l, md) -> 
+		let loc = (match l with
+			| ALoc loc
+			| LLit (Loc loc) -> loc
+			| _ -> raise (Failure (Printf.sprintf "Unsupported: metadata for a non-defined object %s." (JSIL_Print.string_of_logic_expression l)))) in
+		match (Heap.mem heap loc) with
+		| false -> raise (Failure (Printf.sprintf "Unsupported: object %s only defined through metadata." (JSIL_Print.string_of_logic_expression l)))
+		| true  -> 
+				let ((fv_list, domain), _, ext) = Heap.find heap loc in
+					Heap.replace heap loc ((fv_list, domain), md, ext)
+		) metadata
+
+(** -----------------------------------------------------
+  * Normalise Metadata
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+**)
+let normalise_extensibility
+	(heap : symbolic_heap) (store : symbolic_store)
+	(p_formulae : pure_formulae) (gamma : typing_environment)
+	(subst : substitution) (a : jsil_logic_assertion) : unit =
+
+	let rec get_all_extens a =
+		let n_lexpr = normalise_lexpr ~store:store ~subst:subst gamma in
+		let f_ac a _ _ ac =
+			match a with
+			| LExtensible (le, b) ->
+				let nle = n_lexpr le in
+				 (nle, b) :: (List.concat ac)
+			| _ -> List.concat ac in
+		let result = assertion_fold None f_ac None None a in
+			print_debug_petar (Printf.sprintf "Normalising extensibility:\n\t%s"
+				(String.concat "\n\t" (List.map (fun (le1, b) -> "(" ^ (JSIL_Print.string_of_logic_expression le1) ^ ", " ^ (if b then "true" else "false") ^ ")") result)));
+			result in
+	
+	let extens = get_all_extens a in
+	
+	(** 
+			What should be done? Iterate on the list: (l, md)
+			
+			H1: The l has to exist in the heap already - we don't want only extensibility assertions for an object
+			H2: If the md is an object, then its abstract location should be in the heap, we don't allocate a new object based on extensibility 
+	*)
+	List.iter (fun (l, ext) -> 
+		let loc = (match l with
+			| ALoc loc
+			| LLit (Loc loc) -> loc
+			| _ -> raise (Failure (Printf.sprintf "Unsupported: extensibility for a non-defined object %s." (JSIL_Print.string_of_logic_expression l)))) in
+		match (Heap.mem heap loc) with
+		| false -> raise (Failure (Printf.sprintf "Unsupported: object %s only defined through extensibility." (JSIL_Print.string_of_logic_expression l)))
+		| true  -> 
+				let ((fv_list, domain), metadata, _) = Heap.find heap loc in
+					Heap.replace heap loc ((fv_list, domain), metadata, ext)
+		) extens
 
 (**
   * ---------------------------------------------------------------------------
@@ -1230,15 +1316,13 @@ let get_heap_well_formedness_constraints heap =
 		(Symbolic_State_Print.string_of_shallow_symb_heap heap false));*)
 
 	Heap.fold
-		(fun field (fv_list, _) constraints ->
+		(fun field ((fv_list, _), _, _) constraints ->
 			(match constraints with
 			| [ LFalse ] -> [ LFalse ]
 			| _ ->
   				let f_list, _ = List.split fv_list in
   				let new_constraints = make_all_different_assertion_from_fvlist f_list in
   				new_constraints @ constraints)) heap []
-
-
 
 
 (** -----------------------------------------------------
@@ -1295,6 +1379,10 @@ let normalise_assertion
 		pfs_merge p_formulae (pfs_of_list new_assertions);
 		normalise_ef_assertions heap store p_formulae gamma subst a;
 
+		(* NEW *)
+		normalise_metadata heap store p_formulae gamma subst a;
+		normalise_extensibility heap store p_formulae gamma subst a;
+
 		(** Step 6 -- Check if the symbolic state makes sense *)
 		let heap_constraints = get_heap_well_formedness_constraints heap in
 		if ((Pure_Entailment.check_satisfiability (heap_constraints @ (pfs_to_list p_formulae)) gamma) &&
@@ -1335,18 +1423,30 @@ let normalise_normalised_assertion
     | LTypes type_assertions ->
       let _ = List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions in 
       (a, false)
-    | LPointsTo (PVar loc, le2, le3)
-		| LPointsTo (ALoc loc, le2, le3)
-    | LPointsTo (LLit (Loc loc), le2, le3) ->
+    | LPointsTo (PVar loc, le2, (perm, le3))
+		| LPointsTo (ALoc loc, le2, (perm, le3))
+    | LPointsTo (LLit (Loc loc), le2, (perm, le3)) ->
       (* TODO: prefix locations with _ ? *)
-      let field_val_pairs, default_val = (try Heap.find heap loc with _ -> ([], None)) in
-      Heap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+      let (field_val_pairs, default_val), metadata, ext = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
+      Heap.replace heap loc ((((le2, (perm, le3)) :: field_val_pairs), default_val), metadata, ext);
       (a, false)
 		| LEmptyFields (obj, domain) ->
       let loc = JSIL_Print.string_of_logic_expression obj in
-      let field_val_pairs, _ = (try Heap.find heap loc with _ -> ([], None)) in
-      Heap.replace heap loc ((field_val_pairs), (Some domain));
+      let (field_val_pairs, _), metadata, ext = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
+      Heap.replace heap loc ((field_val_pairs, Some domain), metadata, ext);
 			(a, false)
+			
+		| LMetaData (obj, md) ->
+  			let loc = JSIL_Print.string_of_logic_expression obj in
+        let (field_val_pairs, domain), _, ext = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
+        Heap.replace heap loc ((field_val_pairs, domain), md, ext);
+  			(a, false)
+			
+		| LExtensible (obj, b) ->
+				let loc = JSIL_Print.string_of_logic_expression obj in
+        let (field_val_pairs, domain), metadata, _ = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
+        Heap.replace heap loc ((field_val_pairs, domain), metadata, b);
+        (a, false)
 			
     | LEq ((PVar v), le)
     | LEq (le, (PVar v)) ->
