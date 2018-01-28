@@ -5,12 +5,9 @@ open JSIL_Logic_Utils
 
 exception SymbExecFailure of string
 
-
-
 (*************************************)
 (** Symbolic Heap Functions         **)
 (*************************************)
-
 
 (**
   find_field (pfs, gamma, fv_list, loc, field) = fv_list', (field', val)
@@ -22,32 +19,32 @@ exception SymbExecFailure of string
 let find_field
 		(pfs : pure_formulae) (gamma : typing_environment)
 		(fv_list : symbolic_field_value_list)
-		(loc : string) (field : jsil_logic_expr) : (symbolic_field_value_list * (jsil_logic_expr * jsil_logic_expr)) option  =
+		(loc : string) (field : jsil_logic_expr) : (symbolic_field_value_list * (jsil_logic_expr * (permission * jsil_logic_expr))) option  =
 	
 	let rec find_field_rec fv_list traversed_fv_list =
 		match fv_list with
 		| [] -> None
-		| (field', value) :: rest ->
+		| (field', (perm, value)) :: rest ->
 			(if (Pure_Entailment.is_equal field' field pfs gamma)
-				then Some (traversed_fv_list @ rest, (field', value))
-				else find_field_rec rest ((field', value) :: traversed_fv_list)) in
+				then Some (traversed_fv_list @ rest, (field', (perm, value)))
+				else find_field_rec rest ((field', (perm, value)) :: traversed_fv_list)) in
 	find_field_rec fv_list []
 
 
 let sheap_put 
 			(pfs : pure_formulae) (gamma : typing_environment)
-			(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) : unit =
+			(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (perm : permission) (value : jsil_logic_expr) : unit =
 	
-	let fv_list, domain = heap_get_unsafe heap loc in
+	let (fv_list, domain), metadata, ext = heap_get_unsafe heap loc in
 	(match (find_field pfs gamma fv_list loc field), domain with 
-	| Some (framed_fv_list, _), _ -> heap_put heap loc ((field, value) :: framed_fv_list) domain 
+	| Some (framed_fv_list, _), _ -> heap_put heap loc ((field, (perm, value)) :: framed_fv_list) domain metadata ext
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
 			(* let new_domain = Normaliser.normalise_lexpr gamma new_domain in *)
 			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
-			heap_put heap loc ((field, value) :: fv_list) (Some new_domain) 
+			heap_put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
 		) else (
 			let msg = Printf.sprintf "sheap_put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
@@ -65,9 +62,9 @@ let sheap_get
 		(pfs : pure_formulae) (gamma : typing_environment)
 		(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
-	let fv_list, domain = heap_get_unsafe heap loc in
+	let (fv_list, domain), _, _ = heap_get_unsafe heap loc in
 	(match (find_field pfs gamma fv_list loc field), domain with 
-	| Some (_, (_, value)), _ -> value 
+	| Some (_, (_, (_, value))), _ -> value 
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) 
@@ -99,16 +96,21 @@ let merge_heaps
 		(Symbolic_State_Print.string_of_pfs pfs) (Symbolic_State_Print.string_of_gamma gamma)
 	);
 	
+	(* This is a bit strange, what if there are duplicates in the fv lists? Or contradictions with empty_fields and existing cells? TODO *)
 	heap_iterator new_heap 
-		(fun loc (n_fv_list, n_domain) ->
+		(fun loc ((n_fv_list, n_domain), n_metadata, n_ext) ->
 			match heap_get heap loc with 
-			| Some (fv_list, domain) -> 
-				heap_put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)
+			| Some ((fv_list, domain), metadata, ext) -> 
+				(match (ext = n_ext) with
+				| false -> raise (Failure "Heaps not mergeable. Extensibility mismatch.")
+				| true -> match (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ LEq (metadata, n_metadata) ] gamma) with
+					| false -> raise (Failure "Heaps not mergeable. Metadata not provably equal.")  
+					| true -> heap_put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)) metadata ext
 			| None -> 
-				heap_put heap loc n_fv_list n_domain); 
+				heap_put heap loc n_fv_list n_domain n_metadata n_ext); 
 
-	(* Garbage collection *)
-	heap_iterator heap (fun loc (fv_list, domain) ->
+	(* Garbage collection - What happens here now?! TODO *)
+	heap_iterator heap (fun loc ((fv_list, domain), _, _) ->
 		(match fv_list, domain with
 		| [], None -> heap_remove heap loc
 		| _, _ -> ()));
@@ -330,7 +332,7 @@ let get_locs_symb_state symb_state =
 let collect_garbage (symb_state : symbolic_state) = 
 	let heap, store, pfs, gamma, preds = symb_state in
 	let dangling_locations = 	Heap.fold
-		(fun loc (fv_list, default) locs ->
+		(fun loc ((fv_list, default), _, _) locs ->
 			match (is_abs_loc_name loc), default, fv_list with
 			| true, None, [] 
 			| true, Some (LESet []), [] -> SS.add loc locs

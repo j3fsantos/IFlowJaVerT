@@ -1508,22 +1508,29 @@ let create_unification_plan
 		if (Queue.is_empty locs_to_visit) then false else (
 			let loc     = Queue.pop locs_to_visit in 
 			let le_loc  = if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
-			match heap_get heap loc with 
-			| None                      -> 
-				(* The aloc does not correspond to any cell - it is an argument for a predicate *)
-				true
-			| Some (fv_list, le_domain) ->
+			match heap_get heap loc with
+			(* The aloc does not correspond to any cell - it is an argument for a predicate *) 
+			| None -> true
+				
+			(* The aloc correspond to a cell - get the fv_list, domain, metadata, extensibility *)
+			| Some ((fv_list, domain), metadata, ext) ->
+				(* Partition the field-value list into concrete and symbolic properties *)
 				let fv_list_c, fv_list_nc = 
 					List.partition (fun (le, _) -> 
 						match le with 
 						| LLit (String _) -> true 
 						| _               -> false 
 					) fv_list in 
- 				List.iter (fun (le_f, le_v) -> 
- 					Queue.add (LPointsTo (le_loc, le_f, le_v)) unification_plan; 
+ 				List.iter (fun (le_f, (perm, le_v)) -> 
+ 					Queue.add (LPointsTo (le_loc, le_f, (perm, le_v))) unification_plan; 
  					search_for_new_alocs_in_lexpr le_v
  				) (fv_list_c @ fv_list_nc); 
- 				Option.may (fun le_domain -> Queue.add (LEmptyFields (le_loc, le_domain)) unification_plan) le_domain;
+ 				Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
+				(* Now, metadata *)
+				Queue.add (LMetaData (le_loc, metadata)) unification_plan;
+				search_for_new_alocs_in_lexpr metadata;
+				(* Now, extensibility *)
+				Queue.add (LExtensible (le_loc, ext)) unification_plan;
  				Heap.remove heap loc; 
  				true) in 
 
@@ -1531,7 +1538,7 @@ let create_unification_plan
 	List.iter (fun loc -> Queue.add loc locs_to_visit) (concrete_locs @ (SS.elements reachable_alocs)) ; 
 
 	(** Step 2 -- which alocs are directly reachable from the store *)
-	Hashtbl.iter (fun x le ->  search_for_new_alocs_in_lexpr le ) store;
+	Hashtbl.iter (fun x le -> search_for_new_alocs_in_lexpr le) store;
 
 	(** Step 3 -- inspect the alocs that are in the queue *)
 	while (inspect_aloc ()) do () done; 
@@ -1546,16 +1553,13 @@ let create_unification_plan
 	while (inspect_aloc ()) do () done; 
 
 	(** Step 6 -- return *)
+	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
+	let unification_plan_lst = List.rev unification_plan_lst in 
 	if ((Heap.length heap) = 0) then (
 		(* We found all the locations in the symb_state - we are fine! *)
-		let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
-		let unification_plan_lst = List.rev unification_plan_lst in 
-		Queue.clear unification_plan; 
+		Queue.clear unification_plan;
 		unification_plan_lst
 	) else (
-		let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
-		let unification_plan_lst = List.rev unification_plan_lst in 
-
 		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:%s\n" 
 			(String.concat ", " (SS.elements !marked_alocs))
 			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
