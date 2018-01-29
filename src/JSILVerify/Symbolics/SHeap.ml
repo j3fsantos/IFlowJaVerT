@@ -58,26 +58,27 @@ let remove (heap : t) (loc : string) =
 let domain (heap : t) : SS.t =
 	SS.of_list (Heap.fold (fun l _ ac -> l :: ac) heap [])
 
-(** Returns a copie of --heap-- *)
+(** Returns a copy of --heap-- *)
 let copy (heap : t) : t = Heap.copy heap
 
 (** Returns subst(heap) *)
 let substitution (subst : substitution) (partial : bool) (heap : t) : t =
-	let le_subst = JSIL_Logic_Utils.lexpr_substitution subst partial in 
 	let new_heap = Heap.create 1021 in
 	Heap.iter
 		(fun loc ((fv_list, domain), metadata, ext) ->
 			let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
 				try Hashtbl.find subst loc with _ -> 
 					if (partial) then (ALoc loc) else (
+						print_debug_petar (Printf.sprintf "SHeap.substitution: Location %s not in subst, creating a new one." loc);
 						let new_aloc = ALoc (fresh_aloc ()) in
 						extend_substitution subst [ loc ] [ new_aloc ];
 						new_aloc)) in 
 			let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
 				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 
 			let s_fv_list = SFVL.substitution subst partial fv_list in
-			let s_domain = Option.map (fun le -> le_subst le) domain in
-			Heap.add new_heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext))			
+			let s_domain = Option.map (fun le -> JSIL_Logic_Utils.lexpr_substitution subst partial le) domain in
+			let s_metadata = JSIL_Logic_Utils.lexpr_substitution subst partial metadata in
+			Heap.add new_heap s_loc ((s_fv_list, s_domain), s_metadata, ext))			
 		heap;
 	new_heap
 
@@ -128,12 +129,9 @@ let to_list (heap : t) : (string * ((SFVL.t * (jsil_logic_expr option)) * jsil_l
 let iterator (heap: t) (f : string -> (((SFVL.t * (jsil_logic_expr option)) * jsil_logic_expr * bool) -> unit)) =
 	Heap.iter f heap
 
-(** Returns true if --heap-- is empty *)
+(** Returns true if --heap-- is empty : TODO *)
 let is_empty (heap : t) : bool =
-	Heap.fold
-		(fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = []) && (dom = None) && (metadata = LLit Null))
-		heap
-		true
+	Heap.fold (fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = []) && (dom = None)) heap true
 
 (** converts a symbolic heap to a list of assertions *)
 let assertions (heap : t) : jsil_logic_assertion list= 

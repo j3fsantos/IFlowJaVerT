@@ -304,6 +304,10 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
   		| LSetMem (e1, e2) -> Printf.sprintf "(%s --e-- %s)" (sle e1) (sle e2)
   		(* e1 --s-- e2 *)
   		| LSetSub (e1, e2) -> Printf.sprintf "(%s --s-- %s)" (sle e1) (sle e2)
+			(* MetaData (e1, e2) *)
+			| LMetaData (e1, e2) -> Printf.sprintf "MetaData (%s, %s)" (sle e1) (sle e2)
+			(* Extensible (e1, e2) *)
+			| LExtensible (e1, e2) -> Printf.sprintf "Extensible (%s, %s)" (sle e1) (if e2 then "true" else "false")
 
 
 (* [def2 with #key := #k and #value := #v] *)

@@ -284,7 +284,7 @@ let unify_pred_assertion
 	let pat_pname, pat_pargs =
 		match pat_pred_asrt with 
 		| LPred (p_name, p_args) -> p_name, p_args 
-		| _ -> raise (Failure "DEATH") in 
+		| _ -> raise (Failure "DEATH: Predicate assertion mismatch") in 
 
 	(* 2.  *)
 	let preds_lst = preds_to_list preds in 
@@ -561,7 +561,7 @@ let unify_spatial_assertion
 			(fun (h_f, pat_subst, discharges) -> (h_f, preds_copy preds, discharges, pat_subst)) 
 			(unify_extensible_assertion pfs gamma pat_subst pat_s_asrt heap)
 
-	| _ -> raise (Failure "DEATH")) in
+	| _ -> raise (Failure "DEATH: Unsupported spatial assertion")) in
 	
 	let end_time = Sys.time() in
 	update_statistics "unify_spatial_assertion" (end_time -. start_time);
@@ -684,7 +684,7 @@ let unify_pfs
 type extended_intermediate_frame         = (jsil_logic_assertion list) * intermediate_frame
 
 let unify_symb_states 
-		(pat_unfication_plan   : jsil_logic_assertion list) 
+		(pat_unification_plan   : jsil_logic_assertion list) 
 		(pat_subst             : substitution option)
 		(pat_symb_state        : symbolic_state) 
 		(symb_state            : symbolic_state) : bool * symbolic_state_frame =
@@ -694,7 +694,7 @@ let unify_symb_states
 	let pat_lvars = (ss_lvars pat_symb_state) in 
 
 	print_debug (Printf.sprintf "STARTING: unify_symb_states with UP: %s.\n" 
-			(Symbolic_State_Print.string_of_unification_plan pat_unfication_plan)); 
+			(Symbolic_State_Print.string_of_unification_plan pat_unification_plan)); 
 
 	(* 1. Init the substitution          *)
 	let pat_subst  = Option.default (init_substitution []) pat_subst in
@@ -707,7 +707,7 @@ let unify_symb_states
 	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure "");
 
 	(* 3. Initial frame for the search *)
-	let initial_frame = pat_unfication_plan, (heap, preds, discharges, pat_subst) in 
+	let initial_frame = pat_unification_plan, (heap, preds, discharges, pat_subst) in 
 
 	(* 4. SEARCH *)
 	let rec search 
@@ -747,7 +747,9 @@ let unify_symb_states
 
 			| LPointsTo _ :: rest_up
 			| LPred _ :: rest_up 
-			| LEmptyFields _ :: rest_up -> 
+			| LEmptyFields _ :: rest_up 
+			| LMetaData _ :: rest_up
+			| LExtensible _ :: rest_up -> 
 
 				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
 
@@ -758,11 +760,11 @@ let unify_symb_states
 						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst)) 
 						new_frames in 
 
-				print_debug (Printf.sprintf "Unfication result: %b\n" ((List.length new_frames) > 0)); 
+				print_debug (Printf.sprintf "Unification result: %b\n" ((List.length new_frames) > 0)); 
 
 				search (new_frames @ rest_frame_list) found_partial_matches
 
-			| _ -> raise (Failure "DEATH")) in 
+			| _ -> raise (Failure "DEATH: Unknown assertion in unification plan.")) in 
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] [] in
 	let end_time = Sys.time() in
@@ -773,7 +775,7 @@ let unify_symb_states
 
 let fully_unify_symb_state 
 		(intuitionistic       : bool) 
-		(pat_unfication_plan  : jsil_logic_assertion list) 
+		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst            : substitution option)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : substitution =
@@ -783,7 +785,7 @@ let fully_unify_symb_state
 		(Symbolic_State_Print.string_of_symb_state pat_symb_state));
 
 	try (
-		let outcome, (heap_f, preds_f, subst, _, _) = unify_symb_states pat_unfication_plan pat_subst pat_symb_state symb_state in
+		let outcome, (heap_f, preds_f, subst, _, _) = unify_symb_states pat_unification_plan pat_subst pat_symb_state symb_state in
 		match outcome, intuitionistic with
 		| true, true -> subst 
 
@@ -806,7 +808,7 @@ type fold_extended_intermediate_frame = (jsil_logic_assertion list) * intermedia
 let unify_symb_states_fold 
 			(pred_name            : string)
 			(existentials         : SS.t) 
-			(pat_unfication_plan  : jsil_logic_assertion list) 
+			(pat_unification_plan  : jsil_logic_assertion list) 
 			(pat_symb_state       : symbolic_state) 
 			(symb_state           : symbolic_state) : symbolic_state_frame * SS.t * ((string * (jsil_logic_expr list)) option)  =
 	
@@ -815,7 +817,7 @@ let unify_symb_states_fold
 	let pat_lvars = (ss_lvars pat_symb_state) in 
 
 	print_debug (Printf.sprintf "STARTING: unify_symb_states_fold with UP: %s.\n" 
-		(Symbolic_State_Print.string_of_unification_plan pat_unfication_plan)); 
+		(Symbolic_State_Print.string_of_unification_plan pat_unification_plan)); 
 
 	(* 1. Init the substitution          *)
 	let pat_subst  = init_substitution [] in
@@ -861,7 +863,7 @@ let unify_symb_states_fold
 	let gamma = gamma_existentials in 
 	
 	(* 4. Initial frame for the search *)
-	let initial_frame = pat_unfication_plan, (heap, preds, (discharges @ discharges'), pat_subst), None in 
+	let initial_frame = pat_unification_plan, (heap, preds, (discharges @ discharges'), pat_subst), None in 
 
 	(* 5. SEARCH *)
 	let rec search 
@@ -902,7 +904,7 @@ let unify_symb_states_fold
 						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
 						new_frames in 
 
-				print_debug (Printf.sprintf "Unfication result: %b" ((List.length new_frames) > 0));
+				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
 				search (new_frames @ rest_frame_list)
 
@@ -916,7 +918,7 @@ let unify_symb_states_fold
 						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
 						(unify_pred_assertion pfs gamma pat_subst (LPred (p_name, largs)) preds_frame) in  
 
-				print_debug (Printf.sprintf "Unfication result: %b" ((List.length new_frames) > 0));
+				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
 				if (((List.length new_frames) <> 0) || (p_name <> pred_name) || (missing_pred <> None))
 					then (
@@ -931,7 +933,7 @@ let unify_symb_states_fold
 						search ((rest_up, (heap_frame, preds_frame, discharges, pat_subst), (Some (p_name, largs))) :: rest_frame_list)
 					)
 
-			| _ -> raise (Failure "DEATH")) in
+			| _ -> raise (Failure "DEATH: Unknown assertion in fold unification.")) in
 			
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] in
@@ -1204,7 +1206,7 @@ let unfold_predicate_definition
 
 let grab_resources 
 		(spec_vars            : SS.t) 
-		(pat_unfication_plan  : jsil_logic_assertion list) 
+		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst            : substitution)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : symbolic_state option   =
@@ -1214,7 +1216,7 @@ let grab_resources
 		(Symbolic_State_Print.string_of_symb_state pat_symb_state));
 	
 	try (
-		let outcome, (heap_f, preds_f, subst, pf_discharges, _) = unify_symb_states pat_unfication_plan (Some pat_subst) pat_symb_state symb_state in
+		let outcome, (heap_f, preds_f, subst, pf_discharges, _) = unify_symb_states pat_unification_plan (Some pat_subst) pat_symb_state symb_state in
 		match outcome with
 		| true ->
 			ss_extend_pfs symb_state (pfs_of_list pf_discharges);

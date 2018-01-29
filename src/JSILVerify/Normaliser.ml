@@ -205,7 +205,7 @@ let rec auto_unfold
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
 	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp
-	| LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) -> [asrt]
+	| LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) | LMetaData (_, _) | LExtensible (_, _) -> [asrt]
 
 
 (*  ------------------------------------------------------------------
@@ -549,7 +549,7 @@ let reshape_list (le_list : jsil_logic_expr) (len : int) : (jsil_logic_expr list
 		if ((List.length lst_l'') > 0) 
 			then lst_l', LBinOp (LEList lst_l'', LstCat, lst_r)
 			else lst_l', lst_r 
-	| _ -> raise (Failure "DEATH"))
+	| _ -> raise (Failure "DEATH: List could not be reshaped"))
 
 
 
@@ -633,7 +633,7 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string 
 					let min_len              = min (List.length le2_lst) (List.length le1_lst) in
 					let le1_lst_l, le1_lst_r = reshape_list le1 min_len in 
 					let le2_lst_l, le2_lst_r = reshape_list le2' min_len in 
-					if ((List.length le1_lst_l) <> (List.length le2_lst_l)) then raise (Failure "DEATH") else (
+					if ((List.length le1_lst_l) <> (List.length le2_lst_l)) then raise (Failure "DEATH: Lists of different lengths") else (
 						match loop_lists le1_lst_l le2_lst_l with 
 						| None -> loop rest ((List.hd pfs) :: traversed_pfs)
 						| Some loc -> Some loc)
@@ -721,21 +721,23 @@ let rec initialise_alocs
 			f a_left; f a_right
 
 	| LPointsTo (PVar var, _, _)
-	| LEmptyFields (PVar var, _) ->
+	| LEmptyFields (PVar var, _)
+	| LMetaData (PVar var, _) 
+	| LExtensible (PVar var, _) ->
 			if (not (Hashtbl.mem store var))
 			then (Hashtbl.add store var (ALoc (new_abs_loc_name var)); ())
 
 	| LPointsTo (LVar var, _, _)
-	| LEmptyFields (LVar var, _) ->
+	| LEmptyFields (LVar var, _) 
+	| LMetaData (LVar var, _) 
+	| LExtensible (LVar var, _) ->
 			if (not (Hashtbl.mem subst var))
 			then
 				(let aloc = new_abs_loc_name var in
 					Hashtbl.add subst var (ALoc aloc))
 					(* Hashtbl.remove gamma var) *)
-
-	| LPointsTo (ALoc _, _, _) -> ()
-			(* raise (Failure "Unsupported assertion during normalization") *)
-
+	
+	(* raise (Failure "Unsupported assertion during normalization") *)
 	| _ -> ()
 
 
@@ -1185,8 +1187,7 @@ let normalise_metadata
 	(** 
 			What should be done? Iterate on the list: (l, md)
 			
-			H1: The l has to exist in the heap already - we don't want only metadata assertions for an object
-			H2: If the md is an object, then its abstract location should be in the heap, we don't allocate a new object based on metadata 
+			H1: If l doesn't exist in the heap, we have to create it (with which extensibility?)
 	*)
 	List.iter (fun (l, md) -> 
 		let loc = (match l with
@@ -1194,7 +1195,9 @@ let normalise_metadata
 			| LLit (Loc loc) -> loc
 			| _ -> raise (Failure (Printf.sprintf "Unsupported: metadata for a non-defined object %s." (JSIL_Print.string_of_logic_expression l)))) in
 		match (Heap.mem heap loc) with
-		| false -> raise (Failure (Printf.sprintf "Unsupported: object %s only defined through metadata." (JSIL_Print.string_of_logic_expression l)))
+		| false -> 
+				(* TODO: Ultra careful here with None and LESet [] ... *)
+				Heap.replace heap loc (([], None), md, false)
 		| true  -> 
 				let ((fv_list, domain), _, ext) = Heap.find heap loc in
 					Heap.replace heap loc ((fv_list, domain), md, ext)

@@ -386,6 +386,28 @@ let symb_evaluate_bcmd
 			store_put store x ret_lexpr;
 			ret_lexpr)
 	
+	(* 
+		MetaData collection: x = metadata(e);
+	
+		a) Safely evaluate e to obtain the object location l
+		b) If l is not a literal location or an abstract location, throw an error
+	*)
+	 
+	| MetaData (x, e) ->
+		let l, _, _ = ssee e in
+		let l = 
+			match Normaliser.resolve_location_from_lexpr pure_formulae l with
+			| Some l -> l 
+			| None   -> 
+					let msg = Printf.sprintf "MetaData: %s does not denote a location" (JSIL_Print.string_of_logic_expression l) in 
+					raise (Symbolic_State_Utils.SymbExecFailure msg) in
+		let obj = SHeap.get heap l in
+		(match obj with
+		| None -> raise (Failure (Printf.sprintf "Looking up metadata of a non-existent object: %s" l))	
+		| Some (_, md, _) -> 
+				Hashtbl.replace store x md;
+				md)
+	
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 
 
@@ -1416,7 +1438,7 @@ let symb_evaluate_proc
 		) with
 			| Spatial_Entailment.UnificationFailure msg 
 			| Failure msg -> 
-				(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d %s!!!!" i msg);
+				(print_normal (Printf.sprintf "The EVALUATION OF THIS PROC GAVE AN ERROR: %d with message %s" i msg);
 				let node_info = Symbolic_Traces.sg_node_from_err msg in
 				let _         = sec_create_new_info_node search_info node_info in 
 				false, Some msg) in

@@ -55,7 +55,7 @@ let sheap_put
 			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
 			SHeap.put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
 		) else (
-			let msg = Printf.sprintf "sSHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
+			let msg = Printf.sprintf "SHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
 				(SFVL.str fv_list) in 
 			raise (SymbExecFailure msg)

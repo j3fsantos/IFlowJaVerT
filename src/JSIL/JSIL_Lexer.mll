@@ -96,7 +96,7 @@
 			"types",        JSIL_Parser.LTYPES;
 			"forall",       JSIL_Parser.LFORALL;
 			"empty_fields", JSIL_Parser.EMPTYFIELDS;
-			"Metadata",     JSIL_Parser.LMETADATA;
+			"MetaData",     JSIL_Parser.LMETADATA;
 			"Extensible",   JSIL_Parser.LEXTENSIBLE;
 			
 			(* Logic predicates *)

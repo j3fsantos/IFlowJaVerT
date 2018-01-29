@@ -14,7 +14,7 @@ let str (sfvl : t) : string =
 				let field_str = string_of_logic_expression field in
 				let perm_str = string_of_permission perm in
 				let value_str = string_of_logic_expression value in
-				let field_value_str = "(" ^ field_str ^ ":" ^ perm_str ^ " " ^ value_str ^ ")"  in
+				let field_value_str = "(" ^ field_str ^ " :" ^ perm_str ^ " " ^ value_str ^ ")"  in
 				if (ac = "")
 					then field_value_str
 					else ac ^ ", " ^ field_value_str)

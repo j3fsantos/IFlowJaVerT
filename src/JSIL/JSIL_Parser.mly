@@ -869,12 +869,12 @@ assertion_target:
 	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; perm = option(permission_target); val_expr=lexpr_target
 		{ let perm = Option.default Deletable perm in LPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
 (* Metadata (eo, em) *)
-	| LMETADATA; LBRACE; eo = lexpr_target; em = lexpr_target; RBRACE
+	| LMETADATA; LBRACE; eo = lexpr_target; COMMA; em = lexpr_target; RBRACE
 	  { (* validate_pred_assertion (name, params); *)
 			LMetaData (eo, em)
 		}
 (* Extensible (eo, b) *)
-	| LEXTENSIBLE; LBRACE; eo = lexpr_target; b = bool_target; RBRACE
+	| LEXTENSIBLE; LBRACE; eo = lexpr_target; COMMA; b = bool_target; RBRACE
 	  { LExtensible (eo, b) }
 (* emp *)
 	| LEMP;

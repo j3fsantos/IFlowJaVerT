@@ -15,7 +15,7 @@ let funobj_pred_name = "FunctionObject"
 let find_in_list (lst : string list) (x : string) =
 	let rec loop lst i =
 		match lst with
-		| []        -> raise (Failure "DEATH")
+		| []        -> raise (Failure "DEATH: string not found in list")
 		| y :: rest -> if (x = y) then i else loop rest (i+1) in
 	loop lst 0
 

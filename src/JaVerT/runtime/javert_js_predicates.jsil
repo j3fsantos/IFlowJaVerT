@@ -1,60 +1,87 @@
+(*************************
+ **** GENERAL OBJECTS ****
+ *************************)
+
+pred JSObject (l:Obj, md:Obj) :
+    MetaData(l, md) * Extensible(l, true) *
+	((md, "@proto")      -> $lobj_proto) *
+	((md, "@class")      -> "Object") *
+	((md, "@extensible") -> true) *
+	MetaData(md, null) * Extensible(md, true);
+
+pred JSObjWithProto (l:Obj, proto, md:Obj) :
+    MetaData(l, md) * Extensible(l, true) *
+	((md, "@proto")      -> proto) *
+	((md, "@class")      -> "Object") *
+	((md, "@extensible") -> true) *
+	MetaData(md, null) * Extensible(md, true);
+
+pred JSObjGeneral (l:Obj, proto, class:Str, ext:Bool, md:Obj) :
+    MetaData(l, md) * Extensible(l, true) *
+	((md, "@proto")      -> proto) *
+	((md, "@class")      -> class) *
+	((md, "@extensible") -> ext) *
+	MetaData(md, null) * Extensible(md, true);
+	
+pred JSObjGeneralWeak (l:Obj, proto, class, ext, md:Obj) :
+    MetaData(l, md) * Extensible(l, true) *
+	((md, "@proto")      -> proto) *
+	((md, "@class")      -> class) *
+	((md, "@extensible") -> ext) *
+	MetaData(md, null) * Extensible(md, true);
+
+(**************************
+ **** FUNCTION OBJECTS ****
+ **************************)
+
+pred FunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj, md:Obj) : 
+	((l, "length")     -> {{ "d", len, false, false, false }}) *
+	((l, "arguments")  -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
+	((l, "caller")     -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
+	((l, "prototype")  -> {{ "d", proto, true, false, false }}) *
+	MetaData (l, md) * Extensible (l, true) *
+	((md, "@proto")      -> $lfun_proto) * 
+	((md, "@class")      -> "Function") *
+	((md, "@extensible") -> true) * 
+	((md, "@call")       -> fid) * 
+	((md, "@construct")  -> fid) *
+	((md, "@scope")      -> sc) *
+	MetaData(md, null) * Extensible(md, true);
+
+(***********************
+ **** ERROR OBJECTS ****
+ ***********************)
+ 
+pred ErrorObject (l : Obj, pr : Obj, md) :
+	JSObjGeneral(l, pr, "Error", true, md);
+
+pred ErrorObjectWithMessage (l : Obj, m : Str, md) :
+  MetaData(l, md) * Extensible(l, true) *
+  ((md, "@proto") -> $lerr_proto) * ((md, "@class") -> "Error") * ((md, "@extensible") -> true) *
+  ((md, "message") -> {{"d", m, true, false, true}}) * 
+  MetaData(md, null) * Extensible(md, true);
+
+pred isTypeError(l : Obj, md) :
+    ErrorObject (l, $lterr_proto, md);
+
+pred isSyntaxError(l : Obj, md) :
+    ErrorObject (l, $lserr_proto, md);
+
+pred isReferenceError(l : Obj, md) :
+    ErrorObject (l, $lrferr_proto, md);
+
 (********************
- **** JAVASCRIPT ****
+ **** PROPERTIES ****
  ********************)
 
-pred JSObject (l) :
-    types (l : Obj) *
-	((l, "@proto") -> $lobj_proto) *
-	((l, "@class") -> "Object") *
-	((l, "@extensible") -> true);
-
-pred DataProp (l, prop, v) :
-    types (l : Obj, prop : Str) *
+pred DataProp (l : Obj, prop : Str, v) :
 	((l, prop) -> {{ "d", v, true, true, true }}) *
 	(! (v == empty));
 	
-pred DataPropGen (l, prop, v, writ, enum, conf) : 
-	types (l : Obj, prop : Str) *
+pred DataPropGen (l : Obj, prop : Str, v, writ : Bool, enum : Bool, conf : Bool) : 
 	((l, prop) -> {{ "d", v, writ, enum, conf }}) *
-	(! (v == empty)) * types (writ : Bool, enum : Bool, conf : Bool);
-	
-pred DataPropConst (l, prop, v) :
-    types (l : Obj, prop : Str) *
-	((l, prop) -> {{ "d", v, false, false, false }}) *
 	(! (v == empty));
 	
-pred EmptyProp (l, prop) :
-	types (l : Obj, prop : Str) *
-	((l, prop) -> none);
-	
-pred JSObjWithProto (l, proto) :
-	types (l : Obj) *
-	((l, "@proto") -> proto) *
-	((l, "@class") -> "Object") *
-	((l, "@extensible") -> true);
-	
-pred ErrorObjectWithMessage (l, m) :
-  types (l : Obj) *
-  ((l, "@proto") -> $lerr_proto) * ((l, "@class") -> "Error") *
-  ((l, "@extensible") -> true) *
-  ((l, "message") -> {{"d", m, true, false, true}});
-
-pred EmptyProp (l, prop) : 
-	((l, prop) -> none); 
-
-pred EmptyProps (l, props) : 
-	empty_fields (l : -u- (props, -{ "@proto", "@extensible", "@class"}-)); 
-
-pred FunctionObject (l, fid, sc, proto) : 
-	((l, "@proto") -> $lfun_proto) * 
-	((l, "@class") -> "Function") *
-	((l, "@extensible") -> true) * 
-	((l, "@call") -> fid) * 
-	((l, "@construct") -> fid) *
-	((l, "@scope")     -> sc) * 
-	((l, "length")     -> #ignore1) *
-	((l, "arguments")  -> #ignore2) *
-	((l, "caller")     -> #ignore3) *
-	((l, "prototype")  -> {{ "d", proto, true, false, false }}) *
-	types(sc : List, fid: Str) *
-	empty_fields(l : -{ "@proto", "@class", "@extensible", "@scope", "length", "@call", "@construct", "arguments", "caller", "prototype" }- ); 
+pred DataPropConst (l : Obj, prop : Str, v) :
+	((l, prop) -> {{ "d", v, false, #e, false }}) *
+	types(#e:Bool) * (! (v == empty));
