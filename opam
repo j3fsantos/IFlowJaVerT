@@ -17,6 +17,7 @@ depends: [
   "batteries" {build}
   "ppx_import"
   "ppx_deriving"
+  "ppx_compare"
   "JS_Parser"
   "ounit"
 ]

@@ -1,3 +1,5 @@
+open CCommon
+open SCommon
 open JSIL_Syntax
 
 let file = ref ""
@@ -22,7 +24,7 @@ let arguments () =
 			"-js",     Arg.Unit (fun () -> Symbolic_Interpreter.js := true; JSIL_Syntax_Utils.js := true), "js2jsil output";
 			(* *)
 			"-stats",  Arg.Unit (fun () -> stats := true), "stats";
-			"-interactive", Arg.Unit (fun () -> JSIL_Syntax.interactive := true), "interactive predicate folding, enjoy";
+			"-interactive", Arg.Unit (fun () -> interactive := true), "interactive predicate folding, enjoy";
 			"-njsil", Arg.Unit (fun () -> output_normalised_specs := true), "output normalised specs"
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
@@ -81,8 +83,7 @@ let symb_interpreter prog procs_to_verify spec_tbl lemma_tbl which_pred norm_pre
 			print_normal (Printf.sprintf "There were Failures in %f\n" (Sys.time()))));
 
 	register_dot_graphs dot_graphs;
-	if (!stats)
-		then JSIL_Syntax.process_statistics ();
+	if (!stats) then process_statistics ();
 	results
 
 

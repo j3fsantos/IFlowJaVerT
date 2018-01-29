@@ -496,10 +496,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store =
 			let (obj : (permission * jsil_lit) Heap.t), _, _ = (try Heap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
 			let _, v = (try Heap.find obj f with
-				| _ ->
-					(* let final_heap_str = JSIL_Print.sexpr_of_heap heap in
-					Printf.printf "Final heap: \n%s\n" final_heap_str; *)
-					raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2)))) in
+				| _ -> raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2)))) in
 
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "Lookup: %s := [%s, %s] = %s \n" x (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2) (JSIL_Print.string_of_literal v);

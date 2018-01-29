@@ -7,12 +7,6 @@ open Z3
 (** Types                           **)
 (*************************************)
 
-(* Symbolic field-value lists: symbolic property name * (concrete permission * symbolic property value) *)
-type symbolic_field_value_list = (jsil_logic_expr * (permission * jsil_logic_expr)) list
-
-(** Symbolic heaps: (symbolic field-value list * optional set of non-none properties) * symbolic metadata * concrete extensibility) *)
-type symbolic_heap = ((symbolic_field_value_list * (jsil_logic_expr option)) * jsil_logic_expr * bool) Heap.t
-
 (** The rest is as-is *)
 type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
 type pure_formulae             = jsil_logic_assertion DynArray.t
@@ -25,8 +19,8 @@ type predicate_assertion       = (string * (jsil_logic_expr list))
 *)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 
-type symbolic_state       = symbolic_heap * symbolic_store * pure_formulae * typing_environment * predicate_set
-type symbolic_state_frame = symbolic_heap * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
+type symbolic_state       = SHeap.t * symbolic_store * pure_formulae * typing_environment * predicate_set
+type symbolic_state_frame = SHeap.t * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
 type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
 type jsil_n_single_spec = {
@@ -114,150 +108,6 @@ type symbolic_execution_context = {
 	proc_name           : string; 
 	pred_info           : (string, int Stack.t) Hashtbl.t
 }
-
-(*************************************)
-(** Field Value Lists               **)
-(*************************************)
-
-let fv_list_substitution 
-		(subst   : substitution) (partial : bool) 
-		(fv_list : symbolic_field_value_list) : symbolic_field_value_list =
-	let f_subst = lexpr_substitution subst partial in 
-	List.map (fun (le_field, (perm, le_val)) -> f_subst le_field, (perm, f_subst le_val)) fv_list
-
-let selective_fv_list_substitution 
-		(subst   : substitution) (partial : bool) 
-		(fv_list : symbolic_field_value_list) : symbolic_field_value_list =
-	let f_subst = JSIL_Logic_Utils.lexpr_selective_substitution subst partial in 
-	List.map (fun (le_field, (perm, le_val)) -> (le_field, (perm, f_subst le_val))) fv_list
-
-(*************************************)
-(** Heap functions                  **)
-(*************************************)
-
-(** Returns an empty symbolic heap *)
-let heap_init () : symbolic_heap =
-	Heap.create big_tbl_size
-
-(** Symbolic heap read heap(loc) *)
-let heap_get (heap : symbolic_heap) (loc : string) =
-	try Some (Heap.find heap loc) with _ -> None
-
-let heap_get_unsafe (heap : symbolic_heap) (loc : string) =
-	try Heap.find heap loc with _ -> raise (Failure "DEATH. heap_get_unsafe")
-
-(** Symbolic heap put heap(loc) is assigned to fv_list *)
-let heap_put (heap : symbolic_heap) (loc : string) (fv_list : symbolic_field_value_list) (dom : jsil_logic_expr option) (metadata : jsil_logic_expr) (ext : bool) =
-	Heap.replace heap loc ((fv_list, dom), metadata, ext)
-
-let heap_has_loc (heap : symbolic_heap) (loc : string) : bool = 
-	Heap.mem heap loc 
-
-(** Symbolic heap put heap (loc, field) is assgined to value. 
-    The domain remains unchanged *) 
-let heap_put_fv_pair (heap : symbolic_heap) (loc : string) (perm : permission) (field : jsil_logic_expr) (value : jsil_logic_expr) =
-	let ((fv_list, domain), metadata, ext) = try Heap.find heap loc with _ -> (([], None), LLit Null, true) in
-	Heap.replace heap loc ((((field, (perm, value)) :: fv_list), domain), metadata, ext)
-
-(** Removes the fv-list associated with --loc-- in --heap-- *)
-let heap_remove (heap : symbolic_heap) (loc : string) =
-	Heap.remove heap loc
-
-(** Removes the domain of --heap-- *)
-let heap_domain (heap : symbolic_heap) : SS.t =
-	SS.of_list (Heap.fold (fun l _ ac -> l :: ac) heap [])
-
-(** Returns a copie of --heap-- *)
-let heap_copy (heap : symbolic_heap) : symbolic_heap = Heap.copy heap
-
-(** Returns subst(heap) *)
-let heap_substitution (subst : substitution) (partial : bool) (heap : symbolic_heap) : symbolic_heap =
-	let le_subst = lexpr_substitution subst partial in 
-	let new_heap = Heap.create 1021 in
-	Heap.iter
-		(fun loc ((fv_list, domain), metadata, ext) ->
-			let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
-				try Hashtbl.find subst loc with _ -> 
-					if (partial) then (ALoc loc) else (
-						let new_aloc = ALoc (fresh_aloc ()) in
-						extend_substitution subst [ loc ] [ new_aloc ];
-						new_aloc)) in 
-			let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
-				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 
-			let s_fv_list = fv_list_substitution subst partial fv_list in
-			let s_domain = Option.map (fun le -> le_subst le) domain in
-			Heap.add new_heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext))			
-		heap;
-	new_heap
-
-(** Modifies --heap-- in place updating it to subst(heap) *)
-let heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) : unit =
-	let le_subst = lexpr_substitution subst true in 
-  Heap.iter
-  	(fun loc ((fv_list, domain), metadata, ext) ->
-  		let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
-			try Hashtbl.find subst loc with _ -> ALoc loc) in 
-  		let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
-			| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 		
-  		let s_fv_list = fv_list_substitution subst true fv_list in
-  		let s_domain = Option.map (fun le -> le_subst le) domain in
-  		Heap.replace heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext))
-  	heap
-
-(** Returns the logical variables occuring in --heap-- *)
-let heap_lvars (heap : symbolic_heap) : SS.t =
-	Heap.fold
-		(fun _ ((fv_list, domain), e_metadata, _) ac ->
-			let v_fv = List.fold_left
-				(fun ac (e_field, (_, e_val)) -> SS.union ac (SS.union (get_lexpr_lvars e_field) (get_lexpr_lvars e_val)))
-				SS.empty fv_list in
-			let v_domain = Option.map_default (fun domain -> get_lexpr_lvars domain) SS.empty domain in
-			let v_metadata = get_lexpr_lvars e_metadata in
-			SS.union ac (SS.union v_fv (SS.union v_domain v_metadata)))
-		heap SS.empty
-
-(** Returns the abstract locations occuring in --heap-- *)
-let heap_alocs (heap : symbolic_heap) : SS.t =
-	Heap.fold
-		(fun _ ((fv_list, _), e_metadata, _) ac ->
-			let v_fv = List.fold_left
-				(fun ac (e_field, (_, e_val)) -> SS.union ac (SS.union (get_lexpr_alocs e_field) (get_lexpr_alocs e_val)))
-				SS.empty fv_list in
-			let v_metadata = get_lexpr_alocs e_metadata in
-			SS.union ac (SS.union v_fv v_metadata))
-		heap SS.empty
-
-(** Returns the serialization of --heap-- as a list *)
-let heap_to_list (heap : symbolic_heap) : (string * ((symbolic_field_value_list * (jsil_logic_expr option)) * jsil_logic_expr * bool)) list =
-	Heap.fold (fun loc obj ac -> ((loc, obj) :: ac)) heap []
-
-(** Calls --f-- on all objects of --heap--; f(loc, (fv_list, dom)) *)
-let heap_iterator (heap: symbolic_heap) (f : string -> (((symbolic_field_value_list * (jsil_logic_expr option)) * jsil_logic_expr * bool) -> unit)) =
-	Heap.iter f heap
-
-(** Returns true if --heap-- is empty *)
-let is_heap_empty (heap : symbolic_heap) : bool =
-	Heap.fold
-		(fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = []) && (dom = None) && (metadata = LLit Null))
-		heap
-		true
-
-(** conversts a symbolic heap to a list of assertions *)
-let assertions_of_heap (h : symbolic_heap) : jsil_logic_assertion list= 
-	let make_loc_lexpr loc = 
-		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
-	
-	(* TODO : Deal with metadata and extensibility *)
-	let rec assertions_of_object (loc, ((fv_list, domain), metadata, ext)) =
-	 	let le_loc = make_loc_lexpr loc in
-		let fv_assertions = List.map (fun (field, (perm, value)) -> LPointsTo (le_loc, field, (perm, value))) fv_list in 
-		let domain = Option.map_default (fun domain -> [ LEmptyFields (le_loc, domain) ]) [] domain in
-		let metadata = [ LMetaData (le_loc, metadata) ] in
-		let ext = [ LExtensible (le_loc, ext) ] in 
-			fv_assertions @ domain @ metadata @ ext 
-		in
-		
-	List.concat (List.map assertions_of_object (heap_to_list h))
 
 (*************************************)
 (** Abstract Store functions        **)
@@ -532,7 +382,7 @@ let assertions_of_preds (preds : predicate_set) : jsil_logic_assertion list =
 (*************************************)
 
 (** Symbolic state first projection *)
-let ss_heap (symb_state : symbolic_state) : symbolic_heap =
+let ss_heap (symb_state : symbolic_state) : SHeap.t =
 	let heap, _, _, _, _ = symb_state in heap
 
 (** Symbolic state second projection *)
@@ -561,7 +411,7 @@ let ss_extend_pfs (symb_state : symbolic_state) (pfs_to_add : pure_formulae) : u
 	pfs_merge (ss_pfs symb_state) pfs_to_add
 
 (** Replaces the --symb_state-- heap with --heap--   *)
-let ss_replace_heap (symb_state : symbolic_state) (heap : symbolic_heap) : symbolic_state =
+let ss_replace_heap (symb_state : symbolic_state) (heap : SHeap.t) : symbolic_state =
 	let _, store, pfs, gamma, preds  = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- store with --store-- *)
@@ -581,12 +431,12 @@ let ss_replace_preds (symb_state : symbolic_state) (preds : predicate_set) : sym
 	let heap, store, pfs, gamma, _   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Returns a new empty symbolic state *)
-let ss_init () : symbolic_state = (heap_init (), (store_init [] []), pfs_init (), gamma_init (), preds_init ())
+let ss_init () : symbolic_state = (SHeap.init (), (store_init [] []), pfs_init (), gamma_init (), preds_init ())
 
 (** Returns a copy of the symbolic state *)
 let ss_copy (symb_state : symbolic_state) : symbolic_state =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let c_heap   = heap_copy heap in
+	let c_heap   = SHeap.copy heap in
 	let c_store  = store_copy store in
 	let c_pfs    = pfs_copy pfs in
 	let c_gamma  = gamma_copy gamma in
@@ -597,7 +447,7 @@ let ss_copy (symb_state : symbolic_state) : symbolic_state =
 let ss_substitution 
 		(subst : substitution) (partial : bool) (symb_state : symbolic_state) : symbolic_state =
 	let heap, store, pf, gamma, preds = symb_state in
-	let s_heap  = heap_substitution subst partial heap in
+	let s_heap  = SHeap.substitution subst partial heap in
 	let s_store = store_substitution subst partial store in
 	let s_pf    = pfs_substitution subst partial pf in
 	let s_gamma = gamma_substitution gamma subst partial in
@@ -607,7 +457,7 @@ let ss_substitution
 let ss_substitution_in_place_no_gamma
 		(subst : substitution) (symb_state : symbolic_state) : unit =
 	let heap, store, pfs, gamma, preds = symb_state in
-	heap_substitution_in_place  subst heap;		
+	SHeap.substitution_in_place  subst heap;		
 	store_substitution_in_place subst store;
 	pfs_substitution_in_place   subst pfs;	
 	preds_substitution_in_place subst preds
@@ -615,7 +465,7 @@ let ss_substitution_in_place_no_gamma
 (** Return the set containing all the lvars occurring in --symb_state-- *)
 let ss_lvars (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = heap_lvars heap in
+	let v_h  : SS.t = SHeap.lvars heap in
 	let v_s  : SS.t = store_lvars store in
 	let v_pf : SS.t = pfs_lvars pfs in
 	let v_g  : SS.t = gamma_lvars gamma in
@@ -625,7 +475,7 @@ let ss_lvars (symb_state : symbolic_state) : SS.t =
 (** Return the set containing all the lvars occurring in --symb_state-- *)
 let ss_alocs (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = heap_alocs heap in
+	let v_h  : SS.t = SHeap.alocs heap in
 	let v_s  : SS.t = store_alocs store in
 	let v_pf : SS.t = pfs_alocs pfs in
 	let v_pr : SS.t = preds_alocs preds in
@@ -636,7 +486,7 @@ let ss_alocs (symb_state : symbolic_state) : SS.t =
     variables in the store *)
 let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  = heap_lvars heap in
+	let v_h  = SHeap.lvars heap in
 	let v_s  = store_lvars store in
 	let v_sp = store_domain store in 
 	let v_pf = pfs_lvars pfs in
@@ -646,7 +496,7 @@ let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 (** conversts a symbolic state to an assertion *)
 let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion = 
 	let heap, store, pfs, gamma, preds = symb_state in
-	let heap_asrts  = assertions_of_heap heap in
+	let heap_asrts  = SHeap.assertions heap in
 	let store_asrts = assertions_of_store store in
 	let gamma_asrt  = assertion_of_gamma gamma in
 	let pure_asrts  = pfs_to_list pfs in
@@ -819,7 +669,7 @@ let sec_create_new_info_node
 (** TO REFACTOR                        **)
 (****************************************)
 
-let selective_heap_substitution_in_place (subst : substitution) (heap : symbolic_heap) =
+let selective_heap_substitution_in_place (subst : substitution) (heap : SHeap.t) =
 	let le_subst = lexpr_substitution subst true in
   Heap.iter
   	(fun loc ((fv_list, domain), metadata, ext) ->
@@ -835,7 +685,7 @@ let selective_heap_substitution_in_place (subst : substitution) (heap : symbolic
   				| ALoc loc -> loc
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = selective_fv_list_substitution subst true fv_list in
+  		let s_fv_list = SFVL.selective_substitution subst true fv_list in
   		let s_domain = Option.map (fun le -> le_subst le) domain in
 			let s_metadata = le_subst metadata in
   		Heap.replace heap s_loc ((s_fv_list, s_domain), s_metadata, ext))
@@ -849,11 +699,6 @@ let selective_symb_state_substitution_in_place_no_gamma
 	preds_substitution_in_place          subst preds;
 	pfs_substitution_in_place            subst pfs;
 	selective_heap_substitution_in_place subst heap 
-
-
-
-
-
 
 (*********************************************************)
 (** Information to keep track during symbolic exeuction **)

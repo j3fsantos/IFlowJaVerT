@@ -1,3 +1,5 @@
+open CCommon
+open SCommon
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
@@ -241,18 +243,20 @@ let symb_evaluate_bcmd
 			e) Add the fact that the new location is not $lg to the pure formulae
 			f) Return the new location
 	*)
-	| New x ->
+	| New (x, metadata) ->
 		let new_loc = fresh_aloc () in
-		heap_put heap new_loc []  (domain_from_single_lit JS2JSIL_Constants.internalProtoFieldName);
-		heap_put_fv_pair heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null); 
+		let md_val : jsil_logic_expr = 
+			(match metadata with 
+			| None          -> LLit Null 
+			| Some metadata -> let md_val, _, _ = ssee metadata in md_val) in
+		
+		(* TODO: Why not put empty set of empty_fields instead of None? 
+	     I'm now a bit concerned that objects with None can be deallocated abruptly. *) 
+		SHeap.put heap new_loc [] (Some (LESet [])) md_val true;
 		store_put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
 		ALoc new_loc
-		
-	| MetaData (x, md)
-
-	| Extensible (x)
 
   (* Property lookup: x = [e1, e2];
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
@@ -271,7 +275,7 @@ let symb_evaluate_bcmd
 			| None   -> 
 				let msg = Printf.sprintf "Lookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		let ne = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2  in
+		let ne = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2 in
 		store_put store x ne;
 		ne
 
@@ -283,7 +287,7 @@ let symb_evaluate_bcmd
 			e) Update the heap with (ne1, ne2) -> ne3
 			f) Return ne3
 	*)
-	| Mutation (e1, e2, e3) ->
+	| Mutation (e1, e2, e3, op) ->
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let ne3, _, _ = ssee e3 in
@@ -293,7 +297,10 @@ let symb_evaluate_bcmd
 			| None   -> 
 				let msg = Printf.sprintf "Mutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 ne3; 
+		let perm = match op with
+		| None -> Deletable
+		| Some perm -> perm in
+		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 perm ne3; 
 		ne3
 
   	(* Property deletion: delete(e1, e2)
@@ -310,10 +317,25 @@ let symb_evaluate_bcmd
 			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
 			| Some l -> l 
 			| None   -> 
-				let msg = Printf.sprintf "Delete. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
+				let msg = Printf.sprintf "Delete: %s does not denote a location." (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 LNone; 
-		LLit (Bool true)
+		let obj = SHeap.get heap l in
+		(match obj with
+		| None -> 
+				let msg = Printf.sprintf "Delete: object %s does not exist in the heap." (JSIL_Print.string_of_logic_expression ne1) in 
+				raise (Symbolic_State_Utils.SymbExecFailure msg) 
+		| Some ((fv_list, domain), metadata, ext) ->
+				let opt_f = Symbolic_State_Utils.find_field pure_formulae gamma fv_list ne2 in
+				(match opt_f with
+				(* Default is Deletable *)
+				| None -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone
+				| Some (_, (_, (perm, _))) -> 
+					(match perm with 
+					| Deletable -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone; 
+				  | _ -> 
+						let msg = Printf.sprintf "Delete: property %s not deletable." (JSIL_Print.string_of_logic_expression ne1) in 
+						raise (Symbolic_State_Utils.SymbExecFailure msg)));
+				LLit (Bool true))
 
   	(* Object deletion: deleteObj(e1)
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
@@ -329,9 +351,9 @@ let symb_evaluate_bcmd
 			| None   -> 
 				let msg = Printf.sprintf "DeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		(match (heap_has_loc heap l) with
+		(match (SHeap.has_loc heap l) with
 		 | false -> raise (Symbolic_State_Utils.SymbExecFailure (Printf.sprintf "Attempting to delete an inexistent object: %s" (JSIL_Print.string_of_logic_expression ne1)))
-		 | true  -> heap_remove heap l; LLit (Bool true));
+		 | true  -> SHeap.remove heap l; LLit (Bool true));
 
   	(* Property existence: x = hasField(e1, e2);
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
@@ -536,7 +558,7 @@ let rec fold_predicate
 
 	let process_missing_pred_assertion
 			(missing_pred_args : jsil_logic_expr list)  (subst : substitution) (existentials : SS.t)
-			(symb_state : symbolic_state) (framed_heap : symbolic_heap) (framed_preds : predicate_set) 
+			(symb_state : symbolic_state) (framed_heap : SHeap.t) (framed_preds : predicate_set) 
 			(pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : symbolic_state * (jsil_logic_expr list) * SS.t = 
 		
 		let missing_pred_args = List.map (JSIL_Logic_Utils.lexpr_substitution subst false) missing_pred_args in

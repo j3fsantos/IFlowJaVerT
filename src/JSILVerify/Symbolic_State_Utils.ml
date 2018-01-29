@@ -18,8 +18,8 @@ exception SymbExecFailure of string
 *)
 let find_field
 		(pfs : pure_formulae) (gamma : typing_environment)
-		(fv_list : symbolic_field_value_list)
-		(loc : string) (field : jsil_logic_expr) : (symbolic_field_value_list * (jsil_logic_expr * (permission * jsil_logic_expr))) option  =
+		(fv_list : SFVL.t)
+		(field : jsil_logic_expr) : (SFVL.t * (jsil_logic_expr * (permission * jsil_logic_expr))) option  =
 	
 	let rec find_field_rec fv_list traversed_fv_list =
 		match fv_list with
@@ -30,47 +30,56 @@ let find_field
 				else find_field_rec rest ((field', (perm, value)) :: traversed_fv_list)) in
 	find_field_rec fv_list []
 
+(**
 
+	I cannot get the following four into SHeap because of Pure_Entailment
+	
+*)
 let sheap_put 
 			(pfs : pure_formulae) (gamma : typing_environment)
-			(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (perm : permission) (value : jsil_logic_expr) : unit =
+			(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : permission) (value : jsil_logic_expr) : unit =
 	
-	let (fv_list, domain), metadata, ext = heap_get_unsafe heap loc in
-	(match (find_field pfs gamma fv_list loc field), domain with 
-	| Some (framed_fv_list, _), _ -> heap_put heap loc ((field, (perm, value)) :: framed_fv_list) domain metadata ext
+	let (fv_list, domain), metadata, ext = SHeap.get_unsafe heap loc in
+	(match (find_field pfs gamma fv_list field), domain with 
+	| Some (framed_fv_list, (_, (orig_perm, _))), _ ->
+			(match orig_perm with
+			| Readable -> 
+					let msg = Printf.sprintf "Non-writable field: (%s, %s)" loc (JSIL_Print.string_of_logic_expression field) in
+					raise (Failure msg)
+			| _ -> SHeap.put heap loc ((field, (perm, value)) :: framed_fv_list) domain metadata ext)
+	(* What about permissions in the domain?! *)
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
-			(* let new_domain = Normaliser.normalise_lexpr gamma new_domain in *)
 			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
-			heap_put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
+			SHeap.put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
 		) else (
-			let msg = Printf.sprintf "sheap_put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
+			let msg = Printf.sprintf "sSHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
-				(Symbolic_State_Print.string_of_fv_list fv_list) in 
+				(SFVL.str fv_list) in 
 			raise (SymbExecFailure msg)
 		)
 	| _ -> 
-		let msg = Printf.sprintf "sheap_put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
+		let msg = Printf.sprintf "sSHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
-				(Symbolic_State_Print.string_of_fv_list fv_list) in 
+				(SFVL.str fv_list) in 
 		raise (SymbExecFailure msg))
 
 
 let sheap_get 
 		(pfs : pure_formulae) (gamma : typing_environment)
-		(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
+		(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
-	let (fv_list, domain), _, _ = heap_get_unsafe heap loc in
-	(match (find_field pfs gamma fv_list loc field), domain with 
+	let (fv_list, domain), _, _ = SHeap.get_unsafe heap loc in
+	(match (find_field pfs gamma fv_list field), domain with 
 	| Some (_, (_, (_, value))), _ -> value 
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) 
 			then LNone
-			else raise (SymbExecFailure "sheap_get")
-	| _ -> raise (SymbExecFailure "sheap_get"))
+			else raise (SymbExecFailure "SHeap.get")
+	| _ -> raise (SymbExecFailure "SHeap.get"))
 
 
 let merge_domains 
@@ -86,33 +95,32 @@ let merge_domains
 		let set = Simplifications.reduce_expression_no_store gamma pfs set in
 		Some set 
 
-
 let merge_heaps 
 			(pfs : pure_formulae) (gamma : typing_environment)
-			(heap : symbolic_heap) (new_heap : symbolic_heap) : unit =
+			(heap : SHeap.t) (new_heap : SHeap.t) : unit =
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
-		(Symbolic_State_Print.string_of_symb_heap heap) (Symbolic_State_Print.string_of_symb_heap new_heap)
+		(SHeap.str heap) (SHeap.str new_heap)
 		(Symbolic_State_Print.string_of_pfs pfs) (Symbolic_State_Print.string_of_gamma gamma)
 	);
 	
-	(* This is a bit strange, what if there are duplicates in the fv lists? Or contradictions with empty_fields and existing cells? TODO *)
-	heap_iterator new_heap 
+	(* TODO This is a bit strange, what if there are duplicates in the fv lists? Or contradictions with empty_fields and existing cells? TODO *)
+	SHeap.iterator new_heap 
 		(fun loc ((n_fv_list, n_domain), n_metadata, n_ext) ->
-			match heap_get heap loc with 
+			match SHeap.get heap loc with 
 			| Some ((fv_list, domain), metadata, ext) -> 
 				(match (ext = n_ext) with
 				| false -> raise (Failure "Heaps not mergeable. Extensibility mismatch.")
 				| true -> match (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ LEq (metadata, n_metadata) ] gamma) with
 					| false -> raise (Failure "Heaps not mergeable. Metadata not provably equal.")  
-					| true -> heap_put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)) metadata ext
+					| true -> SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)) metadata ext
 			| None -> 
-				heap_put heap loc n_fv_list n_domain n_metadata n_ext); 
+				SHeap.put heap loc n_fv_list n_domain n_metadata n_ext); 
 
 	(* Garbage collection - What happens here now?! TODO *)
-	heap_iterator heap (fun loc ((fv_list, domain), _, _) ->
+	SHeap.iterator heap (fun loc ((fv_list, domain), _, _) ->
 		(match fv_list, domain with
-		| [], None -> heap_remove heap loc
+		| [], None -> SHeap.remove heap loc
 		| _, _ -> ()));
 
 	print_debug "Finished merging heaps."
@@ -323,7 +331,7 @@ let copy_single_spec s_spec =
 
 let get_locs_symb_state symb_state =
 	let heap, store, pfs, gamma, preds = symb_state in 
-	let lheap  = heap_alocs  heap  in
+	let lheap  = SHeap.alocs  heap  in
 	let lstore = store_alocs store in
 	let lpfs   = pfs_alocs   pfs   in
 	let lpreds = preds_alocs preds in

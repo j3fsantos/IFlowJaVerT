@@ -8,13 +8,16 @@ let escape_string = ref false
 (***
  Generate strings from JSIL memory types
 *)
-let string_of_heap (h : jsil_lit Heap.t Heap.t) =
+let string_of_heap (h : jsil_heap) =
 	Heap.fold
-		(fun loc obj printed_heap ->
+		(fun loc (obj, metadata, ext) printed_heap ->
+      	let meta_str = string_of_literal metadata in
+      	let ext_str = if ext then "extensible" else "non-extensible" in
 			  let printed_props =
 					(Heap.fold
-						(fun prop hval printed_obj ->
+						(fun prop (perm, hval) printed_obj ->
 							let printed_hval = string_of_literal hval in
+							let printed_perm = string_of_permission perm in
 							let printed_cell = 
 								if (!escape_string) 
 									then Printf.sprintf "\n\\\"%s\\\": %s" prop printed_hval 
@@ -22,36 +25,10 @@ let string_of_heap (h : jsil_lit Heap.t Heap.t) =
 							if (printed_obj = "") then printed_cell else printed_obj ^ ", " ^ printed_cell)
 						obj
 						"") in
-				let printed_obj = loc ^ "-> [" ^ printed_props ^ "]\n" in
+				let printed_obj = loc ^ " |-> [" ^ printed_props ^ "] " ^ ext_str ^ " with metadata " ^ meta_str ^ "\n"  in
 				printed_heap ^ printed_obj)
 		h
 		""
-
-let string_of_fv_list (fv_list : symbolic_field_value_list) : string =
-	List.fold_left
-		(fun ac (field, (perm, value)) ->
-				let field_str = string_of_logic_expression field in
-				let perm_str = string_of_permission perm in
-				let value_str = string_of_logic_expression value in
-				let field_value_str = "(" ^ field_str ^ ":" ^ perm_str ^ " " ^ value_str ^ ")"  in
-				if (ac = "")
-					then field_value_str
-					else ac ^ ", " ^ field_value_str)
-		""
-		fv_list
-
-let string_of_symb_heap (heap : symbolic_heap) : string=
-	Heap.fold
-		(fun loc ((fv_pairs, domain), metadata, ext) ac ->
-			let str_fv_pairs = string_of_fv_list fv_pairs in
-			let domain_str = Option.map_default string_of_logic_expression "" domain in
-			let meta_str = string_of_logic_expression metadata in
-			let ext_str = if ext then "extensible" else "non-extensible" in
-			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "] " ^ ext_str ^ " with metadata " ^ meta_str in
-			if (ac = "\n\t") then (ac ^ symb_obj_str) else ac ^ "\n\t" ^ symb_obj_str)
-		heap
-		"\n\t"
-
 
 let string_of_symb_store (store : symbolic_store) : string =
 	Hashtbl.fold
@@ -107,7 +84,7 @@ let string_of_preds (pred_set : predicate_set) : string =
 
 let string_of_symb_state (symb_state : symbolic_state) : string =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)
-	let str_heap       = "Heap: " ^ (string_of_symb_heap (ss_heap symb_state)) ^ "\n" in
+	let str_heap       = "Heap: " ^ (SHeap.str (ss_heap symb_state)) ^ "\n" in
 	let str_store      = "Store: " ^ (string_of_symb_store (ss_store symb_state)) ^ "\n" in
 	let str_p_formulae = "Pure Formulae: " ^ (string_of_pfs (ss_pfs symb_state)) ^ "\n" in
 	let str_gamma      = "Gamma: " ^ (string_of_gamma (ss_gamma symb_state)) ^ "\n" in
@@ -207,12 +184,12 @@ let string_of_unification_plan (up : jsil_logic_assertion list) : string =
 
 let string_of_unification_step 
 			(a : jsil_logic_assertion) (pat_subst : substitution) 
-			(heap_frame : symbolic_heap) (preds_frame : predicate_set) 
+			(heap_frame : SHeap.t) (preds_frame : predicate_set) 
 			(discharges : discharge_list) : string = 
 	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\ndischarges:%s\n"
 		(JSIL_Print.string_of_logic_assertion a)
 		(string_of_substitution pat_subst)
-		(string_of_symb_heap heap_frame)
+		(SHeap.str heap_frame)
 		(string_of_preds preds_frame)
 		(string_of_discharges discharges)
 

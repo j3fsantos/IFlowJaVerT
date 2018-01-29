@@ -192,7 +192,7 @@ let unify_cell_assertion
 		(gamma         : typing_environment)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
-		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list = 
+		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
 
 	let un_les = unify_lexprs pfs gamma pat_subst in 
 
@@ -217,7 +217,7 @@ let unify_cell_assertion
 
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom, metadata, ext = 
-		match heap_get heap loc with 
+		match SHeap.get heap loc with 
 		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
 		| None                -> raise (Failure "DEATH. unify_cell_assertion. loc not in the heap") in 
 
@@ -237,10 +237,10 @@ let unify_cell_assertion
 					| Some subst_list, Some discharges -> 
 							let pat_subst     = Hashtbl.copy pat_subst in 
           		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
-          			let heap_frame    = heap_copy heap in 
+          			let heap_frame    = SHeap.copy heap in 
           			let fv_list_frame = SFV.remove (field, (perm, value)) fv_list_set in 
           			let fv_list_frame = SFV.elements fv_list_frame in 
-          			heap_put heap_frame loc fv_list_frame dom metadata ext; 
+          			SHeap.put heap_frame loc fv_list_frame dom metadata ext; 
           			(heap_frame, pat_subst, discharges) :: ac
 							) else ac					
 					| _, _ -> ac)))) fv_list_set [] in 
@@ -256,10 +256,10 @@ let unify_cell_assertion
     			let s_pat_field  = lexpr_substitution pat_subst true pat_field in
 				let a_set_inclusion = LNot (LSetMem (s_pat_field, le_dom)) in 
 				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
-					let heap_frame = heap_copy heap in 
+					let heap_frame = SHeap.copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
 					let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
-					heap_put heap_frame loc fv_list (Some new_domain) metadata ext; 
+					SHeap.put heap_frame loc fv_list (Some new_domain) metadata ext; 
 					[ (heap_frame, pat_subst, (discharges_field)) ]
 			))) in 
 
@@ -320,14 +320,14 @@ let rec find_missing_nones
 		(pfs            : pure_formulae)
 		(gamma          : typing_environment)
 		(fields_to_find : jsil_logic_expr list) 
-		(none_fv_list   : symbolic_field_value_list) : symbolic_field_value_list =
+		(none_fv_list   : SFVL.t) : SFVL.t =
 	
 	let fmn = find_missing_nones pfs gamma in 
 
 	let rec find_missing_none 
 			(missing_field          : jsil_logic_expr)
-			(none_fv_list           : symbolic_field_value_list) 
-			(traversed_none_fv_list : symbolic_field_value_list) : symbolic_field_value_list =
+			(none_fv_list           : SFVL.t) 
+			(traversed_none_fv_list : SFVL.t) : SFVL.t =
 		match none_fv_list with
 		| []                      -> raise (UnificationFailure "") 
 		| (f_name, f_val) :: rest_none_fv_list ->
@@ -349,8 +349,8 @@ let unify_domains
 		(pat_subst : substitution)
 		(pat_dom   : jsil_logic_expr) 
 		(dom       : jsil_logic_expr) 
-		(fv_list   : symbolic_field_value_list) 
-		(perm      : permission) : symbolic_field_value_list =
+		(fv_list   : SFVL.t) 
+		(perm      : permission) : SFVL.t =
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
 	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
@@ -397,7 +397,7 @@ let unify_domains
 		(gamma         : typing_environment)
 		(pat_subst     : substitution) 
 		(pat_ef_asrt   : jsil_logic_assertion)
-		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list = 
+		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
 
 	let start_time = Sys.time () in
 
@@ -418,7 +418,7 @@ let unify_domains
 
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom, metadata, ext = 
-		match heap_get heap loc with 
+		match SHeap.get heap loc with 
 		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
 		| None                                 -> print_debug "DEATH 3"; raise (Failure "DEATH") in 
 
@@ -432,8 +432,8 @@ let unify_domains
 		try 
 			let perm = if ext then Deletable else Readable in (* TODO *)
 			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom fv_list perm in 
-			let heap_frame     = heap_copy heap in 
-			heap_put heap_frame loc fv_list_frame None metadata ext;
+			let heap_frame     = SHeap.copy heap in 
+			SHeap.put heap_frame loc fv_list_frame None metadata ext;
 			[ (heap_frame, pat_subst, []) ]
 		with _ -> []) in
 	
@@ -447,7 +447,7 @@ let unify_metadata_assertion
 		(gamma         : typing_environment)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
-		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list = 
+		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
 			
 	let un_les = unify_lexprs pfs gamma pat_subst in 
 
@@ -470,7 +470,7 @@ let unify_metadata_assertion
 
 	(* 3. Get the metadata *)
 	let metadata = 
-		match heap_get heap loc with 
+		match SHeap.get heap loc with 
 		| Some ((_, _), metadata, _) -> metadata 
 		| None                -> raise (Failure "Unify_metadata_assertion: loc not in the heap") in 
 
@@ -495,7 +495,7 @@ let unify_extensible_assertion
 		(gamma         : typing_environment)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
-		(heap          : symbolic_heap) : (symbolic_heap * substitution * discharge_list) list =
+		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list =
 
 	(* 1. Obtain the cell to unify *)
 	let pat_loc, pat_ext = 
@@ -516,21 +516,21 @@ let unify_extensible_assertion
 
 	(* 3. Get the extensibility *)
 	let ext = 
-		match heap_get heap loc with 
+		match SHeap.get heap loc with 
 		| Some ((_, _), _, ext) -> ext 
 		| None                -> raise (Failure "Unify_extensible_assertion: loc not in the heap") in 
 
 	(* 4. Unify the extensibility *)
   if (pat_ext = ext) then [ (heap, Hashtbl.copy pat_subst, [ ]) ] else [ ]
 
-type intermediate_frame = symbolic_heap * predicate_set * discharge_list * substitution 
+type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitution 
 
 let unify_spatial_assertion
 		(pfs           : pure_formulae) 
 		(gamma         : typing_environment)
 		(pat_subst     : substitution) 
 		(pat_s_asrt    : jsil_logic_assertion)
-		(heap          : symbolic_heap) 
+		(heap          : SHeap.t) 
 		(preds         : predicate_set) :  intermediate_frame list =
 
 	let start_time = Sys.time() in
@@ -543,7 +543,7 @@ let unify_spatial_assertion
 
 	| LPred _ -> 
 		List.map 
-			(fun (p_f, pat_subst, discharges) -> (heap_copy heap, p_f, discharges, pat_subst)) 
+			(fun (p_f, pat_subst, discharges) -> (SHeap.copy heap, p_f, discharges, pat_subst)) 
 			(unify_pred_assertion pfs gamma pat_subst pat_s_asrt preds) 
 
 	| LEmptyFields _ -> 
@@ -788,11 +788,11 @@ let fully_unify_symb_state
 		| true, true -> subst 
 
 		| true, false ->
-			let emp_heap  = is_heap_empty heap_f in
+			let emp_heap  = SHeap.is_empty heap_f in
 			let emp_preds = is_preds_empty preds_f in 
 		 	if (emp_heap && emp_preds) then subst else
 				let _ = if (emp_heap) then begin print_debug "Quotient heap empty.\n" end
-							else begin print_debug (Printf.sprintf "Quotient heap left: \n%s\n" (Symbolic_State_Print.string_of_symb_heap heap_f)) end in
+							else begin print_debug (Printf.sprintf "Quotient heap left: \n%s\n" (SHeap.str heap_f)) end in
 			
 				let _ = if (emp_preds) then begin print_debug "Quotient predicates empty.\n" end
 							else begin print_debug (Printf.sprintf "Quotient predicates left: \n%s\n" (Symbolic_State_Print.string_of_preds preds_f)) end in
@@ -913,7 +913,7 @@ let unify_symb_states_fold
 				(* C - Unify pred assertion *)
 				let new_frames : fold_extended_intermediate_frame list =
 					List.map 
-						(fun (p_f, pat_subst, new_discharges) -> rest_up, (heap_copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
+						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
 						(unify_pred_assertion pfs gamma pat_subst (LPred (p_name, largs)) preds_frame) in  
 
 				print_debug (Printf.sprintf "Unfication result: %b" ((List.length new_frames) > 0));

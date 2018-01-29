@@ -1,3 +1,4 @@
+open CCommon
 open Lexing
 open JSIL_Syntax
 open Symbolic_State

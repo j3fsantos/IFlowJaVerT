@@ -941,7 +941,7 @@ let normalise_pure_assertions
   * -----------------------------------------------------
 **)
 let rec normalise_cell_assertions
-		(heap : symbolic_heap) (store : symbolic_store)
+		(heap : SHeap.t) (store : symbolic_store)
 		(p_formulae : pure_formulae) (gamma : typing_environment)
 		(subst : substitution) (a : jsil_logic_assertion) : unit =
 	let f = normalise_cell_assertions heap store p_formulae gamma subst in
@@ -1105,7 +1105,7 @@ let normalise_pred_assertions
   * -----------------------------------------------------
 **)
 let normalise_ef_assertions
-	(heap : symbolic_heap) (store : symbolic_store)
+	(heap : SHeap.t) (store : symbolic_store)
 	(p_formulae : pure_formulae) (gamma : typing_environment)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
@@ -1162,7 +1162,7 @@ let extend_typing_env_using_assertion_info
   * -----------------------------------------------------
 **)
 let normalise_metadata
-	(heap : symbolic_heap) (store : symbolic_store)
+	(heap : SHeap.t) (store : symbolic_store)
 	(p_formulae : pure_formulae) (gamma : typing_environment)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
@@ -1206,7 +1206,7 @@ let normalise_metadata
   * -----------------------------------------------------
 **)
 let normalise_extensibility
-	(heap : symbolic_heap) (store : symbolic_store)
+	(heap : SHeap.t) (store : symbolic_store)
 	(p_formulae : pure_formulae) (gamma : typing_environment)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
@@ -1349,7 +1349,7 @@ let normalise_assertion
 	let a = pre_process_list_exprs a in
 
 	(** Step 2 -- Create empty symbolic heap, symbolic store, typing environment, and substitution *)
-	let heap  = heap_init () in
+	let heap  = SHeap.init () in
 	let store = store_init [] [] in
 	let gamma = Option.map_default gamma_copy (gamma_init ()) gamma in
 	let subst = Option.map_default copy_substitution (init_substitution []) subst in
@@ -1411,7 +1411,7 @@ let normalise_normalised_assertion
   print_debug (Printf.sprintf "Normalising pre-normalised assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a));
 
   (** Step 1 -- Create empty symbolic heap, symbolic store, typing environment, pred set and pfs *)
-  let heap  : symbolic_heap      = heap_init () in
+  let heap  : SHeap.t            = SHeap.init () in
   let store : symbolic_store     = store_init [] [] in
   let gamma : typing_environment = gamma_init () in
   let pfs   : pure_formulae      = DynArray.make 0 in
@@ -1474,7 +1474,7 @@ let normalise_normalised_assertion
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
   print_debug (Printf.sprintf "Store: %s" (Symbolic_State_Print.string_of_symb_store store));
   print_debug (Printf.sprintf "Gamma: %s" (Symbolic_State_Print.string_of_gamma gamma));
-  print_debug (Printf.sprintf "Heap: %s" (Symbolic_State_Print.string_of_symb_heap heap));
+  print_debug (Printf.sprintf "Heap: %s" (SHeap.str heap));
   print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_pfs pfs));
   print_debug (Printf.sprintf "Preds: %s" (Symbolic_State_Print.string_of_preds preds));
   (heap, store, pfs, gamma, preds)
@@ -1495,20 +1495,20 @@ let create_unification_plan
 	let locs_to_visit           = Queue.create () in 
 	let unification_plan        = Queue.create () in 
 	let marked_alocs            = ref SS.empty in 
-	let abs_locs, concrete_locs = List.partition is_abs_loc_name (SS.elements (heap_domain heap)) in 
+	let abs_locs, concrete_locs = List.partition is_abs_loc_name (SS.elements (SHeap.domain heap)) in 
 
 	let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit = 
 		let alocs = get_lexpr_alocs le in 
 		SS.iter (fun aloc -> 
 			if (not (SS.mem aloc !marked_alocs)) then (
-				marked_alocs := SS.add aloc !marked_alocs; 
+				marked_alocs := SS.add aloc !marked_alocs;  	
 				Queue.add aloc locs_to_visit; ())) alocs in 
 
 	let inspect_aloc () = 
 		if (Queue.is_empty locs_to_visit) then false else (
 			let loc     = Queue.pop locs_to_visit in 
 			let le_loc  = if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
-			match heap_get heap loc with
+			match SHeap.get heap loc with
 			(* The aloc does not correspond to any cell - it is an argument for a predicate *) 
 			| None -> true
 				
@@ -1563,7 +1563,7 @@ let create_unification_plan
 		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:%s\n" 
 			(String.concat ", " (SS.elements !marked_alocs))
 			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
-			(Symbolic_State_Print.string_of_symb_heap heap)
+			(SHeap.str heap)
 			(Symbolic_State_Print.string_of_symb_state symb_state) in 
 		raise (Failure msg)) 
 
