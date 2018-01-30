@@ -29,6 +29,34 @@ pred JSObjGeneralWeak (l:Obj, proto, class, ext, md:Obj) :
 	((md, "@class")      -> class) *
 	((md, "@extensible") -> ext) *
 	MetaData(md, null) * Extensible(md, true);
+
+pred JSObjectExist (l:Obj) :
+    MetaData(l, md) * Extensible(l, true) *
+	((md, "@proto")      -> $lobj_proto) *
+	((md, "@class")      -> "Object") *
+	((md, "@extensible") -> true) *
+	MetaData(md, null) * Extensible(md, true);
+
+pred JSObjWithProtoExist (l:Obj, proto) :
+    MetaData(l, #md) * Extensible(l, true) *
+	((#md, "@proto")      -> proto) *
+	((#md, "@class")      -> "Object") *
+	((#md, "@extensible") -> true) *
+	MetaData(#md, null) * Extensible(#md, true);
+	
+pred JSObjGeneralExist (l:Obj, proto, class:Str, ext:Bool) :
+    MetaData(l, #md) * Extensible(l, true) *
+	((#md, "@proto")      -> proto) *
+	((#md, "@class")      -> class) *
+	((#md, "@extensible") -> ext) *
+	MetaData(#md, null) * Extensible(#md, true);
+	
+pred JSObjGeneralWeakExist (l:Obj, proto, class, ext) :
+    MetaData(l, #md) * Extensible(l, true) *
+	((#md, "@proto")      -> proto) *
+	((#md, "@class")      -> class) *
+	((#md, "@extensible") -> ext) *
+	MetaData(#md, null) * Extensible(#md, true);
 	
 pred EmptyExtensibleObject(l:Obj, md:Obj) :
 	empty_fields(l  : -{}-) * MetaData(l,  md) *   Extensible(l, true) *

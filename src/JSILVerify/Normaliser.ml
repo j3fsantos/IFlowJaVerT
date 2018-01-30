@@ -731,10 +731,16 @@ let rec initialise_alocs
 	| LEmptyFields (LVar var, _) 
 	| LMetaData (LVar var, _) 
 	| LExtensible (LVar var, _) ->
+			print_debug (Printf.sprintf "initialise_alocs: found variable: LVar %s" var);
 			if (not (Hashtbl.mem subst var))
 			then
-				(let aloc = new_abs_loc_name var in
-					Hashtbl.add subst var (ALoc aloc))
+				(
+					let aloc = new_abs_loc_name var in
+					Hashtbl.add subst var (ALoc aloc);
+					print_debug (Printf.sprintf "It is not in the subst. Assigning ALoc %s" aloc);
+				)
+			else 
+				print_debug (Printf.sprintf "It is in the subst.");
 					(* Hashtbl.remove gamma var) *)
 	
 	(* raise (Failure "Unsupported assertion during normalization") *)
@@ -1184,27 +1190,66 @@ let normalise_metadata
 	
 	let metadata = get_all_metadata a in
 	
+	let md_hash = Hashtbl.create small_tbl_size in
+	let md_heqs = Hashtbl.create small_tbl_size in
+	let metadata : (string * jsil_logic_expr) list = List.fold_left 
+		(fun ac (l, md) ->
+			let loc = (match l with
+			| ALoc loc
+			| LLit (Loc loc) -> loc
+			| _ -> raise (Failure (Printf.sprintf "Unsupported: metadata for a non-defined object %s." (JSIL_Print.string_of_logic_expression l)))) in
+			(match (Hashtbl.find_opt md_hash loc) with
+			| None -> Hashtbl.add md_hash loc md
+			| Some md' -> Hashtbl.add md_heqs md' md);
+			(loc, md) :: ac
+		) [] metadata in
+	
+	print_debug_petar "Metadata Hash:";
+	Hashtbl.iter (fun loc md -> print_debug_petar (Printf.sprintf "\t%s : %s" loc (JSIL_Print.string_of_logic_expression md))) md_hash;
+	print_debug_petar "MEQ Hash:";
+	Hashtbl.iter (fun md' md -> print_debug_petar (Printf.sprintf "\t%s : %s" (JSIL_Print.string_of_logic_expression md') (JSIL_Print.string_of_logic_expression md))) md_heqs;
+	
 	(** 
 			What should be done? Iterate on the list: (l, md)
 			
 			H1: If l doesn't exist in the heap, we have to create it (with which extensibility?)
 	*)
-	List.iter (fun (l, md) -> 
-		let loc = (match l with
-			| ALoc loc
-			| LLit (Loc loc) -> loc
-			| _ -> raise (Failure (Printf.sprintf "Unsupported: metadata for a non-defined object %s." (JSIL_Print.string_of_logic_expression l)))) in
-		match (Heap.mem heap loc) with
+	List.iter (fun (loc, md) -> 
+		(match (Heap.mem heap loc) with
 		| false -> 
 				(* TODO: Ultra careful here with None and LESet [] ... *)
 				Heap.replace heap loc (([], None), md, false)
 		| true  -> 
 				let ((fv_list, domain), _, ext) = Heap.find heap loc in
-					Heap.replace heap loc ((fv_list, domain), md, ext)
-		) metadata
+					Heap.replace heap loc ((fv_list, domain), md, ext))
+		) metadata;
+		
+		(* Now, it's time to merge the duplicates *)
+		Hashtbl.iter (fun md_you_stay md_away ->
+			(match md_you_stay, md_away with
+			| ALoc ls, ALoc la -> 
+					print_debug_petar (Printf.sprintf "About to substitute: %s for %s" ls la);
+					let aloc_subst = Hashtbl.create 3 in 
+					Hashtbl.add aloc_subst la md_you_stay;
+					store_substitution_in_place aloc_subst store;
+					pfs_substitution_in_place aloc_subst p_formulae;
+					
+					(* Manual heap merge *)
+					let ((fv_list, domain), md, ext) = SHeap.get_unsafe heap ls in
+					let ((fv_list', domain'), _, ext') = SHeap.get_unsafe heap la in
+					if (ext <> ext') then raise (Failure "Impossible metadata.")
+					else (
+							SHeap.remove heap la;
+							let new_domain = Symbolic_State_Utils.merge_domains p_formulae gamma domain domain' in
+							SHeap.put heap ls (fv_list @ fv_list') new_domain md ext
+						)
+
+			(* More cases to follow... or not *)
+			| _, _ -> ())
+			) md_heqs
 
 (** -----------------------------------------------------
-  * Normalise Metadata
+  * Normalise Extensibility
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
@@ -1587,7 +1632,7 @@ let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) :
 	| _        -> print_debug "Could NOT find the overlap\n"; None 
 
 
-let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state = 
+let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state option = 
 	let pfs_pre  = (ss_pfs ss_pre) in 
 	let pfs_post = (ss_pfs ss_post) in 
 	let pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list pfs_post) in 
@@ -1596,7 +1641,7 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 	print_debug_petar (Printf.sprintf "ENTERING COLLAPSE_ALOCS with\n\nPrecondition:\n%s\nPostcondition:\n%s"
 		(Symbolic_State_Print.string_of_symb_state ss_pre) (Symbolic_State_Print.string_of_symb_state ss_post));
 
-	if (Pure_Entailment.check_satisfiability pfs_list (ss_gamma ss_post)) then ss_post else (
+	if (Pure_Entailment.check_satisfiability pfs_list (ss_gamma ss_post)) then Some ss_post else (
 		print_normal (Printf.sprintf "SPEC with inconsistent alocs was found.\npre_pfs:\n%s\npost_pfs:\n%s\n"
 			(Symbolic_State_Print.string_of_pfs pfs_pre) (Symbolic_State_Print.string_of_pfs pfs_post)
 		); 
@@ -1621,12 +1666,12 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 		let new_pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list new_pfs_post) in 
 
 		if (Pure_Entailment.check_satisfiability new_pfs_list (ss_gamma ss_post)) then (
-			ss_substitution aloc_subst true ss_post 
+			Some (ss_substitution aloc_subst true ss_post) 
 		) else (
-			print_normal(Printf.sprintf "I am dying here. new_pfs_list: %s\ngamma: %s\n" 
+			print_normal(Printf.sprintf "Incompatible something inside collapse_alocs. new_pfs_list: %s\ngamma: %s\n" 
 				(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs_list))
 				(Symbolic_State_Print.string_of_gamma (ss_gamma ss_post))); 
-			raise (Failure "collapse_alocs FAILED!")
+			None
 		)
 	)
 
@@ -1721,7 +1766,7 @@ let normalise_single_spec
 
 		(** Step 3 - Normalise the postconditions associated with each pre           *)
 		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars params) posts) in
-		let ss_posts = List.map (fun ss_post -> collapse_alocs ss_pre ss_post) ss_posts in 
+		let ss_posts = oget_list (List.map (fun ss_post -> collapse_alocs ss_pre ss_post) ss_posts) in 
 		{	n_pre              = ss_pre;
 			n_post             = ss_posts;
 			n_ret_flag         = spec.ret_flag;

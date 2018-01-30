@@ -27,6 +27,12 @@ spec create_default_object (l, pr, cl, ext)
 	   types(#cl:Str, #ext:Bool) *
        JSObjGeneralWeak(#l, #op, #oc, #oe, #md) ]]
     [[ JSObjGeneral(#l, #pr, #cl, #ext, #md) * (ret == #l) ]]
+    normal;
+    
+    [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
+	   types(#cl:Str, #ext:Bool) *
+       JSObjGeneralWeakExist(#l, #op, #oc, #oe) ]]
+    [[ JSObjGeneralExist(#l, #pr, #cl, #ext) * (ret == #l) ]]
     normal
 
 proc create_default_object (l, pr, cl, ext) {
@@ -61,6 +67,12 @@ spec Object_construct (xsc, vthis, l)
     [[ JSObjGeneral(ret, $lobj_proto, "Object", true, #md) * 
        empty_fields(ret : -{ }-) *
        empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    normal;
+    
+    [[ (l == #l) * types(#l:Undefined) ]]
+    [[ JSObjGeneralExist(ret, $lobj_proto, "Object", true) * 
+       empty_fields(ret : -{ }-) * MetaData(ret, #mret) *
+       empty_fields(#mret : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
     
     (* TODO: for Object, Boolean, Number, String *)
