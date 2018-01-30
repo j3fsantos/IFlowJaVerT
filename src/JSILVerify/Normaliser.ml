@@ -1592,6 +1592,9 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 	let pfs_post = (ss_pfs ss_post) in 
 	let pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list pfs_post) in 
 	let pfs      = (pfs_of_list pfs_list) in 
+	
+	print_debug_petar (Printf.sprintf "ENTERING COLLAPSE_ALOCS with\n\nPrecondition:\n%s\nPostcondition:\n%s"
+		(Symbolic_State_Print.string_of_symb_state ss_pre) (Symbolic_State_Print.string_of_symb_state ss_post));
 
 	if (Pure_Entailment.check_satisfiability pfs_list (ss_gamma ss_post)) then ss_post else (
 		print_normal (Printf.sprintf "SPEC with inconsistent alocs was found.\npre_pfs:\n%s\npost_pfs:\n%s\n"

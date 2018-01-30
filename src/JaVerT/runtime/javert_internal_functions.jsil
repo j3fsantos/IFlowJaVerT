@@ -613,7 +613,7 @@ spec o__getOwnProperty (l, prop)
     [[ Cell_o (#l, #prop, none) * (ret == undefined) ]]
     normal;
 
-    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) ]]
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * types(#dx:List) ]]
     [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
     normal
 

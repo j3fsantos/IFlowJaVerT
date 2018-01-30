@@ -149,9 +149,9 @@ pred DataPropConst (l : Obj, prop : Str, v) :
  * Resource: none
  *
  *)
-pred DataDescriptor (d : List) :
+pred DataDescriptor (d:List) :
 	(d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
-	types (#dwrit : Bool, #denum : Bool, #dconf : Bool) * 
+	types (#dwrit:Bool, #denum:Bool, #dconf:Bool) * 
 	(! (#dval == empty));
 
  (*
@@ -160,9 +160,9 @@ pred DataDescriptor (d : List) :
  * Resource: none
  *
  *)
-pred AccessorDescriptor (d : List) :
+pred AccessorDescriptor (d:List) :
 	(d == {{ "a", #dget, #dset, #denum, #dconf }}) *
-	types (#denum : Bool, #dconf : Bool) * 
+	types (#denum:Bool, #dconf:Bool) * 
 	(! (#dget == empty)) * (! (#dset == empty));
 	
  (*
@@ -171,7 +171,7 @@ pred AccessorDescriptor (d : List) :
  * Resource: none
  *
  *)
-pred Descriptor (d : List) :
+pred Descriptor (d:List) :
 	DataDescriptor(d),
 	AccessorDescriptor(d);
 
@@ -181,7 +181,7 @@ pred Descriptor (d : List) :
  * Resource: none
  *
  *)
-pred GenericDescriptor (d : List) :
+pred GenericDescriptor (d:List) :
 	(d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
 
 (*
@@ -190,22 +190,22 @@ pred GenericDescriptor (d : List) :
  * Resource: none
  *
  *)
-pred desc_val (d : List, v) :
+pred desc_val (d:List, v) :
     v == l-nth(d, 1);
 
-pred desc_writ (d : List, v) :
+pred desc_writ (d:List, v) :
     v == l-nth(d, 2);
 
-pred desc_get (d : List, v) :
+pred desc_get (d:List, v) :
     v == l-nth(d, 1);
 
-pred desc_set (d : List, v) :
+pred desc_set (d:List, v) :
     v == l-nth(d, 2);
 
-pred desc_enum (d : List, v) :
+pred desc_enum (d:List, v) :
     v == l-nth(d, 3);
 
-pred desc_conf (d : List, v) :
+pred desc_conf (d:List, v) :
     v == l-nth(d, 4);
     
 (*********************
@@ -219,7 +219,7 @@ pred desc_conf (d : List, v) :
  *      (l, prop)
  *
  *)
-pred Cell_o (l : Obj, prop : Str, d) :
+pred Cell_o (l:Obj, prop:Str, d) :
     ((l, prop) -> d) * (d == none),
     ((l, prop) -> d) * DataDescriptor(d),
     ((l, prop) -> d) * AccessorDescriptor(d);
@@ -269,7 +269,7 @@ pred Pi (l, prop, lcls, undefined, ls, ltf, lpv) :
  *		(l, "@proto")	(l, "prop")
  *)
 pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
-    types(l : Obj, prop : Str, #cls : Str, lcls : List, d : List, ls : List, ltf : List, lpv : List) *
+    types(l : Obj, prop : Str, #cls : Str, lcls : List, d:List, ls : List, ltf : List, lpv : List) *
 	((l, "@class") -> #cls) *
 	isClass (#cls, "Non-String") * Cell_o (l, prop, d) * (! (d == none)) *
     (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ false }}) * (lpv == {{ "" }});
