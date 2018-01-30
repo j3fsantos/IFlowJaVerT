@@ -314,6 +314,54 @@ with
 	ret:	xret, rlab;
 };
 
+(************************
+ ***** INITIAL HEAP *****
+ ************************)
+ 
+spec setupInitialHeap ()
+
+	[[ initialHeapPre() ]]
+	[[ initialHeapPost( -{ }- ) * (ret == empty) ]]
+	normal
+
+proc setupInitialHeap () {
+
+			(* Global object *)
+
+			xret := "create_default_object" ($lg, $lobj_proto, "Object", true);
+
+			(* Object.prototype *)
+
+			xret := "create_default_object" ($lobj_proto, null, "Object", true);
+			
+			[$lobj_proto, "hasOwnProperty"] := {{ "d", $lop_hasOwnProperty, true, false, true }};
+  			
+  			xret := "create_object_with_call_construct" ($lop_hasOwnProperty, "OP_hasOwnProperty", empty, 1);
+
+			(* Function.prototype *)
+			
+			xret := "create_object_with_call_construct" ($lfun_proto, "FP_default", empty, 0);
+			m := metadata($lfun_proto); 
+   			[m, "@proto"] := $lobj_proto;
+			
+			(* Error object *)
+
+			xret := "create_object_with_call_construct" ($lerr, "Error_call", "Error_construct", 1);
+			[$lg, "Error"] := {{ "d", $lerr, true, false, true }};
+			[$lerr, "prototype"] := {{ "d", $lerr_proto, false, false, false }};
+
+			(* Error.prototype *)
+
+			xret := "create_default_object" ($lerr_proto, $lobj_proto, "Error", true);
+			[$lerr_proto, "message"]     := {{ "d", "", true, false, true }};
+
+	rlab:	xret := empty
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 (***********************
  ***********************
  ***** CONVERSIONS *****

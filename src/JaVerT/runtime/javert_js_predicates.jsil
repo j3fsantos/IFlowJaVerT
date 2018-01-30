@@ -29,6 +29,59 @@ pred JSObjGeneralWeak (l:Obj, proto, class, ext, md:Obj) :
 	((md, "@class")      -> class) *
 	((md, "@extensible") -> ext) *
 	MetaData(md, null) * Extensible(md, true);
+	
+pred EmptyExtensibleObject(l:Obj, md:Obj) :
+	empty_fields(l  : -{}-) * MetaData(l,  md) *   Extensible(l, true) *
+	empty_fields(md : -{}-) * MetaData(md, null) * Extensible(md, true);
+
+(************************
+ ***** INITIAL HEAP *****
+ ************************)
+
+pred initialHeapPre () :
+    EmptyExtensibleObject ($lg, $lg_md) *
+    EmptyExtensibleObject ($lobj_proto, $lobj_proto_md) * 
+    EmptyExtensibleObject ($lfun_proto, $lfun_proto_md) * 
+    EmptyExtensibleObject ($lerr, $lerr_md) *
+    EmptyExtensibleObject ($lerr_proto, $lerr_proto_md) * 
+    EmptyExtensibleObject ($lop_hasOwnProperty, $lop_hasOwnProperty_md);
+    
+pred initialHeapPost (globals) :
+	types(globals:Set) *
+	
+	JSObject ($lg, $lg_md) *
+	(($lg, "Error") -> {{ "d", $lerr, true, false, true }}) *
+    empty_fields ($lg    : -u- (-{ "Error" }-, globals) ) *
+    empty_fields ($lg_md : -{ "@class", "@proto", "@extensible" }-) *
+    
+    JSObjWithProto ($lobj_proto, null, $lobj_proto_md) *
+    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
+    empty_fields ($lobj_proto    : -{ "hasOwnProperty" }-) *
+    empty_fields ($lobj_proto_md : -{ "@class", "@proto", "@extensible" }-) *
+
+    JSObjGeneral ($lop_hasOwnProperty, $lfun_proto, "Function", true, $lop_hasOwnProperty_md) *
+    (($lop_hasOwnProperty, "length") -> {{ "d", 1, false, false, false }}) *
+    empty_fields($lop_hasOwnProperty : -{ "length" }-) *
+    (($lop_hasOwnProperty_md, "@scope") -> empty) * (($lop_hasOwnProperty_md, "@call") -> "OP_hasOwnProperty") *
+    empty_fields($lop_hasOwnProperty_md : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
+    
+    JSObjGeneral ($lfun_proto, $lobj_proto, "Function", true, $lfun_proto_md) *
+    (($lfun_proto, "length") -> {{ "d", 0, false, false, false }}) *
+    empty_fields($lfun_proto : -{ "length" }-) *
+    (($lfun_proto_md, "@scope") -> empty) * (($lfun_proto_md, "@call") -> "FP_default") *
+    empty_fields($lfun_proto_md : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
+      
+    JSObjGeneral ($lerr, $lfun_proto, "Function", true, $lerr_md) *
+    (($lerr, "length") -> {{ "d", 1, false, false, false }}) *
+    (($lerr, "prototype") -> {{ "d", $lerr_proto, false, false, false }}) *
+    empty_fields($lerr : -{ "length", "prototype" }-) *
+    (($lerr_md, "@scope") -> empty) * (($lerr_md, "@call") -> "Error_call") * (($lerr_md, "@construct") -> "Error_construct") *
+    empty_fields($lerr_md : -{ "@proto", "@class", "@extensible", "@scope", "@call", "@construct" }-) *
+    
+    JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true, $lerr_proto_md) * 
+    (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
+    empty_fields($lerr_proto : -{ "message" }-) *
+    empty_fields($lerr_proto_md : -{ "@proto", "@class", "@extensible" }-);
 
 (**************************
  **** FUNCTION OBJECTS ****
