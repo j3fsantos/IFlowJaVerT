@@ -613,13 +613,9 @@ spec o__getOwnProperty (l, prop)
     [[ Cell_o (#l, #prop, none) * (ret == undefined) ]]
     normal;
 
-    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * DataDescriptor(#dx) ]]
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) ]]
     [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
-    normal;
-    
-    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * AccessorDescriptor(#dx) ]]
-    [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
-    normal 
+    normal
 
 proc o__getOwnProperty (l, prop) {
             x := hasField(l, prop);

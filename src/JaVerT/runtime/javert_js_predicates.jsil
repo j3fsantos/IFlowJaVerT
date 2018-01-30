@@ -164,6 +164,16 @@ pred AccessorDescriptor (d : List) :
 	(d == {{ "a", #dget, #dset, #denum, #dconf }}) *
 	types (#denum : Bool, #dconf : Bool) * 
 	(! (#dget == empty)) * (! (#dset == empty));
+	
+ (*
+ * Predicate: Descriptor
+ *
+ * Resource: none
+ *
+ *)
+pred Descriptor (d : List) :
+	DataDescriptor(d),
+	AccessorDescriptor(d);
 
 (*
  * Predicate: GenericDescriptor
