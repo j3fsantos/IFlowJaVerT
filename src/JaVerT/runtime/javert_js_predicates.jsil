@@ -92,7 +92,7 @@ pred FunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj, md:Obj) :
 	((l, "arguments")  -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
 	((l, "caller")     -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
 	((l, "prototype")  -> {{ "d", proto, true, false, false }}) *
-	MetaData (l, md) * Extensible (l, true) *
+	MetaData(l, md) * Extensible (l, true) *
 	((md, "@proto")      -> $lfun_proto) * 
 	((md, "@class")      -> "Function") *
 	((md, "@extensible") -> true) * 
@@ -138,3 +138,149 @@ pred DataPropGen (l : Obj, prop : Str, v, writ : Bool, enum : Bool, conf : Bool)
 pred DataPropConst (l : Obj, prop : Str, v) :
 	((l, prop) -> {{ "d", v, false, #e, false }}) *
 	types(#e:Bool) * (! (v == empty));
+
+(*********************
+ **** DESCRIPTORS ****
+ *********************)
+ 
+ (*
+ * Predicate: DataDescriptor
+ *
+ * Resource: none
+ *
+ *)
+pred DataDescriptor (d : List) :
+	(d == {{ "d", #dval, #dwrit, #denum, #dconf }}) *
+	types (#dwrit : Bool, #denum : Bool, #dconf : Bool) * 
+	(! (#dval == empty));
+
+ (*
+ * Predicate: AccessorDescriptor
+ *
+ * Resource: none
+ *
+ *)
+pred AccessorDescriptor (d : List) :
+	(d == {{ "a", #dget, #dset, #denum, #dconf }}) *
+	types (#denum : Bool, #dconf : Bool) * 
+	(! (#dget == empty)) * (! (#dset == empty));
+
+(*
+ * Predicate: GenericDescriptor
+ *
+ * Resource: none
+ *
+ *)
+pred GenericDescriptor (d : List) :
+	(d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
+
+(*
+ * Predicate: Projection functions for descriptors
+ *
+ * Resource: none
+ *
+ *)
+pred desc_val (d : List, v) :
+    v == l-nth(d, 1);
+
+pred desc_writ (d : List, v) :
+    v == l-nth(d, 2);
+
+pred desc_get (d : List, v) :
+    v == l-nth(d, 1);
+
+pred desc_set (d : List, v) :
+    v == l-nth(d, 2);
+
+pred desc_enum (d : List, v) :
+    v == l-nth(d, 3);
+
+pred desc_conf (d : List, v) :
+    v == l-nth(d, 4);
+    
+(*********************
+ **** OBJECT CELL ****
+ *********************) 
+
+(*
+ * Predicate: Cell_o(l, prop, X)
+ *
+ * Resource:
+ *      (l, prop)
+ *
+ *)
+pred Cell_o (l : Obj, prop : Str, d) :
+    ((l, prop) -> d) * (d == none),
+    ((l, prop) -> d) * DataDescriptor(d),
+    ((l, prop) -> d) * AccessorDescriptor(d);
+    
+(***************************
+ **** TODO: STRING CELL ****
+ ***************************) 
+
+
+
+
+(********************
+ **** TO SORT OUT ***
+ ********************)	
+ 
+(*
+ * Predicate: isClass(c, X)
+ *
+ * Resource:
+ *      (l, "@class")
+ *
+ *)
+pred isClass (c : Str, case : Str) :
+	(case == "Array") * (c == "Array"),
+	(case == "String") * (c == "String"),
+	(case == "Non-Array") * (! (c == "Array")),
+	(case == "Non-String") * (! (c == "String"));	
+
+(*
+ * The PI predicate
+ *)
+
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")
+ *)
+pred Pi (l, prop, lcls, undefined, ls, ltf, lpv) :
+    types(l : Obj, prop : Str, #cls : Str, lcls : List, ls : List, ltf : List, lpv : List) *
+	((l, "@proto") -> null) * ((l, "@class") -> #cls) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, none) *
+    (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ false }}) * (lpv == {{ "" }});
+
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")
+ *)
+pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
+    types(l : Obj, prop : Str, #cls : Str, lcls : List, d : List, ls : List, ltf : List, lpv : List) *
+	((l, "@class") -> #cls) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, d) * (! (d == none)) *
+    (lcls == {{ #cls }}) * (ls == {{ l }}) * (ltf == {{ false }}) * (lpv == {{ "" }});
+
+(*
+ * Resource:
+ *		(l, "@class")   via isClass
+ *		(l, "@proto")	(l, "prop")		(l, "@primitiveValue")
+ *
+ *		Those five fields captured throughout the chain
+ *)
+
+pred Pi (l, prop, lcls, d, ls, ltf, lpv) :
+    types(l : Obj, prop : Str, lcls : List, ls : List, ltf : List, lpv : List) *
+	((l, "@class") -> #cls) * ((l, "@proto") -> #lp) *
+	isClass (#cls, "Non-String") * Cell_o (l, prop, none) *
+	types(#lcls : List, #lls : List, #ltf  : List, #lpv : List) *
+    Pi (#lp, prop, #lcls, d, #lls, #ltf, #lpv) *
+	types(#pcls : Str,  #ocls : List,
+	        #lp : Obj,  #ols  : List,
+		   #ptf : Bool, #otf  : List,
+		   #ppv : Str,  #otv  : List) *
+	(#lcls == #pcls :: #ocls) * (#lls == #lp :: #ols) * (#ltf == #ptf :: #otf) * (#lpv == #ppv :: #otv) *
+	(lcls == #cls :: #lcls) * (ls == l :: #lls) * (ltf == false :: #ltf) * (lpv == "" :: #lpv);
