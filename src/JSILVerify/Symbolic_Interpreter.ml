@@ -6,7 +6,6 @@ open JSIL_Logic_Utils
 
 let js = ref false
 
-
 let domain_from_single_lit lit = Some (LESet [ (LLit (String lit)) ])
 
 (**********************)
@@ -252,7 +251,7 @@ let symb_evaluate_bcmd
 		
 		(* TODO: Why not put empty set of empty_fields instead of None? 
 	     I'm now a bit concerned that objects with None can be deallocated abruptly. *) 
-		SHeap.put heap new_loc [] (Some (LESet [])) md_val true;
+		SHeap.put heap new_loc [] (Some (LESet [])) (Some md_val) (Some Extensible);
 		store_put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
@@ -405,8 +404,11 @@ let symb_evaluate_bcmd
 		(match obj with
 		| None -> raise (Failure (Printf.sprintf "Looking up metadata of a non-existent object: %s" l))	
 		| Some (_, md, _) -> 
-				Hashtbl.replace store x md;
-				md)
+				(match md with
+				| None -> raise (Failure (Printf.sprintf "Looking up framed-off metadata of the object: %s" l))	
+				| Some md -> 
+						Hashtbl.replace store x md;
+						md))
 	
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 

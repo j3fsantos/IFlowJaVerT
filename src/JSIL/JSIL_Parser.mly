@@ -878,7 +878,7 @@ assertion_target:
 			LMetaData (eo, em)
 		}
 (* Extensible (eo, b) *)
-	| LEXTENSIBLE; LBRACE; eo = lexpr_target; COMMA; b = bool_target; RBRACE
+	| LEXTENSIBLE; LBRACE; eo = lexpr_target; COMMA; b = extensible_target; RBRACE
 	  { LExtensible (eo, b) }
 (* emp *)
 	| LEMP;
@@ -1017,9 +1017,9 @@ lit_target:
 	| LSTOPEN LSTCLOSE          { LList [] }
 ;
 
-bool_target:
-	| TRUE                      { true }
-	| FALSE                     { false }
+extensible_target:
+	| TRUE                      { Extensible }
+	| FALSE                     { NonExtensible }
 
 binop_target:
 	| EQUAL              { Equal }
@@ -1196,7 +1196,7 @@ js_assertion_target:
 			JSLMetaData (eo, em)
 		}
 (* Extensible (eo, b) *)
-	| LEXTENSIBLE; LBRACE; eo = js_lexpr_target; b = bool_target; RBRACE
+	| LEXTENSIBLE; LBRACE; eo = js_lexpr_target; b = extensible_target; RBRACE
 	  { JSLExtensible (eo, b) }
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE

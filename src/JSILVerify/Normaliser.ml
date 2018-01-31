@@ -956,8 +956,8 @@ let rec normalise_cell_assertions
 	let fe = normalise_logic_expression store gamma subst in
 
 	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (perm : Permission.t) (le_v : jsil_logic_expr) : unit = 
-		let (field_val_pairs, default_val), metadata, ext = Option.default (([], None), LLit Null, false) (Heap.find_opt heap loc) in
-		Heap.replace heap loc ((((fe le_f, (perm, fe le_v)) :: field_val_pairs), default_val), fe metadata, ext) in 
+		let (field_val_pairs, default_val), metadata, ext = Option.default (([], None), None, None) (Heap.find_opt heap loc) in
+		Heap.replace heap loc ((((fe le_f, (perm, fe le_v)) :: field_val_pairs), default_val), Option.map fe metadata, ext) in 
 
 	match a with
 	| LStar (a1, a2) -> f a1; f a2
@@ -1143,7 +1143,7 @@ let normalise_ef_assertions
 				| _ -> print_debug_petar "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
 			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
-		let (fv_list, _), metadata, ext = try Heap.find heap le_loc_name with Not_found -> ([], None), LLit Null, false in
+		let (fv_list, _), metadata, ext = try Heap.find heap le_loc_name with Not_found -> ([], None), None, None in
 		Heap.replace heap le_loc_name ((fv_list, Some domain), metadata, ext) in
 
 	List.iter add_domain (get_all_empty_fields a)
@@ -1217,11 +1217,11 @@ let normalise_metadata
 	List.iter (fun (loc, md) -> 
 		(match (Heap.mem heap loc) with
 		| false -> 
-				(* TODO: Ultra careful here with None and LESet [] ... *)
-				Heap.replace heap loc (([], None), md, false)
+				(* TODO: Ultra careful here with this false ... *)
+				Heap.replace heap loc (([], None), Some md, Some NonExtensible)
 		| true  -> 
 				let ((fv_list, domain), _, ext) = Heap.find heap loc in
-					Heap.replace heap loc ((fv_list, domain), md, ext))
+					Heap.replace heap loc ((fv_list, domain), Some md, ext))
 		) metadata;
 		
 		(* Now, it's time to merge the duplicates *)
@@ -1268,7 +1268,7 @@ let normalise_extensibility
 			| _ -> List.concat ac in
 		let result = assertion_fold None f_ac None None a in
 			print_debug_petar (Printf.sprintf "Normalising extensibility:\n\t%s"
-				(String.concat "\n\t" (List.map (fun (le1, b) -> "(" ^ (JSIL_Print.string_of_logic_expression le1) ^ ", " ^ (if b then "true" else "false") ^ ")") result)));
+				(String.concat "\n\t" (List.map (fun (le1, b) -> "(" ^ (JSIL_Print.string_of_logic_expression le1) ^ ", " ^ (Extensibility.str b) ^ ")") result)));
 			result in
 	
 	let extens = get_all_extens a in
@@ -1288,7 +1288,7 @@ let normalise_extensibility
 		| false -> raise (Failure (Printf.sprintf "Unsupported: object %s only defined through extensibility." (JSIL_Print.string_of_logic_expression l)))
 		| true  -> 
 				let ((fv_list, domain), metadata, _) = Heap.find heap loc in
-					Heap.replace heap loc ((fv_list, domain), metadata, ext)
+					Heap.replace heap loc ((fv_list, domain), metadata, Some ext)
 		) extens
 
 (**
@@ -1475,25 +1475,25 @@ let normalise_normalised_assertion
 		| LPointsTo (ALoc loc, le2, (perm, le3))
     | LPointsTo (LLit (Loc loc), le2, (perm, le3)) ->
       (* TODO: prefix locations with _ ? *)
-      let (field_val_pairs, default_val), metadata, ext = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
+      let (field_val_pairs, default_val), metadata, ext = (try Heap.find heap loc with _ -> ([], None), None, None) in
       Heap.replace heap loc ((((le2, (perm, le3)) :: field_val_pairs), default_val), metadata, ext);
       (a, false)
 		| LEmptyFields (obj, domain) ->
       let loc = JSIL_Print.string_of_logic_expression obj in
-      let (field_val_pairs, _), metadata, ext = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
+      let (field_val_pairs, _), metadata, ext = (try Heap.find heap loc with _ -> ([], None), None, None) in
       Heap.replace heap loc ((field_val_pairs, Some domain), metadata, ext);
 			(a, false)
 			
 		| LMetaData (obj, md) ->
   			let loc = JSIL_Print.string_of_logic_expression obj in
-        let (field_val_pairs, domain), _, ext = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
-        Heap.replace heap loc ((field_val_pairs, domain), md, ext);
+        let (field_val_pairs, domain), _, ext = (try Heap.find heap loc with _ -> ([], None), None, None) in
+        Heap.replace heap loc ((field_val_pairs, domain), Some md, ext);
   			(a, false)
 			
 		| LExtensible (obj, b) ->
 				let loc = JSIL_Print.string_of_logic_expression obj in
-        let (field_val_pairs, domain), metadata, _ = (try Heap.find heap loc with _ -> ([], None), LLit Null, false) in
-        Heap.replace heap loc ((field_val_pairs, domain), metadata, b);
+        let (field_val_pairs, domain), metadata, _ = (try Heap.find heap loc with _ -> ([], None), None, None) in
+        Heap.replace heap loc ((field_val_pairs, domain), metadata, Some b);
         (a, false)
 			
     | LEq ((PVar v), le)
@@ -1575,10 +1575,12 @@ let create_unification_plan
  				) (fv_list_c @ fv_list_nc); 
  				Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
 				(* Now, metadata *)
-				Queue.add (LMetaData (le_loc, metadata)) unification_plan;
-				search_for_new_alocs_in_lexpr metadata;
+				Option.may (fun metadata -> 
+					Queue.add (LMetaData (le_loc, metadata)) unification_plan;
+					search_for_new_alocs_in_lexpr metadata) metadata;
 				(* Now, extensibility *)
-				Queue.add (LExtensible (le_loc, ext)) unification_plan;
+				Option.may (fun ext -> 
+					Queue.add (LExtensible (le_loc, ext)) unification_plan) ext;
  				Heap.remove heap loc; 
  				true) in 
 

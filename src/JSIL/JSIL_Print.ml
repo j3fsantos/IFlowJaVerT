@@ -217,7 +217,7 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
 			(* MetaData (e1, e2) *)
 			| LMetaData (e1, e2) -> Printf.sprintf "MetaData (%s, %s)" (sle e1) (sle e2)
 			(* Extensible (e1, e2) *)
-			| LExtensible (e1, e2) -> Printf.sprintf "Extensible (%s, %s)" (sle e1) (if e2 then "true" else "false")
+			| LExtensible (e1, e2) -> Printf.sprintf "Extensible (%s, %s)" (sle e1) (Extensibility.str e2)
 
 
 (* [def2 with #key := #k and #value := #v] *)

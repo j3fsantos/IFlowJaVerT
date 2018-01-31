@@ -457,7 +457,7 @@ let ss_substitution
 let ss_substitution_in_place_no_gamma
 		(subst : substitution) (symb_state : symbolic_state) : unit =
 	let heap, store, pfs, gamma, preds = symb_state in
-	SHeap.substitution_in_place  subst heap;		
+	SHeap.substitution_in_place subst heap;		
 	store_substitution_in_place subst store;
 	pfs_substitution_in_place   subst pfs;	
 	preds_substitution_in_place subst preds
@@ -686,8 +686,8 @@ let selective_heap_substitution_in_place (subst : substitution) (heap : SHeap.t)
   				| _ ->
   					raise (Failure "Heap substitution failed miserably!!!")) in
   		let s_fv_list = SFVL.selective_substitution subst true fv_list in
-  		let s_domain = Option.map (fun le -> le_subst le) domain in
-			let s_metadata = le_subst metadata in
+  		let s_domain = Option.map le_subst domain in
+			let s_metadata = Option.map le_subst metadata in
   		Heap.replace heap s_loc ((s_fv_list, s_domain), s_metadata, ext))
   	heap
 

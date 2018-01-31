@@ -181,7 +181,7 @@ type jsil_logic_assertion =
 	| LStar			   of jsil_logic_assertion * jsil_logic_assertion                        (** Separating conjunction *)
 	| LPointsTo	   of jsil_logic_expr * jsil_logic_expr * (Permission.t * jsil_logic_expr) (** Heap cell assertion *)
 	| LMetaData    of jsil_logic_expr * jsil_logic_expr                                  (** MetaData *)
-	| LExtensible  of jsil_logic_expr * bool                                             (** Extensibility *)
+	| LExtensible  of jsil_logic_expr * Extensibility.t                                  (** Extensibility *)
 	| LPred			   of string * (jsil_logic_expr list)                                    (** Predicates *)
 	| LForAll      of (jsil_var * Type.t) list * jsil_logic_assertion                    (** Forall *)
 	| LTypes       of (jsil_logic_expr * Type.t) list                                    (** Typing assertion *)

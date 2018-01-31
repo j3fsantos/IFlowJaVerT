@@ -420,7 +420,7 @@ let unify_domains
 	let fv_list, dom, metadata, ext = 
 		match SHeap.get heap loc with 
 		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
-		| None                                 -> print_debug "DEATH 3"; raise (Failure "DEATH") in 
+		| None                                 -> print_debug "No location for EF assertion"; raise (Failure "DEATH") in 
 
 	(* 4. Unifying the domains if they exist *)
 	let result = (match dom with
@@ -430,7 +430,8 @@ let unify_domains
 	| Some dom ->     
 		(* ii. pat_domain and domain exist -> we have to check the entailment *)                      
 		try 
-			let perm : Permission.t = if ext then Deletable else Readable in (* TODO *)
+			(* THIS IS NOT CLEAR AT ALL *)
+			let perm : Permission.t = if (ext = Some Extensible) then Deletable else Readable in (* TODO *)
 			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom fv_list perm in 
 			let heap_frame     = SHeap.copy heap in 
 			SHeap.put heap_frame loc fv_list_frame None metadata ext;
@@ -448,9 +449,9 @@ let unify_metadata_assertion
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
-			
+	
 	let un_les = unify_lexprs pfs gamma pat_subst in 
-
+	
 	(* 1. Obtain the cell to unify *)
 	let pat_loc, pat_metadata = 
 		match pat_cell_asrt with 
@@ -458,7 +459,7 @@ let unify_metadata_assertion
 		| LMetaData (ALoc loc, metadata) -> loc, metadata
 		| _ -> raise (Failure "Unify_metadata_assertion: no metadata assertion") in 
 
-    (* 2. Find the location corresponding to that cell *) 
+  (* 2. Find the location corresponding to that cell *) 
 	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
 		try (
 			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
@@ -469,23 +470,30 @@ let unify_metadata_assertion
 				raise (Failure msg)) in 
 
 	(* 3. Get the metadata *)
-	let metadata = 
+	let fv_list, domain, metadata, ext = 
 		match SHeap.get heap loc with 
-		| Some ((_, _), metadata, _) -> metadata 
+		| Some ((fv_list, domain), metadata, ext) -> fv_list, domain, metadata, ext 
 		| None                -> raise (Failure "Unify_metadata_assertion: loc not in the heap") in 
 
 	(* 4. Try to unify the metadata *)
 	let result = 
-		(match un_les pat_metadata metadata with
-		| None -> [ ]
-		| Some (subst_meta, discharges_meta) ->
-				(match (consistent_subst_list subst_meta pfs gamma), (pre_check_discharges discharges_meta) with
-				| Some subst_meta, Some discharges_meta ->
-						let pat_subst = Hashtbl.copy pat_subst in
-						if (safe_substitution_extension pfs gamma pat_subst subst_meta) then (
-							[ (heap, pat_subst, discharges_meta) ] (* EVERYTHING IS FRAME?! *)
-						) else [ ]
-				| _, _ -> [ ])) in
+		(match metadata with
+		(* What happens here? *)
+		| None -> []
+		| Some metadata -> 
+  		(match un_les pat_metadata metadata with
+  		| None -> [ ]
+  		| Some (subst_meta, discharges_meta) ->
+  				(match (consistent_subst_list subst_meta pfs gamma), (pre_check_discharges discharges_meta) with
+  				| Some subst_meta, Some discharges_meta ->
+  						let pat_subst = Hashtbl.copy pat_subst in
+  						if (safe_substitution_extension pfs gamma pat_subst subst_meta) then (
+								(* FRAME OFF *)
+								let heap_frame = SHeap.copy heap in
+								SHeap.put heap loc fv_list domain None ext;
+  							[ (heap_frame, pat_subst, discharges_meta) ]
+  						) else [ ]
+  				| _, _ -> [ ]))) in
 	
 	result
 
@@ -515,13 +523,19 @@ let unify_extensible_assertion
 				raise (Failure msg)) in 
 
 	(* 3. Get the extensibility *)
-	let ext = 
+	let fv_list, domain, metadata, ext = 
 		match SHeap.get heap loc with 
-		| Some ((_, _), _, ext) -> ext 
+		| Some ((fv_list, domain), metadata, ext) -> fv_list, domain, metadata, ext 
 		| None                -> raise (Failure "Unify_extensible_assertion: loc not in the heap") in 
 
 	(* 4. Unify the extensibility *)
-  if (pat_ext = ext) then [ (heap, Hashtbl.copy pat_subst, [ ]) ] else [ ]
+	(match ext with
+	| None -> []
+	| Some ext -> if (pat_ext = ext) then 
+		(* FRAME OFF *)
+		let heap_frame = SHeap.copy heap in
+		SHeap.put heap loc fv_list domain metadata None;
+		[ (heap, Hashtbl.copy pat_subst, [ ]) ] else [ ])
 
 type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitution 
 

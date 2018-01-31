@@ -112,27 +112,29 @@ let merge_heaps
 		(fun loc ((n_fv_list, n_domain), n_metadata, n_ext) ->
 			match SHeap.get heap loc with 
 			| Some ((fv_list, domain), metadata, ext) -> 
-				(match (ext = n_ext) with
-				| false -> raise (Failure "Heaps not mergeable. Extensibility mismatch.")
-			  (* Is this correct? *)
-				| true ->
-						Hashtbl.add meta_subst n_metadata metadata; 
-						SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)) metadata ext
+				let new_ext = (match ext, n_ext with
+				| None, None -> None
+				| Some ext, None 
+				| None, Some ext -> Some ext
+				| Some ext, Some n_ext -> raise (Failure "Heaps not mergeable. Resource overlap: extensibility.")) in
+  					Hashtbl.add meta_subst n_metadata metadata; 
+  					SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
 			| None -> 
 				SHeap.put heap loc n_fv_list n_domain n_metadata n_ext); 
 
 	(* Substitution *)
 	Hashtbl.iter (fun le1 le2 -> 
-		print_debug_petar (Printf.sprintf "%s -> %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2));
 		(match le1, le2 with
-		| ALoc l1, ALoc l2 ->
-				let aloc_subst = init_substitution2 [ l1 ] [ le2 ] in 
+		| Some (ALoc l1), Some (ALoc l2) ->
+				print_debug ("Substitution: " ^ l1 ^ " -> " ^ l2); 
+				let aloc_subst = init_substitution2 [ l1 ] [ ALoc l2 ] in 
 				store_substitution_in_place aloc_subst store;
 				pfs_substitution_in_place aloc_subst pfs;
 				
 				SHeap.substitution_in_place aloc_subst heap
 						
-		| _, _ -> if (le1 <> le2) then raise (Failure "Metadata magically different."))
+		| Some le1, Some le2 -> if (le1 <> le2) then raise (Failure "Metadata magically different.")
+		| _, _ -> ())
 	) meta_subst;
 
 	(* Garbage collection - What happens here now?! TODO *)
@@ -141,7 +143,8 @@ let merge_heaps
 		| [], None -> SHeap.remove heap loc
 		| _, _ -> ()));
 
-	print_debug "Finished merging heaps."
+	print_debug "Finished merging heaps.";
+	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))
 
 
 let lexpr_is_none (pfs : pure_formulae) (gamma : typing_environment) (le : jsil_logic_expr) : bool option = 
@@ -290,15 +293,15 @@ let merge_symb_state_with_posts
 	let f_post (post : symbolic_state) : (symbolic_state * jsil_return_flag * jsil_logic_expr) list =
 		let post_makes_sense = compatible_pfs symb_state_frame post subst in
 		if (post_makes_sense) then (
+			print_debug_petar (Printf.sprintf "Postcondition is: %s" (Symbolic_State_Print.string_of_symb_state post));
 			let new_symb_state = ss_copy symb_state_frame in
 			let new_symb_state = merge_symb_states new_symb_state post subst in
 			ss_extend_pfs new_symb_state (pfs_of_list pf_discharges);
-			print_debug_petar (Printf.sprintf "Postcondition is: %s" (Symbolic_State_Print.string_of_symb_state post));
 			let ret_lexpr = store_get_safe (ss_store post) ret_var in
 			let ret_lexpr = (match ret_lexpr with
 			| None -> print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty
 			| Some le -> let result = JSIL_Logic_Utils.lexpr_substitution subst false le in
-			  print_debug_petar (Printf.sprintf "Found return value: %s" (JSIL_Print.string_of_logic_expression le));
+			  print_debug_petar (Printf.sprintf "Found return value: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result));
 				result) in
 			[ (new_symb_state, ret_flag, ret_lexpr) ]
 		) else [] in 

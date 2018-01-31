@@ -1077,8 +1077,8 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 	let to_swap_now = (le1_old <> le1) in
 	let to_swap = (to_swap <> to_swap_now) in
 	let swap (le1, le2) = if to_swap then (le2, le1) else (le1, le2) in
-	print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
-		(string_of_logic_expression le1) (string_of_logic_expression le2)); 
+	(* print_debug_petar (Printf.sprintf "unify_lists: \n\t%s\n\t\tand\n\t%s" 
+		(string_of_logic_expression le1) (string_of_logic_expression le2)); *) 
 	(match le1, le2 with
 	  (* Base cases *)
 	  | LLit (LList []), LLit (LList [])
@@ -1322,8 +1322,8 @@ let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : 
 		| LBinOp (_, CharCat,  _), LBinOp (_, CharCat,  _) -> 
 			let (okl, headl, taill) = get_head_and_tail_string se1 in
 			let (okr, headr, tailr) = get_head_and_tail_string se2 in
-			print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
-				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr));
+			(* print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
+				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr)); *)
 			(match okl, okr with
 			(* We can separate both strings *)
 			| Some true, Some true ->
@@ -1618,6 +1618,7 @@ let simplify_symb_state
 		let n = ref 0 in
 		while (!pfs_ok && !n < DynArray.length pfs) do
 			let pf = DynArray.get pfs !n in
+			print_debug_petar (Printf.sprintf "Current pf to analyse: %s" (JSIL_Print.string_of_logic_assertion pf));
 			(match pf with
 
 			(* If we have true in the pfs, we delete it and restart *)
@@ -1949,7 +1950,7 @@ let simplify_symb_state
 		let fn, fv = List.split fv_list in
 		let fn = List.map no_strings fn in
 		let fv = List.map (fun (perm, le) -> (perm, no_strings le)) fv in
-		let md = no_strings metadata in
+		let md = Option.map no_strings metadata in
 		Some ((List.combine fn fv, default), md, ext)
 		) heap; 
 	DynArray.iteri (fun i (pname, pparams) ->
