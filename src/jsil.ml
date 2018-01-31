@@ -53,7 +53,7 @@ let return_to_exit rettype =
 
 let string_of_ret_val heap ret_flag v =
 	match ret_flag with
-	| Normal -> JSIL_Print.string_of_literal v
+	| Normal -> Literal.str v
 	| Error -> if (!js) then JS2JSIL_Constants.string_of_js_error heap v else ""
 
 let run_jsil_prog prog which_pred cc_tbl vis_tbl =

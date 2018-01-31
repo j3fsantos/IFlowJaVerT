@@ -11,12 +11,12 @@ let escape_string = ref false
 let string_of_heap (h : jsil_heap) =
 	Heap.fold
 		(fun loc (obj, metadata, ext) printed_heap ->
-      	let meta_str = string_of_literal metadata in
+      	let meta_str = Literal.str metadata in
       	let ext_str = if ext then "extensible" else "non-extensible" in
 			  let printed_props =
 					(Heap.fold
 						(fun prop (perm, hval) printed_obj ->
-							let printed_hval = string_of_literal hval in
+							let printed_hval = Literal.str hval in
 							let printed_perm = string_of_permission perm in
 							let printed_cell = 
 								if (!escape_string) 
@@ -52,7 +52,7 @@ let string_of_gamma (gamma : typing_environment) : string =
 	let gamma_str =
 		Hashtbl.fold
 			(fun var var_type ac ->
-				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (string_of_type var_type) in
+				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
 				if (ac = "")
 					then var_type_pair_str
 					else ac ^ "\n\t" ^ var_type_pair_str)

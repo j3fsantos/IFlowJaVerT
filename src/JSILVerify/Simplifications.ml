@@ -163,11 +163,11 @@ let rec replace_nle_with_lvars pfs nle =
 	Internal String representation conversions
 *)
 let internal_string_explode s =
-	let rec exp i l =
+	let rec exp i l : Literal.t list =
 		if i < 0 then l else exp (i - 1) ((Char s.[i]) :: l) in
 	exp (String.length s - 1) []
 
-let rec lit_string_to_list (sl : jsil_lit) : jsil_lit =
+let rec lit_string_to_list (sl : Literal.t) : Literal.t =
 	match sl with
 		| LList l ->
 			LList (List.map lit_string_to_list l)
@@ -186,9 +186,9 @@ let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
 		| LVar _ -> (se, false)
 		| _ -> (se, true))
 
-let rec lit_list_to_string (sl : jsil_lit) : jsil_lit =
+let rec lit_list_to_string (sl : Literal.t) : Literal.t =
 	match sl with
-		| CList l -> String (String.concat "" (List.map (fun (Char x) -> String.make 1 x) l))
+		| CList l -> String (String.concat "" (List.map (fun (Literal.Char x) -> String.make 1 x) l))
 		| LList l -> LList (List.map lit_list_to_string l)
 		| _ -> sl
 
@@ -230,7 +230,7 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	String length    - ------- || -------
 *)
 let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
-                          (gamma : (string, jsil_type) Hashtbl.t)
+                          (gamma : (string, Type.t) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
 	
@@ -1460,7 +1460,7 @@ let check_types symb_state =
  *)
 
 (* Indexing types for easier access *)
-let type_index t = 
+let type_index (t : Type.t) = 
 	(match t with
 	| UndefinedType -> 0
 	| NullType      -> 1
@@ -1507,7 +1507,7 @@ let simplify_symb_state
 	let simplify_singleton_types others exists symb_state subst types =		 
 		let gamma = ss_gamma symb_state in
 		if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
-			(Hashtbl.iter (fun v t -> 
+			(Hashtbl.iter (fun v (t : Type.t) -> 
 				let lexpr = (match t with
 					| UndefinedType -> Some (LLit Undefined)
 					| NullType -> Some (LLit Null)
@@ -1516,7 +1516,7 @@ let simplify_symb_state
 					| _ -> None) in
 				(match lexpr with
 				| Some lexpr -> 
-						(* print_debug (Printf.sprintf "Singleton: (%s, %s)" v (JSIL_Print.string_of_type t)); *)
+						(* print_debug (Printf.sprintf "Singleton: (%s, %s)" v (Type.str t)); *)
 						Hashtbl.add subst v lexpr;
 				| None -> ())) gamma;
 			(* Substitute *)
@@ -1575,7 +1575,7 @@ let simplify_symb_state
 	Hashtbl.filter_map_inplace (fun v t ->
 		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
 		| true  -> Some t
-		| false -> (* print_debug (Printf.sprintf "Cutting %s : %s from gamma" v (JSIL_Print.string_of_type t)); *) None)) gamma;
+		| false -> (* print_debug (Printf.sprintf "Cutting %s : %s from gamma" v (Type.str t)); *) None)) gamma;
 		
 	(* Setup the type indexes *)
 	let types = Array.make type_length 0 in
@@ -1690,7 +1690,7 @@ let simplify_symb_state
 						DynArray.delete pfs !n;
 						
 						let tv, _, _ = JSIL_Logic_Utils.type_lexpr gamma (LVar v) in
-						let tle = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
+						let tle : Type.t option = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
 							let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
 						(match tv, tle with
 						| Some tv, Some tle when (tv <> tle) -> pfs_ok := false; msg := "Nasty type mismatch."
@@ -1744,8 +1744,10 @@ let simplify_symb_state
 							(* Remove (or add) from (or to) gamma *)
 							(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
 		      		| true -> 
-									let le_type = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
-										let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+									let le_type : Type.t option = 
+										if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) 
+											then Some StringType 
+											else let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
 									(match le_type with
 									| None -> ()
 									| Some t -> 
@@ -1753,14 +1755,14 @@ let simplify_symb_state
 										| false -> 
 												let it = type_index t in
 												types.(it) <- types.(it) + 1;
-												(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (JSIL_Print.string_of_type t)); *)
+												(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (Type.str t)); *)
 												Hashtbl.add gamma v t
 										| true -> 
 												let tv = Hashtbl.find gamma v in
 												(match (tv = t) with
 												| true -> ()
 												| false ->
-														(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (JSIL_Print.string_of_type tv) (JSIL_Print.string_of_type t)); *) 
+														(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (Type.str tv) (Type.str t)); *) 
 														pfs_ok := false; msg := "Horrific type mismatch.")))
 		      		| false -> 
 		    					while (Hashtbl.mem gamma v) do 
@@ -2003,7 +2005,7 @@ let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma =
  * IMPLICATION SIMPLIFICATION *
  * ************************** *)
 	
-let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, jsil_type) Hashtbl.t) =
+let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, Type.t) Hashtbl.t) =
 
 	(* print_time_debug ("simplify_existentials:"); *)
 	
@@ -2095,7 +2097,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 			    | false -> 
 					(match le with
 						 | LLit lit ->
-							 let ltype = evaluate_type_of lit in
+							 let ltype = Literal.type_of lit in
 							 Hashtbl.replace gamma v ltype;
 							 delete_substitute_proceed exists p_formulae gamma v n le
 						 | ALoc _ ->
@@ -2121,7 +2123,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 					let vtype = Hashtbl.find gamma v in
 					(match le with
 					 | LLit lit ->
-					     let ltype = evaluate_type_of lit in
+					     let ltype = Literal.type_of lit in
 						 (match (vtype = ltype) with
 						  | false -> pfs_false "Mistypes."
 						  | true -> delete_substitute_proceed exists p_formulae gamma v n le
@@ -2266,7 +2268,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 
 	let exists = ref exists in
 
-	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
+	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = Type.SetType)) !exists in
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
@@ -2328,7 +2330,7 @@ let find_impossible_unions lpfs rpfs exists gamma =
 	
 	let exists = ref exists in
 
-	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = SetType)) !exists in
+	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = Type.SetType)) !exists in
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"

@@ -38,7 +38,7 @@ let sg_node_from_err (msg : string) : symb_graph_node =
 		node_number = (-1) }
 
 let string_of_sg_node_type (nt : symb_graph_node_type) (js_lines : (string array * (int, int) Hashtbl.t) option) : string = 
-	JSIL_Print.escape_string := true; 
+	CCommon.escape_string := true; 
 	Symbolic_State_Print.escape_string := true; 
 	let str = 
 		(match nt, js_lines with 
@@ -49,7 +49,7 @@ let string_of_sg_node_type (nt : symb_graph_node_type) (js_lines : (string array
 		| SGPreNode, _                          -> "Precondition\n"
 		| SGPostNode, _                         -> "Postcondition\n"
 		| SGErrorNode msg, _                    -> Printf.sprintf "ERROR: %s\n" msg) in
-	JSIL_Print.escape_string := false; 
+	CCommon.escape_string := false; 
 	Symbolic_State_Print.escape_string := false; 
 	str
 
@@ -109,11 +109,11 @@ let filter_symb_graph
 
 let string_of_sg_node (node : symb_graph_node) (js_lines : (string array * (int, int) Hashtbl.t) option) : string =
 	let cmd_info_str   = string_of_sg_node_type node.node_type js_lines in
-	JSIL_Print.escape_string := true; 
+	CCommon.escape_string := true; 
 	Symbolic_State_Print.escape_string := true; 
 	let symb_state_str = Option.map_default Symbolic_State_Print.string_of_symb_state "" node.symb_state in 
 	let dashes         = "-----------------------------------------\n" in
-	JSIL_Print.escape_string := false; 
+	CCommon.escape_string := false; 
 	Symbolic_State_Print.escape_string := false; 
 	symb_state_str ^ dashes ^ cmd_info_str 
 

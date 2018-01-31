@@ -1,92 +1,9 @@
+open CCommon
 open JSIL_Syntax
-
-let escape_string   = ref false 
-let specs_on        = ref true
-let line_numbers_on = ref false
-
-let rec tabs_to_str (i : int) : string  =
-  	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
 
 (***
    Generate strings from JSIL program types
 *)
-
-let string_of_float (x : float) : string =
-  if (x == nan)
-  		then "nan"
-  		else if (x == neg_infinity)
-  			then "-inf"
-  			else if (x == infinity)
-  				then "inf"
-  				else string_of_float x
-
-(** JSIL types *)
-let string_of_type (t : jsil_type) : string =
-  match t with
-  | UndefinedType -> "Undefined"
-  | NullType      -> "Null"
-  | EmptyType     -> "Empty"
-  | NoneType      -> "None"
- 	| BooleanType   -> "Bool"
- 	| NumberType    -> "Num"
- 	| StringType    -> "Str"
- 	| CharType      -> "Char"
- 	| ObjectType    -> "Obj"
- 	| ListType      -> "List"
- 	| TypeType      -> "Type"
- 	| SetType       -> "Set"
-
-
-(** JSIL constants *)
-let string_of_constant (c : jsil_constant) : string =
-  	match c with
-  	| Min_float -> "$$min_value"
-  	| Max_float -> "$$max_value"
-  	| Random    -> "$$random"
-  	| E         -> "$$e"
-  	| Ln10      -> "$$ln10"
-  	| Ln2       -> "$$ln2"
-  	| Log2e     -> "$$log2e"
-  	| Log10e    -> "$$log10e"
-  	| Pi        -> "$$pi"
-  	| Sqrt1_2   -> "$$sqrt1_2"
-  	| Sqrt2     -> "$$sqrt2"
-  	| UTCTime   -> "$$utctime"
-  	| LocalTime -> "$$localtime"
-
-
-(** JSIL literals *)
-let rec string_of_literal (lit : jsil_lit) : string =
-  	let sl = fun l -> string_of_literal l in
-  	match lit with
-  	| Undefined -> "undefined"
-  	| Null -> "null"
-  	| Empty -> "empty"
-  	| Constant c -> string_of_constant c
-  	| Bool b ->
-    		(match b with
-     | true -> "true"
-     | false -> "false")
-  	| Num n -> string_of_float n
-  	| String x ->
-    		(if !escape_string
-     			then Printf.sprintf "\\\"%s\\\"" x
-     			else Printf.sprintf "\"%s\"" x)
-  	| Char x ->
-    		(if !escape_string
-     			then Printf.sprintf "\\\'%c\\\'" x
-     			else Printf.sprintf "\'%c\'" x)
-  	| Loc loc -> loc
-  	| Type t -> string_of_type t
-  	| LList ll ->
-    		(match ll with
-     		| [] -> "nil"
-     		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sl ll)))
-  	| CList cl ->
-    		(match cl with
-     		| [] -> "''"
-     		| cl -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map sl cl)))
-
 
 (** JSIL binary operators *)
 let string_of_binop (bop : jsil_binop) : string =
@@ -155,7 +72,7 @@ let string_of_unop (uop : jsil_unop) : string =
 let rec string_of_expression (e : jsil_expr) : string  =
   let se = string_of_expression in
   match e with
-  | Literal l -> string_of_literal l
+  | Literal l -> Literal.str l
   | Var v -> v
   	(* (e1 bop e2) *)
   | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
@@ -230,7 +147,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
   let sle = string_of_logic_expression in
   match e with
-  | LLit llit -> string_of_literal llit
+  | LLit llit -> Literal.str llit
   	| LNone -> "none"
   | LVar lvar -> lvar 
   	| ALoc aloc -> aloc 
@@ -292,12 +209,12 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
      		| LExists (lvars, a) -> Printf.sprintf "exists %s . %s" (String.concat ", " lvars) (sla a) *)
   		(* forall vars . a *)
   		| LForAll (lvars, a) -> Printf.sprintf "(forall %s . %s)" (String.concat ", "
-                                                               				(List.map (fun (x, t) -> Printf.sprintf "%s : %s" x (string_of_type t)) lvars)) (sla a)
+                                                               				(List.map (fun (x, t) -> Printf.sprintf "%s : %s" x (Type.str t)) lvars)) (sla a)
   		(* x(y1, ..., yn) *)
   		| LPred (name, params) -> Printf.sprintf "%s(%s)" name (String.concat ", " (List.map sle params))
   		(* types(e1:t1, ..., en:tn) *)
   		| LTypes type_list -> Printf.sprintf "types(%s)"
-                          			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (string_of_type t)) type_list))
+                          			(String.concat ", " (List.map (fun (e, t) -> Printf.sprintf "%s : %s" (sle e) (Type.str t)) type_list))
   		| LEmptyFields (obj, domain) ->
     			Printf.sprintf "empty_fields(%s : %s)" (sle obj) (sle domain)
   		(* e1 --e-- e2 *)
@@ -348,7 +265,7 @@ let rec string_of_lcmd (lcmd : jsil_logic_command) : string =
 (** JSIL logic predicates *)
 let rec string_of_predicate (predicate : jsil_logic_predicate) : string =
   	let sle = fun e -> string_of_logic_expression e in
-		let slp = fun (e, ot) -> (sle e) ^ (Option.map_default (fun t -> " : " ^ string_of_type t) "" ot) in
+		let slp = fun (e, ot) -> (sle e) ^ (Option.map_default (fun t -> " : " ^ Type.str t) "" ot) in
   	List.fold_left
     		(fun acc_str (id, assertion) ->
        			let id_str = match id with
@@ -722,57 +639,13 @@ let str_of_assertion_list (a_list : jsil_logic_assertion list) : string =
 let string_of_var_list (var_lst : string list) : string =
   	List.fold_left (fun ac v -> if (ac = "") then v else (ac ^ ", " ^ v)) "" var_lst
 
-(* Explicit prints with constructors *)
-
-(** Literals *)
-let rec full_string_of_literal lit  =
-  	let sl = full_string_of_literal in
-  match lit with
-  	| Undefined -> "Undefined"
-  	| Null -> "Null"
-  	| Empty -> "Empty"
-  	| Constant c -> string_of_constant c
-  	| Bool b ->
-    		(match b with
-     		| true -> "Bool true"
-     		| false -> "Bool false")
-  	| Num n -> "Num " ^ string_of_float n
-  	| String x -> Printf.sprintf "String \"%s\"" x
-  	| Loc loc -> "Loc " ^ loc
-  	| Type t -> "Type " ^ string_of_type t
-  	| LList ll ->
-    		(match ll with
-     		| [] -> "LList nil"
-     		| ll -> Printf.sprintf "LList [ %s ]" (String.concat ", " (List.map sl ll)))
-
-(** JSIL logical expressions *)
-let rec full_string_of_logic_expression e  =
-  let sle = fun e -> full_string_of_logic_expression e in
-  match e with
-  | LLit llit -> let s = (full_string_of_literal llit) in "(LLit (" ^ s ^ "))"
-  	| LNone -> "LNone"
-  | LVar lvar -> Printf.sprintf "(Lvar %s)" lvar
-  	| ALoc aloc -> Printf.sprintf "(Aloc %s)" aloc
-  	| PVar pvar -> Printf.sprintf "(Pvar %s)" pvar
-  	| LBinOp (e1, op, e2) -> Printf.sprintf "LBinOp (%s, %s, %s))" (sle e1) (string_of_binop op) (sle e2)
-  | LUnOp (op, e) -> Printf.sprintf "(LUnOp (%s, %s))" (string_of_unop op) (sle e)
-  | LTypeOf e -> Printf.sprintf "(LTypeOf (%s))" (sle e)
-  | LEList list ->
-    		(match list with
-     		| [] -> "LEList [ ]"
-     		| ll -> Printf.sprintf "LEList [ %s ]" (String.concat ", " (List.map sle ll)))
-  	| LLstNth (e1, e2) -> Printf.sprintf "(LLstNth (%s, %s))" (sle e1) (sle e2)
-  	(* s-nth(e1, e2) *)
-  	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
-
-
-let string_of_heap (h : jsil_lit Heap.t Heap.t) : string =
+let string_of_heap (h : Literal.t Heap.t Heap.t) : string =
   	Heap.fold
     		(fun loc obj printed_heap ->
        			  let printed_object =
          					(Heap.fold
             						(fun prop hval print_obj ->
-               							let printed_hval = string_of_literal hval in
+               							let printed_hval = Literal.str hval in
                							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
                							print_obj ^ printed_cell)
             						obj "") in
@@ -795,8 +668,8 @@ let string_of_substitution (substitution : substitution) : string =
 
 let string_of_store store =
   	Hashtbl.fold
-    		(fun (var : string) (v_val : jsil_lit) (ac : string) ->
-       			let v_val_str = string_of_literal v_val in
+    		(fun (var : string) (v_val : Literal.t) (ac : string) ->
+       			let v_val_str = Literal.str v_val in
        			let var_val_str = var ^ ": " ^ v_val_str  in
        			if (ac = "") then var_val_str else ac ^ "; " ^ var_val_str)
     		store
@@ -805,12 +678,12 @@ let string_of_store store =
 let string_of_heap (h : jsil_heap) =
 	Heap.fold
 		(fun loc (obj, metadata, extensibility) printed_heap ->
-			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (string_of_literal metadata) ^ "\n  Extensible : " ^ (if extensibility then "true" else "false") in
+			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (Literal.str metadata) ^ "\n  Extensible : " ^ (if extensibility then "true" else "false") in
 			let post_str = "]\n" in
 			  let printed_object =
 					(Heap.fold
 						(fun prop (permission, hval) print_obj ->
-							let printed_hval = string_of_literal hval in
+							let printed_hval = Literal.str hval in
 							let printed_cell = Printf.sprintf "(%s : %s) " prop printed_hval in
 							print_obj ^ printed_cell)
 						obj "") in

@@ -214,7 +214,7 @@ let make_empty_ass () =
 
 let make_create_function_object_call x_sc fun_id params =
 	let x_f = fresh_fun_var () in
-	let processed_params = List.map (fun p -> String p) params in
+	let processed_params = List.map (fun p -> Literal.String p) params in
 	let cmd = LCall (x_f, Literal (String createFunctionObjectName),
 		[ (Var x_sc); (Literal (String fun_id)); (Literal (String fun_id)); (Literal (LList processed_params)) ], None) in
 	x_f, cmd

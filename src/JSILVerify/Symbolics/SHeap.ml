@@ -67,12 +67,13 @@ let substitution (subst : substitution) (partial : bool) (heap : t) : t =
 	Heap.iter
 		(fun loc ((fv_list, domain), metadata, ext) ->
 			let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
-				try Hashtbl.find subst loc with _ -> 
+				let default () = 
 					if (partial) then (ALoc loc) else (
 						print_debug_petar (Printf.sprintf "SHeap.substitution: Location %s not in subst, creating a new one." loc);
 						let new_aloc = ALoc (fresh_aloc ()) in
 						extend_substitution subst [ loc ] [ new_aloc ];
-						new_aloc)) in 
+						new_aloc) in
+				Option.default (default()) (Hashtbl.find_opt subst loc)) in
 			let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
 				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 
 			let s_fv_list = SFVL.substitution subst partial fv_list in

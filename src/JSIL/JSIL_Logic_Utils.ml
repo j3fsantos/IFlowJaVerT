@@ -8,10 +8,10 @@ open JSIL_Syntax
 (****************************************************************)
 
 let rec literal_fold 
-	(f_ac    : jsil_lit -> 'b -> 'b -> 'a list -> 'a) 
-	(f_state : (jsil_lit -> 'b -> 'b) option)
+	(f_ac    : Literal.t -> 'b -> 'b -> 'a list -> 'a) 
+	(f_state : (Literal.t -> 'b -> 'b) option)
 	(state   : 'b) 
-	(lit     : jsil_lit) : 'a =
+	(lit     : Literal.t) : 'a =
 
 	let new_state = (Option.default (fun le x -> x) f_state) lit state in
 	let fold_lit  = literal_fold f_ac f_state new_state in
@@ -165,20 +165,20 @@ let rec assertion_fold
 (***************************************************************)
 
 (* Returns all the non-list literals that occur in --le-- *)
-let get_lexpr_non_list_lits (le : jsil_logic_expr) : jsil_lit list =
+let get_lexpr_non_list_lits (le : jsil_logic_expr) : Literal.t list =
 	let fe_ac le _ _ ac = match le with
 		| LLit lit -> lit :: (List.concat ac)
 		| _      -> List.concat ac in 
 
-	let flit_ac lit _ _ ac = match lit with 
+	let flit_ac (lit : Literal.t) _ _ ac = match lit with 
 		| LList lst -> List.concat ac 
 		| _        -> [ lit ] in 
 
-	let lits : jsil_lit list = logic_expression_fold fe_ac None None le in
+	let lits : Literal.t list = logic_expression_fold fe_ac None None le in
 	List.concat (List.map (literal_fold flit_ac None None) lits) 
 
 (* Returns all the non-list listerals that occur in --a-- *)
-let get_asrt_non_list_lits (a : jsil_logic_assertion) : jsil_lit list =	
+let get_asrt_non_list_lits (a : jsil_logic_assertion) : Literal.t list =	
 	let f_ac a _ _ ac = List.concat ac in
 	assertion_fold (Some get_lexpr_non_list_lits) f_ac None None a
 
@@ -216,7 +216,7 @@ let get_asrt_list_lexprs (a : jsil_logic_assertion) : jsil_logic_expr list =
 (* Get all the literal numbers and string occurring in --a-- *)
 let get_asrt_strings_and_numbers (a : jsil_logic_assertion) : (string list) * (float list) =
 	let lits    = get_asrt_non_list_lits a in
-	List.fold_left (fun (strings, numbers) lit -> 
+	List.fold_left (fun (strings, numbers) (lit : Literal.t) -> 
 		match lit with 
 		| Num n    -> (strings, n :: numbers)
 		| String s -> (s :: strings, numbers)
@@ -289,7 +289,7 @@ let rec get_asrt_alocs (a : jsil_logic_assertion) : SS.t =
 
 
 (* Get all the abstract locations in --a-- *)
-let rec get_asrt_types (a : jsil_logic_assertion) : (jsil_logic_expr * jsil_type) list =
+let rec get_asrt_types (a : jsil_logic_assertion) : (jsil_logic_expr * Type.t) list =
 	let f_ac a _ _ ac =  match a with 
 		| LTypes vts -> vts @ (List.concat ac)
 		| _          -> (List.concat ac) in 
@@ -402,11 +402,13 @@ let lexpr_substitution (subst : substitution) (partial : bool) (le : jsil_logic_
 
 	let find_in_subst (x : string) (le_x_old : jsil_logic_expr) 
 			(make_new_x : unit -> jsil_logic_expr) : jsil_logic_expr = 
-		try Hashtbl.find subst x with _ -> 
+		(match Hashtbl.find_opt subst x with 
+		| Some v -> v
+		| None -> 
 			if partial then le_x_old else (
 				let new_le_x = make_new_x () in 
 				Hashtbl.replace subst x new_le_x;
-				new_le_x) in  
+				new_le_x)) in  
 
 	let f_before le = match le with 
 		| LVar x    -> find_in_subst x le (fun () -> LVar (fresh_lvar ())), false 
@@ -557,12 +559,12 @@ match a with
 	| None -> Lazy.force default
 
 
-let rec type_lexpr gamma le =
+let rec type_lexpr gamma le : Type.t option * bool * jsil_logic_assertion list =
 
 	let f = type_lexpr gamma in
 	let result = (match le with
 	(* Literals are always typable *)
-  	| LLit lit -> (Some (evaluate_type_of lit), true, [])
+  	| LLit lit -> (Some (Literal.type_of lit), true, [])
 
 	(* Variables are typable if in gamma, otherwise no no *)
 	| LVar var
@@ -611,7 +613,7 @@ let rec type_lexpr gamma le =
 
  	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
-		let tt t1 t2 new_constraints =
+		let tt (t1 : Type.t) (t2 : Type.t) new_constraints =
 			if_some te
 				(fun t -> if (t = t1)
 					then (Some t2, true, (new_constraints @ constraints))
@@ -623,7 +625,7 @@ let rec type_lexpr gamma le =
   		| Not ->
   			(
   				(match te with
-  					| Some te -> JSIL_Print.string_of_type te
+  					| Some te -> Type.str te
   					| None    -> "");
   			tt BooleanType BooleanType [])
 			(* Number to Number    *)
@@ -661,8 +663,8 @@ let rec type_lexpr gamma le =
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		let all_types = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType; SetType ] in
-		let check_valid_type t types ret_type new_constraints =
+		let all_types : Type.t list = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType; SetType ] in
+		let check_valid_type t (types : Type.t list) (ret_type : Type.t) new_constraints =
 			let is_t_in_types = List.mem t types in
 			if (is_t_in_types)
 				then (Some ret_type, true, (new_constraints @ constraints))
@@ -726,7 +728,7 @@ let rec type_lexpr gamma le =
 
   | LSetUnion le
 	| LSetInter le ->
-			let result = try (
+			(try (
 				let constraints = List.fold_left
 				(fun ac e ->
 					let (te, ite, constraints_e) = f e in
@@ -734,10 +736,11 @@ let rec type_lexpr gamma le =
 					| Some SetType -> SA.union ac (SA.of_list constraints_e)
 					| _ -> raise (Failure "Oopsie!"))
 				) SA.empty le in
-				(Some SetType, true, (SA.elements constraints))) with | _ -> (None, false, []) in
-			result
+				(Some SetType, true, (SA.elements constraints))) 
+			with 
+			| _ -> (None, false, []))
 
-	| LNone    -> (Some NoneType, true, [])) in
+	| LNone -> (Some NoneType, true, [])) in
 
 	let (tp, b, _) = result in
 
@@ -747,7 +750,7 @@ let string_of_gamma (gamma : typing_environment) : string =
 	let gamma_str =
 		Hashtbl.fold
 			(fun var var_type ac ->
-				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (JSIL_Print.string_of_type var_type) in
+				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
 				if (ac = "")
 					then var_type_pair_str
 					else ac ^ "\n\t" ^ var_type_pair_str)
@@ -755,12 +758,12 @@ let string_of_gamma (gamma : typing_environment) : string =
 			"\t" in
 	gamma_str
 
-let rec reverse_type_lexpr_aux flag gamma new_gamma le le_type =
+let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
 	let f = reverse_type_lexpr_aux flag gamma new_gamma in
-	(* print_debug_petar (Printf.sprintf "Reverse typing %s in %s \nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (JSIL_Print.string_of_type le_type) flag); *) 
+	(* print_debug_petar (Printf.sprintf "Reverse typing %s in %s \nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (Type.str le_type) flag); *) 
 	(match le with
 	(* Literals are always typable *)
-	| LLit lit -> (evaluate_type_of lit = le_type)
+	| LLit lit -> (Literal.type_of lit = le_type)
 
 	(* Variables are reverse-typable if they are already typable *)
 	(* with the target type or if they are not typable           *)
@@ -852,14 +855,14 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le le_type =
 				else false
 
 		| _ ->
-			(* Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (JSIL_Print.string_of_type le_type); *)
+			(* Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (Type.str le_type); *)
 			raise (Failure "ERROR"))
 
 		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 NumberType)
 
 		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 NumberType)
 
-		| LNone    -> (NoneType = le_type))
+		| LNone    -> (le_type = NoneType))
 
 let reverse_type_lexpr flag gamma le le_type : typing_environment option =
 	let new_gamma : typing_environment = gamma_init () in
@@ -878,12 +881,12 @@ let safe_merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environme
 		(fun var v_type ->
 			(match (Hashtbl.mem gamma_l var) with
 			| false -> 
-					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (JSIL_Print.string_of_type v_type)); 
+					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (Type.str v_type)); 
 					Hashtbl.add gamma_l var v_type
 			| true -> let t = Hashtbl.find gamma_l var in
 					(match (t = v_type) with
 					| true -> ()
-					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (JSIL_Print.string_of_type v_type) (JSIL_Print.string_of_type t))); 
+					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (Type.str v_type) (Type.str t))); 
 					)
 			)
 		)
@@ -987,7 +990,7 @@ let rec infer_types_asrt gamma (a : jsil_logic_assertion) : unit =
 		(*
 		| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
     
-    | LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
+    | LTypes		    of (jsil_logic_expr * Type.t) list                      (** Typing assertion *)
     | LEmptyFields	    of jsil_logic_expr * jsil_logic_expr                       (** emptyFields assertion *)
     | LEq			    of jsil_logic_expr * jsil_logic_expr                       (** Expression equality *)
     | LStrLess	        of jsil_logic_expr * jsil_logic_expr                       (** Expression less-than for strings *)
@@ -1071,7 +1074,7 @@ let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
 	| StrNth (e1, e2)     -> LStrNth (f e1, f e2)
 
 
-let rec lift_lit_list_to_logical_expr (lit : jsil_lit) : jsil_logic_expr =
+let rec lift_lit_list_to_logical_expr (lit : Literal.t) : jsil_logic_expr =
 	let f = lift_lit_list_to_logical_expr in 
 	match lit with     
 	| LList lst -> LEList (List.map f lst)

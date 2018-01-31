@@ -4,78 +4,8 @@ open CCommon
 
 (** {2 Syntax of the JSIL language} *)
 
-(** {b JSIL Types}. Can be associated with JSIL literals ({!type:jsil_lit}),
-    JSIL expressions ({!type:jsil_expr}), and JSIL logic expressions
-    ({!type:jsil_logic_expr}). *)
-type jsil_type =
-	| UndefinedType (** Type of Undefined      *)
-	| NullType      (** Type of Null           *)
-	| EmptyType     (** Type of Empty          *)
-	| NoneType    (** Type of logical values *)
-	| BooleanType   (** Type of booleans       *)
-	| NumberType    (** Type of floats         *)
-	| StringType    (** Type of strings        *)
-	| CharType      (** Type of chars          *)
-	| ObjectType    (** Type of objects        *)
-	| ListType      (** Type of lists          *)
-	| TypeType      (** Type of types          *)
-	| SetType       (** Type of sets           *)
-	[@@deriving show]
-
-(** {b JSIL constants}. They are mostly inspired by those present in JavaScript's Math
-    and Date libraries. *)
-type jsil_constant =
-	| Min_float (** The smallest positive value *)
-	| Max_float (** The largest positive finite value *)
-	| Random    (** A random number between 0 and 1 *)
-	| E         (** {i e}, the base of natural logarithms *)
-	| Ln10      (** Natural logarithm of 10 *)
-	| Ln2       (** Natural logarithm of 2 *)
-	| Log2e     (** Base-2 logarithm of {i e} *)
-	| Log10e    (** Base-10 logarithm of {i e} *)
-	| Pi        (** The number pi *)
-	| Sqrt1_2   (** The square root of 1/2 *)
-	| Sqrt2     (** The square root of 2 *)
-	| UTCTime   (** Current UTC time *)
-	| LocalTime (** Current local time *)
-	[@@deriving show]
-
 (** {b JSIL variables}. JSIL variables are internally represented as strings. *)
 type jsil_var = string [@@deriving show]
-
-(** {b JSIL literals}. The literal values of the JSIL language. Most are standard, some
-    are inherited from JavaScript. *)
-type jsil_lit =
-	| Undefined                  (** The literal [undefined] *)
-	| Null                       (** The literal [null] *)
-	| Empty                      (** The literal [empty] *)
-	| Constant  of jsil_constant (** JSIL constants ({!type:jsil_constant}) *)
-	| Bool      of bool          (** JSIL booleans: [true] and [false] *)
-	| Num       of float         (** JSIL floats - double-precision 64-bit IEEE 754 *)
-	| String    of string        (** JSIL strings *)
-	| Char      of char          (** JSIL char *)
-	| Loc       of string        (** JSIL object locations *)
-	| Type      of jsil_type     (** JSIL types ({!type:jsil_type}) *)
-	| LList     of jsil_lit list (** Lists of JSIL literals *)
-	| CList     of jsil_lit list (** Lists of JSIL literals converted from String *)
-	[@@deriving show]
-
-(** Maps JSIL literal's to their JSIL types *)
-let evaluate_type_of lit =
-	match lit with
-	| Undefined    -> UndefinedType
-	| Null         -> NullType
-	| Empty        -> EmptyType
-	| Constant _   -> NumberType
-	| Bool _       -> BooleanType
-	| Num n        -> NumberType
-	| String _     -> StringType
-	| Char _       -> CharType
-	| Loc _        -> ObjectType
-	| Type _       -> TypeType
-	| LList _      -> ListType
-	(* TODO: Could this benefit from being something else? *)
-	| CList _      -> ListType
 
 (** {b JSIL unary operators}. JSIL features standard unary operators on numbers, booleans,
     lists, and strings, plus a variety of mathematical operators as well as a number of
@@ -162,7 +92,7 @@ type jsil_binop =
 
 (** {b JSIL expressions}. Literals, variables, unary and binary operators, lists. *)
 	type jsil_expr =
-	| Literal  of jsil_lit                           (** JSIL literals ({!type:jsil_lit}) *)
+	| Literal  of Literal.t                           (** JSIL literals ({!type:Literal.t}) *)
 	| Var      of jsil_var                           (** JSIL variables ({!type:jsil_var}) *)
 	| BinOp    of jsil_expr * jsil_binop * jsil_expr (** Binary operators ({!type:jsil_binop}) *)
 	| UnOp     of jsil_unop * jsil_expr              (** Unary operators ({!type:jsil_unop}) *)
@@ -228,7 +158,7 @@ type jsil_logic_var = string [@@deriving show]
 
 (** {b JSIL logic expressions}. *)
 type jsil_logic_expr =
-	| LLit     of jsil_lit                                       (** JSIL literals ({!type:jsil_lit}) *)
+	| LLit     of Literal.t                                      (** JSIL literals ({!type:Literal.t}) *)
 	| LVar     of jsil_logic_var                                 (** JSIL logic variables ({!type:jsil_logic_var}) *)
 	| ALoc     of string                                         (** Abstract locations *)
 	| PVar     of jsil_var                                       (** JSIL program variables *)
@@ -258,8 +188,8 @@ type jsil_logic_assertion =
 	| LMetaData    of jsil_logic_expr * jsil_logic_expr                                  (** MetaData *)
 	| LExtensible  of jsil_logic_expr * bool                                             (** Extensibility *)
 	| LPred			   of string * (jsil_logic_expr list)                                    (** Predicates *)
-	| LForAll      of (jsil_var * jsil_type) list * jsil_logic_assertion                 (** Forall *)
-	| LTypes       of (jsil_logic_expr * jsil_type) list                                 (** Typing assertion *)
+	| LForAll      of (jsil_var * Type.t) list * jsil_logic_assertion                    (** Forall *)
+	| LTypes       of (jsil_logic_expr * Type.t) list                                    (** Typing assertion *)
 	| LEmptyFields of jsil_logic_expr * jsil_logic_expr                                  (** emptyFields assertion *)
 	| LEq          of jsil_logic_expr * jsil_logic_expr                                  (** Expression equality *)
 	| LLess			   of jsil_logic_expr * jsil_logic_expr                                  (** Expression less-than for numbers *)
@@ -273,9 +203,9 @@ type jsil_logic_assertion =
 type jsil_logic_predicate = {
 	name        : string;                                        (** Name of the predicate  *)
 	num_params  : int;                                           (** Number of parameters   *)
-	params      : (jsil_logic_expr * jsil_type option) list;      (** Actual parameters      *)
-  definitions : ((string option) * jsil_logic_assertion) list;  (** Predicate definitions  *)
-  previously_normalised_pred : bool                             (** If the predicate has been previously normalised *)
+	params      : (jsil_logic_expr * Type.t option) list;        (** Actual parameters      *)
+  definitions : ((string option) * jsil_logic_assertion) list; (** Predicate definitions  *)
+  previously_normalised_pred : bool                            (** If the predicate has been previously normalised *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
@@ -451,8 +381,8 @@ module Heap = Hashtbl.Make(
 		let equal = (=)           (* use standard equality operator *)
 		let hash = Hashtbl.hash   (* and default hash function *)
 	end)
-
-type jsil_heap = (((permission * jsil_lit) Heap.t) * jsil_lit * bool) Heap.t
+ 
+type jsil_heap = (((permission * Literal.t) Heap.t) * Literal.t * bool) Heap.t
 
 
 (* creates a heap of the appropiate size *)
@@ -684,13 +614,13 @@ let extend_substitution (subst : substitution) (vars : string list) (les : jsil_
 (* Typing Environment                                  *)
 (*******************************************************)
 (*******************************************************)
-type typing_environment        = ((string, jsil_type) Hashtbl.t)
+type typing_environment        = ((string, Type.t) Hashtbl.t)
 
 (* functions to manipulate gamma *)
 let gamma_init () = Hashtbl.create small_tbl_size
 
 let gamma_get_type gamma var =
-	try Some (Hashtbl.find gamma var) with Not_found -> None
+	Hashtbl.find_opt gamma var
 
 let update_gamma (gamma : typing_environment) x te =
 	(match te with
@@ -750,22 +680,18 @@ let rec gamma_substitution gamma subst partial =
 	let new_gamma = Hashtbl.create 31 in
 	Hashtbl.iter
 		(fun var v_type ->
-			try
-			let new_var = Hashtbl.find subst var in
+			let new_var = Hashtbl.find_opt subst var in
 			(match new_var with
-			| LVar new_var -> Hashtbl.replace new_gamma new_var v_type
-			| _ ->
-				(if (partial) then
-					Hashtbl.add new_gamma var v_type))
-			with _ ->
-				(if (partial)
-					then	Hashtbl.add new_gamma var v_type
-					else (
+			| Some (LVar new_var) -> Hashtbl.replace new_gamma new_var v_type
+			| Some _ -> if partial then Hashtbl.add new_gamma var v_type
+			| None -> if partial
+					then Hashtbl.add new_gamma var v_type
+					else 
 						if (is_lvar_name var) then (
 							let new_lvar = fresh_lvar () in
 							Hashtbl.add subst var (LVar new_lvar);
 							Hashtbl.add new_gamma new_lvar v_type
-						))))
+						)))
 		gamma;
 	new_gamma
 
@@ -776,7 +702,7 @@ let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
 				then Hashtbl.add gamma_l var v_type)
 		gamma_r
 
-let get_vars_of_type (gamma : typing_environment) (jt : jsil_type) : string list =
+let get_vars_of_type (gamma : typing_environment) (jt : Type.t) : string list =
 	Hashtbl.fold
 		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars))
 		gamma

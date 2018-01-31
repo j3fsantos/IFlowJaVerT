@@ -195,7 +195,7 @@ let safe_symb_evaluate_expr
 		(store         : symbolic_store)
 		(gamma         : typing_environment) 
 		(pure_formulae : pure_formulae) 
-		(expr          : jsil_expr) : jsil_logic_expr * (jsil_type option) * bool =
+		(expr          : jsil_expr) : jsil_logic_expr * (Type.t option) * bool =
 	let nle = symb_evaluate_expr store gamma pure_formulae expr in
 	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in

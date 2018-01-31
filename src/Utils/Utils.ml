@@ -12,6 +12,8 @@ open List
 open BatResult
 open Option.Monad
 
+(** I DONT KNOW HOW USEFUL THIS IS *)
+
 let flat_map f l = flatten (BatList.map f l)
 
 (* This exception is raised when Gareth thinks something is impossible,

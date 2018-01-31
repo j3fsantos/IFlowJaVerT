@@ -272,6 +272,9 @@ let copy_and_clear_globals () =
 %nonassoc FLOAT
 
 (***** Types and entry points *****)
+%type <Type.t>     type_target
+%type <Constant.t> constant_target
+
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
 %type <JSIL_Syntax.jsil_logic_predicate list * JSIL_Syntax.jsil_spec list> pred_spec_target
@@ -282,7 +285,7 @@ let copy_and_clear_globals () =
 %type <JSLogic.js_spec> js_only_spec_target
 %type <JSLogic.js_logic_command list> js_logic_cmds_target
 
-%type<jsil_constant> constant_target
+
 
 %start main_target
 %start param_list_FC_target
@@ -1017,7 +1020,7 @@ bool_target:
 	| TRUE                      { true }
 	| FALSE                     { false }
 
-%inline binop_target:
+binop_target:
 	| EQUAL              { Equal }
 	| LESSTHAN           { LessThan }
 	| LESSTHANEQUAL      { LessThanEqual }
@@ -1045,7 +1048,7 @@ bool_target:
 	| SETSUB             { SetSub }
 ;
 
-%inline unop_target:
+unop_target:
 	(* Unary minus defined in (l)expr_target *)
 	| NOT         { Not }
 	| BITWISENOT  { BitwiseNot }
@@ -1092,7 +1095,7 @@ constant_target:
 	| LOCALTIME { LocalTime }
 ;
 
-%inline type_target:
+type_target:
 	| UNDEFTYPELIT { UndefinedType }
 	| NULLTYPELIT  { NullType }
 	| EMPTYTYPELIT { EmptyType }
@@ -1219,7 +1222,7 @@ js_program_variable_target:
 js_lexpr_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { (* Printf.printf "JS literal: %s" (JSIL_Print.string_of_literal lit false); *) JSLLit lit }
+	  { (* Printf.printf "JS literal: %s" (Literal.str lit false); *) JSLLit lit }
 (* None *)
 	| LNONE
 	  { JSLNone }

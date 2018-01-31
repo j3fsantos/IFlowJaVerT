@@ -357,8 +357,7 @@ let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_
 			tr_sc_var    = new_sc_var
 	}
 
-
-let string_of_js_error (heap : jsil_heap) err_val =
+let string_of_js_error (heap : jsil_heap) (err_val : Literal.t) =
 	match err_val with
 	| Loc loc ->
 		(* Get the error object in the heap *)
@@ -383,12 +382,12 @@ let string_of_js_error (heap : jsil_heap) err_val =
 								| Some (objproto, _, _) -> 
 										let eType = (try let _, result = Heap.find objproto "name" in result with | _ -> String "") in
 										let message = (try let _, result = Heap.find err_obj "message" in result with | _ -> String "") in
-											(JSIL_Print.string_of_literal eType) ^ " : " ^ (JSIL_Print.string_of_literal message)
+											(Literal.str eType) ^ " : " ^ (Literal.str message)
 								)
 						| _ -> raise (Failure "Prototype is not an object."))
 				)
 		| _ -> raise (Failure "Metadata is not an object."))
-	| _ -> "Error not an object location: " ^ JSIL_Print.string_of_literal err_val
+	| _ -> "Error not an object location: " ^ Literal.str err_val
 
 
 (********************************************)

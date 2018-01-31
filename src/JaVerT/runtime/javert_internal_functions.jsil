@@ -610,7 +610,7 @@ spec o__getOwnProperty (l, prop)
     [[ Cell_o (#l, #prop, none) * (ret == undefined) ]]
     normal;
 
-    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * types(#dx:List) ]]
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) ]]
     [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
     normal
 
@@ -628,4 +628,54 @@ proc o__getOwnProperty (l, prop) {
 with
 {
     ret: 	xret, rlab;
+};
+
+(* **********************
+   *** GETOWNPROPERTY ***
+   ********************** *)
+
+(*
+ *    Name: getOwnProperty 
+ * Purpose: Get own property of a (general) object
+ *
+ *   Specs:
+ *
+ * 01 - Non-string object, property not defined, return undefined
+ * 02 - Non-string object, property defined, return property descriptor
+ *
+ *)
+
+spec getOwnProperty (l, prop)
+
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, none) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+    [[ Cell_o (#l, #prop, none) * 
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == undefined) ]]
+    normal;
+
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+    [[ Cell_o (#l, #prop, #dx) * 
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == #dx) ]]
+    normal
+
+proc getOwnProperty (l, prop) {
+
+			m := metadata(l);
+			class := [m, "@class"];
+
+			goto [class = "String"] sgop ogop;
+
+	sgop:	xret := "s__getOwnProperty" (l, prop) with elab;
+			goto rlab;
+
+	ogop:	xret := "o__getOwnProperty" (l, prop) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 };

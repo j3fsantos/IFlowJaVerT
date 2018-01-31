@@ -459,7 +459,7 @@ let encode_string str =
 		str_counter := !str_counter + 1;
 		z3_code
 
-let encode_type t =
+let encode_type (t : Type.t) =
 	try
 		match t with
 		| UndefinedType -> Expr.mk_app ctx type_operations.undefined_type_constructor []
@@ -475,7 +475,7 @@ let encode_type t =
 		| TypeType      -> Expr.mk_app ctx type_operations.type_type_constructor      []
 		| SetType       -> Expr.mk_app ctx type_operations.set_type_constructor       []
 	with _ ->
-		raise (Failure (Printf.sprintf "DEATH: encode_type with arg: %s" (JSIL_Print.string_of_type t)))
+		raise (Failure (Printf.sprintf "DEATH: encode_type with arg: %s" (Type.str t)))
 
 
 let typeof_expression x =
@@ -521,7 +521,7 @@ let typeof_expression x =
  	loop guards results
 
 
-let rec encode_lit lit =
+let rec encode_lit (lit : Literal.t) =
 	let mk_singleton_elem ele = Expr.mk_app ctx extended_literal_operations.singular_constructor [ ele ] in
 
 	try
@@ -564,7 +564,7 @@ let rec encode_lit lit =
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ arg_list ])
 
 	with (Failure msg) ->
-		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (JSIL_Print.string_of_literal lit) msg))
+		raise (Failure (Printf.sprintf "DEATH: encode_lit %s. %s" (Literal.str lit) msg))
 
 
 (** Encode JSIL binary operators *)
@@ -761,7 +761,7 @@ let encode_quantifier quantifier_type ctx quantified_vars var_sorts assertion =
 		quantified_assertion)
 	else assertion
 
-let make_recognizer_assertion x t_x =
+let make_recognizer_assertion x (t_x : Type.t) =
 	let le_x = Expr.mk_const ctx (mk_string_symb x) extended_literal_sort in
 
 	let non_set_type_recognizer f =

@@ -586,12 +586,12 @@ let unify_gammas
 					| Some le_type ->
 						if (le_type <> x_type) then (
 							print_debug (Printf.sprintf "unify_gamma. pat gamma: %s. gamma: %s. pat_type: %s. type: %s"
-								x (JSIL_Print.string_of_logic_expression le_x) (JSIL_Print.string_of_type x_type) (JSIL_Print.string_of_type le_type));
+								x (JSIL_Print.string_of_logic_expression le_x) (Type.str x_type) (Type.str le_type));
 							false 
 						) else true 
 					| None ->
 						print_debug (Printf.sprintf "failed unify_gamma. pat gamma: %s. gamma: %s. pat_type: %s. type: None"
-							x (JSIL_Print.string_of_logic_expression le_x) (JSIL_Print.string_of_type x_type));
+							x (JSIL_Print.string_of_logic_expression le_x) (Type.str x_type));
 						false)
 				with Not_found -> true)) pat_gamma true in 
 	
@@ -1127,7 +1127,7 @@ let unfold_predicate_definition
 	List.iter2 (fun x (tau, pat_tau) -> match tau, pat_tau with 
 		| Some t1, Some t2 -> if (not (t1 = t2)) then (
 			print_debug (Printf.sprintf "unfold_predicate_definition. mismatching types for pvar %s. pat_type: %s. type: %s" 
-				x (JSIL_Print.string_of_type t2) (JSIL_Print.string_of_type t1)); 
+				x (Type.str t2) (Type.str t1)); 
 			raise (UnificationFailure ""))
 		| _                -> ()) dom_store (List.combine store_types pat_store_types); 
 

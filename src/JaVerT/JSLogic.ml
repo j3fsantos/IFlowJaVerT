@@ -56,7 +56,7 @@ let o_psi (vis_tbl : vis_tbl_type) (fid1 : string) (fid2 : string) =
 
 
 type js_logic_expr =
-	| JSLLit				of jsil_lit
+	| JSLLit				of Literal.t
 	| JSLNone
 	| JSLVar				of string
 	| JSALoc				of string
@@ -99,8 +99,8 @@ type js_logic_assertion =
 	| JSLExtensible  of js_logic_expr * bool
 	| JSLEmp
 	| JSLPred				of string  * (js_logic_expr list)
-	| JSLForAll             of (jsil_var * jsil_type) list * js_logic_assertion
-	| JSLTypes  		    of (string * jsil_type) list
+	| JSLForAll             of (jsil_var * Type.t) list * js_logic_assertion
+	| JSLTypes  		    of (string * Type.t) list
 	| JSLScope      		of string  * js_logic_expr
 	| JSLVarSChain          of string * string * js_logic_expr * js_logic_expr
 	| JSOSChains            of string * js_logic_expr * string * js_logic_expr
@@ -125,7 +125,7 @@ type js_logic_command =
 type js_logic_predicate = {
 	js_name        : string;
 	js_num_params  : int;
-	js_params      : (js_logic_expr * jsil_type option) list;
+	js_params      : (js_logic_expr * Type.t option) list;
 	js_definitions : ((string option) * js_logic_assertion) list;
 }
 

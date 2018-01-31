@@ -27,7 +27,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	let result = match le with
 	| LLit _
 	| LNone -> le
-	| LVar lvar -> (try Hashtbl.find subst lvar with _ -> LVar lvar)
+	| LVar lvar -> Option.default (LVar lvar) (Hashtbl.find_opt subst lvar)
 	| ALoc aloc -> ALoc aloc (* raise (Failure "Unsupported expression during normalization: ALoc") Why not ALoc aloc? *)
 	| PVar pvar ->
 		(try Hashtbl.find store pvar with
@@ -57,7 +57,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 	| LTypeOf (le1) ->
 		let nle1 = f le1 in
 		(match nle1 with
-			| LLit llit -> LLit (Type (evaluate_type_of llit))
+			| LLit llit -> LLit (Type (Literal.type_of llit))
 			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 			| LVar lvar ->
 				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
@@ -73,7 +73,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
 						let lit_n = (try List.nth list (int_of_float n) with _ ->
 							raise (Failure "List index out of bounds")) in
-						LLit (Type (evaluate_type_of lit_n))
+						LLit (Type (Literal.type_of lit_n))
 					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
 					| LEList list, LLit (Num n) when (Utils.is_int n) ->
 						let le_n = (try List.nth list (int_of_float n) with _ ->
@@ -156,7 +156,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 type unfolded_predicate = {
 	name                         : string;
 	num_params                   : int;
-	params                       : (jsil_var * jsil_type option) list;
+	params                       : (jsil_var * Type.t option) list;
 	definitions                  : ((string option) * jsil_logic_assertion) list;
 	is_recursive                 : bool;
 	previously_normalised_u_pred : bool
@@ -956,7 +956,7 @@ let rec normalise_cell_assertions
 	let fe = normalise_logic_expression store gamma subst in
 
 	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (perm : permission) (le_v : jsil_logic_expr) : unit = 
-		let (field_val_pairs, default_val), metadata, ext = (try Heap.find heap loc with _ -> (([], None), LLit Null, false)) in
+		let (field_val_pairs, default_val), metadata, ext = Option.default (([], None), LLit Null, false) (Heap.find_opt heap loc) in
 		Heap.replace heap loc ((((fe le_f, (perm, fe le_v)) :: field_val_pairs), default_val), fe metadata, ext) in 
 
 	match a with
@@ -1000,15 +1000,15 @@ let rec normalise_type_assertions
 		(gamma : typing_environment)
 		(a     : jsil_logic_assertion) : bool =
 
-	let type_check_lexpr (le : jsil_logic_expr) (t : jsil_type) : bool = 
+	let type_check_lexpr (le : jsil_logic_expr) (t : Type.t) : bool = 
 		let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 		(match le_type with
 			| Some le_type ->
 				(if (le_type = t) then true else (
 					print_debug (Printf.sprintf "Only vars or lvars in the typing environment. PUTTING: %s with type %s when its type is %s"
 								(JSIL_Print.string_of_logic_expression le)
-								(JSIL_Print.string_of_type t)
-								(JSIL_Print.string_of_type le_type)); 
+								(Type.str t)
+								(Type.str le_type)); 
 					false))
 			| None ->
 				let new_gamma = JSIL_Logic_Utils.reverse_type_lexpr false gamma le t in
@@ -1016,7 +1016,7 @@ let rec normalise_type_assertions
 					| None ->
 						print_debug (Printf.sprintf "Only vars or lvars in the typing environment. PUTTING: %s with type %s when it CANNOT be typed or reverse-typed"
 									(JSIL_Print.string_of_logic_expression le)
-									(JSIL_Print.string_of_type t)); 
+									(Type.str t)); 
 						false 
 					| Some new_gamma ->	extend_gamma gamma new_gamma; true)) in 
 
@@ -1027,7 +1027,7 @@ let rec normalise_type_assertions
 		List.fold_left 
 			(fun ac (x, t) -> if (not ac) then ac else (
 			match x with
-				| LLit lit -> (evaluate_type_of lit) = t 
+				| LLit lit -> (Literal.type_of lit) = t 
 
 				| LVar x ->
 					(* if x is a lvar, we simply add (x, t) to gamma *) 
@@ -1321,7 +1321,7 @@ let check_pvar_types (store : symbolic_store) (gamma : typing_environment) : boo
 			(match le with
 			 | LNone -> placeholder pvar le NoneType
 			 | ALoc _ -> placeholder pvar le ObjectType
-			 | LLit lit -> placeholder pvar le (evaluate_type_of lit)
+			 | LLit lit -> placeholder pvar le (Literal.type_of lit)
 			 | _ -> true
 			)
 		) store true
@@ -1603,6 +1603,7 @@ let create_unification_plan
 	(** Step 6 -- return *)
 	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
 	let unification_plan_lst = List.rev unification_plan_lst in 
+	print_debug_petar (Printf.sprintf "Heap length is %d" (Heap.length heap));
 	if ((Heap.length heap) = 0) then (
 		(* We found all the locations in the symb_state - we are fine! *)
 		Queue.clear unification_plan;
@@ -1613,6 +1614,7 @@ let create_unification_plan
 			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
 			(SHeap.str heap)
 			(Symbolic_State_Print.string_of_symb_state symb_state) in 
+		print_debug msg;
 		raise (Failure msg)) 
 
 

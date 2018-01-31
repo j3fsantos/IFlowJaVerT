@@ -1,21 +1,32 @@
-(* Exceptions *)
+open Stdio.Out_channel
+
+(**************
+ * Exceptions *
+ **************)
+
 exception Syntax_error of string
 
-(* Hashtbl sizes *)
+(**************
+ * Hashtables *
+ **************)
+
 let small_tbl_size  = 31
 let medium_tbl_size = 101 
 let big_tbl_size    = 1021
 
-(* Debugging *)
-let output_file               = open_out "normalOutput.txt"
-let output_file_debug         = open_out "debugOutput.txt"
-let output_file_normalisation = open_out "normalisationOutput.txt"
-let output_file_njsil         = open_out "normalisedSpecsPreds.njsil"
+(*************
+ * Debugging *
+ *************)
+
+let output_file               = create "normalOutput.txt"
+let output_file_debug         = create "debugOutput.txt"
+let output_file_normalisation = create "normalisationOutput.txt"
+let output_file_njsil         = create "normalisedSpecsPreds.njsil"
 
 let close_output_files () =
-	close_out output_file;
-  close_out output_file_debug;
-  close_out output_file_normalisation
+	close output_file;
+  close output_file_debug;
+  close output_file_normalisation
 
 let im_petar    = ref true
 let newencoding = ref false
@@ -29,13 +40,37 @@ let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n")
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
 
-(* Timing *)
+(**********
+ * Timing *
+ **********)
+
 let print_time msg =
-	let time = Sys.time () in
+	let time = Caml.Sys.time () in
 	print_normal (msg ^ (Printf.sprintf " Time: %f" time))
 
 let print_time_debug msg =
   if (!im_petar) then
-		let time = Sys.time () in
+		let time = Caml.Sys.time () in
 			print_debug (msg ^ (Printf.sprintf " Time: %f" time))
 		else ()
+
+(************
+ * Printing *
+ ************)
+
+let escape_string   = ref false 
+let specs_on        = ref true
+let line_numbers_on = ref false
+
+let rec tabs_to_str (i : int) : string  =
+	if i = 0 then "" else "\t" ^ (tabs_to_str (i - 1))
+
+(** Auxiliary function for printing floating-point numbers *)
+let string_of_float (x : float) : string =
+  if (x == nan)
+  		then "nan"
+  		else if (x == neg_infinity)
+  			then "-inf"
+  			else if (x == infinity)
+  				then "inf"
+  				else Batteries.Float.to_string x
