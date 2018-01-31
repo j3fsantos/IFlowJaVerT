@@ -43,7 +43,7 @@ let put (heap : t) (loc : string) (fv_list : SFVL.t) (dom : jsil_logic_expr opti
 (** Symbolic heap put heap (loc, (perm, field)) is assigned to value.
     The domain remains unchanged. 
 		TODO: FIX - duplicate fields? *) 
-let put_fv_pair_simple (heap : t) (loc : string) (perm : permission) (field : jsil_logic_expr) (value : jsil_logic_expr) =
+let put_fv_pair_simple (heap : t) (loc : string) (perm : Permission.t) (field : jsil_logic_expr) (value : jsil_logic_expr) =
 	let ((fv_list, domain), metadata, ext) = try Heap.find heap loc with _ -> (([], None), LLit Null, true) in
 	Heap.replace heap loc ((((field, (perm, value)) :: fv_list), domain), metadata, ext)
 

@@ -94,7 +94,7 @@ type js_logic_assertion =
 	| JSLLessEq	   			of js_logic_expr * js_logic_expr
 	| JSLStrLess    		of js_logic_expr * js_logic_expr
 	| JSLStar				of js_logic_assertion * js_logic_assertion
-	| JSLPointsTo			of js_logic_expr * js_logic_expr * (permission * js_logic_expr)
+	| JSLPointsTo			of js_logic_expr * js_logic_expr * (Permission.t * js_logic_expr)
 	| JSLMetaData    of js_logic_expr * js_logic_expr
 	| JSLExtensible  of js_logic_expr * bool
 	| JSLEmp

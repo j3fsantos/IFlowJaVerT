@@ -141,8 +141,8 @@ let copy_object heap loc fields =
 
 (* Default objects - create two objects - the "real" one and the metadata one *)
 let create_default_object proto cls ext =
-	let obj : (permission * Literal.t) Heap.t = Heap.create 1021 in
-	let mtd : (permission * Literal.t) Heap.t = Heap.create 1021 in
+	let obj : (Permission.t * Literal.t) Heap.t = Heap.create 1021 in
+	let mtd : (Permission.t * Literal.t) Heap.t = Heap.create 1021 in
 		Heap.add mtd "@proto"      (Readable, Loc proto);
 		Heap.add mtd "@class"      (Readable, String cls);
 		Heap.add mtd "@extensible" (Mutable,  Bool ext);
@@ -179,10 +179,10 @@ let create_anonymous_function_object (heap : jsil_heap) call construct params =
 			Heap.add obj       "prototype"   (Deletable, LList [String "d"; Loc lproto; Bool true; Bool false; Bool false]);
 
 			(* Add to the heap *)
-			Heap.add heap lproto    (proto_obj, Loc lprotomtd, true);
-			Heap.add heap lprotomtd (proto_mtd, Null,          true);
-			Heap.add heap lobj      (obj, Loc lmtd, true);
-			Heap.add heap lmtd      (mtd, Null,     true);
+			Heap.add heap lproto    (proto_obj, Loc lprotomtd, Extensible);
+			Heap.add heap lprotomtd (proto_mtd, Null,          Extensible);
+			Heap.add heap lobj      (obj, Loc lmtd, Extensible);
+			Heap.add heap lmtd      (mtd, Null,     Extensible);
 
 			lobj
 
@@ -303,29 +303,30 @@ let unary_bin_thing_bool (lit1 : Literal.t) (lit2 : Literal.t) (f : float -> flo
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (Literal.str lit1) (Literal.str lit2)))) in
 	Bool (f num1 num2)
 
-let rec evaluate_binop op e1 e2 store : Literal.t =
+let rec evaluate_binop store op e1 e2 : Literal.t =
+	let ee = evaluate_expr store in
 	(match op with
 	| And ->
-        let lit1 = evaluate_expr e1 store in
+        let lit1 = ee e1 in
         (match lit1 with
         | Bool false -> Bool false
         | Bool true ->
-            (match evaluate_expr e2 store with
+            (match ee e2 with
 	        | Bool b2 -> Bool b2
             | _ ->  raise (Failure "Non-boolean argument to And"))
         | _ -> raise (Failure "Non-boolean argument to And"))
     | Or ->
-        let lit1 = evaluate_expr e1 store in
+        let lit1 = ee e1 in
         (match lit1 with
         | Bool true -> Bool true
         | Bool false ->
-            (match evaluate_expr e2 store with
+            (match ee e2 with
 	        | Bool b2 -> Bool b2
             | _ ->  raise (Failure "Non-boolean argument to Or"))
         | _ -> raise (Failure "Non-boolean argument to Or"))
 	| _ ->
-    let lit1 = evaluate_expr e1 store in
-    let lit2 = evaluate_expr e2 store in
+    let lit1 = ee e1 in
+    let lit2 = ee e2 in
 	match op with
 	| Equal ->
 		(match lit1, lit2 with
@@ -376,7 +377,8 @@ let rec evaluate_binop op e1 e2 store : Literal.t =
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (Literal.str lit1) (Literal.str lit2))))
     | _ -> Printf.printf "Unsupported binary operator: %s\n" (JSIL_Print.string_of_binop op); exit 1)
 and
-evaluate_expr (e : jsil_expr) store : Literal.t =
+evaluate_expr store (e : jsil_expr) : Literal.t =
+	let ee = evaluate_expr store in
 	match e with
 	| Literal l ->
 		(match l with
@@ -393,29 +395,29 @@ evaluate_expr (e : jsil_expr) store : Literal.t =
 		| Some v -> v)
 
 	| BinOp (e1, bop, e2) ->
-		evaluate_binop bop e1 e2 store
+		evaluate_binop store bop e1 e2
 
 	| UnOp (unop, e) ->
-		let v = evaluate_expr e store in
+		let v = ee e  in
 		evaluate_unop unop v
 
 	| TypeOf e ->
-		let v = evaluate_expr e store in
+		let v = ee e in
 		Type (Literal.type_of v)
 
 	| EList ll ->
 		(match ll with
 		| [] -> LList []
 		| e :: ll ->
-			let ve = evaluate_expr e store in
-			let vll = evaluate_expr (EList ll) store in
+			let ve = ee e in
+			let vll = ee (EList ll) in
 			match vll with
 			| LList vll -> LList (ve :: vll)
 			| _ -> raise (Failure "List evaluation error"))
 
 	| LstNth (e1, e2) ->
-		let v = evaluate_expr e1 store in
-		let n = evaluate_expr e2 store in
+		let v = ee e1 in
+		let n = ee e2 in
 		(match v, n with
 		| LList list, Num n when (Utils.is_int n) ->
 				List.nth list (int_of_float n)
@@ -423,8 +425,8 @@ evaluate_expr (e : jsil_expr) store : Literal.t =
 		| _, _ -> raise (Failure (Printf.sprintf "Incorrect argument to LstNth: %s, %s" (Literal.str v) (Literal.str n))))
 
 	| StrNth (e1, e2) ->
-		let v = evaluate_expr e1 store in
-		let n = evaluate_expr e2 store in
+		let v = ee e1 in
+		let n = ee e2 in
 		(match v, n with
 		| String s, Num n when (Utils.is_int n) ->
 				String (String.make 1 (String.get s (int_of_float n)))
@@ -436,37 +438,33 @@ evaluate_expr (e : jsil_expr) store : Literal.t =
 
 
 
-let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
+let rec evaluate_bcmd store (heap : jsil_heap) bcmd : Literal.t =
 	
-	let string_of_op = Option.map_default JSIL_Print.string_of_permission "" in 
+	let ee = evaluate_expr store in
 
 	match bcmd with
 	| Skip -> Empty
 
 	| Assignment (x, e) ->
-		let v_e = evaluate_expr e store in
+		let v_e = ee e in
 		if (!verbose) then Printf.printf "Assignment: %s := %s\n" x (Literal.str v_e);
 		Hashtbl.replace store x v_e;
 		v_e
 
 	| New (x, metadata) ->
 		let new_loc      = fresh_loc () in
-		let metadata_val : Literal.t = 
-			(match metadata with 
-			| None          -> Null 
-			| Some metadata -> evaluate_expr metadata store) in
-		
+		let metadata_val : MetaData.t = Option.map_default (evaluate_expr store) Null metadata in		
 		let obj = Heap.create 1021 in
-		Heap.add heap new_loc (obj, metadata_val, true);
+		Heap.add heap new_loc (obj, metadata_val, Extensible);
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 
 	| Lookup (x, e1, e2) ->
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in
+		let v_e1 = ee e1 in
+		let v_e2 = ee e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let (obj : (permission * Literal.t) Heap.t), _, _ = (try Heap.find heap l with
+			let (obj : (Permission.t * Literal.t) Heap.t), _, _ = (try Heap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (Literal.str v_e1)))) in
 			let _, v = (try Heap.find obj f with
 				| _ -> raise (Failure (Printf.sprintf "Looking up inexistent field: [%s, %s]" (Literal.str v_e1) (Literal.str v_e2)))) in
@@ -477,9 +475,9 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal field inspection: [%s, %s]" (Literal.str v_e1) (Literal.str v_e2))))
 
 	| Mutation (e1, e2, e3, op) ->
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in
-		let v_e3 = evaluate_expr e3 store in
+		let v_e1 = ee e1 in
+		let v_e2 = ee e2 in
+		let v_e3 = ee e3 in
 
 		let str_of_mutacao : string = JSIL_Print.string_of_bcmd None (Mutation (Literal v_e1, Literal v_e2, Literal v_e3, op)) in
 		let error_msg      = "Illegal Mutation: " ^ str_of_mutacao in
@@ -499,26 +497,26 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 					| _                     -> raise (Failure error_msg))
 				) else (
 					match ext, op with 
-					| false, _     -> raise (Failure error_msg)
-					| true, Some p -> Heap.replace obj f (p, v_e3)
-					| true, None   -> Heap.replace obj f (Deletable, v_e3)
+					| NonExtensible, _   -> raise (Failure error_msg)
+					| Extensible, Some p -> Heap.replace obj f (p, v_e3)
+					| Extensible, None   -> Heap.replace obj f (Deletable, v_e3)
 				);
 				if (!verbose) then Printf.printf "Mutation: %s\n" str_of_mutacao;
 				v_e3
 			else
 				let obj = Heap.create 1021 in
-				Heap.add heap l (obj, Null, true);
+				Heap.add heap l (obj, Null, Extensible);
 				Heap.replace obj f (Deletable, v_e3);
 				(* CAREFUL ABOUT PERMISSIONS - ASSIGNING STH MUTABLE TO BE DELETABLE? NOPE! PERMISSIONS INVARIANT! *)
 				if (!verbose) then Printf.printf "Mutation: [%s, %s] = <%s>%s \n" 
 						(Literal.str v_e1)(Literal.str v_e2) 
-						(string_of_op op) (Literal.str v_e3);
+						(Permission.ostr op) (Literal.str v_e3);
 				v_e3
 		| _, _ ->  raise (Failure (Printf.sprintf "Illegal mutation: [%s, %s]" (Literal.str v_e1) (Literal.str v_e2))))
 		
 	| Delete (e1, e2) ->
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in
+		let v_e1 = ee e1 in
+		let v_e2 = ee e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
 			(match (Heap.mem heap l) with
@@ -538,7 +536,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 		| _, _ -> raise (Failure "Illegal field deletion"))
 
 	| DeleteObj e1 ->
-		let v_e1 = evaluate_expr e1 store in
+		let v_e1 = ee e1 in
 		(match v_e1 with
 		| Loc l ->
 		  (match (Heap.mem heap l) with
@@ -547,8 +545,8 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 		| _ -> raise (Failure (Printf.sprintf "Attempting to delete something that's not an object: %s" (Literal.str v_e1))))
 
 	| HasField (x, e1, e2) ->
-		let v_e1 = evaluate_expr e1 store in
-		let v_e2 = evaluate_expr e2 store in
+		let v_e1 = ee e1 in
+		let v_e2 = ee e2 in
 		let pv_e1 = Literal.str v_e1 in
 		let pv_e2 = Literal.str v_e2 in
 		(match v_e1, v_e2 with
@@ -562,7 +560,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 		| _, _ -> raise (Failure (Printf.sprintf "Illegal Field Check: [%s, %s]" pv_e1 pv_e2)))
 
 	| GetFields (x, e) ->
-		let v_e = evaluate_expr e store in
+		let v_e = ee e in
 		(match v_e with
 		| Loc l ->
 			let obj, _, _ = (try Heap.find heap l with
@@ -592,7 +590,7 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 			v
 			
 	| MetaData (x, e) ->
-		let v_e = evaluate_expr e store in
+		let v_e = ee e in
 		(match v_e with
 		| Loc l ->
 				(match (Heap.mem heap l) with
@@ -600,11 +598,11 @@ let rec evaluate_bcmd bcmd (heap : jsil_heap) store : Literal.t =
 						(* Generate empty object with metadata null as metadata *) 
 						let m = Heap.create 1021 in
 						let lm = fresh_loc () in
-						Heap.replace heap lm (m, Null, true);
+						Heap.replace heap lm (m, Null, Extensible);
 						
 						(* Generate new object in the heap *)
 						let o = Heap.create 1021 in
-						Heap.replace heap l (o, Loc lm, true);
+						Heap.replace heap l (o, Loc lm, Extensible);
 						Hashtbl.replace store x (Loc lm);
 						Loc lm
 						
@@ -653,12 +651,14 @@ let rec evaluate_cmd
 			(heap : jsil_heap) 
 			store 
 			cur_cmd prev_cmd cc_tbl vis_tbl : jsil_return_flag * Literal.t =
+				
+	let ee = evaluate_expr store in
 
 	let execute_function_constructor proc x e_args j = (
 			Printf.printf "\nFunction call or constructor encountered.\n"; 
 
 			let len = List.length e_args in
-			let args n = (evaluate_expr (List.nth e_args n) store) in
+			let args n = ee (List.nth e_args n) in
 			Printf.printf "Arguments: ";
 			for i = 0 to (len - 1) do
 				Printf.printf "(%d : %s) " i (Literal.str (args i));
@@ -666,7 +666,7 @@ let rec evaluate_cmd
 			Printf.printf "\n"; 
 
 			(* Get the syntax error object *)
-			let se = (evaluate_expr (Var (JS2JSIL_Constants.var_se)) store) in
+			let se = ee (Var JS2JSIL_Constants.var_se) in
 
 			let error = ref false in
 			let propagate = ref false in
@@ -699,7 +699,7 @@ let rec evaluate_cmd
 				(* Only one argument, it is the function body *)
 				if (argCount = 1) then
 				let bd = List.hd e_args in
-					let ebd = evaluate_expr bd store in
+					let ebd = ee bd in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
 						if (!verbose) then
@@ -714,7 +714,7 @@ let rec evaluate_cmd
 				else
 					(* Process the first argument *)
 			  	let firstArg = List.hd e_args in
-					let evalFirstArg = evaluate_expr firstArg store in
+					let evalFirstArg = ee firstArg in
 					let new_store = init_store ["v"] [evalFirstArg] in
 					if (!verbose) then
 						begin
@@ -730,7 +730,7 @@ let rec evaluate_cmd
 					(* Process the remaining parameters *)
 					for i = 1 to (argCount - 2) do
 						let arg = List.nth e_args i in
-						let evalArg = evaluate_expr arg store in
+						let evalArg = ee arg in
 					  let new_store = init_store ["v"] [evalArg] in
 						if (!verbose) then
 						  begin
@@ -746,7 +746,7 @@ let rec evaluate_cmd
 					begin
 					(* Process the body *)
 					let bd = List.nth e_args (argCount - 1) in
-					let ebd = evaluate_expr bd store in
+					let ebd = ee bd in
   					(* Do the "toString"! *)
   					let new_store = init_store ["v"] [ebd] in
 						if (!verbose) then
@@ -784,7 +784,7 @@ let rec evaluate_cmd
     			Printf.printf "Parsed parameters: %s\n" string_of_parsed_params;
 
   				(* Parsing the body as a FunctionBody *)
-  				let e_body = (evaluate_expr (Literal (String !body)) store) in
+  				let e_body = ee (Literal (String !body)) in
   				(match e_body with
   				| String code ->
   					let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
@@ -822,13 +822,13 @@ let rec evaluate_cmd
 			end) in
 
 	let execute_procedure_body proc x e e_args j = (
-		let call_proc_name_val = evaluate_expr e store in
+		let call_proc_name_val = ee e in
 		let call_proc_name = (match call_proc_name_val with
 			| String call_proc_name ->
 				if (!verbose) then Printf.printf "\nExecuting procedure %s\n" call_proc_name;
 				call_proc_name
 			| _ -> raise (Failure (Printf.sprintf "Erm, no. Procedures can't be called %s." (Literal.str call_proc_name_val)))) in
-		let arg_vals = List.map (fun e_arg -> evaluate_expr e_arg store) e_args in
+		let arg_vals = List.map (fun e_arg -> ee e_arg) e_args in
 		let call_proc = try Hashtbl.find prog call_proc_name with
 			| _ -> raise (Failure (Printf.sprintf "CALL: The procedure %s you're trying to call doesn't exist." call_proc_name)) in
 		let new_store = init_store call_proc.proc_params arg_vals in
@@ -836,9 +836,9 @@ let rec evaluate_cmd
 		(* WHAT THE FUCK IS HAPPENING HERE AND WHY? *)
 		if (List.length arg_vals = 0) || (List.nth arg_vals 0 <> String "args") then
 		begin
-			let args_obj : (permission * Literal.t) Heap.t = Heap.create 1 in
+			let args_obj : (Permission.t * Literal.t) Heap.t = Heap.create 1 in
 				Heap.replace args_obj largvals (Readable, LList arg_vals);
-				Heap.replace heap larguments (args_obj, Null, false);
+				Heap.replace heap larguments (args_obj, Null, NonExtensible);
 		end;
 
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
@@ -861,14 +861,14 @@ let rec evaluate_cmd
 	let metadata, cmd = cmd in
 	match cmd with
 	| Basic bcmd ->
-		let _ = evaluate_bcmd bcmd heap store in
+		let _ = evaluate_bcmd store heap bcmd in
 	  evaluate_next_command prog proc which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl
 
 	| Goto i ->
 		evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 
 	| GuardedGoto (e, i, j) ->
-		let v_e = evaluate_expr e store in
+		let v_e = ee e in
 		(match v_e with
 		| Bool true -> evaluate_cmd prog cur_proc_name which_pred heap store i cur_cmd cc_tbl vis_tbl
 		| Bool false -> evaluate_cmd prog cur_proc_name which_pred heap store j cur_cmd cc_tbl vis_tbl
@@ -876,14 +876,14 @@ let rec evaluate_cmd
 
 	(* EVAL *)
 	| Call (x, e, e_args, j)
-		when  evaluate_expr e store = String "Object_eval" ->
+		when ee e = String "Object_eval" ->
 		if (!verbose) then Printf.printf "Call to eval intercepted!\n";  
 		if (!verbose) then print_endline (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_expression x) e_args)));
 		if (!verbose) then print_endline (Printf.sprintf "The store is: %s" (JSIL_Print.string_of_store store));
 		let e_args =
 			(if (List.length e_args < 3) then (List.append e_args [Literal Undefined]) else e_args) in
 		let str_e = List.nth e_args 2 in
-		let str_e = (evaluate_expr str_e store) in
+		let str_e = ee str_e in
 		(match str_e with
 		| String code ->
 				let code = Str.global_replace (Str.regexp (Str.quote "\\\"")) "\"" code in
@@ -925,7 +925,7 @@ let rec evaluate_cmd
 
 
 	| Call (x, e, e_args, j)
-	  when ((evaluate_expr e store = String "Function_call") || (evaluate_expr e store = String "Function_construct")) ->
+	  when (let ee = ee e in (ee = String "Function_call") || (ee = String "Function_construct")) ->
 			execute_function_constructor proc x e_args j
 
 	| Call (x, e, e_args, j) ->
@@ -933,7 +933,7 @@ let rec evaluate_cmd
 		  execute_procedure_body proc x e e_args j
 
 	| Apply (x, e_args, j) ->
-		let arguments = evaluate_expr (EList e_args) store in
+		let arguments = ee (EList e_args) in
 		let args =
 			(match arguments with
 			| LList args ->
@@ -1054,7 +1054,7 @@ evaluate_phi_psi_cmd prog proc which_pred heap store cur_cmd prev_cmd ac_cur_cmd
 			try Hashtbl.find which_pred (cur_proc_name, prev_cmd, ac_cur_cmd)
 			with _ ->  raise (Failure (Printf.sprintf "which_pred undefined for command: %s %d %d %d" cur_proc_name prev_cmd cur_cmd ac_cur_cmd)) in
 		let expr = x_arr.(cur_which_pred) in
-		let v = evaluate_expr expr store in
+		let v = evaluate_expr store expr in
 		if (!verbose) then Printf.printf "PHI-Assignment: %s : %d/%d : %s := %s\n"
 		   (JSIL_Print.string_of_expression expr) cur_which_pred (Array.length x_arr - 1) x (Literal.str v);
 		Hashtbl.replace store x v;

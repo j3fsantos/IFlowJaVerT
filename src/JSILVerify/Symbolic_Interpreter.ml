@@ -48,7 +48,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 		let nle2 = f e2 in
 		(match nle1, nle2 with
 		| LLit l1, LLit l2 ->
-			let l = JSIL_Interpreter.evaluate_binop op (Literal l1) (Literal l2) (Hashtbl.create 1) in
+			let l = JSIL_Interpreter.evaluate_binop (Hashtbl.create 1) op (Literal l1) (Literal l2) in
 				LLit l
 		| _, _ ->
 			(match op with
@@ -297,7 +297,7 @@ let symb_evaluate_bcmd
 			| None   -> 
 				let msg = Printf.sprintf "Mutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		let perm = match op with
+		let perm : Permission.t = match op with
 		| None -> Deletable
 		| Some perm -> perm in
 		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 perm ne3; 

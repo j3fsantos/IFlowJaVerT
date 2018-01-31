@@ -42,7 +42,7 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 		let nle2 = f le2 in
 		(match nle1, nle2 with
 			| LLit lit1, LLit lit2 ->
-				let lit = JSIL_Interpreter.evaluate_binop bop (Literal lit1) (Literal lit2) (Hashtbl.create 1) in
+				let lit = JSIL_Interpreter.evaluate_binop (Hashtbl.create 1) bop (Literal lit1) (Literal lit2) in
 					LLit lit
 			| _, _ -> LBinOp (nle1, bop, nle2))
 
@@ -955,7 +955,7 @@ let rec normalise_cell_assertions
 	let f = normalise_cell_assertions heap store p_formulae gamma subst in
 	let fe = normalise_logic_expression store gamma subst in
 
-	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (perm : permission) (le_v : jsil_logic_expr) : unit = 
+	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (perm : Permission.t) (le_v : jsil_logic_expr) : unit = 
 		let (field_val_pairs, default_val), metadata, ext = Option.default (([], None), LLit Null, false) (Heap.find_opt heap loc) in
 		Heap.replace heap loc ((((fe le_f, (perm, fe le_v)) :: field_val_pairs), default_val), fe metadata, ext) in 
 

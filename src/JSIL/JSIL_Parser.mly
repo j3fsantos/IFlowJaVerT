@@ -274,6 +274,7 @@ let copy_and_clear_globals () =
 (***** Types and entry points *****)
 %type <Type.t>     type_target
 %type <Constant.t> constant_target
+%type <Permission.t> permission_target
 
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
@@ -870,7 +871,7 @@ assertion_target:
 		{ LStar (left_ass, right_ass) } %prec separating_conjunction
 (* (E, E) -> E *)
 	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; perm = option(permission_target); val_expr=lexpr_target
-		{ let perm = Option.default Deletable perm in LPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
+		{ let perm = Option.default Permission.Deletable perm in LPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
 (* Metadata (eo, em) *)
 	| LMETADATA; LBRACE; eo = lexpr_target; COMMA; em = lexpr_target; RBRACE
 	  { (* validate_pred_assertion (name, params); *)
@@ -1149,7 +1150,7 @@ js_assertion_target:
 		{ JSLStar (left_ass, right_ass) } %prec separating_conjunction
 (* (E, E) -> E *)
 	| LBRACE; obj_expr=js_lexpr_target; COMMA; prop_expr=js_lexpr_target; RBRACE; LARROW; perm = option(permission_target); val_expr=js_lexpr_target
-		{ let perm = Option.default Deletable perm in JSLPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
+		{ let perm = Option.default Permission.Deletable perm in JSLPointsTo (obj_expr, prop_expr, (perm, val_expr)) }
 (* emp *)
 	| LEMP;
 		{ JSLEmp }

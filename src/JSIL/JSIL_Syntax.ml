@@ -118,26 +118,21 @@ let base r = LstNth (r, lit_num 1.)
 let field r = LstNth (r, lit_num 2.)
 (**/**)
 
-type permission = 
-	| Readable 
-	| Mutable 
-	| Deletable
-
 (** {b JSIL Basic Commands}. JSIL basic commands include the standard set of commands one
     might expect of a language with extensible objects. *)
 type jsil_basic_cmd =
-	| Skip                                                                  (** Empty command *)
-	| Assignment of jsil_var * jsil_expr                                    (** Assignment *)
-	| New        of jsil_var * (jsil_expr option)                           (** Object creation *)
-	| Lookup     of jsil_var * jsil_expr * jsil_expr                        (** Field lookup *)
-	| Mutation   of jsil_expr * jsil_expr * jsil_expr * (permission option) (** Field mutation *)
-	| Delete     of jsil_expr * jsil_expr                                   (** Field deletion *)
-	| DeleteObj  of jsil_expr                                               (** Object deletion *)
-	| HasField   of jsil_var * jsil_expr * jsil_expr                        (** Field check *)
-	| GetFields  of jsil_var * jsil_expr                                    (** All* fields of an object *)
-	| Arguments  of jsil_var                                                (** Arguments of the current function *)
-	| Seal        of jsil_var                                               (** Seals the object *)
-	| MetaData    of jsil_var * jsil_expr                                   (** Reads the metadata and assigns it to the first var *)
+	| Skip                                                                    (** Empty command *)
+	| Assignment of jsil_var * jsil_expr                                      (** Assignment *)
+	| New        of jsil_var * (jsil_expr option)                             (** Object creation *)
+	| Lookup     of jsil_var * jsil_expr * jsil_expr                          (** Field lookup *)
+	| Mutation   of jsil_expr * jsil_expr * jsil_expr * (Permission.t option) (** Field mutation *)
+	| Delete     of jsil_expr * jsil_expr                                     (** Field deletion *)
+	| DeleteObj  of jsil_expr                                                 (** Object deletion *)
+	| HasField   of jsil_var * jsil_expr * jsil_expr                          (** Field check *)
+	| GetFields  of jsil_var * jsil_expr                                      (** All* fields of an object *)
+	| Arguments  of jsil_var                                                  (** Arguments of the current function *)
+	| Seal        of jsil_var                                                 (** Seals the object *)
+	| MetaData    of jsil_var * jsil_expr                                     (** Reads the metadata and assigns it to the first var *)
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which
@@ -184,7 +179,7 @@ type jsil_logic_assertion =
 	| LOr          of jsil_logic_assertion * jsil_logic_assertion                        (** Logical disjunction *)
 	| LEmp                                                                               (** Empty heap *)
 	| LStar			   of jsil_logic_assertion * jsil_logic_assertion                        (** Separating conjunction *)
-	| LPointsTo	   of jsil_logic_expr * jsil_logic_expr * (permission * jsil_logic_expr) (** Heap cell assertion *)
+	| LPointsTo	   of jsil_logic_expr * jsil_logic_expr * (Permission.t * jsil_logic_expr) (** Heap cell assertion *)
 	| LMetaData    of jsil_logic_expr * jsil_logic_expr                                  (** MetaData *)
 	| LExtensible  of jsil_logic_expr * bool                                             (** Extensibility *)
 	| LPred			   of string * (jsil_logic_expr list)                                    (** Predicates *)
@@ -261,7 +256,7 @@ let create_jsil_spec name params specs normalised =
 type jsil_logic_command =
 	| Fold             of jsil_logic_assertion                                                          (** Recursive fold *)
 	| Unfold           of jsil_logic_assertion * ((string * ((string * jsil_logic_expr) list)) option)  (** Single unfold *)
-	| ApplyLem		   of string * (jsil_logic_expr list)                                               (** Apply lemma *)
+	| ApplyLem		     of string * (jsil_logic_expr list)                                               (** Apply lemma *)
 	| RecUnfold        of string                                                                        (** Recursive unfold of everything *)
 	| LogicIf          of jsil_logic_expr * (jsil_logic_command list) * (jsil_logic_command list)       (** If-then-else *)
 	| Macro            of string * (jsil_logic_expr list)                                               (** Macro *)
@@ -382,7 +377,7 @@ module Heap = Hashtbl.Make(
 		let hash = Hashtbl.hash   (* and default hash function *)
 	end)
  
-type jsil_heap = (((permission * Literal.t) Heap.t) * Literal.t * bool) Heap.t
+type jsil_heap = (((Permission.t * Literal.t) Heap.t) * MetaData.t * Extensibility.t) Heap.t
 
 
 (* creates a heap of the appropiate size *)
@@ -457,7 +452,7 @@ module MyLExpr =
 
 module MyFieldValueList =
 	struct
-		type t = jsil_logic_expr * (permission * jsil_logic_expr)
+		type t = jsil_logic_expr * (Permission.t * jsil_logic_expr)
 		let compare = Pervasives.compare
 	end
 

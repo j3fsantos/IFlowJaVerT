@@ -19,8 +19,9 @@ exception SymbExecFailure of string
 let find_field
 		(pfs : pure_formulae) (gamma : typing_environment)
 		(fv_list : SFVL.t)
-		(field : jsil_logic_expr) : (SFVL.t * (jsil_logic_expr * (permission * jsil_logic_expr))) option  =
+		(field : jsil_logic_expr) : (SFVL.t * (jsil_logic_expr * (Permission.t * jsil_logic_expr))) option  =
 	
+	(* This is breaking the SFVL abstraction *)
 	let rec find_field_rec fv_list traversed_fv_list =
 		match fv_list with
 		| [] -> None
@@ -37,7 +38,7 @@ let find_field
 *)
 let sheap_put 
 			(pfs : pure_formulae) (gamma : typing_environment)
-			(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : permission) (value : jsil_logic_expr) : unit =
+			(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : Permission.t) (value : jsil_logic_expr) : unit =
 	
 	let (fv_list, domain), metadata, ext = SHeap.get_unsafe heap loc in
 	(match (find_field pfs gamma fv_list field), domain with 

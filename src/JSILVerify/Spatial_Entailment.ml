@@ -350,7 +350,7 @@ let unify_domains
 		(pat_dom   : jsil_logic_expr) 
 		(dom       : jsil_logic_expr) 
 		(fv_list   : SFVL.t) 
-		(perm      : permission) : SFVL.t =
+		(perm      : Permission.t) : SFVL.t =
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
 	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
@@ -430,7 +430,7 @@ let unify_domains
 	| Some dom ->     
 		(* ii. pat_domain and domain exist -> we have to check the entailment *)                      
 		try 
-			let perm = if ext then Deletable else Readable in (* TODO *)
+			let perm : Permission.t = if ext then Deletable else Readable in (* TODO *)
 			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom fv_list perm in 
 			let heap_frame     = SHeap.copy heap in 
 			SHeap.put heap_frame loc fv_list_frame None metadata ext;

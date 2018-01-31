@@ -99,17 +99,10 @@ let rec string_of_expression (e : jsil_expr) : string  =
   	| SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
   	| SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
 
-
-let string_of_permission (p : permission) : string = 
-  match p with 
-  | Readable   -> "@r"
-  | Mutable    -> "@m"
-  | Deletable  -> "@d"
-
 (** JSIL Basic statements *)
 let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	let se = string_of_expression in
-    let sp = string_of_permission in 
+    let sp = Permission.str in 
   	let str_i = (match i with 
       		| None -> "" 
       		| Some i -> if !line_numbers_on then (string_of_int i) ^ ". " else "") in
@@ -202,7 +195,7 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
   		(* a1 * a2 *)
   		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
   		(* (e1, e2) -> e3 *)
-  		| LPointsTo (e1, e2, (perm, e3)) -> Printf.sprintf "((%s, %s) ->%s %s)" (sle e1) (sle e2) (string_of_permission perm) (sle e3)
+  		| LPointsTo (e1, e2, (perm, e3)) -> Printf.sprintf "((%s, %s) ->%s %s)" (sle e1) (sle e2) (Permission.str perm) (sle e3)
   		(* emp *)
   		| LEmp -> "emp"
   		(* exists vars . a
@@ -678,7 +671,7 @@ let string_of_store store =
 let string_of_heap (h : jsil_heap) =
 	Heap.fold
 		(fun loc (obj, metadata, extensibility) printed_heap ->
-			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (Literal.str metadata) ^ "\n  Extensible : " ^ (if extensibility then "true" else "false") in
+			let pre_str = "\n[ " ^ loc ^ " : " ^ "\n  Metadata : " ^ (MetaData.str metadata) ^ "\n  Extensibility : " ^ (Extensibility.str extensibility) in
 			let post_str = "]\n" in
 			  let printed_object =
 					(Heap.fold
