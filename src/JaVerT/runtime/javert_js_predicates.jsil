@@ -2,154 +2,129 @@
  **** GENERAL OBJECTS ****
  *************************)
 
-pred JSObject (l:Obj, md:Obj) :
-    MetaData(l, md) * Extensible(l, true) *
-	((md, "@proto")      -> $lobj_proto) *
-	((md, "@class")      -> "Object") *
-	((md, "@extensible") -> true) *
-	MetaData(md, null) * Extensible(md, true);
+pred JSObject (l:Obj) :
+    MetaData(l, #md) * Extensible(l, true) *
+	((#md, "@proto")      -> $lobj_proto) *
+	((#md, "@class")      -> "Object") *
+	((#md, "@extensible") -> true) *
+	MetaData(#md, null) * Extensible(#md, true);
 
-pred JSObjWithProto (l:Obj, proto, md:Obj) :
-    MetaData(l, md) * Extensible(l, true) *
-	((md, "@proto")      -> proto) *
-	((md, "@class")      -> "Object") *
-	((md, "@extensible") -> true) *
-	MetaData(md, null) * Extensible(md, true);
-
-pred JSObjGeneral (l:Obj, proto, class:Str, ext:Bool, md:Obj) :
-    MetaData(l, md) * Extensible(l, true) *
-	((md, "@proto")      -> proto) *
-	((md, "@class")      -> class) *
-	((md, "@extensible") -> ext) *
-	MetaData(md, null) * Extensible(md, true);
-	
-pred JSObjGeneralWeak (l:Obj, proto, class, ext, md:Obj) :
-    MetaData(l, md) * Extensible(l, true) *
-	((md, "@proto")      -> proto) *
-	((md, "@class")      -> class) *
-	((md, "@extensible") -> ext) *
-	MetaData(md, null) * Extensible(md, true);
-
-pred JSObjectExist (l:Obj) :
-    MetaData(l, md) * Extensible(l, true) *
-	((md, "@proto")      -> $lobj_proto) *
-	((md, "@class")      -> "Object") *
-	((md, "@extensible") -> true) *
-	MetaData(md, null) * Extensible(md, true);
-
-pred JSObjWithProtoExist (l:Obj, proto) :
+pred JSObjWithProto (l:Obj, proto) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> "Object") *
 	((#md, "@extensible") -> true) *
 	MetaData(#md, null) * Extensible(#md, true);
 	
-pred JSObjGeneralExist (l:Obj, proto, class:Str, ext:Bool) :
+pred JSObjGeneral (l:Obj, proto, class:Str, ext:Bool) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> class) *
 	((#md, "@extensible") -> ext) *
 	MetaData(#md, null) * Extensible(#md, true);
 	
-pred JSObjGeneralWeakExist (l:Obj, proto, class, ext) :
+pred JSObjGeneralWeak (l:Obj, proto, class, ext) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> class) *
 	((#md, "@extensible") -> ext) *
 	MetaData(#md, null) * Extensible(#md, true);
 	
-pred EmptyExtensibleObject(l:Obj, md:Obj) :
-	empty_fields(l  : -{}-) * MetaData(l,  md) *   Extensible(l, true) *
-	empty_fields(md : -{}-) * MetaData(md, null) * Extensible(md, true);
+pred EmptyExtensibleObject(l:Obj) :
+	empty_fields(l   : -{}-) * MetaData(l,  #md)   * Extensible(l, true) *
+	empty_fields(#md : -{}-) * MetaData(#md, null) * Extensible(#md, true);
 
 (************************
  ***** INITIAL HEAP *****
  ************************)
 
 pred initialHeapPre () :
-    EmptyExtensibleObject ($lg, $lg_md) *
-    EmptyExtensibleObject ($lobj_proto, $lobj_proto_md) * 
-    EmptyExtensibleObject ($lfun_proto, $lfun_proto_md) * 
-    EmptyExtensibleObject ($lerr, $lerr_md) *
-    EmptyExtensibleObject ($lerr_proto, $lerr_proto_md) * 
-    EmptyExtensibleObject ($lop_hasOwnProperty, $lop_hasOwnProperty_md);
+    EmptyExtensibleObject ($lg) *
+    EmptyExtensibleObject ($lobj_proto) * 
+    EmptyExtensibleObject ($lfun_proto) * 
+    EmptyExtensibleObject ($lerr) *
+    EmptyExtensibleObject ($lerr_proto) * 
+    EmptyExtensibleObject ($lop_hasOwnProperty);
     
 pred initialHeapPost (globals) :
 	types(globals:Set) *
 	
-	JSObject ($lg, $lg_md) *
+	JSObject ($lg) *
 	(($lg, "Error") -> {{ "d", $lerr, true, false, true }}) *
     empty_fields ($lg    : -u- (-{ "Error" }-, globals) ) *
-    empty_fields ($lg_md : -{ "@class", "@proto", "@extensible" }-) *
+    MetaData($lg, #mlg) * empty_fields (#mlg : -{ "@class", "@proto", "@extensible" }-) *
     
-    JSObjWithProto ($lobj_proto, null, $lobj_proto_md) *
+    JSObjWithProto ($lobj_proto, null) *
     (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
     empty_fields ($lobj_proto    : -{ "hasOwnProperty" }-) *
-    empty_fields ($lobj_proto_md : -{ "@class", "@proto", "@extensible" }-) *
+    MetaData($lobj_proto, #mlop) * empty_fields (#mlop : -{ "@class", "@proto", "@extensible" }-) *
 
-    JSObjGeneral ($lop_hasOwnProperty, $lfun_proto, "Function", true, $lop_hasOwnProperty_md) *
+    JSObjGeneral ($lop_hasOwnProperty, $lfun_proto, "Function", true) *
     (($lop_hasOwnProperty, "length") -> {{ "d", 1, false, false, false }}) *
     empty_fields($lop_hasOwnProperty : -{ "length" }-) *
-    (($lop_hasOwnProperty_md, "@scope") -> empty) * (($lop_hasOwnProperty_md, "@call") -> "OP_hasOwnProperty") *
-    empty_fields($lop_hasOwnProperty_md : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
+    MetaData($lop_hasOwnProperty, #mlophOP) *
+    ((#mlophOP, "@scope") -> empty) * ((#mlophOP, "@call") -> "OP_hasOwnProperty") *
+    empty_fields(#mlophOP : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
     
-    JSObjGeneral ($lfun_proto, $lobj_proto, "Function", true, $lfun_proto_md) *
+    JSObjGeneral ($lfun_proto, $lobj_proto, "Function", true) *
     (($lfun_proto, "length") -> {{ "d", 0, false, false, false }}) *
     empty_fields($lfun_proto : -{ "length" }-) *
-    (($lfun_proto_md, "@scope") -> empty) * (($lfun_proto_md, "@call") -> "FP_default") *
-    empty_fields($lfun_proto_md : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
+    MetaData($lfun_proto, #mfp) *
+    ((#mfp, "@scope") -> empty) * ((#mfp, "@call") -> "FP_default") *
+    empty_fields(#mfp : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
       
-    JSObjGeneral ($lerr, $lfun_proto, "Function", true, $lerr_md) *
+    JSObjGeneral ($lerr, $lfun_proto, "Function", true) *
     (($lerr, "length") -> {{ "d", 1, false, false, false }}) *
     (($lerr, "prototype") -> {{ "d", $lerr_proto, false, false, false }}) *
     empty_fields($lerr : -{ "length", "prototype" }-) *
-    (($lerr_md, "@scope") -> empty) * (($lerr_md, "@call") -> "Error_call") * (($lerr_md, "@construct") -> "Error_construct") *
-    empty_fields($lerr_md : -{ "@proto", "@class", "@extensible", "@scope", "@call", "@construct" }-) *
+    MetaData($lerr, #mlerr) *
+    ((#mlerr, "@scope") -> empty) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
+    empty_fields(#mlerr : -{ "@proto", "@class", "@extensible", "@scope", "@call", "@construct" }-) *
     
-    JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true, $lerr_proto_md) * 
+    JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true) * 
     (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
     empty_fields($lerr_proto : -{ "message" }-) *
-    empty_fields($lerr_proto_md : -{ "@proto", "@class", "@extensible" }-);
+    MetaData($lerr_proto, #mlerrp) * empty_fields(#mlerrp : -{ "@proto", "@class", "@extensible" }-);
 
 (**************************
  **** FUNCTION OBJECTS ****
  **************************)
 
-pred FunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj, md:Obj) : 
+pred FunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj) : 
 	((l, "length")     -> {{ "d", len, false, false, false }}) *
 	((l, "arguments")  -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
 	((l, "caller")     -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
 	((l, "prototype")  -> {{ "d", proto, true, false, false }}) *
-	MetaData(l, md) * Extensible (l, true) *
-	((md, "@proto")      -> $lfun_proto) * 
-	((md, "@class")      -> "Function") *
-	((md, "@extensible") -> true) * 
-	((md, "@call")       -> fid) * 
-	((md, "@construct")  -> fid) *
-	((md, "@scope")      -> sc) *
-	MetaData(md, null) * Extensible(md, true);
+	MetaData(l, #md) * Extensible (l, true) *
+	((#md, "@proto")      -> $lfun_proto) * 
+	((#md, "@class")      -> "Function") *
+	((#md, "@extensible") -> true) * 
+	((#md, "@call")       -> fid) * 
+	((#md, "@construct")  -> fid) *
+	((#md, "@scope")      -> sc) *
+	MetaData(#md, null) * Extensible(#md, true);
 
 (***********************
  **** ERROR OBJECTS ****
  ***********************)
  
-pred ErrorObject (l : Obj, pr : Obj, md) :
-	JSObjGeneral(l, pr, "Error", true, md);
+pred ErrorObject (l : Obj, pr : Obj) :
+	JSObjGeneral(l, pr, "Error", true);
 
-pred ErrorObjectWithMessage (l : Obj, m : Str, md) :
-  MetaData(l, md) * Extensible(l, true) *
-  ((md, "@proto") -> $lerr_proto) * ((md, "@class") -> "Error") * ((md, "@extensible") -> true) *
-  ((md, "message") -> {{"d", m, true, false, true}}) * 
-  MetaData(md, null) * Extensible(md, true);
+pred ErrorObjectWithMessage (l : Obj, m : Str) :
+  MetaData(l, #md) * Extensible(l, true) *
+  ((#md, "@proto") -> $lerr_proto) * ((#md, "@class") -> "Error") * ((#md, "@extensible") -> true) *
+  ((#md, "message") -> {{"d", m, true, false, true}}) * 
+  MetaData(#md, null) * Extensible(#md, true);
 
-pred isTypeError(l : Obj, md) :
-    ErrorObject (l, $lterr_proto, md);
+pred isTypeError(l : Obj) :
+    ErrorObject (l, $lterr_proto);
 
-pred isSyntaxError(l : Obj, md) :
-    ErrorObject (l, $lserr_proto, md);
+pred isSyntaxError(l : Obj) :
+    ErrorObject (l, $lserr_proto);
 
-pred isReferenceError(l : Obj, md) :
-    ErrorObject (l, $lrferr_proto, md);
+pred isReferenceError(l : Obj) :
+    ErrorObject (l, $lrferr_proto);
 
 (********************
  **** PROPERTIES ****

@@ -19,20 +19,14 @@ spec create_default_object (l, pr, cl, ext)
 
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
        (#cl == undefined) * (#ext == undefined) *
-	   JSObjGeneralWeak(#l, #op, #oc, #oe, #md) ]]
-    [[ JSObjGeneral(#l, #pr, "Object", true, #md) * (ret == #l) ]]
-    normal;
-
-    [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
-	   types(#cl:Str, #ext:Bool) *
-       JSObjGeneralWeak(#l, #op, #oc, #oe, #md) ]]
-    [[ JSObjGeneral(#l, #pr, #cl, #ext, #md) * (ret == #l) ]]
+	   JSObjGeneralWeak(#l, #op, #oc, #oe) ]]
+    [[ JSObjGeneral(#l, #pr, "Object", true) * (ret == #l) ]]
     normal;
     
     [[ (l == #l) * (pr == #pr) * (cl == #cl) * (ext == #ext) *
 	   types(#cl:Str, #ext:Bool) *
-       JSObjGeneralWeakExist(#l, #op, #oc, #oe) ]]
-    [[ JSObjGeneralExist(#l, #pr, #cl, #ext) * (ret == #l) ]]
+       JSObjGeneralWeak(#l, #op, #oc, #oe) ]]
+    [[ JSObjGeneral(#l, #pr, #cl, #ext) * (ret == #l) ]]
     normal
 
 proc create_default_object (l, pr, cl, ext) {
@@ -62,23 +56,16 @@ with
  ********************)
 
 spec Object_construct (xsc, vthis, l)
-
-    [[ (l == #l) * types(#l:Undefined) ]]
-    [[ JSObjGeneral(ret, $lobj_proto, "Object", true, #md) * 
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
-    normal;
     
     [[ (l == #l) * types(#l:Undefined) ]]
-    [[ JSObjGeneralExist(ret, $lobj_proto, "Object", true) * 
-       empty_fields(ret : -{ }-) * MetaData(ret, #mret) *
-       empty_fields(#mret : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ JSObjGeneral(ret, $lobj_proto, "Object", true) * 
+       empty_fields(ret : -{ }-) * MetaData(ret, #md) *
+       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
     
     (* TODO: for Object, Boolean, Number, String *)
 
 proc Object_construct (xsc, vthis, l) {
-			l := l;
 
 			goto [typeOf(l) = Obj] obj l1b;
 	obj:	xret := l;
@@ -106,23 +93,27 @@ spec create_object_with_call_construct (l, call, construct, len)
 
     [[ (l == #l) * (call == #call) * (construct == empty) * (len == #len) *
 	   types(#call:Str, #len:Num) *
-       JSObjGeneralWeak(#l, #old_pr, #old_class, #old_ext, #md) * 
-       ((#l, "length") -> #old_len) *  
+       JSObjGeneralWeak(#l, #old_pr, #old_class, #old_ext) * 
+       ((#l, "length") -> #old_len) * 
+       MetaData(#l, #md) *
        ((#md, "@scope") -> #old_scope) * ((#md, "@call") -> #old_call) ]]
-    [[ JSObjGeneral(#l, $lfun_proto, "Function", true, #md) *
+    [[ JSObjGeneral(#l, $lfun_proto, "Function", true) *
        ((#l, "length") -> {{ "d", #len, false, false, false }}) *  
+       MetaData(#l, #md) *
 	   ((#md, "@scope") -> empty) * ((#md, "@call") -> #call) *
 	   (ret == #l) ]]
     normal;
 
     [[ (l == #l) * (call == #call) * (construct == #construct) * (len == #len) *
 	   types(#call : Str, #construct: Str, #len : Num) *
-       JSObjGeneralWeak(#l, #old_pr, #old_class, #old_ext, #md) * 
+       JSObjGeneralWeak(#l, #old_pr, #old_class, #old_ext) * 
        ((#l, "length") -> #old_len) *
+       MetaData(#l, #md) *
        ((#md, "@scope") -> #old_scope) * ((#md, "@call") -> #old_call) * ((#md, "@construct") -> #old_construct) ]]
     [[ JSObjGeneral(#l, $lfun_proto, "Function", true, #md) *
+       ((#l, "length") -> {{ "d", #len, false, false, false }}) *  
+       MetaData(#l, #md) *
 	   ((#md, "@scope") -> empty) * ((#md, "@call") -> #call) * ((#md, "@construct") -> #construct) *
-	   ((#l, "length") -> {{ "d", #len, false, false, false }}) *  
 	   (ret == #l) ]]
     normal
     
@@ -158,14 +149,14 @@ spec create_function_object (xsc, call, construct, params)
 
     [[ (xsc == #xsc) * (call == #call) * (construct == #construct) * (params == #params) * (#call == #construct) *
        types(#xsc:List, #call:Str, #construct:Str, #params:List) ]]
-    [[ FunctionObject(ret, #call, #xsc, #len, #prototype, #mdf) * 
+    [[ FunctionObject(ret, #call, #xsc, #len, #prototype) * 
        empty_fields(ret : -{ "arguments", "caller", "length", "prototype" }-) *
-       empty_fields(#mdf : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) *
+       MetaData(ret, #mdf) * empty_fields(#mdf : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) *
        (#len == l-len #params) *
-	   JSObjGeneral(#prototype, $lobj_proto, "Object", true, #mdp) *
+	   JSObjGeneral(#prototype, $lobj_proto, "Object", true) *
 	   ((#prototype, "constructor") -> {{ "d", ret, true, false, true }}) *
 	   empty_fields(#prototype : -{ "constructor" }-) *
-	   empty_fields(#mdp : -{ "@class", "@extensible", "@proto" }-) ]]
+	   MetaData(#prototype, #mdp) * empty_fields(#mdp : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc create_function_object (xsc, call, construct, params) {
@@ -461,9 +452,8 @@ with
 spec TypeError_call (xsc, vthis, v)
 
     [[ v == undefined ]]
-    [[ isTypeError(ret, #md) *
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ isTypeError(ret) * empty_fields(ret : -{ }-) *
+       MetaData(ret, #md) * empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc TypeError_call (xsc, vthis, v) {
@@ -485,9 +475,8 @@ with
 spec TypeError (v)
 
     [[ v == undefined ]]
-    [[ isTypeError(ret, #md) *
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ isTypeError(ret) * empty_fields(ret : -{ }-) *
+       MetaData(ret, #md) * empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc TypeError (v) {
@@ -509,9 +498,8 @@ with
 spec ReferenceError_call (xsc, vthis, v)
 
     [[ v == undefined ]]
-    [[ isReferenceError(ret, #md) *
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ isReferenceError(ret) * empty_fields(ret : -{ }-) *
+       MetaData(ret, #md) * empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc ReferenceError_call (xsc, vthis, v) {
@@ -533,9 +521,8 @@ with
 spec ReferenceError (v)
 
     [[ v == undefined ]]
-    [[ isReferenceError(ret, #md) *
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ isReferenceError(ret) * empty_fields(ret : -{ }-) *
+       MetaData(ret, #md) * empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc ReferenceError (v) {
@@ -557,9 +544,8 @@ with
 spec SyntaxError_call (xsc, vthis, v)
 
     [[ v == undefined ]]
-    [[ isSyntaxError(ret, #md) *
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ isSyntaxError(ret) * empty_fields(ret : -{ }-) *
+       MetaData(ret, #md) * empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc SyntaxError_call (xsc, vthis, v) {
@@ -581,9 +567,8 @@ with
 spec SyntaxError (v)
 
     [[ v == undefined ]]
-    [[ isSyntaxError(ret, #md) *
-       empty_fields(ret : -{ }-) *
-       empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
+    [[ isSyntaxError(ret) * empty_fields(ret : -{ }-) *
+       MetaData(ret, #md) * empty_fields(#md : -{ "@class", "@extensible", "@proto" }-) ]]
     normal
 
 proc SyntaxError (v) {

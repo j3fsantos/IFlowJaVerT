@@ -4,8 +4,7 @@ open JSIL_Syntax
 open JSIL_Print
 
 (* Definition *)
-type t =
-	(jsil_logic_expr * (permission * jsil_logic_expr)) list
+type t = (jsil_logic_expr * (permission * jsil_logic_expr)) list
 
 (* Printing *)
 let str (sfvl : t) : string = 

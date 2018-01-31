@@ -96,13 +96,15 @@ let merge_domains
 		Some set 
 
 let merge_heaps 
-			(pfs : pure_formulae) (gamma : typing_environment)
+			(store : symbolic_store) (pfs : pure_formulae) (gamma : typing_environment)
 			(heap : SHeap.t) (new_heap : SHeap.t) : unit =
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
 		(SHeap.str heap) (SHeap.str new_heap)
 		(Symbolic_State_Print.string_of_pfs pfs) (Symbolic_State_Print.string_of_gamma gamma)
 	);
+		
+	let meta_subst = Hashtbl.create 31 in
 	
 	(* TODO This is a bit strange, what if there are duplicates in the fv lists? Or contradictions with empty_fields and existing cells? TODO *)
 	SHeap.iterator new_heap 
@@ -111,11 +113,26 @@ let merge_heaps
 			| Some ((fv_list, domain), metadata, ext) -> 
 				(match (ext = n_ext) with
 				| false -> raise (Failure "Heaps not mergeable. Extensibility mismatch.")
-				| true -> match (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ LEq (metadata, n_metadata) ] gamma) with
-					| false -> raise (Failure "Heaps not mergeable. Metadata not provably equal.")  
-					| true -> SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)) metadata ext
+			  (* Is this correct? *)
+				| true ->
+						Hashtbl.add meta_subst n_metadata metadata; 
+						SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)) metadata ext
 			| None -> 
 				SHeap.put heap loc n_fv_list n_domain n_metadata n_ext); 
+
+	(* Substitution *)
+	Hashtbl.iter (fun le1 le2 -> 
+		print_debug_petar (Printf.sprintf "%s -> %s" (JSIL_Print.string_of_logic_expression le1) (JSIL_Print.string_of_logic_expression le2));
+		(match le1, le2 with
+		| ALoc l1, ALoc l2 ->
+				let aloc_subst = init_substitution2 [ l1 ] [ le2 ] in 
+				store_substitution_in_place aloc_subst store;
+				pfs_substitution_in_place aloc_subst pfs;
+				
+				SHeap.substitution_in_place aloc_subst heap
+						
+		| _, _ -> if (le1 <> le2) then raise (Failure "Metadata magically different."))
+	) meta_subst;
 
 	(* Garbage collection - What happens here now?! TODO *)
 	SHeap.iterator heap (fun loc ((fv_list, domain), _, _) ->
@@ -218,7 +235,7 @@ let merge_symb_states
 	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
 	pfs_merge pf_l pf_r;
 	merge_gammas gamma_l gamma_r;
-	merge_heaps pf_l gamma_l heap_l heap_r;
+	merge_heaps store_l pf_l gamma_l heap_l heap_r;
 	DynArray.append preds_r preds_l;
 	print_debug ("Finished merge_symb_states");
 	(heap_l, store_l, pf_l, gamma_l, preds_l)

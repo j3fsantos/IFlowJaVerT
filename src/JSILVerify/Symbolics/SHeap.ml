@@ -86,14 +86,53 @@ let substitution (subst : substitution) (partial : bool) (heap : t) : t =
 let substitution_in_place (subst : substitution) (heap : t) : unit =
 	let le_subst = JSIL_Logic_Utils.lexpr_substitution subst true in 
   Heap.iter
+		(* For every location in the existing heap *)
   	(fun loc ((fv_list, domain), metadata, ext) ->
-  		let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
-			try Hashtbl.find subst loc with _ -> ALoc loc) in 
+			(* Understand the corresponding new location *)
+  		let s_loc = 
+				if (is_lit_loc_name loc) 
+					then LLit (Loc loc) 
+					else (try Hashtbl.find subst loc with _ -> ALoc loc) in 
   		let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
-			| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 		
+				| _ -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s" (JSIL_Print.string_of_logic_expression s_loc))) in 	
+				
+			(* Perform the substitution in the field-value list *)
   		let s_fv_list = SFVL.substitution subst true fv_list in
+			(* Perform the substitution in the domain *)
   		let s_domain = Option.map (fun le -> le_subst le) domain in
-  		Heap.replace heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext))
+			
+			(* If the location itself should be substitute *)
+			if (s_loc <> loc) then (
+				(* Remove the old one from the heap *)
+				Heap.remove heap loc;
+				(* Does the new location already exist? *)
+				(match (Heap.find_opt heap s_loc) with
+				(* It doesn't, simple put *)
+				| None -> 
+						Heap.replace heap s_loc ((s_fv_list, s_domain), le_subst metadata, ext)
+				(* It does, needs merge *)
+				(* Get the data associated with the location *)
+				| Some ((nfvl, ndom), nmet, next) ->
+						(match ext = next with
+						(* The extensibilities don't match *)
+						| false -> raise (Failure (Printf.sprintf "Heap substitution fail for loc: %s, extensibility mismatch." s_loc))
+						(* The extensibilities match *)
+						| true -> 
+								(* Perform the substitution in the field-value list *) 
+								let s_nfvl = SFVL.substitution subst true nfvl in
+								(* Perform the substitution in the domain *)
+								let s_ndom = Option.map (fun le -> le_subst le) ndom in
+								(* Merge the domains (without simplification) *)
+								let new_domain = 	match s_domain, s_ndom with 
+                  	| None, None -> None
+                  	| None, Some domain 
+                  	| Some domain, None -> Some domain 
+                  	| Some set1, Some set2 -> 
+                  			Some (LSetUnion [ set1; set2 ]) in
+												
+								(* Perform the replacement *)
+								Heap.replace heap s_loc ((s_fv_list @ s_nfvl, new_domain), le_subst metadata, ext))))
+			)
   	heap
 
 (** Returns the logical variables occuring in --heap-- *)
