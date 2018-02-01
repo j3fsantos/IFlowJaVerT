@@ -487,12 +487,9 @@ let unify_metadata_assertion
   				(match (consistent_subst_list subst_meta pfs gamma), (pre_check_discharges discharges_meta) with
   				| Some subst_meta, Some discharges_meta ->
   						let pat_subst = Hashtbl.copy pat_subst in
-  						if (safe_substitution_extension pfs gamma pat_subst subst_meta) then (
-								(* FRAME OFF *)
-								let heap_frame = SHeap.copy heap in
-								SHeap.put heap loc fv_list domain None ext;
-  							[ (heap_frame, pat_subst, discharges_meta) ]
-  						) else [ ]
+  						if (safe_substitution_extension pfs gamma pat_subst subst_meta) then 
+  							[ (heap, pat_subst, discharges_meta) ]
+  						else [ ]
   				| _, _ -> [ ]))) in
 	
 	result

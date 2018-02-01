@@ -1618,7 +1618,6 @@ let simplify_symb_state
 		let n = ref 0 in
 		while (!pfs_ok && !n < DynArray.length pfs) do
 			let pf = DynArray.get pfs !n in
-			print_debug_petar (Printf.sprintf "Current pf to analyse: %s" (JSIL_Print.string_of_logic_assertion pf));
 			(match pf with
 
 			(* If we have true in the pfs, we delete it and restart *)
