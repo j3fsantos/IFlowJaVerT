@@ -114,11 +114,7 @@ let substitution_in_place (subst : substitution) (heap : t) : unit =
 			(* It does, needs merge *)
 			(* Get the data associated with the location *)
 			| Some ((nfvl, ndom), nmet, next) ->
-					let s_ext = (match ext, next with
-						| None, None -> None
-						| Some ext, None 
-						| None, Some ext -> Some ext
-						| Some _, Some _ -> raise (Failure "Heap substitution not possible. Resource overlap: extensibility.")) in
+					let s_ext = Extensibility.merge ext next in
 					let s_nfvl = SFVL.substitution subst true nfvl in
 					(* Perform the substitution in the domain *)
 					let s_ndom = Option.map (fun le -> le_subst le) ndom in

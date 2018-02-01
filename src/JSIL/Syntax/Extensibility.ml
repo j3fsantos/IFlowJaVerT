@@ -18,3 +18,11 @@ let str (x : t) =
 (** Print of an optional extensibility *)
 let ostr (x : t option) = 
 	Option.map_default str "unknown" x
+	
+(** Merge two existensibilities *)
+let merge (x : t option) (y : t option) : t option =
+	match x, y with
+	| None, None -> None
+	| Some x, None
+	| None, Some x -> Some x
+	| Some x, Some y -> raise (Failure "Extensibility merge failure: resource overlap")

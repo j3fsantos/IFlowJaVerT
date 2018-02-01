@@ -112,13 +112,9 @@ let merge_heaps
 		(fun loc ((n_fv_list, n_domain), n_metadata, n_ext) ->
 			match SHeap.get heap loc with 
 			| Some ((fv_list, domain), metadata, ext) -> 
-				let new_ext = (match ext, n_ext with
-				| None, None -> None
-				| Some ext, None 
-				| None, Some ext -> Some ext
-				| Some ext, Some n_ext -> raise (Failure "Heaps not mergeable. Resource overlap: extensibility.")) in
-  					Hashtbl.add meta_subst n_metadata metadata; 
-  					SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
+				let new_ext = Extensibility.merge ext n_ext in
+  				Hashtbl.add meta_subst n_metadata metadata; 
+  				SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
 			| None -> 
 				SHeap.put heap loc n_fv_list n_domain n_metadata n_ext); 
 
