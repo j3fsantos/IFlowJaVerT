@@ -254,14 +254,14 @@ pred isClass (c:Str, case:Str) :
 
 pred Pi (l:Obj, prop:Str, d, ls:List, lcls:List, lpv:List) :
 
-    (* Any object, cell exists in the heap *)
+    (* Non-string object, cell exists in the heap *)
     Cell_o (l, prop, d) * Descriptor(d) *
-	MetaData(l, #md) * ((#md, "@class") -> #cls) *
+	MetaData(l, #md) * ((#md, "@class") -> #cls) * isClass (#cls, "Non-String") *
     (ls == {{ l }}) * (lcls == {{ #cls }}) * (lpv == {{ "" }}),
 
 	(* Non-string object, cell does not exist in the heap, down the prototype chain *)
     Cell_o (l, prop, none) *
-	MetaData(l, #md) * ((l, "@class") -> #cls) * isClass (#cls, "Non-String") * ((#md, "@proto") -> #lp) *
+	MetaData(l, #md) * ((#md, "@class") -> #cls) * isClass (#cls, "Non-String") * ((#md, "@proto") -> #lp) *
 	(ls == l :: #lls) * (lcls == #cls :: #lcls) * (lpv == "" :: #lpv) *
 	types(#cls:Str) *
 	(#lls == #lp :: #ols) * (#lcls == #pcls :: #ocls) * (#lpv == #ppv :: #otv) *
@@ -270,6 +270,6 @@ pred Pi (l:Obj, prop:Str, d, ls:List, lcls:List, lpv:List) :
 	
 	(* Non-string object, cell does not exist in the heap, end of prototype chain *)
     Cell_o (l, prop, none) * (d == undefined) *
-    MetaData(l, #md) * ((l, "@class") -> #cls) * isClass (#cls, "Non-String") *  ((#md, "@proto") -> null) * 
+    MetaData(l, #md) * ((#md, "@class") -> #cls) * isClass (#cls, "Non-String") *  ((#md, "@proto") -> null) * 
     (ls == {{ l }}) * (lcls == {{ #cls }}) * (lpv == {{ "" }});
     

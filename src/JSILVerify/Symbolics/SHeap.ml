@@ -84,7 +84,6 @@ let substitution (subst : substitution) (partial : bool) (heap : t) : t =
 
 (** Modifies --heap-- in place updating it to subst(heap) *)
 let substitution_in_place (subst : substitution) (heap : t) : unit =
-	print_debug (Printf.sprintf "SIP: %s" (JSIL_Print.string_of_substitution subst));
 	let le_subst = JSIL_Logic_Utils.lexpr_substitution subst true in 
   Heap.iter
 		(* For every location in the existing heap *)

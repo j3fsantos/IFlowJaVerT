@@ -30,7 +30,6 @@ let substitution
 		(subst   : substitution) 
 		(partial : bool) 
 		(fv_list : t) : t =
-	print_debug_petar (Printf.sprintf "FVL substitution:\n%s" (JSIL_Print.string_of_substitution subst));
 	let f_subst = JSIL_Logic_Utils.lexpr_substitution subst partial in 
 	List.map (fun (le_field, (perm, le_val)) -> f_subst le_field, (perm, f_subst le_val)) fv_list
 

@@ -679,3 +679,40 @@ with
 	ret:	xret, rlab;
 	err:	xret, elab;
 };
+
+(*
+ *    Name: getProperty 
+ * Purpose: Get property of a (general) object in the entire prototype chain
+ *
+ *   Specs:
+ *
+ * 01 - Get the heap value associated with the appropriate Pi
+ *)
+
+spec getProperty (l, prop)
+
+	[[ (l == #l) * (prop == #prop) * Pi (#l, #prop, #d, #ls, #cls, #pv) ]]
+	[[ Pi (#l, #prop, #d, #ls, #cls, #pv) * (ret == #d) ]]
+	normal
+
+proc getProperty (l, prop) {
+
+			[* unfold Pi (#l, #prop, #d, #ls, #cls, #pv) *]
+			xret := "getOwnProperty" (l, prop) with elab;
+			goto [xret = undefined] next rlab;
+
+	next:	m := metadata(l);
+			proto := [m, "@proto"];
+			goto [proto = null] rlab call;
+
+	call:	xret := "getProperty" (proto, prop) with elab;
+
+			[* fold Pi (#l, #prop, #d, #ls, #cls, #pv) *]
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};

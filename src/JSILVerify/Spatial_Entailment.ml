@@ -494,7 +494,6 @@ let unify_metadata_assertion
 	
 	result
 
-(* TODO : THIS IS NOT SPATIAL?! *)
 let unify_extensible_assertion
 		(pfs           : pure_formulae) 
 		(gamma         : typing_environment)
@@ -904,7 +903,9 @@ let unify_symb_states_fold
 				)
 
 			| LPointsTo _ :: rest_up
-			| LEmptyFields _ :: rest_up -> 
+			| LEmptyFields _ :: rest_up 
+			| LMetaData _ :: rest_up 
+			| LExtensible _ :: rest_up -> 
 
 				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
 				
