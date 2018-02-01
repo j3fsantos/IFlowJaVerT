@@ -7,90 +7,34 @@ pred JSObject (l:Obj) :
 	((#md, "@proto")      -> $lobj_proto) *
 	((#md, "@class")      -> "Object") *
 	((#md, "@extensible") -> true) *
-	MetaData(#md, null) * Extensible(#md, true);
+	MetaData(#md, null) * Extensible(#md, true) *
+	empty_fields (#md : -{ "@class", "@extensible", "@proto" }-);
 
 pred JSObjWithProto (l:Obj, proto) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> "Object") *
 	((#md, "@extensible") -> true) *
-	MetaData(#md, null) * Extensible(#md, true);
+	MetaData(#md, null) * Extensible(#md, true) *
+	empty_fields (#md : -{ "@class", "@extensible", "@proto" }-);
 	
 pred JSObjGeneral (l:Obj, proto, class:Str, ext:Bool) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> class) *
 	((#md, "@extensible") -> ext) *
-	MetaData(#md, null) * Extensible(#md, true);
-	
-pred JSObjGeneralWeak (l:Obj, proto, class, ext) :
-    MetaData(l, #md) * Extensible(l, true) *
-	((#md, "@proto")      -> proto) *
-	((#md, "@class")      -> class) *
-	((#md, "@extensible") -> ext) *
-	MetaData(#md, null) * Extensible(#md, true);
+	MetaData(#md, null) * Extensible(#md, true) *
+	empty_fields (#md : -{ "@class", "@extensible", "@proto" }-);
 	
 pred EmptyExtensibleObject(l:Obj) :
 	empty_fields(l   : -{}-) * MetaData(l,  #md)   * Extensible(l, true) *
 	empty_fields(#md : -{}-) * MetaData(#md, null) * Extensible(#md, true);
 
-(************************
- ***** INITIAL HEAP *****
- ************************)
-
-pred initialHeapPre () :
-    EmptyExtensibleObject ($lg) *
-    EmptyExtensibleObject ($lobj_proto) * 
-    EmptyExtensibleObject ($lfun_proto) * 
-    EmptyExtensibleObject ($lerr) *
-    EmptyExtensibleObject ($lerr_proto) * 
-    EmptyExtensibleObject ($lop_hasOwnProperty);
-    
-pred initialHeapPost (globals) :
-	types(globals:Set) *
-	
-	JSObject ($lg) *
-	(($lg, "Error") -> {{ "d", $lerr, true, false, true }}) *
-    empty_fields ($lg    : -u- (-{ "Error" }-, globals) ) *
-    MetaData($lg, #mlg) * empty_fields (#mlg : -{ "@class", "@proto", "@extensible" }-) *
-    
-    JSObjWithProto ($lobj_proto, null) *
-    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
-    empty_fields ($lobj_proto    : -{ "hasOwnProperty" }-) *
-    MetaData($lobj_proto, #mlop) * empty_fields (#mlop : -{ "@class", "@proto", "@extensible" }-) *
-
-    JSObjGeneral ($lop_hasOwnProperty, $lfun_proto, "Function", true) *
-    (($lop_hasOwnProperty, "length") -> {{ "d", 1, false, false, false }}) *
-    empty_fields($lop_hasOwnProperty : -{ "length" }-) *
-    MetaData($lop_hasOwnProperty, #mlophOP) *
-    ((#mlophOP, "@scope") -> empty) * ((#mlophOP, "@call") -> "OP_hasOwnProperty") *
-    empty_fields(#mlophOP : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
-    
-    JSObjGeneral ($lfun_proto, $lobj_proto, "Function", true) *
-    (($lfun_proto, "length") -> {{ "d", 0, false, false, false }}) *
-    empty_fields($lfun_proto : -{ "length" }-) *
-    MetaData($lfun_proto, #mfp) *
-    ((#mfp, "@scope") -> empty) * ((#mfp, "@call") -> "FP_default") *
-    empty_fields(#mfp : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
-      
-    JSObjGeneral ($lerr, $lfun_proto, "Function", true) *
-    (($lerr, "length") -> {{ "d", 1, false, false, false }}) *
-    (($lerr, "prototype") -> {{ "d", $lerr_proto, false, false, false }}) *
-    empty_fields($lerr : -{ "length", "prototype" }-) *
-    MetaData($lerr, #mlerr) *
-    ((#mlerr, "@scope") -> empty) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
-    empty_fields(#mlerr : -{ "@proto", "@class", "@extensible", "@scope", "@call", "@construct" }-) *
-    
-    JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true) * 
-    (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
-    empty_fields($lerr_proto : -{ "message" }-) *
-    MetaData($lerr_proto, #mlerrp) * empty_fields(#mlerrp : -{ "@proto", "@class", "@extensible" }-);
-
 (**************************
  **** FUNCTION OBJECTS ****
  **************************)
 
-pred FunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj) : 
+pred JSFunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj) : 
 	((l, "length")     -> {{ "d", len, false, false, false }}) *
 	((l, "arguments")  -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
 	((l, "caller")     -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
@@ -102,7 +46,129 @@ pred FunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj) :
 	((#md, "@call")       -> fid) * 
 	((#md, "@construct")  -> fid) *
 	((#md, "@scope")      -> sc) *
+	empty_fields(#md : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) *
 	MetaData(#md, null) * Extensible(#md, true);
+
+pred JSBIFunction (l:Obj, fid:Str, len:Num) : 
+	((l, "length")     -> {{ "d", len, false, false, false }}) *
+	MetaData(l, #md) * Extensible (l, true) *
+	((#md, "@proto")      -> $lfun_proto) * 
+	((#md, "@class")      -> "Function") *
+	((#md, "@extensible") -> true) * 
+	((#md, "@call")       -> fid) * 
+	((#md, "@scope")      -> empty) *
+	empty_fields(#md : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) *
+	MetaData(#md, null) * Extensible(#md, true);
+
+pred BIFunctionObject (l:Obj, len:Num, proto:Obj) : 
+	((l, "length")     -> {{ "d", len, false, false, false }}) *
+	((l, "prototype")  -> {{ "d", proto, false, false, false }}) *
+	MetaData(l, #md) * Extensible (l, true) *
+	((#md, "@proto")      -> $lfun_proto) * 
+	((#md, "@class")      -> "Function") *
+	((#md, "@extensible") -> true) * 
+	((#md, "@scope")      -> empty) *
+	empty_fields(#md : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) *
+	MetaData(#md, null) * Extensible(#md, true);
+
+(**************************
+ **** BUILT-IN OBJECTS ****
+ **************************)
+
+pred BooleanObject (l:Obj, b:Bool) :
+    MetaData(l, #md) * Extensible(l, true) *
+	((#md, "@proto")      -> $lbool_proto) *
+	((#md, "@class")      -> "Boolean") *
+	((#md, "@extensible") -> true) *
+	((#md, "@primitiveValue") -> b) *
+	MetaData(#md, null) * Extensible(#md, true) *
+	empty_fields (#md : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-);
+	
+pred NumberObject (l:Obj, n:Num) :
+    MetaData(l, #md) * Extensible(l, true) *
+	((#md, "@proto")      -> $lnum_proto) *
+	((#md, "@class")      -> "Number") *
+	((#md, "@extensible") -> true) *
+	((#md, "@primitiveValue") -> n) *
+	MetaData(#md, null) * Extensible(#md, true) *
+	empty_fields (#md : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-);
+
+pred BooleanPrototype () :
+    (($lbool_proto, "constructor") -> {{ "d", $lbool, true, false, true }}) *
+	(($lbool_proto, "toString")    -> {{ "d", $lbp_toString, true, false, true }}) *
+	(($lbool_proto, "valueOf")     -> {{ "d", $lbp_valueOf, true, false, true }}) *
+    MetaData($lbool_proto, #bpmd) * Extensible($lbool_proto, true) *
+	((#bpmd, "@proto")          -> $lobj_proto) *
+	((#bpmd, "@class")          -> "Boolean") *
+	((#bpmd, "@extensible")     -> true) *
+	((#bpmd, "@primitiveValue") -> false) *
+	MetaData(#bpmd, null) * Extensible(#bpmd, true) *
+	empty_fields (#bpmd : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-);
+	
+pred NumberPrototype () :
+    (($lnum_proto, "constructor")    -> {{ "d", $lnum, true, false, true }}) *
+	(($lnum_proto, "toString")       -> {{ "d", $lnp_toString, true, false, true }}) *
+	(($lnum_proto, "toLocaleString") -> {{ "d", $lnp_toLocaleString, true, false, true }}) *
+	(($lnum_proto, "valueOf")        -> {{ "d", $lnp_valueOf, true, false, true }}) *
+	(($lnum_proto, "toFixed")        -> {{ "d", $lnp_toFixed, true, false, true }}) *
+	(($lnum_proto, "toExponential")  -> {{ "d", $lnp_toExponential, true, false, true }}) *
+	(($lnum_proto, "toPrecision")    -> {{ "d", $lnp_toPrecision, true, false, true }}) *
+    MetaData($lnum_proto, #npmd) * Extensible($lnum_proto, true) *
+	((#npmd, "@proto")          -> $lobj_proto) *
+	((#npmd, "@class")          -> "Number") *
+	((#npmd, "@extensible")     -> true) *
+	((#npmd, "@primitiveValue") -> 0) *
+	MetaData(#npmd, null) * Extensible(#npmd, true) *
+	empty_fields (#npmd : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-);
+
+(************************
+ ***** INITIAL HEAP *****
+ ************************)
+ 
+(* The abstractions for the initial heap are a bit off *)
+
+pred initialHeapPre () :
+    EmptyExtensibleObject ($lg) *
+    EmptyExtensibleObject ($lobj_proto) *
+    EmptyExtensibleObject ($lfun_proto) *
+    EmptyExtensibleObject ($lbool_proto) *
+    EmptyExtensibleObject ($lnum_proto) *
+    EmptyExtensibleObject ($lerr) *
+    EmptyExtensibleObject ($lerr_proto) *
+    EmptyExtensibleObject ($lop_hasOwnProperty);
+    
+pred initialHeapPost (globals) :
+	types(globals:Set) *
+	
+	JSObject ($lg) *
+	(($lg, "Error") -> {{ "d", $lerr, true, false, true }}) *
+    empty_fields ($lg : -u- (-{ "Error" }-, globals) ) *
+    
+    JSObjWithProto ($lobj_proto, null) *
+    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
+    empty_fields ($lobj_proto : -{ "hasOwnProperty" }-) *
+
+	JSBIFunction($lop_hasOwnProperty, "OP_hasOwnProperty", 1) * empty_fields($lop_hasOwnProperty : -{ "length" }-) *
+    
+    JSObjGeneral ($lfun_proto, $lobj_proto, "Function", true) *
+    (($lfun_proto, "length") -> {{ "d", 0, false, false, false }}) *
+    empty_fields($lfun_proto : -{ "length" }-) *
+    MetaData($lfun_proto, #mfp) *
+    ((#mfp, "@scope") -> empty) * ((#mfp, "@call") -> "FP_default") *
+    empty_fields(#mfp : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
+    
+    BooleanPrototype () *
+    empty_fields ($lbool_proto : -{ "constructor", "toString", "valueOf" }-) *
+
+    NumberPrototype () *
+    empty_fields ($lnum_proto : -{ "constructor", "toExponential", "toFixed", "toLocaleString", "toPrecision", "toString", "valueOf" }-) *
+    
+    BIFunctionObject ($lerr, 1, $lerr_proto) * empty_fields($lerr : -{ "length", "prototype" }-) *
+    MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
+     
+    JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true) * 
+    (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
+    empty_fields($lerr_proto : -{ "message" }-);
 
 (***********************
  **** ERROR OBJECTS ****
@@ -118,13 +184,13 @@ pred ErrorObjectWithMessage (l : Obj, m : Str) :
   MetaData(#md, null) * Extensible(#md, true);
 
 pred isTypeError(l : Obj) :
-    ErrorObject (l, $lterr_proto);
+    ErrorObject (l, $lterr_proto) * empty_fields(l : -{ }-);
 
 pred isSyntaxError(l : Obj) :
     ErrorObject (l, $lserr_proto);
 
 pred isReferenceError(l : Obj) :
-    ErrorObject (l, $lrferr_proto);
+    ErrorObject (l, $lrferr_proto) * empty_fields(l : -{ }-);
 
 (********************
  **** PROPERTIES ****

@@ -970,6 +970,9 @@ lexpr_target:
 (* (e) *)
   | LBRACE; e=lexpr_target; RBRACE
 	  { e }
+(* Ignore variable *)
+  | UNDERSCORE
+  	{ LVar (fresh_lvar ()) }
 ;
 
 logic_variable_target:

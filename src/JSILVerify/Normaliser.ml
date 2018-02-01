@@ -1110,6 +1110,7 @@ let normalise_pred_assertions
   * Normalise EmptyFields Assertions
   * (Initialise Symbolic Heap Domains)
   * -----------------------------------------------------
+	* ERROR: TO FIX: EF can be duplicated
   * -----------------------------------------------------
 **)
 let normalise_ef_assertions
@@ -1143,8 +1144,10 @@ let normalise_ef_assertions
 				| _ -> print_debug_petar "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
 			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
-		let (fv_list, _), metadata, ext = try Heap.find heap le_loc_name with Not_found -> ([], None), None, None in
-		Heap.replace heap le_loc_name ((fv_list, Some domain), metadata, ext) in
+		let (fv_list, old_domain), metadata, ext = try Heap.find heap le_loc_name with Not_found -> ([], None), None, None in
+		(match old_domain with
+		| None -> Heap.replace heap le_loc_name ((fv_list, Some domain), metadata, ext)
+		| Some _ -> raise (Failure "Duplicate EF assertion!")) in
 
 	List.iter add_domain (get_all_empty_fields a)
 

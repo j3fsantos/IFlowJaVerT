@@ -351,6 +351,8 @@ let unify_domains
 		(dom       : jsil_logic_expr) 
 		(fv_list   : SFVL.t) 
 		(perm      : Permission.t) : SFVL.t =
+			
+	print_debug_petar "Entering unify_domains.";
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
 	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
@@ -370,7 +372,7 @@ let unify_domains
 	let domain_difference, domain_frame_difference =
 		(match domain_difference, domain_frame_difference with
 			| LESet domain_difference, LESet domain_frame_difference -> domain_difference, domain_frame_difference
-			| dd, dfd -> raise (UnificationFailure (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression dd) (JSIL_Print.string_of_logic_expression dfd)))) in
+			| _, _ -> raise (UnificationFailure (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference)))) in
 
 	(*
 	let none_q_v_list_strs = List.map (fun (field, value) -> JSIL_Print.string_of_logic_expression field false) none_q_v_list in

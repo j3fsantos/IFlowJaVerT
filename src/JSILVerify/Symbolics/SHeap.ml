@@ -113,8 +113,13 @@ let substitution_in_place (subst : substitution) (heap : t) : unit =
 			(* It does, needs merge *)
 			(* Get the data associated with the location *)
 			| Some ((nfvl, ndom), nmet, next) ->
-					let s_ext = Extensibility.merge ext next in
 					let s_nfvl = SFVL.substitution subst true nfvl in
+					let s_metadata = (match s_metadata, nmet with
+					  | None, None -> None
+            | None, Some domain 
+            | Some domain, None -> Some domain 
+            | Some m1, Some m2 -> Some m1) in 
+					let s_ext = Extensibility.merge ext next in
 					(* Perform the substitution in the domain *)
 					let s_ndom = Option.map (fun le -> le_subst le) ndom in
 					(* Merge the domains (without simplification) *)
@@ -126,7 +131,7 @@ let substitution_in_place (subst : substitution) (heap : t) : unit =
             			Some (LSetUnion [ set1; set2 ]) in
 											
 					(* Perform the replacement *)
-					Heap.replace heap s_loc ((s_fv_list @ s_nfvl, new_domain), s_metadata, ext)))
+					Heap.replace heap s_loc ((s_fv_list @ s_nfvl, new_domain), s_metadata, s_ext)))
   	heap
 
 (** Returns the logical variables occuring in --heap-- *)
