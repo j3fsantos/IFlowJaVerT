@@ -630,6 +630,50 @@ with
     ret: 	xret, rlab;
 };
 
+(*
+ *    Name: s__getOwnProperty 
+ * Purpose: Get own property of a String object
+ *
+ *   Specs:
+ *
+ * 01 - Property defined, return property descriptor
+ *
+ *)
+
+spec s__getOwnProperty (l, prop) 
+
+    [[ (l == #l) * (prop == #prop) * Cell_s (#l, #prop, #dx) * Descriptor(#dx) ]]
+    [[ Cell_s (#l, #prop, #dx) * (ret == #dx) ]]
+    normal
+
+proc s__getOwnProperty (l, prop) {
+			xret := "o__getOwnProperty" (l, prop);
+			goto [xret = undefined] str rlab;
+
+	str:	idx := "i__toInteger" (prop) with elab;
+			goto [idx < 0] rlab next;
+
+	next:	sidx := "i__toString" (idx);
+
+			goto [sidx = prop] index rlab;
+
+	index:	m := metadata(l);
+			str := [m, "@primitiveValue"];
+			len := s-len (str);
+			goto [len <= idx] rlab return;
+
+	return: rstr := s-nth (str, idx);
+			xret := {{ "d", rstr, false, true, false }};
+
+	rlab: 	skip;
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err: 	xret, elab;
+};
+
 (* **********************
    *** GETOWNPROPERTY ***
    ********************** *)
@@ -641,7 +685,7 @@ with
  *   Specs:
  *
  * 01 - Non-string object, property not defined, return undefined
- * 02 - Non-string object, property defined, return property descriptor
+ * 02 - Any object, property defined, return property descriptor
  *
  *)
 
@@ -654,7 +698,7 @@ spec getOwnProperty (l, prop)
     normal;
 
     [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) *
-       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) ]]
     [[ Cell_o (#l, #prop, #dx) * 
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == #dx) ]]
     normal
@@ -682,7 +726,7 @@ with
 
 (*
  *    Name: getProperty 
- * Purpose: Get property of a (general) object in the entire prototype chain
+ * Purpose: Get property of a (general) object, considering prototype inheritance
  *
  *   Specs:
  *
@@ -715,4 +759,56 @@ with
 {
     ret: 	xret, rlab;
     err:	xret, elab;
+};
+
+(* *** *)
+(* GET *)
+(* *** *)
+
+(*
+ *    Name: get 
+ * Purpose: Get the value of a property of a (general) object in the entire prototype chain
+ *
+ *   Specs:
+ *
+ * 01 - Property not defined in the prototype chain, return undefined ]
+ * 02 - Property defined, data descriptor, get value of the descriptor 
+ *)
+
+spec get (l, prop)
+
+    [[ (l == #l) * (prop == #prop) *
+	   Pi (#l, #prop, #d, #ls, #cls, #pv) * (#d == undefined) ]]
+    [[ Pi (#l, #prop, #d, #ls, #cls, #pv) * (ret == undefined) ]]
+    normal;
+    
+    [[ (l == #l) * (prop == #prop) *
+	   Pi (#l, #prop, #d, #ls, #cls, #pv) * DataDescriptor (#d) ]]
+    [[ Pi (#l, #prop, #d, #ls, #cls, #pv) * desc_val (#d, #desc_val) * (ret == #desc_val) ]]
+    normal
+
+proc get (l, prop) {
+
+			xret := "getProperty" (l, prop) with elab;
+			goto [xret = undefined] rlab def;		(* Does the field exist?    *)
+
+	def:	d := l-nth (xret, 0);					(* Get the descriptor type  *)
+			xret := l-nth (xret, 1);				(* Get the value/getter     *)
+			goto [d = "d"] rlab acc;				(* Is it a data descriptor? *)
+
+	acc:	goto [xret = undefined] rlab get;		(* Is the getter defined?               *)
+	get:	m := metadata(xret);
+			xsc := [m, "@scope"];				    (* Get the scope of the getter          *)
+			fun := [m, "@call"];					(* Get the name of the getter           *)
+			xret := fun (xsc, l) with elab;			(* Call the getter, errors could happen *)
+			goto [xret = empty] undef rlab;
+	undef:	xret := undefined;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xret, elab;
 };
