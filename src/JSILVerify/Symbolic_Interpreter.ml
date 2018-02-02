@@ -233,6 +233,7 @@ let symb_evaluate_bcmd
 	| Assignment (x, e) ->
 		let nle, tle, _ = ssee e in
 		store_put store x nle;
+		update_gamma gamma x tle;
 		nle
 
 	(* Object creation: x = new ();
@@ -409,6 +410,16 @@ let symb_evaluate_bcmd
 				| Some md -> 
 						Hashtbl.replace store x md;
 						md))
+(*
+	| Arguments x ->
+		let arg_obj = SHeap.get heap "$largs" in
+		(match arg_obj with
+		| None -> raise (Failure "The arguments object doesn't exist.")
+		| Some (([ (LLit (String "args"), (Readable, LEList args)) ], _), Some (LLit Null), Some NonExtensible) ->
+				Hashtbl.replace store x (LEList args);
+				LEList args
+		| _ -> raise (Failure "Structure of the arguments object is unacceptable."))
+*)
 	
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 

@@ -368,6 +368,73 @@ with
 };
 
 (* *************
+ * I__TONUMBER *
+ ***************)
+
+spec i__toNumber (v)
+
+	[[ v == null ]]
+	[[ ret == 0 ]]
+	normal;
+
+	[[ v == true ]]
+	[[ ret == 1 ]]
+	normal;
+
+	[[ v == false ]]
+	[[ ret == 0 ]]
+	normal;
+
+	[[ (v == #v) * types(#v:Num) ]]
+	[[ ret == #v ]]
+	normal;
+
+	[[ (v == #v) * types(#v:Str) ]]
+	[[ ret == (string_to_num #v) ]]
+	normal
+
+proc i__toNumber (v) {
+    iu:		goto [v = undefined] undef in;
+	undef:	xret := nan;
+    		goto rlab;
+
+    in:		goto [v = null] nul ib;
+	nul:	xret := 0;
+    		goto rlab;
+
+    ib:		goto [typeOf(v) = Bool] bool inum;
+	bool:	goto [v = true] is_t is_f;
+    is_t:	xret := 1;
+    		goto rlab;
+    is_f:	xret := 0;
+    		goto rlab;
+
+    inum:	goto [typeOf(v) = Num] num is;
+    num:	xret := v;
+    		goto rlab;
+
+    is:		goto [typeOf(v) = Str] str io;
+    str:	xret := string_to_num v;
+    		goto rlab;
+
+    io:		goto [typeOf(v) = Obj] obj oops;
+    obj:	xret := "i__toPrimitive" (v, "Number") with elab;
+    		xret := "i__toNumber" (xret);
+    		goto rlab;
+
+    oops:	xret := "TypeError" ("ToNumber: This should not happen.");
+            goto elab;
+
+    rlab:	skip;
+    elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *************
  * I__TOOBJECT *
  ***************)
 
@@ -693,6 +760,72 @@ with
  ***** AUXILIARIES *****
  ***********************
  ***********************)  
+ 
+ (* ********************* *)
+(* CHECKASSIGNMENTERRORS *)
+(* ********************* *)
+
+spec i__checkAssignmentErrors (v)
+
+    [[ v == undefined ]]
+    [[ ret == true ]]
+    normal;
+
+    [[ v == null ]]
+    [[ ret == true ]]
+    normal;
+
+	[[ types (v:Num) ]]
+	[[ (ret == true) ]]
+	normal;
+
+    [[ types (v:Bool) ]]
+    [[ ret == true ]]
+    normal;
+
+    [[ types (v:Str) ]]
+    [[ ret == true ]]
+    normal;
+
+    [[ types (v:Obj) ]]
+    [[ ret == true ]]
+    normal;
+
+    [[ (v == #v) * types (#v:List) * (#v == {{ "v", #l, #prop }}) * types(#l:Obj, #prop:Str) *
+	   (! (#prop == "eval")) * (! (#prop == "arguments"))]]
+    [[ ret == true ]]
+    normal;
+
+    [[ (v == #v) * types (#v:List, #l:Obj) * (#v == {{ "v", #l, "eval" }}) ]]
+    [[ isSyntaxError(ret) * empty_fields(ret : -{ }-) ]]
+    error;
+
+    [[ (v == #v) * types (#v:List, #l:Obj) * (#v == {{ "v", #l, "arguments" }}) ]]
+    [[ isSyntaxError(ret) * empty_fields(ret : -{ }-) ]]
+    error;
+
+    [[ (v == #v) * types (#v:List, #base:Obj, #field:Str) * (#v == {{ "o", #base, #field }}) ]]
+    [[ ret == true ]]
+    normal
+
+proc i__checkAssignmentErrors (v) {
+			tv := typeOf (v);
+			goto [(tv = List) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] prep rlab;
+
+	prep:	fv := l-nth (v, 2);
+
+	csyn:	goto [(l-nth (v, 0) = "v") and ((fv = "eval") or (fv = "arguments"))] se rlab;
+
+	rlab:	xret := true;
+
+	se:		xret := "SyntaxError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
  
 (* **********************
    *** I__ISPRIMITIVE ***
@@ -1135,7 +1268,93 @@ with
 	err:	xret, elab;
 };
 
+(* *********** *)
+(* HASPROPERTY *)
+(* *********** *)
 
+spec hasProperty (l, prop)
+
+	[[ (l == #l) * (prop == #prop) *
+	   Pi (#l, #prop, undefined, #ls, #cls, #pv) ]]
+	[[ Pi (#l, #prop, undefined, #ls, #cls, #pv) * (ret == false) ]]
+	normal;
+
+	[[ (l == #l) * (prop == #prop) *
+	   Pi (#l, #prop, #d, #ls, #cls, #pv) * Descriptor(#d) ]]
+	[[ Pi (#l, #prop, #d, #ls, #cls, #pv) * (ret == true) ]]
+	normal
+
+proc hasProperty (l, prop) {
+			xret := "getProperty" (l, prop) with elab;
+
+	rlab:	xret := not (xret = undefined);
+	elab:	skip
+}
+with
+{
+	ret: 	xret, rlab;
+	err:	xret, elab;
+};
+
+(* ************** *)
+(* DELETEPROPERTY *)
+(* ************** *)
+
+spec deleteProperty (l, prop, throw)
+
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, none) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+    [[ Cell_o (#l, #prop, none) * 
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == true) ]]
+    normal;
+    
+	[[ (l == #l) * (prop == #prop) *
+	   Cell_o(#l, #prop, #d) * Descriptor(#d) * desc_conf(#d, true) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+	[[ Cell_o(#l, #prop, none) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == true) ]]
+	normal;
+
+	[[ (l == #l) * (prop == #prop) * (throw == false) *
+	   Cell_o(#l, #prop, #d) * Descriptor(#d) * desc_conf(#d, false) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+	[[ Cell_o(#l, #prop, #d) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == false) ]]
+	normal;
+
+	[[ (l == #l) * (prop == #prop) * (throw == true) *
+	   Cell_o(#l, #prop, #d) * Descriptor(#d) * desc_conf(#d, false) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
+	[[ Cell_o(#l, #prop, #d) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isTypeError(err) ]]
+	error
+
+proc deleteProperty (l, prop, throw) {
+
+			xret := "getOwnProperty" (l, prop) with elab;
+			goto [xret = undefined] dt cont;
+
+	cont:	c := l-nth (xret, 4);
+			goto [c] del reject;
+
+	del:	delete (l, prop);
+
+	dt:		xret := true;
+			goto rlab;
+
+	df:		xret := false;
+	rlab:	skip;
+
+    reject: goto [throw] tt df;
+
+    tt:     xret := "TypeError" ();
+    elab:   skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
 
 (* *********************************************************
    *********************************************************
@@ -1181,12 +1400,6 @@ spec Number_construct (xsc, vthis, v)
 	normal
 
 proc Number_construct (xsc, vthis, v) {
-			la := args;
-			len := l-len (la);
-
-			goto [len < 3] zero init;
-
-	zero:	v := 0;
 
 	init:	pv := "i__toNumber" (v) with elab;
 
