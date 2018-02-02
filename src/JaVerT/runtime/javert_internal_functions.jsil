@@ -760,10 +760,40 @@ with
  ***** AUXILIARIES *****
  ***********************
  ***********************)  
+
+(* ********************
+   *** I__SAMEVALUE ***
+   ******************** *)
+
+proc i__sameValue (v1, v2) {
+			xret := (v1 = v2);
+
+			goto [(typeOf(v1) = Num)] test2 rlab;
+	test2:	goto [(typeOf(v2) = Num)] inan1 rlab;
+
+	inan1:	goto [(not (v1 = v1))] inan2 zero1;
+	inan2:	goto [(not (v2 = v2))] rt    zero1;
+	zero1:	goto [v1 = 0] zero2 rlab;
+	zero2:	goto [v2 = 0] fix   rlab;
+
+	fix:	sv1 := m_sgn (v1);
+			sv2 := m_sgn (v2);
+
+			xret := (sv1 = sv2);
+			goto rlab;
+
+	rt:		xret := true;
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
  
- (* ********************* *)
-(* CHECKASSIGNMENTERRORS *)
-(* ********************* *)
+(* ********************************
+   *** I__CHECKASSIGNMENTERRORS ***
+   ******************************** *)
 
 spec i__checkAssignmentErrors (v)
 
@@ -827,6 +857,60 @@ with
 	err:	xret, elab;
 };
  
+(* *******************************
+   *** I__CHECKOBJECTCOERCIBLE ***
+   ******************************* *)
+
+spec i__checkObjectCoercible (v)
+
+	[[ v == undefined ]]
+	[[ isTypeError(ret) ]]
+	normal;
+
+	[[ v == null ]]
+	[[ isTypeError(ret) ]]
+	normal;
+
+	[[ types (v:Num) ]]
+	[[ ret == empty ]]
+	normal;
+
+	[[ types (v:Bool) ]]
+	[[ ret == empty ]]
+	normal;
+
+	[[ types (v:Str) ]]
+	[[ ret == empty ]]
+	normal;
+
+	[[ types (v:Obj) ]]
+	[[ ret == empty ]]
+	normal
+
+proc i__checkObjectCoercible (v) {
+
+			xret := empty;
+
+	iu:		goto [v = undefined] throw in;
+
+	in:		goto [v = null] throw other;
+
+	other:	goto [(typeOf(v) = Bool) or (typeOf(v) = Num) or
+	              (typeOf(v) = Str) or (typeOf(v) = Obj)] rlab oops;
+
+	oops:	xret := "CheckObjectCoercible: This should not happen.";
+
+	rlab:	skip;
+
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 (* **********************
    *** I__ISPRIMITIVE ***
    ********************** *)
@@ -873,6 +957,108 @@ proc i__isPrimitive (v) {
 with
 {
 	ret:	xret, rlab;
+};
+
+(* ******************************
+   *** I__ISGENERICDESCRIPTOR ***
+   ****************************** *)
+
+proc i__isGenericDescriptor (desc) {
+			goto [desc = undefined] rf cont;
+
+	cont:	dd := "i__isDataDescriptor" (desc);
+			ad := "i__isAccessorDescriptor" (desc);
+			xret := not (dd or ad);
+			goto rlab;
+
+	rf:		xret := false;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};
+
+(* ***************************
+   *** I__ISDATADESCRIPTOR ***
+   *************************** *)
+
+proc i__isDataDescriptor (desc) {
+			goto [desc = undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "d"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+			goto [(v = empty) and (w = empty)] rf rt;
+	rt:		xret := true;
+			goto rlab;
+	rf:		xret := false;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+(* *******************************
+   *** I__ISACCESSORDESCRIPTOR ***
+   ******************************* *)
+
+proc i__isAccessorDescriptor (desc) {
+			goto [desc = undefined] rf cont;
+	cont:	d := l-nth (desc, 0);
+			goto [d = "a"] rt gen;
+	gen:	goto [d = "g"] test rf;
+	test:	g := l-nth (desc, 5);
+			s := l-nth (desc, 6);
+			goto [(g = empty) and (s = empty)] rf rt;
+	rt:		xret := true;
+			goto rlab;
+	rf:		xret := false;
+	rlab:	skip
+}
+with
+{
+	ret : xret, rlab;
+};
+
+(* ***************************
+   *** I__TODATADESCRIPTOR ***
+   *************************** *)
+
+proc i__toDataDescriptor (desc) {
+			d := l-nth (desc, 0);
+			goto [d = "d"] rd cstr;
+
+	cstr:	goto [d = "a"] ra gen;
+
+	ra:		xret := {{ "d", undefined, false, l-nth (desc, 3), l-nth (desc, 4) }};
+			goto rlab;
+
+	gen:	e := l-nth (desc, 1);
+			c := l-nth (desc, 2);
+			v := l-nth (desc, 3);
+			w := l-nth (desc, 4);
+
+			goto [e = empty] fixe c;
+	fixe:	e := false;
+	c:		goto [c = empty] fixc v;
+	fixc:	c := false;
+	v:		goto [v = empty] fixv w;
+	fixv:	v := undefined;
+	w:		goto [w = empty] fixw fixed;
+	fixw:	w := false;
+
+	fixed:	xret := {{ "d", v, w, e, c }};
+			goto rlab;
+
+	rd:		xret := desc;
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
 };
 
 (* **********************************************
@@ -1354,6 +1540,318 @@ with
 {
 	ret: xret, rlab;
 	err: xret, elab;
+};
+
+(* ****** *)
+(* CANPUT *)
+(* ****** *)
+
+spec canPut (l, prop)
+
+    (* Property not defined at all, returning "@extensible" *)
+    [[ (l == #l) * (prop == #prop) * types(#ext:Bool) *
+	   Pi (#l, #prop, undefined, #ls, #lcls, #lpv) *
+       MetaData(#l, #md) * ((#md, "@extensible") -> #ext) ]]
+    [[ Pi (#l, #prop, undefined, #ls, #lcls, #lpv) *
+       MetaData(#l, #md) * ((#md, "@extensible") -> #ext) *
+	   (ret == #ext) ]]
+    normal;
+
+	(* Property defined in the object itself, data descriptor, returning writable *)
+	[[ (l == #l) * (prop == #prop) *
+	   Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * DataDescriptor(#d) * desc_writ(#d, #writ) ]]
+	[[ Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * (ret == #writ) ]]
+	normal;
+	
+	(* Property defined as a data descriptor outside, but object not extensible, return false *)
+	[[ (l == #l) * (prop == #prop) *
+      Pi (#l, #prop, #d, #ls, #lcls, #lpv) * DataDescriptor(#d) * (#ls == (#l :: #lp :: #other)) * 
+      MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) * (ret == false) ]]
+	normal;
+
+	(* Property defined as a data descriptor outside, object extensible, return writable *)
+	[[ (l == #l) * (prop == #prop) *
+	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) * DataDescriptor(#d) * desc_writ(#d, #writ) * (#ls == (#l :: #lp :: #other)) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) * (ret == #writ) ]]
+	normal
+
+proc canPut (l, prop) {
+			[* unfold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
+            xret := "getOwnProperty" (l, prop) with elab;
+            [* fold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
+	op:		goto [xret = undefined] nop odesc; 	(* Does the own property exist? *)
+
+	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
+			goto [d = "d"] odd nop;					    (* Is the descriptor a data descriptor? *)
+
+	odd:	xret := l-nth (xret, 2);					(* It is; return the Writable attribute *)
+			goto rlab;
+
+	nop:	m := metadata(l);
+			e := [m, "@extensible"];				   (* Get the extensible property *)
+			xret := "getProperty" (l, prop) with elab; (* Does the property exist? *)
+			goto [xret = undefined] ext desc;		   (* It doesn't; return extensible *)
+
+	desc:	d := l-nth (xret, 0);					(* Get the descriptor type *)
+			v := l-nth (xret, 2);					(* Get the writable/setter *)
+			goto [d = "d"] dd ad;					(* Is it a data descriptor? *)
+
+	dd:		goto [e] wr ext;						(* Yes; is the object extensible? *)
+	wr:		xret := v;								(* Yes; return writable *)
+			goto rlab;
+
+	ad:		xret := not (v = undefined); 			(* Accessor descriptor *)
+			goto rlab;
+
+	ext:	xret := e;								(* Return extensible *)
+
+    rlab:   skip;
+    elab:	skip
+}
+with
+{
+    ret: 	xret, rlab;
+    err:	xret, elab;
+};
+
+(* ******************** *)
+(* O__DEFINEOWNPROPERTY *)
+(* ******************** *)
+
+proc o__defineOwnProperty (l, prop, desc, throw) {
+
+			xret := true;
+
+			current := "getOwnProperty" (l, prop) with celab;
+			m := metadata(l);
+			extensible := [m, "@extensible"];
+
+			goto [(current = undefined) and (extensible = false)] reject l4;
+	l4:		goto [(current = undefined) and (extensible = true)] l4a getall;
+
+	l4a:	gd := "i__isGenericDescriptor" (desc);
+			dd := "i__isDataDescriptor" (desc);
+
+			goto [gd or dd] l4a1 l4b;
+
+	l4a1:	ndesc := "i__toDataDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+
+	l4b:	ndesc := "i__toAccessorDescriptor" (desc);
+			[l, prop] := ndesc;
+			goto acc_t;
+
+	getall:	goto [l-nth (desc, 0) = "d"] ddd odd;
+
+			(* Data *)
+	ddd:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := l-nth (desc, 1);
+			dw := l-nth (desc, 2);
+			dg := empty;
+			ds := empty;
+			goto l5;
+
+	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
+
+			(* Accessor *)
+	add:	de := l-nth (desc, 3);
+			dc := l-nth (desc, 4);
+			dv := empty;
+			dw := empty;
+			dg := l-nth (desc, 1);
+			ds := l-nth (desc, 2);
+			goto l5;
+
+			(* Generic *)
+	gdd:	de := l-nth (desc, 1);
+			dc := l-nth (desc, 2);
+			dv := l-nth (desc, 3);
+			dw := l-nth (desc, 4);
+			dg := l-nth (desc, 5);
+			ds := l-nth (desc, 6);
+
+	l5:		goto [(de = empty) and (dc = empty) and (dv = empty) and
+			      (dw = empty) and (dg = empty) and (ds = empty)] acc_t l6;
+
+	l6:		goto [l-nth (current, 0) = "d"] chd cha;
+
+	chd:	t1 := "i__sameValue" (dv, l-nth (current, 1));
+			t2 := "i__sameValue" (dw, l-nth (current, 2));
+			t3 := "i__sameValue" (de, l-nth (current, 3));
+			t4 := "i__sameValue" (dc, l-nth (current, 4));
+
+			goto [t1 and t2 and t3 and t4 and
+			      (dg = empty) and (ds = empty)] acc_t l7;
+
+	cha:	t1 := "i__sameValue" (dg, l-nth (current, 1));
+			t2 := "i__sameValue" (ds, l-nth (current, 2));
+			t3 := "i__sameValue" (de, l-nth (current, 3));
+			t4 := "i__sameValue" (dc, l-nth (current, 4));
+
+			goto [t1 and t2 and t3 and t4 and
+			      (dv = empty) and (dw = empty)] acc_t l7;
+
+	l7:		ct := l-nth (current, 0);
+			cvg := l-nth (current, 1);
+			cws := l-nth (current, 2);
+			ce := l-nth (current, 3);
+			cc := l-nth (current, 4);
+
+			goto [(cc = false) and ((dc = true) or ((not (de = empty)) and (not (ce = de))))] reject l8;
+
+	l8:		gd := "i__isGenericDescriptor" (desc);
+			goto [gd] l12 l9;
+
+	l9:		cdd := "i__isDataDescriptor" (current);
+			ddd := "i__isDataDescriptor" (desc);
+
+			goto [not (cdd = ddd)] l9a l10;
+
+	l9a:	goto [cc = false] reject change;
+	change:	goto [cdd = true] toa tod;
+	toa:	goto [dg = empty] sg gs;
+	sg:		dg := undefined;
+	gs:		goto [ds = empty] ss ge1;
+	ss:		ds := undefined;
+	ge1:	goto [de = empty] se1 gc1;
+	se1:	de := ce;
+	gc1:	goto [dc = empty] sc1 spa;
+	sc1:	dc := cc;
+	spa:	[l, prop] := {{ "a", dg, ds, de, dc }};
+			goto acc_t;
+
+	tod:	goto [dv = empty] sv gw;
+	sv:		dv := undefined;
+	gw:		goto [dw = empty] sw ge2;
+	sw:		dw := false;
+	ge2:	goto [de = empty] se2 gc2;
+	se2:	de := ce;
+	gc2:	goto [dc = empty] sc2 spd;
+	sc2:	dc := cc;
+	spd:	[l, prop] := {{ "d", dv, dw, de, dc }};
+			goto acc_t;
+
+	l10:	goto [cdd = true] l10a l11;
+
+	l10a:	goto [cc = false] l10ai l12;
+	l10ai:	goto [(not (dw = empty)) and ((cws = false) and (dw = true))] reject l10aii;
+	l10aii:	t1 := "i__sameValue" (cvg, dv);
+			goto [(cws = false) and (not (dv = empty)) and (not t1)] reject l12;
+
+	l11: 	t1 := "i__sameValue" (dg, l-nth (current, 1));
+			t2 := "i__sameValue" (ds, l-nth (current, 2));
+			goto [(cc = false) and
+	             (((not (dg = empty)) and (not t1)) or
+	              ((not (ds = empty)) and (not t2)))] reject l12;
+
+	l12:	re := de;
+			rc := dc;
+			goto [de = empty] rec red;
+	rec:	re := l-nth (current, 3);
+	red:	goto [dc = empty] rcd rd;
+	rcd:	rc := l-nth (current, 4);
+
+	rd: 	goto [ct = "d"] l12d l12a;
+
+	l12d:	rv := dv;
+			rw := dw;
+			goto [dv = empty] rvc rvd;
+	rvc:	rv := l-nth (current, 1);
+	rvd:	goto [dw = empty] rwd setd;
+	rwd:	rw := l-nth (current, 2);
+	setd:	[l, prop] := {{ "d", rv, rw, re, rc }};
+			goto acc_t;
+
+	l12a:	rg := dg;
+			rs := ds;
+			goto [dg = empty] rgc rgd;
+	rgc:	rg := l-nth (current, 1);
+	rgd:	goto [ds = empty] rsd seta;
+	rsd:	rs := l-nth (current, 2);
+	seta:	[l, prop] := {{ "a", rg, rs, re, rc }};
+			goto acc_t;
+
+	acc_t:	xret := true;
+			goto rlab;
+
+	acc_f:	xret := false;
+	rlab:	skip;
+
+	celab:	xerr := current;
+			goto elab;
+
+    reject: goto [throw] tt acc_f;
+    tt:     xerr := "TypeError" ();
+    elab:   skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xerr, elab;
+};
+
+(* ***************** *)
+(* DEFINEOWNPROPERTY *)
+(* ***************** *)
+
+spec defineOwnProperty(l, prop, desc, throw)
+
+    (* Current is undefined, object is not extensible, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
+	   Cell_o (#l, #prop, none) * MetaData(#l, #md) * 
+	   ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   ((#md, "@extensible") -> false) ]]
+    [[ Cell_o (#l, #prop, none) * MetaData(#l, #md) *
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+    error;
+    
+    (* Current is undefined, object is not extensible, non-string, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
+       Cell_o (#l, #prop, none) * MetaData(#l, #md) * 
+	   ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+	   ((#md, "@extensible") -> false) ]]
+    [[ Cell_o (#l, #prop, none) * MetaData(#l, #md) *
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> false) *
+	   (ret == false) ]]
+    normal;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
+       Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+       DataDescriptor(#desc) * desc_conf(#desc, true) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
+       ((#md, "@extensible") -> #ext) ]]
+    [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) * 
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
+	   isTypeError(err) ]]
+	error
+
+proc defineOwnProperty (l, prop, desc, throw) {
+
+			m := metadata(l);
+			class := [m, "@class"];
+
+			goto [class = "Array"] adop odop;
+
+	adop:	xret := "a__defineOwnProperty" (l, prop, desc, throw) with elab;
+			goto rlab;
+
+	odop:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 };
 
 (* *********************************************************

@@ -134,10 +134,10 @@ let merge_heaps
 	) meta_subst;
 
 	(* Garbage collection - What happens here now?! TODO *)
-	SHeap.iterator heap (fun loc ((fv_list, domain), _, _) ->
-		(match fv_list, domain with
-		| [], None -> SHeap.remove heap loc
-		| _, _ -> ()));
+	SHeap.iterator heap (fun loc ((fv_list, domain), metadata, ext) ->
+		(match fv_list, domain, metadata, ext with
+		| [], None, None, None -> SHeap.remove heap loc
+		| _, _, _, _ -> ()));
 
 	print_debug "Finished merging heaps.";
 	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))

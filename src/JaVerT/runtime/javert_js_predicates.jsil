@@ -174,37 +174,37 @@ pred initialHeapPost (globals) :
  **** ERROR OBJECTS ****
  ***********************)
  
-pred ErrorObject (l : Obj, pr : Obj) :
+pred ErrorObject (l:Obj, pr:Obj) :
 	JSObjGeneral(l, pr, "Error", true);
 
-pred ErrorObjectWithMessage (l : Obj, m : Str) :
+pred ErrorObjectWithMessage (l:Obj, m:Str) :
   MetaData(l, #md) * Extensible(l, true) *
   ((#md, "@proto") -> $lerr_proto) * ((#md, "@class") -> "Error") * ((#md, "@extensible") -> true) *
   ((#md, "message") -> {{"d", m, true, false, true}}) * 
   MetaData(#md, null) * Extensible(#md, true);
 
-pred isTypeError(l : Obj) :
+pred isTypeError(l:Obj) :
     ErrorObject (l, $lterr_proto) * empty_fields(l : -{ }-);
 
-pred isSyntaxError(l : Obj) :
+pred isSyntaxError(l:Obj) :
     ErrorObject (l, $lserr_proto);
 
-pred isReferenceError(l : Obj) :
+pred isReferenceError(l:Obj) :
     ErrorObject (l, $lrferr_proto) * empty_fields(l : -{ }-);
 
 (********************
  **** PROPERTIES ****
  ********************)
 
-pred DataProp (l : Obj, prop : Str, v) :
+pred DataProp (l:Obj, prop:Str, v) :
 	((l, prop) -> {{ "d", v, true, true, true }}) *
 	(! (v == empty));
 	
-pred DataPropGen (l : Obj, prop : Str, v, writ : Bool, enum : Bool, conf : Bool) : 
+pred DataPropGen (l:Obj, prop:Str, v, writ:Bool, enum:Bool, conf:Bool) : 
 	((l, prop) -> {{ "d", v, writ, enum, conf }}) *
 	(! (v == empty));
 	
-pred DataPropConst (l : Obj, prop : Str, v) :
+pred DataPropConst (l:Obj, prop:Str, v) :
 	((l, prop) -> {{ "d", v, false, #e, false }}) *
 	types(#e:Bool) * (! (v == empty));
 

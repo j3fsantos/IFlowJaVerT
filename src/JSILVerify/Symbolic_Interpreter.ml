@@ -1223,8 +1223,10 @@ let rec symb_evaluate_cmd
 					let ret_lexpr = store_get_safe (ss_store symb_state) ret_var in
 					match ret_lexpr with 
 					| Some ret_le -> 
+						let new_store = store_copy old_store in
+						store_put new_store x ret_le;
 						let search_info = { search_info with vis_tbl = old_vis_tbl } in 
-						let symb_state  = ss_replace_store symb_state old_store in
+						let symb_state  = ss_replace_store symb_state new_store in
 						(symb_state, ret_flag, ret_le, search_info)
 					| None        -> raise (Failure (Printf.sprintf "No return variable found in store for procedure %s." proc_name))
 				) final_symb_states
@@ -1382,6 +1384,8 @@ let unify_symb_state_against_post
 		(flag           : jsil_return_flag) 
 		(symb_state     : symbolic_state) : symbolic_state =
 
+	print_debug "Entering unify_symb_state_against_post.";
+
 	let print_error_to_console msg =
 		(if (msg = "")
 			then Printf.printf "Failed to verify a spec of proc %s\n" proc_name
@@ -1391,6 +1395,7 @@ let unify_symb_state_against_post
 		Printf.printf "Final symbolic state: %s\n" final_symb_state_str;
 		Printf.printf "Post condition: %s\n" post_symb_state_str in
 
+	(* Loop through all possible postconditions, stop if one matches *)
 	let rec loop posts i : symbolic_state =
 		(match posts with
 		| [] -> print_error_to_console ""; raise (Failure "Post condition is not unifiable")
@@ -1441,6 +1446,10 @@ let symb_evaluate_proc
 			let symb_state = ss_copy spec.n_pre in
 			(* Symbolically execute the procedure *)
 			let final_symb_states = pre_symb_evaluate_cmd s_prog proc spec.n_lvars spec.n_subst search_info symb_state (-1) 0 in 
+			
+			print_debug (Printf.sprintf "The final symbolic states for procedure %s are:" proc_name);
+			List.iter (fun (ss, _, _, _) -> print_debug (Symbolic_State_Print.string_of_symb_state ss)) final_symb_states;
+			
 			
 			List.iter (fun (symb_state, ret_flag, spec_vars, search_info) -> 
 				let successful_post = unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state in 
