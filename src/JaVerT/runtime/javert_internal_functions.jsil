@@ -1999,76 +1999,28 @@ with
 (* *********** *)
 (* *** PUT *** *)
 (* *********** *)
-
-	(* ******* UNSUCCESSFUL PUT ******* *)
+	 
+	(* ******* SUCCESSFUL PUT ******* *)
 
 	(*
-	 *	1. Property is not defined in the prototype chain at all, object is not extensible, throw
-	 *  2. Property is defined in the object (DD), data descriptor is not writable, throw
-	 *  3. Property is defined in the prototype chain, not in the object (DD), object is not extensible, throw
-	 *  4. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, throw
+	 *  1. Property is not defined in the prototype chain at all, prototype chain of length > 1, object is extensible
+	 *	2. Property is defined in the object (DD), data descriptor is writable
+	 *  3. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable
+	 *  4. Property is not defined in the prototype chain at all, prototype chain of length = 1, object is extensible
 	 *)
 
-	 (* ******* SUCCESSFUL PUT ******* *)
-
+	(* ******* UNSUCCESSFUL PUT ******* *)
+ 
 	(*
-	 *  5. Property is not defined in the prototype chain at all, prototype chain of length = 1, object is extensible
-	 *  6. Property is not defined in the prototype chain at all, prototype chain of length > 1, object is extensible
-	 *	7. Property is defined in the object (DD), data descriptor is writable
-	 *  8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable
+	 *	5. Property is not defined in the prototype chain at all, object is not extensible, throw
+	 *  6. Property is defined in the object (DD), data descriptor is not writable, throw
+	 *  7. Property is defined in the prototype chain, not in the object (DD), object is not extensible, throw
+	 *  8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, throw
 	 *)
 
 spec put (l, prop, value, throw)
 
-	(* 1. Property is not defined within the prototype chain at all, object not extensible, throw *)
-	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) *
-	   Pi (#l, #prop, undefined, #ls, #lcls, #lpv) * 
-	   MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
-	[[ Pi (#l, #prop, undefined, #ls, #lcls, #lpv) * 
-	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
-	   isTypeError(err) ]]
-	error;
-	
-	(* 2. Property is defined in the object, data descriptor that is not writable, throw *)
-	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
-	   Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * 
-	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
-	   DataDescriptor(#d) * desc_writ(#d, false) ]]
-	[[ Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
-	   isTypeError(err) ]]
-	error;
-	
-	(* 3. Property is defined in the prototype chain, not in the object, object not extensible, throw *)
-	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
-	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
-	   DataDescriptor(#d) * (#ls == (#l :: #lp :: #other)) * types(#lp:Obj) ]]
-	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
-	   isTypeError(err) ]]
-	error;
-
-	(* 4. Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
-	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) *
-	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
-	   DataDescriptor(#d) * desc_writ(#d, false) * (#ls == (#l :: #lp :: #other)) * types (#lp:Obj) ]]
-	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
-	   isTypeError(err) ]]
-	error;
-	
-	(* 5. Property is not defined within the prototype chain, only one element, non-string *)
-	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) * (throw == #throw) * types(#throw:Bool) * 
-	   Pi (#l, #prop, undefined, {{ #l }}, {{ #cls }}, {{ "" }}) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
-	[[ Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) * 
-	   MetaData(#l, #md) * ((#md, "@proto") -> null) * ((#md, "@extensible") -> true) *
-	   (ret == empty) ]]
-	normal;
-
-	(* 6. Property is not defined within the prototype chain, more than one element, non-string
+	(* 1. Property is not defined within the prototype chain, more than one element, non-string
 		   Must reform the prototype chain manually in the post-condition, extra tricky *)
 	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) *
 	   (throw == #throw) * types (#throw:Bool) *
@@ -2081,7 +2033,7 @@ spec put (l, prop, value, throw)
 	   (ret == empty) ]]
 	normal;
 	
-	(* 7. Property is defined in the object, data descriptor that is writable, success *)
+	(* 2. Property is defined in the object, data descriptor that is writable, success *)
 	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) *
 	   (throw == #throw) * types (#throw:Bool) *
 	   Pi (#l, #prop, {{ "d", #dval, true, #denum, #dconf }}, {{ #l }}, {{ #cls }}, #lpv) *
@@ -2093,7 +2045,7 @@ spec put (l, prop, value, throw)
 	   (ret == empty) ]]
 	normal;
 
-	(* 8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
+	(* 3. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
     [[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) *
 	   (throw == #throw) * types (#throw:Bool) *
 	   Pi (#l, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) *
@@ -2104,7 +2056,55 @@ spec put (l, prop, value, throw)
 	   Pi (#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) *
        MetaData(#l, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
 	   (ret == empty) ]]
-    normal
+    normal;
+
+	(* 4. Property is not defined within the prototype chain, only one element, non-string *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) * (throw == #throw) * types(#throw:Bool) * 
+	   Pi (#l, #prop, undefined, {{ #l }}, {{ #cls }}, {{ "" }}) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) * 
+	   MetaData(#l, #md) * ((#md, "@proto") -> null) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+	normal;
+
+	(* 5. Property is not defined within the prototype chain at all, object not extensible, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) *
+	   Pi (#l, #prop, undefined, #ls, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi (#l, #prop, undefined, #ls, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+	error;
+
+	(* 6. Property is defined in the object, data descriptor that is not writable, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
+	   Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
+	   DataDescriptor(#d) * desc_writ(#d, false) ]]
+	[[ Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
+	   isTypeError(err) ]]
+	error;
+	
+	(* 7. Property is defined in the prototype chain, not in the object, object not extensible, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
+	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   DataDescriptor(#d) * (#ls == (#l :: #lp :: #other)) * types(#lp:Obj) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+	error;
+
+	(* 8. Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) *
+	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
+	   DataDescriptor(#d) * desc_writ(#d, false) * (#ls == (#l :: #lp :: #other)) * types (#lp:Obj) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
+	   isTypeError(err) ]]
+	error;
 
 proc put (l, prop, value, throw) {
             xret := "canPut" (l, prop) with elab;
