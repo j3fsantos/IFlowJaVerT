@@ -1220,8 +1220,7 @@ let normalise_metadata
 	List.iter (fun (loc, md) -> 
 		(match (Heap.mem heap loc) with
 		| false -> 
-				(* TODO: Ultra careful here with this false ... *)
-				Heap.replace heap loc (([], None), Some md, Some NonExtensible)
+				Heap.replace heap loc (([], None), Some md, None)
 		| true  -> 
 				let ((fv_list, domain), _, ext) = Heap.find heap loc in
 					Heap.replace heap loc ((fv_list, domain), Some md, ext))

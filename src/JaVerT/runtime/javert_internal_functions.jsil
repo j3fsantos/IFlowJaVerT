@@ -765,25 +765,54 @@ with
    *** I__SAMEVALUE ***
    ******************** *)
 
-proc i__sameValue (v1, v2) {
-			xret := (v1 = v2);
+spec i__sameValue (v1, v2)
 
-			goto [(typeOf(v1) = Num)] test2 rlab;
-	test2:	goto [(typeOf(v2) = Num)] inan1 rlab;
+	[[ (v1 == 0) * (v2 == 0) ]]
+	[[ ret == true ]]
+	normal;
+
+	[[ (v1 == -0) * (v2 == -0) ]]
+	[[ ret == true ]]
+	normal;
+
+	[[ (v1 == -0) * (v2 == 0) ]]
+	[[ ret == false ]]
+	normal;
+	
+	[[ (v1 == 0) * (v2 == -0) ]]
+	[[ ret == false ]]
+	normal;
+
+	[[ (v1 == v2) ]]
+	[[ ret == true ]]
+	normal;
+
+	[[ ! (v1 == v2) ]]
+	[[ ret == false ]]
+	normal
+
+proc i__sameValue (v1, v2) {
+
+			goto [(typeOf(v1) = Num)] test2 nonum;
+	test2:	goto [(typeOf(v2) = Num)] inan1 nonum;
 
 	inan1:	goto [(not (v1 = v1))] inan2 zero1;
 	inan2:	goto [(not (v2 = v2))] rt    zero1;
-	zero1:	goto [v1 = 0] zero2 rlab;
-	zero2:	goto [v2 = 0] fix   rlab;
+	zero1:	goto [v1 = 0] zero2 nonum;
+	zero2:	goto [v2 = 0] fix   nonum;
 
 	fix:	sv1 := m_sgn (v1);
 			sv2 := m_sgn (v2);
 
-			xret := (sv1 = sv2);
+			goto [sv1 = sv2] rt rf;
 			goto rlab;
 
-	rt:		xret := true;
+	nonum:  goto [v1 = v2] rt rf; 
 
+	rt:		xret := true;
+	        goto rlab;
+	        
+	rf:     xret := false;
 	rlab:	skip
 }
 with
@@ -1378,7 +1407,7 @@ spec i__getValue (v)
     [[ isReferenceError(err) ]]
     error;
     
-    (* Now come the more involved specs *)
+    (* Now come the more involved specs, which are a bit difficult for the solver. *)
     
     [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * (#d == undefined) ]]
     [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * (ret == undefined) ]]
@@ -1394,7 +1423,7 @@ spec i__getValue (v)
 
     [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * DataDescriptor(#d) ]]
     [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * desc_val(#d, #dval) * (ret == #dval) ]]
-    normal
+    normal 
 
 proc i__getValue (v) {
 
@@ -1454,9 +1483,9 @@ with
 	err:	xret, elab;
 };
 
-(* *********** *)
-(* HASPROPERTY *)
-(* *********** *)
+(* ******************* *)
+(* *** HASPROPERTY *** *)
+(* ******************* *)
 
 spec hasProperty (l, prop)
 
@@ -1482,9 +1511,9 @@ with
 	err:	xret, elab;
 };
 
-(* ************** *)
-(* DELETEPROPERTY *)
-(* ************** *)
+(* ********************** *)
+(* *** DELETEPROPERTY *** *)
+(* ********************** *)
 
 spec deleteProperty (l, prop, throw)
 
@@ -1542,9 +1571,9 @@ with
 	err: xret, elab;
 };
 
-(* ****** *)
-(* CANPUT *)
-(* ****** *)
+(* ************** *)
+(* *** CANPUT *** *)
+(* ************** *)
 
 spec canPut (l, prop)
 
@@ -1618,9 +1647,9 @@ with
     err:	xret, elab;
 };
 
-(* ******************** *)
-(* O__DEFINEOWNPROPERTY *)
-(* ******************** *)
+(* **************************** *)
+(* *** O__DEFINEOWNPROPERTY *** *)
+(* **************************** *)
 
 proc o__defineOwnProperty (l, prop, desc, throw) {
 
@@ -1796,13 +1825,63 @@ with
 	err: xerr, elab;
 };
 
-(* ***************** *)
-(* DEFINEOWNPROPERTY *)
-(* ***************** *)
+(* ************************* *)
+(* *** DEFINEOWNPROPERTY *** *)
+(* ************************* *)
 
 spec defineOwnProperty(l, prop, desc, throw)
 
-    (* Current is undefined, object is not extensible, non-string, throw *)
+	(* Current is undefined, object is extensible, non-string, data descriptor, success *)
+    [[ (l == #l) * (prop == #prop) * 
+       (desc == #desc) * DataDescriptor(#desc) * 
+       (throw == #throw) * types (#throw : Bool) *
+	   Cell_o (#l, #prop, none) * MetaData(#l, #md) * 
+	   ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * isClass(#cls, "Non-String") *
+	   ((#md, "@extensible") -> true) ]]
+    [[ Cell_o (#l, #prop, #desc) * MetaData(#l, #md) * 
+	   ((#md, "@class") -> #cls) * ((#md, "@extensible") -> true) ]]
+    normal;
+    
+    (* Current is defined, data descriptor, writable, sending only value, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * 
+	   desc_writ(#dcur, true) * desc_enum(#dcur, #dec) * desc_conf(#dcur, #dcc) *
+	   (#desc == {{ "g", empty, empty, #gval, empty, empty, empty }}) * (! (#gval == empty)) *
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+    [[ Cell_o (#l, #prop, {{ "d", #gval, true, #dec, #dcc }}) *
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) *
+       ((#md, "@extensible") -> #ext) *
+	   (ret == true) ]]
+	normal;
+    
+    (* Current is defined, configurable is true, data descriptor, non-string, success *)
+    [[ (l == #l) * (prop == #prop) * (throw == #throw) *
+       (desc == #desc) * DataDescriptor(#desc) * 
+       Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * desc_conf(#dcur, true) *
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+    [[ Cell_o (#l, #prop, #desc) *
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+       ((#md, "@extensible") -> #ext) *
+	   (ret == true) ]]
+    normal;
+
+	(* Current is defined, configurables are false, enumerables are same, writable is true, non-string, success *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == #throw) *
+	   Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * DataDescriptor(#desc) * 
+	   desc_conf(#desc, false) * desc_conf(#dcur, false) *
+	   desc_enum(#desc, #enum) * desc_enum(#dcur, #enum) *
+	   desc_writ(#dcur, true) * 
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+    [[ Cell_o (#l, #prop, #desc) *
+	   MetaData(#l, #md) * ((#md, "@class") -> #cls) *
+       ((#md, "@extensible") -> #ext) *
+	   (ret == true) ]]
+	normal;
+
+    (* Current is undefined, object is not extensible, non-array, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
 	   Cell_o (#l, #prop, none) * MetaData(#l, #md) * 
 	   ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
@@ -1812,7 +1891,7 @@ spec defineOwnProperty(l, prop, desc, throw)
 	   isTypeError(err) ]]
     error;
     
-    (* Current is undefined, object is not extensible, non-string, don't throw *)
+    (* Current is undefined, object is not extensible, non-array, don't throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
        Cell_o (#l, #prop, none) * MetaData(#l, #md) * 
 	   ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
@@ -1822,16 +1901,79 @@ spec defineOwnProperty(l, prop, desc, throw)
 	   (ret == false) ]]
     normal;
 
-	(* Current is defined, configurable is false, data descriptor, configurable is true, non-string, throw *)
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-array, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
        Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
        DataDescriptor(#desc) * desc_conf(#desc, true) *
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
-       ((#md, "@extensible") -> #ext) ]]
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
     [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) * 
        ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
 	   isTypeError(err) ]]
-	error
+	error;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is true, non-array, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
+       Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+       DataDescriptor(#desc) * desc_conf(#desc, true) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+    [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) * 
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
+	   (ret == false) ]]
+	normal;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-array, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
+	   Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+       DataDescriptor(#desc) * desc_conf(#desc, false) *
+       desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+    [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) * 
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-array, don't throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
+	   Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+       DataDescriptor(#desc) * desc_conf(#desc, false) *
+       desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
+       ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+    [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) * 
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
+	   (ret == false) ]]
+	normal;
+	
+	(* Current is defined, configurables are false, enumerables are same, writables false and true, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
+       Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * DataDescriptor(#desc) * 
+	   desc_conf(#desc, false) * desc_conf(#dcur, false) *
+	   desc_enum(#desc, #en)   * desc_enum(#dcur, #en)   *
+	   desc_writ(#desc, true)  * desc_writ(#dcur, false) *
+	   MetaData(#l, #md) *
+       ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") *
+       ((#md, "@extensible") -> #ext) * types (#ext : Bool) ]]
+    [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) *
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Current is defined, configurables are false, enumerables are same, writables false and true, throw *)
+    [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
+       Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * DataDescriptor(#desc) * 
+	   desc_conf(#desc, false) * desc_conf(#dcur, false) *
+	   desc_enum(#desc, #en)   * desc_enum(#dcur, #en)   *
+	   desc_writ(#desc, true)  * desc_writ(#dcur, false) *
+	   MetaData(#l, #md) *
+       ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array")  * 
+       ((#md, "@extensible") -> #ext) * types (#ext : Bool) ]]
+    [[ Cell_o (#l, #prop, #dcur) * MetaData(#l, #md) *
+       ((#md, "@class") -> #cls) * ((#md, "@extensible") -> #ext) *
+	   (ret == false) ]]
+	normal
 
 proc defineOwnProperty (l, prop, desc, throw) {
 
@@ -1852,6 +1994,162 @@ with
 {
 	ret:	xret, rlab;
 	err:	xret, elab;
+};
+
+(* *********** *)
+(* *** PUT *** *)
+(* *********** *)
+
+	(* ******* UNSUCCESSFUL PUT ******* *)
+
+	(*
+	 *	1. Property is not defined in the prototype chain at all, object is not extensible, throw
+	 *  2. Property is defined in the object (DD), data descriptor is not writable, throw
+	 *  3. Property is defined in the prototype chain, not in the object (DD), object is not extensible, throw
+	 *  4. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is not writable, throw
+	 *)
+
+	 (* ******* SUCCESSFUL PUT ******* *)
+
+	(*
+	 *  5. Property is not defined in the prototype chain at all, prototype chain of length = 1, object is extensible
+	 *  6. Property is not defined in the prototype chain at all, prototype chain of length > 1, object is extensible
+	 *	7. Property is defined in the object (DD), data descriptor is writable
+	 *  8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable
+	 *)
+
+spec put (l, prop, value, throw)
+
+	(* 1. Property is not defined within the prototype chain at all, object not extensible, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) *
+	   Pi (#l, #prop, undefined, #ls, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi (#l, #prop, undefined, #ls, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+	error;
+	
+	(* 2. Property is defined in the object, data descriptor that is not writable, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
+	   Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
+	   DataDescriptor(#d) * desc_writ(#d, false) ]]
+	[[ Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
+	   isTypeError(err) ]]
+	error;
+	
+	(* 3. Property is defined in the prototype chain, not in the object, object not extensible, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
+	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   DataDescriptor(#d) * (#ls == (#l :: #lp :: #other)) * types(#lp:Obj) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+	error;
+
+	(* 4. Property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) *
+	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
+	   DataDescriptor(#d) * desc_writ(#d, false) * (#ls == (#l :: #lp :: #other)) * types (#lp:Obj) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
+	   isTypeError(err) ]]
+	error;
+	
+	(* 5. Property is not defined within the prototype chain, only one element, non-string *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) * (throw == #throw) * types(#throw:Bool) * 
+	   Pi (#l, #prop, undefined, {{ #l }}, {{ #cls }}, {{ "" }}) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) * 
+	   MetaData(#l, #md) * ((#md, "@proto") -> null) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+	normal;
+
+	(* 6. Property is not defined within the prototype chain, more than one element, non-string
+		   Must reform the prototype chain manually in the post-condition, extra tricky *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) *
+	   (throw == #throw) * types (#throw:Bool) *
+	   Pi (#l, #prop, undefined, (#l :: (#lp :: #lllp)), (#cls :: (#ccls :: #llcls)), ("" :: (#pv :: #llpv))) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * types (#lp:Obj, #ccls:Str, #pv:Str) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) * 
+	   MetaData(#l, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) * 
+	   Pi (#lp, #prop, undefined, (#lp :: #lllp), (#ccls :: #llcls), (#pv :: #llpv)) *
+	   (ret == empty) ]]
+	normal;
+	
+	(* 7. Property is defined in the object, data descriptor that is writable, success *)
+	[[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) *
+	   (throw == #throw) * types (#throw:Bool) *
+	   Pi (#l, #prop, {{ "d", #dval, true, #denum, #dconf }}, {{ #l }}, {{ #cls }}, #lpv) *
+	   (! (#dval == empty)) * types(#denum:Bool, #dconf:Bool) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+	[[ Pi (#l, #prop, {{ "d", #value, true, #denum, #dconf }}, {{ #l }}, {{ #cls }}, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) *
+	   (ret == empty) ]]
+	normal;
+
+	(* 8. Property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
+    [[ (l == #l) * (prop == #prop) * (value == #value) * (! (#value == empty)) *
+	   (throw == #throw) * types (#throw:Bool) *
+	   Pi (#l, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) *
+	   (! (#dcval == empty)) * types (#dcenum:Bool, #dcconf:Bool) * types (#lp:Obj, #pcls:Str, #pv:Str) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) *
+	   Pi (#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) *
+       MetaData(#l, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+    normal
+
+proc put (l, prop, value, throw) {
+            xret := "canPut" (l, prop) with elab;
+            goto [xret] cp reject;
+
+			[* unfold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
+    cp:     xret := "getOwnProperty" (l, prop) with elab;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] dd gp;
+
+    dd:		desc := {{ "g", empty, empty, value, empty, empty, empty }};
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
+			[* fold Pi (#l, #prop, {{ "d", #value, true, #denum, #dconf }}, {{ #l }}, _, _) *]
+    		goto remp;
+
+			[* fold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
+    gp:		xret := "getProperty" (l, prop) with elab;
+    		ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad def;
+
+    ad:		s := l-nth (xret, 2);
+    		xsc := [s, "@scope"];
+    		fun := [s, "@call"];
+    		xret := fun (xsc, l, value) with elab;
+    		goto remp;
+
+    def:	desc := {{ "d", value, true, true, true }};
+			[* unfold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
+    		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
+			[* fold Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, _, _) *]
+			skip;
+
+    remp:   xret := empty;
+    rlab:   skip;
+
+    reject: xret := empty;
+			goto [throw] tt rlab;
+
+    tt:     xret := "TypeError" ();
+    elab:   skip
+}
+with
+{
+    ret: xret, rlab;
+    err: xret, elab;
 };
 
 (* *********************************************************

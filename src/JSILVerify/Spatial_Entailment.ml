@@ -183,9 +183,7 @@ let unify_stores
 							raise (UnificationFailure "") 
 						) 
 				| None -> 
-					print_debug "unify lexprs failed in store unification\n";
-					raise (UnificationFailure ""))) [] 
-
+						(le_pat, le) :: discharges)) []
 
 let unify_cell_assertion 
 		(pfs           : pure_formulae) 
