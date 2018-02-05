@@ -2104,7 +2104,7 @@ spec put (l, prop, value, throw)
 	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
 	   MetaData(#l, #md) * ((#md, "@extensible") -> true) *
 	   isTypeError(err) ]]
-	error;
+	error
 
 proc put (l, prop, value, throw) {
             xret := "canPut" (l, prop) with elab;
@@ -2150,6 +2150,167 @@ with
 {
     ret: xret, rlab;
     err: xret, elab;
+};
+
+(* ******************* *)
+(* *** I__PUTVALUE *** *)
+(* ******************* *)  
+
+spec i__putValue (v, w)
+
+    [[ v == undefined ]]
+    [[ isReferenceError(err) ]]
+    error;
+
+    [[ v == null ]]
+    [[ isReferenceError(err) ]]
+    error;
+
+    [[ types (v:Num) ]]
+	[[ isReferenceError(err) ]]
+	error;
+
+    [[ types (v:Bool) ]]
+    [[ isReferenceError(err) ]]
+    error;
+
+    [[ types (v:Str) ]]
+    [[ isReferenceError(err) ]]
+    error;
+
+    [[ types (v:Obj) ]]
+    [[ isReferenceError(err) ]]
+    error;
+   
+    (* Variable reference, environment record, directly put in heap *)
+    [[ (v == {{ "v", #obj, #field }}) * (w == #w) * (! (#w == empty)) * 
+       (! (#obj == $lg)) * ((#obj, #field) -> _) ]]
+    [[ ((#obj, #field) -> #w) * (ret == empty) ]]
+    normal;
+    
+	(* Object reference, non-string object, property not defined, prototype chain of length > 1 *)
+    [[ (v == {{ "o", #l, #prop }}) * (w == #w) * (! (#w == empty)) * 
+	   Pi (#l, #prop, undefined, (#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * types (#lp:Obj, #pcls:Str, #pv:Str) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, {{ "d", #w, true, true, true }}, {{ #l }}, {{ #cls }},  {{ "" }}) * 
+	   Pi (#lp, #prop, undefined, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) *
+	   MetaData(#l, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+    normal;
+
+	(* Variable reference, $lg, property not defined, prototype chain of length > 1 *)
+    [[ (v == {{ "v", $lg, #prop }}) * (w == #w) * (! (#w == empty)) * 
+	   Pi ($lg, #prop, undefined, ($lg :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * types (#lp:Obj, #pcls:Str, #pv:Str) *
+	   MetaData($lg, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi ($lg, #prop, {{ "d", #w, true, true, true }}, {{ $lg }}, {{ #cls }},  {{ "" }}) * 
+	   Pi (#lp, #prop, undefined, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) *
+	   MetaData($lg, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+    normal;
+    
+	(* Object reference, property is defined in the object, data descriptor that is writable, success *)
+    [[ (v == {{ "o", #l, #prop }}) * (w == #w) * (! (#w == empty)) * 
+       Pi (#l, #prop, {{ "d", #dval, true, #denum, #dconf }}, {{ #l }}, {{ #cls }}, {{ "" }}) *
+       types (#denum:Bool, #dconf:Bool) * (! (#dval == empty)) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) * types (#ext:Bool) ]]
+	[[ Pi (#l, #prop, {{ "d", #w, true, #denum, #dconf }}, {{ #l }}, {{ #cls }}, {{ "" }}) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) *
+	   (ret == empty) ]]
+    normal;
+
+	(* Variable reference, $lg, property is defined in the object, data descriptor that is writable, success *)
+    [[ (v == {{ "v", $lg, #prop }}) * (w == #w) * (! (#w == empty)) * 
+       Pi ($lg, #prop, {{ "d", #dval, true, #denum, #dconf }}, {{ $lg }}, {{ #cls }}, {{ "" }}) *
+       types (#denum:Bool, #dconf:Bool) * (! (#dval == empty)) * isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+	   MetaData($lg, #md) * ((#md, "@extensible") -> #ext) * types (#ext:Bool) ]]
+	[[ Pi ($lg, #prop, {{ "d", #w, true, #denum, #dconf }}, {{ $lg }}, {{ #cls }}, {{ "" }}) *
+	   MetaData($lg, #md) * ((#md, "@extensible") -> #ext) *
+	   (ret == empty) ]]
+    normal;
+    
+    (* Object reference, property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
+    [[ (v == {{ "o", #l, #prop }}) * (w == #w) * (! (#w == empty)) *
+	   Pi (#l, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)),  ("" :: (#pv :: #llpv))) * 
+	   types (#lp:Obj, #pcls:Str, #pv:Str) * (! (#dcval == empty)) * types (#dcenum:Bool, #dcconf:Bool) * 
+       isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+       MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi (#l, #prop, {{ "d", #w, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) * 
+	   Pi (#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * 
+       MetaData(#l, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+    normal;
+
+	(* Variable reference, $lg, property is defined in the prototype chain, not in the object (DD), object is extensible, data descriptor is writable *)
+    [[ (v == {{ "v", $lg, #prop }}) * (w == #w) * (! (#w == empty)) * 
+	   Pi ($lg, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, ($lg :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)),  ("" :: (#pv :: #llpv))) * 
+	   types (#lp:Obj, #pcls:Str, #pv:Str) * (! (#dcval == empty)) * types (#dcenum:Bool, #dcconf:Bool) * 
+       isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") *
+       MetaData($lg, #md) * ((#md, "@extensible") -> true) ]]
+	[[ Pi ($lg, #prop, {{ "d", #w, true, true, true }}, {{ $lg }}, {{ #cls }}, {{ "" }}) * 
+	   Pi (#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * 
+       MetaData($lg, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+    normal
+
+proc i__putValue (v, w) {
+
+			goto [(typeOf(v) = List) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init throw;
+
+	init:	rbase := l-nth (v, 1);
+			rfield := l-nth (v, 2);
+			goto [rbase = undefined] throw prim;
+
+	prim:	prim := "i__isPrimitive" (rbase);
+      	    goto [prim] is_pr refr; 
+
+	refr:	goto [(typeOf(v) = List) and (l-nth (v, 0) = "o")] oref vref;
+
+	oref:	xret := "put" (rbase, rfield, w, true) with elab;
+			goto dflt;
+
+	vref:	goto [rbase = $lg] lg er;
+
+	lg:		xret := "put" (rbase, rfield, w, true) with elab;
+			goto dflt;
+
+	er:		[rbase, rfield] := w;
+
+	dflt:	xret := empty;
+	rlab:	skip;
+
+	throw:  xret := "ReferenceError" ();
+    elab:   skip;
+
+    		(* WHY GOD, WHY THIS? *)
+
+	is_pr:	xret := "i__toObject" (rbase) with elab;
+			l := xret;
+    		xret := "canPut" (l, rfield) with elab;
+            goto [xret] cp reject;
+
+    cp:     xret := "getProperty" (l, rfield) with elab;
+    		dd := "i__isDataDescriptor" (xret);
+    		goto [dd] reject is_ad;
+
+   	is_ad: 	ad := "i__isAccessorDescriptor" (xret);
+    		goto [ad] ad reject;
+
+    ad:		s := l-nth (xret, 2);
+    		m := metadata(s);
+    		xsc := [m, "@scope"];
+    		fun := [m, "@call"];
+    		xret := fun (xsc, rbase, w) with elab;
+    		goto dflt;
+
+    reject: xret := "TypeError" ();
+    		goto elab
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 };
 
 (* *********************************************************
