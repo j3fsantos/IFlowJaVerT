@@ -12,8 +12,8 @@ let equal = [%compare.equal : t]
 (** Print *)
 let str (x : t) =
   match x with
-	| Extensible    -> "extensible"
-	| NonExtensible -> "non-extensible"
+	| Extensible    -> "true"
+	| NonExtensible -> "false"
 
 (** Print of an optional extensibility *)
 let ostr (x : t option) = 

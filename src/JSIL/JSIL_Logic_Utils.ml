@@ -1255,6 +1255,7 @@ let rec lexpr_selective_substitution subst partial lexpr =
 				let new_val = Hashtbl.find subst var in
 				(match new_val with
 				| LVar _ -> lexpr
+				| ALoc _ -> new_val
 				| _ ->
 					(match isList new_val with
 					| true -> new_val

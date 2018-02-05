@@ -265,7 +265,7 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfolded_predicate =
 	if pred1.name <> pred2.name || pred1.num_params <> pred2.num_params
 		then (
-	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s" pred1.name in
+	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s\n\tName:%s\tName:%s\n\tParams:%d\tParams:%d" pred1.name pred1.name pred2.name pred1.num_params pred2.num_params in
 	  		raise (Failure msg)
 	  ) else (
 				let pred1_param_names, _ = List.split pred1.params in

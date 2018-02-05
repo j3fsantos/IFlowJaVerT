@@ -4,7 +4,7 @@
     types(o : Obj),
     (o == null);
 
- @pred Node(n, v : Num, t):
+ @pred Node(n:Obj, v:Num, t):
    JSObject(n) *
    DataProp(n, "value", v) *
    DataProp(n, "next", t);
@@ -22,15 +22,16 @@
    Node(l, #v, #t) * SOList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
    (forall #x: Num. ((! (#x --e-- #tE)) \/ (#v <# #x)));
+   
  */
  
 /**
 	@id insert
 
 	@pre ( initialHeapPostWeak() * (node == #n) * (value == #v) * SOList(#n, #E) * types(#v: Num) * 
-		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
+		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
 	@post ( initialHeapPostWeak() * (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: Obj) *
-		 scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto) )
+		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
 */
 function insert(node, value) {
     
@@ -58,11 +59,11 @@ function insert(node, value) {
 	@id sort
 
 	@pre (initialHeapPostWeak() * (head == #h) * NDList(#h, #E) * 
-		  scope(sort: #sort_fun) * FunctionObject(#sort_fun, "sort", #sort_sc, #sort_proto) * 
-		  scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
+		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, #sort_len, #sort_proto) * 
+		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
 	@post ( initialHeapPostWeak() * SOList(ret, #E) * nullableObject(ret) * 
-		  scope(sort: #sort_fun) * FunctionObject(#sort_fun, "sort", #sort_sc, #sort_proto) * 
-		  scope(insert: #insert_fun) * FunctionObject(#insert_fun, "insert", #insert_sc, #insert_proto))
+		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, #sort_len, #sort_proto) * 
+		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
 */
 function sort(head) {
     var result;

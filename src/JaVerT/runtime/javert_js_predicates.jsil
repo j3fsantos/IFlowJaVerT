@@ -170,6 +170,36 @@ pred initialHeapPost (globals) :
     (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
     empty_fields($lerr_proto : -{ "message" }-);
 
+pred initialHeapPostWeak ( ) :
+	JSObject ($lg) *
+	(($lg, "Error") -> {{ "d", $lerr, true, false, true }}) *
+
+    JSObjWithProto ($lobj_proto, null) *
+    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
+    empty_fields ($lobj_proto : -{ "hasOwnProperty" }-) *
+
+	JSBIFunction($lop_hasOwnProperty, "OP_hasOwnProperty", 1) * empty_fields($lop_hasOwnProperty : -{ "length" }-) *
+    
+    JSObjGeneral ($lfun_proto, $lobj_proto, "Function", true) *
+    (($lfun_proto, "length") -> {{ "d", 0, false, false, false }}) *
+    empty_fields($lfun_proto : -{ "length" }-) *
+    MetaData($lfun_proto, #mfp) *
+    ((#mfp, "@scope") -> empty) * ((#mfp, "@call") -> "FP_default") *
+    empty_fields(#mfp : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
+    
+    BooleanPrototype () *
+    empty_fields ($lbool_proto : -{ "constructor", "toString", "valueOf" }-) *
+
+    NumberPrototype () *
+    empty_fields ($lnum_proto : -{ "constructor", "toExponential", "toFixed", "toLocaleString", "toPrecision", "toString", "valueOf" }-) *
+    
+    BIFunctionObject ($lerr, 1, $lerr_proto) * empty_fields($lerr : -{ "length", "prototype" }-) *
+    MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
+     
+    JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true) * 
+    (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
+    empty_fields($lerr_proto : -{ "message" }-);
+
 (***********************
  **** ERROR OBJECTS ****
  ***********************)
