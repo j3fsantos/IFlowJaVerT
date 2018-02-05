@@ -201,7 +201,9 @@ let unify_cell_assertion
 		match pat_cell_asrt with 
 		| LPointsTo (LLit (Loc loc), le_field, (perm, le_val)) 
 		| LPointsTo (ALoc loc, le_field, (perm, le_val)) -> loc, le_field, perm, le_val
-		| _ -> raise (Failure "DEATH. unify_cell_assertion. no cell assertion") in 
+		| _ -> 
+				let msg = "DEATH. unify_cell_assertion. no cell assertion" in
+				print_debug msg; raise (Failure msg) in 
 
     (* 2. Find the location corresponding to that cell *) 
 	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
@@ -211,13 +213,15 @@ let unify_cell_assertion
 			| None     -> raise (Failure "")   
 		)  with _ -> 
 			let msg = Printf.sprintf "DEATH. unify_cell_assertion. unmatched pat_loc: %s" pat_loc in 
-			raise (Failure msg)) in 
+			print_debug msg; raise (Failure msg)) in 
 
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom, metadata, ext = 
 		match SHeap.get heap loc with 
 		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
-		| None                -> raise (Failure "DEATH. unify_cell_assertion. loc not in the heap") in 
+		| None -> 
+				let msg = "DEATH. unify_cell_assertion. loc not in the heap" in
+				print_debug msg; raise (Failure msg) in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
 	let fv_list_set = SFV.of_list fv_list in
@@ -262,6 +266,7 @@ let unify_cell_assertion
 			))) in 
 
 	let result = dom_frame @ fv_list_frames in
+	print_debug (Printf.sprintf "Result has %d frames." (List.length result));
 
 	let end_time = Sys.time() in
 	update_statistics "unify_cell_assertion" (end_time -. start_time);
@@ -457,7 +462,9 @@ let unify_metadata_assertion
 		match pat_cell_asrt with 
 		| LMetaData (LLit (Loc loc), metadata) 
 		| LMetaData (ALoc loc, metadata) -> loc, metadata
-		| _ -> raise (Failure "Unify_metadata_assertion: no metadata assertion") in 
+		| _ ->
+				let msg = "Unify_metadata_assertion: no metadata assertion" in
+				print_debug msg; raise (Failure msg) in 
 
   (* 2. Find the location corresponding to that cell *) 
 	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
@@ -467,13 +474,15 @@ let unify_metadata_assertion
 			| None     -> raise (Failure "")   
 		)  with _ -> 
 			let msg = Printf.sprintf "Unify_metadata_assertion: unmatched pat_loc: %s" pat_loc in 
-				raise (Failure msg)) in 
+				print_debug msg; raise (Failure msg)) in 
 
 	(* 3. Get the metadata *)
 	let fv_list, domain, metadata, ext = 
 		match SHeap.get heap loc with 
 		| Some ((fv_list, domain), metadata, ext) -> fv_list, domain, metadata, ext 
-		| None                -> raise (Failure "Unify_metadata_assertion: loc not in the heap") in 
+		| None ->
+				let msg = "Unify_metadata_assertion: loc not in the heap" in
+				print_debug msg; raise (Failure msg) in 
 
 	(* 4. Try to unify the metadata *)
 	let result = 

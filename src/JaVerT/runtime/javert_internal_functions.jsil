@@ -2079,10 +2079,10 @@ spec put (l, prop, value, throw)
 	(* 6. Property is defined in the object, data descriptor that is not writable, throw *)
 	[[ (l == #l) * (prop == #prop) * (value == #value) * (throw == true) * 
 	   Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * 
-	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) * types(#ext:Bool) * 
 	   DataDescriptor(#d) * desc_writ(#d, false) ]]
 	[[ Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) *
-	   MetaData(#l, #md) * ((#md, "@extensible") -> _) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) *
 	   isTypeError(err) ]]
 	error;
 	
@@ -2252,7 +2252,65 @@ spec i__putValue (v, w)
 	   Pi (#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * 
        MetaData($lg, #md) * ((#md, "@proto") -> #lp) * ((#md, "@extensible") -> true) *
 	   (ret == empty) ]]
-    normal
+    normal;
+    
+    (* Object reference, non-string object, property not defined, prototype chain of length 1 *)
+    [[ (v == {{ "o", #l, #prop }}) * (w == #w) * (! (#w == empty)) * 
+       Pi (#l, #prop, undefined, {{ #l }}, {{ #cls }}, {{ "" }}) *
+	   isClass(#cls, "Non-String") * isClass(#cls, "Non-Array") * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> true) ]]
+    [[ Pi (#l, #prop, {{ "d", #w, true, true, true }}, {{ #l }}, {{ #cls }}, {{ "" }}) * 
+       MetaData(#l, #md) * ((#md, "@proto") -> null) * ((#md, "@extensible") -> true) *
+	   (ret == empty) ]]
+    normal;
+    
+	(* Object reference, property is not defined within the prototype chain at all, object not extensible, throw *)
+    [[ (v == {{ "o", #l, #prop }}) * (w == #w) * 
+       Pi (#l, #prop,  undefined, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi (#l, #prop,  undefined, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+    error;
+
+	(* Object reference, property is defined in the object, data descriptor that is not writable, throw *)
+	[[ (v == {{ "o", #l, #prop }}) * (w == #w) * 
+	   Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) *
+	   DataDescriptor(#d) * desc_writ(#d, false) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
+	[[ Pi (#l, #prop, #d, {{ #l }}, #lcls, #lpv) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> #ext) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Object reference, property is defined in the prototype chain, not in the object, object not extensible, throw *)
+	[[ (v == {{ "o", #l, #prop }}) * (w == #w) * 
+	   types (#l : Obj, #prop : Str, #cls : List) *
+	   Pi (#l, #prop, #d, #ls, #cls, #lpv) *
+	   DataDescriptor(#d) * (#ls == (#l :: #lp :: #other)) * types (#lp:Obj) * 
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi (#l, #prop, #d, #ls, #cls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Object reference, property is defined in the prototype chain, not in the object, object extensible, property not writable, throw *)
+	[[ (v == {{ "o", #l, #prop }}) * (w == #w) * types (#lp:Obj) *
+	   Pi (#l, #prop, #d, #ls, #lcls, #lpv) * DataDescriptor(#d) * desc_writ(#d, false) * (#ls == (#l :: #lp :: #other)) * types (#lp:Obj) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi (#l, #prop, #d, #ls, #lcls, #lpv) *
+	   MetaData(#l, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+	error;
+
+	(* Variable reference, $lg, property is not defined within the prototype chain at all, object not extensible, throw *)
+    [[ (v == {{ "v", $lg, #prop }}) * (w == #w) *
+       Pi ($lg, #prop, undefined, #ls, #lcls, #lpv) *
+	   MetaData($lg, #md) * ((#md, "@extensible") -> false) ]]
+	[[ Pi ($lg, #prop, undefined, #ls, #lcls, #lpv) *
+	   MetaData($lg, #md) * ((#md, "@extensible") -> false) *
+	   isTypeError(err) ]]
+    error
 
 proc i__putValue (v, w) {
 
