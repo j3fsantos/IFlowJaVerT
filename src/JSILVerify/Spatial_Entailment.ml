@@ -294,6 +294,7 @@ let unify_pred_assertion
 	let frames = 
 		List.mapi (fun i (pname, pargs) -> 
 			if (pname <> pat_pname) then None else (
+				print_debug ("Predicate: " ^ pname);
 				let ret_un_args = List.map2 un_les pat_pargs pargs in 
 				let ret_un_args_nones, ret_un_args_somes = List.partition (fun ret -> ret = None) ret_un_args in
 				if ((List.length ret_un_args_nones) > 0) then None else (
@@ -990,7 +991,7 @@ let unify_lexprs_unfold
 		| ALoc pat_loc, LVar x -> 
 			print_debug (Printf.sprintf 
 					"WE ARE IN THE CASE WE THINK WE ARE IN. pat_loc: %s. lvar: %s\n" pat_loc x); 
-			let loc = Normaliser.resolve_location x (pfs_to_list pfs) in
+			let loc, _ = Normaliser.resolve_location x (pfs_to_list pfs) in
 			(match loc with 
 			| Some loc when is_lit_loc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
 			| Some loc when is_abs_loc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])

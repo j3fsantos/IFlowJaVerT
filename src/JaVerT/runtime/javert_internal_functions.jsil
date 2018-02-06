@@ -761,6 +761,56 @@ with
  ***********************
  ***********************)  
 
+(* *************************
+   *** I__STRICTEQUALITY ***
+   ************************* *)
+
+spec i__strictEquality (v1, v2)
+
+   [[ (v1 == #v1) * (v2 == #v2) * (#v1 == #v2) ]]
+   [[ ret == true ]]
+   normal;
+
+   [[ (v1 == #v1) * (v2 == #v2) * (! (#v1 == #v2)) ]]
+   [[ ret == false ]]
+   normal
+
+proc i__strictEquality (v1, v2) {
+			xret := (v1 = v2);
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *********************
+   *** I__ISCALLABLE ***
+   ********************* *)
+
+spec i__isCallable (l)
+
+    [[ MetaData(l, #md) * ((#md, "@call") -> none) ]]
+    [[ MetaData(l, #md) * ((#md, "@call") -> none) * (ret == false) ]]
+    normal;
+	
+	[[ MetaData(l, #md) * ((#md, "@call") -> #y) * (! (#y == none)) ]]
+    [[ MetaData(l, #md) * ((#md, "@call") -> #y) * (ret == true) ]]
+    normal
+
+proc i__isCallable (l) {
+			xret := false;
+			goto [typeOf(l) = Obj] obj rlab;
+	obj:	m := metadata(l);
+			xret := hasField(m, "@call");
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
 (* ********************
    *** I__SAMEVALUE ***
    ******************** *)

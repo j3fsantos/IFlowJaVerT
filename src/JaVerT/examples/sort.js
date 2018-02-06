@@ -61,7 +61,7 @@ function insert(node, value) {
 	@pre (initialHeapPostWeak() * (head == #h) * NDList(#h, #E) * 
 		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, #sort_len, #sort_proto) * 
 		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
-	@post ( initialHeapPostWeak() * SOList(ret, #E) * nullableObject(ret) * 
+	@post (initialHeapPostWeak() * SOList(ret, #E) * nullableObject(ret) * 
 		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, #sort_len, #sort_proto) * 
 		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
 */

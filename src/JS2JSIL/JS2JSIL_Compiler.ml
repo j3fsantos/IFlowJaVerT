@@ -572,7 +572,7 @@ let annotate_cmd_top_level metadata lcmd =
 		| [ arg ]
 		| [ arg; _ ] ->
 			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
-			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
+			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
 			let fold_macro = Macro (JS2JSIL_Constants.macro_GPVF_name, fold_args) in
 			let unfold_macro = Macro (JS2JSIL_Constants.macro_GPVU_name, [ arg ]) in
 			[ fold_macro ], [ unfold_macro ]
@@ -589,7 +589,7 @@ let annotate_cmd_top_level metadata lcmd =
 		| [ arg1; arg2] ->
 			let l_arg1 = JSIL_Logic_Utils.expr_2_lexpr arg1 in
 			let l_arg2 = JSIL_Logic_Utils.expr_2_lexpr arg2 in
-			let fold_args = [l_arg1; l_arg2; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
+			let fold_args = [l_arg1; l_arg2; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
 			let fold_lcmd = Fold (LPred (pi_predicate_name, fold_args)) in
 			let unfold_lcmd = RecUnfold pi_predicate_name in
 			[ fold_lcmd ], [ unfold_lcmd ]
@@ -1531,15 +1531,16 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		] @ annotate_first_call_cmd (
 			cmds_args @ (annotate_cmds [            (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                 *)
 			(None,           cmd_goto_is_obj);      (*        goto [ typeOf(x_f_val) != Object] err next1                               *)
-			(Some next1,     cmd_ic);               (* next1: x_ic := isCallable(x_f_val)                                               *)
+			(Some next1,     cmd_xfvm);             (* next1: xfvm := metadata(x_f_val)                                               *)
+			(None,           cmd_ic);               (*        x_ic := isCallable(x_f_val)                                               *)
 			(None,           cmd_goto_is_callable); (*        goto [ x_ic ] getbt err; -> typeerror                                     *) ]
 
 		@ (if_verification [] (annotate_cmds [
 
 			(* PREP *)
 
-			(Some get_bt,    cmd_xfvm);             (*        xfvm := metadata(x_f_val)                                               *)
-			(None,           cmd_get_ibt);          (*        x_bt := [xfvm, "@boundTarget"];                                      *)
+			
+			(Some get_bt,    cmd_get_ibt);          (*        x_bt := [xfvm, "@boundTarget"];                                      *)
 			(None,           cmd_bind_test);        (*        goto [x_bt = empty] call bind                                           *)
 
 			(* BIND *)

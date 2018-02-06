@@ -821,9 +821,16 @@ let unfold_predicate
 		  are unfolded 
 	*)
 	let pred_defs, pat_subst = use_unfold_info unfold_info pred_defs subst_e in
+	
+	print_debug (Printf.sprintf "I have %d definitions of Pi and here are all of them:" (List.length pred_defs));
+	List.iter (fun (i, x) ->
+		print_debug (Printf.sprintf ("Definition %d") i);
+		print_debug (Symbolic_State_Print.string_of_symb_state x);
+	) pred_defs;
+	
 	let args                 = List.map (lexpr_substitution subst_e true) args in
 	let caller_store         = store_init params args in
-  	let unfolded_pred_defs   = List.map (fun (i, pred_symb_state) ->
+  let unfolded_pred_defs   = List.map (fun (i, pred_symb_state) ->
 		i, Spatial_Entailment.unfold_predicate_definition caller_store subst_e pat_subst existentials spec_vars pred_symb_state symb_state) pred_defs in
   	let unfolded_pred_defs   = List.map (fun (i, x) -> i, Option.get x) (List.filter (fun (i, x) -> x <> None) unfolded_pred_defs) in
 
@@ -901,7 +908,8 @@ let extend_spec_vars_subst
 
 	List.iter (fun x -> 
 		if (not (Hashtbl.mem subst x)) then (
-			match Normaliser.resolve_location x (pfs_to_list pfs) with 
+			let res_loc, _ = Normaliser.resolve_location x (pfs_to_list pfs) in
+			match res_loc with 
 				| Some loc  when is_lit_loc_name loc  -> Hashtbl.replace subst x (LLit (Loc loc)) 
 				| Some aloc when is_abs_loc_name aloc -> Hashtbl.replace subst x (ALoc aloc) 
 				| _       -> ()

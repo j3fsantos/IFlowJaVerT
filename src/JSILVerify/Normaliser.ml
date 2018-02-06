@@ -591,7 +591,7 @@ let resolve_list (le : jsil_logic_expr) (pfs : jsil_logic_assertion list) : jsil
 	| le     -> le 
 
 
-let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string option =
+let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string option * substitution option =
 	
 	let original_pfs = 
 		List.map (fun a -> 
@@ -607,20 +607,31 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string 
 			| _ -> a 
 		) pfs in 
 
-	(* print_debug (Printf.sprintf "resolve_location with var %s and pfs:\n%s\n" lvar
-		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion original_pfs))); *)
+	(* Printf.printf "resolve_location with var %s and pfs:\n%s\n" lvar
+		(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion original_pfs)); *) 
 
-	let rec loop pfs traversed_pfs =
+	let subst = init_substitution3 [] in 
+
+	let rec shallow_loop pfs traversed_pfs found_other_bindings =
 		(match pfs with
-		| [] -> None
+		| [] -> None, found_other_bindings
 		
 		| LEq (LVar cur_lvar, ALoc loc) :: rest
 		| LEq (ALoc loc, LVar cur_lvar) :: rest  ->
-			if (cur_lvar = lvar) then Some loc else loop rest ((List.hd pfs) :: traversed_pfs)
+			if (cur_lvar = lvar) 
+				then Some loc, found_other_bindings
+				else (
+					Hashtbl.replace subst cur_lvar (ALoc loc); 
+					shallow_loop rest ((List.hd pfs) :: traversed_pfs) true
+				)
 
 		| LEq (LVar cur_lvar, LLit (Loc loc)) :: rest
 		| LEq (LLit (Loc loc), LVar cur_lvar) :: rest ->
-			if (cur_lvar = lvar) then Some loc else loop rest ((List.hd pfs) :: traversed_pfs)
+			if (cur_lvar = lvar) 
+				then Some loc, found_other_bindings 
+				else (
+					shallow_loop rest ((List.hd pfs) :: traversed_pfs) true
+				)
 		
 		| LEq (le1, le2) :: rest ->
 			(match le1 with 
@@ -633,27 +644,35 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string 
 					let min_len              = min (List.length le2_lst) (List.length le1_lst) in
 					let le1_lst_l, le1_lst_r = reshape_list le1 min_len in 
 					let le2_lst_l, le2_lst_r = reshape_list le2' min_len in 
-					if ((List.length le1_lst_l) <> (List.length le2_lst_l)) then raise (Failure "DEATH: Lists of different lengths") else (
-						match loop_lists le1_lst_l le2_lst_l with 
-						| None -> loop rest ((List.hd pfs) :: traversed_pfs)
-						| Some loc -> Some loc)
-				| _ -> loop rest ((List.hd pfs) :: traversed_pfs))
-			| _ -> loop rest ((List.hd pfs) :: traversed_pfs))
+					if ((List.length le1_lst_l) <> (List.length le2_lst_l)) then raise (Failure "DEATH") else (
+						match shallow_loop_lists le1_lst_l le2_lst_l found_other_bindings with 
+						| None, new_found_other_bindings -> 
+							shallow_loop rest ((List.hd pfs) :: traversed_pfs) new_found_other_bindings
+						| Some loc, new_found_other_bindings -> 
+							Some loc, new_found_other_bindings)
+				| _ -> shallow_loop rest ((List.hd pfs) :: traversed_pfs) found_other_bindings)
+			| _ -> shallow_loop rest ((List.hd pfs) :: traversed_pfs) found_other_bindings)
 
-		| _ :: rest -> loop rest ((List.hd pfs) :: traversed_pfs)) 
+		| _ :: rest -> shallow_loop rest ((List.hd pfs) :: traversed_pfs) found_other_bindings) 
 	
-	and loop_lists lst_1 lst_2 = 
-		loop (List.map2 (fun le1 le2 -> LEq (le1, le2)) lst_1 lst_2) [] in
+	and shallow_loop_lists lst_1 lst_2 found_other_bindings = 
+		shallow_loop (List.map2 (fun le1 le2 -> LEq (le1, le2)) lst_1 lst_2) [] found_other_bindings in
 
-	loop original_pfs [] 
+	let rec loop pfs =
+		match shallow_loop pfs [] false with 
+		| Some loc, _ -> Some loc, Some subst 
+		| None, false -> None, None
+		| None, true  -> loop (List.map (asrt_substitution subst true) pfs) in
+
+	loop original_pfs
 
 
 let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : string option = 
 	match le with
 	| LLit (Loc l)
 	| ALoc l        -> Some l
-	| LVar x        -> resolve_location x (pfs_to_list pfs) 
-	| _             -> None 
+	| LVar x        -> let result, _ = resolve_location x (pfs_to_list pfs) in result 
+	| _             -> None
 
 
 (*  -----------------------------------------------------
@@ -1419,7 +1438,7 @@ let normalise_assertion
 		extend_typing_env_using_assertion_info gamma ((pfs_to_list p_formulae) @ (asrts_of_store store));
 
 		(** Step 5 -- Normalise cell assertions, pred assertions, and ef assertions
-		  * 5.1 - cell assertions -> initialises heap
+		    * 5.1 - cell assertions -> initialises heap
 	      * 5.2 - pred assertions -> initialises pred set
 	      * 5.3 - ef assertions   -> fills in the domain for the objects in the heap
 		  *)
@@ -1480,6 +1499,7 @@ let normalise_normalised_assertion
       let (field_val_pairs, default_val), metadata, ext = (try Heap.find heap loc with _ -> ([], None), None, None) in
       Heap.replace heap loc ((((le2, (perm, le3)) :: field_val_pairs), default_val), metadata, ext);
       (a, false)
+			
 		| LEmptyFields (obj, domain) ->
       let loc = JSIL_Print.string_of_logic_expression obj in
       let (field_val_pairs, _), metadata, ext = (try Heap.find heap loc with _ -> ([], None), None, None) in
@@ -1634,8 +1654,11 @@ let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) :
 
 	let loc       = resolve_location x pfs_list' in	 
 	match loc with 
-	| Some loc -> print_debug (Printf.sprintf "Found the overlap %s\n" loc); Some loc 
-	| _        -> print_debug "Could NOT find the overlap\n"; None 
+	| Some loc, Some subst -> 
+			print_debug (Printf.sprintf "Found the overlap %s" loc);
+			print_debug (Printf.sprintf "Substitution: %s" (JSIL_Print.string_of_substitution subst)); 
+			Some loc
+	| _, _        -> print_debug "Could NOT find the overlap\n"; None 
 
 
 let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state option = 
@@ -1664,7 +1687,7 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 		let aloc_subst = init_substitution [] in 
 		SS.iter (fun aloc -> 
 			match is_overlapping_aloc pfs_list aloc with 
-			| None       -> () 
+			| None        -> () 
 			| Some aloc' -> Hashtbl.replace aloc_subst aloc (ALoc aloc'); ()
 		) relevant_new_alocs; 
 
@@ -1785,6 +1808,7 @@ let normalise_single_spec
 		(* TODO: print the invalid specification *)
 		let failed_spec_msg = Printf.sprintf "INVALID SPECIFICATION for %s:\n%s\n" spec_name
 			(JSIL_Print.string_of_single_spec "" spec) in
+		print_debug failed_spec_msg;
 		raise (Failure failed_spec_msg)
 	) else n_specs'
 

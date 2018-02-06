@@ -603,6 +603,8 @@ let copy_substitution (subst : substitution) : substitution = Hashtbl.copy subst
 let extend_substitution (subst : substitution) (vars : string list) (les : jsil_logic_expr list) : unit =
 	List.iter2 (fun v le -> Hashtbl.replace subst v le) vars les
 
+let extend_subst_with_subst (subst : substitution) (subst_ext : substitution) : unit =
+	Hashtbl.iter (fun v le -> Hashtbl.replace subst v le) subst_ext
 
 (*******************************************************)
 (*******************************************************)
