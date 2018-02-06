@@ -169,6 +169,9 @@ let unify_stores
 		(pat_store : symbolic_store) 
 		(store     : symbolic_store) : discharge_list =
 
+	print_debug_petar (Printf.sprintf "Unifying stores.\nCalling store: %s\nPat store: %s"
+		(Symbolic_State_Print.string_of_symb_store store) (Symbolic_State_Print.string_of_symb_store pat_store));
+
 	store_fold pat_store 
 		(fun x le_pat discharges -> 
 			match store_get_safe store x with 
@@ -991,7 +994,7 @@ let unify_lexprs_unfold
 		| ALoc pat_loc, LVar x -> 
 			print_debug (Printf.sprintf 
 					"WE ARE IN THE CASE WE THINK WE ARE IN. pat_loc: %s. lvar: %s\n" pat_loc x); 
-			let loc, _ = Normaliser.resolve_location x (pfs_to_list pfs) in
+			let loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
 			(match loc with 
 			| Some loc when is_lit_loc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
 			| Some loc when is_abs_loc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])

@@ -1,121 +1,4 @@
-pred ErrorObject (l, pr): 
-types(_lvar_854 : Obj, l : Obj, pr : Obj) * (pr == _lvar_854) * (l == _$l_l) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l__lvar_66) * Extensible (_$l__lvar_66, true) * MetaData (_$l__lvar_66, null) * empty_fields(_$l__lvar_66 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_66, "@proto") ->@d _lvar_854) * ((_$l__lvar_66, "@class") ->@d "Error") * ((_$l__lvar_66, "@extensible") ->@d true);
-
-pred isClass (c, case): 
-types(c : Str, case : Str, _lvar_799 : Str) * (! (_lvar_799 == "String")) * (case == "Non-String") * (c == _lvar_799),
- types(c : Str, _lvar_797 : Str, case : Str) * (! (_lvar_797 == "Array")) * (case == "Non-Array") * (c == _lvar_797),
- types(c : Str, case : Str) * (case == "String") * (c == "String"),
- types(c : Str, case : Str) * (case == "Array") * (c == "Array");
-
-pred DataPropConst (l, prop, v): 
-types(#e : Bool, l : Obj, _lvar_800 : Str, prop : Str) * (! (_lvar_v == empty)) * (v == _lvar_v) * (prop == _lvar_800) * (l == _$l_l) * ((_$l_l, _lvar_800) ->@d {{ "d", _lvar_v, false, #e, false }});
-
-pred initialHeapPost (globals): 
-types(globals : Set, _lvar_857 : Set) * (globals == _lvar_857) * Extensible (_$l__lvar_68, true) * MetaData (_$l__lvar_68, null) * empty_fields(_$l__lvar_68 : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) * ((_$l__lvar_68, "@call") ->@d "Error_call") * ((_$l__lvar_68, "@construct") ->@d "Error_construct") * ((_$l__lvar_68, "@proto") ->@d $lfun_proto) * ((_$l__lvar_68, "@class") ->@d "Function") * ((_$l__lvar_68, "@extensible") ->@d true) * ((_$l__lvar_68, "@scope") ->@d empty) * Extensible ($lbool_proto, true) * MetaData ($lbool_proto, _$l__lvar_70) * empty_fields($lbool_proto : -{ "constructor", "toString", "valueOf" }-) * (($lbool_proto, "constructor") ->@d {{ "d", $lbool, true, false, true }}) * (($lbool_proto, "toString") ->@d {{ "d", $lbp_toString, true, false, true }}) * (($lbool_proto, "valueOf") ->@d {{ "d", $lbp_valueOf, true, false, true }}) * Extensible (_$l__lvar_70, true) * MetaData (_$l__lvar_70, null) * empty_fields(_$l__lvar_70 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_70, "@proto") ->@d $lobj_proto) * ((_$l__lvar_70, "@class") ->@d "Boolean") * ((_$l__lvar_70, "@extensible") ->@d true) * ((_$l__lvar_70, "@primitiveValue") ->@d false) * Extensible ($lnum_proto, true) * MetaData ($lnum_proto, _$l__lvar_69) * empty_fields($lnum_proto : -{ "constructor", "toExponential", "toFixed", "toLocaleString", "toPrecision", "toString", "valueOf" }-) * (($lnum_proto, "constructor") ->@d {{ "d", $lnum, true, false, true }}) * (($lnum_proto, "toString") ->@d {{ "d", $lnp_toString, true, false, true }}) * (($lnum_proto, "toLocaleString") ->@d {{ "d", $lnp_toLocaleString, true, false, true }}) * (($lnum_proto, "valueOf") ->@d {{ "d", $lnp_valueOf, true, false, true }}) * (($lnum_proto, "toFixed") ->@d {{ "d", $lnp_toFixed, true, false, true }}) * (($lnum_proto, "toExponential") ->@d {{ "d", $lnp_toExponential, true, false, true }}) * (($lnum_proto, "toPrecision") ->@d {{ "d", $lnp_toPrecision, true, false, true }}) * Extensible (_$l__lvar_71, true) * MetaData (_$l__lvar_71, null) * empty_fields(_$l__lvar_71 : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) * ((_$l__lvar_71, "@scope") ->@d empty) * ((_$l__lvar_71, "@call") ->@d "FP_default") * ((_$l__lvar_71, "@proto") ->@d $lobj_proto) * ((_$l__lvar_71, "@class") ->@d "Function") * ((_$l__lvar_71, "@extensible") ->@d true) * Extensible ($lerr_proto, true) * MetaData ($lerr_proto, _$l__lvar_67) * empty_fields($lerr_proto : -{ "message" }-) * (($lerr_proto, "message") ->@d {{ "d", "", true, false, true }}) * Extensible (_$l__lvar_67, true) * MetaData (_$l__lvar_67, null) * empty_fields(_$l__lvar_67 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_67, "@proto") ->@d $lobj_proto) * ((_$l__lvar_67, "@class") ->@d "Error") * ((_$l__lvar_67, "@extensible") ->@d true) * Extensible ($lobj_proto, true) * MetaData ($lobj_proto, _$l__lvar_73) * empty_fields($lobj_proto : -{ "hasOwnProperty" }-) * (($lobj_proto, "hasOwnProperty") ->@d {{ "d", $lop_hasOwnProperty, true, false, true }}) * Extensible ($lop_hasOwnProperty, true) * MetaData ($lop_hasOwnProperty, _$l__lvar_72) * empty_fields($lop_hasOwnProperty : -{ "length" }-) * (($lop_hasOwnProperty, "length") ->@d {{ "d", 1., false, false, false }}) * Extensible (_$l__lvar_73, true) * MetaData (_$l__lvar_73, null) * empty_fields(_$l__lvar_73 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_73, "@proto") ->@d null) * ((_$l__lvar_73, "@class") ->@d "Object") * ((_$l__lvar_73, "@extensible") ->@d true) * Extensible ($lg, true) * MetaData ($lg, _$l__lvar_74) * empty_fields($lg : -u- (_lvar_857, -{ "Error" }-)) * (($lg, "Error") ->@d {{ "d", $lerr, true, false, true }}) * Extensible ($lerr, true) * MetaData ($lerr, _$l__lvar_68) * empty_fields($lerr : -{ "length", "prototype" }-) * (($lerr, "length") ->@d {{ "d", 1., false, false, false }}) * (($lerr, "prototype") ->@d {{ "d", $lerr_proto, false, false, false }}) * Extensible (_$l__lvar_69, true) * MetaData (_$l__lvar_69, null) * empty_fields(_$l__lvar_69 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_69, "@proto") ->@d $lobj_proto) * ((_$l__lvar_69, "@class") ->@d "Number") * ((_$l__lvar_69, "@extensible") ->@d true) * ((_$l__lvar_69, "@primitiveValue") ->@d 0.) * Extensible (_$l__lvar_72, true) * MetaData (_$l__lvar_72, null) * empty_fields(_$l__lvar_72 : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) * ((_$l__lvar_72, "@proto") ->@d $lfun_proto) * ((_$l__lvar_72, "@class") ->@d "Function") * ((_$l__lvar_72, "@extensible") ->@d true) * ((_$l__lvar_72, "@call") ->@d "OP_hasOwnProperty") * ((_$l__lvar_72, "@scope") ->@d empty) * Extensible ($lfun_proto, true) * MetaData ($lfun_proto, _$l__lvar_71) * empty_fields($lfun_proto : -{ "length" }-) * (($lfun_proto, "length") ->@d {{ "d", 0., false, false, false }}) * Extensible (_$l__lvar_74, true) * MetaData (_$l__lvar_74, null) * empty_fields(_$l__lvar_74 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_74, "@proto") ->@d $lobj_proto) * ((_$l__lvar_74, "@class") ->@d "Object") * ((_$l__lvar_74, "@extensible") ->@d true);
-
-pred desc_enum (d, v): 
-types(_lvar_856 : List, d : List) * (d == _lvar_856) * (v == l-nth(_lvar_856, 3.));
-
-pred desc_set (d, v): 
-types(d : List, _lvar_855 : List) * (d == _lvar_855) * (v == l-nth(_lvar_855, 2.));
-
-pred desc_conf (d, v): 
-types(d : List, _lvar_859 : List) * (d == _lvar_859) * (v == l-nth(_lvar_859, 4.));
-
-pred desc_val (d, v): 
-types(d : List, _lvar_858 : List) * (d == _lvar_858) * (v == l-nth(_lvar_858, 1.));
-
-pred JSObjWithProto (l, proto): 
-types(l : Obj) * (proto == _lvar_proto) * (l == _$l_l) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@class", "@extensible", "@proto" }-) * ((_$l_#md, "@proto") ->@d _lvar_proto) * ((_$l_#md, "@class") ->@d "Object") * ((_$l_#md, "@extensible") ->@d true) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md);
-
-pred DataDescriptor (d): 
-types(#denum : Bool, d : List, #dwrit : Bool, #dconf : Bool) * (! (#dval == empty)) * (d == {{ "d", #dval, #dwrit, #denum, #dconf }});
-
-pred GenericDescriptor (d): 
-types(d : List) * (d == {{ "g", #genum, #gconf, #gval, #gwrit, #gget, #gset }});
-
-pred JSObjGeneral (l, proto, class, ext): 
-types(class : Str, l : Obj, _lvar_802 : Bool, ext : Bool, _lvar_803 : Str) * (proto == _lvar_proto) * (class == _lvar_803) * (ext == _lvar_802) * (l == _$l_l) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@class", "@extensible", "@proto" }-) * ((_$l_#md, "@proto") ->@d _lvar_proto) * ((_$l_#md, "@class") ->@d _lvar_803) * ((_$l_#md, "@extensible") ->@d _lvar_802) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md);
-
-pred Pi (l, prop, d, ls, lcls, lpv): 
-types(_lvar_841 : Str, ls : List, lcls : List, d : Undefined, l : Obj, #cls : Str, prop : Str, lpv : List) * (! (#cls == "String")) * (lpv == {{ "" }}) * (d == undefined) * (ls == {{ _$l_l }}) * (prop == _lvar_841) * (l == _$l_l) * (lcls == {{ #cls }}) * ((_$l_#md, "@class") ->@d #cls) * ((_$l_#md, "@proto") ->@d null) * MetaData (_$l_l, _$l_#md) * ((_$l_l, _lvar_841) ->@d none),
- Pi(#lp, _lvar_837, _lvar_d, (#lp :: #ols), (#pcls :: #ocls), (#ppv :: #otv)) * types(#otv : List, #ocls : List, #lcls : List, lcls : List, ls : List, _lvar_837 : Str, #lp : Obj, l : Obj, #ols : List, prop : Str, #cls : Str, #ppv : Str, #lls : List, lpv : List, #pcls : Str, #lpv : List) * (#lcls == (#pcls :: #ocls)) * (#lls == (#lp :: #ols)) * (#lpv == (#ppv :: #otv)) * (! (#cls == "String")) * (lpv == ("" :: (#ppv :: #otv))) * (d == _lvar_d) * (ls == (_$l_l :: (#lp :: #ols))) * (prop == _lvar_837) * (l == _$l_l) * (lcls == (#cls :: (#pcls :: #ocls))) * ((_$l_#md, "@class") ->@d #cls) * ((_$l_#md, "@proto") ->@d #lp) * MetaData (_$l_l, _$l_#md) * ((_$l_l, _lvar_837) ->@d none),
- types(_lvar_832 : Str, lcls : List, ls : List, d : List, l : Obj, _lvar_6 : Bool, prop : Str, _lvar_14 : Bool, lpv : List, _lvar_15 : Bool, _lvar_7 : Bool) * (_lvar_4 == _lvar_12) * (_lvar_6 == _lvar_14) * (_lvar_5 == _lvar_13) * (_lvar_7 == _lvar_15) * (! (_lvar_13 == empty)) * (! (_lvar_12 == empty)) * (lpv == {{ "" }}) * (d == {{ "a", _lvar_13, _lvar_12, _lvar_14, _lvar_15 }}) * (ls == {{ _$l_l }}) * (prop == _lvar_832) * (l == _$l_l) * (lcls == {{ #cls }}) * ((_$l_#md, "@class") ->@d #cls) * MetaData (_$l_l, _$l_#md) * ((_$l_l, _lvar_832) ->@d {{ "a", _lvar_13, _lvar_12, _lvar_14, _lvar_15 }}),
- types(_lvar_11 : Bool, _lvar_1 : Bool, lcls : List, ls : List, _lvar_2 : Bool, d : List, l : Obj, prop : Str, _lvar_10 : Bool, lpv : List, _lvar_817 : Str, _lvar_3 : Bool, _lvar_9 : Bool) * (_lvar_2 == _lvar_10) * (_lvar_3 == _lvar_11) * (_lvar_0 == _lvar_8) * (_lvar_1 == _lvar_9) * (! (_lvar_8 == empty)) * (lpv == {{ "" }}) * (d == {{ "d", _lvar_8, _lvar_9, _lvar_10, _lvar_11 }}) * (ls == {{ _$l_l }}) * (prop == _lvar_817) * (l == _$l_l) * (lcls == {{ #cls }}) * ((_$l_#md, "@class") ->@d #cls) * MetaData (_$l_l, _$l_#md) * ((_$l_l, _lvar_817) ->@d {{ "d", _lvar_8, _lvar_9, _lvar_10, _lvar_11 }});
-
-pred isReferenceError (l): 
-types(l : Obj) * (l == _$l_l) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l__lvar_75) * empty_fields(_$l_l : -{  }-) * Extensible (_$l__lvar_75, true) * MetaData (_$l__lvar_75, null) * empty_fields(_$l__lvar_75 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_75, "@proto") ->@d $lrferr_proto) * ((_$l__lvar_75, "@class") ->@d "Error") * ((_$l__lvar_75, "@extensible") ->@d true);
-
-pred initialHeapPre (): 
-types() * Extensible ($lbool_proto, true) * MetaData ($lbool_proto, _$l__lvar_36) * empty_fields($lbool_proto : -{  }-) * Extensible (_$l__lvar_35, true) * MetaData (_$l__lvar_35, null) * empty_fields(_$l__lvar_35 : -{  }-) * Extensible ($lnum_proto, true) * MetaData ($lnum_proto, _$l__lvar_35) * empty_fields($lnum_proto : -{  }-) * Extensible ($lerr_proto, true) * MetaData ($lerr_proto, _$l__lvar_33) * empty_fields($lerr_proto : -{  }-) * Extensible ($lobj_proto, true) * MetaData ($lobj_proto, _$l__lvar_38) * empty_fields($lobj_proto : -{  }-) * Extensible ($lop_hasOwnProperty, true) * MetaData ($lop_hasOwnProperty, _$l__lvar_32) * empty_fields($lop_hasOwnProperty : -{  }-) * Extensible (_$l__lvar_39, true) * MetaData (_$l__lvar_39, null) * empty_fields(_$l__lvar_39 : -{  }-) * Extensible ($lg, true) * MetaData ($lg, _$l__lvar_39) * empty_fields($lg : -{  }-) * Extensible ($lerr, true) * MetaData ($lerr, _$l__lvar_34) * empty_fields($lerr : -{  }-) * Extensible (_$l__lvar_34, true) * MetaData (_$l__lvar_34, null) * empty_fields(_$l__lvar_34 : -{  }-) * Extensible (_$l__lvar_36, true) * MetaData (_$l__lvar_36, null) * empty_fields(_$l__lvar_36 : -{  }-) * Extensible (_$l__lvar_38, true) * MetaData (_$l__lvar_38, null) * empty_fields(_$l__lvar_38 : -{  }-) * Extensible ($lfun_proto, true) * MetaData ($lfun_proto, _$l__lvar_37) * empty_fields($lfun_proto : -{  }-) * Extensible (_$l__lvar_37, true) * MetaData (_$l__lvar_37, null) * empty_fields(_$l__lvar_37 : -{  }-) * Extensible (_$l__lvar_33, true) * MetaData (_$l__lvar_33, null) * empty_fields(_$l__lvar_33 : -{  }-) * Extensible (_$l__lvar_32, true) * MetaData (_$l__lvar_32, null) * empty_fields(_$l__lvar_32 : -{  }-);
-
-pred BooleanObject (l, b): 
-types(_lvar_842 : Bool, l : Obj, b : Bool) * (b == _lvar_842) * (l == _$l_l) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l_#md, "@proto") ->@d $lbool_proto) * ((_$l_#md, "@class") ->@d "Boolean") * ((_$l_#md, "@extensible") ->@d true) * ((_$l_#md, "@primitiveValue") ->@d _lvar_842) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md);
-
-pred DataPropGen (l, prop, v, writ, enum, conf): 
-types(_lvar_863 : Bool, conf : Bool, writ : Bool, _lvar_864 : Str, _lvar_862 : Bool, l : Obj, prop : Str, enum : Bool, _lvar_861 : Bool) * (! (_lvar_v == empty)) * (enum == _lvar_862) * (v == _lvar_v) * (conf == _lvar_861) * (writ == _lvar_863) * (prop == _lvar_864) * (l == _$l_l) * ((_$l_l, _lvar_864) ->@d {{ "d", _lvar_v, _lvar_863, _lvar_862, _lvar_861 }});
-
-pred JSObject (l): 
-types(l : Obj) * (l == _$l_l) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@class", "@extensible", "@proto" }-) * ((_$l_#md, "@proto") ->@d $lobj_proto) * ((_$l_#md, "@class") ->@d "Object") * ((_$l_#md, "@extensible") ->@d true) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md);
-
-pred isTypeError (l): 
-types(l : Obj) * (l == _$l_l) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l__lvar_40) * empty_fields(_$l_l : -{  }-) * Extensible (_$l__lvar_40, true) * MetaData (_$l__lvar_40, null) * empty_fields(_$l__lvar_40 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_40, "@proto") ->@d $lterr_proto) * ((_$l__lvar_40, "@class") ->@d "Error") * ((_$l__lvar_40, "@extensible") ->@d true);
-
-pred isSyntaxError (l): 
-types(l : Obj) * (l == _$l_l) * Extensible (_$l__lvar_41, true) * MetaData (_$l__lvar_41, null) * empty_fields(_$l__lvar_41 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_41, "@proto") ->@d $lserr_proto) * ((_$l__lvar_41, "@class") ->@d "Error") * ((_$l__lvar_41, "@extensible") ->@d true) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l__lvar_41);
-
-pred ErrorObjectWithMessage (l, m): 
-types(_lvar_843 : Str, m : Str, l : Obj) * (l == _$l_l) * (m == _lvar_843) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * ((_$l_#md, "@proto") ->@d $lerr_proto) * ((_$l_#md, "@class") ->@d "Error") * ((_$l_#md, "@extensible") ->@d true) * ((_$l_#md, "message") ->@d {{ "d", _lvar_843, true, false, true }}) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md);
-
-pred DataProp (l, prop, v): 
-types(l : Obj, prop : Str, _lvar_845 : Str) * (! (_lvar_v == empty)) * (v == _lvar_v) * (prop == _lvar_845) * (l == _$l_l) * ((_$l_l, _lvar_845) ->@d {{ "d", _lvar_v, true, true, true }});
-
-pred desc_writ (d, v): 
-types(_lvar_844 : List, d : List) * (d == _lvar_844) * (v == l-nth(_lvar_844, 2.));
-
-pred NumberObject (l, n): 
-types(_lvar_865 : Num, l : Obj, n : Num) * (n == _lvar_865) * (l == _$l_l) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l_#md, "@proto") ->@d $lnum_proto) * ((_$l_#md, "@class") ->@d "Number") * ((_$l_#md, "@extensible") ->@d true) * ((_$l_#md, "@primitiveValue") ->@d _lvar_865) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md);
-
-pred NumberPrototype (): 
-types() * Extensible ($lnum_proto, true) * MetaData ($lnum_proto, _$l_#npmd) * (($lnum_proto, "constructor") ->@d {{ "d", $lnum, true, false, true }}) * (($lnum_proto, "toString") ->@d {{ "d", $lnp_toString, true, false, true }}) * (($lnum_proto, "toLocaleString") ->@d {{ "d", $lnp_toLocaleString, true, false, true }}) * (($lnum_proto, "valueOf") ->@d {{ "d", $lnp_valueOf, true, false, true }}) * (($lnum_proto, "toFixed") ->@d {{ "d", $lnp_toFixed, true, false, true }}) * (($lnum_proto, "toExponential") ->@d {{ "d", $lnp_toExponential, true, false, true }}) * (($lnum_proto, "toPrecision") ->@d {{ "d", $lnp_toPrecision, true, false, true }}) * Extensible (_$l_#npmd, true) * MetaData (_$l_#npmd, null) * empty_fields(_$l_#npmd : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l_#npmd, "@proto") ->@d $lobj_proto) * ((_$l_#npmd, "@class") ->@d "Number") * ((_$l_#npmd, "@extensible") ->@d true) * ((_$l_#npmd, "@primitiveValue") ->@d 0.);
-
-pred BooleanPrototype (): 
-types() * Extensible ($lbool_proto, true) * MetaData ($lbool_proto, _$l_#bpmd) * (($lbool_proto, "constructor") ->@d {{ "d", $lbool, true, false, true }}) * (($lbool_proto, "toString") ->@d {{ "d", $lbp_toString, true, false, true }}) * (($lbool_proto, "valueOf") ->@d {{ "d", $lbp_valueOf, true, false, true }}) * Extensible (_$l_#bpmd, true) * MetaData (_$l_#bpmd, null) * empty_fields(_$l_#bpmd : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l_#bpmd, "@proto") ->@d $lobj_proto) * ((_$l_#bpmd, "@class") ->@d "Boolean") * ((_$l_#bpmd, "@extensible") ->@d true) * ((_$l_#bpmd, "@primitiveValue") ->@d false);
-
-pred AccessorDescriptor (d): 
-types(#denum : Bool, d : List, #dconf : Bool) * (! (#dget == empty)) * (! (#dset == empty)) * (d == {{ "a", #dget, #dset, #denum, #dconf }});
-
-pred Descriptor (d): 
-types(_lvar_48 : Bool, d : List, _lvar_49 : Bool) * (! (_lvar_47 == empty)) * (! (_lvar_46 == empty)) * (d == {{ "a", _lvar_47, _lvar_46, _lvar_48, _lvar_49 }}),
- types(_lvar_43 : Bool, d : List, _lvar_44 : Bool, _lvar_45 : Bool) * (! (_lvar_42 == empty)) * (d == {{ "d", _lvar_42, _lvar_43, _lvar_44, _lvar_45 }});
-
-pred desc_get (d, v): 
-types(d : List, _lvar_849 : List) * (d == _lvar_849) * (v == l-nth(_lvar_849, 1.));
-
-pred Cell_s (l, prop, d): 
-types(_lvar_852 : Str, d : List, _lvar_57 : Bool, l : Obj, prop : Str, _lvar_56 : Bool) * (! (_lvar_55 == empty)) * (! (_lvar_54 == empty)) * (d == {{ "a", _lvar_55, _lvar_54, _lvar_56, _lvar_57 }}) * (prop == _lvar_852) * (l == _$l_l) * ((_$l_l, _lvar_852) ->@d {{ "a", _lvar_55, _lvar_54, _lvar_56, _lvar_57 }}),
- types(_lvar_53 : Bool, d : List, l : Obj, _lvar_51 : Bool, prop : Str, _lvar_52 : Bool, _lvar_850 : Str) * (! (_lvar_50 == empty)) * (d == {{ "d", _lvar_50, _lvar_51, _lvar_52, _lvar_53 }}) * (prop == _lvar_850) * (l == _$l_l) * ((_$l_l, _lvar_850) ->@d {{ "d", _lvar_50, _lvar_51, _lvar_52, _lvar_53 }});
-
-pred EmptyExtensibleObject (l): 
-types(l : Obj) * (l == _$l_l) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{  }-) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md) * empty_fields(_$l_l : -{  }-);
-
-pred Cell_o (l, prop, d): 
-types(_lvar_82 : Bool, _lvar_873 : Str, _lvar_83 : Bool, d : List, l : Obj, prop : Str) * (! (_lvar_81 == empty)) * (! (_lvar_80 == empty)) * (d == {{ "a", _lvar_81, _lvar_80, _lvar_82, _lvar_83 }}) * (prop == _lvar_873) * (l == _$l_l) * ((_$l_l, _lvar_873) ->@d {{ "a", _lvar_81, _lvar_80, _lvar_82, _lvar_83 }}),
- types(d : List, l : Obj, prop : Str, _lvar_79 : Bool, _lvar_871 : Str, _lvar_77 : Bool, _lvar_78 : Bool) * (! (_lvar_76 == empty)) * (d == {{ "d", _lvar_76, _lvar_77, _lvar_78, _lvar_79 }}) * (prop == _lvar_871) * (l == _$l_l) * ((_$l_l, _lvar_871) ->@d {{ "d", _lvar_76, _lvar_77, _lvar_78, _lvar_79 }}),
- types(d : None, _lvar_870 : Str, l : Obj, prop : Str) * (d == none) * (prop == _lvar_870) * (l == _$l_l) * ((_$l_l, _lvar_870) ->@d none);
-
-pred JSFunctionObject (l, fid, sc, len, proto): 
-types(sc : List, fid : Str, _lvar_867 : Num, l : Obj, _lvar_866 : Obj, _lvar_868 : List, len : Num, proto : Obj, _lvar_869 : Str) * (proto == _lvar_866) * (l == _$l_l) * (len == _lvar_867) * (fid == _lvar_869) * (sc == _lvar_868) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) * ((_$l_#md, "@proto") ->@d $lfun_proto) * ((_$l_#md, "@class") ->@d "Function") * ((_$l_#md, "@extensible") ->@d true) * ((_$l_#md, "@call") ->@d _lvar_869) * ((_$l_#md, "@construct") ->@d _lvar_869) * ((_$l_#md, "@scope") ->@d _lvar_868) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md) * ((_$l_l, "length") ->@d {{ "d", _lvar_867, false, false, false }}) * ((_$l_l, "arguments") ->@d {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) * ((_$l_l, "caller") ->@d {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) * ((_$l_l, "prototype") ->@d {{ "d", _lvar_866, true, false, false }});
-
-pred initialHeapPostWeak (): 
-types() * Extensible ($lbool_proto, true) * MetaData ($lbool_proto, _$l__lvar_61) * empty_fields($lbool_proto : -{ "constructor", "toString", "valueOf" }-) * (($lbool_proto, "constructor") ->@d {{ "d", $lbool, true, false, true }}) * (($lbool_proto, "toString") ->@d {{ "d", $lbp_toString, true, false, true }}) * (($lbool_proto, "valueOf") ->@d {{ "d", $lbp_valueOf, true, false, true }}) * Extensible (_$l__lvar_65, true) * MetaData (_$l__lvar_65, null) * empty_fields(_$l__lvar_65 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_65, "@proto") ->@d $lobj_proto) * ((_$l__lvar_65, "@class") ->@d "Object") * ((_$l__lvar_65, "@extensible") ->@d true) * Extensible ($lnum_proto, true) * MetaData ($lnum_proto, _$l__lvar_60) * empty_fields($lnum_proto : -{ "constructor", "toExponential", "toFixed", "toLocaleString", "toPrecision", "toString", "valueOf" }-) * (($lnum_proto, "constructor") ->@d {{ "d", $lnum, true, false, true }}) * (($lnum_proto, "toString") ->@d {{ "d", $lnp_toString, true, false, true }}) * (($lnum_proto, "toLocaleString") ->@d {{ "d", $lnp_toLocaleString, true, false, true }}) * (($lnum_proto, "valueOf") ->@d {{ "d", $lnp_valueOf, true, false, true }}) * (($lnum_proto, "toFixed") ->@d {{ "d", $lnp_toFixed, true, false, true }}) * (($lnum_proto, "toExponential") ->@d {{ "d", $lnp_toExponential, true, false, true }}) * (($lnum_proto, "toPrecision") ->@d {{ "d", $lnp_toPrecision, true, false, true }}) * Extensible (_$l__lvar_59, true) * MetaData (_$l__lvar_59, null) * empty_fields(_$l__lvar_59 : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) * ((_$l__lvar_59, "@call") ->@d "Error_call") * ((_$l__lvar_59, "@construct") ->@d "Error_construct") * ((_$l__lvar_59, "@proto") ->@d $lfun_proto) * ((_$l__lvar_59, "@class") ->@d "Function") * ((_$l__lvar_59, "@extensible") ->@d true) * ((_$l__lvar_59, "@scope") ->@d empty) * Extensible (_$l__lvar_63, true) * MetaData (_$l__lvar_63, null) * empty_fields(_$l__lvar_63 : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) * ((_$l__lvar_63, "@proto") ->@d $lfun_proto) * ((_$l__lvar_63, "@class") ->@d "Function") * ((_$l__lvar_63, "@extensible") ->@d true) * ((_$l__lvar_63, "@call") ->@d "OP_hasOwnProperty") * ((_$l__lvar_63, "@scope") ->@d empty) * Extensible ($lerr_proto, true) * MetaData ($lerr_proto, _$l__lvar_58) * empty_fields($lerr_proto : -{ "message" }-) * (($lerr_proto, "message") ->@d {{ "d", "", true, false, true }}) * Extensible ($lobj_proto, true) * MetaData ($lobj_proto, _$l__lvar_64) * empty_fields($lobj_proto : -{ "hasOwnProperty" }-) * (($lobj_proto, "hasOwnProperty") ->@d {{ "d", $lop_hasOwnProperty, true, false, true }}) * Extensible ($lop_hasOwnProperty, true) * MetaData ($lop_hasOwnProperty, _$l__lvar_63) * empty_fields($lop_hasOwnProperty : -{ "length" }-) * (($lop_hasOwnProperty, "length") ->@d {{ "d", 1., false, false, false }}) * Extensible (_$l__lvar_64, true) * MetaData (_$l__lvar_64, null) * empty_fields(_$l__lvar_64 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_64, "@proto") ->@d null) * ((_$l__lvar_64, "@class") ->@d "Object") * ((_$l__lvar_64, "@extensible") ->@d true) * Extensible (_$l__lvar_58, true) * MetaData (_$l__lvar_58, null) * empty_fields(_$l__lvar_58 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_58, "@proto") ->@d $lobj_proto) * ((_$l__lvar_58, "@class") ->@d "Error") * ((_$l__lvar_58, "@extensible") ->@d true) * Extensible (_$l__lvar_62, true) * MetaData (_$l__lvar_62, null) * empty_fields(_$l__lvar_62 : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) * ((_$l__lvar_62, "@scope") ->@d empty) * ((_$l__lvar_62, "@call") ->@d "FP_default") * ((_$l__lvar_62, "@proto") ->@d $lobj_proto) * ((_$l__lvar_62, "@class") ->@d "Function") * ((_$l__lvar_62, "@extensible") ->@d true) * Extensible ($lg, true) * MetaData ($lg, _$l__lvar_65) * (($lg, "Error") ->@d {{ "d", $lerr, true, false, true }}) * Extensible ($lerr, true) * MetaData ($lerr, _$l__lvar_59) * empty_fields($lerr : -{ "length", "prototype" }-) * (($lerr, "length") ->@d {{ "d", 1., false, false, false }}) * (($lerr, "prototype") ->@d {{ "d", $lerr_proto, false, false, false }}) * Extensible ($lfun_proto, true) * MetaData ($lfun_proto, _$l__lvar_62) * empty_fields($lfun_proto : -{ "length" }-) * (($lfun_proto, "length") ->@d {{ "d", 0., false, false, false }}) * Extensible (_$l__lvar_61, true) * MetaData (_$l__lvar_61, null) * empty_fields(_$l__lvar_61 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_61, "@proto") ->@d $lobj_proto) * ((_$l__lvar_61, "@class") ->@d "Boolean") * ((_$l__lvar_61, "@extensible") ->@d true) * ((_$l__lvar_61, "@primitiveValue") ->@d false) * Extensible (_$l__lvar_60, true) * MetaData (_$l__lvar_60, null) * empty_fields(_$l__lvar_60 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_60, "@proto") ->@d $lobj_proto) * ((_$l__lvar_60, "@class") ->@d "Number") * ((_$l__lvar_60, "@extensible") ->@d true) * ((_$l__lvar_60, "@primitiveValue") ->@d 0.);
-
-pred JSBIFunction (l, fid, len): 
-types(fid : Str, _lvar_878 : Str, l : Obj, len : Num, _lvar_877 : Num) * (l == _$l_l) * (len == _lvar_877) * (fid == _lvar_878) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) * ((_$l_#md, "@proto") ->@d $lfun_proto) * ((_$l_#md, "@class") ->@d "Function") * ((_$l_#md, "@extensible") ->@d true) * ((_$l_#md, "@call") ->@d _lvar_878) * ((_$l_#md, "@scope") ->@d empty) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md) * ((_$l_l, "length") ->@d {{ "d", _lvar_877, false, false, false }});
-
-pred BIFunctionObject (l, len, proto): 
-types(_lvar_875 : Obj, l : Obj, len : Num, proto : Obj, _lvar_876 : Num) * (proto == _lvar_875) * (l == _$l_l) * (len == _lvar_876) * Extensible (_$l_#md, true) * MetaData (_$l_#md, null) * empty_fields(_$l_#md : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) * ((_$l_#md, "@proto") ->@d $lfun_proto) * ((_$l_#md, "@class") ->@d "Function") * ((_$l_#md, "@extensible") ->@d true) * ((_$l_#md, "@scope") ->@d empty) * Extensible (_$l_l, true) * MetaData (_$l_l, _$l_#md) * ((_$l_l, "length") ->@d {{ "d", _lvar_876, false, false, false }}) * ((_$l_l, "prototype") ->@d {{ "d", _lvar_875, false, false, false }});
-
+import javert_js_predicates.jsil;
 
 spec TypeError_call(xsc, vthis, v)
 [[ types(v : Undefined) * (v == undefined) * (xsc == _lvar_xsc) * (vthis == _lvar_vthis) ]]
@@ -432,6 +315,50 @@ proc create_function_object (xsc, call, construct, params) {
 };
 
 
+spec i__abstractComparison(v1, v2, leftFirst)
+[[ types(#leftFirst : Bool, #v2 : Num, #v1 : Num) * (#v1 <# #v2) * (leftFirst == #leftFirst) * (v2 == #v2) * (v1 == #v1) ]]
+[[ types(#leftFirst : Bool, #v2 : Num, xret : Bool, #v1 : Num) * (xret == true) * (leftFirst == _lvar_leftFirst) * (v2 == _lvar_v2) * (v1 == _lvar_v1) ]]
+normal;
+
+ [[ types(#leftFirst : Bool, #v2 : Num, #v1 : Num) * (#v2 <=# #v1) * (leftFirst == #leftFirst) * (v2 == #v2) * (v1 == #v1) ]]
+[[ types(#leftFirst : Bool, #v2 : Num, xret : Bool, #v1 : Num) * (xret == false) * (leftFirst == _lvar_leftFirst) * (v2 == _lvar_v2) * (v1 == _lvar_v1) ]]
+normal
+
+proc i__abstractComparison (v1, v2, leftFirst) {
+			goto [((leftFirst = empty) or (leftFirst = true))] eleft eright;
+	eleft:		xret := "i__toPrimitive"(v1, "Number") with elab;
+			px := xret;
+			xret := "i__toPrimitive"(v2, "Number") with elab;
+			py := xret;
+			goto is_str;
+	eright:		xret := "i__toPrimitive"(v2, "Number") with elab;
+			py := xret;
+			xret := "i__toPrimitive"(v1, "Number") with elab;
+			px := xret;
+	is_str:		goto [((typeOf(px) = Str) and (typeOf(py) = Str))] str num;
+	str:		xret := (px <s py);
+			goto rlab;
+	num:		xret := "i__toNumber"(px) with elab;
+			nx := xret;
+			xret := "i__toNumber"(py) with elab;
+			ny := xret;
+			goto [((not (nx = nx)) or (not (ny = ny)))] ru eq;
+	eq:		goto [(nx = ny)] rf sl;
+	sl:		xret := (nx < ny);
+			goto rlab;
+	ru:		xret := undefined;
+			goto rlab;
+	rt:		xret := true;
+			goto rlab;
+	rf:		xret := false;
+	rlab:		skip;
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+
 spec Boolean_construct(xsc, vthis, v)
 [[ types(v : Bool, #v : Bool) * (v == #v) * (xsc == _lvar_xsc) * (vthis == _lvar_vthis) ]]
 [[ types(#v : Bool, xret : Obj) * (xret == _$l_xret) * (v == _lvar_v) * (xsc == _lvar_xsc) * (vthis == _lvar_vthis) * Extensible (_$l__lvar_326, true) * MetaData (_$l__lvar_326, null) * empty_fields(_$l__lvar_326 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_326, "@proto") ->@d $lbool_proto) * ((_$l__lvar_326, "@class") ->@d "Boolean") * ((_$l__lvar_326, "@extensible") ->@d true) * ((_$l__lvar_326, "@primitiveValue") ->@d #v) * Extensible (_$l_xret, true) * MetaData (_$l_xret, _$l__lvar_326) * empty_fields(_$l_xret : -{  }-) ]]
@@ -540,6 +467,44 @@ proc create_default_object (l, pr, cl, ext) {
 	rlab:		xret := l
 } with {
 	ret: xret, rlab;
+};
+
+
+spec i__toPrimitive(v, hint)
+[[ types(v : Undefined) * (v == undefined) * (hint == _lvar_hint) ]]
+[[ types(xret : Undefined) * (xret == undefined) * (v == _lvar_v) * (hint == _lvar_hint) ]]
+normal;
+
+ [[ types(v : Null) * (v == null) * (hint == _lvar_hint) ]]
+[[ types(xret : Null) * (xret == null) * (v == _lvar_v) * (hint == _lvar_hint) ]]
+normal;
+
+ [[ types(#v : Num) * (v == #v) * (hint == _lvar_hint) ]]
+[[ types(#v : Num) * (xret == #v) * (v == _lvar_v) * (hint == _lvar_hint) ]]
+normal;
+
+ [[ types(#v : Bool) * (v == #v) * (hint == _lvar_hint) ]]
+[[ types(#v : Bool) * (xret == #v) * (v == _lvar_v) * (hint == _lvar_hint) ]]
+normal;
+
+ [[ types(#v : Str) * (v == #v) * (hint == _lvar_hint) ]]
+[[ types(#v : Str) * (xret == #v) * (v == _lvar_v) * (hint == _lvar_hint) ]]
+normal
+
+proc i__toPrimitive (v, hint) {
+			xret := v;
+			tv := typeOf(v);
+	iu:		goto [((v = undefined) or ((v = null) or ((typeOf(v) = Bool) or ((typeOf(v) = Num) or (typeOf(v) = Str)))))] rlab is_obj;
+	is_obj:		goto [(typeOf(v) = Obj)] obj oops;
+	obj:		xret := "defaultValue"(v, hint) with elab;
+			goto rlab;
+	oops:		xret := "ToPrimitive: This should not happen.";
+			goto elab;
+	rlab:		skip;
+	elab:		skip
+} with {
+	ret: xret, rlab;
+	err: xret, elab;
 };
 
 
@@ -759,7 +724,7 @@ proc i__checkAssignmentErrors (v) {
 
 spec put(l, prop, value, throw)
 [[ Pi(_$l_#l, #prop, undefined, (_$l_#l :: (#lp :: #lllp)), (#cls :: (#ccls :: #llcls)), ("" :: (#pv :: #llpv))) * types(#lllp : List, #lp : Obj, #pv : Str, l : Obj, #cls : Str, #throw : Bool, #ccls : Str, #llcls : List, #llpv : List, #prop : Str) * (! (#value == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (throw == #throw) * (value == #value) * (prop == #prop) * (l == _$l_#l) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
-[[ Pi(_$l_#l, #prop, {{ "d", #value, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, undefined, (#lp :: #lllp), (#ccls :: #llcls), (#pv :: #llpv)) * types(#lllp : List, #lp : Obj, #pv : Str, #cls : Str, #throw : Bool, #ccls : Str, xret : Empty, #llcls : List, #llpv : List, #prop : Str) * (throw == _lvar_throw) * (value == _lvar_value) * (xret == empty) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
+[[ Pi(_$l_#l, #prop, {{ "d", #value, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, undefined, (#lp :: #lllp), (#ccls :: #llcls), (#pv :: #llpv)) * types(#lllp : List, #lp : Obj, #pv : Str, #cls : Str, #throw : Bool, #ccls : Str, #llcls : List, xret : Empty, #prop : Str, #llpv : List) * (throw == _lvar_throw) * (value == _lvar_value) * (xret == empty) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
 normal;
 
  [[ Pi(_$l_#l, #prop, {{ "d", #dval, true, #denum, #dconf }}, {{ _$l_#l }}, {{ #cls }}, #lpv) * types(#denum : Bool, l : Obj, #cls : Str, #throw : Bool, #ext : Bool, #dconf : Bool, #prop : Str, #lpv : List) * (! (#value == empty)) * (! (#dval == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (throw == #throw) * (value == #value) * (prop == #prop) * (l == _$l_#l) * ((_$l_#md, "@extensible") ->@d #ext) * MetaData (_$l_#l, _$l_#md) ]]
@@ -767,7 +732,7 @@ normal;
 normal;
 
  [[ Pi(_$l_#l, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (_$l_#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, l : Obj, #cls : Str, #throw : Bool, #dcconf : Bool, #llpv : List, #prop : Str, #pcls : Str) * (! (#value == empty)) * (! (#dcval == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (throw == #throw) * (value == #value) * (prop == #prop) * (l == _$l_#l) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
-[[ Pi(_$l_#l, #prop, {{ "d", #value, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, #throw : Bool, xret : Empty, #dcconf : Bool, #llpv : List, #prop : Str, #pcls : Str) * (throw == _lvar_throw) * (value == _lvar_value) * (xret == empty) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
+[[ Pi(_$l_#l, #prop, {{ "d", #value, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, #throw : Bool, #dcconf : Bool, xret : Empty, #pcls : Str, #prop : Str, #llpv : List) * (throw == _lvar_throw) * (value == _lvar_value) * (xret == empty) * (prop == _lvar_prop) * (l == _lvar_l) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
 normal;
 
  [[ Pi(_$l_#l, #prop, undefined, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * types(l : Obj, #cls : Str, #throw : Bool, #prop : Str) * (! (#value == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (throw == #throw) * (value == #value) * (prop == #prop) * (l == _$l_#l) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
@@ -857,11 +822,11 @@ error;
 normal;
 
  [[ Pi(_$l_#l, #prop, undefined, (_$l_#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) * types(#ocls : List, v : List, #lllp : List, #lp : Obj, #pv : Str, #cls : Str, #llpv : List, #prop : Str, #pcls : Str) * (! (#w == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (v == {{ "o", _$l_#l, #prop }}) * (w == #w) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
-[[ Pi(_$l_#l, #prop, {{ "d", #w, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, undefined, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #lp : Obj, #pv : Str, #cls : Str, xret : Empty, #llpv : List, #prop : Str, #pcls : Str) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
+[[ Pi(_$l_#l, #prop, {{ "d", #w, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, undefined, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #lp : Obj, #pv : Str, #cls : Str, xret : Empty, #pcls : Str, #prop : Str, #llpv : List) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
 normal;
 
  [[ Pi($lg, #prop, undefined, ($lg :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) * types(#ocls : List, v : List, #lllp : List, #lp : Obj, #pv : Str, #cls : Str, #llpv : List, #prop : Str, #pcls : Str) * (! (#w == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (v == {{ "v", $lg, #prop }}) * (w == #w) * ((_$l_#md, "@extensible") ->@d true) * MetaData ($lg, _$l_#md) ]]
-[[ Pi($lg, #prop, {{ "d", #w, true, true, true }}, {{ $lg }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, undefined, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #lp : Obj, #pv : Str, #cls : Str, xret : Empty, #llpv : List, #prop : Str, #pcls : Str) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData ($lg, _$l_#md) ]]
+[[ Pi($lg, #prop, {{ "d", #w, true, true, true }}, {{ $lg }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, undefined, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #lp : Obj, #pv : Str, #cls : Str, xret : Empty, #pcls : Str, #prop : Str, #llpv : List) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData ($lg, _$l_#md) ]]
 normal;
 
  [[ Pi(_$l_#l, #prop, {{ "d", #dval, true, #denum, #dconf }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * types(#denum : Bool, v : List, #cls : Str, #ext : Bool, #dconf : Bool, #prop : Str) * (! (#w == empty)) * (! (#dval == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (v == {{ "o", _$l_#l, #prop }}) * (w == #w) * ((_$l_#md, "@extensible") ->@d #ext) * MetaData (_$l_#l, _$l_#md) ]]
@@ -873,11 +838,11 @@ normal;
 normal;
 
  [[ Pi(_$l_#l, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (_$l_#l :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) * types(#ocls : List, v : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, #dcconf : Bool, #llpv : List, #prop : Str, #pcls : Str) * (! (#w == empty)) * (! (#dcval == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (v == {{ "o", _$l_#l, #prop }}) * (w == #w) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
-[[ Pi(_$l_#l, #prop, {{ "d", #w, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, xret : Empty, #dcconf : Bool, #llpv : List, #prop : Str, #pcls : Str) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
+[[ Pi(_$l_#l, #prop, {{ "d", #w, true, true, true }}, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, #dcconf : Bool, xret : Empty, #pcls : Str, #prop : Str, #llpv : List) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
 normal;
 
  [[ Pi($lg, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, ($lg :: (#lp :: #lllp)), (#cls :: (#pcls :: #ocls)), ("" :: (#pv :: #llpv))) * types(#ocls : List, v : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, #dcconf : Bool, #llpv : List, #prop : Str, #pcls : Str) * (! (#w == empty)) * (! (#dcval == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (v == {{ "v", $lg, #prop }}) * (w == #w) * ((_$l_#md, "@extensible") ->@d true) * MetaData ($lg, _$l_#md) ]]
-[[ Pi($lg, #prop, {{ "d", #w, true, true, true }}, {{ $lg }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, xret : Empty, #dcconf : Bool, #llpv : List, #prop : Str, #pcls : Str) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData ($lg, _$l_#md) ]]
+[[ Pi($lg, #prop, {{ "d", #w, true, true, true }}, {{ $lg }}, {{ #cls }}, {{ "" }}) * Pi(#lp, #prop, {{ "d", #dcval, true, #dcenum, #dcconf }}, (#lp :: #lllp), (#pcls :: #ocls), (#pv :: #llpv)) * types(#ocls : List, #lllp : List, #dcenum : Bool, #lp : Obj, #pv : Str, #cls : Str, #dcconf : Bool, xret : Empty, #pcls : Str, #prop : Str, #llpv : List) * (xret == empty) * (v == _lvar_v) * (w == _lvar_w) * ((_$l_#md, "@proto") ->@d #lp) * ((_$l_#md, "@extensible") ->@d true) * MetaData ($lg, _$l_#md) ]]
 normal;
 
  [[ Pi(_$l_#l, #prop, undefined, {{ _$l_#l }}, {{ #cls }}, {{ "" }}) * types(v : List, #cls : Str, #prop : Str) * (! (#w == empty)) * (! (#cls == "String")) * (! (#cls == "Array")) * (v == {{ "o", _$l_#l, #prop }}) * (w == #w) * ((_$l_#md, "@extensible") ->@d true) * MetaData (_$l_#l, _$l_#md) ]]
@@ -1380,7 +1345,7 @@ error;
 error;
 
  [[ Pi($lbool_proto, #field, undefined, #pls, #plcls, #plpv) * types(#field : Str, #pls : List, #b : Bool, #plpv : List, v : List, #plcls : List, #d : Undefined) * (#d == undefined) * (v == {{ "o", #b, #field }}) ]]
-[[ Pi($lbool_proto, #field, undefined, #pls, #plcls, #plpv) * types(#field : Str, #pls : List, #b : Bool, #plpv : List, xobj : Obj, #plcls : List, xret : Undefined, #d : Undefined) * (#d == undefined) * (xret == undefined) * (v == _lvar_v) * (xobj == _$l_#o) * Extensible (_$l_#o, true) * MetaData (_$l_#o, _$l__lvar_155) * empty_fields(_$l_#o : -{  }-) * Extensible (_$l__lvar_155, true) * MetaData (_$l__lvar_155, null) * empty_fields(_$l__lvar_155 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_155, "@proto") ->@d $lbool_proto) * ((_$l__lvar_155, "@class") ->@d "Boolean") * ((_$l__lvar_155, "@extensible") ->@d true) * ((_$l__lvar_155, "@primitiveValue") ->@d #b) ]]
+[[ Pi($lbool_proto, #field, undefined, #pls, #plcls, #plpv) * types(#pls : List, #field : Str, #b : Bool, #plpv : List, xobj : Obj, #plcls : List, xret : Undefined, #d : Undefined) * (#d == undefined) * (xret == undefined) * (v == _lvar_v) * (xobj == _$l_#o) * Extensible (_$l_#o, true) * MetaData (_$l_#o, _$l__lvar_155) * empty_fields(_$l_#o : -{  }-) * Extensible (_$l__lvar_155, true) * MetaData (_$l__lvar_155, null) * empty_fields(_$l__lvar_155 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_155, "@proto") ->@d $lbool_proto) * ((_$l__lvar_155, "@class") ->@d "Boolean") * ((_$l__lvar_155, "@extensible") ->@d true) * ((_$l__lvar_155, "@primitiveValue") ->@d #b) ]]
 normal;
 
  [[ Pi($lbool_proto, #field, {{ "d", _lvar_156, _lvar_157, _lvar_158, _lvar_159 }}, #pls, #plcls, #plpv) * types(#pls : List, #field : Str, #b : Bool, _lvar_157 : Bool, #plpv : List, _lvar_159 : Bool, v : List, _lvar_158 : Bool, #plcls : List, #d : List) * (#d == {{ "d", _lvar_156, _lvar_157, _lvar_158, _lvar_159 }}) * (! (_lvar_156 == empty)) * (v == {{ "o", #b, #field }}) ]]
@@ -1388,7 +1353,7 @@ normal;
 normal;
 
  [[ Pi($lnum_proto, #field, undefined, #pls, #plcls, #plpv) * types(#field : Str, #pls : List, #plpv : List, v : List, #n : Num, #plcls : List, #d : Undefined) * (#d == undefined) * (v == {{ "o", #n, #field }}) ]]
-[[ Pi($lnum_proto, #field, undefined, #pls, #plcls, #plpv) * types(#field : Str, #pls : List, #plpv : List, xobj : Obj, #n : Num, #plcls : List, xret : Undefined, #d : Undefined) * (#d == undefined) * (xret == undefined) * (v == _lvar_v) * (xobj == _$l_#o) * Extensible (_$l_#o, true) * MetaData (_$l_#o, _$l__lvar_161) * empty_fields(_$l_#o : -{  }-) * Extensible (_$l__lvar_161, true) * MetaData (_$l__lvar_161, null) * empty_fields(_$l__lvar_161 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_161, "@proto") ->@d $lnum_proto) * ((_$l__lvar_161, "@class") ->@d "Number") * ((_$l__lvar_161, "@extensible") ->@d true) * ((_$l__lvar_161, "@primitiveValue") ->@d #n) ]]
+[[ Pi($lnum_proto, #field, undefined, #pls, #plcls, #plpv) * types(#pls : List, #field : Str, #plpv : List, xobj : Obj, #n : Num, #plcls : List, xret : Undefined, #d : Undefined) * (#d == undefined) * (xret == undefined) * (v == _lvar_v) * (xobj == _$l_#o) * Extensible (_$l_#o, true) * MetaData (_$l_#o, _$l__lvar_161) * empty_fields(_$l_#o : -{  }-) * Extensible (_$l__lvar_161, true) * MetaData (_$l__lvar_161, null) * empty_fields(_$l__lvar_161 : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-) * ((_$l__lvar_161, "@proto") ->@d $lnum_proto) * ((_$l__lvar_161, "@class") ->@d "Number") * ((_$l__lvar_161, "@extensible") ->@d true) * ((_$l__lvar_161, "@primitiveValue") ->@d #n) ]]
 normal;
 
  [[ Pi($lnum_proto, #field, {{ "d", _lvar_162, _lvar_163, _lvar_164, _lvar_165 }}, #pls, #plcls, #plpv) * types(#pls : List, #field : Str, #plpv : List, v : List, _lvar_163 : Bool, #n : Num, #plcls : List, #d : List, _lvar_165 : Bool, _lvar_164 : Bool) * (#d == {{ "d", _lvar_162, _lvar_163, _lvar_164, _lvar_165 }}) * (! (_lvar_162 == empty)) * (v == {{ "o", #n, #field }}) ]]

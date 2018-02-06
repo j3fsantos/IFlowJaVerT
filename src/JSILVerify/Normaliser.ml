@@ -200,7 +200,7 @@ let rec auto_unfold
 				   logical expressions in the argument list *)
 				let param_names, _ = List.split pred.params in
 				let subst = init_substitution2 param_names args  in
-				let new_asrts  = List.map (fun (_, a) -> (asrt_substitution subst false a)) pred.definitions in
+				let new_asrts  = List.map (fun (_, a) -> asrt_substitution subst false a) pred.definitions in
 				List.concat (List.map au new_asrts)
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
@@ -591,7 +591,7 @@ let resolve_list (le : jsil_logic_expr) (pfs : jsil_logic_assertion list) : jsil
 	| le     -> le 
 
 
-let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string option * substitution option =
+let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : (string * substitution) option =
 	
 	let original_pfs = 
 		List.map (fun a -> 
@@ -660,8 +660,8 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : string 
 
 	let rec loop pfs =
 		match shallow_loop pfs [] false with 
-		| Some loc, _ -> Some loc, Some subst 
-		| None, false -> None, None
+		| Some loc, _ -> Some (loc, subst) 
+		| None, false -> None
 		| None, true  -> loop (List.map (asrt_substitution subst true) pfs) in
 
 	loop original_pfs
@@ -671,7 +671,7 @@ let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : s
 	match le with
 	| LLit (Loc l)
 	| ALoc l        -> Some l
-	| LVar x        -> let result, _ = resolve_location x (pfs_to_list pfs) in result 
+	| LVar x        -> Option.map (fun (result, _) -> result) (resolve_location x (pfs_to_list pfs)) 
 	| _             -> None
 
 
@@ -1002,8 +1002,7 @@ let rec normalise_cell_assertions
 	| LPointsTo (ALoc loc, le2, (perm, le3)) -> normalise_cell_assertion loc le2 perm le3
 
 	| LPointsTo (_, _, _) ->
-		let msg = Printf.sprintf "" in
-		raise (Failure "Illegal PointsTo Assertion")
+		raise (Failure (Printf.sprintf "Illegal PointsTo Assertion: %s" (JSIL_Print.string_of_logic_assertion a)))
 
 	| _ -> ()
 
@@ -1642,7 +1641,7 @@ let create_unification_plan
 		raise (Failure msg)) 
 
 
-let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) : string option =
+let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) : (string * substitution) option =
 
 	let x         = fresh_lvar () in 
 	let subst     = init_substitution3 [ (aloc, LVar x) ] in 
@@ -1654,11 +1653,11 @@ let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) :
 
 	let loc       = resolve_location x pfs_list' in	 
 	match loc with 
-	| Some loc, Some subst -> 
+	| Some (loc, subst) -> 
 			print_debug (Printf.sprintf "Found the overlap %s" loc);
 			print_debug (Printf.sprintf "Substitution: %s" (JSIL_Print.string_of_substitution subst)); 
-			Some loc
-	| _, _        -> print_debug "Could NOT find the overlap\n"; None 
+			Some (loc, subst)
+	| None        -> print_debug "Could NOT find the overlap\n"; None 
 
 
 let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state option = 
@@ -1688,7 +1687,7 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 		SS.iter (fun aloc -> 
 			match is_overlapping_aloc pfs_list aloc with 
 			| None        -> () 
-			| Some aloc' -> Hashtbl.replace aloc_subst aloc (ALoc aloc'); ()
+			| Some (aloc', subst) -> Hashtbl.replace aloc_subst aloc (ALoc aloc'); ()
 		) relevant_new_alocs; 
 
 		let new_pfs_post = pfs_substitution aloc_subst true pfs_post in 
@@ -1708,9 +1707,9 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 
 (** Normalise Postcondition
 	-----------------------
-	Each normlised postcondition postcondition may map additional spec vars
+	Each normalised postcondition postcondition may map additional spec vars
 	to alocs. In order not to lose the link between the newly generated alocs
-	and the precondition spec vars, we need to introduce extra equalities    *)
+	and the precondition spec vars, we need to introduce extra equalities *)
 let normalise_post
 		(post_gamma_0  : typing_environment)
 		(subst         : substitution)
@@ -1796,6 +1795,7 @@ let normalise_single_spec
 		(** Step 3 - Normalise the postconditions associated with each pre           *)
 		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars params) posts) in
 		let ss_posts = oget_list (List.map (fun ss_post -> collapse_alocs ss_pre ss_post) ss_posts) in 
+		let ss_posts = List.map (fun ss_post -> Simplifications.simplify_ss ss_post (Some (Some spec_vars))) ss_posts in 
 		{	n_pre              = ss_pre;
 			n_post             = ss_posts;
 			n_ret_flag         = spec.ret_flag;

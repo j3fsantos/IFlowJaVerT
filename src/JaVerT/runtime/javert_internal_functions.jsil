@@ -565,6 +565,56 @@ with
 	ret:	xret, rlab;
 };
 
+(* ********************** *)
+(* *** I__TOPRIMITIVE *** *)
+(* ********************** *)
+
+spec i__toPrimitive (v, hint)
+
+    [[ v == undefined ]]
+    [[ ret == undefined ]]
+    normal;
+
+    [[ v == null ]]
+    [[ ret == null ]]
+    normal;
+
+    [[ (v == #v) * types (#v : Num) ]]
+	[[ (ret == #v) ]]
+	normal;
+
+    [[ (v == #v) * types (#v : Bool) ]]
+	[[ (ret == #v) ]]
+	normal;
+
+    [[ (v == #v) * types (#v : Str) ]]
+	[[ (ret == #v) ]]
+	normal
+
+proc i__toPrimitive (v, hint) {
+			xret := v;
+			tv := typeOf(v);
+
+	iu:		goto [(v = undefined) or (v = null) or
+	              (typeOf(v) = Bool) or (typeOf(v) = Num) or
+	              (typeOf(v) = Str)] rlab is_obj;
+
+	is_obj:	goto [typeOf(v) = Obj] obj oops;
+	obj:	xret := "defaultValue" (v, hint) with elab;
+			goto rlab;
+
+	oops:	xret := "ToPrimitive: This should not happen.";
+			goto elab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
 (******************
  ******************
  ***** ERRORS *****
@@ -783,6 +833,75 @@ proc i__strictEquality (v1, v2) {
 with
 {
 	ret:	xret, rlab;
+};
+
+(* ***************************** *)
+(* *** I__ABSTRACTCOMPARISON *** *)
+(* ***************************** *)
+
+spec i__abstractComparison (v1, v2, leftFirst)
+
+    [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
+       types(#v1:Num, #v2:Num, #leftFirst:Bool) * (#v1 <# #v2) ]]
+    [[ (ret == true) ]]
+    normal;
+
+    [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
+       types(#v1:Num, #v2:Num, #leftFirst:Bool) * (#v1 == #v2) ]]
+    [[ (ret == false) ]]
+    normal;
+    
+    [[ (v1 == #v1) * (v2 == #v2) * (leftFirst == #leftFirst) * 
+       types(#v1:Num, #v2:Num, #leftFirst:Bool) * (#v2 <# #v1) ]]
+    [[ (ret == false) ]]
+    normal
+
+proc i__abstractComparison (v1, v2, leftFirst) {
+			goto [(leftFirst = empty) or (leftFirst = true)] eleft eright;
+
+	eleft:	xret := "i__toPrimitive" (v1, "Number") with elab;
+			px := xret;
+			xret := "i__toPrimitive" (v2, "Number") with elab;
+			py := xret;
+			goto is_str;
+
+	eright:	xret := "i__toPrimitive" (v2, "Number") with elab;
+			py := xret;
+			xret := "i__toPrimitive" (v1, "Number") with elab;
+			px := xret;
+
+	is_str:	goto [(typeOf(px) = Str) and (typeOf(py) = Str)] str num;
+
+	str:	xret := (px <s py);
+			goto rlab;
+
+	num:	xret := "i__toNumber" (px) with elab;
+			nx := xret;
+			xret := "i__toNumber" (py) with elab;
+			ny := xret;
+
+			goto [(not (nx = nx)) or (not (ny = ny))] ru eq;
+
+	eq:		goto [nx = ny] rf sl;
+
+	sl:		xret := (nx < ny);
+			goto rlab;
+
+	ru:		xret := undefined;
+			goto rlab;
+
+	rt:		xret := true;
+			goto rlab;
+
+	rf:		xret := false;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
 };
 
 (* *********************

@@ -908,7 +908,7 @@ let extend_spec_vars_subst
 
 	List.iter (fun x -> 
 		if (not (Hashtbl.mem subst x)) then (
-			let res_loc, _ = Normaliser.resolve_location x (pfs_to_list pfs) in
+			let res_loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
 			match res_loc with 
 				| Some loc  when is_lit_loc_name loc  -> Hashtbl.replace subst x (LLit (Loc loc)) 
 				| Some aloc when is_abs_loc_name aloc -> Hashtbl.replace subst x (ALoc aloc) 

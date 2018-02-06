@@ -1,8 +1,8 @@
 /**
 @pred idGenerator(ig, sc_ig, c_val : Num, prefix : Str) :
    JSObject(ig) * 
-   DataProp(ig, "getId", #gni) * FunctionObject(#gni, "getId", #gni_sc, _) *
-   DataProp(ig, "reset", #ri)  * FunctionObject(#ri, "reset", #ri_sc, _) *
+   DataProp(ig, "getId", #gni) * JSFunctionObject(#gni, "getId", #gni_sc, _, _) *
+   DataProp(ig, "reset", #ri)  * JSFunctionObject(#ri, "reset", #ri_sc, _, _) *
    closure(count: c_val, prefix: prefix; getId: #gni_sc, reset: #ri_sc, makeIdGen: sc_ig);
 */
 
@@ -12,7 +12,7 @@
 	   scope(makeIdGen: #mig) *
 	   scope(ig1: #ig1) *
 	   scope(ig2: #ig2) *
-	   FunctionObject(#mig, "makeIdGen", _, _) *
+	   JSFunctionObject(#mig, "makeIdGen", _, _, _) *
 	   idGenerator(#ig1, _, 1, "foo") *
 	   idGenerator(#ig2, _, 0, "bar") * 
 	   scope(id1: #id1) *
