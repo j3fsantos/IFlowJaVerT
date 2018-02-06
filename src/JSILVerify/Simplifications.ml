@@ -257,6 +257,10 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	| LBinOp (LLit (String s1), StrCat, LLit (String s2)) -> f (LLit (String (s1 ^ s2)))
 	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 
+	(* Associativity *)
+	| LBinOp (LBinOp (le1, StrCat, le2), StrCat, le3) ->
+			f (LBinOp (le1, StrCat, LBinOp (le2, StrCat, le3)))
+
   (* List equality *)
 	| LBinOp (LUnOp (Car, PVar x), LstCons, LUnOp (Cdr, PVar y)) when (x = y) -> PVar x
 	| LBinOp (LUnOp (Car, LVar x), LstCons, LUnOp (Cdr, LVar y)) when (x = y) -> LVar x
@@ -1655,7 +1659,15 @@ let simplify_symb_state
 						
 			(* Equality *)
 			| LEq (le1, le2) ->
-				(match le1, le2 with
+				let te1, _, _ = JSIL_Logic_Utils.type_lexpr gamma le1 in
+				let te2, _, _ = JSIL_Logic_Utils.type_lexpr gamma le2 in
+				(match te1, te2 with
+				| Some te1, Some te2 when (te1 <> te2) -> 
+						pfs_ok := false; msg := 
+							Printf.sprintf "Type mismatch: %s:%s -> %s:%s" 
+								(JSIL_Print.string_of_logic_expression le1) (Type.str te1) 
+								(JSIL_Print.string_of_logic_expression le2) (Type.str te2)
+				| _ -> (match le1, le2 with
 
 				| LVar v1, LVar v2 when (v1 = v2) ->
 						DynArray.delete pfs !n
@@ -1902,7 +1914,7 @@ let simplify_symb_state
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
 				
-				| _, _ -> n := !n + 1)
+				| _, _ -> n := !n + 1))
 			
 			(* Special cases *)
 			| LNot (LEq (ALoc _, LLit Empty)) 

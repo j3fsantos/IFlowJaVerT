@@ -6,7 +6,7 @@ module SS = Set.Make(String)
 let small_tbl_size = 31
 let medium_tbl_size = 101
 
-let funobj_pred_name = "FunctionObject"
+let funobj_pred_name = "JSFunctionObject"
 
 (************)
 (* Utils    *)
@@ -270,7 +270,7 @@ let rec js2jsil_assertion
 		if (s = funobj_pred_name)
 			then (
 				(match les with
-				| [ _; JSLLit (String fid); le_sc; _ ] -> LStar (a', f (JSSChain (fid, le_sc)))
+				| [ _; JSLLit (String fid); le_sc; _; _ ] -> LStar (a', f (JSSChain (fid, le_sc)))
 				| _ ->
 					let les_str = String.concat ", "
 						(List.map (fun le -> JSIL_Print.string_of_logic_expression (fe le)) les) in

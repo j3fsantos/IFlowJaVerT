@@ -209,8 +209,8 @@ pred ErrorObject (l:Obj, pr:Obj) :
 
 pred ErrorObjectWithMessage (l:Obj, m:Str) :
   MetaData(l, #md) * Extensible(l, true) *
+  ((l, "message") -> {{"d", m, true, false, true}}) *
   ((#md, "@proto") -> $lerr_proto) * ((#md, "@class") -> "Error") * ((#md, "@extensible") -> true) *
-  ((#md, "message") -> {{"d", m, true, false, true}}) * 
   MetaData(#md, null) * Extensible(#md, true);
 
 pred isTypeError(l:Obj) :

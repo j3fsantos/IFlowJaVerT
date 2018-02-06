@@ -186,7 +186,12 @@ let unify_stores
 							raise (UnificationFailure "") 
 						) 
 				| None -> 
-						(le_pat, le) :: discharges)) []
+						let discharge_sat = Pure_Entailment.check_satisfiability [ (LEq (le_pat, le)) ] gamma in
+						(match discharge_sat with
+						| true -> (le_pat, le) :: discharges
+						| false ->
+								print_debug "Store unification failure."; 
+								raise (UnificationFailure "Store unification failure.")))) []
 
 let unify_cell_assertion 
 		(pfs           : pure_formulae) 

@@ -58,4 +58,4 @@ let type_of (x : t) : Type.t =
 	| Type _       -> TypeType
 	| LList _      -> ListType
 	(* TODO: Could this benefit from being something else? *)
-	| CList _      -> ListType
+	| CList _      -> StringType

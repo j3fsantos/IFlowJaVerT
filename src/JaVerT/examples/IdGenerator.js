@@ -31,7 +31,7 @@ var makeIdGen = function (prefix) {
 	/**
 		@id   getId
 		@pre  (this == #ig) * o_chains(getId: $$scope, makeIdGen: #sc_ig) * idGenerator(#ig, #sc_ig, #c, #prefix)
-		@post idGenerator(#ig, #sc_ig, #c + 1, #prefix) * (ret == (#prefix ++ "_id_" ++ num_to_string(#c)))
+		@post idGenerator(#ig, #sc_ig, #c + 1, #prefix) * (ret == #prefix ++ "_id_" ++ num_to_string(#c))
 		
 	*/
 	var getId = function () { 

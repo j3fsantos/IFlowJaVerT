@@ -689,14 +689,15 @@ let rec type_lexpr gamma le : Type.t option * bool * jsil_logic_assertion list =
 			| Div -> check_valid_type t1 [ NumberType ] NumberType []
 			| And	| Or -> check_valid_type t1 [ BooleanType ] BooleanType []
 			| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
-			| UnsignedRightShift	| M_atan2 -> check_valid_type t1 [ NumberType ] NumberType []
-			| M_pow -> check_valid_type t1 [ NumberType ] t1 []
-			| LstCons -> check_valid_type t2 [ ListType ] ListType []
-			| LstCat -> check_valid_type t1 [ ListType ] ListType []
-			| StrCat -> check_valid_type t1 [ StringType ] StringType []
-			| SetDiff -> check_valid_type t1 [ SetType ] SetType     []
-			| SetSub   -> check_valid_type t1 [ SetType ] BooleanType []
-			| _ -> raise (Failure "ERROR in type_lexpr")))
+			| UnsignedRightShift	| M_atan2 | M_pow -> check_valid_type t1 [ NumberType ] NumberType []
+			| LstCons 
+			| LstCat  -> check_valid_type t1 [ ListType ]   ListType    []
+			| CharCat 
+			| StrCat  -> check_valid_type t1 [ StringType ] StringType  []
+			| SetDiff -> check_valid_type t1 [ SetType ]    SetType     []
+			| SetSub  -> check_valid_type t1 [ SetType ]    BooleanType []
+			
+			| _ -> raise (Failure (Printf.sprintf "ERROR in type_lexpr: %s" (JSIL_Print.string_of_binop op)))))
 		| _, ot2 ->
 			match op with
 			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)

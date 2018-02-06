@@ -43,14 +43,14 @@ function make_node(v)
 		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : Num) *
-		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
-		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
+		scope(make_node : #makeNode) * JSFunctionObject(#makeNode, "makeNode", _, _, _) *
+		scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)
 		
 	@post 
 		initialHeapPostWeak() * 
 		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : Obj) *
-		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
-		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
+		scope(make_node : #makeNode) * JSFunctionObject(#makeNode, "makeNode", _, _, _) *
+		scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)
 */
 function insert(v, t)
 {
@@ -83,12 +83,12 @@ function insert(v, t)
 	@pre
 		initialHeapPostWeak() *
 		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : Num) * 
-		scope(find : #find) * FunctionObject(#find, "find", _, _)
+		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _)
 
 	@post 
 		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : Bool) *
-		scope(find : #find) * FunctionObject(#find, "find", _, _)
+		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _)
 */
 function find (v, t)
 {
@@ -116,13 +116,13 @@ function find (v, t)
 	@pre
 		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * types(#t : Obj) * 
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 
 	@post 
 		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == #r) * types(#r : Num) * (#r --e-- #K) * 
 		(forall #x : Num. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 */
 function find_min(t)
 {
@@ -147,14 +147,14 @@ function find_min(t)
 		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : Num) *
-		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		scope(remove : #remove) * JSFunctionObject(#remove, "remove", _, _, _) *
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 
 	@post 
 		initialHeapPostWeak() * 
 		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) * NullableObject(#t_new) *
-		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		scope(remove : #remove) * JSFunctionObject(#remove, "remove", _, _, _) *
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 */
 function remove(v, t)
 {

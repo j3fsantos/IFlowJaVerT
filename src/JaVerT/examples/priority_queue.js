@@ -10,7 +10,7 @@
 	@pred NodePrototype(np) :
 		JSObject(np) *
 		DataProp(np, "insert", #insert_loc) *
-		FunctionObject(#insert_loc, "insert", _, #insert_proto) *
+		JSFunctionObject(#insert_loc, "insert", _, _, _) *
 		((np, "pri") -> none) * 
 		((np, "val") -> none) * 
 		((np, "next") -> none);
@@ -33,15 +33,15 @@
 	
 	@pred QueuePrototype(qp, np, c : Num, enq_sc):
 		JSObject(qp) *
-		DataProp(qp, "enqueue", #enqueue_loc) * FunctionObject(#enqueue_loc, "enqueue", enq_sc, _) *
-		DataProp(qp, "dequeue", #dequeue_loc) * FunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _) *
+		DataProp(qp, "enqueue", #enqueue_loc) * JSFunctionObject(#enqueue_loc, "enqueue", enq_sc, _, _) *
+		DataProp(qp, "dequeue", #dequeue_loc) * JSFunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _, _) *
 		((qp, "_head") -> none) *
-		FunctionObject(#n, "Node", #node_sc, np) * NodePrototype(np) * 
+		JSFunctionObject(#n, "Node", #node_sc, _, np) * NodePrototype(np) * 
 		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc);
 	
 	@pred PriorityQueueModule(pq) :
 	  QueuePrototype(#pqp, #np, 0, #sc) *
-	  FunctionObject(pq, "PriorityQueue", #pq_sc, #pqp) *
+	  JSFunctionObject(pq, "PriorityQueue", #pq_sc, _, #pqp) *
 	  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
 */
 

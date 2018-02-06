@@ -2,8 +2,7 @@
 	***** VALID AND INVALID KEYS *****
 	
 	@pred ValidKey(key) : 
-		isNamedProperty(key) *  
-		(! (key == "hasOwnProperty"));
+		types(key : Str) * (! (key == "hasOwnProperty"));
 		
 	@pred InvalidKey(key) :
 		types (key : Undefined),
@@ -18,7 +17,7 @@
 		JSObjWithProto(m, mp) *
 		DataProp(m, "_contents", #c) * JSObject(#c) *
 		((m, "get") -> none) * ((m, "put") -> none) * ((m, "validKey") -> none) *
-		((#c, "hasOwnProperty") -> none) * KVPairs(#c, kvs, keys) * EmptyProps(#c, -u- (keys, -{ "hasOwnProperty" }-));
+		((#c, "hasOwnProperty") -> none) * KVPairs(#c, kvs, keys) * empty_fields(#c : -u- (keys, -{ "hasOwnProperty" }-));
   	
 	@pred KVPairs (o, kvs, keys) :
 		[def1] (kvs == -{ }-) * (keys == -{ }-),
@@ -27,9 +26,9 @@
 		
   	@pred MapProto(mp) :
 		JSObject(mp) *
-		DataProp(mp, "get", #get_loc) * FunctionObject(#get_loc, "mapGet", _, _) *
-		DataProp(mp, "put", #put_loc) * FunctionObject(#put_loc, "mapPut", _, _) *
-		DataProp(mp, "validKey", #vK_loc) * FunctionObject(#vK_loc, "isValidKey", _, _) *
+		DataProp(mp, "get", #get_loc) * JSFunctionObject(#get_loc, "mapGet", _, _, _) *
+		DataProp(mp, "put", #put_loc) * JSFunctionObject(#put_loc, "mapPut", _, _, _) *
+		DataProp(mp, "validKey", #vK_loc) * JSFunctionObject(#vK_loc, "isValidKey", _, _, _) *
 		((mp, "_contents") -> none);
 */
 
