@@ -282,55 +282,61 @@ let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfold
 *)
 let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 	let count = ref 0 in
+	let max_index = 100_000 in
 	let visited = Hashtbl.create (Hashtbl.length preds) in
-	let rec_table = Hashtbl.create (Hashtbl.length preds) in
-	(* Searches by (sort of) Tarjan's SCC algorithm the predicate 'pred_name';
-	   if recursive, returns the index where recursion starts, otherwise None *)
-	let rec explore exploration_trail pred_name =
-		try
-			let ci = Hashtbl.find visited pred_name in
-			(* Already explored *)
-			if List.mem pred_name exploration_trail then
-				(* Part of the current component: recusivity detected *)
-				Some ci
-			else
-				(* A previously explored component *)
-				None
-		with Not_found ->
-			(* Exploring for the first time *)
-			let index = !count in
-			count := !count + 1;
-			Hashtbl.add visited pred_name index;
-			let pred =
-				(try Hashtbl.find preds pred_name with
-				| Not_found -> raise (Failure ("Undefined predicate " ^ pred_name))) in
-			let neighbours = (* Find the names of all predicates that the current predicate uses *)
-				List.concat (List.map (fun (_, asrt) -> (get_asrt_pred_names asrt)) pred.definitions) in
-			let min_index = (* Compute recursively the smallest index reachable from its neighbours *)
-				List.fold_left
-			    (fun min_so_far neighbour_name ->
-						match (explore (pred_name :: exploration_trail) neighbour_name) with
-						| None -> min_so_far
-						| Some index -> min min_so_far index
-					)
-				  99999
-				  neighbours in
-			(* This predicate is recursive if we have seen an index smaller or equal than its own *)
-			if min_index <= index then
-				(Hashtbl.replace visited pred_name min_index;
-				Hashtbl.add rec_table pred_name true;
-				Some min_index)
-			else
-				(Hashtbl.add rec_table pred_name false;
-			  None)
+	(* mark visited predicates and remember the smallest index they can go to *)
+	let is_recursive_pred = Hashtbl.create (Hashtbl.length preds) in
+	let in_stack = Hashtbl.create (Hashtbl.length preds) in
+	(* remember which predicates are still in our DFS stack *)
+	let rec explore pred_name =
+		(* Tarjan's SCC algorithm on predicate nodes; if recursive,
+			 returns the index where recursion starts, otherwise None *)
+		match Hashtbl.find_opt visited pred_name with
+			| Some min_index ->
+				(* Already explored *)
+				if Hashtbl.find in_stack pred_name then
+					(* Part of the current component: recursivity detected *)
+					Some min_index
+				else
+					(* A previously explored component *)
+					None
+			| None ->
+				(* Exploring for the first time *)
+				let index = !count in
+				incr count;
+				Hashtbl.add visited pred_name index;
+				Hashtbl.add in_stack pred_name true;
+				assert (Hashtbl.mem preds pred_name);
+				(* make sure that the hash table is well-formed *)
+				let pred = Hashtbl.find preds pred_name in
+				let neighbours = (* Find the names of all predicates that the current predicate uses *)
+					List.concat (List.map (fun (_, asrt) -> (get_asrt_pred_names asrt)) pred.definitions) in
+				let min_index = (* Compute the smallest index reachable from its neighbours *)
+					List.fold_left
+				    (fun min_so_far neighbour_name ->
+							match explore neighbour_name with
+							| None -> min_so_far
+							| Some index -> min min_so_far index
+						)
+					  max_index
+					  neighbours in
+				Hashtbl.replace in_stack pred_name false;
+				(* This predicate is recursive if we have seen an index smaller or equal than its own *)
+				if min_index <= index then
+					(Hashtbl.replace visited pred_name min_index;
+					Hashtbl.add is_recursive_pred pred_name true;
+					Some min_index)
+				else
+					(Hashtbl.add is_recursive_pred pred_name false;
+				  None)
 	in
 	(* Launch the exploration from each predicate, unless it's already been visited in a previous one *)
 	Hashtbl.iter
 	  (fun name _ ->
 			if not (Hashtbl.mem visited name)
-			  then ignore(explore [] name))
+			  then ignore(explore name))
 		preds;
-	rec_table
+	is_recursive_pred
 
 
 let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
@@ -348,7 +354,7 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 			| Failure reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
 		preds;
 	(* Detect recursive predicates *)
-  	let rec_table = find_recursive_preds u_predicates in
+		let is_recursive_pred = find_recursive_preds u_predicates in
 
 	(* Flag those that are recursive *)
 	let u_rec_predicates = Hashtbl.create (Hashtbl.length u_predicates) in
@@ -356,7 +362,7 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 	  (fun name pred ->
 			Hashtbl.add u_rec_predicates pred.name
 			  { pred with is_recursive =
-					(try Hashtbl.find rec_table name with
+					(try Hashtbl.find is_recursive_pred name with
 					| Not_found -> raise (Failure ("Undefined predicate " ^ name))); })
 		u_predicates;
 
