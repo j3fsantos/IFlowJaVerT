@@ -29,7 +29,7 @@ let rec get_length_of_list (lst : jsil_logic_expr) : int option =
 	| LEList l -> Some (List.length l)
 	| LBinOp (_, LstCons, le) -> Option.map (fun len -> 1 + len) (f le)
 	| LBinOp (lel, LstCat, ler) -> Option.default None (Option.map (fun ll -> Option.map (fun lr -> ll + lr) (f ler)) (f lel)) 
-	| _ -> raise (Failure (Printf.sprintf "find_length_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
+	| _ -> raise (Failure (Printf.sprintf "get_length_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
 	)
 
 (* Finding the nth element of a list *)
@@ -37,9 +37,9 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 	let f = get_nth_of_list in
 
 	(* The passed logical expression must represent a list *)
-	assert (lexpr_is_list lst);
+	let _ = assert (lexpr_is_list lst) in
 
-	let err_msg = "find_nth_in_list: index out of bounds." in
+	let err_msg = "get_nth_of_list: index out of bounds." in
 
 	(* If we can compute the length of the list, then the index needs to be compatible *)
 	let olen = get_length_of_list lst in
@@ -68,20 +68,68 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 				(get_length_of_list lel)
 			)
 
-	| _ -> raise (Failure (Printf.sprintf "find_nth_in_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
+	| _ -> raise (Failure (Printf.sprintf "get_nth_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
 	) in result
 
 
-(*)
-		| LBinOp (le, LstCons, list), LLit (Num n) ->
-			print_debug_petar (Printf.sprintf "Cons: %s %s %f" (string_of_logic_expression le) (string_of_logic_expression list) n);
-			if (Utils.is_int n) then
-		  let ni = int_of_float n in
-			 (match (ni = 0) with
-		   | true -> print_debug_petar (Printf.sprintf "ni = 0, calling recursively with %s" (string_of_logic_expression le)); f le
-		   | false -> f (LLstNth (f list, LLit (Num (n -. 1.)))))
-			else
-					raise (Failure (Printf.sprintf "Non-integer list index: %f" n)) *)
+(* What does it mean to be a string? *)
+let rec lexpr_is_string (le : jsil_logic_expr) : bool =
+	let f = lexpr_is_string in
+	match le with
+	| PVar _
+	| LVar _
+	| LLit (String _) -> true
+	| LBinOp (lel, StrCat, ler) -> f lel && f ler
+	| _ -> false
+
+(* Finding the length of a string *)
+let rec get_length_of_string (str : jsil_logic_expr) : int option =
+	let f = get_length_of_string in
+
+	(* The passed logical expression must represent a list *)
+	let _ = assert (lexpr_is_string str) in
+
+	(match str with
+	| PVar _ -> None
+	| LVar _ -> None
+	| LLit (String s) -> Some (String.length s)
+	| LBinOp (sl, StrCat, sr) -> Option.default None (Option.map (fun ll -> Option.map (fun lr -> ll + lr) (f sr)) (f sl)) 
+	| _ -> raise (Failure (Printf.sprintf "get_length_of_string: string equals %s, impossible" (JSIL_Print.string_of_logic_expression str)))
+	)
+
+(* Finding the nth element of a list *)
+let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr option =
+	let f = get_nth_of_string in
+
+	(* The passed logical expression must represent a list *)
+	let _ = assert (lexpr_is_string str) in
+
+	let err_msg = "get_nth_of_string: index out of bounds." in
+
+	(* If we can compute the length of the list, then the index needs to be compatible *)
+	let olen = get_length_of_string str in
+	let _ = match olen with
+		| None -> ()
+		| Some len -> if (len <= idx) then raise (ReductionException (LNone, err_msg))
+	in
+
+	let result : jsil_logic_expr option = (match str with
+	(* Nothing can be done for variables *)
+	| PVar _ -> None
+	| LVar _ -> None
+	(* Base lists of literals and logical expressions *)
+	| LLit (String s) -> assert (idx < String.length s); Some (LLit (String (String.sub s idx 1)))
+	| LBinOp (ls, LstCat, rs) ->
+		Option.default None 
+			(Option.map 
+				(fun llen -> 
+					let lst, idx = if (idx < llen) then ls, idx else rs, (idx - llen) in
+						f lst idx)
+				(get_length_of_string ls)
+			)
+
+	| _ -> raise (Failure (Printf.sprintf "get_nth_of_string: string equals %s, impossible" (JSIL_Print.string_of_logic_expression str)))
+	) in result
 
 (**
 	Logical expression reduction - there is no additional information
@@ -123,12 +171,71 @@ let rec reduce_lexpr (le : jsil_logic_expr) =
 
 		(* Index is a number, but is either not an integer or is negative *)
 		| LLit (Num n) -> 
-			let err_msg = "LstNth (list, index): index is non-integer or smaller than zero." in
+			let err_msg = "LstNth(list, index): index is non-integer or smaller than zero." in
 			raise (ReductionException (LLstNth (fle, fidx), err_msg))
 
 		(* All other cases *)
 		| _ -> LLstNth (fle, fidx)
 		)
+
+	(* String indexing *)
+	| LStrNth (le, idx) ->
+		let fle = f le  in
+		let fidx = f idx in
+		(match fidx with
+		(* Index is a non-negative integer *)
+		| LLit (Num n) when (Utils.is_int n && 0. <= n) ->
+			(match (lexpr_is_string fle) with
+			| true -> Option.default (LStrNth (fle, fidx)) (get_nth_of_string fle (int_of_float n))
+			| false -> 
+				let err_msg = "StrNth(str, index): string is not a JSIL string." in
+				raise (ReductionException (LStrNth (fle, fidx), err_msg))
+			)
+
+		(* Index is a number, but is either not an integer or is negative *)
+		| LLit (Num n) -> 
+			let err_msg = "StrNth(str, index): index is non-integer or smaller than zero." in
+			raise (ReductionException (LStrNth (fle, fidx), err_msg))
+
+		(* All other cases *)
+		| _ -> LStrNth (fle, fidx)
+		)
+
+	| LSetUnion les ->
+		let fles = List.map f les in
+		(* Flatten unions *)
+		let unions, rest = List.partition (fun x -> match x with | LSetUnion _ -> true | _ -> false) fles in
+		let unions = List.fold_left
+			(fun ac u -> 
+				let ls = (match u with
+				| LSetUnion ls -> ls
+				| _ -> raise (Failure "LSetUnion: flattening unions: impossible.")) in
+				ac @ ls
+			) 
+			[]
+			unions in
+		let fles = unions @ rest in 
+		(* Join LESets *)
+		let lesets, rest = List.partition (fun x -> match x with | LESet _ -> true | _ -> false) fles in
+		let lesets = List.fold_left
+			(fun ac u -> 
+				let ls = (match u with
+				| LESet ls -> ls
+				| _ -> raise (Failure "LSetUnion: joining LESets: impossible.")) in
+				ac @ ls
+			) 
+			[]
+			lesets in
+		let lesets = SLExpr.elements (SLExpr.of_list lesets) in
+		let fles = LESet lesets :: rest in 
+		(* Remove empty sets *)
+		let fles = List.filter (fun s -> s <> LESet []) fles in
+		(* Remove duplicates *)
+		let fles = SLExpr.elements (SLExpr.of_list fles) in
+			(match fles with
+			| [ ] -> LESet [ ] 
+			| [ LESet s ] -> LESet s 
+			| _ -> LSetUnion fles)
 
 	(* The remaining cases cannot be reduced *)
 	| _ -> le 
@@ -138,7 +245,6 @@ let rec reduce_lexpr (le : jsil_logic_expr) =
 
 	| LBinOp    of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
 	| LUnOp     of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
-	| LStrNth   of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)
 	| LSetUnion of jsil_logic_expr list                           (** Unions *)
 	| LSetInter of jsil_logic_expr list                           (** Intersections *)
 *)
