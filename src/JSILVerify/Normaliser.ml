@@ -530,7 +530,6 @@ let rec normalise_list_expressions (le : jsil_logic_expr) : jsil_logic_expr =
 	(** Uninteresting cases **)
 	| LStrNth (le, le') -> LStrNth (f le, f le')
 	| LEList lst        -> LEList (List.map f lst)
-	| LCList lst        -> LCList lst
 	| LESet lst         -> LESet (List.map f lst)  
 	| LSetUnion lst     -> LSetUnion (List.map f lst)
 	| LSetInter lst     -> LSetInter (List.map f lst)

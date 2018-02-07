@@ -133,12 +133,6 @@ let rec replace_nle_with_lvars pfs nle =
 		| None -> 
 			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
 			(LEList le_list))
-	| LCList le -> 
-		(match find_me_in_the_pi pfs nle with 
-		| Some lvar -> (LVar lvar)
-		| None -> 
-			let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
-			(LCList le_list))
 	| LESet le -> 
 		(match find_me_in_the_pi pfs nle with 
 		| Some lvar -> (LVar lvar)
@@ -158,56 +152,6 @@ let rec replace_nle_with_lvars pfs nle =
 				let le_list = List.map (fun le' -> replace_nle_with_lvars pfs le') le in
 				(LSetInter le_list))
 	| _ -> nle)
-
-(**
-	Internal String representation conversions
-*)
-let internal_string_explode s =
-	let rec exp i l : Literal.t list =
-		if i < 0 then l else exp (i - 1) ((Char s.[i]) :: l) in
-	exp (String.length s - 1) []
-
-let rec lit_string_to_list (sl : Literal.t) : Literal.t =
-	match sl with
-		| LList l ->
-			LList (List.map lit_string_to_list l)
-		| String s -> CList (internal_string_explode s)
-		| _ -> sl
-
-(* To go from String to an internal representation, requires the extra bool return to indicate whether to recurse *)
-let rec le_string_to_list (se : jsil_logic_expr) : jsil_logic_expr * bool =
-	let f s = 
-		let res, _ = le_string_to_list s in 
-		res in 
-	(match se with
-		| LLit l -> (LLit (lit_string_to_list l), false)
-		| LBinOp (sel, StrCat, ser) ->
-			(LBinOp ((f sel), CharCat, (f ser)), false)
-		| LVar _ -> (se, false)
-		| _ -> (se, true))
-
-let rec lit_list_to_string (sl : Literal.t) : Literal.t =
-	match sl with
-		| CList l -> String (String.concat "" (List.map (fun (Literal.Char x) -> String.make 1 x) l))
-		| LList l -> LList (List.map lit_list_to_string l)
-		| _ -> sl
-
-(* Reverse of the above, to return to String representation from internal representation *)
-let rec le_list_to_string (se : jsil_logic_expr) : jsil_logic_expr * bool =
-	let f s = 
-		let res, _ = le_list_to_string s in 
-		res in 
-	(match se with
-		| LVar _ -> (se, false)
-		| LLit l -> (LLit (lit_list_to_string l), false)
-		| LCList l -> 
-				(try (
-					let str = String.concat "" (List.map (fun x -> match x with | LLit (Char c) -> String.make 1 c) l) in
-					(LLit (String str), false) 
-				) with | _ -> print_debug_petar "String representation leftovers."; (se, false))
-		| LBinOp (sel, CharCat, ser) -> (LBinOp ((f sel), StrCat, (f ser)), false)
-		| _ -> (se, true))
-
 
 let all_set_literals lset = List.fold_left (fun x le -> 
 	let result = (match le with
@@ -254,8 +198,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 
 	| LBinOp (le1, LstCons, LEList []) -> LEList [ f le1 ]
 	| LBinOp (le1, LstCons, LLit (LList [])) -> LEList [ f le1 ] 
-	| LBinOp (le1, CharCons, LCList []) -> LCList [ f le1 ]
-	| LBinOp (le1, CharCons, LLit (CList [])) -> LCList [ f le1 ]
 	| LBinOp (LEList le1, LstCat,  LEList le2) -> f (LEList (le1 @ le2))
 	| LBinOp (LLit (LList le1), LstCat, LLit (LList le2)) -> f (LLit (LList (le1 @ le2)))
 	| LBinOp (LLit (LList le1), LstCat, LEList le2) -> 
@@ -265,7 +207,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			let le2 = List.map (fun x -> LLit x) le2 in
 			f (LEList (le1 @ le2))
 	| LBinOp (LLit (String s1), StrCat, LLit (String s2)) -> f (LLit (String (s1 ^ s2)))
-	| LBinOp (LCList le1, CharCat, LCList le2) -> f (LCList (le1 @ le2))
 
 	(* Associativity *)
 	| LBinOp (LBinOp (le1, StrCat, le2), StrCat, le3) ->
@@ -358,20 +299,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| _ -> LBinOp (fe1, StrCat, fe2))) in
 		result
 
-	(* Internal String concat *)
-	| LBinOp (le1, CharCat, le2) ->
-		let fe1 = f le1 in 
-		let fe2 = f le2 in
-		let result = 
-		(match fe1 with
-		| LCList []
-		| LLit (CList []) -> fe2
-		| _ -> (match fe2 with
-			| LCList []
-			| LLit (CList []) -> fe1
-			| _ -> LBinOp (fe1, CharCat, fe2))) in
-		result
-
 		
 	(* Binary operators *)
 	| LBinOp (e1, bop, e2) ->
@@ -456,16 +383,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		| LLit (String str), LLit (Num n) ->
 			if (Utils.is_int n) then
 			(try (LLit (String (String.sub str (int_of_float n) 1))) with _ ->
-				raise (Failure "List index out of bounds"))
-			else
-				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
-		| LLit (CList str), LLit (Num n) ->
-			if (Utils.is_int n) then
-			(try 
-				let char = (List.nth str (int_of_float n)) in 
-				(match char with
-				| Char c -> LLit (String (String.make 1 c))
-				| _ -> raise (Failure ("Unexpected construct in internal string representation"))) with _ ->
 				raise (Failure "List index out of bounds"))
 			else
 				raise (Failure (Printf.sprintf "Non-integer string index: %f" n))
@@ -619,17 +536,6 @@ let rec reduce_assertion store gamma pfs a =
 						else default e1 e2 re1 re2
 					else default e1 e2 re1 re2
 
-			| LLit (CList cl), LVar x
-			| LVar x, LLit (CList cl) ->
-				(* Same String hack as above, except over the internal String representation *)
-				if (List.length cl <> 0 && List.hd cl = Char '@')
-					then
-						let pfs = DynArray.to_list pfs in
-						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (CList ([Char '@']))))) pfs)  ||
-							 (List.mem (LNot (LEq (LLit (CList ([Char '@'])), LStrNth (LVar x, LLit (Num 0.))))) pfs))
-						then LFalse 
-						else default e1 e2 re1 re2
-					else default e1 e2 re1 re2
 
 			| LLit (Bool true), LBinOp (e1, LessThan, e2) -> LLess (e1, e2)
 			| LLit (Bool false), LBinOp (e1, LessThan, e2) -> LNot (LLess (e1, e2))
@@ -1162,218 +1068,6 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
 			raise (Failure msg)
 	)
 
-(* *********** *
- *             *
- * STRINGS WIP *
- *             *
- * *********** *)
-
-let isString (se : jsil_logic_expr) : bool =
-match se with
-	| LLit (String _) -> true
-	| _ -> false
-
-(* What does it mean to be an internal string? *)
-let isInternalString (se : jsil_logic_expr) : bool =
-match se with
-	| LVar _ 
-	| LLit (CList _)
-	| LBinOp (_, CharCons, _) (* Non recursive: assume that CharCat/Cons *)
-	| LBinOp (_, CharCat,  _) (* only obtained from conversion anyway    *)
-	| LCList _ -> true
-	| _ -> false
-
-(* Arranging strings in a specific order *)
-let arrange_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) =
-	match se1, se2 with
-		| LVar _, _
-		| LLit (CList _), LLit (CList _)
-		| LLit (CList _), LCList _
-		| LLit (CList _), LBinOp (_, CharCons, _)
-		| LLit (CList _), LBinOp (_, CharCat, _)
-		| LCList _, LCList _
-		| LCList _, LBinOp (_, CharCons, _)
-		| LCList _, LBinOp (_, CharCat, _)
-		| LBinOp (_, CharCons, _), LBinOp (_, CharCons, _)
-		| LBinOp (_, CharCons, _), LBinOp (_, CharCat, _)
-		| LBinOp (_, CharCat, _), LBinOp (_, CharCat, _) -> se1, se2
-		| _, _ -> se2, se1
-
-(* Extracting elements from an internal string *)
-let rec get_elements_from_string (se : jsil_logic_expr) : jsil_logic_expr list =
-(match se with
-	| LVar _ -> []
-	| LLit (CList l) -> List.map (fun e -> LLit e) l
-	| LCList l -> l
-	| LBinOp (e, CharCons, se) -> e :: get_elements_from_string se
-	| LBinOp (sel, CharCat, ser) -> get_elements_from_string sel @ get_elements_from_string ser
-	| _ -> let msg = Printf.sprintf "Non-list expressions passed to get_elements_from_list : %s" (string_of_logic_expression se) in
-		raise (Failure msg))
-
-(* Splitting an internal string based on an element *)
-let rec split_string_on_element (se : jsil_logic_expr) (e : jsil_logic_expr) : bool * (jsil_logic_expr * jsil_logic_expr) =
-(match se with
-	| LVar _ -> false, (se, LCList [])
-	| LLit (CList l) -> 
-		(match e with
-		| LLit lit ->
-			let ok, (ll, lr) = list_split l lit in
-			(match ok with
-			| true -> true, (LLit (CList ll), LLit (CList lr))
-			| false -> false, (se, LCList [])
-		| _ -> false, (se, LCList [])))
-	| LCList l ->
-		let ok, (ll, lr) = list_split l e in
-			(match ok with
-			| true -> true, (LCList ll, LCList lr)
-			| false -> false, (se, LCList []))
-	| LBinOp (e', CharCons, se') -> 
-		(match (e = e') with
-		| true -> true, (LCList [], se')
-		| false -> let ok, (ll, lr) = split_string_on_element se' e in
-			(match ok with
-			| false -> false, (se, LCList [])
-			| true -> true, (LBinOp (e', CharCons, ll), lr)))
-	| LBinOp (sel, CharCat, ser) -> 
-		let ok, (sll, slr) = split_string_on_element sel e in
-		(match ok with
-		| true -> 
-			let right = 
-			(match ser with 
-			| LLit (CList [])
-			| LCList [] -> slr
-			| _ -> LBinOp (slr, CharCat, ser)) in
-				true, (sll, right)
-		| false -> let ok, (srl, srr) = split_string_on_element ser e in
-			(match ok with
-			| true -> 
-				let left = (match srl with 
-				| LLit (CList [])
-				| LCList [] -> sel
-				| _ -> LBinOp (sel, CharCat, srl)) in
-					true, (left, srr)
-			| false -> false, (se, LCList [])))
-	| _ -> let msg = Printf.sprintf "Non-string expressions passed to split_string_on_element : %s" (string_of_logic_expression se) in
-		raise (Failure msg))
-
-(* Unifying strings based on a common literal *)
-let match_strings_on_element (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) : bool * (jsil_logic_expr * jsil_logic_expr) * (jsil_logic_expr * jsil_logic_expr) =
-	let elems1 = get_elements_from_string se1 in
-	(match elems1 with
-	| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
-	| _ ->
-		let elems2 = get_elements_from_string se2 in
-		(match elems2 with
-		| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
-		| _ -> 
-			let intersection = List.fold_left (fun ac x -> 
-				if (List.mem x elems1) then ac @ [x] else ac) [] elems2 in
-			(match intersection with
-			| [] -> false, (LLit (Bool false), LLit (Bool false)), (LLit (Bool false), LLit (Bool false))
-			| i :: _ ->
-				let ok1, (l1, r1) = split_string_on_element se1 i in
-				let ok2, (l2, r2) = split_string_on_element se2 i in
-				(match ok1, ok2 with
-				| true, true -> true, (l1, r1), (l2, r2) 
-				| _, _ -> let msg = Printf.sprintf "Element %s that was supposed to be in both strings: %s, %s is not." (string_of_logic_expression i) (string_of_logic_expression se1) (string_of_logic_expression se2) in
-						raise (Failure msg)
-				)
-			)
-		)
-	)
-
-(* Separating a list into a head and a tail *)
-let rec get_head_and_tail_string (se : jsil_logic_expr) : bool option * jsil_logic_expr * jsil_logic_expr =
-(match se with
-	| LLit (CList l) ->
-		(match l with
-		| [] -> None, LLit (Bool false), LLit (Bool false)
-		| e :: l -> Some true, LLit e, LLit (CList l))
-	| LCList l ->
-		(match l with
-		| [] -> None, LLit (Bool false), LLit (Bool false)
-		| e :: l -> Some true, e, LCList l)
-	| LBinOp (e, CharCons,  s) -> Some true, e, s
-	| LBinOp (s1, CharCat, s2) -> 
-		let ok, head, tail = get_head_and_tail_string s1 in
-		(match ok with
-		| None -> None, LLit (Bool false), LLit (Bool false)
-		| Some false -> Some false, LLit (Bool false), LLit (Bool false)
-		| Some true -> Some true, head, LBinOp (tail, CharCat, s2))
-	| LVar _ -> Some false, LLit (Bool false), LLit (Bool false)
-	| _ -> 
-		let msg = Printf.sprintf "Non-list expressions passed to get_head_and_tail_list : %s" (string_of_logic_expression se) in
-		raise (Failure msg))
-
-(* String unification *)
-let rec unify_strings (se1 : jsil_logic_expr) (se2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
-	(* Figure out reductions for these internal string representations... *)
-	let se1 = reduce_expression_no_store_no_gamma_no_pfs se1 in
-	let se2 = reduce_expression_no_store_no_gamma_no_pfs se2 in
-	let se1_old = se1 in
-	let se1, se2 = arrange_strings se1 se2 in
-	let to_swap_now = (se1_old <> se1) in
-	let to_swap = (to_swap <> to_swap_now) in
-	let swap (se1, se2) = if to_swap then (se2, se1) else (se1, se2) in
-	(* print_debug (Printf.sprintf "unify_strings: \n\t%s\n\t\tand\n\t%s" 
-		(string_of_logic_expression se1) (string_of_logic_expression se2)); *)
-	(match se1, se2 with
-	  (* Base cases *)
-		| LLit (CList []), LLit (CList []) 
-		| LLit (CList []), LCList []
-		| LCList [], LCList [] -> Some false, []
-		| LVar _, _ -> Some false, [ swap (se1, se2) ]
-		(* Inductive cases *)
-		| LLit (CList _), LLit (CList _)
-		| LLit (CList _), LCList _
-		| LCList _, LCList _
-		| LLit (CList _), LBinOp (_, CharCons, _) 
-		| LLit (CList _), LBinOp (_, CharCat, _)
-		| LCList _, LBinOp (_, CharCons, _) 
-		| LCList _, LBinOp (_, CharCat, _)
-		| LBinOp (_, CharCons, _), LBinOp (_, CharCons, _)
-		| LBinOp (_, CharCons, _), LBinOp (_, CharCat,  _)
-		| LBinOp (_, CharCat,  _), LBinOp (_, CharCat,  _) -> 
-			let (okl, headl, taill) = get_head_and_tail_string se1 in
-			let (okr, headr, tailr) = get_head_and_tail_string se2 in
-			(* print_debug_petar (Printf.sprintf "Got head and tail: left: %b, right: %b" 
-				(Option.map_default (fun v -> v) false okl) (Option.map_default (fun v -> v) false okr)); *)
-			(match okl, okr with
-			(* We can separate both strings *)
-			| Some true, Some true ->
-				(* Do we still have strings? *)
-				if (isInternalString taill && isInternalString tailr) then
-					(* Yes, move in recursively *)
-					(let ok, rest = unify_strings taill tailr to_swap in
-					(match ok with
-					| None -> None, []
-					| _ -> Some true, swap (headl, headr) :: rest))
-				else
-					(* No, we are done *)
-					Some true, [ swap (headl, headr); (taill, tailr) ]
-			(* Not enough information to separate head and tail *)
-			| Some _, Some _ -> 
-				(* This means that we have on at least one side a LstCat with a leading variable and we need to dig deeper *)
-				(* Get all literals on both sides, find first match, then split and call again *)
-				let ok, (ll, lr), (rl, rr) = match_strings_on_element se1 se2 in
-				(match ok with
-					| true -> 
-							let okl, left = unify_strings ll rl to_swap in
-							(match okl with
-							| None -> None, []
-							| _ -> 
-								let okr, right = unify_strings lr rr to_swap in
-								(match okr with
-								| None -> None, []
-								| _ -> Some true, left @ right))
-					| false -> Some false, [ swap (se1, se2) ])
-			(* A proper error occurred while getting head and tail *)
-			| _, _ -> None, [])
-		| _, _ ->
-			let msg = Printf.sprintf "Non-arranged lists passed to unify_lists : %s, %s" (string_of_logic_expression se1) (string_of_logic_expression se2) in
-			raise (Failure msg)
-	)
-				
 (* *********************** *
  * ULTIMATE SIMPLIFICATION *
  * *********************** *)
@@ -1486,8 +1180,7 @@ let type_index (t : Type.t) =
 	| ObjectType    -> 7
 	| ListType      -> 8
 	| TypeType      -> 9
-	| CharType      -> 10
-	| SetType       -> 11)
+	| SetType       -> 10)
 
 let type_length = 12
 
@@ -1603,11 +1296,6 @@ let simplify_symb_state
 
 	let pfs = ss_pfs symb_state in
 
-	(* String translation: Use internal representation as Chars *)
-	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_string_to_list None))) pfs in
-	(* print_debug_petar (Printf.sprintf "Pfs before simplification (with internal rep): %s" (string_of_pfs pfs)); *)
-	let symb_state = ss_replace_pfs symb_state pfs in 
-	
 	let changes_made = ref true in
 	let symb_state   = ref symb_state in
 	let others       = ref others in
@@ -1712,8 +1400,7 @@ let simplify_symb_state
 						DynArray.delete pfs !n;
 						
 						let tv, _, _ = JSIL_Logic_Utils.type_lexpr gamma (LVar v) in
-						let tle : Type.t option = if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) then Some StringType else
-							let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+						let tle, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in 
 						(match tv, tle with
 						| Some tv, Some tle when (tv <> tle) -> pfs_ok := false; msg := "Nasty type mismatch."
 						| _ -> 
@@ -1766,10 +1453,7 @@ let simplify_symb_state
 							(* Remove (or add) from (or to) gamma *)
 							(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
 		      		| true -> 
-									let le_type : Type.t option = 
-										if ((not (match le with | LVar _ -> true | _ -> false)) && (isString le || isInternalString le)) 
-											then Some StringType 
-											else let result, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in result in
+									let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 									(match le_type with
 									| None -> ()
 									| Some t -> 
@@ -1877,53 +1561,6 @@ let simplify_symb_state
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
 				
-				(* String length *)
-				| LLit (Num len), LUnOp (StrLen, LVar v)
-				| LUnOp (StrLen, LVar v), LLit (Num len) ->
-						(match (Utils.is_int len) with
-						| false -> pfs_ok := false; msg := "Non-integer string-length. Good luck."
-						| true -> 
-							let len = int_of_float len in
-							(match (0 <= len) with
-							| false -> pfs_ok := false; msg := "Sub-zero length. Good luck."
-							| true -> 
-									let subst_list = Array.to_list (Array.init len (fun _ -> fresh_lvar())) in
-									let new_exists = !exists in
-									let new_exists = List.fold_left (fun ac v -> 
-										initial_existentials := SS.add v !initial_existentials;
-										SS.add v ac) new_exists subst_list in
-									exists := new_exists;
-									let subst_list = List.map (fun x -> LVar x) subst_list in
-									
-									(* Changes made, stay on n *)
-									changes_made := true;
-									DynArray.delete pfs !n;
-									DynArray.add pfs (LEq (LVar v, LCList subst_list))
-							)
-						)
-				(* String unification *)
-				| se1, se2 when (isInternalString se1 && isInternalString se2) ->
-					(* print_debug (Printf.sprintf "String unification: %s vs. %s" (string_of_logic_expression se1) (string_of_logic_expression se2)); *)
-					let ok, subst = unify_strings se1 se2 false in
-					(match ok with
-					(* Error while unifying strings *)
-					| None -> pfs_ok := false; msg := "String error"
-					(* No error, but no progress *)
-					| Some false -> (match subst with
-						| [ ] 
-						| [ _ ] -> n := !n + 1 
-						| _ -> 
-							(* print_debug_petar (Printf.sprintf "No changes made, but length = %d" (List.length subst));
-							print_debug_petar (String.concat "\n" (List.map (fun (x, y) ->
-								Printf.sprintf "%s = %s" (string_of_logic_expression x) (string_of_logic_expression y)) subst)); *)
-							raise (Failure "Unexpected list obtained from string unification."))
-					(* Progress *)
-					| Some true -> 
-							(* Changes made, stay on n *)
-							changes_made := true;
-							DynArray.delete pfs !n;
-							List.iter (fun (x, y) -> DynArray.add pfs (LEq (x, y))) subst)
-				
 				| _, _ -> n := !n + 1))
 			
 			(* Special cases *)
@@ -1947,38 +1584,11 @@ let simplify_symb_state
 		done;
 	done;
 
-	(* String translation: Move back from internal representation to Strings - EVERYWHERE *)	
-	(* Convert substitutions back to string format *)
-	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) subst;
-
 	Hashtbl.iter (fun var lexpr -> 
 		(match (not (SS.mem var !initial_existentials) && (save_all || SS.mem var vars_to_save)) with
 		| false -> ()
 		| true -> DynArray.add pfs (LEq (LVar var, lexpr)))
 		) subst;
-	
-	(* Convert Pure Formulas back *)
-	let pfs = DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) (ss_pfs !symb_state) in
-	let symb_state = ref (ss_replace_pfs !symb_state pfs) in
-	(* print_debug (Printf.sprintf "Pfs after simplification (with internal rep): %s" (print_pfs pfs)); *)
-
-	let heap, store, _, _, preds = !symb_state in
-	
-	(* Convert Store, Heap and Preds back, which should only change new additions *)
-	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) store;
-	Heap.filter_map_inplace (fun loc ((fv_list, default), metadata, ext) -> 
-		let no_strings = logic_expression_map le_list_to_string None in
-		let fn, fv = List.split fv_list in
-		let fn = List.map no_strings fn in
-		let fv = List.map (fun (perm, le) -> (perm, no_strings le)) fv in
-		let md = Option.map no_strings metadata in
-		Some ((List.combine fn fv, default), md, ext)
-		) heap; 
-	DynArray.iteri (fun i (pname, pparams) ->
-		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) pparams in
-		DynArray.set preds i (pname, pparams)) preds;
-
-	let others = ref (DynArray.map (assertion_map None None (Some (logic_expression_map le_list_to_string None))) !others) in
 
 	(* print_debug_petar (Printf.sprintf "Symbolic state after simplification:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state !symb_state)); *) 
 	

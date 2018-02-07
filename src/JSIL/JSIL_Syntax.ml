@@ -81,9 +81,6 @@ type jsil_binop =
 	| LstCat             (** List concatenation *)
 	(* Strings *)
 	| StrCat             (** String concatenation *)
-	(* Character *)
-	| CharCons           (** Char construction *)
-	| CharCat            (** Char concatenation *)
 	(* Sets *)
 	| SetDiff            (** Set difference *)
 	| SetMem             (** Set membership *)
@@ -101,7 +98,6 @@ type jsil_binop =
 	| StrNth   of jsil_expr	* jsil_expr	             (** Nth element of a string *)
 	| EList    of jsil_expr list                     (** Lists of expressions *)
 	| ESet     of jsil_expr list                     (** Sets of expressions *)
-	| CList    of jsil_expr list                     (** Lists of characters *)
 	| SetUnion of jsil_expr list
 	| SetInter of jsil_expr list
 
@@ -153,21 +149,20 @@ type jsil_logic_var = string [@@deriving show]
 
 (** {b JSIL logic expressions}. *)
 type jsil_logic_expr =
-	| LLit     of Literal.t                                      (** JSIL literals ({!type:Literal.t}) *)
-	| LVar     of jsil_logic_var                                 (** JSIL logic variables ({!type:jsil_logic_var}) *)
-	| ALoc     of string                                         (** Abstract locations *)
-	| PVar     of jsil_var                                       (** JSIL program variables *)
-	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
-	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
-	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *)
-	| LLstNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
-	| LStrNth  of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)
-	| LEList   of jsil_logic_expr list                           (** Lists of logical expressions *)
-	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
-	| LESet    of jsil_logic_expr list                           (** Sets of logical expressions *)
-	| LSetUnion of jsil_logic_expr list                          (** Unions *)
-	| LSetInter of jsil_logic_expr list                          (** Intersections *)
-	| LNone                                                      (** Empty field value *)
+	| LLit      of Literal.t                                      (** JSIL literals ({!type:Literal.t}) *)
+	| LVar      of jsil_logic_var                                 (** JSIL logic variables ({!type:jsil_logic_var}) *)
+	| ALoc      of string                                         (** Abstract locations *)
+	| PVar      of jsil_var                                       (** JSIL program variables *)
+	| LBinOp    of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
+	| LUnOp     of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
+	| LTypeOf   of jsil_logic_expr	                              (** Typing operator *)
+	| LLstNth   of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
+	| LStrNth   of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)
+	| LEList    of jsil_logic_expr list                           (** Lists of logical expressions *)
+	| LESet     of jsil_logic_expr list                           (** Sets of logical expressions *)
+	| LSetUnion of jsil_logic_expr list                           (** Unions *)
+	| LSetInter of jsil_logic_expr list                           (** Intersections *)
+	| LNone                                                       (** Empty field value *)
 	[@@deriving show]
 
 (** {b JSIL logic assertions}. *)

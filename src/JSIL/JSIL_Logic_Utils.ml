@@ -19,9 +19,9 @@ let rec literal_fold
 
   	match lit with
   	| Undefined  | Null   | Empty    | Constant _ 
-  		| Bool _ | Num _  | String _ | Char _ 
-  		| Loc _  | Type _ -> f_ac [] 
-  	| LList lits | CList lits -> f_ac (List.map fold_lit lits)
+  	| Bool _ | Num _  | String _ 
+  	| Loc _  | Type _ -> f_ac [] 
+  	| LList lits -> f_ac (List.map fold_lit lits)
 
 (****************************************************************)
 (****************************************************************)
@@ -50,7 +50,6 @@ let rec logic_expression_map
   			| LUnOp (op, e)       -> LUnOp (op, map_e e)
   			| LTypeOf e           -> LTypeOf (map_e e)
   			| LEList le           -> LEList (List.map map_e le)
-  			| LCList le           -> LCList (List.map map_e le)
 			| LESet le            -> LESet  (List.map map_e le)
 			| LSetUnion le        -> LSetUnion  (List.map map_e le)
 			| LSetInter le        -> LSetInter  (List.map map_e le)
@@ -600,16 +599,6 @@ let rec type_lexpr gamma le : Type.t option * bool * jsil_logic_assertion list =
 			(true, [])
 			les) in
 		if (all_typable) then (Some SetType, true, constraints) else (None, false, [])
-	(* LCList *)
-	| LCList les ->
-		let all_typable, constraints =
-			(List.fold_left
-				(fun (ac, ac_constraints) elem ->
-					let (_, ite, constraints) = f elem in
-						((ac && ite), (constraints @ ac_constraints)))
-				(true, [])
-				les) in
-			if (all_typable) then (Some StringType, true, constraints) else (None, false, [])
 
  	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
@@ -692,7 +681,6 @@ let rec type_lexpr gamma le : Type.t option * bool * jsil_logic_assertion list =
 			| UnsignedRightShift	| M_atan2 | M_pow -> check_valid_type t1 [ NumberType ] NumberType []
 			| LstCons 
 			| LstCat  -> check_valid_type t1 [ ListType ]   ListType    []
-			| CharCat 
 			| StrCat  -> check_valid_type t1 [ StringType ] StringType  []
 			| SetDiff -> check_valid_type t1 [ SetType ]    SetType     []
 			| SetSub  -> check_valid_type t1 [ SetType ]    BooleanType []
@@ -1301,10 +1289,6 @@ let rec lexpr_selective_substitution subst partial lexpr =
 	| LSetInter les ->
 			let s_les = List.map (fun le -> (f le)) les in
 			LSetInter s_les
-
-	| LCList les ->
-			let s_les = List.map (fun le -> (f le)) les in
-			LCList s_les
 
 	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
 	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))

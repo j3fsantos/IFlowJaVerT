@@ -40,10 +40,9 @@ type jsil_type_constructors = {
 	none_type_constructor      : FuncDecl.func_decl;
 	boolean_type_constructor   : FuncDecl.func_decl;
 	number_type_constructor    : FuncDecl.func_decl;
-	char_type_constructor      : FuncDecl.func_decl;
 	string_type_constructor    : FuncDecl.func_decl;
 	object_type_constructor    : FuncDecl.func_decl;
-  list_type_constructor      : FuncDecl.func_decl;
+	list_type_constructor      : FuncDecl.func_decl;
 	type_type_constructor      : FuncDecl.func_decl;
 	set_type_constructor       : FuncDecl.func_decl
 }
@@ -57,7 +56,6 @@ type z3_basic_jsil_value = {
 	empty_constructor     : FuncDecl.func_decl;
 	boolean_constructor   : FuncDecl.func_decl;
 	number_constructor    : FuncDecl.func_decl;
-	char_constructor      : FuncDecl.func_decl;
 	string_constructor    : FuncDecl.func_decl;
     loc_constructor       : FuncDecl.func_decl;
     type_constructor      : FuncDecl.func_decl;
@@ -68,7 +66,6 @@ type z3_basic_jsil_value = {
     (*************)
     boolean_accessor      : FuncDecl.func_decl;
 	number_accessor       : FuncDecl.func_decl;
-	char_accessor         : FuncDecl.func_decl;
     string_accessor       : FuncDecl.func_decl;
     loc_accessor          : FuncDecl.func_decl;
     type_accessor         : FuncDecl.func_decl;
@@ -81,7 +78,6 @@ type z3_basic_jsil_value = {
 	empty_recognizer      : FuncDecl.func_decl;
 	boolean_recognizer    : FuncDecl.func_decl;
 	number_recognizer     : FuncDecl.func_decl;
-	char_recognizer       : FuncDecl.func_decl;
 	string_recognizer     : FuncDecl.func_decl;
 	loc_recognizer        : FuncDecl.func_decl;
 	type_recognizer       : FuncDecl.func_decl;
@@ -145,7 +141,7 @@ let z3_jsil_type_sort =
 		(List.map mk_string_symb
 			[
 				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType";
-				"NumberType"; "CharType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
+				"NumberType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
 			])
 
 let type_operations =
@@ -157,12 +153,11 @@ let type_operations =
 		let none_type_constructor      = List.nth z3_jsil_type_constructors 3 in
 		let boolean_type_constructor   = List.nth z3_jsil_type_constructors 4 in
 		let number_type_constructor    = List.nth z3_jsil_type_constructors 5 in
-		let char_type_constructor      = List.nth z3_jsil_type_constructors 6 in
-		let string_type_constructor    = List.nth z3_jsil_type_constructors 7 in
-		let object_type_constructor    = List.nth z3_jsil_type_constructors 8 in
-		let list_type_constructor      = List.nth z3_jsil_type_constructors 9 in
-		let type_type_constructor      = List.nth z3_jsil_type_constructors 10 in
-		let set_type_constructor       = List.nth z3_jsil_type_constructors 11 in
+		let string_type_constructor    = List.nth z3_jsil_type_constructors 6 in
+		let object_type_constructor    = List.nth z3_jsil_type_constructors 7 in
+		let list_type_constructor      = List.nth z3_jsil_type_constructors 8 in
+		let type_type_constructor      = List.nth z3_jsil_type_constructors 9 in
+		let set_type_constructor       = List.nth z3_jsil_type_constructors 10 in
 		{
 			undefined_type_constructor = undefined_type_constructor;
 			null_type_constructor      = null_type_constructor;
@@ -170,7 +165,6 @@ let type_operations =
 			none_type_constructor      = none_type_constructor;
 			boolean_type_constructor   = boolean_type_constructor;
 			number_type_constructor    = number_type_constructor;
-			char_type_constructor      = char_type_constructor;
 			string_type_constructor    = string_type_constructor;
 			object_type_constructor    = object_type_constructor;
 			list_type_constructor      = list_type_constructor;
@@ -303,7 +297,6 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			empty_constructor     = empty_constructor;
 			boolean_constructor   = boolean_constructor;
 			number_constructor    = number_constructor;
-			char_constructor      = char_constructor;
 			string_constructor    = string_constructor;
 			loc_constructor       = loc_constructor;
 			type_constructor      = type_constructor;
@@ -312,7 +305,6 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			(** accessors **)
 			boolean_accessor      = boolean_accessor;
 			number_accessor       = number_accessor;
-			char_accessor         = char_accessor;
 			string_accessor       = string_accessor;
 			loc_accessor          = loc_accessor;
 			type_accessor         = type_accessor;
@@ -323,7 +315,6 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			empty_recognizer      = empty_recognizer;
 			boolean_recognizer    = boolean_recognizer;
 			number_recognizer     = number_recognizer;
-			char_recognizer       = char_recognizer;
 			string_recognizer     = string_recognizer;
 			loc_recognizer        = loc_recognizer;
 			type_recognizer       = type_recognizer;
@@ -468,7 +459,6 @@ let encode_type (t : Type.t) =
 		| NoneType      -> Expr.mk_app ctx type_operations.none_type_constructor      []
 		| BooleanType   -> Expr.mk_app ctx type_operations.boolean_type_constructor   []
 		| NumberType    -> Expr.mk_app ctx type_operations.number_type_constructor    []
-		| CharType	    -> Expr.mk_app ctx type_operations.char_type_constructor      []
 		| StringType    -> Expr.mk_app ctx type_operations.string_type_constructor    []
 		| ObjectType    -> Expr.mk_app ctx type_operations.object_type_constructor    []
 		| ListType      -> Expr.mk_app ctx type_operations.list_type_constructor      []
@@ -488,7 +478,6 @@ let typeof_expression x =
 	let empty_guard     = Expr.mk_app ctx lit_operations.empty_recognizer     [ elem_x ] in
 	let boolean_guard   = Expr.mk_app ctx lit_operations.boolean_recognizer   [ elem_x ] in
 	let number_guard    = Expr.mk_app ctx lit_operations.number_recognizer    [ elem_x ] in
-	let char_guard      = Expr.mk_app ctx lit_operations.char_recognizer      [ elem_x ] in
 	let string_guard    = Expr.mk_app ctx lit_operations.string_recognizer    [ elem_x ] in
 	let loc_guard       = Expr.mk_app ctx lit_operations.loc_recognizer       [ elem_x ] in
 	let type_guard      = Expr.mk_app ctx lit_operations.type_recognizer      [ elem_x ] in
@@ -497,7 +486,7 @@ let typeof_expression x =
 
 	let sing_elem_types_guards = [
 		undefined_guard; null_guard; empty_guard; boolean_guard;
-		number_guard; char_guard; string_guard; loc_guard;
+		number_guard; string_guard; loc_guard;
 		type_guard; list_guard; none_guard
 	] in
 
@@ -508,7 +497,7 @@ let typeof_expression x =
   	let results =
   		List.map encode_type
   			[ SetType; UndefinedType; NullType; EmptyType; BooleanType;
- 				NumberType; CharType; StringType; ObjectType; TypeType; ListType; NoneType ] in
+ 				NumberType; StringType; ObjectType; TypeType; ListType; NoneType ] in
 
  	let rec loop guards results =
  		match guards, results with
@@ -541,10 +530,6 @@ let rec encode_lit (lit : Literal.t) =
 			let sfn = string_of_float n in
 			let n_arg = mk_num_s sfn in
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.number_constructor [ n_arg ])
-
-		| Char c ->
-			let s_arg = encode_string (String.make 1 c) in
-			mk_singleton_elem (Expr.mk_app ctx lit_operations.char_constructor [ s_arg ])
 
 		| String s ->
 			let s_arg = encode_string s in
@@ -776,7 +761,6 @@ let make_recognizer_assertion x (t_x : Type.t) =
 	| NoneType      -> non_set_type_recognizer lit_operations.none_recognizer
 	| BooleanType   -> non_set_type_recognizer lit_operations.boolean_recognizer
 	| NumberType    -> non_set_type_recognizer lit_operations.number_recognizer
-	| CharType	    -> non_set_type_recognizer lit_operations.char_recognizer
 	| StringType    -> non_set_type_recognizer lit_operations.string_recognizer
 	| ObjectType    -> non_set_type_recognizer lit_operations.loc_recognizer
 	| ListType      -> non_set_type_recognizer lit_operations.list_recognizer

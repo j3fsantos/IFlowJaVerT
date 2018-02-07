@@ -105,7 +105,6 @@ let rec reduce_lexpr (le : jsil_logic_expr) =
 
 	(* Base lists, character lists, and sets are reduced pointwise *)
 	| LEList les -> LEList (List.map f les)
-	| LCList les -> LCList (List.map f les)
 	| LESet  les -> LESet  (List.map f les)
 
 	(* List indexing *)
@@ -134,3 +133,12 @@ let rec reduce_lexpr (le : jsil_logic_expr) =
 	(* The remaining cases cannot be reduced *)
 	| _ -> le 
 	)
+
+	(*
+
+	| LBinOp    of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
+	| LUnOp     of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
+	| LStrNth   of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)
+	| LSetUnion of jsil_logic_expr list                           (** Unions *)
+	| LSetInter of jsil_logic_expr list                           (** Intersections *)
+*)

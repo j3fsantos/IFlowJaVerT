@@ -30,8 +30,6 @@ let string_of_binop (bop : jsil_binop) : string =
   	| LstCons -> "::"
   	| LstCat -> "@"
   	| StrCat -> "++"
-  	| CharCons -> ":c:"
-  	| CharCat -> "+c+"
   	| SetDiff -> "-d-"
   	| SetMem -> "-e-"
   	| SetSub -> "-s-"
@@ -88,10 +86,6 @@ let rec string_of_expression (e : jsil_expr) : string  =
   	(* -{ e1, e2, ... }- *)
   	| ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
   	(* [['c1', 'c2',...]]*)
-  	| CList ll ->
-    		(match ll with
-     		| [] -> "''"
-     		| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map se ll)))
   	(* l-nth(e1, e2) *)
   	| LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
   	(* s-nth(e1, e2) *)
@@ -162,11 +156,8 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))
   | LSetUnion list -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map sle list))
   | LSetInter list -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map sle list))
-  	| LCList list ->
-    			(match list with
-     			| [] -> "''"
-     			| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map sle ll)))
-  		(* l-nth(e1, e2) *)
+
+		(* l-nth(e1, e2) *)
   	| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
   	(* s-nth(e1, e2) *)
   	| LStrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)
