@@ -124,7 +124,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
       | None   -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
       | Some p -> Printf.sprintf "%s[%s, %s] := <%s> %s" str_i (se e1) (se e2) (se e3) (sp p))
   	(* delete(e1, e2) *)
-  	| Delete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
+  	| Delete (e1, e2) ->  Printf.sprintf "%sdelete (%s,%s)" str_i (se e1) (se e2)
   	(* x := deleteObj(e1) *)
   	| DeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
   	(* x := hasField(e1, e2) *)
@@ -135,6 +135,8 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	| Arguments var -> Printf.sprintf "%s%s := args" str_i var
 		(* x := metadata(e) *)
 		| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
+    (* seal(e) *)
+    | Seal (e) -> Printf.sprintf "%sseal (%s)" str_i (se e)
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 

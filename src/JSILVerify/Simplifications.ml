@@ -236,6 +236,16 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	
 	(* print_debug (Printf.sprintf "Reduce expression: %s" (string_of_logic_expression e)); *)
 	
+	(* TEST TEST TEST *)
+	let _ : unit = try (
+		let result = Reduction.reduce_lexpr e in
+		if (e <> result) then print_debug (Printf.sprintf "%s --red_exp--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression result))
+	)
+	with
+	| Reduction.ReductionException (le, msg) -> 
+		print_debug (Printf.sprintf "Reduction exception: %s --red_exp--> %s --exception--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression le) msg) in
+	(* TEST TEST TEST *)
+
 	let f = reduce_expression store gamma pfs in
 	let orig_expr = e in
 	let result = (match e with

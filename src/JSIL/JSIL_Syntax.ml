@@ -131,7 +131,7 @@ type jsil_basic_cmd =
 	| HasField   of jsil_var * jsil_expr * jsil_expr                          (** Field check *)
 	| GetFields  of jsil_var * jsil_expr                                      (** All* fields of an object *)
 	| Arguments  of jsil_var                                                  (** Arguments of the current function *)
-	| Seal        of jsil_var                                                 (** Seals the object *)
+	| Seal        of jsil_expr                                                (** Seals the object *)
 	| MetaData    of jsil_var * jsil_expr                                     (** Reads the metadata and assigns it to the first var *)
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
