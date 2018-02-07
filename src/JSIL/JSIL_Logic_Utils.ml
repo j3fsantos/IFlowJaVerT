@@ -316,7 +316,7 @@ let is_pure_asrt (a : jsil_logic_assertion) : bool =
 	let f_ac a _ _ ac =
 		match a with
 		| LPred _ | LPointsTo _ | LEmp | LEmptyFields _ -> false
-		| _  -> not (List.exists (fun b -> not b) ac) in
+		| _  -> List.for_all (fun b -> b) ac in
 	assertion_fold None f_ac None None a
 
 (* Check if --a-- is a pure assertion & non-recursive assertion. 
