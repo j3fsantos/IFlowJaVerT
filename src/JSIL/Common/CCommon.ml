@@ -40,6 +40,42 @@ let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n")
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
 
+(********
+ * Sets *
+ ********)
+
+module SS = Set.Make(String)
+
+(*************************)
+(** Generic fresh names **)
+(*************************)
+
+let fresh_sth (name : string) : (unit -> string) =
+  let counter = ref 0 in
+  let rec f () =
+    let v = name ^ (string_of_int !counter) in
+    counter := !counter + 1;
+    v
+  in f
+
+(*******************************************)
+(** Literal locations / Program variables **)
+(*******************************************)
+
+let lloc_prefix = "$"                   (* Literal location prefix  *)
+let pvar_prefix = "_pvar_"              (* Program variable prefix  *)
+
+let fresh_loc   = fresh_sth lloc_prefix (* Literal location counter *)
+let fresh_pvar  = fresh_sth pvar_prefix (* Program variable counter *)
+
+(* Literal location recogniser *)
+let is_lloc_name (name : string) : bool =
+  try (String.sub name 0 1 = lloc_prefix) with | _ -> false
+
+(* Program variable recogniser *)
+let is_pvar_name (name : string) : bool =
+  (String.length name > 0) && (let first = String.sub name 0 1 in (first <> "_" && first <> "#" && first <> "$"))
+
 (**********
  * Timing *
  **********)

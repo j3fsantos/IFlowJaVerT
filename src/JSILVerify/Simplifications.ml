@@ -697,11 +697,11 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typin
  				if (not (Hashtbl.mem gamma x)) 
  					then (
  						let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
- 						weak_update_gamma gamma x le_type
+ 						TypEnv.weak_update gamma x le_type
  					)
  			| LEq ((LTypeOf (LVar x)), (LLit (Type t))) 
  			| LEq ((LLit (Type t)), (LTypeOf (LVar x))) ->
- 				weak_update_gamma gamma x (Some t)
+ 				TypEnv.weak_update gamma x (Some t)
  			| _ -> () 
  		) p_assertions
 
@@ -1115,7 +1115,7 @@ let rec understand_types exists pf_list gamma : bool =
 				| LVar x, le
 				| le, LVar x ->
 					(* print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x from_where (JSIL_Print.string_of_logic_expression le false)); *)
-					let tx = gamma_get_type gamma x in
+					let tx = TypEnv.get_type gamma x in
 					let te, _, _ = type_lexpr gamma le in
 					(match te with
 					| None -> f rest gamma
@@ -1277,7 +1277,7 @@ let simplify_symb_state
 	 *)
 	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
 	let lvars = SS.union (ss_vars_no_gamma symb_state) (pfs_lvars other_pfs) in
-	let lvars_gamma = get_gamma_all_vars gamma in		
+	let lvars_gamma = TypEnv.get_vars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	Hashtbl.filter_map_inplace (fun v t ->
 		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
@@ -1614,22 +1614,22 @@ let simplify_ss_with_subst symb_state vars_to_save =
 	symb_state, subst
 
 let simplify_pfs pfs gamma vars_to_save =
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
 	pfs, gamma
 			
 let simplify_pfs_with_subst pfs gamma =
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
 	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
 	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (gamma_copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
 	lpfs, rpfs, exists, gamma
 
@@ -1641,7 +1641,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 
 	(* print_time_debug ("simplify_existentials:"); *)
 	
-	let rhs_gamma = gamma_copy gamma in
+	let rhs_gamma = TypEnv.copy gamma in
 	filter_gamma_pfs p_formulae rhs_gamma;
 	
 	let p_formulae, exists, _ = simplify_pfs_with_exists exists p_formulae rhs_gamma (Some None) in
@@ -2011,7 +2011,7 @@ let simplify_implication exists lpfs rpfs gamma =
 		(String.concat ", " (SS.elements exists))
 		(string_of_pfs lpfs)
 		(string_of_pfs rpfs)
-		(Symbolic_State_Print.string_of_gamma gamma)); 
+		(TypEnv.str gamma)); 
 	exists, lpfs, rpfs, gamma (* DO THE SUBST *)
 
 let trim_down (exists : SS.t) (lpfs : jsil_logic_assertion DynArray.t) (rpfs : jsil_logic_assertion DynArray.t) gamma = 

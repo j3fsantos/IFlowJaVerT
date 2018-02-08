@@ -4,26 +4,22 @@ open JSIL_Syntax
 (* When reduction fails *)
 exception ReductionException of jsil_logic_expr * string
 
+(****************************)
+(* GENERAL HELPER FUNCTIONS *)
+(****************************)
+
+let typable ?(gamma : TypEnv.t option) (le : jsil_logic_expr) (target_type : Type.t) : bool = 
+	let gamma = Option.default (TypEnv.init ()) gamma in
+	let t, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+		t = Some target_type
+
 (***********************************)
 (* LIST REASONING HELPER FUNCTIONS *)
 (***********************************)
 
 (* What does it mean to be a list? *)
-let rec lexpr_is_list ?(gamma : typing_environment option) (le : jsil_logic_expr)  : bool =
-	let f = lexpr_is_list ?gamma:gamma in
-	match le with
-	(* Variables are lists iff gamma is provided and their type is list *)
-	| PVar v
-	| LVar v -> 
-		Option.map_default 
-		(fun gamma -> 
-			Option.map_default (fun t -> t = Type.ListType) false (gamma_get_type gamma v) 
-		) false gamma
-	| LLit (LList _)
-	| LEList _ -> true
-	| LBinOp (_, LstCons, le) -> f le
-	| LBinOp (lel, LstCat, ler) -> f lel && f ler
-	| _ -> false
+let lexpr_is_list ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
+	typable ?gamma:gamma le ListType
 
 (* Finding the length of a list *)
 let rec get_length_of_list (lst : jsil_logic_expr) : int option =
@@ -114,18 +110,8 @@ let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * j
 (*************************************)
 
 (* What does it mean to be a string? *)
-let rec lexpr_is_string ?(gamma : typing_environment option) (le : jsil_logic_expr) : bool =
-	let f = lexpr_is_string ?gamma:gamma in
-	match le with
-	| PVar v
-	| LVar v ->
-		Option.map_default 
-		(fun gamma -> 
-			Option.map_default (fun t -> t = Type.StringType) false (gamma_get_type gamma v) 
-		) false gamma
-	| LLit (String _) -> true
-	| LBinOp (lel, StrCat, ler) -> f lel && f ler
-	| _ -> false
+let rec lexpr_is_string ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
+	typable ?gamma:gamma le StringType
 
 (* Finding the length of a string *)
 let rec get_length_of_string (str : jsil_logic_expr) : int option =
@@ -183,24 +169,27 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 (**
 	Logical expression reduction - there is no additional information
 *)
-let rec reduce_lexpr (le : jsil_logic_expr) = 
+let rec reduce_lexpr ?(gamma: TypEnv.t option) (le : jsil_logic_expr) = 
 
 	let start_time = Sys.time () in
 
-	let f = reduce_lexpr in
+	let f = reduce_lexpr ?gamma:gamma in
 	let result = (match le with
 
 	(* The TypeOf operator *)
 	| LTypeOf le -> 
 		let fle = f le in 
-		(match fle with
-		| LLit lit             -> LLit (Type (Literal.type_of lit)) (* Types of literals can always be evaluated             *)
-		| ALoc   _             -> LLit (Type ObjectType)            (* Abstract locations are always of type Object          *)
-		| LEList _             -> LLit (Type ListType)              (* Logical lists are always of type List                 *)
-		| LESet  _             -> LLit (Type SetType)               (* Logical sets are always of type Set                   *)
-		| LNone                -> LLit (Type NoneType)              (* The logical value None is of type None                *)
-		| LBinOp (_, Equal, _) -> LLit (Type BooleanType)           (* Equality is always of type Boolean                    *)
-		| _                    -> LTypeOf fle                       (* The remaining cases cannot be conclusively determined *)
+		let gamma = Option.default (TypEnv.init ()) gamma in
+		let tfle, how, _ = JSIL_Logic_Utils.type_lexpr gamma fle in
+		(match how with
+		| false -> 
+			let err_msg = "LTypeOf(le): expression is not typable." in
+			raise (ReductionException (LTypeOf fle, err_msg))
+		| true -> 
+			(match tfle with
+			| None -> LTypeOf le
+			| Some t -> LLit (Type t)
+			)
 		)
 
 	(* Base lists, character lists, and sets are reduced pointwise *)

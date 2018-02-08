@@ -205,7 +205,7 @@ let safe_symb_evaluate_expr
 		(match nle with
 		| LVar _ ->  nle, None, false
 		| _ ->
-				let gamma_str = Symbolic_State_Print.string_of_gamma gamma in
+				let gamma_str = TypEnv.str gamma in
 				let pure_str = Symbolic_State_Print.string_of_pfs pure_formulae in
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle) gamma_str pure_str in
 				raise (Failure msg))
@@ -233,7 +233,7 @@ let symb_evaluate_bcmd
 	| Assignment (x, e) ->
 		let nle, tle, _ = ssee e in
 		store_put store x nle;
-		update_gamma gamma x tle;
+		TypEnv.update gamma x tle;
 		nle
 
 	(* Object creation: x = new ();
@@ -910,8 +910,8 @@ let extend_spec_vars_subst
 		if (not (Hashtbl.mem subst x)) then (
 			let res_loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
 			match res_loc with 
-				| Some loc  when is_lit_loc_name loc  -> Hashtbl.replace subst x (LLit (Loc loc)) 
-				| Some aloc when is_abs_loc_name aloc -> Hashtbl.replace subst x (ALoc aloc) 
+				| Some loc  when is_lloc_name loc  -> Hashtbl.replace subst x (LLit (Loc loc)) 
+				| Some aloc when is_aloc_name aloc -> Hashtbl.replace subst x (ALoc aloc) 
 				| _       -> ()
 		)) (SS.elements spec_vars) 
 
@@ -1091,7 +1091,7 @@ let rec symb_evaluate_logic_cmd
 		let existentials            = get_asrt_lvars a in
 		let existentials            = SS.diff existentials spec_vars in
 		let new_spec_vars_for_later = SS.union existentials spec_vars in
-		let gamma_spec_vars         = filter_gamma_f (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
+		let gamma_spec_vars         = TypEnv.filter (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
 		let pat_subst, spec_alocs   = make_spec_var_subst subst spec_vars in
 		(match (Spatial_Entailment.grab_resources new_spec_vars_for_later (Normaliser.create_unification_plan new_symb_state spec_alocs) pat_subst new_symb_state symb_state) with
@@ -1246,7 +1246,7 @@ let rec symb_evaluate_cmd
 			(fun (symb_state, ret_flag, ret_le, search_info) ->
 				let ret_type, _, _  = type_lexpr (ss_gamma symb_state) ret_le in
 				store_put (ss_store symb_state) x ret_le;
-				update_gamma (ss_gamma symb_state) x ret_type;
+				TypEnv.update (ss_gamma symb_state) x ret_type;
 				let symb_state      = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 				let new_search_info = sec_duplicate search_info in
 				(match ret_flag, j with
@@ -1267,7 +1267,7 @@ let rec symb_evaluate_cmd
 		let le       = symb_evaluate_expr (ss_store symb_state) (ss_gamma symb_state) (ss_pfs symb_state) expr in
 		let te, _, _ = type_lexpr (ss_gamma symb_state) le in
 		store_put (ss_store symb_state) x le;
-		update_gamma (ss_gamma symb_state) x te;
+		TypEnv.update (ss_gamma symb_state) x te;
 		post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i (i+1) in
 	
 	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in

@@ -7,47 +7,6 @@ open CCommon
 (** {b JSIL variables}. JSIL variables are internally represented as strings. *)
 type jsil_var = string [@@deriving show]
 
-(** {b JSIL unary operators}. JSIL features standard unary operators on numbers, booleans,
-    lists, and strings, plus a variety of mathematical operators as well as a number of
-    conversion operators between strings/numbers/integers. *)
-type jsil_unop =
-	(* Arithmetic *)
-	| UnaryMinus  (** Unary minus *)
-	(* Boolean *)
-	| Not         (** Negation *)
-	(* Bitwise *)
-	| BitwiseNot  (** Bitwise negation *)
-	(* Mathematics *)
-	| M_abs       (** Absolute value *)
-	| M_acos      (** Arccosine *)
-	| M_asin      (** Arcsine *)
-	| M_atan      (** Arctangent *)
-	| M_ceil      (** Ceiling *)
-	| M_cos       (** Cosine *)
-	| M_exp       (** Exponentiation *)
-	| M_floor     (** Flooring *)
-	| M_log       (** Natural logarithm *)
-	| M_round     (** Rounding *)
-	| M_sgn       (** Sign *)
-	| M_sin       (** Sine *)
-	| M_sqrt      (** Square root *)
-	| M_tan       (** Tangent *)
-	(* Types *)
-	| IsPrimitive (** Checks if the supplied expression is a primitive value *)
-	| ToStringOp  (** Converts a number (integer or float) to a string *)
-	| ToIntOp     (** Converts a float to an integer *)
-	| ToUint16Op  (** Converts an integer to a 16-bit unsigned integer *)
-	| ToUint32Op  (** Converts an integer to a 32-bit unsigned integer *)
-	| ToInt32Op   (** Converts an integer to a 32-bit signed integer *)
-	| ToNumberOp  (** Converts a string to a number *)
-	(* Lists *)
-	| Car         (** Head of a list *)
-	| Cdr         (** Tail of a list *)
-	| LstLen      (** List length *)
-	(* Strings *)
-	| StrLen      (** String length *)
-	[@@deriving show]
-
 (** {b JSIL binary operators}. JSIL features standard binary operators on numbers,
     booleans, lists, and strings, plus several mathematical operators as well as a
     subtyping operator *)
@@ -92,7 +51,7 @@ type jsil_binop =
 	| Literal  of Literal.t                           (** JSIL literals ({!type:Literal.t}) *)
 	| Var      of jsil_var                           (** JSIL variables ({!type:jsil_var}) *)
 	| BinOp    of jsil_expr * jsil_binop * jsil_expr (** Binary operators ({!type:jsil_binop}) *)
-	| UnOp     of jsil_unop * jsil_expr              (** Unary operators ({!type:jsil_unop}) *)
+	| UnOp     of UnOp.t * jsil_expr              (** Unary operators ({!type:UnOp.t}) *)
 	| TypeOf   of jsil_expr	                         (** Typing operator *)
 	| LstNth   of jsil_expr	* jsil_expr	             (** Nth element of a list *)
 	| StrNth   of jsil_expr	* jsil_expr	             (** Nth element of a string *)
@@ -127,8 +86,8 @@ type jsil_basic_cmd =
 	| HasField   of jsil_var * jsil_expr * jsil_expr                          (** Field check *)
 	| GetFields  of jsil_var * jsil_expr                                      (** All* fields of an object *)
 	| Arguments  of jsil_var                                                  (** Arguments of the current function *)
-	| Seal        of jsil_expr                                                (** Seals the object *)
-	| MetaData    of jsil_var * jsil_expr                                     (** Reads the metadata and assigns it to the first var *)
+	| Seal       of jsil_expr                                                (** Seals the object *)
+	| MetaData   of jsil_var * jsil_expr                                     (** Reads the metadata and assigns it to the first var *)
 
 (** {b JSIL Commands}. JSIL commands incorporate basic commands as well as commands that
     affect control flow, which are goto statements, function calls, and PHI-nodes, which
@@ -154,7 +113,7 @@ type jsil_logic_expr =
 	| ALoc      of string                                         (** Abstract locations *)
 	| PVar      of jsil_var                                       (** JSIL program variables *)
 	| LBinOp    of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
-	| LUnOp     of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
+	| LUnOp     of UnOp.t * jsil_logic_expr                       (** Unary operators ({!type:UnOp.t}) *)
 	| LTypeOf   of jsil_logic_expr	                              (** Typing operator *)
 	| LLstNth   of jsil_logic_expr * jsil_logic_expr              (** Nth element of a list *)
 	| LStrNth   of jsil_logic_expr * jsil_logic_expr              (** Nth element of a string *)
@@ -458,7 +417,6 @@ module MyBool =
 	end
 
 (*** Creating sets for each of our types ***)
-module SS = Set.Make(String)
 module SI = Set.Make(MyInt)
 module SB = Set.Make(MyBool)
 module SN = Set.Make(MyNumber)
@@ -470,77 +428,6 @@ module SExpr = Set.Make(MyExpr)
 module SLExpr = Set.Make(MyLExpr)
 
 module SFV = Set.Make(MyFieldValueList)
-
-(********************************************************)
-(** Auxiliar functions for generating new program/logical
-    variable names and new abstract locations          **)
-(********************************************************)
-
-(* Initialises the counter for the string passed to it *)
-(* also returns a function which can be used to get-and-increment the count *)
-let fresh_sth (name : string) : (unit -> string) =
-  let counter = ref 0 in
-  let rec f () =
-    let v = name ^ (string_of_int !counter) in
-    counter := !counter + 1;
-    v
-  in f
-
-(* defining prefixes *)
-let lit_loc_prefix = "$"
-let abs_loc_prefix = "_$l_"
-let lvar_prefix = "_lvar_"
-let pvar_prefix = "_pvar_"
-let svar_prefix = "s_"
-
-(* initialising the counts *)
-let fresh_aloc = fresh_sth abs_loc_prefix
-let fresh_lvar = fresh_sth lvar_prefix
-let fresh_pvar = fresh_sth pvar_prefix
-let fresh_svar = fresh_sth svar_prefix
-
-(* creates a new lvar hash-table and returns a get-and-increment function for that hash-table *)
-let fresh_lvar_from_lvar_name =
-	let lvar_tbl = Hashtbl.create small_tbl_size in
-	(fun (var : string) ->
-		if (Hashtbl.mem lvar_tbl var)
-			then (
-				let i = Hashtbl.find lvar_tbl var in
-				Hashtbl.replace lvar_tbl var (i + 1);
-				var ^ "_" ^ (string_of_int i)
-			) else
-			(
-				(* Printf.printf  "Could not find the pair (%s, %s) in the pred_lvar_tbl\n" pred_name var; *)
-				Hashtbl.replace lvar_tbl var 1;
-				var ^ "_" ^ (string_of_int 0)
-			))
-
-(*** Functions to determine the type of names ***)
-let is_abs_loc_name (name : string) : bool =
-	if ((String.length name) < 4)
-		then false
-		else ((String.sub name 0 4) = abs_loc_prefix)
-
-let is_lit_loc_name (name : string) : bool =
-	if ((String.length name) < 2)
-	then false
-	else ((String.sub name 0 1) = lit_loc_prefix)
-
-let is_lvar_name (name : string) : bool =
-	((String.sub name 0 1) = "#") || (((String.length name) > 6) && ((String.sub name 0 6) = lvar_prefix))
-
-let is_pvar_name (name : string) : bool =
-	(not ((is_abs_loc_name name) || (is_lvar_name name)))
-
-let real_is_pvar_name (name : string) : bool =
-	(String.length name > 0) &&
-	(let first = String.sub name 0 1 in (first <> "@" && first <> "_"))
-
-let is_spec_var_name (name : string) : bool =
-	(String.length name > 1) && (String.sub name 0 1 = "#")
-
-let fresh_spec_var () : string =
-	( "#" ^ fresh_svar ())
 
 
 (*******************************************************)
@@ -608,107 +495,7 @@ let extend_subst_with_subst (subst : substitution) (subst_ext : substitution) : 
 (*******************************************************)
 type typing_environment        = ((string, Type.t) Hashtbl.t)
 
-(* functions to manipulate gamma *)
-let gamma_init () = Hashtbl.create small_tbl_size
 
-let gamma_get_type gamma var =
-	Hashtbl.find_opt gamma var
-
-let update_gamma (gamma : typing_environment) x te =
-	(match te with
-	| None -> Hashtbl.remove gamma x
-	| Some te -> Hashtbl.replace gamma x te)
-
-let weak_update_gamma (gamma : typing_environment) x te =
-	(match te with
-	| None -> ()
-	| Some te -> Hashtbl.replace gamma x te)
-
-let gamma_copy (gamma : typing_environment) : typing_environment =
-	let new_gamma = Hashtbl.copy gamma in
-	new_gamma
-
-let extend_gamma gamma new_gamma =
-	Hashtbl.iter
-		(fun v t ->
-			if (not (Hashtbl.mem gamma v))
-				then Hashtbl.add gamma v t)
-		new_gamma
-
-let filter_gamma gamma vars =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
-		(fun v v_type ->
-			(if (SS.mem v vars) then
-				Hashtbl.replace new_gamma v v_type))
-		gamma;
-	new_gamma
-
-let filter_gamma_f gamma f =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
-		(fun v v_type ->
-			(if (f v) then
-				Hashtbl.replace new_gamma v v_type))
-		gamma;
-	new_gamma
-
-let gamma_lvars (gamma : typing_environment) : SS.t =
-	Hashtbl.fold
-		(fun var _ ac ->
-			if is_lvar_name var then SS.add var ac else ac)
-		gamma SS.empty
-
-let get_gamma_all_vars gamma : SS.t =
-	Hashtbl.fold (fun var _ ac -> SS.add var ac) gamma SS.empty
-
-let get_gamma_var_type_pairs gamma =
-	Hashtbl.fold
-		(fun var t ac_vars -> ((var, t) :: ac_vars))
-		gamma
-		[]
-
-let rec gamma_substitution gamma subst partial =
-	let new_gamma = Hashtbl.create 31 in
-	Hashtbl.iter
-		(fun var v_type ->
-			let new_var = Hashtbl.find_opt subst var in
-			(match new_var with
-			| Some (LVar new_var) -> Hashtbl.replace new_gamma new_var v_type
-			| Some _ -> if partial then Hashtbl.add new_gamma var v_type
-			| None -> if partial
-					then Hashtbl.add new_gamma var v_type
-					else 
-						if (is_lvar_name var) then (
-							let new_lvar = fresh_lvar () in
-							Hashtbl.add subst var (LVar new_lvar);
-							Hashtbl.add new_gamma new_lvar v_type
-						)))
-		gamma;
-	new_gamma
-
-let merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
-	Hashtbl.iter
-		(fun var v_type ->
-			if (not (Hashtbl.mem gamma_l var))
-				then Hashtbl.add gamma_l var v_type)
-		gamma_r
-
-let get_vars_of_type (gamma : typing_environment) (jt : Type.t) : string list =
-	Hashtbl.fold
-		(fun var t ac_vars -> (if (t = jt) then var :: ac_vars else ac_vars))
-		gamma
-		[]
-
-(** conversts a symbolic store to a list of assertion *)
-let assertion_of_gamma (gamma : typing_environment) : jsil_logic_assertion = 
-	let le_type_pairs = 
-		Hashtbl.fold
-			(fun x t pairs -> 
-				(if (is_lvar_name x) 
-					then (LVar x, t) :: pairs
-					else (PVar x, t) :: pairs)) gamma [] in 
-	LTypes le_type_pairs 
 
 (* ******* *)
 (* Hashing *)

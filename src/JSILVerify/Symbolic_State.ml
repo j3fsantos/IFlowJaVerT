@@ -1,4 +1,5 @@
 open CCommon
+open SCommon
 open JSIL_Syntax
 open JSIL_Logic_Utils
 open Z3
@@ -431,7 +432,7 @@ let ss_replace_preds (symb_state : symbolic_state) (preds : predicate_set) : sym
 	let heap, store, pfs, gamma, _   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Returns a new empty symbolic state *)
-let ss_init () : symbolic_state = (SHeap.init (), (store_init [] []), pfs_init (), gamma_init (), preds_init ())
+let ss_init () : symbolic_state = (SHeap.init (), (store_init [] []), pfs_init (), TypEnv.init (), preds_init ())
 
 (** Returns a copy of the symbolic state *)
 let ss_copy (symb_state : symbolic_state) : symbolic_state =
@@ -439,7 +440,7 @@ let ss_copy (symb_state : symbolic_state) : symbolic_state =
 	let c_heap   = SHeap.copy heap in
 	let c_store  = store_copy store in
 	let c_pfs    = pfs_copy pfs in
-	let c_gamma  = gamma_copy gamma in
+	let c_gamma  = TypEnv.copy gamma in
 	let c_preds  = preds_copy preds in
 	(c_heap, c_store, c_pfs, c_gamma, c_preds)
 
@@ -450,7 +451,7 @@ let ss_substitution
 	let s_heap  = SHeap.substitution subst partial heap in
 	let s_store = store_substitution subst partial store in
 	let s_pf    = pfs_substitution subst partial pf in
-	let s_gamma = gamma_substitution gamma subst partial in
+	let s_gamma = TypEnv.substitution gamma subst partial in
 	let s_preds = preds_substitution subst partial preds in
 	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
@@ -468,7 +469,7 @@ let ss_lvars (symb_state : symbolic_state) : SS.t =
 	let v_h  : SS.t = SHeap.lvars heap in
 	let v_s  : SS.t = store_lvars store in
 	let v_pf : SS.t = pfs_lvars pfs in
-	let v_g  : SS.t = gamma_lvars gamma in
+	let v_g  : SS.t = TypEnv.get_lvars gamma in
 	let v_pr : SS.t = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
 
@@ -498,7 +499,7 @@ let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion
 	let heap, store, pfs, gamma, preds = symb_state in
 	let heap_asrts  = SHeap.assertions heap in
 	let store_asrts = assertions_of_store store in
-	let gamma_asrt  = assertion_of_gamma gamma in
+	let gamma_asrt  = TypEnv.to_assertion gamma in
 	let pure_asrts  = pfs_to_list pfs in
 	let pred_asrts  = assertions_of_preds preds in 
 	let asrts       = heap_asrts @ store_asrts @ pure_asrts @ [ gamma_asrt ] @ pred_asrts in
@@ -676,7 +677,7 @@ let selective_heap_substitution_in_place (subst : substitution) (heap : SHeap.t)
   		let s_loc =
   			(try Hashtbl.find subst loc
   				with _ ->
-  					if (is_abs_loc_name loc)
+  					if (is_aloc_name loc)
   						then ALoc loc
   						else (LLit (Loc loc))) in
   		let s_loc =

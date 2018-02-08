@@ -1,6 +1,7 @@
-(** JSIL symbolic Heap *)
+(** JSIL Symbolic Heap *)
 
 open CCommon
+open SCommon
 open JSIL_Syntax
 open JSIL_Print
 
@@ -66,7 +67,7 @@ let substitution (subst : substitution) (partial : bool) (heap : t) : t =
 	let new_heap = Heap.create 1021 in
 	Heap.iter
 		(fun loc ((fv_list, domain), metadata, ext) ->
-			let s_loc = if (is_lit_loc_name loc) then LLit (Loc loc) else (
+			let s_loc = if (is_lloc_name loc) then LLit (Loc loc) else (
 				try (Hashtbl.find subst loc) with
 				| _ -> 
 						if (partial) then (ALoc loc) else (
@@ -90,7 +91,7 @@ let substitution_in_place (subst : substitution) (heap : t) : unit =
   	(fun loc ((fv_list, domain), metadata, ext) ->
 			(* Understand the corresponding new location *)
   		let s_loc = 
-				if (is_lit_loc_name loc) 
+				if (is_lloc_name loc) 
 					then LLit (Loc loc) 
 					else (try Hashtbl.find subst loc with _ -> ALoc loc) in 
   		let s_loc = match s_loc with LLit (Loc loc) -> loc | ALoc loc -> loc 
@@ -174,7 +175,7 @@ let is_empty (heap : t) : bool =
 (** converts a symbolic heap to a list of assertions *)
 let assertions (heap : t) : jsil_logic_assertion list = 
 	let make_loc_lexpr loc = 
-		if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
+		if (is_aloc_name loc) then ALoc loc else LLit (Loc loc) in 
 	
 	(* TODO : Deal with metadata and extensibility *)
 	let rec assertions_of_object (loc, ((fv_list, domain), metadata, ext)) =

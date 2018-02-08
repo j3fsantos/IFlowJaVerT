@@ -34,37 +34,6 @@ let string_of_binop (bop : jsil_binop) : string =
   	| SetMem -> "-e-"
   	| SetSub -> "-s-"
 
-(** JSIL unary operators *)
-let string_of_unop (uop : jsil_unop) : string =
-  	match uop with
-  	| UnaryMinus -> "-"
-  	| Not -> "not"
-  	| BitwiseNot -> "~"
-  	| M_abs -> "m_abs"
-  	| M_acos -> "m_acos"
-  	| M_asin -> "m_asin"
-  	| M_atan -> "m_atan"
-  	| M_ceil -> "m_ceil"
-  	| M_cos -> "m_cos"
-  	| M_exp -> "m_exp"
-  	| M_floor -> "m_floor"
-  	| M_log -> "m_log"
-  	| M_round -> "m_round"
-  	| M_sgn -> "m_sgn"
-  	| M_sin -> "m_sin"
-  	| M_sqrt -> "m_sqrt"
-  	| M_tan -> "m_tan"
-  	| IsPrimitive -> "is_primitive"
-  	| ToStringOp -> "num_to_string"
-  	| ToIntOp -> "num_to_int"
-  	| ToUint16Op -> "num_to_uint16"
-  	| ToInt32Op -> "num_to_int32"
-  	| ToUint32Op -> "num_to_uint32"
-  	| ToNumberOp -> "string_to_num"
-  	| Car -> "car"
-  	| Cdr -> "cdr"
-  	| LstLen -> "l-len"
-  	| StrLen -> "s-len"
 
 (** JSIL expressions *)
 let rec string_of_expression (e : jsil_expr) : string  =
@@ -75,7 +44,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
   	(* (e1 bop e2) *)
   | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
   	(* (uop e) *)
-  | UnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
+  | UnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (se e)
   	(* typeof(e) *)
   | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
   	(* {{ e1, e2, ... }} *)
@@ -144,7 +113,7 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   	(* (e1 bop e2) *)
   | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
   	(* (uop e1 e2) *)
-  | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (sle e)
+  | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (sle e)
   	(* typeOf(e) *)
   | LTypeOf e -> Printf.sprintf "typeOf(%s)" (sle e)
   	(* {{ e1, ..., en }} *)

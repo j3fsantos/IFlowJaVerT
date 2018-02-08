@@ -275,6 +275,7 @@ let copy_and_clear_globals () =
 %type <Type.t>     type_target
 %type <Constant.t> constant_target
 %type <Permission.t> permission_target
+%type <UnOp.t> unop_target
 
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target

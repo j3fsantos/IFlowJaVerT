@@ -1,6 +1,7 @@
 (***
  JSIL - Interpreter
 *)
+open CCommon
 open Batteries
 open JSIL_Syntax
 
@@ -9,17 +10,6 @@ let largvals = "args"
 
 let verbose = ref false
 let proto_f = "@proto"
-
-let fresh_int =
-  let counter = ref 0 in
-  let rec f () =
-    let v = !counter in
-    counter := !counter + 1;
-    string_of_int v
-  in f
-
-let fresh_loc () : string =
-  "$l" ^ (fresh_int ())
 
 let evaluate_constant (c : Constant.t) : Literal.t =
 	match c with
@@ -196,7 +186,7 @@ let unary_int_thing (lit : Literal.t) (f : float -> float) emsg : Literal.t =
 	let res = f num in
 		Num res
 
-let evaluate_unop op (lit : Literal.t) : Literal.t =
+let evaluate_unop (op : UnOp.t) (lit : Literal.t) : Literal.t =
 	match op with
   | Not ->
 		(match lit with

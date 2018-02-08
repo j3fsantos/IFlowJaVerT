@@ -611,7 +611,7 @@ let encode_binop op le1 le2 =
 	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
 
 
-let encode_unop op le =
+let encode_unop (op : UnOp.t) le =
 	match op with
 
 	| UnaryMinus ->
@@ -660,8 +660,8 @@ let encode_unop op le =
     	mk_singleton_elem op_le 
 
 	| _          ->
-		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (JSIL_Print.string_of_unop op);
-		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (JSIL_Print.string_of_unop op) in
+		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (UnOp.str op);
+		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (UnOp.str op) in
 		raise (Failure msg)
 
 
@@ -816,13 +816,13 @@ let rec encode_assertion a : Expr.expr =
 let encode_assertion_top_level a = encode_assertion (JSIL_Logic_Utils.push_in_negations_off a)
 
 let encode_gamma gamma =
-	let gamma_var_type_pairs = get_gamma_var_type_pairs gamma in
+	let gamma_var_type_pairs = TypEnv.get_var_type_pairs gamma in
 	let encoded_gamma =
 		List.filter
 			(fun x -> x <> Boolean.mk_true ctx)
 			(List.map
 				(fun (x, t_x) ->
-					if ((is_lvar_name x) || (is_abs_loc_name x))
+					if ((is_lvar_name x) || (is_aloc_name x))
 						then make_recognizer_assertion x t_x
 						else Boolean.mk_true ctx)
 			gamma_var_type_pairs) in
@@ -962,9 +962,9 @@ let encode_assertions (assertions : SA.t) gamma =
 (** For a given set of pure formulae and its associated gamma, return the corresponding axioms *)
 let get_axioms assertions gamma = 
 	(* Get list variables *)
-  let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
+  let list_vars   = List.map (fun x -> LVar x) (TypEnv.get_vars_of_type gamma ListType) in 
 	(* Get string variables *)
-	let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in
+	let string_vars = List.map (fun x -> LVar x) (TypEnv.get_vars_of_type gamma StringType) in
 	(* Get list expressions *)
 	let list_exprs = List.concat (List.map JSIL_Logic_Utils.get_asrt_list_lexprs assertions) in 
 	(* Remove duplicates *)
@@ -1013,7 +1013,7 @@ let get_axioms assertions gamma =
 			
 			print_debug_petar (Printf.sprintf "About to check SAT of: %s\nwith gamma: %s\n" 
 				(Symbolic_State_Print.string_of_pfs (DynArray.of_list assertions_list))
-				(Symbolic_State_Print.string_of_gamma gamma));
+				(TypEnv.str gamma));
 			
 			(* Get the associated axioms - currently we are making the choice not to get them *)
 			let axioms = [] in (* get_axioms assertions_list gamma in *)
@@ -1092,7 +1092,7 @@ let check_entailment (existentials : SS.t)
 		   (String.concat ", " (SS.elements existentials))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list left_as))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
-		   (Symbolic_State_Print.string_of_gamma gamma));
+		   (TypEnv.str gamma));
 
 		let start_time = Sys.time() in
 
@@ -1102,8 +1102,8 @@ let check_entailment (existentials : SS.t)
 		Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 
 		(* Separate gamma into existentials and non-existentials *)
-		let gamma_left = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
-		let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in
+		let gamma_left = TypEnv.filter gamma (fun v -> not (SS.mem v existentials)) in
+		let gamma_right = TypEnv.filter gamma (fun v -> SS.mem v existentials) in
 
 		(* If left side is false, return false *)
 		let result = if (DynArray.length left_as > 0 && DynArray.get left_as 0 = LFalse) then false

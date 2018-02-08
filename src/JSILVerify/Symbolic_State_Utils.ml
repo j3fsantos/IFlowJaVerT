@@ -1,4 +1,5 @@
 open CCommon
+open SCommon
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
@@ -102,7 +103,7 @@ let merge_heaps
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
 		(SHeap.str heap) (SHeap.str new_heap)
-		(Symbolic_State_Print.string_of_pfs pfs) (Symbolic_State_Print.string_of_gamma gamma)
+		(Symbolic_State_Print.string_of_pfs pfs) (TypEnv.str gamma)
 	);
 		
 	let meta_subst = Hashtbl.create 31 in
@@ -234,7 +235,7 @@ let merge_symb_states
 	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in
 	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
 	pfs_merge pf_l pf_r;
-	merge_gammas gamma_l gamma_r;
+	TypEnv.extend gamma_l gamma_r;
 	merge_heaps store_l pf_l gamma_l heap_l heap_r;
 	DynArray.append preds_r preds_l;
 	print_debug ("Finished merge_symb_states");
@@ -255,9 +256,9 @@ let compatible_pfs
 	let pat_gamma = ss_gamma pat_symb_state in
 	
 	let pat_pfs = pfs_substitution subst false pat_pfs in
-	let pat_gamma = gamma_substitution pat_gamma subst false in
-	let gamma = gamma_copy gamma in
-	merge_gammas gamma pat_gamma;
+	let pat_gamma = TypEnv.substitution pat_gamma subst false in
+	let gamma = TypEnv.copy gamma in
+	TypEnv.extend gamma pat_gamma;
 	
 	let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
 	let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
@@ -310,12 +311,12 @@ let enrich_pure_part
 	(symb_state_pat : symbolic_state)
 	(subst          : substitution) : bool * symbolic_state =
 	
-	let pre_gamma = gamma_copy (ss_gamma symb_state_pat)     in
+	let pre_gamma = TypEnv.copy (ss_gamma symb_state_pat)     in
 	let pre_pfs   = pfs_copy (ss_pfs symb_state_pat)         in	
 	let pfs       = pfs_substitution subst false pre_pfs     in
-	let gamma     = gamma_substitution pre_gamma subst false in
+	let gamma     = TypEnv.substitution pre_gamma subst false in
 	
-	merge_gammas gamma (ss_gamma symb_state);
+	TypEnv.extend gamma (ss_gamma symb_state);
 	pfs_merge pfs (ss_pfs symb_state);
 	let store          = store_copy (ss_store symb_state) in
 	let heap           = ss_heap symb_state               in
@@ -358,7 +359,7 @@ let collect_garbage (symb_state : symbolic_state) =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let dangling_locations = 	Heap.fold
 		(fun loc ((fv_list, default), _, _) locs ->
-			match (is_abs_loc_name loc), default, fv_list with
+			match (is_aloc_name loc), default, fv_list with
 			| true, None, [] 
 			| true, Some (LESet []), [] -> SS.add loc locs
 			| _ -> locs

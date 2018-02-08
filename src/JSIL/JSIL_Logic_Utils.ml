@@ -1,4 +1,5 @@
 open CCommon
+open SCommon
 open JSIL_Syntax
 
 (****************************************************************)
@@ -581,7 +582,7 @@ let rec type_lexpr (gamma : typing_environment) (le : jsil_logic_expr) : Type.t 
 
 	(* Variables are typable if in gamma, otherwise no, but typing continues *)
 	| LVar var
-	| PVar var -> def_pos (gamma_get_type gamma var)
+	| PVar var -> def_pos (TypEnv.get_type gamma var)
 
 	(* Abstract locations are always typable, by construction *)
 	| ALoc _ -> def_pos (Some ObjectType)
@@ -746,10 +747,10 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
 	(* with the target type or if they are not typable           *)
 	| LVar var
 	| PVar var ->
-		(match (gamma_get_type gamma var), (gamma_get_type new_gamma var) with
+		(match (TypEnv.get_type gamma var), (TypEnv.get_type new_gamma var) with
 		| Some t, None
 		| None, Some t     -> (t = le_type)
-		| None, None       -> (update_gamma new_gamma var (Some le_type)); true
+		| None, None       -> (TypEnv.update new_gamma var (Some le_type)); true
 		| Some t1, Some t2 -> if (t1 = t2) then true else false)
 
 	(* Abstract locations are reverse-typable if the target type is ObjectType *)
@@ -841,12 +842,10 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
 
 		| LNone    -> (le_type = NoneType))
 
-let reverse_type_lexpr flag gamma le le_type : typing_environment option =
-	let new_gamma : typing_environment = gamma_init () in
+let reverse_type_lexpr flag gamma le le_type : TypEnv.t option =
+	let new_gamma : TypEnv.t = TypEnv.init () in
 	let ret = reverse_type_lexpr_aux flag gamma new_gamma le le_type in
-	if (ret)
-		then Some new_gamma
-		else None
+		if (ret) then Some new_gamma else None
 
 (* ******************** *)
 (* ** TYPE INFERENCE ** *)
@@ -912,7 +911,7 @@ let rec infer_types_expr gamma le : unit =
   		
   	(*
   	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
-  	| LUnOp    of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
+  	| LUnOp    of UnOp.t * jsil_logic_expr                    (** Unary operators ({!type:UnOp.t}) *)
   	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *)
   	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
   	*)

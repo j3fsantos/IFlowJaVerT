@@ -48,18 +48,6 @@ let string_of_pfs (p_formulae : pure_formulae) : string =
 		"\t"
 		p_formulae
 
-let string_of_gamma (gamma : typing_environment) : string =
-	let gamma_str =
-		Hashtbl.fold
-			(fun var var_type ac ->
-				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
-				if (ac = "")
-					then var_type_pair_str
-					else ac ^ "\n\t" ^ var_type_pair_str)
-			gamma
-			"\t" in
-	gamma_str
-
 let string_of_pred (pred : (string * (jsil_logic_expr list))) : string =
 	let cur_pred_name, cur_pred_args = pred in
 	let args_str =
@@ -87,7 +75,7 @@ let string_of_symb_state (symb_state : symbolic_state) : string =
 	let str_heap       = "Heap: " ^ (SHeap.str (ss_heap symb_state)) ^ "\n" in
 	let str_store      = "Store: " ^ (string_of_symb_store (ss_store symb_state)) ^ "\n" in
 	let str_p_formulae = "Pure Formulae: " ^ (string_of_pfs (ss_pfs symb_state)) ^ "\n" in
-	let str_gamma      = "Gamma: " ^ (string_of_gamma (ss_gamma symb_state)) ^ "\n" in
+	let str_gamma      = "Gamma: " ^ (TypEnv.str (ss_gamma symb_state)) ^ "\n" in
 	let str_preds      = "Preds: " ^ (string_of_preds (ss_preds symb_state)) ^ "\n" in
 	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 

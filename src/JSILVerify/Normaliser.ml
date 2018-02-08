@@ -1,11 +1,12 @@
 open CCommon
+open SCommon
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
 
 exception InvalidTypeOfLiteral
 
-let new_abs_loc_name var = abs_loc_prefix ^ var
+let new_abs_loc_name var = aloc_prefix ^ var
 
 let new_lvar_name var = lvar_prefix ^ var
 
@@ -1035,7 +1036,7 @@ let rec normalise_type_assertions
 									(JSIL_Print.string_of_logic_expression le)
 									(Type.str t)); 
 						false 
-					| Some new_gamma ->	extend_gamma gamma new_gamma; true)) in 
+					| Some new_gamma ->	TypEnv.extend gamma new_gamma; true)) in 
 
 
 	let f = normalise_type_assertions store gamma in
@@ -1063,7 +1064,7 @@ let rec normalise_type_assertions
 						   to the type of x *)
 						let new_lvar = fresh_lvar () in 
 						store_put store x (LVar new_lvar);
-						weak_update_gamma gamma x (Some t); 
+						TypEnv.weak_update gamma x (Some t); 
 						true)
 
 				| le -> type_check_lexpr le t))
@@ -1175,11 +1176,11 @@ let extend_typing_env_using_assertion_info
 		match a with
 		| LEq (LVar x, le) | LEq (le, LVar x)
 		| LEq (PVar x, le) | LEq (le, PVar x) ->
-			let x_type = gamma_get_type gamma x in
+			let x_type = TypEnv.get_type gamma x in
 			(match x_type with
 			| None ->
 				let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
-				weak_update_gamma gamma x le_type
+				TypEnv.weak_update gamma x le_type
 			| Some _ -> ())
 		| _ -> ()
 	) a_list
@@ -1418,7 +1419,7 @@ let normalise_assertion
 	(** Step 2 -- Create empty symbolic heap, symbolic store, typing environment, and substitution *)
 	let heap  = SHeap.init () in
 	let store = store_init [] [] in
-	let gamma = Option.map_default gamma_copy (gamma_init ()) gamma in
+	let gamma = Option.map_default TypEnv.copy (TypEnv.init ()) gamma in
 	let subst = Option.map_default copy_substitution (init_substitution []) subst in
 
 	(** Step 3 -- Normalise type assertions and pure assertions
@@ -1480,7 +1481,7 @@ let normalise_normalised_assertion
   (** Step 1 -- Create empty symbolic heap, symbolic store, typing environment, pred set and pfs *)
   let heap  : SHeap.t            = SHeap.init () in
   let store : symbolic_store     = store_init [] [] in
-  let gamma : typing_environment = gamma_init () in
+  let gamma : typing_environment = TypEnv.init () in
   let pfs   : pure_formulae      = DynArray.make 0 in
   let preds : predicate_set      = DynArray.make 0 in
 
@@ -1541,7 +1542,7 @@ let normalise_normalised_assertion
 
   print_debug (Printf.sprintf "\n----- AFTER \"NORMALISATION\": -----\n");
   print_debug (Printf.sprintf "Store: %s" (Symbolic_State_Print.string_of_symb_store store));
-  print_debug (Printf.sprintf "Gamma: %s" (Symbolic_State_Print.string_of_gamma gamma));
+  print_debug (Printf.sprintf "Gamma: %s" (TypEnv.str gamma));
   print_debug (Printf.sprintf "Heap: %s" (SHeap.str heap));
   print_debug (Printf.sprintf "Pure Formulae: %s" (Symbolic_State_Print.string_of_pfs pfs));
   print_debug (Printf.sprintf "Preds: %s" (Symbolic_State_Print.string_of_preds preds));
@@ -1563,7 +1564,7 @@ let create_unification_plan
 	let locs_to_visit           = Queue.create () in 
 	let unification_plan        = Queue.create () in 
 	let marked_alocs            = ref SS.empty in 
-	let abs_locs, concrete_locs = List.partition is_abs_loc_name (SS.elements (SHeap.domain heap)) in 
+	let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in 
 
 	let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit = 
 		let alocs = get_lexpr_alocs le in 
@@ -1575,7 +1576,7 @@ let create_unification_plan
 	let inspect_aloc () = 
 		if (Queue.is_empty locs_to_visit) then false else (
 			let loc     = Queue.pop locs_to_visit in 
-			let le_loc  = if (is_abs_loc_name loc) then ALoc loc else LLit (Loc loc) in 
+			let le_loc  = if (is_aloc_name loc) then ALoc loc else LLit (Loc loc) in 
 			match SHeap.get heap loc with
 			(* The aloc does not correspond to any cell - it is an argument for a predicate *) 
 			| None -> true
@@ -1697,7 +1698,7 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 		) else (
 			print_normal(Printf.sprintf "Incompatible something inside collapse_alocs. new_pfs_list: %s\ngamma: %s\n" 
 				(String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs_list))
-				(Symbolic_State_Print.string_of_gamma (ss_gamma ss_post))); 
+				(TypEnv.str (ss_gamma ss_post))); 
 			None
 		)
 	)
@@ -1789,7 +1790,7 @@ let normalise_single_spec
 
 	let n_specs = List.map (fun (ss_pre, subst, spec_vars) ->
 		let post_gamma_0  = ss_gamma ss_pre in
-		let post_gamma_0' = filter_gamma_f post_gamma_0 (fun x -> SS.mem x spec_vars) in
+		let post_gamma_0' = TypEnv.filter post_gamma_0 (fun x -> SS.mem x spec_vars) in
 
 		(** Step 3 - Normalise the postconditions associated with each pre           *)
 		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars params) posts) in
@@ -1973,7 +1974,7 @@ let normalise_invariant
 	(spec_vars : SS.t)
 	(subst     : substitution)
 	(params    : SS.t) : symbolic_state = 
-	let gamma_inv = filter_gamma_f gamma (fun x -> SS.mem x spec_vars) in
+	let gamma_inv = TypEnv.filter gamma (fun x -> SS.mem x spec_vars) in
 	let new_symb_state = Option.get (normalise_post gamma_inv subst spec_vars params a) in
 	new_symb_state
 						
