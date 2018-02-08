@@ -1,14 +1,24 @@
+open SCommon
 open JSIL_Syntax
 
 (* When reduction fails *)
 exception ReductionException of jsil_logic_expr * string
 
+(***********************************)
+(* LIST REASONING HELPER FUNCTIONS *)
+(***********************************)
+
 (* What does it mean to be a list? *)
-let rec lexpr_is_list (le : jsil_logic_expr) : bool =
-	let f = lexpr_is_list in
+let rec lexpr_is_list ?(gamma : typing_environment option) (le : jsil_logic_expr)  : bool =
+	let f = lexpr_is_list ?gamma:gamma in
 	match le with
-	| PVar _
-	| LVar _
+	(* Variables are lists iff gamma is provided and their type is list *)
+	| PVar v
+	| LVar v -> 
+		Option.map_default 
+		(fun gamma -> 
+			Option.map_default (fun t -> t = Type.ListType) false (gamma_get_type gamma v) 
+		) false gamma
 	| LLit (LList _)
 	| LEList _ -> true
 	| LBinOp (_, LstCons, le) -> f le
@@ -48,7 +58,7 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 		| Some len -> if (len <= idx) then raise (ReductionException (LNone, err_msg))
 	in
 
-	let result : jsil_logic_expr option = (match lst with
+	(match lst with
 	(* Nothing can be done for variables *)
 	| PVar _ -> None
 	| LVar _ -> None
@@ -69,15 +79,50 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 			)
 
 	| _ -> raise (Failure (Printf.sprintf "get_nth_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
-	) in result
+	) 
 
+(* Finding the nth element of a list *)
+let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
+	let f = get_head_and_tail_of_list in
+
+	(* The passed logical expression must represent a list *)
+	let _ = assert (lexpr_is_list lst) in
+
+	let err_msg = "get_head_and_tail_of_list: empty list passed." in
+
+	(match lst with
+	(* Nothing can be done for variables *)
+	| PVar _ -> None
+	| LVar _ -> None
+	(* Base lists of literals and logical expressions *)
+	| LLit (LList l) -> assert (0 < List.length l); Some (LLit (List.hd l), LLit (LList (List.tl l)))
+	| LEList l       -> assert (0 < List.length l); Some (List.nth l 0, LEList (List.tl l))
+	| LBinOp (hd, LstCons, lst) -> Some (hd, lst)
+	| LBinOp (lel, LstCat, ler) -> 
+		Option.default None 
+			(Option.map 
+				(fun (hd, tl) -> 
+					Some (hd, LBinOp (tl, LstCat, ler)))
+				(f lel)
+			)
+
+	| _ -> raise (Failure (Printf.sprintf "get_nth_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
+	)
+
+(*************************************)
+(* STRING REASONING HELPER FUNCTIONS *)
+(*************************************)
 
 (* What does it mean to be a string? *)
-let rec lexpr_is_string (le : jsil_logic_expr) : bool =
-	let f = lexpr_is_string in
+let rec lexpr_is_string ?(gamma : typing_environment option) (le : jsil_logic_expr) : bool =
+	let f = lexpr_is_string ?gamma:gamma in
 	match le with
-	| PVar _
-	| LVar _
+	| PVar v
+	| LVar v ->
+		Option.map_default 
+		(fun gamma -> 
+			Option.map_default (fun t -> t = Type.StringType) false (gamma_get_type gamma v) 
+		) false gamma
 	| LLit (String _) -> true
 	| LBinOp (lel, StrCat, ler) -> f lel && f ler
 	| _ -> false
@@ -131,12 +176,19 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 	| _ -> raise (Failure (Printf.sprintf "get_nth_of_string: string equals %s, impossible" (JSIL_Print.string_of_logic_expression str)))
 	) in result
 
+(*************)
+(* REDUCTION *)
+(*************)
+
 (**
 	Logical expression reduction - there is no additional information
 *)
 let rec reduce_lexpr (le : jsil_logic_expr) = 
+
+	let start_time = Sys.time () in
+
 	let f = reduce_lexpr in
-	(match le with
+	let result = (match le with
 
 	(* The TypeOf operator *)
 	| LTypeOf le -> 
@@ -237,14 +289,126 @@ let rec reduce_lexpr (le : jsil_logic_expr) =
 			| [ LESet s ] -> LESet s 
 			| _ -> LSetUnion fles)
 
+	| LSetInter les ->
+		let fles = List.map f les in
+		(* Flatten intersections *)
+		let inters, rest = List.partition (fun x -> match x with | LSetInter _ -> true | _ -> false) fles in
+		let inters = List.fold_left
+			(fun ac u -> 
+				let ls = (match u with
+				| LSetInter ls -> ls
+				| _ -> raise (Failure "LSetInter: flattening intersections: impossible.")) in
+				ac @ ls
+			) 
+			[]
+			inters in
+		let fles = inters @ rest in 
+		(* Join LESets *)
+		let lesets, rest = List.partition (fun x -> match x with | LESet _ -> true | _ -> false) fles in
+		let lesets = List.fold_left
+			(fun ac u -> 
+				let ls = (match u with
+				| LESet ls -> ls
+				| _ -> raise (Failure "LSetUnion: joining LESets: impossible.")) in
+				ac @ ls
+			) 
+			[]
+			lesets in
+		let lesets = SLExpr.elements (SLExpr.of_list lesets) in
+		let fles = LESet lesets :: rest in 
+		(* If there is an empty set, the intersection is empty *)
+		if (List.mem (LESet []) fles) 
+			then LESet []
+			else 
+			let fles = SLExpr.elements (SLExpr.of_list fles) in
+				(match fles with
+				| [ ] -> LESet [ ] 
+				| [ LESet s ] -> LESet s 
+				| _ -> LSetInter fles)
+
+	| LUnOp (op, le) ->
+		let fle = f le in
+		(match fle with
+		| LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
+		| _ -> 
+			(match op with
+			(* List head *)
+			| Car ->
+				let fle = f le in
+				(match (lexpr_is_list fle) with
+				| true -> let ohdtl = get_head_and_tail_of_list fle in
+					Option.map_default (fun (hd, _) -> hd) (LUnOp (Car, fle)) ohdtl
+				| false -> 
+					let err_msg = "LUnOp(Car, list): list is not a JSIL list." in
+					raise (ReductionException (LUnOp (Car, fle), err_msg))
+				)
+
+			(* List tail *)
+			| Cdr ->
+				let fle = f le in
+				(match (lexpr_is_list fle) with
+				| true -> let ohdtl = get_head_and_tail_of_list fle in
+					Option.map_default (fun (_, tl) -> tl) (LUnOp (Cdr, fle)) ohdtl
+				| false -> 
+					let err_msg = "LUnOp(Cdr, list): list is not a JSIL list." in
+					raise (ReductionException (LUnOp (Cdr, fle), err_msg))
+				)
+
+			(* List length *)
+			| LstLen ->
+				let fle = f le in
+				(match (lexpr_is_list fle) with
+				| true -> let len = get_length_of_list fle in
+					Option.map_default (fun len -> LLit (Num (float_of_int len))) (LUnOp (LstLen, fle)) len
+				| false -> 
+					let err_msg = "LUnOp(LstLen, list): list is not a JSIL list." in
+					raise (ReductionException (LUnOp (LstLen, fle), err_msg))
+				)
+
+			(* String length *)
+			| StrLen ->
+				let fle = f le in
+				(match (lexpr_is_string fle) with
+				| true -> let len = get_length_of_string fle in
+					Option.map_default (fun len -> LLit (Num (float_of_int len))) (LUnOp (StrLen, fle)) len
+				| false -> 
+					let err_msg = "LUnOp(StrLen, list): string is not a JSIL string." in
+					raise (ReductionException (LUnOp (StrLen, fle), err_msg))
+				)
+
+			| _ -> LUnOp (op, fle)
+			)
+		)
+
+	| LBinOp (lel, op, ler) ->
+		let flel = f lel in
+		let fler = f ler in
+		(match flel, fler with
+		| LLit ll , LLit lr -> 
+			let empty_store = Hashtbl.create 31 in
+			LLit (JSIL_Interpreter.evaluate_binop empty_store op (Literal ll) (Literal lr))
+		| _ -> 
+			(match op with
+			| _ -> LBinOp (flel, op, fler)
+			)
+		)
+
+	(* 
+		BinOps: don't consider literals!
+		But there are cases where one is a literal, and the other isn't, so careful!
+
+		- a Minus b -> a Plus (UnaryMinus b)
+		- LstCons         
+		- LstCat
+		- SetDiff
+		- SetMem
+		- SetSub
+	*)
+
 	(* The remaining cases cannot be reduced *)
 	| _ -> le 
-	)
+	) in
 
-	(*
-
-	| LBinOp    of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
-	| LUnOp     of jsil_unop * jsil_logic_expr                    (** Unary operators ({!type:jsil_unop}) *)
-	| LSetUnion of jsil_logic_expr list                           (** Unions *)
-	| LSetInter of jsil_logic_expr list                           (** Intersections *)
-*)
+	let end_time = Sys.time () in
+  	update_statistics "reduce_lexpr" (end_time -. start_time);
+	result

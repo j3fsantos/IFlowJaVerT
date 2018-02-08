@@ -557,181 +557,169 @@ match a with
 	| Some x -> x
 	| None -> Lazy.force default
 
-
-let rec type_lexpr gamma le : Type.t option * bool * jsil_logic_assertion list =
+let rec type_lexpr (gamma : typing_environment) (le : jsil_logic_expr) : Type.t option * bool * jsil_logic_assertion list =
 
 	let f = type_lexpr gamma in
-	let result = (match le with
-	(* Literals are always typable *)
-  	| LLit lit -> (Some (Literal.type_of lit), true, [])
+	let def_pos (ot : Type.t option) = (ot, true, []) in
+	let def_neg = (None, false, []) in
 
-	(* Variables are typable if in gamma, otherwise no no *)
+	let typable_list ?(target_type : Type.t option) les = 
+		(List.fold_left
+			(fun (ac, ac_constraints) elem ->
+				if (not ac) then (false, [])
+				else 
+					let (t, ite, constraints) = f elem in
+					let correct_type = (target_type = None) || (t = target_type) in
+					(ac && correct_type && ite, constraints @ ac_constraints))
+			(true, [])
+			les) in
+
+	let result = (match le with
+
+	(* Literals are always typable *)
+  	| LLit lit -> def_pos (Some (Literal.type_of lit))
+
+	(* Variables are typable if in gamma, otherwise no, but typing continues *)
 	| LVar var
-	| PVar var ->
-		(match gamma_get_type gamma var with
-		| Some t -> Some t, true, []
-		| None   -> None,   true, [])
+	| PVar var -> def_pos (gamma_get_type gamma var)
 
 	(* Abstract locations are always typable, by construction *)
-	| ALoc _ -> Some ObjectType, true, []
+	| ALoc _ -> def_pos (Some ObjectType)
 
   	(* If what we're trying to type is typable, we should get a type back.*)
 	| LTypeOf le ->
-		let tle, itle, constraints = f le in
-		if (itle) then (Some TypeType, true, constraints) else (None, false, [])
+		let _, itle, constraints = f le in
+			if (itle) then (Some TypeType, true, constraints) else def_neg
 
-  	(* LEList *)
+  	(* Lists are typable if all elements are typable *)
 	| LEList les ->
-		let all_typable, constraints =
-			(List.fold_left
-				(fun (ac, ac_constraints) elem ->
-					let (_, ite, constraints) = f elem in
-						((ac && ite), (constraints @ ac_constraints)))
-				(true, [])
-				les) in
-			if (all_typable) then (Some ListType, true, constraints) else (None, false, [])
+		let all_typable, constraints = typable_list les in
+			if (all_typable) then (Some ListType, true, constraints) else def_neg
+
+	(* Sets are typable if all elements are typable *)
 	| LESet les ->
-	let all_typable, constraints =
-		(List.fold_left
-			(fun (ac, ac_constraints) elem ->
-				let (_, ite, constraints) = f elem in
-					((ac && ite), (constraints @ ac_constraints)))
-			(true, [])
-			les) in
-		if (all_typable) then (Some SetType, true, constraints) else (None, false, [])
+		let all_typable, constraints = typable_list les in
+			if (all_typable) then (Some SetType, true, constraints) else def_neg
 
  	| LUnOp (unop, e) ->
 		let (te, ite, constraints) = f e in
-		let tt (t1 : Type.t) (t2 : Type.t) new_constraints =
-			if_some te
-				(fun t -> if (t = t1)
-					then (Some t2, true, (new_constraints @ constraints))
-					else (None, false, []))
-				(None, false, []) in
-		if (ite) then
-  		(match unop with
-			(* Boolean to Boolean  *)
-  		| Not ->
-  			(
-  				(match te with
-  					| Some te -> Type.str te
-  					| None    -> "");
-  			tt BooleanType BooleanType [])
-			(* Number to Number    *)
-  		| UnaryMinus	| BitwiseNot	| M_sgn			| M_abs	| M_acos
- 	    | M_asin			| M_atan			| M_ceil		| M_cos	| M_exp
-      	| M_floor			| M_log				| M_round		| M_sin	| M_sqrt
-		| M_tan  -> tt NumberType NumberType []
-			(* Number to Int       *)
-  		| ToIntOp			| ToUint16Op	| ToInt32Op	| ToUint32Op -> tt NumberType NumberType []
-  		(* Number to String    *)
-		| ToStringOp -> tt NumberType StringType []
-			(* String to Number    *)
-		| ToNumberOp -> tt StringType NumberType []
-			(* Anything to Boolean *)
-		| IsPrimitive -> (Some BooleanType, true, constraints)
+		
+		let tt (t1 : Type.t) (t2 : Type.t option) new_constraints =
+			Option.map_default 
+			(fun t -> 
+				if (t = t1)
+					then (t2, true, (new_constraints @ constraints))
+					else def_neg)
+			def_neg te in
+
+		(match ite with
+		| false -> def_neg
+		| true -> (match unop with
+	  		| Not         -> tt BooleanType (Some BooleanType) []  (* Boolean to Boolean  *)
+			| ToStringOp  -> tt NumberType  (Some StringType)  []  (* Number to String    *)
+			| ToNumberOp  -> tt StringType  (Some NumberType)  []  (* String to Number    *)
+			| IsPrimitive -> (Some BooleanType, true, constraints) (* Anything to Boolean *)
+
 			(* List to List -> generates constraint *)
-		| Cdr ->
-			let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
-			tt ListType ListType [ new_constraint ]
+			| Cdr ->
+				let new_constraint = (LLessEq (LLit (Num 1.), LUnOp (LstLen, e))) in
+				tt ListType (Some ListType) [ new_constraint ]
+
 			(* List to Anything -> generates constraint *)
-		| Car ->
-				let new_constraint = (LNot (LLess (LUnOp (LstLen, e), (LLit (Num 1.))))) in
-				(match te with
-				| Some ListType -> (None, true, [ new_constraint ])
-				| None          -> (None, false, [] ))
-			(* List to Int         *)
-		| LstLen -> tt ListType NumberType []
-			(* String to Int       *)
-			| StrLen -> tt StringType NumberType [])
-		else
-			(None, false, [])
+			| Car ->
+				let new_constraint = (LLessEq (LLit (Num 1.), LUnOp (LstLen, e))) in
+				tt ListType None [ new_constraint ]
+
+			| LstLen -> tt ListType   (Some NumberType) [] (* List to Number   *)
+			| StrLen -> tt StringType (Some NumberType) [] (* String to Number *)
+			
+			(* Rest are Number to Number *)
+	  		| _ -> tt NumberType (Some NumberType) [])
+		)
 
 	| LBinOp (e1, op, e2) ->
 		let (te1, ite1, constraints1) = f e1 in
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
+		(* REVISIT ORDER *)
 		let all_types : Type.t list = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType; SetType ] in
 		let check_valid_type t (types : Type.t list) (ret_type : Type.t) new_constraints =
-			let is_t_in_types = List.mem t types in
-			if (is_t_in_types)
+			if (List.mem t types )
 				then (Some ret_type, true, (new_constraints @ constraints))
-				else (None, false, []) in
+				else def_neg in
 
-		(match te1, te2 with
-		| (Some t1), (Some t2) ->
-			let teq = (t1 = t2) in
-			(match teq with
-			| false ->
-				(match op with
-				| Equal -> (Some BooleanType, true, constraints)
-				| LstCons -> check_valid_type t2 [ ListType ] ListType []
-				| SetMem -> check_valid_type t2 [ SetType ] BooleanType []
-				| _     -> raise (Failure "ERROR"))
-			| true ->
+		(* Both expressions must be typable *)
+		(match ite1, ite2 with
+		| true, true ->
 			(match op with
-			| Equal -> check_valid_type t1 all_types BooleanType []
-			| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType ] BooleanType []
-			| LessThanString -> check_valid_type t1 [ StringType ] BooleanType []
-			| Plus	| Minus	| Times	| Mod -> check_valid_type t1 [ NumberType ] t1 []
-			| Div -> check_valid_type t1 [ NumberType ] NumberType []
-			| And	| Or -> check_valid_type t1 [ BooleanType ] BooleanType []
-			| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
-			| UnsignedRightShift	| M_atan2 | M_pow -> check_valid_type t1 [ NumberType ] NumberType []
-			| LstCons 
-			| LstCat  -> check_valid_type t1 [ ListType ]   ListType    []
-			| StrCat  -> check_valid_type t1 [ StringType ] StringType  []
-			| SetDiff -> check_valid_type t1 [ SetType ]    SetType     []
-			| SetSub  -> check_valid_type t1 [ SetType ]    BooleanType []
-			
-			| _ -> raise (Failure (Printf.sprintf "ERROR in type_lexpr: %s" (JSIL_Print.string_of_binop op)))))
-		| _, ot2 ->
-			match op with
-			| Equal when ite1 && ite2 -> (Some BooleanType, true, constraints)
-			| LstCons when ite2 ->
-				(match ot2 with
-				| None -> (None, false, [])
-				| Some t2 -> check_valid_type t2 [ ListType ] ListType [])
-			| _ -> (None, false, []))
+			(* The equality operator is always typable with BooleanType *)
+			| Equal -> (Some BooleanType, true, constraints)
+			| _ -> 
+				(match te1, te2 with
+				(* Both are typable *)
+				| _,       None    -> def_neg
+				| None,    Some t2 -> if (op = LstCons) then check_valid_type t2 [ ListType ] ListType [] else def_neg
+				| Some t1, Some t2 ->
+					(match (t1 = t2) with
+					| false ->
+						(match op with
+						| LstCons -> check_valid_type t2 [ ListType ] ListType    []
+						| SetMem  -> check_valid_type t2 [ SetType  ] BooleanType []
+						| _ -> def_neg)
+					| true ->
+						(match op with
+						| And | Or                 -> check_valid_type t1 [ BooleanType ] BooleanType []
+						| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType  ] BooleanType []
+						| LessThanString           -> check_valid_type t1 [ StringType  ] BooleanType []
+						| LstCons | LstCat         -> check_valid_type t1 [ ListType    ] ListType    []
+						| StrCat                   -> check_valid_type t1 [ StringType  ] StringType  []
+						| SetDiff                  -> check_valid_type t1 [ SetType     ] SetType     []
+						| SetSub | SetMem          -> check_valid_type t1 [ SetType     ] BooleanType [] 
+						| _                        -> check_valid_type t1 [ NumberType  ] NumberType  []		
+						)
+					)
+				)
+			)
+		| _, _ -> def_neg)
 
+
+	(* List length is typable with constraints *)
 	| LLstNth (lst, index) ->
 		let type_lst, _, constraints1 = f lst in
-		let type_index, _, constraints2 = f index in
-		(match (type_lst, type_index) with
-		| Some ListType, Some NumberType ->
-			let new_constraint1 = (LNot (LLess (index, LLit (Num 0.)))) in
-			let new_constraint2 = (LLess (index, LUnOp (LstLen, lst))) in
-			(None, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
-		| _, _ -> (None, false, []))
+		(match type_lst with
+		| Some StringType ->
+			let type_index, _, constraints2 = f index in
+			(match type_index with
+			| Some NumberType ->
+				(* Index also has to be an integer *)
+				let new_constraint1 = (LLessEq (LLit (Num 0.), index)) in
+				let new_constraint2 = (LLess (index, LUnOp (LstLen, lst))) in
+				(None, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
+			| _ -> def_neg)
+		| _ -> def_neg)
 
+	(* String length is typable with constraints *)
 	| LStrNth (str, index) ->
 		let type_str, _, constraints1 = f str in
-		let type_index, _, constraints2 = f index in
-		(match (type_str, type_index) with
-		| Some StringType, Some NumberType ->
-			let new_constraint1 = (LNot (LLess (index, LLit (Num 0.)))) in
-			let new_constraint2 = (LLess (index, LUnOp (StrLen, str))) in
-			(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
-		| _, _ -> (None, false, []))
-
-  | LSetUnion le
-	| LSetInter le ->
-			(try (
-				let constraints = List.fold_left
-				(fun ac e ->
-					let (te, ite, constraints_e) = f e in
-					(match te with
-					| Some SetType -> SA.union ac (SA.of_list constraints_e)
-					| _ -> raise (Failure "Oopsie!"))
-				) SA.empty le in
-				(Some SetType, true, (SA.elements constraints))) 
-			with 
-			| _ -> (None, false, []))
+		(match type_str with
+		| Some StringType ->
+			let type_index, _, constraints2 = f index in
+			(match type_index with
+			| Some NumberType ->
+				(* Index also has to be an integer *)
+				let new_constraint1 = (LLessEq (LLit (Num 0.), index)) in
+				let new_constraint2 = (LLess (index, LUnOp (StrLen, str))) in
+				(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
+			| _ -> def_neg)
+		| _ -> def_neg)
+		
+	| LSetUnion les
+	| LSetInter les -> 
+  		let all_typable, constraints = typable_list ?target_type:(Some SetType) les in
+			if (all_typable) then (Some SetType, true, constraints) else def_neg
 
 	| LNone -> (Some NoneType, true, [])) in
-
-	let (tp, b, _) = result in
 
 	result
 
