@@ -44,6 +44,7 @@ type n_jsil_logic_predicate = {
 	n_pred_params           : jsil_logic_var list;
 	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
 	n_pred_is_rec           : bool; 
+  n_pred_is_pure          : bool;
 }
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t

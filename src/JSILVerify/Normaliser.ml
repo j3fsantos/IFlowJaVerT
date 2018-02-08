@@ -159,6 +159,7 @@ type unfolded_predicate = {
 	params                       : (jsil_var * Type.t option) list;
 	definitions                  : ((string option) * jsil_logic_assertion) list;
 	is_recursive                 : bool;
+  is_pure                      : bool;
 	previously_normalised_u_pred : bool
 }
 
@@ -252,6 +253,7 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 	  params       = new_params;
 	  definitions  = new_definitions;
     is_recursive = false;
+    is_pure      = false;
     previously_normalised_u_pred = pred.previously_normalised_pred }
 
 
@@ -273,7 +275,11 @@ let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfold
 	  		let subst = init_substitution2 pred2_param_names (List.map (fun var -> PVar var) pred1_param_names) in
 		  	let definitions = pred1.definitions @
 		  		(List.map (fun (oid, a) -> oid, (asrt_substitution subst true a)) pred2.definitions) in
-		  	{ pred1 with definitions = definitions; is_recursive = pred1.is_recursive || pred2.is_recursive; }
+		  	{ pred1 with
+          definitions = definitions;
+          is_recursive = pred1.is_recursive || pred2.is_recursive;
+          is_pure = pred1.is_pure && pred2.is_pure
+        }
 	  )
 
 
@@ -286,15 +292,15 @@ let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 	let visited = Hashtbl.create (Hashtbl.length preds) in
 	(* mark visited predicates and remember the smallest index they can go to *)
 	let is_recursive_pred = Hashtbl.create (Hashtbl.length preds) in
-	let in_stack = Hashtbl.create (Hashtbl.length preds) in
-	(* remember which predicates are still in our DFS stack *)
+	let open_pred = Hashtbl.create (Hashtbl.length preds) in
+	(* remember which predicates are still in our DFS stack (to detect cycles) *)
 	let rec explore pred_name =
 		(* Tarjan's SCC algorithm on predicate nodes; if recursive,
 			 returns the index where recursion starts, otherwise None *)
 		match Hashtbl.find_opt visited pred_name with
 			| Some min_index ->
 				(* Already explored *)
-				if Hashtbl.find in_stack pred_name then
+				if Hashtbl.find open_pred pred_name then
 					(* Part of the current component: recursivity detected *)
 					Some min_index
 				else
@@ -305,7 +311,7 @@ let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 				let index = !count in
 				incr count;
 				Hashtbl.add visited pred_name index;
-				Hashtbl.add in_stack pred_name true;
+				Hashtbl.add open_pred pred_name true;
 				assert (Hashtbl.mem preds pred_name);
 				(* make sure that the hash table is well-formed *)
 				let pred = Hashtbl.find preds pred_name in
@@ -320,7 +326,7 @@ let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 						)
 					  max_index
 					  neighbours in
-				Hashtbl.replace in_stack pred_name false;
+				Hashtbl.replace open_pred pred_name false;
 				(* This predicate is recursive if we have seen an index smaller or equal than its own *)
 				if min_index <= index then
 					(Hashtbl.replace visited pred_name min_index;
@@ -338,6 +344,37 @@ let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 		preds;
 	is_recursive_pred
 
+let find_pure_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
+  let is_pure_pred = Hashtbl.create (Hashtbl.length preds) in
+  (* we mark visited predicates and remember their pureness at the same time *)
+  let rec explore pred_name =
+    match Hashtbl.find_opt is_pure_pred pred_name with
+      | Some is_pure -> (* predicate already visited *)
+          is_pure
+      | None -> (* discovering new predicate *)
+          let is_pure_assertion (a : jsil_logic_assertion) =
+            let f_ac a _ _ ac =
+            match a with
+              | LPred (pred_name, _) -> explore pred_name
+              | LPointsTo _ | LEmp | LEmptyFields _
+              | LMetaData _ | LExtensible _ -> false
+              | _  -> List.for_all (fun b -> b) ac in
+            JSIL_Logic_Utils.assertion_fold None f_ac None None a
+          in
+
+          Hashtbl.add is_pure_pred pred_name true;
+          (* assume predicates are pure until proven otherwise,
+             for recursive calls *)
+          let pred = Hashtbl.find preds pred_name in
+          let is_pure = List.for_all
+            (fun (_, asrt) -> is_pure_assertion asrt) pred.definitions in
+
+          Hashtbl.replace is_pure_pred pred_name is_pure;
+          is_pure
+    in
+  Hashtbl.iter (fun pred_name _ -> ignore (explore pred_name)) preds;
+  is_pure_pred
+
 
 let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 	let u_predicates = Hashtbl.create 100 in
@@ -353,34 +390,36 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 			| Not_found -> Hashtbl.add u_predicates name u_pred
 			| Failure reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
 		preds;
-	(* Detect recursive predicates *)
-		let is_recursive_pred = find_recursive_preds u_predicates in
+    
+	(* Detect recursive and pure predicates *)
+	let is_recursive_pred = find_recursive_preds u_predicates in
+  let is_pure_pred = find_pure_preds u_predicates in
 
-	(* Flag those that are recursive *)
-	let u_rec_predicates = Hashtbl.create (Hashtbl.length u_predicates) in
+	(* Tag predicates *)
+	let u_tagged_predicates = Hashtbl.create (Hashtbl.length u_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
-			Hashtbl.add u_rec_predicates pred.name
-			  { pred with is_recursive =
-					(try Hashtbl.find is_recursive_pred name with
-					| Not_found -> raise (Failure ("Undefined predicate " ^ name))); })
+			Hashtbl.add u_tagged_predicates pred.name
+			  { pred with 
+          is_recursive = Hashtbl.find is_recursive_pred name;
+          is_pure = Hashtbl.find is_pure_pred name })
 		u_predicates;
 
 	(* Auto-unfold the predicates in the definitions of other predicates *)
-	let u_rec_predicates' = Hashtbl.create (Hashtbl.length u_rec_predicates) in
+	let u_unfolded_predicates = Hashtbl.create (Hashtbl.length u_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
 	  		let definitions' = List.flatten (List.map
 	  			(fun (os, a) ->
-	  				let as' = auto_unfold u_rec_predicates a in
+	  				let as' = auto_unfold u_tagged_predicates a in
 	  				let as' = List.map (fun a -> (os, a)) as' in
 	  				as') pred.definitions) in
-			Hashtbl.add u_rec_predicates' pred.name
+			Hashtbl.add u_unfolded_predicates pred.name
 			(let ret_pred = { pred with definitions = definitions'; } in
   		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
   		  	 ret_pred))
-		u_rec_predicates;
-	u_rec_predicates'
+		u_tagged_predicates;
+	u_unfolded_predicates
 
 
 
@@ -1927,7 +1966,8 @@ let normalise_predicate_definitions
 				n_pred_num_params  = pred.num_params;
 				n_pred_params      = param_names;
 				n_pred_definitions = n_definitions;
-				n_pred_is_rec      = pred.is_recursive
+				n_pred_is_rec      = pred.is_recursive;
+        n_pred_is_pure     = pred.is_pure 
 			} in
 			Hashtbl.replace n_pred_defs pred_name n_pred) pred_defs;
 	n_pred_defs
@@ -2030,6 +2070,7 @@ let print_normaliser_results_to_file
       "Name : " ^ pred.n_pred_name ^ "\n" ^
       "Parameters : " ^ params ^ "\n" ^
       (Printf.sprintf "Recursive : %b\n" pred.n_pred_is_rec) ^
+      (Printf.sprintf "Pure : %b\n" pred.n_pred_is_pure) ^
       (Printf.sprintf "Number of definitions: %d\n" (List.length pred.n_pred_definitions)) ^
       List.fold_left (fun ac (_, x, _) -> ac ^ "Definition:\n" ^ (JSIL_Print.string_of_logic_assertion (assertion_of_symb_state x)) ^ "\n") "" pred.n_pred_definitions
   in
