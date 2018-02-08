@@ -553,7 +553,7 @@ let rec encode_lit (lit : Literal.t) =
 
 
 (** Encode JSIL binary operators *)
-let encode_binop op le1 le2 =
+let encode_binop (op : BinOp.t) le1 le2 =
 
 	let binop_numbers_to_numbers mk_op le1 le2 =
 		let n_le1 = (Expr.mk_app ctx lit_operations.number_accessor [ (mk_singleton_access le1) ]) in

@@ -833,7 +833,7 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
 				else false
 
 		| _ ->
-			(* Printf.printf "Horror: op: %s, t: %s"  (JSIL_Print.string_of_binop op) (Type.str le_type); *)
+			(* Printf.printf "Horror: op: %s, t: %s"  (BinOp.str op) (Type.str le_type); *)
 			raise (Failure "ERROR"))
 
 		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 NumberType)
@@ -910,7 +910,7 @@ let rec infer_types_expr gamma le : unit =
 				e idx NumberType
   		
   	(*
-  	| LBinOp   of jsil_logic_expr * jsil_binop * jsil_logic_expr (** Binary operators ({!type:jsil_binop}) *)
+  	| LBinOp   of jsil_logic_expr * BinOp.t * jsil_logic_expr (** Binary operators ({!type:BinOp.t}) *)
   	| LUnOp    of UnOp.t * jsil_logic_expr                    (** Unary operators ({!type:UnOp.t}) *)
   	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *)
   	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
@@ -993,9 +993,9 @@ let rec lift_logic_expr lexpr =
 	| LLit (Bool false) -> Some (LLit (Bool false)), Some (LFalse, LTrue)
 	| _ -> Some lexpr, Some (LEq (lexpr, LLit (Bool true)), (LEq (lexpr, LLit (Bool false)))))
 and lift_binop_logic_expr op le1 le2 =
-	let err_msg = (Printf.sprintf "logical expression: binop %s cannot be lifted to assertion" (JSIL_Print.string_of_binop op)) in
+	let err_msg = (Printf.sprintf "logical expression: binop %s cannot be lifted to assertion" (BinOp.str op)) in
 	let f = lift_logic_expr in
-	let lexpr_to_ass_binop binop =
+	let lexpr_to_ass_binop (binop : BinOp.t) =
 		(match binop with
 		| Equal          -> (fun le1 le2 -> LEq (le1, le2))
 		| LessThan       -> (fun le1 le2 -> LLess (le1, le2))

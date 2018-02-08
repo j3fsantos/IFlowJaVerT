@@ -293,7 +293,7 @@ let unary_bin_thing_bool (lit1 : Literal.t) (lit2 : Literal.t) (f : float -> flo
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (Literal.str lit1) (Literal.str lit2)))) in
 	Bool (f num1 num2)
 
-let rec evaluate_binop store op e1 e2 : Literal.t =
+let rec evaluate_binop store (op : BinOp.t) e1 e2 : Literal.t =
 	let ee = evaluate_expr store in
 	(match op with
 	| And ->
@@ -365,7 +365,7 @@ let rec evaluate_binop store op e1 e2 : Literal.t =
 		(match lit1, lit2 with
 		| String s1, String s2 -> (String (s1 ^ s2))
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (Literal.str lit1) (Literal.str lit2))))
-    | _ -> Printf.printf "Unsupported binary operator: %s\n" (JSIL_Print.string_of_binop op); exit 1)
+    | _ -> Printf.printf "Unsupported binary operator: %s\n" (BinOp.str op); exit 1)
 and
 evaluate_expr store (e : jsil_expr) : Literal.t =
 	let ee = evaluate_expr store in

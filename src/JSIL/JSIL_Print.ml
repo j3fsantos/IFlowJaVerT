@@ -5,36 +5,6 @@ open JSIL_Syntax
    Generate strings from JSIL program types
 *)
 
-(** JSIL binary operators *)
-let string_of_binop (bop : jsil_binop) : string =
-  	match bop with
-  	| Equal -> "="
-  	| LessThan -> "<"
-  	| LessThanEqual -> "<="
-  	| LessThanString -> "<s"
-  	| Plus -> "+"
-  	| Minus -> "-"
-  	| Times -> "*"
-  	| Div -> "/"
-  	| Mod -> "%"
-  	| And -> "and"
-  	| Or -> "or"
-  	| BitwiseAnd -> "&"
-  	| BitwiseOr -> "|"
-  	| BitwiseXor -> "^"
-  	| LeftShift -> "<<"
-  	| SignedRightShift -> ">>"
-  	| UnsignedRightShift -> ">>>"
-  	| M_atan2 -> "m_atan2"
-  	| M_pow -> "**"
-  	| LstCons -> "::"
-  	| LstCat -> "@"
-  	| StrCat -> "++"
-  	| SetDiff -> "-d-"
-  	| SetMem -> "-e-"
-  	| SetSub -> "-s-"
-
-
 (** JSIL expressions *)
 let rec string_of_expression (e : jsil_expr) : string  =
   let se = string_of_expression in
@@ -42,7 +12,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
   | Literal l -> Literal.str l
   | Var v -> v
   	(* (e1 bop e2) *)
-  | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
+  | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (BinOp.str op) (se e2)
   	(* (uop e) *)
   | UnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (se e)
   	(* typeof(e) *)
@@ -111,7 +81,7 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   	| ALoc aloc -> aloc 
   	| PVar pvar -> pvar 
   	(* (e1 bop e2) *)
-  | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
+  | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (BinOp.str op) (sle e2)
   	(* (uop e1 e2) *)
   | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (sle e)
   	(* typeOf(e) *)

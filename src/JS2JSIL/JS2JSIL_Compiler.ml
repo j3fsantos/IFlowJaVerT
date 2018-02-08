@@ -261,7 +261,7 @@ let translate_inc_dec x is_plus err =
 	(* x_r := x_n +/- 1 *)
 	let x_r = fresh_var () in
 	let cmd_ass_xr =
-		let op = if is_plus then Plus else Minus in
+		let (op : BinOp.t) = if is_plus then Plus else Minus in
 		LBasic (Assignment (x_r, (BinOp (Var x_n, op,  Literal (Num 1.))))) in
 
 	(* x_pv = putValue (x, x_r) with err4 *)
@@ -279,11 +279,11 @@ let translate_inc_dec x is_plus err =
 
 
 let translate_multiplicative_binop x1 x2 x1_v x2_v aop err =
-	let jsil_aop =
+	let jsil_aop : BinOp.t =
 		(match aop with
 		| Parser_syntax.Times -> Times
-		| Parser_syntax.Div -> Div
-		| Parser_syntax.Mod -> Mod
+		| Parser_syntax.Div   -> Div
+		| Parser_syntax.Mod   -> Mod
 		| Parser_syntax.Minus -> Minus
 		| _ -> raise (Failure "Illegal binary operator - Impossible case")) in
 
@@ -436,10 +436,10 @@ let translate_binop_equality x1 x2 x1_v x2_v non_strict non_negated err =
 
 
 let translate_bitwise_bin_op x1 x2 x1_v x2_v bbop err =
-	let bbop =
+	let bbop : BinOp.t =
 		(match bbop with
 		| Parser_syntax.Bitand -> BitwiseAnd
-		| Parser_syntax.Bitor -> BitwiseOr
+		| Parser_syntax.Bitor  -> BitwiseOr
 		| Parser_syntax.Bitxor -> BitwiseXor
 		| _ -> raise (Failure "Illegal bitwise operator")) in
 
