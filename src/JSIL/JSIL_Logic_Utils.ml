@@ -585,12 +585,12 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 	(* Abstract locations are always typable, by construction *)
 	| ALoc _ -> def_pos (Some ObjectType)
 
-  	(* Lists are typable if all elements are typable *)
+  	(* Lists are typable if no element breaks typing *)
 	| LEList les ->
 		let all_typable, constraints = typable_list les in
 			if (all_typable) then (Some ListType, true, constraints) else def_neg
 
-	(* Sets are typable if all elements are typable *)
+	(* Sets are typable if no element breaks typing *)
 	| LESet les ->
 		let all_typable, constraints = typable_list les in
 			if (all_typable) then (Some SetType, true, constraints) else def_neg
@@ -604,7 +604,15 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 				if (t = t1)
 					then (t2, true, (new_constraints @ constraints))
 					else def_neg)
-			def_neg te in
+			(* The expression was not typed *)
+			(match e with
+			(* If it is a variable that needs to be of a certain type, then we infer this type *)
+			| LVar v
+			| PVar v -> 
+				TypEnv.update gamma v (Some t1);
+				(t2, true, (new_constraints @ constraints))
+			| _ -> def_neg) 
+			te in
 
 		(match ite with
 		| false -> def_neg
@@ -639,45 +647,48 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		(* REVISIT ORDER *)
-		let all_types : Type.t list = [ UndefinedType; NullType; EmptyType; BooleanType; NumberType; StringType; ObjectType; ListType; TypeType; NoneType; SetType ] in
-		let check_valid_type t (types : Type.t list) (ret_type : Type.t) new_constraints =
-			if (List.mem t types )
-				then (Some ret_type, true, (new_constraints @ constraints))
-				else def_neg in
+		let check_type le te tt =
+			(match tt with
+			| None -> true
+			| Some tt -> 
+				(match te with
+				| Some te -> tt = te
+				| None -> 
+					(match le with
+					| PVar v 
+					| LVar v -> 
+						Option.map_default 
+							(fun _ -> false) 
+							(print_debug (Printf.sprintf "Demanding type %s for var %s" (Type.str tt) v); TypEnv.update gamma v (Some tt); true)
+							(TypEnv.get_type gamma v)
+					| _ -> false
+					)
+				)
+			) in
 
 		(* Both expressions must be typable *)
 		(match ite1, ite2 with
-		| true, true ->
+		| true, true ->	
+			let (rqt1 : Type.t option), (rqt2 : Type.t option), (rt : Type.t) =
 			(match op with
-			(* The equality operator is always typable with BooleanType *)
-			| Equal -> (Some BooleanType, true, constraints)
-			| _ -> 
-				(match te1, te2 with
-				(* Both are typable *)
-				| _,       None    -> def_neg
-				| None,    Some t2 -> if (op = LstCons) then check_valid_type t2 [ ListType ] ListType [] else def_neg
-				| Some t1, Some t2 ->
-					(match (t1 = t2) with
-					| false ->
-						(match op with
-						| LstCons -> check_valid_type t2 [ ListType ] ListType    []
-						| SetMem  -> check_valid_type t2 [ SetType  ] BooleanType []
-						| _ -> def_neg)
-					| true ->
-						(match op with
-						| And | Or                 -> check_valid_type t1 [ BooleanType ] BooleanType []
-						| LessThan | LessThanEqual -> check_valid_type t1 [ NumberType  ] BooleanType []
-						| LessThanString           -> check_valid_type t1 [ StringType  ] BooleanType []
-						| LstCons | LstCat         -> check_valid_type t1 [ ListType    ] ListType    []
-						| StrCat                   -> check_valid_type t1 [ StringType  ] StringType  []
-						| SetDiff                  -> check_valid_type t1 [ SetType     ] SetType     []
-						| SetSub | SetMem          -> check_valid_type t1 [ SetType     ] BooleanType [] 
-						| _                        -> check_valid_type t1 [ NumberType  ] NumberType  []		
-						)
-					)
-				)
-			)
+			| Equal          ->             None,             None, BooleanType
+			| LessThan            
+			| LessThanEqual  ->  Some NumberType,  Some NumberType, BooleanType
+			| LessThanString ->  Some StringType,  Some StringType, BooleanType
+			| And            -> Some BooleanType, Some BooleanType, BooleanType
+			| Or             -> Some BooleanType, Some BooleanType, BooleanType
+			| LstCons        ->             None,    Some ListType, ListType   
+			| LstCat         ->    Some ListType,    Some ListType, ListType   
+			| StrCat         ->  Some StringType,  Some StringType, BooleanType
+			| SetMem         ->             None,     Some SetType, BooleanType
+			| SetDiff        
+			| SetSub         ->     Some SetType,     Some SetType, SetType    
+			| _              ->  Some NumberType,  Some NumberType, NumberType
+			) in
+				if (check_type e1 te1 rqt1) && (check_type e2 te2 rqt2) 
+					then (Some rt, true, constraints)
+					else def_neg
+
 		| _, _ -> def_neg)
 
 
@@ -685,7 +696,7 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 	| LLstNth (lst, index) ->
 		let type_lst, _, constraints1 = f lst in
 		(match type_lst with
-		| Some StringType ->
+		| Some ListType ->
 			let type_index, _, constraints2 = f index in
 			(match type_index with
 			| Some NumberType ->
@@ -734,7 +745,7 @@ let string_of_gamma (gamma : TypEnv.t) : string =
 
 let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
 	let f = reverse_type_lexpr_aux flag gamma new_gamma in
-	(* print_debug_petar (Printf.sprintf "Reverse typing %s in %s \nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (Type.str le_type) flag); *) 
+	print_debug_petar (Printf.sprintf "Reverse typing %s in %s\nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (Type.str le_type) flag);
 	(match le with
 	(* Literals are always typable *)
 	| LLit lit -> (Literal.type_of lit = le_type)
@@ -752,18 +763,18 @@ let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
 	(* Abstract locations are reverse-typable if the target type is ObjectType *)
 	| ALoc _ -> if (le_type = ObjectType) then true else false
 
-  (* LEList and LESet are not reverse typable because we lose type information *)
+    (* LEList and LESet are not reverse typable because we lose type information *)
 	| LEList _ ->
 			(match flag with
 			| true -> (le_type = ListType)
 			| false -> false)
 			
 	| LESet  _ -> 
-			(match flag with
-			| true -> (le_type = SetType)
-			| false -> false)
+		(match flag with
+		| true -> (le_type = SetType)
+		| false -> false)
 
-  | LSetUnion les
+	| LSetUnion les
 	| LSetInter les ->
 		if (le_type = SetType)
 			then (List.fold_left (fun ac x -> ac && (f x SetType)) true les)
@@ -869,48 +880,50 @@ let safe_extend_gamma gamma le t =
     (match new_gamma with
     | Some new_gamma -> safe_merge_gammas gamma new_gamma
     | None -> 
-				let msg = Printf.sprintf "Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
-				print_debug_petar msg;
-				raise (Failure msg)) 
+		let msg = Printf.sprintf "SEG: Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
+		print_debug_petar msg;
+		raise (Failure msg)) 
 
 (* Destructively extend gamma with typing information from logic expressions *)
 let rec infer_types_expr gamma le : unit =
 	let f = infer_types_expr gamma in
 	let e = safe_extend_gamma gamma in
 
+		print_debug_petar (Printf.sprintf "infer_types: %s" (JSIL_Print.string_of_logic_expression le));
+
 		(match le with
   	
-  	(* Do nothing, these cases do not provide additional information *)
-  	| LLit  _
-  	| ALoc  _
-  	| LVar  _
-  	| PVar  _
-  	| LNone   -> ()
-  	
-  	(* Set union and intersection - all members must be sets, plus any additional information from the members themselves *)
-  	| LSetUnion lle
-  	| LSetInter lle -> 
-				e le SetType;
-				List.iter (fun le -> f le) lle
+		(* Do nothing, these cases do not provide additional information *)
+		| LLit  _
+		| ALoc  _
+		| LVar  _
+		| PVar  _
+		| LNone   -> ()
+
+		(* Set union and intersection - all members must be sets, plus any additional information from the members themselves *)
+		| LSetUnion lle
+		| LSetInter lle -> 
+			e le SetType;
+			List.iter (fun le -> f le) lle
 				
 		| LEList lle 
 		| LESet  lle -> 
-				List.iter (fun le -> f le) lle
-				
+			List.iter (fun le -> f le) lle
+			
 		| LLstNth (lst, idx) ->
-				e lst ListType;
-				e idx NumberType
-				
+			e lst ListType;
+			e idx NumberType
+			
 		| LLstNth (str, idx) ->
-				e str StringType;
-				e idx NumberType
+			e str StringType;
+			e idx NumberType
   		
-  	(*
-  	| LBinOp   of jsil_logic_expr * BinOp.t * jsil_logic_expr (** Binary operators ({!type:BinOp.t}) *)
-  	| LUnOp    of UnOp.t * jsil_logic_expr                    (** Unary operators ({!type:UnOp.t}) *)
-  	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *)
-  	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
-  	*)
+	  	(*
+	  	| LBinOp   of jsil_logic_expr * BinOp.t * jsil_logic_expr (** Binary operators ({!type:BinOp.t}) *)
+	  	| LUnOp    of UnOp.t * jsil_logic_expr                    (** Unary operators ({!type:UnOp.t}) *)
+	  	| LTypeOf  of jsil_logic_expr	                               (** Typing operator *)
+	  	| LCList   of jsil_logic_expr list                           (** Lists of logical chars *)
+	  	*)
 		
 		| LBinOp (le1, op, le2) ->
 			(match op with
