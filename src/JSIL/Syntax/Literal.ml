@@ -32,9 +32,7 @@ let rec str (x : t) =
 		                  Printf.sprintf "%s\"%s%s\"" wrap x wrap
   	| Loc loc    -> loc
   	| Type t     -> Type.str t
-  	| LList ll   -> (match ll with
-		                | [] -> "nil"
-										| ll -> Printf.sprintf "{{ %s }}" (String.concat ?sep:(Some ", ") (List.map ll str)))
+  	| LList ll   -> Printf.sprintf "{{ %s }}" (String.concat ?sep:(Some ", ") (List.map ll str))
 
 (** Typing *)
 let type_of (x : t) : Type.t =

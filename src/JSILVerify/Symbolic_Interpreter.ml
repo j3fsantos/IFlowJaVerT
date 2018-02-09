@@ -19,7 +19,7 @@ let rec get_list_length (le : jsil_logic_expr) : int option =
 	| LEList list       -> Some (List.length list)
 	| LBinOp (el, LstCons, llist) ->
 		let len_llist = get_list_length llist in
-		if_some len_llist (fun len -> Some (len + 1)) None
+		Option.map (fun len -> len + 1) len_llist
 	| _ -> None)
 
 (*******************************************)
@@ -98,7 +98,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 			| LstLen ->
 			 	let nle = Simplifications.find_me_Im_a_list store pure_formulae nle in
 				let len = get_list_length nle in
-					if_some len (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle))
+					Option.map_default (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle)) len 
 			| _ -> LUnOp (op, nle)))
 
 

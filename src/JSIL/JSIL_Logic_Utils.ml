@@ -482,8 +482,6 @@ let substitution_to_list (subst : substitution) : jsil_logic_assertion list =
 		subst
 		[]
 
-
-
 (***************************************************************)
 (***************************************************************)
 (** Logic Commmands                                           **)
@@ -541,22 +539,101 @@ let rec logic_command_map
 (***************************************************************)
 (***************************************************************)
 
-let if_some (a : 'a option) (f : 'a -> 'b) (default : 'b) =
-	match a with
-	| Some x -> f x
-	| None -> default
+(******************)
+(* Type inference *)
+(******************)
 
-let if_some_val (a : 'a option) (default : 'a) =
-match a with
-	| Some x -> x
-	| None -> default
+let rec infer_types_to_gamma flag gamma new_gamma le (tt : Type.t) : bool =
+	
+	print_debug_petar (Printf.sprintf "infer_types_to_gamma: %s %s" (JSIL_Print.string_of_logic_expression le) (Type.str tt));
 
-let if_some_val_lazy (a : 'a option) (default : ('a lazy_t)) =
-match a with
-	| Some x -> x
-	| None -> Lazy.force default
+	let f = infer_types_to_gamma flag gamma new_gamma in
+	
+	(match le with
+	(* Literals are always typable *)
+	| LLit lit -> (Literal.type_of lit = tt)
+
+	(* Variables are reverse-typable if they are already typable *)
+	(* with the target type or if they are not typable           *)
+	| LVar var
+	| PVar var ->
+		(match (TypEnv.get_type gamma var), (TypEnv.get_type new_gamma var) with
+		| Some t, None
+		| None, Some t     -> (t = tt)
+		| None, None       -> (TypEnv.update new_gamma var (Some tt)); true
+		| Some t1, Some t2 -> t1 = t2)
+
+	(* Abstract locations are reverse-typable if the target type is ObjectType *)
+	| ALoc _ -> tt = ObjectType
+
+    (* LEList and LESet are not reverse typable because we lose type information *)
+	| LEList _ -> if flag then (tt = ListType) else false			
+	| LESet  _ -> if flag then (tt =  SetType) else false			
+
+	(* Members of unions and intersections must all be sets *)
+	| LSetUnion les
+	| LSetInter les -> (tt = SetType) && (List.for_all (fun x -> f x SetType) les) 
+
+	| LUnOp (unop, le) ->
+		(match unop with
+		| Not -> (tt = BooleanType) && (f le BooleanType)
+
+		| UnaryMinus	| BitwiseNot	| M_sgn		| M_abs		
+		| M_acos		| M_asin		| M_atan	| M_ceil
+		| M_cos			| M_exp			| M_floor	| M_log		
+		| M_round		| M_sin			| M_sqrt	| M_tan
+		| ToIntOp		| ToUint16Op	| ToInt32Op	| ToUint32Op -> (tt = NumberType) && (f le NumberType)
+
+		| ToStringOp ->	(tt = StringType) && (f le NumberType)
+		| ToNumberOp ->	(tt = NumberType) && (f le StringType)
+
+		| IsPrimitive -> (tt = BooleanType)
+		| TypeOf      -> (tt = TypeType)
+
+		| Cdr    -> (tt = ListType) && (f le ListType)
+		| Car    -> f le ListType
+		| LstLen -> (tt = NumberType) && (f le ListType)
+		| StrLen -> (tt = NumberType) && (f le StringType))
+
+
+	| LBinOp (le1, op, le2) ->
+		let (rqt1 : Type.t option), (rqt2 : Type.t option), (rt : Type.t) =
+			(match op with
+			| Equal          ->             None,             None, BooleanType
+			| LessThan            
+			| LessThanEqual  ->  Some NumberType,  Some NumberType, BooleanType
+			| LessThanString ->  Some StringType,  Some StringType, BooleanType
+			| And            -> Some BooleanType, Some BooleanType, BooleanType
+			| Or             -> Some BooleanType, Some BooleanType, BooleanType
+			| LstCons        ->             None,    Some ListType, ListType   
+			| LstCat         ->    Some ListType,    Some ListType, ListType   
+			| StrCat         ->  Some StringType,  Some StringType, StringType
+			| SetMem         ->             None,     Some SetType, BooleanType
+			| SetDiff        
+			| SetSub         ->     Some SetType,     Some SetType, SetType    
+			| _              ->  Some NumberType,  Some NumberType, NumberType
+			) in
+		(tt = rt) && 
+		(Option.map_default (fun t -> f le1 t) true rqt1) &&
+		(Option.map_default (fun t -> f le2 t) true rqt2)
+
+		| LLstNth (le1, le2) -> (f le1 ListType)   && (f le2 NumberType)
+		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 NumberType)
+
+		| LNone -> (tt = NoneType))
+
+let reverse_type_lexpr flag gamma le le_type : TypEnv.t option =
+	let new_gamma : TypEnv.t = TypEnv.init () in
+	let ret = infer_types_to_gamma flag gamma new_gamma le le_type in
+		if (ret) then Some new_gamma else None
+
+(*****************)
+(* Type checking *)
+(*****************)
 
 let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * bool * jsil_logic_assertion list =
+
+	print_debug_petar (Printf.sprintf "type_lexpr: %s" (JSIL_Print.string_of_logic_expression le));
 
 	let f = type_lexpr gamma in
 	let def_pos (ot : Type.t option) = (ot, true, []) in
@@ -599,6 +676,10 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 		let (te, ite, constraints) = f e in
 		
 		let tt (t1 : Type.t) (t2 : Type.t option) new_constraints =
+			
+			print_debug_petar (Printf.sprintf "UnOp: %s (%s, %s)" (JSIL_Print.string_of_logic_expression le) (Type.str t1) 
+				(Option.map_default (fun t -> Type.str t) "None" t2));
+
 			Option.map_default 
 			(fun t -> 
 				if (t = t1)
@@ -616,78 +697,46 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 
 		(match ite with
 		| false -> def_neg
-		| true -> (match unop with
-	  		| Not         -> tt BooleanType (Some BooleanType) []  (* Boolean to Boolean  *)
-			| ToStringOp  -> tt NumberType  (Some StringType)  []  (* Number to String    *)
-			| ToNumberOp  -> tt StringType  (Some NumberType)  []  (* String to Number    *)
-			| IsPrimitive -> (Some BooleanType, true, constraints) (* Anything to Boolean *)
-
-			(* If what we're trying to type is typable, we should get a type back.*)
-			| TypeOf -> Some TypeType, true, constraints
-
-			(* List to List -> generates constraint *)
-			| Cdr ->
-				let new_constraint = (LLessEq (LLit (Num 1.), LUnOp (LstLen, e))) in
-				tt ListType (Some ListType) [ new_constraint ]
-
-			(* List to Anything -> generates constraint *)
-			| Car ->
-				let new_constraint = (LLessEq (LLit (Num 1.), LUnOp (LstLen, e))) in
-				tt ListType None [ new_constraint ]
-
-			| LstLen -> tt ListType   (Some NumberType) [] (* List to Number   *)
-			| StrLen -> tt StringType (Some NumberType) [] (* String to Number *)
-			
-			(* Rest are Number to Number *)
-	  		| _ -> tt NumberType (Some NumberType) [])
-		)
+		| true -> 
+			let (tt : Type.t), new_constraints = 
+			(match unop with
+			| TypeOf      -> TypeType,    []
+			| Not         -> BooleanType, []
+			| ToStringOp  -> StringType,  []
+			| IsPrimitive -> BooleanType, []
+			| Car | Cdr   -> ListType,    [ (LLessEq (LLit (Num 1.), LUnOp (LstLen, e))) ]
+			| _           -> NumberType,  []
+			) in
+			let outcome = reverse_type_lexpr true gamma le tt in
+			Option.map_default 
+			(fun new_gamma -> 
+				TypEnv.extend gamma new_gamma;
+				(Some tt, true, new_constraints @ constraints)
+			) def_neg outcome)
 
 	| LBinOp (e1, op, e2) ->
 		let (te1, ite1, constraints1) = f e1 in
 		let (te2, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
-		let check_type le te tt =
-			(match tt with
-			| None -> true
-			| Some tt -> 
-				(match te with
-				| Some te -> tt = te
-				| None -> 
-					(match le with
-					| PVar v 
-					| LVar v -> 
-						Option.map_default 
-							(fun _ -> false) 
-							(print_debug (Printf.sprintf "Demanding type %s for var %s" (Type.str tt) v); TypEnv.update gamma v (Some tt); true)
-							(TypEnv.get_type gamma v)
-					| _ -> false
-					)
-				)
-			) in
-
 		(* Both expressions must be typable *)
 		(match ite1, ite2 with
 		| true, true ->	
-			let (rqt1 : Type.t option), (rqt2 : Type.t option), (rt : Type.t) =
+			let tt : Type.t =
 			(match op with
-			| Equal          ->             None,             None, BooleanType
-			| LessThan            
-			| LessThanEqual  ->  Some NumberType,  Some NumberType, BooleanType
-			| LessThanString ->  Some StringType,  Some StringType, BooleanType
-			| And            -> Some BooleanType, Some BooleanType, BooleanType
-			| Or             -> Some BooleanType, Some BooleanType, BooleanType
-			| LstCons        ->             None,    Some ListType, ListType   
-			| LstCat         ->    Some ListType,    Some ListType, ListType   
-			| StrCat         ->  Some StringType,  Some StringType, BooleanType
-			| SetMem         ->             None,     Some SetType, BooleanType
-			| SetDiff        
-			| SetSub         ->     Some SetType,     Some SetType, SetType    
-			| _              ->  Some NumberType,  Some NumberType, NumberType
+			| Equal			| LessThan		| LessThanEqual	| LessThanString 
+			| And			| Or			| SetMem		| SetSub -> BooleanType
+			| LstCons		| LstCat -> ListType   
+			| SetDiff -> SetType    
+			| StrCat  -> StringType
+			| _       -> NumberType
 			) in
-				if (check_type e1 te1 rqt1) && (check_type e2 te2 rqt2) 
-					then (Some rt, true, constraints)
-					else def_neg
+			let outcome = reverse_type_lexpr true gamma le tt in
+			Option.map_default 
+			(fun new_gamma -> 
+				TypEnv.extend gamma new_gamma;
+				(Some tt, true, constraints)
+			) def_neg outcome
 
 		| _, _ -> def_neg)
 
@@ -742,117 +791,6 @@ let string_of_gamma (gamma : TypEnv.t) : string =
 			gamma
 			"\t" in
 	gamma_str
-
-let rec reverse_type_lexpr_aux flag gamma new_gamma le (le_type : Type.t) =
-	let f = reverse_type_lexpr_aux flag gamma new_gamma in
-	print_debug_petar (Printf.sprintf "Reverse typing %s in %s\nwith %s and flag %b\n" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) (Type.str le_type) flag);
-	(match le with
-	(* Literals are always typable *)
-	| LLit lit -> (Literal.type_of lit = le_type)
-
-	(* Variables are reverse-typable if they are already typable *)
-	(* with the target type or if they are not typable           *)
-	| LVar var
-	| PVar var ->
-		(match (TypEnv.get_type gamma var), (TypEnv.get_type new_gamma var) with
-		| Some t, None
-		| None, Some t     -> (t = le_type)
-		| None, None       -> (TypEnv.update new_gamma var (Some le_type)); true
-		| Some t1, Some t2 -> if (t1 = t2) then true else false)
-
-	(* Abstract locations are reverse-typable if the target type is ObjectType *)
-	| ALoc _ -> if (le_type = ObjectType) then true else false
-
-    (* LEList and LESet are not reverse typable because we lose type information *)
-	| LEList _ ->
-			(match flag with
-			| true -> (le_type = ListType)
-			| false -> false)
-			
-	| LESet  _ -> 
-		(match flag with
-		| true -> (le_type = SetType)
-		| false -> false)
-
-	| LSetUnion les
-	| LSetInter les ->
-		if (le_type = SetType)
-			then (List.fold_left (fun ac x -> ac && (f x SetType)) true les)
-			else false
-
-	| LUnOp (unop, le) ->
-		(match unop with
-		| Not        -> if (le_type = BooleanType) then f le BooleanType else false
-		| UnaryMinus -> if (le_type = NumberType)  then f le le_type     else false
-		| BitwiseNot	| M_sgn	| M_abs		| M_acos	| M_asin	| M_atan	| M_ceil
-		| M_cos				| M_exp	| M_floor	| M_log		| M_round	| M_sin		| M_sqrt
-		| M_tan      -> if (le_type = NumberType) then f le le_type else false
-		| ToIntOp			| ToUint16Op			| ToInt32Op					| ToUint32Op
-								 ->	if (le_type = NumberType) then f le NumberType else false
-
-		| ToStringOp ->	if (le_type = StringType) then f le NumberType else false
-
-		| ToNumberOp ->	if (le_type = NumberType)	then f le StringType else false
-
-		| IsPrimitive -> false
-
-		| Cdr	| Car	| LstLen -> f le ListType
-
-		| StrLen -> if (le_type = NumberType) then f le StringType else false)
-
-
-	| LBinOp (le1, op, le2) ->
-		(match op with
-		| Equal	| LessThan	| LessThanEqual -> false
-		| LessThanString -> (f le1 StringType) && (f le2 StringType)
-
-		| Plus	| Minus	| Times	| Mod ->
-			if (le_type = NumberType)
-				then ((f le1 le_type) && (f le2 le_type))
-				else false
-
-		| Div -> false
-
-		| And | Or ->
-			if (le_type = BooleanType)
-				then ((f le1 BooleanType) && (f le2 BooleanType))
-				else false
-
-		| BitwiseAnd	| BitwiseOr	| BitwiseXor	| LeftShift	| SignedRightShift
-		| UnsignedRightShift			| M_atan2			| M_pow -> 
-			if (le_type = NumberType)
-				then ((f le1 NumberType) && (f le2 NumberType))
-				else false
-		
-		| LstCons -> 
-			if (le_type = ListType)
-				then f le2 ListType
-				else false
-
-		| LstCat ->
-			if (le_type = ListType)
-				then ((f le1 ListType) && (f le2 ListType))
-				else false
-
-		| StrCat ->
-			if (le_type = StringType)
-				then ((f le1 StringType) && (f le2 StringType))
-				else false
-
-		| _ ->
-			(* Printf.printf "Horror: op: %s, t: %s"  (BinOp.str op) (Type.str le_type); *)
-			raise (Failure "ERROR"))
-
-		| LLstNth (le1, le2) -> (f le1 ListType) && (f le2 NumberType)
-
-		| LStrNth (le1, le2) -> (f le1 StringType) && (f le2 NumberType)
-
-		| LNone    -> (le_type = NoneType))
-
-let reverse_type_lexpr flag gamma le le_type : TypEnv.t option =
-	let new_gamma : TypEnv.t = TypEnv.init () in
-	let ret = reverse_type_lexpr_aux flag gamma new_gamma le le_type in
-		if (ret) then Some new_gamma else None
 
 (* ******************** *)
 (* ** TYPE INFERENCE ** *)
