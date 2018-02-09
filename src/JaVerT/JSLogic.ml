@@ -63,7 +63,6 @@ type js_logic_expr =
 	| JSPVar				of string
 	| JSLBinOp				of js_logic_expr * BinOp.t * js_logic_expr
 	| JSLUnOp				of UnOp.t * js_logic_expr
-	| JSLTypeOf				of js_logic_expr
 	| JSLEList      		of js_logic_expr list
 	| JSLESet       		of js_logic_expr list
 	| JSLLstNth     		of js_logic_expr * js_logic_expr
@@ -218,7 +217,6 @@ let rec js2jsil_lexpr scope_var le =
 	| JSPVar x                -> PVar x
 	| JSLBinOp (le1, op, le2) -> LBinOp (fe le1, op, fe le2)
 	| JSLUnOp (op, le)        -> LUnOp (op, fe le)
-	| JSLTypeOf le            -> LTypeOf (fe le)
 	| JSLEList les            -> LEList (List.map fe les)
 	| JSLESet les             -> LESet (List.map fe les)
 	| JSLSetUnion les         -> LSetUnion (List.map fe les)

@@ -109,10 +109,6 @@ let rec replace_nle_with_lvars pfs nle =
 		(match find_me_in_the_pi pfs nle with 
 		| Some lvar -> (LVar lvar)
 		| None -> (LUnOp (op, (replace_nle_with_lvars pfs le))))
-	| LTypeOf le -> 
-		(match find_me_in_the_pi pfs nle with 
-		| Some lvar -> (LVar lvar)
-		| None -> (LTypeOf (replace_nle_with_lvars pfs le)))
 	| LLstNth (le, le') -> 
 		(match find_me_in_the_pi pfs nle with 
 		| Some lvar -> (LVar lvar)
@@ -324,11 +320,6 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 			| LBinOp (LLit (Num n1), Plus, re2), LLit (Num n2) -> f (LBinOp (re2, Plus, LLit (Num (n1 -. n2))))
 			| _, _ -> LBinOp (re1, bop, re2)) 
 		| _ -> LBinOp (re1, bop, re2))
-
-	(* TypeOf *)
-	| LTypeOf e1 ->
-		let re1 = f e1 in
-			LTypeOf re1
 
 	(* Logical lists *)
 	| LEList le ->
@@ -572,8 +563,8 @@ let rec reduce_assertion store gamma pfs a =
 				f (LAnd (LEq (l1, LLit (LList [])), LEq (l2, LLit (LList []))))
 
 			(* Very special cases *)
-			| LTypeOf (LBinOp (_, StrCat, _)), LLit (Type t) when (t <> StringType) -> LFalse
-			| LTypeOf (LBinOp (_, SetMem, _)), LLit (Type t) when (t <> BooleanType) -> LFalse
+			| LUnOp (TypeOf, (LBinOp (_, StrCat, _))), LLit (Type t) when (t <> StringType)  -> LFalse
+			| LUnOp (TypeOf, (LBinOp (_, SetMem, _))), LLit (Type t) when (t <> BooleanType) -> LFalse
 			
 			| _, _ -> default e1 e2 re1 re2
 		)
@@ -699,8 +690,8 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typin
  						let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
  						TypEnv.weak_update gamma x le_type
  					)
- 			| LEq ((LTypeOf (LVar x)), (LLit (Type t))) 
- 			| LEq ((LLit (Type t)), (LTypeOf (LVar x))) ->
+ 			| LEq ((LUnOp (TypeOf, LVar x)), (LLit (Type t))) 
+ 			| LEq ((LLit (Type t)), (LUnOp (TypeOf, LVar x))) ->
  				TypEnv.weak_update gamma x (Some t)
  			| _ -> () 
  		) p_assertions

@@ -10,7 +10,6 @@ type t =
 	| BooleanType   (** Type of booleans       *)
 	| NumberType    (** Type of floats         *)
 	| StringType    (** Type of strings        *)
-	| CharType      (** Type of chars          *)
 	| ObjectType    (** Type of objects        *)
 	| ListType      (** Type of lists          *)
 	| TypeType      (** Type of types          *)
@@ -29,7 +28,6 @@ let str (x : t) =
 	| BooleanType   -> "Bool"
 	| NumberType    -> "Num"
 	| StringType    -> "Str"
-	| CharType      -> "Char"
 	| ObjectType    -> "Obj"
 	| ListType      -> "List"
 	| TypeType      -> "Type"

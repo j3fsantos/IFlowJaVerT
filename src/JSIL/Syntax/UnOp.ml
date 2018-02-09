@@ -30,6 +30,7 @@ type t =
 	| ToUint32Op  (** Converts an integer to a 32-bit unsigned integer *)
 	| ToInt32Op   (** Converts an integer to a 32-bit signed integer *)
 	| ToNumberOp  (** Converts a string to a number *)
+	| TypeOf
 	(* Lists *)
 	| Car         (** Head of a list *)
 	| Cdr         (** Tail of a list *)
@@ -66,6 +67,7 @@ let str (x : t) =
 	| ToInt32Op   -> "num_to_int32"
 	| ToUint32Op  -> "num_to_uint32"
 	| ToNumberOp  -> "string_to_num"
+	| TypeOf      -> "typeOf"
 	| Car         -> "car"
 	| Cdr         -> "cdr"
 	| LstLen      -> "l-len"

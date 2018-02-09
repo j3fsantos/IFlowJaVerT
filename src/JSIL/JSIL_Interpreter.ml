@@ -239,6 +239,8 @@ let evaluate_unop (op : UnOp.t) (lit : Literal.t) : Literal.t =
 					 if s = "" then 0. else nan in
 				 Num num
 		 | _ -> raise (Failure "Non-string argument to ToNumberOp"))
+	| TypeOf -> 
+		Type (Literal.type_of lit)
 	| Car ->
 		(match lit with
 		| LList ll ->
@@ -390,10 +392,6 @@ evaluate_expr store (e : jsil_expr) : Literal.t =
 	| UnOp (unop, e) ->
 		let v = ee e  in
 		evaluate_unop unop v
-
-	| TypeOf e ->
-		let v = ee e in
-		Type (Literal.type_of v)
 
 	| EList ll ->
 		(match ll with

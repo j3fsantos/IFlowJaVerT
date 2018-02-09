@@ -57,7 +57,7 @@ with
 (* *** TOSTRING *** *)
 
 proc EP_toString(xsc, vthis) {
-			goto [typeOf(vthis) = Obj] init throw;
+			goto [typeOf vthis = Obj] init throw;
 
 	init:	name := "";
 			xret := "get" (vthis, "name") with elab;

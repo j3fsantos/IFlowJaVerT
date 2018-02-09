@@ -79,6 +79,9 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 				LLit l
 		| _ ->
 			(match op with
+			| TypeOf ->
+				let nle_type, _, _ = type_lexpr gamma nle in
+				Option.map_default (fun t -> LLit (Type t)) (LUnOp (TypeOf, nle)) nle_type
 			| Cdr ->
 			let nle = Simplifications.find_me_Im_a_list store pure_formulae nle in
 				(match nle with
@@ -98,13 +101,6 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 					if_some len (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle))
 			| _ -> LUnOp (op, nle)))
 
-  (* TypeOf:
-	     a) if the parameter is typable in the typing environment, return the type
-			 b) otherwise, return the lifted typeOf *)
-	| TypeOf (e) ->
-		let nle = f e in
-		let nle_type, _, _ = type_lexpr gamma nle in
-		if_some nle_type (fun t -> LLit (Type t)) (LTypeOf (nle))
 
   (* List of expressions: Evaluate all elements and then
 	     a) If all are literals, convert to a literal list

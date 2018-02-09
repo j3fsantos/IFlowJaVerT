@@ -62,8 +62,8 @@ let add_more_metadata def_metadata lcmds invariant cmds =
 		(new_metadata, lab, cmd) :: rest
 
 
-let is_vref x = BinOp (BinOp ((TypeOf x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refv))
-let is_oref x = BinOp (BinOp ((TypeOf x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refo))
+let is_vref x = BinOp (BinOp (UnOp (TypeOf, x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refv))
+let is_oref x = BinOp (BinOp (UnOp (TypeOf, x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refo))
 let is_ref  x = BinOp (is_vref x, Or, is_oref x)
 
 let rec get_break_lab loop_list lab =
@@ -315,8 +315,8 @@ let translate_binop_plus x1 x2 x1_v x2_v err =
 	let then_lab = fresh_then_label () in
 	let else_lab = fresh_else_label () in
 	let end_lab = fresh_endif_label () in
-	let goto_guard_left = BinOp ((TypeOf (Var x1_p)), Equal, (Literal (Type StringType))) in
-	let goto_guard_right = BinOp ((TypeOf (Var x2_p)), Equal, (Literal (Type StringType))) in
+	let goto_guard_left = BinOp (UnOp (TypeOf, Var x1_p), Equal, (Literal (Type StringType))) in
+	let goto_guard_right = BinOp (UnOp (TypeOf, Var x2_p), Equal, (Literal (Type StringType))) in
 	let goto_guard = BinOp (goto_guard_left, Or, goto_guard_right) in
 	let cmd_goto = LGuardedGoto (goto_guard, then_lab, else_lab) in
 
@@ -1160,7 +1160,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
-		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
+		let goto_guard_expr = UnOp (Not, (BinOp (UnOp (TypeOf, Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = LGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 		
 		(* xfvm := metadata (x_f_val) *)
@@ -1209,7 +1209,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let bthen1 = fresh_then_label () in
 		let belse1 = fresh_else_label () in
-		let goto_guard_expr = BinOp (TypeOf (Var x_bf_prototype), Equal, Literal (Type ObjectType)) in
+		let goto_guard_expr = BinOp (UnOp (TypeOf, Var x_bf_prototype), Equal, Literal (Type ObjectType)) in
 		let cmd_bis_object = LGuardedGoto (goto_guard_expr, belse1, bthen1) in
 
 		let x_bwhyGodwhy = fresh_var () in
@@ -1242,7 +1242,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* goto [ x_bconstruct = empty ] next3 next4; *)
 		let bnext3 = fresh_next_label () in
 		let bnext4 = fresh_next_label () in
-		let goto_guard_expr = BinOp (TypeOf (Var x_bconstruct), Equal, Literal (Type ObjectType)) in
+		let goto_guard_expr = BinOp (UnOp (TypeOf, Var x_bconstruct), Equal, Literal (Type ObjectType)) in
 		let cmd_bgoto_test_type = LGuardedGoto (goto_guard_expr, bnext4, bnext3) in
 
 		(* next3: skip; *)
@@ -1274,7 +1274,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let then1 = fresh_then_label () in
 		let else1 = fresh_else_label () in
-		let goto_guard_expr = BinOp (TypeOf (Var x_f_prototype), Equal, Literal (Type ObjectType)) in
+		let goto_guard_expr = BinOp (UnOp (TypeOf, Var x_f_prototype), Equal, Literal (Type ObjectType)) in
 		let cmd_is_object = LGuardedGoto (goto_guard_expr, else1, then1) in
 
 		let x_whyGodwhy = fresh_var () in
@@ -1303,7 +1303,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* goto [ x_r1 = empty ] next3 next4; *)
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
-		let goto_guard_expr = BinOp (TypeOf (Var x_r1), Equal, Literal (Type ObjectType)) in
+		let goto_guard_expr = BinOp (UnOp (TypeOf, Var x_r1), Equal, Literal (Type ObjectType)) in
 		let cmd_goto_test_type = LGuardedGoto (goto_guard_expr, next4, next3) in
 
 		(* next3: skip; *)
@@ -1416,7 +1416,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* goto [ typeOf(x_f_val) != Object] err next1; err -> typeerror *)
 		let next1 = fresh_next_label () in
-		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
+		let goto_guard_expr = UnOp (Not, (BinOp (UnOp (TypeOf, Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = LGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 
 		(* next1: x_ic := isCallable(x_f_val); *)
@@ -2211,7 +2211,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* goto [ (typeOf x2_v) = Obj ] next1 err *)
 		let next1 = fresh_label () in
-		let cmd_goto_ot = LGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
+		let cmd_goto_ot = LGuardedGoto (BinOp (UnOp (TypeOf, Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
 		(* get the metadata *)
 		let x2vm = fresh_var () in
@@ -2268,7 +2268,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* goto [ (typeOf x2_v) = Obj ] next1 err *)
 		let next1 = fresh_label () in
-		let cmd_goto_ot = LGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
+		let cmd_goto_ot = LGuardedGoto (BinOp (UnOp (TypeOf, Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
 		(* next1: x1_s := i__toString (x1_v) with err   *)
 		let x1_s, cmd_ts_x1 = make_to_string_call x1 x1_v tr_ctx.tr_err in

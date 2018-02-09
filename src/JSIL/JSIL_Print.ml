@@ -11,26 +11,22 @@ let rec string_of_expression (e : jsil_expr) : string  =
   match e with
   | Literal l -> Literal.str l
   | Var v -> v
-  	(* (e1 bop e2) *)
+  (* (e1 bop e2) *)
   | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (BinOp.str op) (se e2)
-  	(* (uop e) *)
+  (* (uop e) *)
   | UnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (se e)
-  	(* typeof(e) *)
-  | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
-  	(* {{ e1, e2, ... }} *)
-  	| EList ll ->
-    		(match ll with
-     		| [] -> "nil"
-     		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
-  	(* -{ e1, e2, ... }- *)
-  	| ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
-  	(* [['c1', 'c2',...]]*)
-  	(* l-nth(e1, e2) *)
-  	| LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
-  	(* s-nth(e1, e2) *)
-  	| StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
-  	| SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
-  	| SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
+  | EList ll ->
+    (match ll with
+    | [] -> "nil"
+    | ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
+  (* -{ e1, e2, ... }- *)
+  | ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
+  (* l-nth(e1, e2) *)
+  | LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
+  (* s-nth(e1, e2) *)
+  | StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
+  | SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
+  | SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
 
 (** JSIL Basic statements *)
 let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
@@ -84,8 +80,6 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (BinOp.str op) (sle e2)
   	(* (uop e1 e2) *)
   | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (sle e)
-  	(* typeOf(e) *)
-  | LTypeOf e -> Printf.sprintf "typeOf(%s)" (sle e)
   	(* {{ e1, ..., en }} *)
   | LEList list ->
     			(match list with

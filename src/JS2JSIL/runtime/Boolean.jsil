@@ -36,12 +36,12 @@ with
 (* *** TOSTRING *** *)
 
 proc BP_toString (xsc, vthis) {
-			goto [typeOf(vthis) = Bool] isb notb;
+			goto [typeOf vthis = Bool] isb notb;
 
 	isb:	xret := vthis;
 			goto test;
 
-	notb:	goto [typeOf(vthis) = Obj] class throw;
+	notb:	goto [typeOf vthis = Obj] class throw;
 	class:	m := metadata(vthis);
 			c := [m, "@class"];
 			goto [c = "Boolean"] b throw;
@@ -67,12 +67,12 @@ with
 (* *** VALUEOF *** *)
 
 proc BP_valueOf (xsc, vthis) {
-			goto [typeOf(vthis) = Bool] isb notb;
+			goto [typeOf vthis = Bool] isb notb;
 
 	isb:	xret := vthis;
 			goto rlab;
 
-	notb:	goto [typeOf(vthis) = Obj] class throw;
+	notb:	goto [typeOf vthis = Obj] class throw;
 	class:	m := metadata(vthis);
 			c := [m, "@class"];
 			goto [c = "Boolean"] b throw;

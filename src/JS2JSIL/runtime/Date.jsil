@@ -173,7 +173,7 @@ proc Date_construct (xsc, vthis) {
 			(* One argument, convert *)
 	arg1:	v := l-nth (arguments, 2);
 			xret := "i__toPrimitive" (v) with elab;
-			goto [typeOf(xret) = Str] nimpl tonum;
+			goto [typeOf xret = Str] nimpl tonum;
 
 	tonum:  xret := "i__toNumber" (xret) with elab;
 			xret := "d__TimeClip" (xret);
@@ -257,7 +257,7 @@ with
 
 proc DP_valueOf (xsc, vthis) {
 
-			goto [typeOf(vthis) = Obj] class tt;
+			goto [typeOf vthis = Obj] class tt;
 	class:	m := metadata(vthis);
 			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
@@ -279,7 +279,7 @@ with
 
 proc DP_getTime (xsc, vthis) {
 
-			goto [typeOf(vthis) = Obj] class tt;
+			goto [typeOf vthis = Obj] class tt;
 	class:	m := metadata(vthis);
 			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
@@ -301,7 +301,7 @@ with
 
 proc DP_getTimezoneOffset (xsc, vthis) {
 
-			goto [typeOf(vthis) = Obj] class tt;
+			goto [typeOf vthis = Obj] class tt;
 	class:	m := metadata(vthis);
 			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;

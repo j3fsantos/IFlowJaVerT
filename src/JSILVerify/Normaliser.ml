@@ -53,43 +53,46 @@ let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution 
 			| LLit lit1 ->
 				let lit = JSIL_Interpreter.evaluate_unop uop lit1 in
 				LLit lit
-			| _ -> LUnOp (uop, nle1))
 
-	| LTypeOf (le1) ->
-		let nle1 = f le1 in
-		(match nle1 with
-			| LLit llit -> LLit (Type (Literal.type_of llit))
-			| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
-			| LVar lvar ->
-				(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LTypeOf (LVar lvar))
-					(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
-			| ALoc _ -> LLit (Type ObjectType)
-			| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
-			| LBinOp (_, _, _)
-			| LUnOp (_, _) -> LTypeOf (nle1)
-			| LTypeOf _ -> LLit (Type TypeType)
-			| LEList _ -> LLit (Type ListType)
-			| LLstNth (list, index) ->
-				(match list, index with
-					| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
-						let lit_n = (try List.nth list (int_of_float n) with _ ->
-							raise (Failure "List index out of bounds")) in
-						LLit (Type (Literal.type_of lit_n))
-					| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
-					| LEList list, LLit (Num n) when (Utils.is_int n) ->
-						let le_n = (try List.nth list (int_of_float n) with _ ->
-							raise (Failure "List index out of bounds")) in
-						f (LTypeOf le_n)
-					| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
-					| _, _ -> LTypeOf (nle1))
-			| LStrNth (str, index) ->
-				(match str, index with
-					| LLit (String s), LLit (Num n) when (Utils.is_int n) ->
-						let _ = (try (String.get s (int_of_float n)) with _ ->
-							raise (Failure "String index out of bounds")) in
-						LLit (Type StringType)
-					| LLit (String s), LLit (Num n) -> raise (Failure "Non-integer string index")
-					| _, _ -> LTypeOf (nle1)))
+			| _ -> 
+				(match uop with
+				| TypeOf ->
+					let nle1 = f le1 in
+					(match nle1 with
+						| LLit llit -> LLit (Type (Literal.type_of llit))
+						| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
+						| LVar lvar ->
+							(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LUnOp (TypeOf, LVar lvar))
+								(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
+						| ALoc _ -> LLit (Type ObjectType)
+						| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
+						| LBinOp (_, _, _)
+						| LUnOp (_, _) -> LUnOp (TypeOf, nle1)
+						| LEList _ -> LLit (Type ListType)
+						| LLstNth (list, index) ->
+							(match list, index with
+								| LLit (LList list), LLit (Num n) when (Utils.is_int n) ->
+									let lit_n = (try List.nth list (int_of_float n) with _ ->
+										raise (Failure "List index out of bounds")) in
+									LLit (Type (Literal.type_of lit_n))
+								| LLit (LList list), LLit (Num n) -> raise (Failure "Non-integer list index")
+								| LEList list, LLit (Num n) when (Utils.is_int n) ->
+									let le_n = (try List.nth list (int_of_float n) with _ ->
+										raise (Failure "List index out of bounds")) in
+									f (LUnOp (TypeOf, le_n))
+								| LEList list, LLit (Num n) -> raise (Failure "Non-integer list index")
+								| _, _ -> LUnOp (TypeOf, nle1))
+						| LStrNth (str, index) ->
+							(match str, index with
+								| LLit (String s), LLit (Num n) when (Utils.is_int n) ->
+									let _ = (try (String.get s (int_of_float n)) with _ ->
+										raise (Failure "String index out of bounds")) in
+									LLit (Type StringType)
+								| LLit (String s), LLit (Num n) -> raise (Failure "Non-integer string index")
+								| _, _ -> LUnOp (TypeOf, nle1)))
+				| _ -> LUnOp (uop, nle1)))
+
+
 
 	| LEList le_list ->
 		let n_le_list = List.map (fun le -> f le) le_list in
@@ -515,8 +518,6 @@ let rec normalise_list_expressions (le : jsil_logic_expr) : jsil_logic_expr =
 		| le                              -> LUnOp (LstLen, le))
 
 	| LUnOp (op, le) -> LUnOp (op, f le) 
-
-	| LTypeOf le -> LTypeOf (f le) 
 
 	| LLstNth (le, n) -> 
 		(match (f le), (f n) with 

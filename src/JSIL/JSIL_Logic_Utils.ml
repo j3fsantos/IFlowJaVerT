@@ -49,7 +49,6 @@ let rec logic_expression_map
   			| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> mapped_lexpr
   			| LBinOp (e1, op, e2) -> LBinOp (map_e e1, op, map_e e2)
   			| LUnOp (op, e)       -> LUnOp (op, map_e e)
-  			| LTypeOf e           -> LTypeOf (map_e e)
   			| LEList le           -> LEList (List.map map_e le)
 			| LESet le            -> LESet  (List.map map_e le)
 			| LSetUnion le        -> LSetUnion  (List.map map_e le)
@@ -112,7 +111,6 @@ let rec logic_expression_fold
   	| LLit _ | LNone | LVar _ | ALoc _ | PVar _ -> f_ac []
   	| LBinOp (e1, op, e2)   -> f_ac [ (fold_e e1); (fold_e e2) ]
   	| LUnOp (op, e)         -> f_ac [ (fold_e e) ]
-  	| LTypeOf e             -> f_ac [ (fold_e e) ]
   	| LEList les            -> f_ac (List.map fold_e les)
   	| LLstNth (e1, e2)      -> f_ac [ (fold_e e1); (fold_e e2) ]
   	| LStrNth (e1, e2)      -> f_ac [ (fold_e e1); (fold_e e2) ]
@@ -587,11 +585,6 @@ let rec type_lexpr (gamma : typing_environment) (le : jsil_logic_expr) : Type.t 
 	(* Abstract locations are always typable, by construction *)
 	| ALoc _ -> def_pos (Some ObjectType)
 
-  	(* If what we're trying to type is typable, we should get a type back.*)
-	| LTypeOf le ->
-		let _, itle, constraints = f le in
-			if (itle) then (Some TypeType, true, constraints) else def_neg
-
   	(* Lists are typable if all elements are typable *)
 	| LEList les ->
 		let all_typable, constraints = typable_list les in
@@ -620,6 +613,9 @@ let rec type_lexpr (gamma : typing_environment) (le : jsil_logic_expr) : Type.t 
 			| ToStringOp  -> tt NumberType  (Some StringType)  []  (* Number to String    *)
 			| ToNumberOp  -> tt StringType  (Some NumberType)  []  (* String to Number    *)
 			| IsPrimitive -> (Some BooleanType, true, constraints) (* Anything to Boolean *)
+
+			(* If what we're trying to type is typable, we should get a type back.*)
+			| TypeOf -> Some TypeType, true, constraints
 
 			(* List to List -> generates constraint *)
 			| Cdr ->
@@ -1043,8 +1039,7 @@ let rec expr_2_lexpr (e : jsil_expr) : jsil_logic_expr =
 	| Literal l           -> LLit l
 	| Var x               -> PVar x
 	| BinOp (e1, op, e2)  -> LBinOp ((f e1), op, (f e2))
-	| UnOp (op, e)     -> LUnOp (op, f e)
-	| TypeOf e            -> LTypeOf (f e)
+	| UnOp (op, e)        -> LUnOp (op, f e)
 	| EList es            -> LEList (List.map f es)
 	| LstNth (e1, e2)     -> LLstNth (f e1, f e2)
 	| StrNth (e1, e2)     -> LStrNth (f e1, f e2)
@@ -1259,7 +1254,6 @@ let rec lexpr_selective_substitution subst partial lexpr =
 	| PVar var -> (PVar var)
 	| LBinOp (le1, op, le2) -> LBinOp ((f le1), op, (f le2))
 	| LUnOp (op, le) -> LUnOp (op, (f le))
-	| LTypeOf le -> LTypeOf (f le)
 
 	| LEList les ->
 			let s_les = List.map (fun le -> (f le)) les in

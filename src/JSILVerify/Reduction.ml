@@ -176,22 +176,6 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) (le : jsil_logic_expr) =
 	let f = reduce_lexpr ?gamma:gamma in
 	let result = (match le with
 
-	(* The TypeOf operator *)
-	| LTypeOf le -> 
-		let fle = f le in 
-		let gamma = Option.default (TypEnv.init ()) gamma in
-		let tfle, how, _ = JSIL_Logic_Utils.type_lexpr gamma fle in
-		(match how with
-		| false -> 
-			let err_msg = "LTypeOf(le): expression is not typable." in
-			raise (ReductionException (LTypeOf fle, err_msg))
-		| true -> 
-			(match tfle with
-			| None -> LTypeOf le
-			| Some t -> LLit (Type t)
-			)
-		)
-
 	(* Base lists, character lists, and sets are reduced pointwise *)
 	| LEList les -> LEList (List.map f les)
 	| LESet  les -> LESet  (List.map f les)
@@ -321,6 +305,20 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) (le : jsil_logic_expr) =
 		| LLit lit -> LLit (JSIL_Interpreter.evaluate_unop op lit)
 		| _ -> 
 			(match op with
+			(* The TypeOf operator *)
+			| TypeOf ->
+				let gamma = Option.default (TypEnv.init ()) gamma in
+				let tfle, how, _ = JSIL_Logic_Utils.type_lexpr gamma fle in
+				(match how with
+				| false -> 
+					let err_msg = "LTypeOf(le): expression is not typable." in
+					raise (ReductionException (LUnOp (TypeOf, fle), err_msg))
+				| true -> 
+					(match tfle with
+					| None -> LUnOp (TypeOf, le)
+					| Some t -> LLit (Type t)
+					)
+				)
 			(* List head *)
 			| Car ->
 				let fle = f le in

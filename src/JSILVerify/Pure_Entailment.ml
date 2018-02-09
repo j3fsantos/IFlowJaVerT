@@ -659,6 +659,10 @@ let encode_unop (op : UnOp.t) le =
     	let op_le       = Expr.mk_app ctx list_operations.head_accessor [ le_lst ] in
     	mk_singleton_elem op_le 
 
+	| TypeOf ->
+		let res = typeof_expression le in
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
+
 	| _          ->
 		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (UnOp.str op);
 		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (UnOp.str op) in
@@ -696,14 +700,10 @@ let rec encode_logical_expression le =
 		mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.lnth_fun [ lst'; index' ])
 
 	| LStrNth (str, index)  ->
-		let str'   = Expr.mk_app ctx lit_operations.string_accessor  [ mk_singleton_access (f str) ] in
+	  let str'   = Expr.mk_app ctx lit_operations.string_accessor  [ mk_singleton_access (f str) ] in
 	  let index' = Expr.mk_app ctx lit_operations.number_accessor  [ mk_singleton_access (f index) ] in
 	  let res    = Expr.mk_app ctx axiomatised_operations.snth_fun [ str'; index' ] in
 	  mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ res ])
-
-	| LTypeOf le ->
-		let res = typeof_expression (f le) in
-		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
 
 	| LESet les ->
 		let args = List.map (fun le -> mk_singleton_access (f le)) les in
