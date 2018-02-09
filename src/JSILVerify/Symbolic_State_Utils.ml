@@ -54,7 +54,7 @@ let sheap_put
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
-			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
+			let new_domain = Simplifications.reduce_expression gamma pfs new_domain in
 			SHeap.put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
 		) else (
 			let msg = Printf.sprintf "SHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
@@ -94,7 +94,7 @@ let merge_domains
 	| Some set1, Some set2 -> 
 		let set = LSetUnion [ set1; set2 ] in
 		(* let set = Normaliser.normalise_lexpr gamma set in *)  
-		let set = Simplifications.reduce_expression_no_store gamma pfs set in
+		let set = Simplifications.reduce_expression gamma pfs set in
 		Some set 
 
 let merge_heaps 

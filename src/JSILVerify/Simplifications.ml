@@ -15,7 +15,7 @@ exception UnionInUnion of jsil_logic_expr list
 	Finding if the given logical expression is equal to a list.
 	If yes, returning one of those lists
 *)
-let find_me_Im_a_list store pfs le =
+let find_me_Im_a_list pfs le =
 	let found = ref [le] in
 	let counter = ref 0 in
 	try
@@ -25,27 +25,6 @@ let find_me_Im_a_list store pfs le =
 			let lex = List.nth !found !counter in
 			counter := !counter + 1;
 			(match lex with
-			| PVar var ->
-				counter := !counter + 1;
-				if (Hashtbl.mem store var) then
-				(let value = Hashtbl.find store var in
-				(match value with
-				| LLit (LList _)
-				| LEList _ -> raise (FoundIt value)
-				| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LUnOp (Car, PVar var) && (lcdr = LUnOp (Cdr, PVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
-				| _ ->
-					if (not (List.mem value !found)) then
-					begin
-						found := !found @ [value];
-						DynArray.iter
-							(fun x -> (match x with
-								| LEq (PVar v, lexpr)
-								| LEq (lexpr, PVar v) ->
-									if (v = var) then
-										if (not (List.mem lexpr !found)) then
-											found := !found @ [lexpr];
-								| _ -> ())) pfs;
-					end))
 			| LVar var ->
 				DynArray.iter
 					(fun x -> (match x with
@@ -169,8 +148,7 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	List length      - try to get a list and then actually calculate
 	String length    - ------- || -------
 *)
-let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
-                          (gamma : (string, Type.t) Hashtbl.t)
+let rec reduce_expression (gamma : (string, Type.t) Hashtbl.t)
 						  (pfs   : jsil_logic_assertion DynArray.t)
 						  (e     : jsil_logic_expr) =
 	
@@ -186,7 +164,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		print_debug (Printf.sprintf "Reduction exception: %s --red_exp--> %s --exception--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression le) msg) in
 	(* TEST TEST TEST *)
 
-	let f = reduce_expression store gamma pfs in
+	let f = reduce_expression gamma pfs in
 	let orig_expr = e in
 	let result = (match e with
 
@@ -337,7 +315,7 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 	(* List nth *)
 	| LLstNth (e1, e2) ->
 		let list = f e1 in
-		let new_list = find_me_Im_a_list store pfs list in 
+		let new_list = find_me_Im_a_list pfs list in 
 		let index = f e2 in
 		(match list, index with
 		| LLit (LList list), LLit (Num n) ->
@@ -406,14 +384,13 @@ let rec reduce_expression (store : (string, jsil_logic_expr) Hashtbl.t)
 		(JSIL_Print.string_of_logic_expression result))); *)
 	result
 
-let reduce_expression_no_store_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
-let reduce_expression_no_store_no_gamma        = reduce_expression (Hashtbl.create 1) (Hashtbl.create 1)
-let reduce_expression_no_store                 = reduce_expression (Hashtbl.create 1)
+let reduce_expression_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (DynArray.create ())
+let reduce_expression_no_gamma        = reduce_expression (Hashtbl.create 1)
 
 (* Reduction of assertions *)
-let rec reduce_assertion store gamma pfs a =
-	let f = reduce_assertion store gamma pfs in
-	let fe = reduce_expression store gamma pfs in
+let rec reduce_assertion gamma pfs a =
+	let f = reduce_assertion gamma pfs in
+	let fe = reduce_expression gamma pfs in
 	let result = (match a with
 	| LAnd (LFalse, _)
 	| LAnd (_, LFalse) -> LFalse
@@ -639,9 +616,8 @@ let rec reduce_assertion store gamma pfs a =
 		(JSIL_Print.string_of_logic_assertion result false)); *)
 	result
 
-let reduce_assertion_no_store_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1) (DynArray.create ())
-let reduce_assertion_no_store_no_gamma        = reduce_assertion (Hashtbl.create 1) (Hashtbl.create 1)
-let reduce_assertion_no_store                 = reduce_assertion (Hashtbl.create 1)
+let reduce_assertion_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (DynArray.create ())
+let reduce_assertion_no_gamma        = reduce_assertion (Hashtbl.create 1)
 
 
 
@@ -707,13 +683,12 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : TypEn
 (*************************************)
 
 
-let reduce_pfs_no_store_no_gamma pfs = DynArray.map (fun x -> reduce_assertion_no_store_no_gamma pfs x) pfs
-let reduce_pfs_no_store    gamma pfs = DynArray.map (fun x -> reduce_assertion_no_store    gamma pfs x) pfs
-let reduce_pfs    store    gamma pfs = DynArray.map (fun x -> reduce_assertion    store    gamma pfs x) pfs
+let reduce_pfs_no_gamma pfs = DynArray.map (fun x -> reduce_assertion_no_gamma pfs x) pfs
+let reduce_pfs    gamma pfs = DynArray.map (fun x -> reduce_assertion    gamma pfs x) pfs
 
 let reduce_pfs_in_place store gamma pfs =
 	DynArray.iteri (fun i pf ->
-		let rpf = reduce_assertion store gamma pfs pf in
+		let rpf = reduce_assertion gamma pfs pf in
 		DynArray.set pfs i rpf) pfs
 	
 let sanitise_pfs store gamma pfs =
@@ -981,8 +956,8 @@ let rec match_lists_on_element (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) :
 		))
 and
 unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool option * ((jsil_logic_expr * jsil_logic_expr) list) = 
-	let le1 = reduce_expression_no_store_no_gamma_no_pfs le1 in
-	let le2 = reduce_expression_no_store_no_gamma_no_pfs le2 in
+	let le1 = reduce_expression_no_gamma_no_pfs le1 in
+	let le2 = reduce_expression_no_gamma_no_pfs le2 in
 	let le1_old = le1 in
 	let le1, le2 = arrange_lists le1 le2 in
 	let to_swap_now = (le1_old <> le1) in
@@ -1302,7 +1277,7 @@ let simplify_symb_state
 		
 		let (heap, store, pfs, gamma, preds) = !symb_state in
 		
-		Hashtbl.filter_map_inplace (fun pvar le -> Some (reduce_expression_no_store gamma pfs le)) store;
+		Hashtbl.filter_map_inplace (fun pvar le -> Some (reduce_expression gamma pfs le)) store;
 		
 		arrange_pfs vars_to_save save_all !exists pfs;
 		
@@ -2063,7 +2038,7 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	| None -> e
 	| Some subst ->
 		let e = lexpr_substitution subst true e in
-			reduce_expression_no_store gamma pfs e)
+			reduce_expression gamma pfs e)
 			
 (* ******************************** *
  * CONGRUENCE CLOSURE APPROXIMATION *
