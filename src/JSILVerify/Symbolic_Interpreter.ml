@@ -26,7 +26,7 @@ let rec get_list_length (le : jsil_logic_expr) : int option =
 (* Symbolic evaluation of JSIL expressions *)
 (*******************************************)
 let rec symb_evaluate_expr 
-		(store : symbolic_store) (gamma : typing_environment) 
+		(store : symbolic_store) (gamma : TypEnv.t) 
 		(pure_formulae : pure_formulae) (expr : jsil_expr) : jsil_logic_expr =
 let f = symb_evaluate_expr store gamma pure_formulae in
 	match expr with
@@ -188,7 +188,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 *)
 let safe_symb_evaluate_expr 
 		(store         : symbolic_store)
-		(gamma         : typing_environment) 
+		(gamma         : TypEnv.t) 
 		(pure_formulae : pure_formulae) 
 		(expr          : jsil_expr) : jsil_logic_expr * (Type.t option) * bool =
 	let nle = symb_evaluate_expr store gamma pure_formulae expr in
@@ -590,7 +590,7 @@ let rec fold_predicate
 	let process_missing_pred_assertion
 			(missing_pred_args : jsil_logic_expr list)  (subst : substitution) (existentials : SS.t)
 			(symb_state : symbolic_state) (framed_heap : SHeap.t) (framed_preds : predicate_set) 
-			(pf_discharges : jsil_logic_assertion list) (new_gamma : typing_environment) : symbolic_state * (jsil_logic_expr list) * SS.t = 
+			(pf_discharges : jsil_logic_assertion list) (new_gamma : TypEnv.t) : symbolic_state * (jsil_logic_expr list) * SS.t = 
 		
 		let missing_pred_args = List.map (JSIL_Logic_Utils.lexpr_substitution subst false) missing_pred_args in
 				

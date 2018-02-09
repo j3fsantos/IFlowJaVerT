@@ -446,35 +446,6 @@ let extend_substitution (subst : substitution) (vars : string list) (les : jsil_
 
 let extend_subst_with_subst (subst : substitution) (subst_ext : substitution) : unit =
 	Hashtbl.iter (fun v le -> Hashtbl.replace subst v le) subst_ext
-
-(*******************************************************)
-(*******************************************************)
-(* Typing Environment                                  *)
-(*******************************************************)
-(*******************************************************)
-type typing_environment        = ((string, Type.t) Hashtbl.t)
-
-
-
-(* ******* *)
-(* Hashing *)
-(* ******* *)
-
-let hash_to_list hash =
-	List.sort compare (Hashtbl.fold (fun k v ac -> (k, v) :: ac) hash [])
-
-let hash_of_list hash =
-	let result = Hashtbl.create 523 in
-	List.iter (fun (v, t) -> Hashtbl.add result v t) hash;
-	result
-
-let lheap_to_list hash =
-	List.sort compare (Heap.fold (fun k v ac -> (k, v) :: ac) hash [])
-
-let lheap_of_list hash =
-	let result = Heap.create 523 in
-	List.iter (fun (v, t) -> Heap.add result v t) hash;
-	result
 	
 (* JS2JSIL *)
 let for_verification = ref false

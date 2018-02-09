@@ -1084,7 +1084,7 @@ let check_satisfiability assertions gamma =
 let check_entailment (existentials : SS.t)
 					 (left_as      : jsil_logic_assertion list)
 					 (right_as     : jsil_logic_assertion list)
-					 (gamma        : typing_environment) =
+					 (gamma        : TypEnv.t) =
 
 		print_time_debug "check_entailment:";
 

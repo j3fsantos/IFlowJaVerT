@@ -18,7 +18,7 @@ let new_lvar_name var = lvar_prefix ^ var
 	the store is assumed to contain all the program variables in le
 *)
 let rec normalise_lexpr ?(store : symbolic_store option) ?(subst : substitution option) 
-		(gamma : typing_environment) (le : jsil_logic_expr) =
+		(gamma : TypEnv.t) (le : jsil_logic_expr) =
 
 	let store = Option.default (store_init [] []) store in 
 	let subst = Option.default (init_substitution []) subst in 
@@ -682,7 +682,7 @@ let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : s
 	_____________________________________________________
 *)
 let normalise_logic_expression 
-		(store : symbolic_store) (gamma : typing_environment) (subst : substitution)
+		(store : symbolic_store) (gamma : TypEnv.t) (subst : substitution)
 		(le    : jsil_logic_expr) : jsil_logic_expr = 
 	let le'           = normalise_lexpr ~store:store ~subst:subst gamma le in 
 	le' 
@@ -697,7 +697,7 @@ let normalise_logic_expression
 *)
 let rec normalise_pure_assertion
 		(store : symbolic_store)
-		(gamma : typing_environment)
+		(gamma : TypEnv.t)
 		(subst : substitution)
 		(assertion : jsil_logic_assertion) : jsil_logic_assertion =
 	let fa = normalise_pure_assertion store gamma subst in
@@ -733,7 +733,7 @@ let rec normalise_pure_assertion
   * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh
 **)
 let rec initialise_alocs
-	(store : symbolic_store) (gamma : typing_environment)
+	(store : symbolic_store) (gamma : TypEnv.t)
 	(subst : substitution) (ass : jsil_logic_assertion) : unit =
 	let f = initialise_alocs store gamma subst in
 	match ass with
@@ -774,7 +774,7 @@ let rec initialise_alocs
 **)
 let normalise_pure_assertions
 		(store  : symbolic_store)
-		(gamma  : typing_environment)
+		(gamma  : TypEnv.t)
 		(subst  : substitution)
 		(args   : SS.t option)
 		(a      : jsil_logic_assertion) : pure_formulae =
@@ -970,7 +970,7 @@ let normalise_pure_assertions
 **)
 let rec normalise_cell_assertions
 		(heap : SHeap.t) (store : symbolic_store)
-		(p_formulae : pure_formulae) (gamma : typing_environment)
+		(p_formulae : pure_formulae) (gamma : TypEnv.t)
 		(subst : substitution) (a : jsil_logic_assertion) : unit =
 	let f = normalise_cell_assertions heap store p_formulae gamma subst in
 	let fe = normalise_logic_expression store gamma subst in
@@ -1016,7 +1016,7 @@ let rec normalise_cell_assertions
 **)
 let rec normalise_type_assertions
 		(store : symbolic_store)
-		(gamma : typing_environment)
+		(gamma : TypEnv.t)
 		(a     : jsil_logic_assertion) : bool =
 
 	let type_check_lexpr (le : jsil_logic_expr) (t : Type.t) : bool = 
@@ -1082,7 +1082,7 @@ let rec normalise_type_assertions
   * -----------------------------------------------------
 **)
 let normalise_pred_assertions
-	(store : symbolic_store) (gamma : typing_environment)
+	(store : symbolic_store) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : predicate_set * (jsil_logic_assertion list) =
 	let preds = preds_init () in
 
@@ -1134,7 +1134,7 @@ let normalise_pred_assertions
 **)
 let normalise_ef_assertions
 	(heap : SHeap.t) (store : symbolic_store)
-	(p_formulae : pure_formulae) (gamma : typing_environment)
+	(p_formulae : pure_formulae) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_empty_fields a =
@@ -1172,7 +1172,7 @@ let normalise_ef_assertions
 
 
 let extend_typing_env_using_assertion_info
-	(gamma : typing_environment) (a_list : jsil_logic_assertion list) : unit =
+	(gamma : TypEnv.t) (a_list : jsil_logic_assertion list) : unit =
 	List.iter (fun a ->
 		match a with
 		| LEq (LVar x, le) | LEq (le, LVar x)
@@ -1193,7 +1193,7 @@ let extend_typing_env_using_assertion_info
 **)
 let normalise_metadata
 	(heap : SHeap.t) (store : symbolic_store)
-	(p_formulae : pure_formulae) (gamma : typing_environment)
+	(p_formulae : pure_formulae) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_metadata a =
@@ -1276,7 +1276,7 @@ let normalise_metadata
 **)
 let normalise_extensibility
 	(heap : SHeap.t) (store : symbolic_store)
-	(p_formulae : pure_formulae) (gamma : typing_environment)
+	(p_formulae : pure_formulae) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_extens a =
@@ -1324,7 +1324,7 @@ let normalise_extensibility
  *)
 
 
-let check_pvar_types (store : symbolic_store) (gamma : typing_environment) : bool =
+let check_pvar_types (store : symbolic_store) (gamma : TypEnv.t) : bool =
 	let placeholder pvar le target_type =
 		if (Hashtbl.mem gamma pvar) then
 		begin
@@ -1402,7 +1402,7 @@ let get_heap_well_formedness_constraints heap =
   * -----------------------------------------------------
 **)
 let normalise_assertion
-		(gamma : typing_environment option)
+		(gamma : TypEnv.t option)
 		(subst : substitution option)
 		(pvars : SS.t option)
 		(a     : jsil_logic_assertion) : (symbolic_state * substitution) option =
@@ -1482,7 +1482,7 @@ let normalise_normalised_assertion
   (** Step 1 -- Create empty symbolic heap, symbolic store, typing environment, pred set and pfs *)
   let heap  : SHeap.t            = SHeap.init () in
   let store : symbolic_store     = store_init [] [] in
-  let gamma : typing_environment = TypEnv.init () in
+  let gamma : TypEnv.t = TypEnv.init () in
   let pfs   : pure_formulae      = DynArray.make 0 in
   let preds : predicate_set      = DynArray.make 0 in
 
@@ -1712,7 +1712,7 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 	to alocs. In order not to lose the link between the newly generated alocs
 	and the precondition spec vars, we need to introduce extra equalities *)
 let normalise_post
-		(post_gamma_0  : typing_environment)
+		(post_gamma_0  : TypEnv.t)
 		(subst         : substitution)
 		(spec_vars     : SS.t)
 		(params        : SS.t)
@@ -1971,7 +1971,7 @@ let pre_normalise_invariants_prog
 
 let normalise_invariant 
 	(a         : jsil_logic_assertion)
-	(gamma     : typing_environment)
+	(gamma     : TypEnv.t)
 	(spec_vars : SS.t)
 	(subst     : substitution)
 	(params    : SS.t) : symbolic_state = 

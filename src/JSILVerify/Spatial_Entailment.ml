@@ -14,7 +14,7 @@ exception UnificationFailure of string
 let consistent_subst_list 
 		(subst_list : substitution_list) 
 		(pfs        : pure_formulae)
-		(gamma      : typing_environment) : substitution_list option = 
+		(gamma      : TypEnv.t) : substitution_list option = 
 
 	let start_time = Sys.time() in
 
@@ -40,7 +40,7 @@ let consistent_subst_list
 
 let safe_substitution_extension 
 		(pfs        : pure_formulae) 
-		(gamma      : typing_environment) 
+		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : bool = 
 	List.fold_left 
@@ -55,7 +55,7 @@ let safe_substitution_extension
 
 let substitution_extension 
 		(pfs        : pure_formulae) 
-		(gamma      : typing_environment) 
+		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : (jsil_logic_assertion list) option = 
 	
@@ -77,8 +77,8 @@ let substitution_extension
 let pre_check_discharges (discharges : discharge_list) : discharge_list option = Some discharges 
 
 let type_check_discharges 
-		(pat_gamma  : typing_environment)
-		(gamma      : typing_environment)
+		(pat_gamma  : TypEnv.t)
+		(gamma      : TypEnv.t)
 		(discharges : discharge_list) : bool =
 	
 	let rets = List.map 
@@ -94,7 +94,7 @@ let type_check_discharges
 
 let unify_lexprs
 	(pfs         : pure_formulae) 
-	(gamma       : typing_environment) 
+	(gamma       : TypEnv.t) 
 	(subst       : substitution)
 	(le_pat      : jsil_logic_expr) 
 	(le          : jsil_logic_expr) : (substitution_list * discharge_list) option =
@@ -164,7 +164,7 @@ let unify_lexprs
 
 let unify_stores 
 		(pfs       : pure_formulae) 
-		(gamma     : typing_environment)
+		(gamma     : TypEnv.t)
 		(pat_subst : substitution) 
 		(pat_store : symbolic_store) 
 		(store     : symbolic_store) : discharge_list =
@@ -195,7 +195,7 @@ let unify_stores
 
 let unify_cell_assertion 
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
@@ -282,7 +282,7 @@ let unify_cell_assertion
 
 let unify_pred_assertion 
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_pred_asrt : jsil_logic_assertion)
 		(preds         : predicate_set) : (predicate_set * substitution * discharge_list) list = 
@@ -330,7 +330,7 @@ let unify_pred_assertion
 
 let rec find_missing_nones 
 		(pfs            : pure_formulae)
-		(gamma          : typing_environment)
+		(gamma          : TypEnv.t)
 		(fields_to_find : jsil_logic_expr list) 
 		(none_fv_list   : SFVL.t) : SFVL.t =
 	
@@ -357,7 +357,7 @@ let rec find_missing_nones
 
 let unify_domains 
 		(pfs       : pure_formulae)
-		(gamma     : typing_environment)
+		(gamma     : TypEnv.t)
 		(pat_subst : substitution)
 		(pat_dom   : jsil_logic_expr) 
 		(dom       : jsil_logic_expr) 
@@ -408,7 +408,7 @@ let unify_domains
 
  let unify_empty_fields_assertion 
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_ef_asrt   : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
@@ -459,7 +459,7 @@ let unify_domains
 (* TODO : THIS IS NOT SPATIAL?! *)
 let unify_metadata_assertion
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
@@ -514,7 +514,7 @@ let unify_metadata_assertion
 
 let unify_extensible_assertion
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list =
@@ -555,7 +555,7 @@ type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitutio
 
 let unify_spatial_assertion
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_s_asrt    : jsil_logic_assertion)
 		(heap          : SHeap.t) 
@@ -599,8 +599,8 @@ let unify_spatial_assertion
 
 let unify_gammas 
 		(pat_subst : substitution) 
-		(pat_gamma : typing_environment) 
-		(gamma     : typing_environment) : bool =
+		(pat_gamma : TypEnv.t) 
+		(gamma     : TypEnv.t) : bool =
 
 	let start_time = Sys.time() in
 
@@ -656,11 +656,11 @@ let unify_pfs
 		(pat_subst    : substitution) 
 		(existentials : string list)
 		(pat_lvars    : SS.t)
-		(pat_gamma    : typing_environment) 
+		(pat_gamma    : TypEnv.t) 
 		(pat_pfs      : pure_formulae)
-		(gamma        : typing_environment) 
+		(gamma        : TypEnv.t) 
 		(pfs          : pure_formulae)
-		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment * SS.t =
+		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * TypEnv.t * SS.t =
 
 	let start_time = Sys.time() in
 
@@ -1047,10 +1047,10 @@ let unify_lexprs_unfold
 
 let unify_stores_unfold 
 		(pat_pfs   : pure_formulae)
-		(pat_gamma : typing_environment)
+		(pat_gamma : TypEnv.t)
 		(pat_subst : substitution)
 		(pfs       : pure_formulae)
-		(gamma     : typing_environment)
+		(gamma     : TypEnv.t)
 		(subst     : substitution)
 		(pat_store : symbolic_store) 
 		(store     : symbolic_store) : (jsil_logic_assertion list) * (jsil_logic_assertion list) * discharge_list =
@@ -1085,7 +1085,7 @@ let unify_stores_unfold
 					raise (UnificationFailure ""))) ([], [], []) 
 
 
-let is_sensible_subst (subst : substitution) (gamma_source : typing_environment) (gamma_target : typing_environment) : bool =
+let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_target : TypEnv.t) : bool =
 	Hashtbl.fold
 		(fun x le ac ->
 			if (not ac) then ac else (

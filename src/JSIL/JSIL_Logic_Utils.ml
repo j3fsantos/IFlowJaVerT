@@ -556,7 +556,7 @@ match a with
 	| Some x -> x
 	| None -> Lazy.force default
 
-let rec type_lexpr (gamma : typing_environment) (le : jsil_logic_expr) : Type.t option * bool * jsil_logic_assertion list =
+let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * bool * jsil_logic_assertion list =
 
 	let f = type_lexpr gamma in
 	let def_pos (ot : Type.t option) = (ot, true, []) in
@@ -720,7 +720,7 @@ let rec type_lexpr (gamma : typing_environment) (le : jsil_logic_expr) : Type.t 
 
 	result
 
-let string_of_gamma (gamma : typing_environment) : string =
+let string_of_gamma (gamma : TypEnv.t) : string =
 	let gamma_str =
 		Hashtbl.fold
 			(fun var var_type ac ->
@@ -847,7 +847,7 @@ let reverse_type_lexpr flag gamma le le_type : TypEnv.t option =
 (* ** TYPE INFERENCE ** *)
 (* ******************** *)
 
-let safe_merge_gammas (gamma_l : typing_environment) (gamma_r : typing_environment) =
+let safe_merge_gammas (gamma_l : TypEnv.t) (gamma_r : TypEnv.t) =
 	(* print_debug_petar (Printf.sprintf "Merging gammas: %s \nand %s" (string_of_gamma gamma_l) (string_of_gamma gamma_r)); *)
 	Hashtbl.iter
 		(fun var v_type ->

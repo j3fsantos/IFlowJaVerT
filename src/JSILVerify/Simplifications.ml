@@ -679,7 +679,7 @@ let simplify_equalities_between_booleans (p_assertions : pure_formulae) =
  				| _ -> a) p_assertions in 
  	new_as 
 
-let naively_infer_type_information (p_assertions : pure_formulae) (gamma : typing_environment) = 
+let naively_infer_type_information (p_assertions : pure_formulae) (gamma : TypEnv.t) = 
  	DynArray.iter 
  		(fun a -> 
  			match a with 

@@ -18,7 +18,7 @@ exception SymbExecFailure of string
 				pfs |=_{gamma} field = field' 
 *)
 let find_field
-		(pfs : pure_formulae) (gamma : typing_environment)
+		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(fv_list : SFVL.t)
 		(field : jsil_logic_expr) : (SFVL.t * (jsil_logic_expr * (Permission.t * jsil_logic_expr))) option  =
 	
@@ -38,7 +38,7 @@ let find_field
 	
 *)
 let sheap_put 
-			(pfs : pure_formulae) (gamma : typing_environment)
+			(pfs : pure_formulae) (gamma : TypEnv.t)
 			(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : Permission.t) (value : jsil_logic_expr) : unit =
 	
 	let (fv_list, domain), metadata, ext = SHeap.get_unsafe heap loc in
@@ -70,7 +70,7 @@ let sheap_put
 
 
 let sheap_get 
-		(pfs : pure_formulae) (gamma : typing_environment)
+		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
 	let (fv_list, domain), _, _ = SHeap.get_unsafe heap loc in
@@ -85,7 +85,7 @@ let sheap_get
 
 
 let merge_domains 
-		(pfs : pure_formulae) (gamma : typing_environment)
+		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) : jsil_logic_expr option = 
 	match domain_l, domain_r with 
 	| None, None -> None
@@ -98,7 +98,7 @@ let merge_domains
 		Some set 
 
 let merge_heaps 
-			(store : symbolic_store) (pfs : pure_formulae) (gamma : typing_environment)
+			(store : symbolic_store) (pfs : pure_formulae) (gamma : TypEnv.t)
 			(heap : SHeap.t) (new_heap : SHeap.t) : unit =
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
@@ -144,7 +144,7 @@ let merge_heaps
 	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))
 
 
-let lexpr_is_none (pfs : pure_formulae) (gamma : typing_environment) (le : jsil_logic_expr) : bool option = 
+let lexpr_is_none (pfs : pure_formulae) (gamma : TypEnv.t) (le : jsil_logic_expr) : bool option = 
 	if (Pure_Entailment.is_equal le LNone pfs gamma) then Some true else (
 		if (Pure_Entailment.is_different le LNone pfs gamma) 
 			then Some false 
@@ -198,7 +198,7 @@ let subtract_pred
 		(args         : jsil_logic_expr list)
 		(pred_set     : predicate_set)
 		(pfs          : pure_formulae)
-		(gamma        : typing_environment)
+		(gamma        : TypEnv.t)
 		(spec_vars    : SS.t)
 		(existentials : string list) 
 		(delete_pred  : bool) : substitution option =

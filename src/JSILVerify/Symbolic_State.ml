@@ -20,8 +20,8 @@ type predicate_assertion       = (string * (jsil_logic_expr list))
 *)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 
-type symbolic_state       = SHeap.t * symbolic_store * pure_formulae * typing_environment * predicate_set
-type symbolic_state_frame = SHeap.t * predicate_set * substitution * (jsil_logic_assertion list) * typing_environment 
+type symbolic_state       = SHeap.t * symbolic_store * pure_formulae * TypEnv.t * predicate_set
+type symbolic_state_frame = SHeap.t * predicate_set * substitution * (jsil_logic_assertion list) * TypEnv.t 
 type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
 type jsil_n_single_spec = {
@@ -395,7 +395,7 @@ let ss_pfs (symb_state : symbolic_state) : pure_formulae =
 	let _, _, pfs, _, _ = symb_state in pfs
 
 (** Symbolic state fourth projection *)
-let ss_gamma (symb_state : symbolic_state) : typing_environment =
+let ss_gamma (symb_state : symbolic_state) : TypEnv.t =
 	let _, _, _, gamma, _ = symb_state in gamma
 
 (** Symbolic state fifth projection *)
@@ -424,7 +424,7 @@ let ss_replace_pfs (symb_state : symbolic_state) (pfs : pure_formulae) : symboli
 	let heap, store, _, gamma, preds = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- gamma with --gamma-- *)
-let ss_replace_gamma (symb_state : symbolic_state) (gamma : typing_environment) : symbolic_state =
+let ss_replace_gamma (symb_state : symbolic_state) (gamma : TypEnv.t) : symbolic_state =
 	let heap, store, pfs, _, preds   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- preds with --preds-- *)
