@@ -461,16 +461,23 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) (le : jsil_logic_expr) =
 				(* Rest *)
 				| _, _ -> def
 				)
+			| SetDiff when (lexpr_is_set ?gamma:gamma def) ->
+				(match flel, fler with
+				| LESet [], _ -> LESet []
+				| x, LESet [] -> x
+				| _, _ -> def)
+			| SetMem when (lexpr_is_set ?gamma:gamma def) ->
+				(match flel, fler with
+				| _, LESet [] -> LLit (Bool false)
+				| _, _ -> def)
+			| SetSub when (lexpr_is_set ?gamma:gamma def) ->
+				(match flel, fler with
+				| LESet [], _ -> LLit (Bool true)
+				| _, LESet [] -> LLit (Bool false)
+				| _, _ -> def)
 			| _ -> def
 			)
 		)
-
-	(* 
-	(* Sets *)
-	| SetDiff            (** Set difference *)
-	| SetMem             (** Set membership *)
-	| SetSub             (** Subset *)
-	*)
 
 	(* The remaining cases cannot be reduced *)
 	| _ -> le 
