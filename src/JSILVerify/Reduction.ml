@@ -1,5 +1,7 @@
+open CCommon
 open SCommon
 open JSIL_Syntax
+open Symbolic_State
 
 (* When reduction fails *)
 exception ReductionException of jsil_logic_expr * string
@@ -17,6 +19,17 @@ let typable ?(gamma : TypEnv.t option) (le : jsil_logic_expr) (target_type : Typ
 (* Lists *)
 let lexpr_is_list ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 	typable ?gamma:gamma le ListType
+
+(* More lists *)
+let rec lexpr_is_list_weak (le : jsil_logic_expr) : bool =
+	let f = lexpr_is_list_weak in
+	(match le with
+	| LVar _
+	| LLit (LList _)
+	| LEList _ -> true
+	| LBinOp (_, LstCons, le) -> f le
+	| LBinOp (lel, LstCat, ler) -> f lel && f ler
+	| _ -> false)
 
 (* Strings *)
 let lexpr_is_string ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
@@ -43,7 +56,6 @@ let rec get_length_of_list (lst : jsil_logic_expr) : int option =
 	let f = get_length_of_list in
 
 	(match lst with
-	| PVar _ -> None
 	| LVar _ -> None
 	| LLit (LList l) -> Some (List.length l)
 	| LEList l -> Some (List.length l)
@@ -67,11 +79,10 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 
 	(match lst with
 	(* Nothing can be done for variables *)
-	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
-	| LLit (LList l) -> assert (idx < List.length l); Some (LLit (List.nth l idx))
-	| LEList l       -> assert (idx < List.length l); Some (List.nth l idx)
+	| LLit (LList l) -> it_must_hold_that (idx < List.length l); Some (LLit (List.nth l idx))
+	| LEList l       -> it_must_hold_that (idx < List.length l); Some (List.nth l idx)
 	| LBinOp (_, LstCons, lst) -> 
 		if (idx = 0) 
 			then raise (ReductionException (LNone, err_msg))
@@ -92,15 +103,12 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
 	let f = get_head_and_tail_of_list in
 
-	let err_msg = "get_head_and_tail_of_list: empty list passed." in
-
 	(match lst with
 	(* Nothing can be done for variables *)
-	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
-	| LLit (LList l) -> assert (0 < List.length l); Some (LLit (List.hd l), LLit (LList (List.tl l)))
-	| LEList l       -> assert (0 < List.length l); Some (List.nth l 0, LEList (List.tl l))
+	| LLit (LList l) -> it_must_hold_that (0 < List.length l); Some (LLit (List.hd l), LLit (LList (List.tl l)))
+	| LEList l       -> it_must_hold_that (0 < List.length l); Some (List.nth l 0, LEList (List.tl l))
 	| LBinOp (hd, LstCons, lst) -> Some (hd, lst)
 	| LBinOp (lel, LstCat, ler) -> 
 		Option.default None 
@@ -110,7 +118,7 @@ let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * j
 				(f lel)
 			)
 
-	| _ -> raise (Failure (Printf.sprintf "get_nth_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
+	| _ -> raise (Failure (Printf.sprintf "get_head_and_tail_of_list: list equals %s, impossible" (JSIL_Print.string_of_logic_expression lst)))
 	)
 
 (*************************************)
@@ -122,7 +130,6 @@ let rec get_length_of_string (str : jsil_logic_expr) : int option =
 	let f = get_length_of_string in
 
 	(match str with
-	| PVar _ -> None
 	| LVar _ -> None
 	| LLit (String s) -> Some (String.length s)
 	| LBinOp (sl, StrCat, sr) -> Option.default None (Option.map (fun ll -> Option.map (fun lr -> ll + lr) (f sr)) (f sl)) 
@@ -144,10 +151,9 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 
 	let result : jsil_logic_expr option = (match str with
 	(* Nothing can be done for variables *)
-	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
-	| LLit (String s) -> assert (idx < String.length s); Some (LLit (String (String.sub s idx 1)))
+	| LLit (String s) -> it_must_hold_that (idx < String.length s); Some (LLit (String (String.sub s idx 1)))
 	| LBinOp (ls, LstCat, rs) ->
 		Option.default None 
 			(Option.map 
@@ -160,16 +166,71 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 	| _ -> raise (Failure (Printf.sprintf "get_nth_of_string: string equals %s, impossible" (JSIL_Print.string_of_logic_expression str)))
 	) in result
 
+(*****************)
+(* PURE FORMULAE *)
+(*****************)
+
+(* Extracting equalities from an assertion *)
+let extract_equalities_from_assertion ?(target : string option) (a : jsil_logic_assertion) : bool * substitution =
+	let subst = init_substitution [] in
+	let found : bool = (match a with
+	(* The only source of equalities are the actual equalities *)
+	| LEq (le1, le2) -> 
+		(match le1, le2 with
+		| LVar v1, LVar v2 when (v1 = v2) -> false
+		(* Sort two variables *)
+		| LVar v1, LVar v2 ->  
+			let keep, kill = if (String.compare v1 v2 < 0) then v1, v2 else v2, v1 in
+			let keep, kill = Option.map_default (fun v -> if (v = kill) then (kill, keep) else (keep, kill)) (keep, kill) target in
+			extend_substitution subst [ kill ] [ LVar keep ];
+			true
+		(* Variable equals expression *)
+		| LVar v, le
+		| le, LVar v -> extend_substitution subst [ v ] [ le ]; true
+		| _, _ -> false
+		)
+	(* The rest does not help *)
+	| _ -> false 
+	) in
+	found, subst
+
+(* Extracting equalities from pure formulae *)
+let extract_equalities_from_pfs ?(target : string option) (pfs : pure_formulae) : substitution =
+	let start_time = Sys.time () in
+
+	let subst = init_substitution [] in
+	
+	let i = ref 0 in
+	while !i < DynArray.length pfs do
+		let pf = DynArray.get pfs !i in
+		let found, subst' = extract_equalities_from_assertion ?target:target pf in
+		if found then
+			(JSIL_Logic_Utils.apply_subst_to_subst subst' subst;
+			extend_subst_with_subst subst subst';
+			pfs_substitution_in_place subst' pfs;
+			DynArray.delete pfs !i)
+		else i := !i + 1
+	done;
+
+	print_debug (Printf.sprintf "Substitution:%s" (JSIL_Print.string_of_substitution subst));
+	print_debug (Printf.sprintf "Substituted pfs:%s" (Symbolic_State_Print.string_of_pfs pfs));
+
+	let end_time = Sys.time () in
+		update_statistics "extract_equalities_from_pfs" (end_time -. start_time);
+
+	subst
+
+
 (*************)
 (* REDUCTION *)
 (*************)
 
 (** Reduction of logical expressions *)
-let rec reduce_lexpr ?(gamma: TypEnv.t option) (le : jsil_logic_expr) = 
+let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le : jsil_logic_expr) = 
 
 	let start_time = Sys.time () in
 
-	let f = reduce_lexpr ?gamma:gamma in
+	let f = reduce_lexpr ?gamma:gamma ?pfs:pfs in
 	let result = (match le with
 
 	(* Base lists *)
@@ -194,7 +255,8 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) (le : jsil_logic_expr) =
 		(* Index is a non-negative integer *)
 		| LLit (Num n) when (Utils.is_int n && 0. <= n) ->
 			(match (lexpr_is_list ?gamma:gamma fle) with
-			| true -> Option.default (LLstNth (fle, fidx)) (get_nth_of_list fle (int_of_float n))
+			| true -> 
+				Option.default (LLstNth (fle, fidx)) (get_nth_of_list fle (int_of_float n))
 			| false -> 
 				let err_msg = "LstNth(list, index): list is not a JSIL list." in
 				raise (ReductionException (LLstNth (fle, fidx), err_msg))

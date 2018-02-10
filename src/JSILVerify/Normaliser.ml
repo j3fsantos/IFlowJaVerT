@@ -6,7 +6,7 @@ open JSIL_Logic_Utils
 
 exception InvalidTypeOfLiteral
 
-let new_abs_loc_name var = aloc_prefix ^ var
+let new_aloc_name var = aloc_prefix ^ var
 
 let new_lvar_name var = lvar_prefix ^ var
 
@@ -174,14 +174,15 @@ let cross_product
 
 
 let rec auto_unfold
-		(predicates : (string, unfolded_predicate) Hashtbl.t)
-		(asrt       : jsil_logic_assertion) : jsil_logic_assertion list =
+	(predicates : (string, unfolded_predicate) Hashtbl.t)
+	(asrt       : jsil_logic_assertion) : jsil_logic_assertion list =
 	let au = auto_unfold predicates in
 	match asrt with
 	| LAnd (a1, a2)          -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LAnd (asrt1, asrt2))
 	| LOr (a1, a2)           -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LOr (asrt1, asrt2))
 	| LNot a                 -> List.map (fun asrt -> LNot asrt) (au a)
 	| LStar (a1, a2)         -> cross_product (au a1) (au a2) (fun asrt1 asrt2 -> LStar (asrt1, asrt2))
+
 	| LPred (name, args)     ->
 		(try
 		  let pred : unfolded_predicate = Hashtbl.find predicates name in
@@ -208,8 +209,8 @@ let rec auto_unfold
 				List.concat (List.map au new_asrts)
 		 (* If the predicate is not found, raise an error *)
 		with Not_found -> raise (Failure ("Error: Can't auto_unfold predicate " ^ name)))
-	| LTrue | LFalse | LEq _ | LLess _ | LLessEq _ | LStrLess _ | LPointsTo _ | LEmp
-	| LTypes _ | LEmptyFields _ | LSetMem (_, _) | LSetSub (_, _) | LForAll (_, _) | LMetaData (_, _) | LExtensible (_, _) -> [asrt]
+
+	| _ -> [asrt]
 
 
 (*  ------------------------------------------------------------------
@@ -272,8 +273,8 @@ let join_pred (pred1 : unfolded_predicate) (pred2 : unfolded_predicate) : unfold
 	  		let msg = Printf.sprintf "Incompatible predicate definitions for: %s\n\tName:%s\tName:%s\n\tParams:%d\tParams:%d" pred1.name pred1.name pred2.name pred1.num_params pred2.num_params in
 	  		raise (Failure msg)
 	  ) else (
-				let pred1_param_names, _ = List.split pred1.params in
-				let pred2_param_names, _ = List.split pred2.params in
+			let pred1_param_names, _ = List.split pred1.params in
+			let pred2_param_names, _ = List.split pred2.params in
 	  		let subst = init_substitution2 pred2_param_names (List.map (fun var -> PVar var) pred1_param_names) in
 		  	let definitions = pred1.definitions @
 		  		(List.map (fun (oid, a) -> oid, (asrt_substitution subst true a)) pred2.definitions) in
@@ -338,7 +339,8 @@ let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 
 
 let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
-	let u_predicates = Hashtbl.create 100 in
+	let u_predicates = Hashtbl.create big_tbl_size in
+	
 	Hashtbl.iter
 		(fun name pred ->
 			(* Substitute literals in the head for logical variables *)
@@ -351,6 +353,7 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 			| Not_found -> Hashtbl.add u_predicates name u_pred
 			| Failure reason -> raise (Failure ("Error in predicate " ^ name ^ ": " ^ reason)))
 		preds;
+
 	(* Detect recursive predicates *)
   	let rec_table = find_recursive_preds u_predicates in
 
@@ -368,6 +371,9 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 	let u_rec_predicates' = Hashtbl.create (Hashtbl.length u_rec_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
+
+	  		print_debug_petar (Printf.sprintf "Processing predicate %s with %d definitions" name (List.length pred.definitions));
+
 	  		let definitions' = List.flatten (List.map
 	  			(fun (os, a) ->
 	  				let as' = auto_unfold u_rec_predicates a in
@@ -375,7 +381,10 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 	  				as') pred.definitions) in
 			Hashtbl.add u_rec_predicates' pred.name
 			(let ret_pred = { pred with definitions = definitions'; } in
+
+			 print_debug_petar (Printf.sprintf "Predicate %s now has %d definitions" name (List.length ret_pred.definitions));
   		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
+  		  	 print_debug_petar (Printf.sprintf "Finally, predicate %s now has %d definitions" name (List.length ret_pred.definitions));
   		  	 ret_pred))
 		u_rec_predicates;
 	u_rec_predicates'
@@ -732,39 +741,33 @@ let rec normalise_pure_assertion
   * a cell assertion or empty fields assertion.
   * Example: (x, "foo") -> _ => store(x)= $l_x, where $l_x is fresh
 **)
-let rec initialise_alocs
-	(store : symbolic_store) (gamma : TypEnv.t)
-	(subst : substitution) (ass : jsil_logic_assertion) : unit =
-	let f = initialise_alocs store gamma subst in
-	match ass with
-	| LStar (a_left, a_right) ->
-			f a_left; f a_right
+let initialise_alocs
+	(store : symbolic_store) (gamma : TypEnv.t) (subst : substitution) (la : jsil_logic_assertion list) : unit =
 
-	| LPointsTo (PVar var, _, _)
-	| LEmptyFields (PVar var, _)
-	| LMetaData (PVar var, _) 
-	| LExtensible (PVar var, _) ->
+	List.iter
+	(fun a -> (match a with
+		| LPointsTo (PVar var, _, _)
+		| LEmptyFields (PVar var, _)
+		| LMetaData (PVar var, _) 
+		| LExtensible (PVar var, _) ->
 			if (not (Hashtbl.mem store var))
-			then (Hashtbl.add store var (ALoc (new_abs_loc_name var)); ())
+				then Hashtbl.add store var (ALoc (new_aloc_name var))
 
-	| LPointsTo (LVar var, _, _)
-	| LEmptyFields (LVar var, _) 
-	| LMetaData (LVar var, _) 
-	| LExtensible (LVar var, _) ->
-			print_debug (Printf.sprintf "initialise_alocs: found variable: LVar %s" var);
+		| LPointsTo (LVar var, _, _)
+		| LEmptyFields (LVar var, _) 
+		| LMetaData (LVar var, _) 
+		| LExtensible (LVar var, _) ->
 			if (not (Hashtbl.mem subst var))
-			then
-				(
-					let aloc = new_abs_loc_name var in
-					Hashtbl.add subst var (ALoc aloc);
-					print_debug (Printf.sprintf "It is not in the subst. Assigning ALoc %s" aloc);
-				)
-			else 
-				print_debug (Printf.sprintf "It is in the subst.");
-					(* Hashtbl.remove gamma var) *)
-	
-	(* raise (Failure "Unsupported assertion during normalization") *)
-	| _ -> ()
+				then Hashtbl.add subst var (ALoc (new_aloc_name var))
+
+		| LPointsTo    (ALoc _, _, _) | LPointsTo    (LLit (Loc _), _, _) 
+		| LEmptyFields (ALoc _, _)    | LEmptyFields (LLit (Loc _), _)    
+		| LMetaData    (ALoc _, _)    | LMetaData    (LLit (Loc _), _)    
+		| LExtensible  (ALoc _, _)    | LExtensible  (LLit (Loc _), _) -> ()
+
+		| _ -> raise (Failure (Printf.sprintf "initialise_alocs: untreatable assertion: %s" (JSIL_Print.string_of_logic_assertion a))))
+	) la
+
 
 
 (** -----------------------------------------------------
@@ -1014,66 +1017,48 @@ let rec normalise_cell_assertions
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let rec normalise_type_assertions
-		(store : symbolic_store)
-		(gamma : TypEnv.t)
-		(a     : jsil_logic_assertion) : bool =
+let normalise_type_assertions
+		(store     : symbolic_store)
+		(gamma     : TypEnv.t)
+		(type_list : (jsil_logic_expr * Type.t) list) : bool =
 
 	let type_check_lexpr (le : jsil_logic_expr) (t : Type.t) : bool = 
-		let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
-		(match le_type with
-			| Some le_type ->
-				(if (le_type = t) then true else (
-					print_debug (Printf.sprintf "Only vars or lvars in the typing environment. PUTTING: %s with type %s when its type is %s"
-								(JSIL_Print.string_of_logic_expression le)
-								(Type.str t)
-								(Type.str le_type)); 
-					false))
-			| None ->
-				let new_gamma = JSIL_Logic_Utils.reverse_type_lexpr false gamma le t in
-				(match new_gamma with
-					| None ->
-						print_debug (Printf.sprintf "Only vars or lvars in the typing environment. PUTTING: %s with type %s when it CANNOT be typed or reverse-typed"
-									(JSIL_Print.string_of_logic_expression le)
-									(Type.str t)); 
-						false 
-					| Some new_gamma ->	TypEnv.extend gamma new_gamma; true)) in 
+		let le_type, success, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+		if (not success) then 
+			raise (Failure (Printf.sprintf "normalise_type_assertions: expression %s not typable" (JSIL_Print.string_of_logic_expression le)))
+		else
+			Option.map_default
+			(fun tt -> t = tt)
+			(let new_gamma = JSIL_Logic_Utils.reverse_type_lexpr false gamma le t in
+				Option.map_default (fun new_gamma -> TypEnv.extend gamma new_gamma; true) false new_gamma) le_type in
 
+	List.fold_left 
+	(fun ac (x, t) -> if (not ac) then false else (
+	match x with
+		| LLit lit -> (Literal.type_of lit) = t 
 
-	let f = normalise_type_assertions store gamma in
-	match a with
-	| LTypes type_list ->
-		List.fold_left 
-			(fun ac (x, t) -> if (not ac) then ac else (
-			match x with
-				| LLit lit -> (Literal.type_of lit) = t 
+		| LVar x ->
+			(* if x is a lvar, we simply add (x, t) to gamma *) 
+			Hashtbl.replace gamma x t; true 
 
-				| LVar x ->
-					(* if x is a lvar, we simply add (x, t) to gamma *) 
-					Hashtbl.replace gamma x t; true 
+		| PVar x -> 
+			let le = store_get_safe store x in 
+			(match le with 
+			| Some le -> 
+				(* if x is a pvar in the store, its type must be consistent 
+				   with the expression to which it's mapped *)
+				type_check_lexpr le t
+			| None ->	
+				(* if x is a pvar not in the store, we create a new logical 
+				   variable #x, whose type is going to be set in the gamma 
+				   to the type of x *)
+				let new_lvar = fresh_lvar () in 
+				store_put store x (LVar new_lvar);
+				TypEnv.weak_update gamma new_lvar (Some t); 
+				true)
 
-				| PVar x -> 
-					let le = store_get_safe store x in 
-					(match le with 
-					| Some le ->  
-						(* if x is a pvar in the store, its type must be consistent 
-						   with the expression to which it's mapped *)
-						type_check_lexpr le t 
-					| None ->	
-						(* if x is a pvar not in the store, we create a new logical 
-						   variable #x, whose type is going to be set in the gamma 
-						   to the type of x *)
-						let new_lvar = fresh_lvar () in 
-						store_put store x (LVar new_lvar);
-						TypEnv.weak_update gamma x (Some t); 
-						true)
-
-				| le -> type_check_lexpr le t))
-				true
-				type_list
-	| LStar	(al, ar) -> (f al) && (f ar)
-	| _ -> true
-
+		| le -> type_check_lexpr le t)
+	) true type_list
 
 (** -----------------------------------------------------
   * Normalise Predicate Assertions
@@ -1316,37 +1301,10 @@ let normalise_extensibility
   * ---------------------------------------------------------------------------
   * Symbolic state well-formedness checks
   * ---------------------------------------------------------------------------
-  * 1. the type of each pvar is consistent with the type of the logical
-  *    expression to which it is mapped by the store
-  * 2. the underlying asusmption that all the fields of a give an object are
+  * 1. the underlying assumption that all the fields of a give an object are
   *    different from each other does not create a contradiction
   * ---------------------------------------------------------------------------
  *)
-
-
-let check_pvar_types (store : symbolic_store) (gamma : TypEnv.t) : bool =
-	let placeholder pvar le target_type =
-		if (Hashtbl.mem gamma pvar) then
-		begin
-		  let _type = Hashtbl.find gamma pvar in
-		  	(target_type = _type)
-		end
-		else
-		begin
-		   Hashtbl.add gamma pvar target_type;
-		   true
-		end in
-
-	Hashtbl.fold
-		(fun pvar le ac -> ac &&
-			(match le with
-			 | LNone -> placeholder pvar le NoneType
-			 | ALoc _ -> placeholder pvar le ObjectType
-			 | LLit lit -> placeholder pvar le (Literal.type_of lit)
-			 | _ -> true
-			)
-		) store true
-
 
 let make_all_different_assertion_from_fvlist (f_list : jsil_logic_expr list) : jsil_logic_assertion list =
 
@@ -1395,6 +1353,32 @@ let get_heap_well_formedness_constraints heap =
 
 
 (** -----------------------------------------------------
+  * Separate an assertion into 
+  *   spatial, pure, typing, predicates
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+**)
+let rec separate_assertion (a : jsil_logic_assertion) : jsil_logic_assertion list * jsil_logic_assertion list * (jsil_logic_expr * Type.t) list * (string * jsil_logic_expr list) list = 
+	let f = separate_assertion in
+	(match a with
+	| LStar (al, ar) ->
+		let sl, pl, tl, prl = f al in
+		let sr, pr, tr, prr = f ar in
+			(sl @ sr, pl @ pr, tl @ tr, prl @ prr)
+
+	(* Spatial *)
+	| LEmp | LPointsTo _ | LEmptyFields _ | LMetaData _ | LExtensible _ -> ([ a ], [], [], [])
+
+	(* Typing *)
+	| LTypes lst -> ([], [], lst, [])
+
+	(* Predicates *)
+	| LPred (name, params) -> ([], [], [], [ (name, params) ])
+
+	(* Pure *)
+    | _ -> ([], [ a ], [], []))
+
+(** -----------------------------------------------------
   * Normalise Assertion
   * Given an assertion creates a symbolic state and a
   * substitution
@@ -1409,62 +1393,66 @@ let normalise_assertion
 
 	print_debug (Printf.sprintf "Normalising assertion:\n\t%s" (JSIL_Print.string_of_logic_assertion a));
 
-	let falsePFs pfs =
-		match pfs_to_list pfs with
-		| [ LFalse ] -> true
-		| _          -> false in
+	let falsePFs pfs = (DynArray.length pfs = 1) && (DynArray.get pfs 0 = LFalse) in
 
 	(** Step 1 -- Preprocess list expressions - resolve l-nth(E, i) when possible  *)
 	let a = pre_process_list_exprs a in
 
-	(** Step 2 -- Create empty symbolic heap, symbolic store, typing environment, and substitution *)
+	(** Step 2a -- Create empty symbolic heap, symbolic store, typing environment, and substitution *)
 	let heap  = SHeap.init () in
 	let store = store_init [] [] in
 	let gamma = Option.map_default TypEnv.copy (TypEnv.init ()) gamma in
 	let subst = Option.map_default copy_substitution (init_substitution []) subst in
 
+	(** Step 2b -- Separate assertion *)
+	let spatial, pure, typing, preds = separate_assertion a in
+
 	(** Step 3 -- Normalise type assertions and pure assertions
-	  * 3.1 - type assertions -> initialises gamma
-	  * 3.2 - pure assertions -> initialises store and pfs
-	  *)
-	initialise_alocs store gamma subst a;
-	if (not (normalise_type_assertions store gamma a)) then None else (
-	let p_formulae = normalise_pure_assertions store gamma subst pvars a in
-	if (falsePFs p_formulae) then ( print_debug "Normalising assertion returns None\n"; None ) else (
-		(** The pure formulae are not completely bananas  *)
+		* 3.1 - type assertions -> initialises gamma
+		* 3.2 - pure assertions -> initialises store and pfs
+	*)
+	initialise_alocs store gamma subst spatial;
+	let success = normalise_type_assertions store gamma typing in
+	(match success with
+	| false -> print_debug "WARNING: normalise_assertion: type assertions could not be normalised"; None
+	| true -> 
+		let p_formulae = normalise_pure_assertions store gamma subst pvars a in
+		(match falsePFs p_formulae with
+		| true -> print_debug "WARNING: normalise_assertion: pure formulae false"; None
+		| false -> 
+			(** Step 4 -- Add to the store the program variables that are not there yet, BUT for which we know the types *)
+			extend_typing_env_using_assertion_info gamma (pfs_to_list p_formulae);
 
-		(** Step 4 -- Add to the store the program variables that are not there yet, BUT
-			for which we know the types *)
-		extend_typing_env_using_assertion_info gamma ((pfs_to_list p_formulae) @ (asrts_of_store store));
+			(** Step 5 -- Normalise cell assertions, pred assertions, and ef assertions
+				* 5.1 - cell assertions -> initialises heap
+				* 5.2 - pred assertions -> initialises pred set
+				* 5.3 - ef assertions   -> fills in the domain for the objects in the heap
+			*)
+			normalise_cell_assertions heap store p_formulae gamma subst a;
+			let preds, new_assertions = normalise_pred_assertions store gamma subst a in
+			extend_typing_env_using_assertion_info gamma new_assertions;
+			pfs_merge p_formulae (pfs_of_list new_assertions);
+			normalise_ef_assertions heap store p_formulae gamma subst a;
 
-		(** Step 5 -- Normalise cell assertions, pred assertions, and ef assertions
-		    * 5.1 - cell assertions -> initialises heap
-	      * 5.2 - pred assertions -> initialises pred set
-	      * 5.3 - ef assertions   -> fills in the domain for the objects in the heap
-		  *)
-		normalise_cell_assertions heap store p_formulae gamma subst a;
-		let preds, new_assertions = normalise_pred_assertions store gamma subst a in
-		extend_typing_env_using_assertion_info gamma new_assertions;
-		pfs_merge p_formulae (pfs_of_list new_assertions);
-		normalise_ef_assertions heap store p_formulae gamma subst a;
+			(* NEW *)
+			normalise_metadata heap store p_formulae gamma subst a;
+			normalise_extensibility heap store p_formulae gamma subst a;
 
-		(* NEW *)
-		normalise_metadata heap store p_formulae gamma subst a;
-		normalise_extensibility heap store p_formulae gamma subst a;
+			(** Step 6 -- Check if the symbolic state makes sense *)
+			let heap_constraints = get_heap_well_formedness_constraints heap in
+			if (Pure_Entailment.check_satisfiability (heap_constraints @ (pfs_to_list p_formulae)) gamma)
+				then ( 
+					let ret_ss = (heap, store, p_formulae, gamma, preds) in 
+					print_debug ( Printf.sprintf "normalise_assertion returning:\n %s\n and subst: %s\n" (Symbolic_State_Print.string_of_symb_state ret_ss) (JSIL_Print.string_of_substitution subst));
 
-		(** Step 6 -- Check if the symbolic state makes sense *)
-		let heap_constraints = get_heap_well_formedness_constraints heap in
-		if ((Pure_Entailment.check_satisfiability (heap_constraints @ (pfs_to_list p_formulae)) gamma) &&
-				(check_pvar_types store gamma))
-			then ( 
-				let ret_ss = (heap, store, p_formulae, gamma, preds) in 
-				print_debug ( Printf.sprintf "normalise_assertion returning: %s\n and subst: %s\n" 
-					(Symbolic_State_Print.string_of_symb_state ret_ss)
-					(JSIL_Print.string_of_substitution subst)); 
-				Some (ret_ss, subst)
-			) else (
-				print_debug ( Printf.sprintf "Normalising assertion returns None\n" ); 
-				None)))
+					(* The following must hold *)
+
+					(* STATEMENT: Normalised assertions do not have program variables in the typing environment *)
+					it_must_hold_that 
+						(let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars);
+
+					Some (ret_ss, subst)
+				) else (print_debug "WARNING: normalise_assertion: returning None"; None)))
 
 (** -----------------------------------------------------
   * Normalise a Pre-Normalised Assertion
@@ -1811,7 +1799,10 @@ let normalise_single_spec
 			(JSIL_Print.string_of_single_spec "" spec) in
 		print_debug failed_spec_msg;
 		raise (Failure failed_spec_msg)
-	) else n_specs'
+	) else 
+	(
+		n_specs'
+	)
 
 
 (** -----------------------------------------------------
@@ -1823,7 +1814,7 @@ let normalise_spec
 	(predicates : (string, unfolded_predicate) Hashtbl.t)
 	(spec       : jsil_spec) : jsil_n_spec =
 	let time = Sys.time () in
- 	print_debug (Printf.sprintf "Going to process the SPECS of %s. The time now is: %f\n" spec.spec_name time);
+ 	print_debug (Printf.sprintf "Going to process the SPECS of %s. There are %d of them. The time now is: %f\n" spec.spec_name (List.length spec.proc_specs) time);
  	print_debug (Printf.sprintf "Normalised spec? %b" spec.previously_normalised);
 
   (** Treat pre-normalised specs differently *)
@@ -1857,7 +1848,7 @@ let build_spec_tbl
 	(** 1.1 - from JSIL procedures
         1.2 - only specs
         1.3 - lemmas                                  *)
-    let proc_tbl_rng = get_tbl_rng prog in
+    let proc_tbl_rng   = get_tbl_rng prog in
     let proc_specs     = List.concat (List.map (fun proc -> Option.map_default (fun ospec -> [ ospec ]) [] proc.spec) proc_tbl_rng) in
    	let only_specs     = get_tbl_rng onlyspecs in
    	(* Build a list of the lemma specs *)

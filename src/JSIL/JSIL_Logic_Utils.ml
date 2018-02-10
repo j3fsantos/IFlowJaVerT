@@ -482,6 +482,13 @@ let substitution_to_list (subst : substitution) : jsil_logic_assertion list =
 		subst
 		[]
 
+(** Applies --subst'-- to --subst-- *)
+let apply_subst_to_subst subst' subst = 
+	Hashtbl.iter (fun k v -> 
+		let v' = lexpr_substitution subst' true v in
+		Hashtbl.replace subst k v')
+	subst
+
 (***************************************************************)
 (***************************************************************)
 (** Logic Commmands                                           **)
@@ -544,8 +551,6 @@ let rec logic_command_map
 (******************)
 
 let rec infer_types_to_gamma flag gamma new_gamma le (tt : Type.t) : bool =
-	
-	print_debug_petar (Printf.sprintf "infer_types_to_gamma: %s %s" (JSIL_Print.string_of_logic_expression le) (Type.str tt));
 
 	let f = infer_types_to_gamma flag gamma new_gamma in
 	
@@ -632,8 +637,6 @@ let reverse_type_lexpr flag gamma le le_type : TypEnv.t option =
 (*****************)
 
 let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * bool * jsil_logic_assertion list =
-
-	print_debug_petar (Printf.sprintf "type_lexpr: %s" (JSIL_Print.string_of_logic_expression le));
 
 	let f = type_lexpr gamma in
 	let def_pos (ot : Type.t option) = (ot, true, []) in

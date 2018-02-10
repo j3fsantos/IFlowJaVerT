@@ -75,7 +75,7 @@ let string_of_symb_state (symb_state : symbolic_state) : string =
 	let str_heap       = "Heap: " ^ (SHeap.str (ss_heap symb_state)) ^ "\n" in
 	let str_store      = "Store: " ^ (string_of_symb_store (ss_store symb_state)) ^ "\n" in
 	let str_p_formulae = "Pure Formulae: " ^ (string_of_pfs (ss_pfs symb_state)) ^ "\n" in
-	let str_gamma      = "Gamma: " ^ (TypEnv.str (ss_gamma symb_state)) ^ "\n" in
+	let str_gamma      = "Gamma:\n" ^ (TypEnv.str (ss_gamma symb_state)) ^ "\n" in
 	let str_preds      = "Preds: " ^ (string_of_preds (ss_preds symb_state)) ^ "\n" in
 	str_heap ^ str_store ^ str_p_formulae ^ str_gamma ^ str_preds
 

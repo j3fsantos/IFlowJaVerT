@@ -31,14 +31,30 @@ let close_output_files () =
 let im_petar    = ref true
 let newencoding = ref false
 let debug       = ref false
+let sanity      = ref true
+let output      = ref true
 
-let print_debug  msg  = let msg = Printf.sprintf "%s\n%!" msg in output_string output_file_debug msg 
-let print_normal msg  = output_string output_file (msg ^ "\n"); print_debug msg 
-let print_normalisation msg = output_string output_file_normalisation (msg ^ "\n") 
-let print_njsil_file msg  = output_string output_file_njsil (msg ^ "\n") 
+let print_debug  msg  = 
+  if !output then
+    output_string output_file_debug (Printf.sprintf "%s\n%!" msg)
+
+let print_normal msg  = 
+  if !output then
+    output_string output_file (msg ^ "\n"); print_debug msg
+
+let print_normalisation msg = 
+  if !output then
+    output_string output_file_normalisation (msg ^ "\n") 
+let print_njsil_file msg  = 
+  if !output then
+    output_string output_file_njsil (msg ^ "\n") 
 
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
+
+let it_must_hold_that x =
+  if !sanity then
+    assert x
 
 (********
  * Sets *

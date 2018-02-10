@@ -34,7 +34,7 @@ let find_me_Im_a_list pfs le =
 							(match lexpr with
 							| LLit (LList _)
 							| LEList _ -> raise (FoundIt lexpr)
-							| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LUnOp (Car, PVar var) && (lcdr = LUnOp (Cdr, LVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
+							| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LUnOp (Car, LVar var) && (lcdr = LUnOp (Cdr, LVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
 							| _ ->
 								if (not (List.mem lexpr !found)) then
 									found := !found @ [lexpr])
@@ -154,15 +154,15 @@ let rec reduce_expression (gamma : (string, Type.t) Hashtbl.t)
 	
 	(* print_debug (Printf.sprintf "Reduce expression: %s" (string_of_logic_expression e)); *)
 	
-	(* TEST TEST TEST *)
+	(* TEST TEST TEST 
 	let _ : unit = try (
-		let result = Reduction.reduce_lexpr e in
-		if (e <> result) then print_debug (Printf.sprintf "%s --red_exp--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression result))
+		let result = Reduction.reduce_lexpr ?gamma:(Some gamma) e in
+		if (e <> result) then print_debug (Printf.sprintf "%s --red_exp--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression result));
 	)
 	with
 	| Reduction.ReductionException (le, msg) -> 
 		print_debug (Printf.sprintf "Reduction exception: %s --red_exp--> %s --exception--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression le) msg) in
-	(* TEST TEST TEST *)
+	TEST TEST TEST *)
 
 	let f = reduce_expression gamma pfs in
 	let orig_expr = e in
@@ -187,7 +187,6 @@ let rec reduce_expression (gamma : (string, Type.t) Hashtbl.t)
 			f (LBinOp (le1, StrCat, LBinOp (le2, StrCat, le3)))
 
   (* List equality *)
-	| LBinOp (LUnOp (Car, PVar x), LstCons, LUnOp (Cdr, PVar y)) when (x = y) -> PVar x
 	| LBinOp (LUnOp (Car, LVar x), LstCons, LUnOp (Cdr, LVar y)) when (x = y) -> LVar x
 								
 	| LUnOp (ToStringOp, LLit (Num n)) -> LLit (String (Utils.float_to_string_inner n))
@@ -476,7 +475,7 @@ let rec reduce_assertion gamma pfs a =
 
 			| LLit l1, LLit l2 -> ite l1 l2
 			| LNone, PVar x
-			| PVar x, LNone
+			| PVar x, LNone -> default e1 e2 re1 re2
 			| LNone, LVar x
 			| LVar x, LNone -> 
 				if (Hashtbl.mem gamma x) 
@@ -611,9 +610,9 @@ let rec reduce_assertion gamma pfs a =
 			| _ -> LForAll (bt, ra))
 
 	| _ -> a) in
-	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
-		(JSIL_Print.string_of_logic_assertion a false)
-		(JSIL_Print.string_of_logic_assertion result false)); *)
+	print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+		(JSIL_Print.string_of_logic_assertion a)
+		(JSIL_Print.string_of_logic_assertion result)); 
 	result
 
 let reduce_assertion_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (DynArray.create ())
@@ -1276,6 +1275,10 @@ let simplify_symb_state
 		changes_made := false;
 		
 		let (heap, store, pfs, gamma, preds) = !symb_state in
+
+		(* TEST TEST TEST 
+		let _ = Reduction.extract_equalities_from_pfs (pfs_copy pfs) in 
+		TEST TEST TEST *)
 		
 		Hashtbl.filter_map_inplace (fun pvar le -> Some (reduce_expression gamma pfs le)) store;
 		
@@ -2027,7 +2030,6 @@ let aux_find_me_Im_a_loc pfs gamma v =
 
 (** This function is dramatically incomplete **)
 
-	
 (* ******************** *
  * EXPRESSION REDUCTION *
  * ******************** *)
@@ -2039,28 +2041,3 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	| Some subst ->
 		let e = lexpr_substitution subst true e in
 			reduce_expression gamma pfs e)
-			
-(* ******************************** *
- * CONGRUENCE CLOSURE APPROXIMATION *
- * ********************************** *)
-
-(* No entailment *)
-let cc_from_subst (subst : (string, jsil_logic_expr) Hashtbl.t) : (jsil_logic_expr, SLExpr.t) Hashtbl.t =
-	let cc_table : (jsil_logic_expr, SLExpr.t) Hashtbl.t = Hashtbl.create 57 in
-	
-	let establish_initial_cc () = 
-		Hashtbl.iter (fun key value -> 
-			let var = (match (is_pvar_name key) with
-				| true -> PVar key 
-				| false -> LVar key) in
-			Hashtbl.add cc_table var (SLExpr.add value (SLExpr.singleton var))) subst in
-		
-	establish_initial_cc();
-	
-	let changes_made = ref true in
-	
-	while (!changes_made) do
-		changes_made := false;
-	done;
-	
-	cc_table

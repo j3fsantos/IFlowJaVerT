@@ -25,7 +25,9 @@ let arguments () =
 			(* *)
 			"-stats",  Arg.Unit (fun () -> stats := true), "stats";
 			"-interactive", Arg.Unit (fun () -> interactive := true), "interactive predicate folding, enjoy";
-			"-njsil", Arg.Unit (fun () -> output_normalised_specs := true), "output normalised specs"
+			"-njsil", Arg.Unit (fun () -> output_normalised_specs := true), "output normalised specs";
+			"-nochecks", Arg.Unit (fun () -> sanity := false), "do not perform correctness checks";
+			"-nooutput", Arg.Unit (fun () -> output := false), "suppress output"
 	  ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg

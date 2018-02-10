@@ -227,9 +227,8 @@ let symb_evaluate_bcmd
 			c) Update the typing environment with [x |-> tle]
 			d) Return nle *)
 	| Assignment (x, e) ->
-		let nle, tle, _ = ssee e in
+		let nle, _, _ = ssee e in
 		store_put store x nle;
-		TypEnv.update gamma x tle;
 		nle
 
 	(* Object creation: x = new ();
@@ -1242,7 +1241,6 @@ let rec symb_evaluate_cmd
 			(fun (symb_state, ret_flag, ret_le, search_info) ->
 				let ret_type, _, _  = type_lexpr (ss_gamma symb_state) ret_le in
 				store_put (ss_store symb_state) x ret_le;
-				TypEnv.update (ss_gamma symb_state) x ret_type;
 				let symb_state      = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 				let new_search_info = sec_duplicate search_info in
 				(match ret_flag, j with
@@ -1263,12 +1261,17 @@ let rec symb_evaluate_cmd
 		let le       = symb_evaluate_expr (ss_store symb_state) (ss_gamma symb_state) (ss_pfs symb_state) expr in
 		let te, _, _ = type_lexpr (ss_gamma symb_state) le in
 		store_put (ss_store symb_state) x le;
-		TypEnv.update (ss_gamma symb_state) x te;
 		post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i (i+1) in
 	
 	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 	Symbolic_State_Print.print_symb_state_and_cmd proc i symb_state;
+
+	(* STATEMENT: There are never program variables in the typing environment *)
+	it_must_hold_that 
+		(let _, store, _, gamma, _ = symb_state in let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars);
+
+
 	let metadata, cmd = get_proc_cmd proc i in
 	sec_visit_node search_info i;
 	

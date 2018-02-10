@@ -15,10 +15,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
   | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (BinOp.str op) (se e2)
   (* (uop e) *)
   | UnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (se e)
-  | EList ll ->
-    (match ll with
-    | [] -> "nil"
-    | ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
+  | EList ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll))
   (* -{ e1, e2, ... }- *)
   | ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
   (* l-nth(e1, e2) *)

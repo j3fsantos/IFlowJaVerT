@@ -10,11 +10,10 @@ let str (x : t) : string =
 	Hashtbl.fold
 		(fun var var_type ac ->
 			let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
-			if (ac = "\t")
-				then var_type_pair_str
-				else ac ^ "\n\t" ^ var_type_pair_str)
+			let new_line = if (ac = "") then "\t" else "\n\t" in
+				ac ^ new_line ^ var_type_pair_str)
 		x
-		"\t"
+		""
 
 (*************************************)
 (** Typing Environment Functions    **)
