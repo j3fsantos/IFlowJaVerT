@@ -78,10 +78,7 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   	(* (uop e1 e2) *)
   | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (sle e)
   	(* {{ e1, ..., en }} *)
-  | LEList list ->
-    			(match list with
-     			| [] -> "nil"
-     			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
+  | LEList list -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle list))
   		(* -{ e1, ..., en }- *)
   | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))
   | LSetUnion list -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map sle list))

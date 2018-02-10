@@ -371,9 +371,6 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 	let u_rec_predicates' = Hashtbl.create (Hashtbl.length u_rec_predicates) in
 	Hashtbl.iter
 	  (fun name pred ->
-
-	  		print_debug_petar (Printf.sprintf "Processing predicate %s with %d definitions" name (List.length pred.definitions));
-
 	  		let definitions' = List.flatten (List.map
 	  			(fun (os, a) ->
 	  				let as' = auto_unfold u_rec_predicates a in
@@ -381,10 +378,7 @@ let auto_unfold_pred_defs (preds : (string, jsil_logic_predicate) Hashtbl.t) =
 	  				as') pred.definitions) in
 			Hashtbl.add u_rec_predicates' pred.name
 			(let ret_pred = { pred with definitions = definitions'; } in
-
-			 print_debug_petar (Printf.sprintf "Predicate %s now has %d definitions" name (List.length ret_pred.definitions));
   		  	 let ret_pred = detect_trivia_and_nonsense ret_pred in
-  		  	 print_debug_petar (Printf.sprintf "Finally, predicate %s now has %d definitions" name (List.length ret_pred.definitions));
   		  	 ret_pred))
 		u_rec_predicates;
 	u_rec_predicates'

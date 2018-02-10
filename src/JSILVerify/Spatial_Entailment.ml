@@ -382,9 +382,12 @@ let unify_domains
 	
 	(* 4. We can only process explicit sets                                               *) 
 	let domain_difference, domain_frame_difference =
+		print_debug (Printf.sprintf "DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference));
 		(match domain_difference, domain_frame_difference with
 			| LESet domain_difference, LESet domain_frame_difference -> domain_difference, domain_frame_difference
-			| _, _ -> raise (UnificationFailure (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference)))) in
+			| _, _ -> 
+				let msg = Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference) in
+				print_debug msg; raise (UnificationFailure msg)) in
 
 	(*
 	let none_q_v_list_strs = List.map (fun (field, value) -> JSIL_Print.string_of_logic_expression field false) none_q_v_list in

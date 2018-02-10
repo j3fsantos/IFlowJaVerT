@@ -1,6 +1,7 @@
 open CCommon
 open SCommon
 open JSIL_Syntax
+open JSIL_Logic_Utils
 open Symbolic_State
 
 (* When reduction fails *)
@@ -12,24 +13,18 @@ exception ReductionException of jsil_logic_expr * string
 
 let typable ?(gamma : TypEnv.t option) (le : jsil_logic_expr) (target_type : Type.t) : bool = 
 	let gamma = Option.default (TypEnv.init ()) gamma in
-	let t, success, _ = JSIL_Logic_Utils.type_lexpr gamma le in
-		if success then (t = Some target_type) else
+	let t, success, _ = type_lexpr gamma le in
+		if success then 
+			Option.map_default
+			(fun t -> t = target_type) 
+			(match le with | LVar _ | PVar _ -> true | _ -> false)
+			t
+		else
 			raise (Failure (Printf.sprintf "typable: type error: %s not typable in typing environment %s" (JSIL_Print.string_of_logic_expression le) (TypEnv.str gamma)))
 
 (* Lists *)
 let lexpr_is_list ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 	typable ?gamma:gamma le ListType
-
-(* More lists *)
-let rec lexpr_is_list_weak (le : jsil_logic_expr) : bool =
-	let f = lexpr_is_list_weak in
-	(match le with
-	| LVar _
-	| LLit (LList _)
-	| LEList _ -> true
-	| LBinOp (_, LstCons, le) -> f le
-	| LBinOp (lel, LstCat, ler) -> f lel && f ler
-	| _ -> false)
 
 (* Strings *)
 let lexpr_is_string ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
@@ -43,7 +38,7 @@ let lexpr_is_number ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 let lexpr_is_bool ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 	typable ?gamma:gamma le BooleanType
 
-(* Booleans *)
+(* Sets *)
 let lexpr_is_set ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 	typable ?gamma:gamma le SetType
 
@@ -56,6 +51,7 @@ let rec get_length_of_list (lst : jsil_logic_expr) : int option =
 	let f = get_length_of_list in
 
 	(match lst with
+	| PVar _ -> None
 	| LVar _ -> None
 	| LLit (LList l) -> Some (List.length l)
 	| LEList l -> Some (List.length l)
@@ -79,13 +75,14 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 
 	(match lst with
 	(* Nothing can be done for variables *)
+	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
 	| LLit (LList l) -> it_must_hold_that (idx < List.length l); Some (LLit (List.nth l idx))
 	| LEList l       -> it_must_hold_that (idx < List.length l); Some (List.nth l idx)
-	| LBinOp (_, LstCons, lst) -> 
+	| LBinOp (hd, LstCons, lst) -> 
 		if (idx = 0) 
-			then raise (ReductionException (LNone, err_msg))
+			then Some hd
 			else f lst (idx - 1)
 	| LBinOp (lel, LstCat, ler) ->
 		Option.default None 
@@ -105,6 +102,7 @@ let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * j
 
 	(match lst with
 	(* Nothing can be done for variables *)
+	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
 	| LLit (LList l) -> it_must_hold_that (0 < List.length l); Some (LLit (List.hd l), LLit (LList (List.tl l)))
@@ -130,6 +128,7 @@ let rec get_length_of_string (str : jsil_logic_expr) : int option =
 	let f = get_length_of_string in
 
 	(match str with
+	| PVar _ -> None
 	| LVar _ -> None
 	| LLit (String s) -> Some (String.length s)
 	| LBinOp (sl, StrCat, sr) -> Option.default None (Option.map (fun ll -> Option.map (fun lr -> ll + lr) (f sr)) (f sl)) 
@@ -151,6 +150,7 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 
 	let result : jsil_logic_expr option = (match str with
 	(* Nothing can be done for variables *)
+	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
 	| LLit (String s) -> it_must_hold_that (idx < String.length s); Some (LLit (String (String.sub s idx 1)))
@@ -165,6 +165,18 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 
 	| _ -> raise (Failure (Printf.sprintf "get_nth_of_string: string equals %s, impossible" (JSIL_Print.string_of_logic_expression str)))
 	) in result
+
+(**********************************)
+(* SET REASONING HELPER FUNCTIONS *)
+(**********************************)
+
+let rec set_member m s = 
+	let f = set_member m in 
+	(match s with
+	| LESet s -> List.mem m s
+	| LSetUnion les -> List.exists  (fun x -> f x) les
+	| LSetInter les -> List.for_all (fun x -> f x) les
+	| _ -> false)
 
 (*****************)
 (* PURE FORMULAE *)
@@ -205,7 +217,7 @@ let extract_equalities_from_pfs ?(target : string option) (pfs : pure_formulae) 
 		let pf = DynArray.get pfs !i in
 		let found, subst' = extract_equalities_from_assertion ?target:target pf in
 		if found then
-			(JSIL_Logic_Utils.apply_subst_to_subst subst' subst;
+			(apply_subst_to_subst subst' subst;
 			extend_subst_with_subst subst subst';
 			pfs_substitution_in_place subst' pfs;
 			DynArray.delete pfs !i)
@@ -254,13 +266,13 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 		(match fidx with
 		(* Index is a non-negative integer *)
 		| LLit (Num n) when (Utils.is_int n && 0. <= n) ->
-			(match (lexpr_is_list ?gamma:gamma fle) with
-			| true -> 
-				Option.default (LLstNth (fle, fidx)) (get_nth_of_list fle (int_of_float n))
-			| false -> 
-				let err_msg = "LstNth(list, index): list is not a JSIL list." in
-				raise (ReductionException (LLstNth (fle, fidx), err_msg))
-			)
+				(match (lexpr_is_list fle) with
+				| true -> 
+					Option.default (LLstNth (fle, fidx)) (get_nth_of_list fle (int_of_float n))
+				| false -> 
+					let err_msg = "LstNth(list, index): list is not a JSIL list." in
+					raise (ReductionException (LLstNth (fle, fidx), err_msg))
+				)
 
 		(* Index is a number, but is either not an integer or is negative *)
 		| LLit (Num n) -> 
@@ -327,7 +339,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 		let fles = SLExpr.elements (SLExpr.of_list fles) in
 			(match fles with
 			| [ ] -> LESet [ ] 
-			| [ LESet s ] -> LESet s 
+			| [ x ] -> x
 			| _ -> LSetUnion fles)
 
 	| LSetInter les ->
@@ -364,7 +376,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 			let fles = SLExpr.elements (SLExpr.of_list fles) in
 				(match fles with
 				| [ ] -> LESet [ ] 
-				| [ LESet s ] -> LESet s 
+				| [ x ] -> x
 				| _ -> LSetInter fles)
 
 	| LUnOp (op, le) ->
@@ -377,7 +389,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 			(* The TypeOf operator *)
 			| TypeOf ->
 				let gamma = Option.default (TypEnv.init ()) gamma in
-				let tfle, how, _ = JSIL_Logic_Utils.type_lexpr gamma fle in
+				let tfle, how, _ = type_lexpr gamma fle in
 				(match how with
 				| false -> 
 					let err_msg = "LTypeOf(le): expression is not typable." in
@@ -390,7 +402,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 				)
 			(* List head *)
 			| Car ->
-				(match (lexpr_is_list ?gamma:gamma fle) with
+				(match (lexpr_is_list fle) with
 				| true -> let ohdtl = get_head_and_tail_of_list fle in
 					Option.map_default (fun (hd, _) -> hd) def ohdtl
 				| false -> 
@@ -400,7 +412,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 
 			(* List tail *)
 			| Cdr ->
-				(match (lexpr_is_list ?gamma:gamma fle) with
+				(match (lexpr_is_list fle) with
 				| true -> let ohdtl = get_head_and_tail_of_list fle in
 					Option.map_default (fun (_, tl) -> tl) def ohdtl
 				| false -> 
@@ -410,7 +422,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 
 			(* List length *)
 			| LstLen ->
-				(match (lexpr_is_list ?gamma:gamma fle) with
+				(match (lexpr_is_list fle) with
 				| true -> let len = get_length_of_list fle in
 					Option.map_default (fun len -> LLit (Num (float_of_int len))) def len
 				| false -> 
@@ -420,7 +432,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 
 			(* String length *)
 			| StrLen ->
-				(match (lexpr_is_string ?gamma:gamma fle) with
+				(match (lexpr_is_string fle) with
 				| true -> let len = get_length_of_string fle in
 					Option.map_default (fun len -> LLit (Num (float_of_int len))) def len
 				| false -> 
@@ -523,19 +535,45 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 				(* Rest *)
 				| _, _ -> def
 				)
+
 			| SetDiff when (lexpr_is_set ?gamma:gamma def) ->
 				(match flel, fler with
+				| x, y when (x = y) -> LESet []
 				| LESet [], _ -> LESet []
 				| x, LESet [] -> x
-				| _, _ -> def)
-			| SetMem when (lexpr_is_set ?gamma:gamma def) ->
+				| LESet left, LESet right when (all_literals left && all_literals right) ->
+					LESet (SLExpr.elements (SLExpr.diff (SLExpr.of_list left) (SLExpr.of_list right)))
+				| LESet left, s when (all_literals left) ->
+					if (List.for_all (fun x -> set_member x s) left) then LESet [] else def
+				| LSetUnion les, _ -> 
+					let diffs = List.map (fun le -> f (LBinOp (le, SetDiff, fler))) les in
+					LSetUnion diffs
+				| _, _ -> let hM = f (LBinOp (flel, SetSub, fler)) in
+					(match hM with
+					| LLit (Bool true) -> LESet []
+					| _ -> def))
+
+			| SetMem when (lexpr_is_bool ?gamma:gamma def) ->
 				(match flel, fler with
 				| _, LESet [] -> LLit (Bool false)
+				| _, LESet [ x ] -> LBinOp (flel, Equal, x)
+				| le, LESet les -> 
+					(match (List.mem le les) with
+					| true -> LLit (Bool true)
+					| false -> (match le with
+						| LLit _ -> if (all_literals les) then LLit (Bool false) else def
+						| _ -> def)
+					)
+
 				| _, _ -> def)
-			| SetSub when (lexpr_is_set ?gamma:gamma def) ->
+
+			| SetSub when (lexpr_is_bool ?gamma:gamma def) ->
 				(match flel, fler with
 				| LESet [], _ -> LLit (Bool true)
 				| _, LESet [] -> LLit (Bool false)
+				| LESet left, LESet right when (all_literals left && all_literals right) ->
+					LLit (Bool (SLExpr.subset (SLExpr.of_list left) (SLExpr.of_list right)))
+				| LVar v, LSetUnion les -> if (List.mem flel les) then (LLit (Bool true)) else def
 				| _, _ -> def)
 			| _ -> def
 			)
@@ -546,7 +584,7 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 	) in
 	
 	if (le <> result) 
-		then f result 
+		then (print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result)); f result)
 		else 
 		(let end_time = Sys.time () in
 			update_statistics "reduce_lexpr" (end_time -. start_time);

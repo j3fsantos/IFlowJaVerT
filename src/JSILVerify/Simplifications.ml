@@ -154,16 +154,9 @@ let rec reduce_expression (gamma : (string, Type.t) Hashtbl.t)
 	
 	(* print_debug (Printf.sprintf "Reduce expression: %s" (string_of_logic_expression e)); *)
 	
-	(* TEST TEST TEST 
-	let _ : unit = try (
-		let result = Reduction.reduce_lexpr ?gamma:(Some gamma) e in
-		if (e <> result) then print_debug (Printf.sprintf "%s --red_exp--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression result));
-	)
-	with
-	| Reduction.ReductionException (le, msg) -> 
-		print_debug (Printf.sprintf "Reduction exception: %s --red_exp--> %s --exception--> %s" (JSIL_Print.string_of_logic_expression e) (JSIL_Print.string_of_logic_expression le) msg) in
-	TEST TEST TEST *)
-
+	Reduction.reduce_lexpr ?gamma:(Some gamma) e 
+	
+(*)
 	let f = reduce_expression gamma pfs in
 	let orig_expr = e in
 	let result = (match e with
@@ -381,7 +374,7 @@ let rec reduce_expression (gamma : (string, Type.t) Hashtbl.t)
 	(* if (result <> orig_expr) then (print_debug_petar (Printf.sprintf "Reduce expression: %s ---> %s"
 		(JSIL_Print.string_of_logic_expression e) 
 		(JSIL_Print.string_of_logic_expression result))); *)
-	result
+	result *)
 
 let reduce_expression_no_gamma_no_pfs = reduce_expression (Hashtbl.create 1) (DynArray.create ())
 let reduce_expression_no_gamma        = reduce_expression (Hashtbl.create 1)
@@ -610,9 +603,9 @@ let rec reduce_assertion gamma pfs a =
 			| _ -> LForAll (bt, ra))
 
 	| _ -> a) in
-	print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
+	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
 		(JSIL_Print.string_of_logic_assertion a)
-		(JSIL_Print.string_of_logic_assertion result)); 
+		(JSIL_Print.string_of_logic_assertion result)); *)
 	result
 
 let reduce_assertion_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (DynArray.create ())
@@ -1880,6 +1873,10 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 		let a = DynArray.get rpfs !i in
 		(match a with
 		| LEq (LSetUnion ul, LSetUnion ur) -> 
+				(* Expand LESets *)
+				let ul = List.flatten (List.map (fun u -> (match u with | LESet x -> List.map (fun x -> LESet [ x ]) x | _ -> [ u ])) ul) in
+				let ur = List.flatten (List.map (fun u -> (match u with | LESet x -> List.map (fun x -> LESet [ x ]) x | _ -> [ u ])) ur) in
+
 				let sul = SLExpr.of_list ul in
 				let sur = SLExpr.of_list ur in
 				print_debug_petar "Resolve set existentials: I have found a union equality.";

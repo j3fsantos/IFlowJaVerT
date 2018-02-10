@@ -608,7 +608,7 @@ let encode_binop (op : BinOp.t) le1 le2 =
 		let n_le  = (Expr.mk_app ctx axiomatised_operations.lcat_fun [ n_le1; n_le2 ]) in 
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ n_le ])		
 
-	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
+	| _ -> raise (Failure (Printf.sprintf "SMT encoding: Construct not supported yet - binop: %s" (BinOp.str op)))
 
 
 let encode_unop (op : UnOp.t) le =

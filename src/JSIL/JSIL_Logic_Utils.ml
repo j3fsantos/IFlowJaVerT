@@ -614,8 +614,8 @@ let rec infer_types_to_gamma flag gamma new_gamma le (tt : Type.t) : bool =
 			| LstCat         ->    Some ListType,    Some ListType, ListType   
 			| StrCat         ->  Some StringType,  Some StringType, StringType
 			| SetMem         ->             None,     Some SetType, BooleanType
-			| SetDiff        
-			| SetSub         ->     Some SetType,     Some SetType, SetType    
+			| SetDiff        ->     Some SetType,     Some SetType, SetType
+			| SetSub         ->     Some SetType,     Some SetType, BooleanType    
 			| _              ->  Some NumberType,  Some NumberType, NumberType
 			) in
 		(tt = rt) && 
@@ -642,6 +642,14 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 	let def_pos (ot : Type.t option) = (ot, true, []) in
 	let def_neg = (None, false, []) in
 
+	let infer_type le tt constraints = 
+		let outcome = reverse_type_lexpr true gamma le tt in
+			Option.map_default 
+			(fun new_gamma -> 
+				TypEnv.extend gamma new_gamma;
+				(Some tt, true, constraints)
+			) def_neg outcome in
+
 	let typable_list ?(target_type : Type.t option) les = 
 		(List.fold_left
 			(fun (ac, ac_constraints) elem ->
@@ -666,7 +674,7 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 	| ALoc _ -> def_pos (Some ObjectType)
 
   	(* Lists are typable if no element breaks typing *)
-	| LEList les ->
+	| LEList les -> 
 		let all_typable, constraints = typable_list les in
 			if (all_typable) then (Some ListType, true, constraints) else def_neg
 
@@ -676,27 +684,7 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 			if (all_typable) then (Some SetType, true, constraints) else def_neg
 
  	| LUnOp (unop, e) ->
-		let (te, ite, constraints) = f e in
-		
-		let tt (t1 : Type.t) (t2 : Type.t option) new_constraints =
-			
-			print_debug_petar (Printf.sprintf "UnOp: %s (%s, %s)" (JSIL_Print.string_of_logic_expression le) (Type.str t1) 
-				(Option.map_default (fun t -> Type.str t) "None" t2));
-
-			Option.map_default 
-			(fun t -> 
-				if (t = t1)
-					then (t2, true, (new_constraints @ constraints))
-					else def_neg)
-			(* The expression was not typed *)
-			(match e with
-			(* If it is a variable that needs to be of a certain type, then we infer this type *)
-			| LVar v
-			| PVar v -> 
-				TypEnv.update gamma v (Some t1);
-				(t2, true, (new_constraints @ constraints))
-			| _ -> def_neg) 
-			te in
+		let (_, ite, constraints) = f e in
 
 		(match ite with
 		| false -> def_neg
@@ -710,16 +698,11 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 			| Car | Cdr   -> ListType,    [ (LLessEq (LLit (Num 1.), LUnOp (LstLen, e))) ]
 			| _           -> NumberType,  []
 			) in
-			let outcome = reverse_type_lexpr true gamma le tt in
-			Option.map_default 
-			(fun new_gamma -> 
-				TypEnv.extend gamma new_gamma;
-				(Some tt, true, new_constraints @ constraints)
-			) def_neg outcome)
+			infer_type le tt (new_constraints @ constraints))
 
 	| LBinOp (e1, op, e2) ->
-		let (te1, ite1, constraints1) = f e1 in
-		let (te2, ite2, constraints2) = f e2 in
+		let (_, ite1, constraints1) = f e1 in
+		let (_, ite2, constraints2) = f e2 in
 		let constraints = constraints1 @ constraints2 in
 
 		(* Both expressions must be typable *)
@@ -734,45 +717,48 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 			| StrCat  -> StringType
 			| _       -> NumberType
 			) in
-			let outcome = reverse_type_lexpr true gamma le tt in
-			Option.map_default 
-			(fun new_gamma -> 
-				TypEnv.extend gamma new_gamma;
-				(Some tt, true, constraints)
-			) def_neg outcome
+			infer_type le tt constraints
 
 		| _, _ -> def_neg)
 
 
 	(* List length is typable with constraints *)
 	| LLstNth (lst, index) ->
-		let type_lst, _, constraints1 = f lst in
-		(match type_lst with
-		| Some ListType ->
-			let type_index, _, constraints2 = f index in
-			(match type_index with
-			| Some NumberType ->
-				(* Index also has to be an integer *)
+		let _, _, constraints1 = f lst in
+		let _, _, constraints2 = f index in
+		let constraints = constraints1 @ constraints2 in
+		let _, success, _ = infer_type lst ListType constraints in
+		(match success with
+		| false -> def_neg
+		| true -> 
+			let _, success, _ = infer_type index NumberType constraints in
+			(match success with
+			| false -> def_neg
+			| true -> 
 				let new_constraint1 = (LLessEq (LLit (Num 0.), index)) in
 				let new_constraint2 = (LLess (index, LUnOp (LstLen, lst))) in
-				(None, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
-			| _ -> def_neg)
-		| _ -> def_neg)
+				(None, true, (new_constraint1 :: (new_constraint2 :: constraints)))
+			)
+		)
 
 	(* String length is typable with constraints *)
 	| LStrNth (str, index) ->
-		let type_str, _, constraints1 = f str in
-		(match type_str with
-		| Some StringType ->
-			let type_index, _, constraints2 = f index in
-			(match type_index with
-			| Some NumberType ->
-				(* Index also has to be an integer *)
+		let _, _, constraints1 = f str in
+		let _, _, constraints2 = f index in
+		let constraints = constraints1 @ constraints2 in
+		let _, success, _ = infer_type str ListType constraints in
+		(match success with
+		| false -> def_neg
+		| true -> 
+			let _, success, _ = infer_type index NumberType constraints in
+			(match success with
+			| false -> def_neg
+			| true -> 
 				let new_constraint1 = (LLessEq (LLit (Num 0.), index)) in
 				let new_constraint2 = (LLess (index, LUnOp (StrLen, str))) in
-				(Some StringType, true, (new_constraint1 :: (new_constraint2 :: constraints1 @ constraints2)))
-			| _ -> def_neg)
-		| _ -> def_neg)
+				(None, true, (new_constraint1 :: (new_constraint2 :: constraints)))
+			)
+		)
 		
 	| LSetUnion les
 	| LSetInter les -> 
@@ -829,8 +815,6 @@ let safe_extend_gamma gamma le t =
 let rec infer_types_expr gamma le : unit =
 	let f = infer_types_expr gamma in
 	let e = safe_extend_gamma gamma in
-
-		print_debug_petar (Printf.sprintf "infer_types: %s" (JSIL_Print.string_of_logic_expression le));
 
 		(match le with
   	
@@ -1080,14 +1064,17 @@ let concretise2 (a : jsil_logic_assertion) (x: string) (y: string) (les : jsil_l
 (***************************************************************)
 (***************************************************************)
 
-(* What does it mean to be a list? *)
+let all_literals les = List.for_all (fun x -> (match x with | LLit _ -> true | _ -> false)) les 
+
 let rec isList (le : jsil_logic_expr) : bool =
-(match le with
+	let f = isList in
+	(match le with
+	| PVar _
 	| LVar _
 	| LLit (LList _)
 	| LEList _ -> true
-	| LBinOp (_, LstCons, le) -> isList le
-	| LBinOp (lel, LstCat, ler) -> isList lel && isList ler
+	| LBinOp (_, LstCons, le) -> f le
+	| LBinOp (lel, LstCat, ler) -> f lel && f ler
 	| _ -> false)
 
 let get_string_hashtbl_keys ht =

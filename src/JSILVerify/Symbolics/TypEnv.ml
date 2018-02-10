@@ -63,7 +63,7 @@ let extend (gamma : t) (more_gamma : t) : unit =
 		(fun v t ->
 			match (Hashtbl.find_opt gamma v) with
 			| None    -> Hashtbl.add gamma v t
-			| Some t' -> if (t <> t') then raise (Failure "Typing environments cannot be merged.")
+			| Some t' -> if (t <> t') then raise (Failure "Typing environment cannot be extended.")
 		)
 		more_gamma
 
