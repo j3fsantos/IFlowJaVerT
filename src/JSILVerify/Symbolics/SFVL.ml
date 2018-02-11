@@ -39,6 +39,9 @@ let get (sfvl : t) (name : field_name) : field_value option =
 let set (sfvl : t) (name : field_name) (value : field_value) : unit =
 	Hashtbl.replace sfvl name value
 
+let remove (sfvl : t) (name : field_name) : unit =
+	Hashtbl.remove sfvl name
+
 (* Copy *)
 let copy (sfvl : t) : t = 
 	Hashtbl.copy sfvl
@@ -80,10 +83,18 @@ let get_lvars (sfvl : t) : SS.t =
 	let gllv = JSIL_Logic_Utils.get_lexpr_lvars in 
 	Hashtbl.fold (fun name value ac -> SS.union ac (SS.union (gllv name) (gllv value.value))) sfvl SS.empty
 
-(** Returns the abstract locations occuring in --heap-- *)
 let get_alocs (sfvl : t) : SS.t =
 	let gla = JSIL_Logic_Utils.get_lexpr_alocs in
 	Hashtbl.fold (fun name value ac -> SS.union ac (SS.union (gla name) (gla value.value))) sfvl SS.empty 
 
+let iterator (sfvl : t) f = 
+	Hashtbl.iter f sfvl
+
 let to_list (sfvl : t) = 
 	Hashtbl.fold (fun name value ac -> ac @ [ (name, (value.permission, value.value)) ]) sfvl []
+
+let of_list lst : t = 
+	let sfvl = empty () in
+	List.iter (fun (name, (permission, value)) -> 
+		set sfvl name { permission = permission; value = value} ) lst;
+	sfvl

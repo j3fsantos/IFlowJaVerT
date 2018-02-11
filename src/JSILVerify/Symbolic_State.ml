@@ -445,20 +445,20 @@ let ss_copy (symb_state : symbolic_state) : symbolic_state =
 	(c_heap, c_store, c_pfs, c_gamma, c_preds)
 
 (** Returns subst(symb_state) *)
-let ss_substitution 
-		(subst : substitution) (partial : bool) (symb_state : symbolic_state) : symbolic_state =
-	let heap, store, pf, gamma, preds = symb_state in
-	let s_heap  = SHeap.substitution subst partial heap in
+let ss_substitution (subst : substitution) (partial : bool) (symb_state : symbolic_state) : symbolic_state =
+	(* COPY FIRST *)
+	let heap, store, pf, gamma, preds = ss_copy symb_state in
+	let _       = SHeap.substitutionX ?partial:(Some partial) subst heap in
 	let s_store = store_substitution subst partial store in
 	let s_pf    = pfs_substitution subst partial pf in
 	let s_gamma = TypEnv.substitution gamma subst partial in
 	let s_preds = preds_substitution subst partial preds in
-	(s_heap, s_store, s_pf, s_gamma, s_preds)
+	(heap, s_store, s_pf, s_gamma, s_preds)
 
 let ss_substitution_in_place_no_gamma
 		(subst : substitution) (symb_state : symbolic_state) : unit =
 	let heap, store, pfs, gamma, preds = symb_state in
-	SHeap.substitution_in_place subst heap;		
+	SHeap.substitutionX subst heap;		
 	store_substitution_in_place subst store;
 	pfs_substitution_in_place   subst pfs;	
 	preds_substitution_in_place subst preds
@@ -466,7 +466,7 @@ let ss_substitution_in_place_no_gamma
 (** Return the set containing all the lvars occurring in --symb_state-- *)
 let ss_lvars (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = SHeap.lvars heap in
+	let v_h  : SS.t = SHeap.get_lvars heap in
 	let v_s  : SS.t = store_lvars store in
 	let v_pf : SS.t = pfs_lvars pfs in
 	let v_g  : SS.t = TypEnv.get_lvars gamma in
@@ -476,7 +476,7 @@ let ss_lvars (symb_state : symbolic_state) : SS.t =
 (** Return the set containing all the lvars occurring in --symb_state-- *)
 let ss_alocs (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  : SS.t = SHeap.alocs heap in
+	let v_h  : SS.t = SHeap.get_alocs heap in
 	let v_s  : SS.t = store_alocs store in
 	let v_pf : SS.t = pfs_alocs pfs in
 	let v_pr : SS.t = preds_alocs preds in
@@ -487,7 +487,7 @@ let ss_alocs (symb_state : symbolic_state) : SS.t =
     variables in the store *)
 let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
-	let v_h  = SHeap.lvars heap in
+	let v_h  = SHeap.get_lvars heap in
 	let v_s  = store_lvars store in
 	let v_sp = store_domain store in 
 	let v_pf = pfs_lvars pfs in
@@ -673,23 +673,18 @@ let sec_create_new_info_node
 let selective_heap_substitution_in_place (subst : substitution) (heap : SHeap.t) =
 	let le_subst = lexpr_substitution subst true in
   Heap.iter
-  	(fun loc ((fv_list, domain), metadata, ext) ->
+  	(fun loc (sobj : SObject.t) ->
   		let s_loc =
   			(try Hashtbl.find subst loc
   				with _ ->
   					if (is_aloc_name loc)
   						then ALoc loc
   						else (LLit (Loc loc))) in
-  		let s_loc =
-  			(match s_loc with
-  				| LLit (Loc loc) -> loc
-  				| ALoc loc -> loc
-  				| _ ->
-  					raise (Failure "Heap substitution failed miserably!!!")) in
-  		let s_fv_list = SFVL.selective_substitution subst true fv_list in
-  		let s_domain = Option.map le_subst domain in
-			let s_metadata = Option.map le_subst metadata in
-  		Heap.replace heap s_loc ((s_fv_list, s_domain), s_metadata, ext))
+  		let s_loc = (match s_loc with | LLit (Loc loc) -> loc | ALoc loc -> loc) in
+  		let _ = SFVL.selective_substitution subst true sobj.fvl in
+  		let s_domain = Option.map le_subst sobj.domain in
+		let s_metadata = Option.map le_subst sobj.metadata in
+  		Heap.replace heap s_loc { sobj with domain = s_domain; metadata = s_metadata })
   	heap
 
 let selective_symb_state_substitution_in_place_no_gamma 

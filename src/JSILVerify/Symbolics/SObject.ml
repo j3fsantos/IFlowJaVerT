@@ -64,6 +64,9 @@ let merge_left (sobj_l : t) (sobj_r : t) : t =
 let set_fv_pair (sobj : t) (name : SFVL.field_name) (value : SFVL. field_value) =
 	SFVL.set sobj.fvl name value
 
+let remove_field (sobj : t) (name : SFVL.field_name) =
+	SFVL.remove sobj.fvl name
+
 let str (sobj : t) = 
 	let str_fv_pairs = SFVL.str sobj.fvl in
 	let domain_str = Option.map_default JSIL_Print.string_of_logic_expression "" sobj.domain in
