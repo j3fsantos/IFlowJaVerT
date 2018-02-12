@@ -187,3 +187,10 @@ let assertions (heap : t) : jsil_logic_assertion list =
 		in
 		
 	List.concat (List.map assertions_of_object (to_list heap))
+
+let is_well_formed (heap : t) : bool =
+	Heap.fold (fun loc ((fv_list, _), _, _) ac -> if (ac = false) then false 
+		else (
+			print_debug_petar ("\tLocation: " ^ loc);
+			SFVL.is_well_formed fv_list
+		)) heap true

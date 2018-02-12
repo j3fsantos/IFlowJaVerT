@@ -27,3 +27,5 @@ val alocs : t -> CCommon.SS.t
 val assertions             : JSIL_Syntax.jsil_logic_expr -> t -> JSIL_Syntax.jsil_logic_assertion list
 val substitution           : JSIL_Syntax.substitution -> bool -> t -> t
 val selective_substitution : JSIL_Syntax.substitution -> bool -> t -> t
+
+val is_well_formed : t -> bool

@@ -448,6 +448,9 @@ let extend_substitution (subst : substitution) (vars : string list) (les : jsil_
 
 let extend_subst_with_subst (subst : substitution) (subst_ext : substitution) : unit =
 	Hashtbl.iter (fun v le -> Hashtbl.replace subst v le) subst_ext
+
+let substitution_domain (subst : substitution) : SS.t = 
+	Hashtbl.fold (fun k v ac -> SS.add k ac) subst SS.empty
 	
 (* JS2JSIL *)
 let for_verification = ref false

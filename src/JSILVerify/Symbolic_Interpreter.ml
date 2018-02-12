@@ -1267,7 +1267,9 @@ let rec symb_evaluate_cmd
 
 	(* STATEMENT: There are never program variables in the typing environment *)
 	it_must_hold_that 
-		(let _, store, _, gamma, _ = symb_state in let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars);
+		(lazy (let _, store, _, gamma, _ = symb_state in let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars));
+	it_must_hold_that 
+		(lazy (let heap, _, _, _, _ = symb_state in SHeap.is_well_formed heap));
 
 
 	let metadata, cmd = get_proc_cmd proc i in

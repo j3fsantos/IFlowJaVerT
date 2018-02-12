@@ -78,8 +78,8 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
-	| LLit (LList l) -> it_must_hold_that (idx < List.length l); Some (LLit (List.nth l idx))
-	| LEList l       -> it_must_hold_that (idx < List.length l); Some (List.nth l idx)
+	| LLit (LList l) -> it_must_hold_that (lazy (idx < List.length l)); Some (LLit (List.nth l idx))
+	| LEList l       -> it_must_hold_that (lazy (idx < List.length l)); Some (List.nth l idx)
 	| LBinOp (hd, LstCons, lst) -> 
 		if (idx = 0) 
 			then Some hd
@@ -105,8 +105,8 @@ let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * j
 	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
-	| LLit (LList l) -> it_must_hold_that (0 < List.length l); Some (LLit (List.hd l), LLit (LList (List.tl l)))
-	| LEList l       -> it_must_hold_that (0 < List.length l); Some (List.nth l 0, LEList (List.tl l))
+	| LLit (LList l) -> it_must_hold_that (lazy (0 < List.length l)); Some (LLit (List.hd l), LLit (LList (List.tl l)))
+	| LEList l       -> it_must_hold_that (lazy (0 < List.length l)); Some (List.nth l 0, LEList (List.tl l))
 	| LBinOp (hd, LstCons, lst) -> Some (hd, lst)
 	| LBinOp (lel, LstCat, ler) -> 
 		Option.default None 
@@ -153,7 +153,7 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 	| PVar _ -> None
 	| LVar _ -> None
 	(* Base lists of literals and logical expressions *)
-	| LLit (String s) -> it_must_hold_that (idx < String.length s); Some (LLit (String (String.sub s idx 1)))
+	| LLit (String s) -> it_must_hold_that (lazy (idx < String.length s)); Some (LLit (String (String.sub s idx 1)))
 	| LBinOp (ls, LstCat, rs) ->
 		Option.default None 
 			(Option.map 

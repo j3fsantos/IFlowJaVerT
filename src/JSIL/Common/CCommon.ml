@@ -52,10 +52,6 @@ let print_njsil_file msg  =
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
 
-let it_must_hold_that x =
-  if !sanity then
-    assert x
-
 (********
  * Sets *
  ********)
@@ -126,3 +122,4 @@ let string_of_float (x : float) : string =
   			else if (x == infinity)
   				then "inf"
   				else Batteries.Float.to_string x
+          

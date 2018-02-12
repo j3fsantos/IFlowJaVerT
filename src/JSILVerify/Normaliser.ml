@@ -1442,7 +1442,7 @@ let normalise_assertion
 
 					(* STATEMENT: Normalised assertions do not have program variables in the typing environment *)
 					it_must_hold_that 
-						(let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars);
+						(lazy (let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars));
 
 					Some (ret_ss, subst)
 				) else (print_debug "WARNING: normalise_assertion: returning None"; None)))

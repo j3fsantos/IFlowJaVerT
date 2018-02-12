@@ -84,3 +84,16 @@ let process_statistics () =
 
 (* Interactive mode *)
 let interactive = ref false
+
+(***************
+ * Correctness *
+ ***************)
+
+let it_must_hold_that (x : 'a Lazy.t) =
+  if !sanity then
+    (
+      let start_time = Sys.time () in
+      assert (Lazy.force x);
+      let end_time = Sys.time () in
+      update_statistics "correctness check" (end_time -. start_time);
+    )

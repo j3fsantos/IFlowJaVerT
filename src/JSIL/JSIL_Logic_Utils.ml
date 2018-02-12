@@ -229,6 +229,13 @@ let get_lexpr_lvars (le : jsil_logic_expr) : SS.t =
 		| _      -> List.concat ac in 
 	SS.of_list (logic_expression_fold fe_ac None None le)
 
+let get_lexpr_substitutables (le : jsil_logic_expr) : SS.t = 
+	let fe_ac le _ _ ac = match le with
+		| LVar x 
+		| ALoc x -> [ x ]
+		| _      -> List.concat ac in 
+	SS.of_list (logic_expression_fold fe_ac None None le)
+
 (* Get all the logical variables in a list of logical expressions *)
 let get_lexpr_list_lvars (les : jsil_logic_expr list) : SS.t = 
 	SS.of_list (List.concat (List.map SS.elements (List.map get_lexpr_lvars les)))
