@@ -33,18 +33,27 @@ let str (sfvl : t) : string =
 (** Field Value List Functions      **)
 (*************************************)
 
-(* The Map interface exposed *)
+(* Map functions to be reused *)
 
 let add         = MLExpr.add
 let empty       = MLExpr.empty
 let field_names = (fun t -> let result, _ = List.split (MLExpr.bindings t) in result)
 let fold        = MLExpr.fold
-let get_first   = MLExpr.find_first_opt
 let get         = MLExpr.find_opt
 let iter        = MLExpr.iter
 let partition   = MLExpr.partition
 let remove      = MLExpr.remove
 let union       = MLExpr.union (fun k fvl fvr -> print_debug_petar (Printf.sprintf "WARNING: SFVL.union: merging with field %s in both lists with values %s and %s, choosing left." (JSIL_Print.string_of_logic_expression k) (str_of_fv fvl) (str_of_fv fvr)); Some fvl)
+
+(** Gets a first key-value pair that satisfies a predicate *)
+let get_first (f : field_name -> bool) (sfvl : t) : (field_name * field_value) option = 
+	let found = ref false in
+	MLExpr.fold (fun fn fv ac -> 
+		if !found then ac
+		else 
+			if (f fn) 
+				then (found := true; Some (fn, fv))
+				else ac) sfvl None
 
 (** Returns the logical variables occuring in --sfvl-- *)
 let lvars (sfvl : t) : SS.t =
