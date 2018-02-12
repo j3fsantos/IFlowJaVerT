@@ -97,10 +97,16 @@ let selective_substitution
 		(partial : bool) 
 		(fv_list : t) : t =
 	let f_subst = JSIL_Logic_Utils.lexpr_substitution subst partial in 
-	MLExpr.fold (fun le_field ((perm, le_val), _) ac -> 
-		let sf = le_field in
-		let sv = f_subst le_val in
-			MLExpr.add sf ((perm, sv), (SS.union (gsbsts sf) (gsbsts sv))) ac) fv_list MLExpr.empty
+	let subst_dom = substitution_domain subst in 
+	MLExpr.fold (fun le_field ((perm, le_val), substs) ac -> 
+		let sf, sv, substs = 
+			if (SS.inter substs subst_dom = SS.empty) 
+				then le_field, le_val, substs
+				else (			
+					let sv = f_subst le_val in 
+						le_field, sv, SS.union (gsbsts le_field) (gsbsts sv)
+				) in 
+			MLExpr.add sf ((perm, sv), substs) ac) fv_list MLExpr.empty
 
 (* Correctness of field-value lists *)
 let is_well_formed (sfvl : t) : bool =
