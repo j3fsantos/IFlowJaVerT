@@ -8,6 +8,7 @@ type field_name  = JSIL_Syntax.jsil_logic_expr
 type field_value = Permission.t * JSIL_Syntax.jsil_logic_expr
 
 val add         : field_name  -> field_value -> t -> t
+val copy        : t -> t
 val empty       : t
 val field_names : t -> field_name list
 val fold        : (field_name -> field_value -> 'a -> 'a) -> t -> 'a -> 'a

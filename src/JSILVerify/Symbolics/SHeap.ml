@@ -60,7 +60,10 @@ let domain (heap : t) : SS.t =
 	SS.of_list (Heap.fold (fun l _ ac -> l :: ac) heap [])
 
 (** Returns a copy of --heap-- *)
-let copy (heap : t) : t = Heap.copy heap
+let copy (heap : t) : t = 
+	let new_heap = init () in
+	Heap.iter (fun loc ((fvl, domain), metadata, ext) -> Heap.add new_heap loc ((SFVL.copy fvl, domain), metadata, ext)) heap;
+		new_heap
 
 (** Returns subst(heap) *)
 let substitution (subst : substitution) (partial : bool) (heap : t) : t =
