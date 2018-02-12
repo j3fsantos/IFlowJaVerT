@@ -132,7 +132,7 @@ let merge_heaps
 	(* Garbage collection - What happens here now?! TODO *)
 	SHeap.iterator heap (fun loc ((fv_list, domain), metadata, ext) ->
 		(match domain, metadata, ext with
-		| None, None, None -> if (fv_list = SFVL.empty) then SHeap.remove heap loc
+		| None, None, None when (SFVL.is_empty fv_list) -> SHeap.remove heap loc
 		| _, _, _ -> ()));
 
 	print_debug "Finished merging heaps.";
@@ -337,38 +337,3 @@ let copy_single_spec s_spec =
 		n_subst            = s_spec.n_subst; 
 		n_unification_plan = s_spec.n_unification_plan
 	}
-	
-(*************************************)
-(** Garbage collection              **)
-(*************************************)
-
-let get_locs_symb_state symb_state =
-	let heap, store, pfs, gamma, preds = symb_state in 
-	let lheap  = SHeap.alocs  heap  in
-	let lstore = store_alocs store in
-	let lpfs   = pfs_alocs   pfs   in
-	let lpreds = preds_alocs preds in
-	SS.union lheap (SS.union lstore (SS.union lpfs lpreds))
-	
-let collect_garbage (symb_state : symbolic_state) = 
-	let heap, store, pfs, gamma, preds = symb_state in
-	let dangling_locations = Heap.fold
-		(fun loc ((fv_list, default), _, _) locs ->
-			match (is_aloc_name loc), default with
-			| true, None when (fv_list = SFVL.empty) ->  SS.add loc locs
-			| _ -> locs
-  	)
-	heap
-	SS.empty in
-	if (dangling_locations = SS.empty) then symb_state else (
-	let ss_vars = get_locs_symb_state symb_state in
-	let collectable_locs = SS.diff dangling_locations ss_vars in
-	SS.iter (fun loc -> Heap.remove heap loc) collectable_locs;
-		print_debug (Printf.sprintf "GCOL: Found locations: %s"
-			(String.concat ", " (SS.elements ss_vars)));
-		print_debug (Printf.sprintf "GCOL: Dangling locations: %s"
-			(String.concat ", " (SS.elements dangling_locations)));
-		print_debug (Printf.sprintf "GCOL: Collectable locations: %s"
-			(String.concat ", " (SS.elements collectable_locs)));
-	symb_state)
-

@@ -14,6 +14,7 @@ val field_names : t -> field_name list
 val fold        : (field_name -> field_value -> 'a -> 'a) -> t -> 'a -> 'a
 val get         : field_name -> t -> field_value option
 val get_first   : (field_name -> bool) -> t -> (field_name * field_value) option
+val is_empty    : t -> bool
 val iter        : (field_name -> field_value -> unit) -> t -> unit
 val partition   : (field_name -> field_value -> bool) -> t -> (t * t)
 val remove      : field_name -> t -> t

@@ -169,7 +169,7 @@ let iterator (heap: t) (f : string -> (((SFVL.t * (jsil_logic_expr option)) * js
 
 (** Returns true if --heap-- is empty : TODO *)
 let is_empty (heap : t) : bool =
-	Heap.fold (fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = SFVL.empty) && (dom = None)) heap true
+	Heap.fold (fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (SFVL.is_empty fv_list) && (dom = None)) heap true
 
 (** converts a symbolic heap to a list of assertions *)
 let assertions (heap : t) : jsil_logic_assertion list = 

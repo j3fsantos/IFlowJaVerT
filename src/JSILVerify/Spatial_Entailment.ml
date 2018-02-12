@@ -398,7 +398,7 @@ let unify_domains
 	(* 6. When dom is smaller than pat_dom, then the footprint of the associated EF 
 	      assertion is bigger. In this case, the fields in (pat_dom / dom) need to be 
 	      explicitly none cells in the framed heap - but with which permission?! TODO       *)
-	let new_none_fv_list = List.fold_left (fun ac le -> SFVL.add le (perm, LNone) ac) SFVL.empty domain_frame_difference in
+	let new_none_fv_list = List.fold_left (fun ac le -> SFVL.add le (perm, LNone) ac) (SFVL.empty) domain_frame_difference in
 
 	(* 7. The returned framed fv_list is composed of:   
 	        i)  the non-NONE fields in the original fv-list 

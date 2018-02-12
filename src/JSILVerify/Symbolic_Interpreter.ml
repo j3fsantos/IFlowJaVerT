@@ -245,7 +245,7 @@ let symb_evaluate_bcmd
 			| None          -> LLit Null 
 			| Some metadata -> let md_val, _, _ = ssee metadata in md_val) in
 		
-		SHeap.put heap new_loc SFVL.empty (Some (LESet [])) (Some md_val) (Some Extensible);
+		SHeap.put heap new_loc (SFVL.empty) (Some (LESet [])) (Some md_val) (Some Extensible);
 		store_put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));

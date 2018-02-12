@@ -41,6 +41,7 @@ let copy        = (fun t -> t)
 let field_names = (fun t -> let result, _ = List.split (MLExpr.bindings t) in result)
 let fold        = MLExpr.fold
 let get         = MLExpr.find_opt
+let is_empty    = (fun t -> t = empty)
 let iter        = MLExpr.iter
 let partition   = MLExpr.partition
 let remove      = MLExpr.remove
