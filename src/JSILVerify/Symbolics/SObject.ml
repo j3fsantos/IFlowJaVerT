@@ -14,8 +14,11 @@ type t =
 (** Constants, Getters, Setters     **)
 (*************************************)
 
-let empty_object : t = 
+let empty_object () : t = 
 	{ fvl = SFVL.empty (); domain = None; metadata = None; extensibility = None }
+
+let can_be_considered_empty (sobj : t) : bool =
+	(sobj.fvl = SFVL.empty()) && (sobj.domain = None) && (sobj.extensibility = None)
 
 let get_fvl (sobj : t) : SFVL.t = sobj.fvl
 let get_dom (sobj : t) : jsil_logic_expr option = sobj.domain
@@ -39,7 +42,7 @@ let merge_left (sobj_l : t) (sobj_r : t) : t =
 	let _ = SFVL.merge_left sobj_l.fvl sobj_r.fvl in
 
 	let m_dom = 
-		(match sobj_l.metadata, sobj_r.metadata with 
+		(match sobj_l.domain, sobj_r.domain with 
 		| None, None -> None
 		| None, Some domain 
 		| Some domain, None -> Some domain 

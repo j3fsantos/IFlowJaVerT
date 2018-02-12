@@ -245,9 +245,8 @@ let symb_evaluate_bcmd
 			| None          -> LLit Null 
 			| Some metadata -> let md_val, _, _ = ssee metadata in md_val) in
 		
-		(* TODO: Why not put empty set of empty_fields instead of None? 
-	     I'm now a bit concerned that objects with None can be deallocated abruptly. *) 
-		SHeap.put heap new_loc [] (Some (LESet [])) (Some md_val) (Some Extensible);
+		let sobj = { (SObject.empty_object()) with fvl = SFVL.empty(); domain = Some (LESet []); metadata = Some (md_val); extensibility = Some Extensible } in
+		SHeap.set_object heap new_loc sobj;
 		store_put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
@@ -314,23 +313,24 @@ let symb_evaluate_bcmd
 			| None   -> 
 				let msg = Printf.sprintf "Delete: %s does not denote a location." (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		let obj = SHeap.get heap l in
-		(match obj with
+		(match SHeap.get heap l with
+		| Some sobj -> 
+			(match Symbolic_State_Utils.find_field pure_formulae gamma sobj.fvl ne2 with
+			| Some (_, (perm, _)) -> 
+				(match (perm : Permission.t) with 
+				| Deletable -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone; 
+				| _ -> 
+				 	let msg = Printf.sprintf "Delete: property %s not deletable." (JSIL_Print.string_of_logic_expression ne1) in 
+				 	raise (Symbolic_State_Utils.SymbExecFailure msg));
+				LLit (Bool true)
+			| None -> 
+				Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone;
+				LLit (Bool true)
+			)
 		| None -> 
-				let msg = Printf.sprintf "Delete: object %s does not exist in the heap." (JSIL_Print.string_of_logic_expression ne1) in 
-				raise (Symbolic_State_Utils.SymbExecFailure msg) 
-		| Some ((fv_list, domain), metadata, ext) ->
-				let opt_f = Symbolic_State_Utils.find_field pure_formulae gamma fv_list ne2 in
-				(match opt_f with
-				(* Default is Deletable *)
-				| None -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone
-				| Some (_, (_, (perm, _))) -> 
-					(match perm with 
-					| Deletable -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone; 
-				  | _ -> 
-						let msg = Printf.sprintf "Delete: property %s not deletable." (JSIL_Print.string_of_logic_expression ne1) in 
-						raise (Symbolic_State_Utils.SymbExecFailure msg)));
-				LLit (Bool true))
+			let msg = Printf.sprintf "Delete: object %s does not exist in the heap." (JSIL_Print.string_of_logic_expression ne1) in 
+			raise (Symbolic_State_Utils.SymbExecFailure msg)
+		)
 
   	(* Object deletion: deleteObj(e1)
 			a) Safely evaluate e1 to obtain the object location ne1 and its type te1
@@ -397,24 +397,15 @@ let symb_evaluate_bcmd
 					let msg = Printf.sprintf "MetaData: %s does not denote a location" (JSIL_Print.string_of_logic_expression l) in 
 					raise (Symbolic_State_Utils.SymbExecFailure msg) in
 		let obj = SHeap.get heap l in
-		(match obj with
-		| None -> raise (Failure (Printf.sprintf "Looking up metadata of a non-existent object: %s" l))	
-		| Some (_, md, _) -> 
-				(match md with
-				| None -> raise (Failure (Printf.sprintf "Looking up framed-off metadata of the object: %s" l))	
-				| Some md -> 
-						Hashtbl.replace store x md;
-						md))
-(*
-	| Arguments x ->
-		let arg_obj = SHeap.get heap "$largs" in
-		(match arg_obj with
-		| None -> raise (Failure "The arguments object doesn't exist.")
-		| Some (([ (LLit (String "args"), (Readable, LEList args)) ], _), Some (LLit Null), Some NonExtensible) ->
-				Hashtbl.replace store x (LEList args);
-				LEList args
-		| _ -> raise (Failure "Structure of the arguments object is unacceptable."))
-*)
+
+		(match SHeap.get heap l with
+		| None -> raise (Failure (Printf.sprintf "Looking up metadata of a non-existent object: %s" l))
+		| Some sobj -> 
+			(match sobj.metadata with
+			| None -> raise (Failure (Printf.sprintf "Looking up framed-off metadata of the object: %s" l))
+			| Some metadata -> Hashtbl.replace store x metadata; metadata
+			)
+		)
 	
 	| _ -> raise (Failure (Printf.sprintf "Unsupported basic command"))
 

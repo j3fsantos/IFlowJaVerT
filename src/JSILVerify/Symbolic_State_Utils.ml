@@ -43,8 +43,8 @@ let sheap_put
 	(pfs : pure_formulae) (gamma : TypEnv.t)
 	(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : Permission.t) (value : jsil_logic_expr) : unit =
 	
-	Option.map_default
-	(fun (sobj : SObject.t) -> 
+	(match SHeap.get heap loc with
+	| Some sobj -> 
 		(match find_field pfs gamma sobj.fvl field, sobj.domain with
 		| Some (field', (orig_perm, _)), _ ->
 			(match orig_perm with
@@ -57,22 +57,22 @@ let sheap_put
 			if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 				let new_domain = LSetUnion [ domain; LESet [ field ]] in 
 				let new_domain = Simplifications.reduce_expression gamma pfs new_domain in
-				let sobj = SObject.set_met sobj (Some new_domain) in
+				let sobj = SObject.set_dom sobj (Some new_domain) in
+				SObject.set_fv_pair sobj field { permission = perm; value = value };
 				SHeap.set_object heap loc sobj
 			) else 
 				raise (SymbExecFailure "SHeap.put")
 		| _ -> raise (SymbExecFailure "SHeap.put")
 		)
+	| None -> raise (Failure "Object does not exist.")
 	)
-	(raise (Failure "Object does not exist."))
-	(SHeap.get heap loc)
 
 let sheap_get 
 		(pfs : pure_formulae) (gamma : TypEnv.t) 
 		(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
-	Option.map_default
-	(fun (sobj : SObject.t) -> 
+	(match SHeap.get heap loc with
+	| Some sobj -> 
 		(match find_field pfs gamma sobj.fvl field, sobj.domain with
 		| Some (_, (_, value)), _ -> value
 		| None, Some domain -> 
@@ -81,9 +81,8 @@ let sheap_get
 				then LNone
 				else raise (SymbExecFailure "SHeap.get")
 		| _ -> raise (SymbExecFailure "SHeap.get"))
+	| None -> raise (Failure "Object does not exist.")
 	)
-	(raise (Failure "Object does not exist."))
-	(SHeap.get heap loc)
 
 let merge_domains 
 		(pfs : pure_formulae) (gamma : TypEnv.t)
@@ -137,7 +136,7 @@ let merge_heaps
 	) meta_subst;
 
 	(* Garbage collection - What happens here now?! TODO *)
-	SHeap.iterator heap (fun loc sobj -> if (sobj = SObject.empty_object) then SHeap.remove heap loc);
+	SHeap.iterator heap (fun loc sobj -> if (sobj = SObject.empty_object()) then SHeap.remove heap loc);
 
 	print_debug "Finished merging heaps.";
 	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))
@@ -358,7 +357,7 @@ let collect_garbage (symb_state : symbolic_state) =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let dangling_locations = Heap.fold
 	(fun loc sobj locs ->
-		if (sobj = SObject.empty_object) 
+		if (sobj = SObject.empty_object()) 
 			then SS.add loc locs 
 			else locs 
   	)

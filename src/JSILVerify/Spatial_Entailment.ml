@@ -224,17 +224,13 @@ let unify_cell_assertion
 			print_debug msg; raise (Failure msg)) in 
 
 	(* 3. Get the fv_list and domain *)
-	let fv_list, dom, metadata, ext = 
-		match SHeap.get heap loc with 
-		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
-		| None -> 
-				let msg = "DEATH. unify_cell_assertion. loc not in the heap" in
-				print_debug msg; raise (Failure msg) in 
+	let sobj : SObject.t = SHeap.get_unsafe heap loc in
+	let fv_list, dom = sobj.fvl, sobj.domain in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
-	let fv_list_set = SFV.of_list fv_list in
+	let fv_list = SFVL.to_list fv_list in
 	let fv_list_frames = 
-		SFV.fold (fun (field, (perm, value)) ac -> 
+		List.fold_left (fun ac (field, (perm, value)) -> 
 			(match un_les pat_field field with 
 			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
@@ -245,15 +241,13 @@ let unify_cell_assertion
 					let discharges = discharges_field @ discharges_val in 
 					(match (consistent_subst_list subst_list pfs gamma), (pre_check_discharges discharges) with 
 					| Some subst_list, Some discharges -> 
-							let pat_subst     = Hashtbl.copy pat_subst in 
+						let pat_subst     = Hashtbl.copy pat_subst in 
           		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
           			let heap_frame    = SHeap.copy heap in 
-          			let fv_list_frame = SFV.remove (field, (perm, value)) fv_list_set in 
-          			let fv_list_frame = SFV.elements fv_list_frame in 
-          			SHeap.put heap_frame loc fv_list_frame dom metadata ext; 
-          			(heap_frame, pat_subst, discharges) :: ac
-							) else ac					
-					| _, _ -> ac)))) fv_list_set [] in 
+          			let sobj          = Option.get (SHeap.get heap_frame loc) in
+          			let _             = SFVL.remove sobj.fvl field in
+          			(heap_frame, pat_subst, discharges) :: ac) else ac				
+			| _, _ -> ac)))) [] fv_list in 
 
 	(* 5. Try to unify the cell assertion using the domain info *)
 	let dom_frame =
@@ -269,7 +263,8 @@ let unify_cell_assertion
 					let heap_frame = SHeap.copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
 					let new_domain = Simplifications.reduce_expression gamma pfs new_domain in
-					SHeap.put heap_frame loc fv_list (Some new_domain) metadata ext; 
+					let sobj = Option.get (SHeap.get heap_frame loc) in
+					SHeap.set_object heap_frame loc { sobj with domain = Some new_domain };
 					[ (heap_frame, pat_subst, (discharges_field)) ]
 			))) in 
 
@@ -332,14 +327,14 @@ let rec find_missing_nones
 		(pfs            : pure_formulae)
 		(gamma          : TypEnv.t)
 		(fields_to_find : jsil_logic_expr list) 
-		(none_fv_list   : SFVL.t) : SFVL.t =
+		(none_fv_list   : (SFVL.field_name * (Permission.t * jsil_logic_expr)) list) : (SFVL.field_name * (Permission.t * jsil_logic_expr)) list =
 	
 	let fmn = find_missing_nones pfs gamma in 
 
 	let rec find_missing_none 
 			(missing_field          : jsil_logic_expr)
-			(none_fv_list           : SFVL.t) 
-			(traversed_none_fv_list : SFVL.t) : SFVL.t =
+			(none_fv_list           : (SFVL.field_name * (Permission.t * jsil_logic_expr)) list) 
+			(traversed_none_fv_list : (SFVL.field_name * (Permission.t * jsil_logic_expr)) list) : (SFVL.field_name * (Permission.t * jsil_logic_expr)) list =
 		match none_fv_list with
 		| []                      -> raise (UnificationFailure "") 
 		| (f_name, f_val) :: rest_none_fv_list ->
@@ -365,6 +360,8 @@ let unify_domains
 		(perm      : Permission.t) : SFVL.t =
 			
 	print_debug_petar "Entering unify_domains.";
+
+	let fv_list = SFVL.to_list fv_list in
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
 	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
@@ -406,7 +403,7 @@ let unify_domains
 	        i)  the non-NONE fields in the original fv-list 
 	       ii)  the NONE fields that were not used to compensate the domain_difference
 	      iii)  the NONE fields that resulted from the domain_frame_difference *)
-	non_none_fv_list @ non_matched_none_fields @ new_none_fv_list 
+	SFVL.of_list (non_none_fv_list @ non_matched_none_fields @ new_none_fv_list) 
 
 
  let unify_empty_fields_assertion 
@@ -423,7 +420,7 @@ let unify_domains
 		match pat_ef_asrt with 
 		| LEmptyFields (LLit (Loc loc), dom) 
 		| LEmptyFields (ALoc loc, dom) -> loc, dom 
-	  	| _ -> print_debug "DEATH 1"; raise (Failure "DEATH. unify_empty_fields_assertion. no EF assertion") in 
+	  	| _ -> raise (Failure "DEATH. unify_empty_fields_assertion. no EF assertion") in 
 
 	(* 2. Find the location corresponding to that EF assertion *) 
 	let loc = if (is_lloc_name pat_loc) then pat_loc else (
@@ -434,24 +431,20 @@ let unify_domains
 		) with _ -> raise (Failure "DEATH. unify_empty_fields_assertion. unmatched pat_loc")) in 
 
 	(* 3. Get the fv_list and domain *)
-	let fv_list, dom, metadata, ext = 
-		match SHeap.get heap loc with 
-		| Some ((fv_list, dom), metadata, ext) -> fv_list, dom, metadata, ext 
-		| None                                 -> print_debug "No location for EF assertion"; raise (Failure "DEATH") in 
+	let sobj : SObject.t = SHeap.get_unsafe heap loc in
+	let fv_list, dom, ext = sobj.fvl, sobj.domain, sobj.extensibility in 
 
 	(* 4. Unifying the domains if they exist *)
 	let result = (match dom with
-	| None                   -> 
-		(*  i. pat_domain exists but no domain exists -> entailment fails! *)
-		[ ]                       
-	| Some dom ->     
-		(* ii. pat_domain and domain exist -> we have to check the entailment *)                      
+	| None     -> [] (*  i. pat_domain exists but no domain exists -> entailment fails!    *)
+	| Some dom ->    (* ii. pat_domain and domain exist -> we have to check the entailment *)
 		try 
 			(* THIS IS NOT CLEAR AT ALL *)
 			let perm : Permission.t = if (ext = Some Extensible) then Deletable else Readable in (* TODO *)
-			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom fv_list perm in 
+			let fv_list_frame  = unify_domains pfs gamma pat_subst pat_dom dom (SFVL.copy fv_list) perm in 
 			let heap_frame     = SHeap.copy heap in 
-			SHeap.put heap_frame loc fv_list_frame None metadata ext;
+			let sobj = Option.get (SHeap.get heap_frame loc) in
+			SHeap.set_object heap_frame loc { sobj with fvl = fv_list_frame; domain = None };
 			[ (heap_frame, pat_subst, []) ]
 		with _ -> []) in
 	
@@ -489,12 +482,8 @@ let unify_metadata_assertion
 				print_debug msg; raise (Failure msg)) in 
 
 	(* 3. Get the metadata *)
-	let fv_list, domain, metadata, ext = 
-		match SHeap.get heap loc with 
-		| Some ((fv_list, domain), metadata, ext) -> fv_list, domain, metadata, ext 
-		| None ->
-				let msg = "Unify_metadata_assertion: loc not in the heap" in
-				print_debug msg; raise (Failure msg) in 
+	let sobj : SObject.t = SHeap.get_unsafe heap loc in
+	let metadata = sobj.metadata in 
 
 	(* 4. Try to unify the metadata *)
 	let result = 
@@ -540,10 +529,8 @@ let unify_extensible_assertion
 				raise (Failure msg)) in 
 
 	(* 3. Get the extensibility *)
-	let fv_list, domain, metadata, ext = 
-		match SHeap.get heap loc with 
-		| Some ((fv_list, domain), metadata, ext) -> fv_list, domain, metadata, ext 
-		| None                -> raise (Failure "Unify_extensible_assertion: loc not in the heap") in 
+	let sobj : SObject.t = SHeap.get_unsafe heap loc in
+	let ext = sobj.extensibility in 
 
 	(* 4. Unify the extensibility *)
 	(match ext with
@@ -551,8 +538,9 @@ let unify_extensible_assertion
 	| Some ext -> if (pat_ext = ext) then 
 		(* FRAME OFF *)
 		let heap_frame = SHeap.copy heap in
-		SHeap.put heap loc fv_list domain metadata None;
-		[ (heap, Hashtbl.copy pat_subst, [ ]) ] else [ ])
+		let sobj = Option.get (SHeap.get heap_frame loc) in
+		SHeap.set_object heap_frame loc { sobj with extensibility = None };
+		[ (heap_frame, Hashtbl.copy pat_subst, [ ]) ] else [ ])
 
 type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitution 
 
@@ -562,7 +550,7 @@ let unify_spatial_assertion
 		(pat_subst     : substitution) 
 		(pat_s_asrt    : jsil_logic_assertion)
 		(heap          : SHeap.t) 
-		(preds         : predicate_set) :  intermediate_frame list =
+		(preds         : predicate_set) : intermediate_frame list =
 
 	let start_time = Sys.time() in
 	
@@ -715,7 +703,7 @@ let unify_pfs
 type extended_intermediate_frame         = (jsil_logic_assertion list) * intermediate_frame
 
 let unify_symb_states 
-		(pat_unification_plan   : jsil_logic_assertion list) 
+		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst             : substitution option)
 		(pat_symb_state        : symbolic_state) 
 		(symb_state            : symbolic_state) : bool * symbolic_state_frame =

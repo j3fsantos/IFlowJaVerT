@@ -42,6 +42,9 @@ let set (sfvl : t) (name : field_name) (value : field_value) : unit =
 let remove (sfvl : t) (name : field_name) : unit =
 	Hashtbl.remove sfvl name
 
+let get_field_names (sfvl : t) : SLExpr.t = 
+	Hashtbl.fold (fun name _ ac -> SLExpr.add name ac) sfvl SLExpr.empty
+
 (* Copy *)
 let copy (sfvl : t) : t = 
 	Hashtbl.copy sfvl
@@ -57,14 +60,18 @@ let merge_left (sfvl_l : t) (sfvl_r : t) : unit =
 let substitution ?(partial: bool option) (subst : substitution) (fv_list : t) : unit =
 	let is_partial = Option.default true partial in
 	let le_subst = JSIL_Logic_Utils.lexpr_substitution subst is_partial in 
-	Hashtbl.iter
-		(fun name value -> 
+	let fields_to_inspect = get_field_names fv_list in
+	List.iter
+		(fun name -> 
+			print_debug (Printf.sprintf "SFVL subst: name: %s" (JSIL_Print.string_of_logic_expression name));
+			let value = Hashtbl.find fv_list name in
+			Hashtbl.remove fv_list name;
 			let new_name  = le_subst name in
 			let new_value = le_subst value.value in
 			if (Hashtbl.mem fv_list new_name) then print_debug ("WARNING: Substitution overwrites existing field.");
 			Hashtbl.replace fv_list new_name { value with value = new_value }
 		)
-	fv_list
+	(SLExpr.elements fields_to_inspect)
 
 (* Selective substitution *)
 let selective_substitution 
