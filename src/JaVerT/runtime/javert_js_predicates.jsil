@@ -95,8 +95,6 @@ pred NumberObject (l:Obj, n:Num) :
 
 pred BooleanPrototype () :
     (($lbool_proto, "constructor") -> {{ "d", $lbool, true, false, true }}) *
-	(($lbool_proto, "toString")    -> {{ "d", $lbp_toString, true, false, true }}) *
-	(($lbool_proto, "valueOf")     -> {{ "d", $lbp_valueOf, true, false, true }}) *
     MetaData($lbool_proto, #bpmd) * Extensible($lbool_proto, true) *
 	((#bpmd, "@proto")          -> $lobj_proto) *
 	((#bpmd, "@class")          -> "Boolean") *
@@ -107,12 +105,6 @@ pred BooleanPrototype () :
 	
 pred NumberPrototype () :
     (($lnum_proto, "constructor")    -> {{ "d", $lnum, true, false, true }}) *
-	(($lnum_proto, "toString")       -> {{ "d", $lnp_toString, true, false, true }}) *
-	(($lnum_proto, "toLocaleString") -> {{ "d", $lnp_toLocaleString, true, false, true }}) *
-	(($lnum_proto, "valueOf")        -> {{ "d", $lnp_valueOf, true, false, true }}) *
-	(($lnum_proto, "toFixed")        -> {{ "d", $lnp_toFixed, true, false, true }}) *
-	(($lnum_proto, "toExponential")  -> {{ "d", $lnp_toExponential, true, false, true }}) *
-	(($lnum_proto, "toPrecision")    -> {{ "d", $lnp_toPrecision, true, false, true }}) *
     MetaData($lnum_proto, #npmd) * Extensible($lnum_proto, true) *
 	((#npmd, "@proto")          -> $lobj_proto) *
 	((#npmd, "@class")          -> "Number") *
@@ -158,10 +150,10 @@ pred initialHeapPost (globals) :
     empty_fields(#mfp : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
     
     BooleanPrototype () *
-    empty_fields ($lbool_proto : -{ "constructor", "toString", "valueOf" }-) *
+    empty_fields ($lbool_proto : -{ "constructor" }-) *
 
     NumberPrototype () *
-    empty_fields ($lnum_proto : -{ "constructor", "toExponential", "toFixed", "toLocaleString", "toPrecision", "toString", "valueOf" }-) *
+    empty_fields ($lnum_proto : -{ "constructor" }-) *
     
     BIFunctionObject ($lerr, 1, $lerr_proto) * empty_fields($lerr : -{ "length", "prototype" }-) *
     MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
@@ -188,10 +180,10 @@ pred initialHeapPostWeak ( ) :
     empty_fields(#mfp : -{ "@proto", "@class", "@extensible", "@scope", "@call" }-) *
     
     BooleanPrototype () *
-    empty_fields ($lbool_proto : -{ "constructor", "toString", "valueOf" }-) *
+    empty_fields ($lbool_proto : -{ "constructor" }-) *
 
     NumberPrototype () *
-    empty_fields ($lnum_proto : -{ "constructor", "toExponential", "toFixed", "toLocaleString", "toPrecision", "toString", "valueOf" }-) *
+    empty_fields ($lnum_proto : -{ "constructor" }-) *
     
     BIFunctionObject ($lerr, 1, $lerr_proto) * empty_fields($lerr : -{ "length", "prototype" }-) *
     MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *

@@ -249,25 +249,16 @@ proc setupInitialHeap () {
 			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", true);
 			
 			m := metadata($lbool_proto); 
-			[m, "@primitiveValue"] := false;
-
-			[$lbool_proto, "constructor"] := {{ "d", $lbool, true, false, true }};
-			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, true, false, true }};
-			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, true, false, true }};
+			[m,            "@primitiveValue"] := false;
+			[$lbool_proto,     "constructor"] := {{ "d", $lbool, true, false, true }};
 			
 			(* Number.prototype *)
 
 			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", true);
 
 			m := metadata($lnum_proto);
-			[m,           "@primitiveValue"]      := 0;
-			[$lnum_proto, "constructor"]          := {{ "d", $lnum, true, false, true }};
-			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, true, false, true }};
-			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, true, false, true }};
-			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, true, false, true }};
-			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, true, false, true }};
-			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, true, false, true }};
-			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, true, false, true }};
+			[m,           "@primitiveValue"] := 0;
+			[$lnum_proto,     "constructor"] := {{ "d", $lnum, true, false, true }};
 			
 			(* Error object *)
 

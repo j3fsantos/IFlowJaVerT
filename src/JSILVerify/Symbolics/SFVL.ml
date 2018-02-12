@@ -80,6 +80,8 @@ let substitution
 		(fv_list : t) : t =
 	let f_subst = JSIL_Logic_Utils.lexpr_substitution subst partial in 
 	let subst_dom = substitution_domain subst in 
+	let fvlist_dom = MLExpr.fold (fun _ (_, substs) ac -> SS.union substs ac) fv_list SS.empty in
+	if partial && (SS.inter fvlist_dom subst_dom = SS.empty) then fv_list else
 	MLExpr.fold (fun le_field ((perm, le_val), substs) ac -> 
 		let sf, sv, substs = 
 			if partial && (SS.inter substs subst_dom = SS.empty) 
@@ -98,6 +100,8 @@ let selective_substitution
 		(fv_list : t) : t =
 	let f_subst = JSIL_Logic_Utils.lexpr_substitution subst partial in 
 	let subst_dom = substitution_domain subst in 
+	let fvlist_dom = MLExpr.fold (fun _ (_, substs) ac -> SS.union substs ac) fv_list SS.empty in
+	if (SS.inter fvlist_dom subst_dom = SS.empty) then fv_list else
 	MLExpr.fold (fun le_field ((perm, le_val), substs) ac -> 
 		let sf, sv, substs = 
 			if (SS.inter substs subst_dom = SS.empty) 
@@ -114,11 +118,11 @@ let is_well_formed (sfvl : t) : bool =
 		else (
 			let fn = gsbsts k in
 			let fv = gsbsts value in
-			print_debug_petar (Printf.sprintf "\t\tField: %s\n\t\tCurrent: %s\n\t\tName: %s\n\t\tValue:%s"
+			(* print_debug_petar (Printf.sprintf "\t\tField: %s\n\t\tCurrent: %s\n\t\tName: %s\n\t\tValue:%s"
 				(JSIL_Print.string_of_logic_expression k)
 				(String.concat ", " (SS.elements substs))
 				(String.concat ", " (SS.elements fn))
-				(String.concat ", " (SS.elements fv)));
+				(String.concat ", " (SS.elements fv))); *)
 			substs = SS.union fn fv
 		)) sfvl true
 		
