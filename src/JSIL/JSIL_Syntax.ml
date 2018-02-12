@@ -386,6 +386,8 @@ module SSS = Set.Make(MySubstitution)
 module SExpr = Set.Make(MyExpr)
 module SLExpr = Set.Make(MyLExpr)
 
+module MLExpr = Map.Make(MyLExpr)
+
 module SFV = Set.Make(MyFieldValueList)
 
 

@@ -20,17 +20,12 @@ exception SymbExecFailure of string
 let find_field
 		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(fv_list : SFVL.t)
-		(field : jsil_logic_expr) : (SFVL.t * (jsil_logic_expr * (Permission.t * jsil_logic_expr))) option  =
+		(field : jsil_logic_expr) : (SFVL.t * (SFVL.field_name * SFVL.field_value)) option  =
 	
-	(* This is breaking the SFVL abstraction *)
-	let rec find_field_rec fv_list traversed_fv_list =
-		match fv_list with
-		| [] -> None
-		| (field', (perm, value)) :: rest ->
-			(if (Pure_Entailment.is_equal field' field pfs gamma)
-				then Some (traversed_fv_list @ rest, (field', (perm, value)))
-				else find_field_rec rest ((field', (perm, value)) :: traversed_fv_list)) in
-	find_field_rec fv_list []
+	(match SFVL.get field fv_list with
+	| Some result -> Some (SFVL.remove field fv_list, (field, result))
+	| None -> Option.map (fun (ffn, ffv) -> SFVL.remove ffn fv_list, (ffn, ffv))
+		(SFVL.get_first (fun name -> Pure_Entailment.is_equal name field pfs gamma) fv_list))
 
 (**
 
@@ -48,14 +43,14 @@ let sheap_put
 			| Readable -> 
 					let msg = Printf.sprintf "Non-writable field: (%s, %s)" loc (JSIL_Print.string_of_logic_expression field) in
 					raise (Failure msg)
-			| _ -> SHeap.put heap loc ((field, (perm, value)) :: framed_fv_list) domain metadata ext)
+			| _ -> SHeap.put heap loc (SFVL.add field (perm, value) framed_fv_list) domain metadata ext)
 	(* What about permissions in the domain?! *)
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
 			let new_domain = Simplifications.reduce_expression gamma pfs new_domain in
-			SHeap.put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
+			SHeap.put heap loc (SFVL.add field (perm, value) fv_list) (Some new_domain) metadata ext
 		) else (
 			let msg = Printf.sprintf "SHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
@@ -115,7 +110,7 @@ let merge_heaps
 			| Some ((fv_list, domain), metadata, ext) -> 
 				let new_ext = Extensibility.merge ext n_ext in
   				Hashtbl.add meta_subst n_metadata metadata; 
-  				SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
+  				SHeap.put heap loc (SFVL.union n_fv_list fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
 			| None -> 
 				SHeap.put heap loc n_fv_list n_domain n_metadata n_ext); 
 
@@ -136,9 +131,9 @@ let merge_heaps
 
 	(* Garbage collection - What happens here now?! TODO *)
 	SHeap.iterator heap (fun loc ((fv_list, domain), metadata, ext) ->
-		(match fv_list, domain, metadata, ext with
-		| [], None, None, None -> SHeap.remove heap loc
-		| _, _, _, _ -> ()));
+		(match domain, metadata, ext with
+		| None, None, None -> if (fv_list = SFVL.empty) then SHeap.remove heap loc
+		| _, _, _ -> ()));
 
 	print_debug "Finished merging heaps.";
 	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))
@@ -357,15 +352,14 @@ let get_locs_symb_state symb_state =
 	
 let collect_garbage (symb_state : symbolic_state) = 
 	let heap, store, pfs, gamma, preds = symb_state in
-	let dangling_locations = 	Heap.fold
+	let dangling_locations = Heap.fold
 		(fun loc ((fv_list, default), _, _) locs ->
-			match (is_aloc_name loc), default, fv_list with
-			| true, None, [] 
-			| true, Some (LESet []), [] -> SS.add loc locs
+			match (is_aloc_name loc), default with
+			| true, None when (fv_list = SFVL.empty) ->  SS.add loc locs
 			| _ -> locs
   	)
-		heap
-		SS.empty in
+	heap
+	SS.empty in
 	if (dangling_locations = SS.empty) then symb_state else (
 	let ss_vars = get_locs_symb_state symb_state in
 	let collectable_locs = SS.diff dangling_locations ss_vars in

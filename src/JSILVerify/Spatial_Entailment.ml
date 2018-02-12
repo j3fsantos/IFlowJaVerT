@@ -232,9 +232,8 @@ let unify_cell_assertion
 				print_debug msg; raise (Failure msg) in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
-	let fv_list_set = SFV.of_list fv_list in
 	let fv_list_frames = 
-		SFV.fold (fun (field, (perm, value)) ac -> 
+		SFVL.fold (fun field (perm, value) ac -> 
 			(match un_les pat_field field with 
 			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
@@ -248,12 +247,11 @@ let unify_cell_assertion
 							let pat_subst     = Hashtbl.copy pat_subst in 
           		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
           			let heap_frame    = SHeap.copy heap in 
-          			let fv_list_frame = SFV.remove (field, (perm, value)) fv_list_set in 
-          			let fv_list_frame = SFV.elements fv_list_frame in 
+          			let fv_list_frame = SFVL.remove field fv_list in 
           			SHeap.put heap_frame loc fv_list_frame dom metadata ext; 
           			(heap_frame, pat_subst, discharges) :: ac
 							) else ac					
-					| _, _ -> ac)))) fv_list_set [] in 
+					| _, _ -> ac)))) fv_list [] in 
 
 	(* 5. Try to unify the cell assertion using the domain info *)
 	let dom_frame =
@@ -338,20 +336,20 @@ let rec find_missing_nones
 
 	let rec find_missing_none 
 			(missing_field          : jsil_logic_expr)
-			(none_fv_list           : SFVL.t) 
-			(traversed_none_fv_list : SFVL.t) : SFVL.t =
-		match none_fv_list with
-		| []                      -> raise (UnificationFailure "") 
-		| (f_name, f_val) :: rest_none_fv_list ->
-			if (Pure_Entailment.is_equal f_name missing_field pfs gamma)
-				then rest_none_fv_list @ traversed_none_fv_list
-				else find_missing_none missing_field rest_none_fv_list ((f_name, f_val) :: traversed_none_fv_list) in
+			(none_fv_list           : SFVL.t) : SFVL.t =
+		(match SFVL.get missing_field none_fv_list with
+		| Some result -> SFVL.remove missing_field none_fv_list
+		| None -> 
+			Option.map_default 
+			(fun (ffn, ffv) -> SFVL.remove ffn none_fv_list)
+			none_fv_list
+			(SFVL.get_first (fun name -> Pure_Entailment.is_equal name missing_field pfs gamma) none_fv_list)) in
 
 	match fields_to_find with
 	| [] -> none_fv_list
 	| f_name :: rest_fields ->
 		(* print_debug (Printf.sprintf "I need to find %s \n" (JSIL_Print.string_of_logic_expression f_name false)); *) 
-		let rest_none_fv_list = find_missing_none f_name none_fv_list [] in
+		let rest_none_fv_list = find_missing_none f_name none_fv_list in
 		fmn rest_fields rest_none_fv_list  
 
 
@@ -367,7 +365,7 @@ let unify_domains
 	print_debug_petar "Entering unify_domains.";
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
-	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
+	let none_fv_list, non_none_fv_list = SFVL.partition (fun field (_, value) -> value = LNone) fv_list in
 	
 	(* 2. Find domain_difference = -{ f_1, ..., f_n }- = dom \ subst(pat_dom) 
 	      The fields f_1, ..., f_n MUST be NONE                                           *) 
@@ -400,13 +398,13 @@ let unify_domains
 	(* 6. When dom is smaller than pat_dom, then the footprint of the associated EF 
 	      assertion is bigger. In this case, the fields in (pat_dom / dom) need to be 
 	      explicitly none cells in the framed heap - but with which permission?! TODO       *)
-	let new_none_fv_list = List.map (fun le -> (le, (perm, LNone))) domain_frame_difference in
+	let new_none_fv_list = List.fold_left (fun ac le -> SFVL.add le (perm, LNone) ac) SFVL.empty domain_frame_difference in
 
 	(* 7. The returned framed fv_list is composed of:   
 	        i)  the non-NONE fields in the original fv-list 
 	       ii)  the NONE fields that were not used to compensate the domain_difference
 	      iii)  the NONE fields that resulted from the domain_frame_difference *)
-	non_none_fv_list @ non_matched_none_fields @ new_none_fv_list 
+	SFVL.union non_none_fv_list (SFVL.union non_matched_none_fields new_none_fv_list)
 
 
  let unify_empty_fields_assertion 

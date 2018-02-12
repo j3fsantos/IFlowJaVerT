@@ -45,8 +45,8 @@ let put (heap : t) (loc : string) (fv_list : SFVL.t) (dom : jsil_logic_expr opti
     The domain remains unchanged. 
 		TODO: FIX - duplicate fields? *) 
 let put_fv_pair_simple (heap : t) (loc : string) (perm : Permission.t) (field : jsil_logic_expr) (value : jsil_logic_expr) =
-	let ((fv_list, domain), metadata, ext) = try Heap.find heap loc with _ -> (([], None), None, None) in
-	Heap.replace heap loc ((((field, (perm, value)) :: fv_list), domain), metadata, ext)
+	let ((fv_list, domain), metadata, ext) = try Heap.find heap loc with _ -> ((SFVL.empty, None), None, None) in
+	Heap.replace heap loc ((SFVL.add field (perm, value) fv_list, domain), metadata, ext)
 
 let has_loc (heap : t) (loc : string) : bool = 
 	Heap.mem heap loc 
@@ -132,7 +132,7 @@ let substitution_in_place (subst : substitution) (heap : t) : unit =
             			Some (LSetUnion [ set1; set2 ]) in
 											
 					(* Perform the replacement *)
-					Heap.replace heap s_loc ((s_fv_list @ s_nfvl, new_domain), s_metadata, s_ext)))
+					Heap.replace heap s_loc ((SFVL.union s_fv_list s_nfvl, new_domain), s_metadata, s_ext)))
   	heap
 
 (** Returns the logical variables occuring in --heap-- *)
@@ -140,9 +140,7 @@ let lvars (heap : t) : SS.t =
 	let gllv = JSIL_Logic_Utils.get_lexpr_lvars in
 	Heap.fold
 		(fun _ ((fv_list, domain), e_metadata, _) ac ->
-			let v_fv = List.fold_left
-				(fun ac (e_field, (_, e_val)) -> SS.union ac (SS.union (gllv e_field) (gllv e_val)))
-				SS.empty fv_list in
+			let v_fv = SFVL.lvars fv_list in 
 			let v_domain = Option.map_default (fun domain -> gllv domain) SS.empty domain in
 			let v_metadata = Option.map_default gllv SS.empty e_metadata in
 			SS.union ac (SS.union v_fv (SS.union v_domain v_metadata)))
@@ -153,9 +151,7 @@ let alocs (heap : t) : SS.t =
 	let gla = JSIL_Logic_Utils.get_lexpr_alocs in
 	Heap.fold
 		(fun _ ((fv_list, _), e_metadata, _) ac ->
-			let v_fv = List.fold_left
-				(fun ac (e_field, (_, e_val)) -> SS.union ac (SS.union (gla e_field) (gla e_val)))
-				SS.empty fv_list in
+			let v_fv = SFVL.alocs fv_list in
 			let v_metadata = Option.map_default gla SS.empty e_metadata in
 			SS.union ac (SS.union v_fv v_metadata))
 		heap SS.empty
@@ -170,7 +166,7 @@ let iterator (heap: t) (f : string -> (((SFVL.t * (jsil_logic_expr option)) * js
 
 (** Returns true if --heap-- is empty : TODO *)
 let is_empty (heap : t) : bool =
-	Heap.fold (fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = []) && (dom = None)) heap true
+	Heap.fold (fun loc ((fv_list, dom), metadata, _) ac -> if (not ac) then ac else (fv_list = SFVL.empty) && (dom = None)) heap true
 
 (** converts a symbolic heap to a list of assertions *)
 let assertions (heap : t) : jsil_logic_assertion list = 
@@ -180,7 +176,7 @@ let assertions (heap : t) : jsil_logic_assertion list =
 	(* TODO : Deal with metadata and extensibility *)
 	let rec assertions_of_object (loc, ((fv_list, domain), metadata, ext)) =
 	 	let le_loc = make_loc_lexpr loc in
-		let fv_assertions = List.map (fun (field, (perm, value)) -> LPointsTo (le_loc, field, (perm, value))) fv_list in 
+		let fv_assertions = SFVL.assertions le_loc fv_list in 
 		let domain = Option.map_default (fun domain -> [ LEmptyFields (le_loc, domain) ]) [] domain in
 		let metadata = match metadata with | Some metadata -> [ LMetaData (le_loc, metadata) ] | None -> [ ] in
 		let ext = match ext with | Some ext -> [ LExtensible (le_loc, ext) ] | None -> [ ] in 
