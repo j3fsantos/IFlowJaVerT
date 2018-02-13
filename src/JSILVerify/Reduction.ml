@@ -170,68 +170,64 @@ let rec get_nth_of_string (str : jsil_logic_expr) (idx : int) : jsil_logic_expr 
 (* SET REASONING HELPER FUNCTIONS *)
 (**********************************)
 
-let rec set_member m s = 
-	let f = set_member m in 
+let is_different pfs li lj : bool option = 
+	(match li = lj with
+	| true -> Some false
+	| false -> (match li, lj with
+		| LLit x, LLit y when x <> y -> Some true
+		| _, _ -> if (List.mem (LNot (LEq (li, lj))) pfs || List.mem (LNot (LEq (lj, li))) pfs)
+			then Some true else None
+		)
+	)
+
+let rec set_member pfs m s = 
+	let f = set_member pfs m in 
 	(match s with
+	| LVar x -> m = s
 	| LESet s -> List.mem m s
 	| LSetUnion les -> List.exists  (fun x -> f x) les
 	| LSetInter les -> List.for_all (fun x -> f x) les
-	| _ -> false)
+	| _ -> List.mem (LSetMem (m, s)) pfs
+	)
 
-(*****************)
-(* PURE FORMULAE *)
-(*****************)
+let rec not_set_member pfs m s = 
+	let f = not_set_member pfs m in 
+	(match s with
+	| LSetUnion les -> List.for_all (fun x -> f x) les
+	| LSetInter les -> List.exists  (fun x -> f x) les
+	| LESet les -> List.for_all (fun le -> is_different pfs m le = Some true) les
+	| _ -> List.mem (LNot (LSetMem (m, s))) pfs
+	)
 
-(* Extracting equalities from an assertion *)
-let extract_equalities_from_assertion ?(target : string option) (a : jsil_logic_assertion) : bool * substitution =
-	let subst = init_substitution [] in
-	let found : bool = (match a with
-	(* The only source of equalities are the actual equalities *)
-	| LEq (le1, le2) -> 
-		(match le1, le2 with
-		| LVar v1, LVar v2 when (v1 = v2) -> false
-		(* Sort two variables *)
-		| LVar v1, LVar v2 ->  
-			let keep, kill = if (String.compare v1 v2 < 0) then v1, v2 else v2, v1 in
-			let keep, kill = Option.map_default (fun v -> if (v = kill) then (kill, keep) else (keep, kill)) (keep, kill) target in
-			extend_substitution subst [ kill ] [ LVar keep ];
-			true
-		(* Variable equals expression *)
-		| LVar v, le
-		| le, LVar v -> extend_substitution subst [ v ] [ le ]; true
-		| _, _ -> false
+let rec set_subset pfs s s' = 
+	let f = set_subset pfs s in 
+	(match s' with
+	| LVar _ -> s = s'
+	| LSetUnion les -> List.exists  (fun x -> f x) les
+	| LSetInter les -> List.for_all (fun x -> f x) les
+	| _ -> 
+		(match s with 
+		| LESet les -> List.for_all (fun x -> set_member pfs x s') les
+		| _ -> false
 		)
-	(* The rest does not help *)
-	| _ -> false 
-	) in
-	found, subst
+	)
 
-(* Extracting equalities from pure formulae *)
-let extract_equalities_from_pfs ?(target : string option) (pfs : pure_formulae) : substitution =
-	let start_time = Sys.time () in
-
-	let subst = init_substitution [] in
-	
+let all_different pfs les = 
+	let result = ref true in
+	let len = List.length les in
+	let les = Array.of_list les in
 	let i = ref 0 in
-	while !i < DynArray.length pfs do
-		let pf = DynArray.get pfs !i in
-		let found, subst' = extract_equalities_from_assertion ?target:target pf in
-		if found then
-			(apply_subst_to_subst subst' subst;
-			extend_subst_with_subst subst subst';
-			pfs_substitution_in_place subst' pfs;
-			DynArray.delete pfs !i)
-		else i := !i + 1
+	while !result && (!i < len - 1) do 
+		let j = ref (!i + 1) in
+		while !result && (!j < len) do
+			let li, lj = Array.get les !i, Array.get les !j in
+				print_debug (Printf.sprintf "Checking: %s vs. %s" (JSIL_Print.string_of_logic_expression li) (JSIL_Print.string_of_logic_expression lj));
+				if (is_different pfs li lj <> Some true) then result := false;
+				j := !j + 1
+		done;
+		i := !i + 1
 	done;
-
-	print_debug (Printf.sprintf "Substitution:%s" (JSIL_Print.string_of_substitution subst));
-	print_debug (Printf.sprintf "Substituted pfs:%s" (Symbolic_State_Print.string_of_pfs pfs));
-
-	let end_time = Sys.time () in
-		update_statistics "extract_equalities_from_pfs" (end_time -. start_time);
-
-	subst
-
+	!result
 
 (*************)
 (* REDUCTION *)
@@ -537,6 +533,8 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 				)
 
 			| SetDiff when (lexpr_is_set ?gamma:gamma def) ->
+				print_debug_petar (Printf.sprintf "SetDiff: %s -d- %s" (JSIL_Print.string_of_logic_expression flel) (JSIL_Print.string_of_logic_expression fler));
+				let pfs = Option.map_default (fun pfs -> pfs_to_list pfs) [] pfs in
 				(match flel, fler with
 				| x, y when (x = y) -> LESet []
 				| LESet [], _ -> LESet []
@@ -544,14 +542,27 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 				| LESet left, LESet right when (all_literals left && all_literals right) ->
 					LESet (SLExpr.elements (SLExpr.diff (SLExpr.of_list left) (SLExpr.of_list right)))
 				| LESet left, s when (all_literals left) ->
-					if (List.for_all (fun x -> set_member x s) left) then LESet [] else def
+					if (List.for_all (fun x -> set_member pfs x s) left) then LESet [] else def
 				| LSetUnion les, _ -> 
 					let diffs = List.map (fun le -> f (LBinOp (le, SetDiff, fler))) les in
 					LSetUnion diffs
-				| _, _ -> let hM = f (LBinOp (flel, SetSub, fler)) in
+				| LVar _, _ -> if (set_subset pfs flel fler) then LESet [] else def
+				| LESet les, fler -> 
+					(* We must know that the elements of les are all different, and for that we need the pure formulae *)
+					(match all_different pfs les with
+					| false -> def
+					| true -> 
+						print_debug "All different.";
+						let _, rest = List.partition (fun x -> set_member pfs x fler) les in
+						if (List.for_all (fun x -> not_set_member pfs x fler) rest) then LESet rest else
+						LBinOp (LESet rest, SetDiff, fler)
+					)
+				| _, _ -> def)
+
+				(* let hM = f (LBinOp (flel, SetSub, fler)) in
 					(match hM with
 					| LLit (Bool true) -> LESet []
-					| _ -> def))
+					| _ -> def)) *)
 
 			| SetMem when (lexpr_is_bool ?gamma:gamma def) ->
 				(match flel, fler with

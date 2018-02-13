@@ -154,7 +154,7 @@ let rec reduce_expression (gamma : (string, Type.t) Hashtbl.t)
 	
 	(* print_debug (Printf.sprintf "Reduce expression: %s" (string_of_logic_expression e)); *)
 	
-	Reduction.reduce_lexpr ?gamma:(Some gamma) e 
+	Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e 
 	
 (*)
 	let f = reduce_expression gamma pfs in
