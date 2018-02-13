@@ -29,7 +29,7 @@ let rec symb_evaluate_expr
 		(store : symbolic_store) (gamma : TypEnv.t) 
 		(pure_formulae : pure_formulae) (expr : jsil_expr) : jsil_logic_expr =
 let f = symb_evaluate_expr store gamma pure_formulae in
-	match expr with
+	let result = (match expr with
 	(* Literals: Return the literal *)
 	| Literal lit -> LLit lit
 
@@ -175,7 +175,9 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 				| LLit (String s) -> LLit (String (String.make 1 (String.get s n)))
 				| _ -> LStrNth (str, index))
 		| LLit (Num n) -> raise (Failure "Non-integer string index.")
-		| _ -> LStrNth (str, index))
+		| _ -> LStrNth (str, index))) in
+	(* Perform simplification *)
+	(Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pure_formulae) result)
 
 
 (************************************************)
@@ -548,7 +550,7 @@ let find_and_apply_spec
 					let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion (ss_gamma symb_state) pfs x) pfs in
 					Simplifications.sanitise_pfs_no_store (ss_gamma symb_state) rpfs;
 					let symb_state' = ss_replace_pfs symb_state rpfs in 
-					let ret_lexpr'  = Simplifications.reduce_expression_no_gamma_no_pfs ret_lexpr in 
+					let ret_lexpr'  = Reduction.reduce_lexpr ret_lexpr in 
 					(symb_state', ret_flag, ret_lexpr')
 				) symb_states_and_ret_lexprs)) in  		
 
@@ -1203,7 +1205,8 @@ let rec symb_evaluate_cmd
 						then print_debug (Printf.sprintf "WARNING: Exists spec with no post for proc %s." proc_name))
 					proc_specs.n_proc_specs;
 				let _, new_symb_states = find_and_apply_spec s_prog.program proc_name proc_specs symb_state le_args in
-				let new_symb_states    = List.map (fun (symb_state, ret_flag, ret_le) -> (symb_state, ret_flag, ret_le, search_info)) new_symb_states in 
+				let new_symb_states    = List.map (fun (symb_state, ret_flag, ret_le) -> 
+					(symb_state, ret_flag, ret_le, search_info)) new_symb_states in 
 				(if ((List.length new_symb_states) = 0)
 					then raise (Failure (Printf.sprintf "No precondition found for procedure %s." proc_name)));
 				new_symb_states
@@ -1237,7 +1240,6 @@ let rec symb_evaluate_cmd
 	        continue with the symbolic execution *)
 		List.concat (List.map 
 			(fun (symb_state, ret_flag, ret_le, search_info) ->
-				let ret_type, _, _  = type_lexpr (ss_gamma symb_state) ret_le in
 				store_put (ss_store symb_state) x ret_le;
 				let symb_state      = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 				let new_search_info = sec_duplicate search_info in
@@ -1296,8 +1298,6 @@ and post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state cu
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
 	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec_vars, search_info ] false subst None in
-	(* The number of symbolic states resulting from the evaluation of the logic commands *)
-	let len = List.length symb_states_with_spec_vars in
 	(* For each obtained symbolic state *)
 	List.concat (List.map 
 		(* Get the symbolic state *)
@@ -1456,7 +1456,6 @@ let symb_evaluate_proc
 			
 			print_debug (Printf.sprintf "The final symbolic states for procedure %s are:" proc_name);
 			List.iter (fun (ss, _, _, _) -> print_debug (Symbolic_State_Print.string_of_symb_state ss)) final_symb_states;
-			
 			
 			List.iter (fun (symb_state, ret_flag, spec_vars, search_info) -> 
 				let successful_post = unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state in 

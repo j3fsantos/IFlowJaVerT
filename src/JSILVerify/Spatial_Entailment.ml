@@ -266,7 +266,7 @@ let unify_cell_assertion
 				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
 					let heap_frame = SHeap.copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
-					let new_domain = Simplifications.reduce_expression gamma pfs new_domain in
+					let new_domain = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) new_domain in
 					SHeap.put heap_frame loc fv_list (Some new_domain) metadata ext; 
 					[ (heap_frame, pat_subst, (discharges_field)) ]
 			))) in 

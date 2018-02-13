@@ -234,11 +234,11 @@ let all_different pfs les =
 (*************)
 
 (** Reduction of logical expressions *)
-let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le : jsil_logic_expr) = 
+let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le : jsil_logic_expr) = 
 
 	let start_time = Sys.time () in
 
-	let f = reduce_lexpr ?gamma:gamma ?pfs:pfs in
+	let f = reduce_lexpr ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
 	let result = (match le with
 
 	(* Base lists *)
@@ -520,6 +520,9 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 				| x, LEList []
 				| LLit (LList []), x
 				| LEList [], x -> x
+				| LEList x, LEList y -> LEList (x @ y)
+				| LLit (LList x), LEList y -> LEList (List.map (fun x -> LLit x) x @ y)
+				| LEList x, LLit (LList y) -> LEList (x @ List.map (fun x -> LLit x) y)
 				(* Rest *)
 				| _, _ -> def
 				)
@@ -594,9 +597,9 @@ let rec reduce_lexpr ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le
 	| _ -> le 
 	) in
 	
-	if (le <> result) 
+	if (le <> result)  
 		then (print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result)); f result)
 		else 
-		(let end_time = Sys.time () in
-			update_statistics "reduce_lexpr" (end_time -. start_time);
-			result)
+		(if (no_timing <> None) then 
+			(let end_time = Sys.time () in update_statistics "reduce_lexpr" (end_time -. start_time));
+		result)

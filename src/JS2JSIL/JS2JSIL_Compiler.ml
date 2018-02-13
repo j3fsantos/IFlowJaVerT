@@ -61,10 +61,10 @@ let add_more_metadata def_metadata lcmds invariant cmds =
 		let new_metadata = { metadata with pre_logic_cmds = pre_l_cmds @ lcmds; invariant = invariant } in
 		(new_metadata, lab, cmd) :: rest
 
-
-let is_vref x = BinOp (BinOp (UnOp (TypeOf, x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refv))
-let is_oref x = BinOp (BinOp (UnOp (TypeOf, x), Equal, lit_typ ListType), And, BinOp (rtype x, Equal, lit_refo))
-let is_ref  x = BinOp (is_vref x, Or, is_oref x)
+let is_list_type x = BinOp (UnOp (TypeOf, x), Equal, lit_typ ListType)
+let is_vref      x = BinOp (rtype x, Equal, lit_refv)
+let is_oref      x = BinOp (rtype x, Equal, lit_refo)
+let is_ref       x = BinOp (is_vref x, Or, is_oref x)
 
 let rec get_break_lab loop_list lab =
 	match loop_list with
@@ -249,10 +249,13 @@ let translate_inc_dec x is_plus err =
 						  x_pv := putValue (x, x_r) with err
  *)
 	(* goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next *)
-	let next = fresh_label () in
-	let cmd_goto_legalass = LGuardedGoto ((non_writable_ref_test x), err, next) in
+	let next0 = fresh_label () in
+	let next1 = fresh_label () in
 
-	(* next:  x_v := getValue (x) with err *)
+	let cmd_goto_islist   = LGuardedGoto ((is_list_type x), next1, next0) in
+	let cmd_goto_legalass = LGuardedGoto ((non_writable_ref_test x), err, next1) in
+
+	(* next1:  x_v := getValue (x) with err *)
 	let x_v, cmd_gv_x, errs_x_v = make_get_value_call x err in
 
 	(* x_n := i__toNumber (x_v) with err *)
@@ -268,11 +271,12 @@ let translate_inc_dec x is_plus err =
 	let x_pv, cmd_pv_x = make_put_value_call x x_r err in
 
 	let new_cmds = [
-		(None,      cmd_goto_legalass);                (*        goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next   *)
-		(Some next, cmd_gv_x);                         (* next:  x_v := i__getValue (x) with err                                                                             *)
-		(None,      cmd_tn_x);                  	     (*        x_n := i__toNumber (x_v) with err                                                                           *)
-		(None,      cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                              *)
-		(None,      cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
+	    (None,       cmd_goto_islist);                  (*        goto [ typeof (x) = ListType ] next1 next0 )                                                                *)
+		(Some next0, cmd_goto_legalass);                (* next0: goto [ (typeof (x) = $$v-reference_type) and ((field(x) = "eval") or (field(x) = "arguments")) ] err next   *)
+		(Some next1, cmd_gv_x);                         (* next1: x_v := i__getValue (x) with err                                                                             *)
+		(None,       cmd_tn_x);                  	    (*        x_n := i__toNumber (x_v) with err                                                                           *)
+		(None,       cmd_ass_xr);                       (*        x_r := x_n + 1                                                                                              *)
+		(None,       cmd_pv_x)                          (*        x_pv = i__putValue (x, x_r) with err                                                                        *)
 	] in
 	let new_errs = [ var_se; x_v; x_n; x_pv ] in
 	new_cmds, new_errs, x_n, x_r
@@ -1474,11 +1478,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_sync = LGoto join in 
 
 		(* join: goto [ typeOf(x_f) = ObjReference ] then else;  *)
-		let then_lab = fresh_then_label () in
-		let else_lab = fresh_else_label () in
-		let end_lab = fresh_endif_label () in
-		let goto_guard_expr = is_oref x_ef in
-		let cmd_goto_obj_ref = LGuardedGoto (goto_guard_expr, then_lab, else_lab) in
+		let then_lab_1 = fresh_then_label  () in
+		let then_lab_2 = fresh_then_label  () in
+		let else_lab   = fresh_else_label  () in
+		let end_lab    = fresh_endif_label () in
+
+		let cmd_goto_obj_ref_1 = LGuardedGoto (is_list_type x_ef, then_lab_1, else_lab) in
+		let cmd_goto_obj_ref_2 = LGuardedGoto (is_oref      x_ef, then_lab_2, else_lab) in
 
 		(* then: x_then_this := base(x_f); *)
 		let x_this_then = fresh_this_var () in
@@ -1559,14 +1565,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(* CALL *)
 
 		@ annotate_cmds [
-			(Some call,      cmd_goto_obj_ref);     (* next2: goto [ typeOf(x_f) = ObjReference ] then else                             *)
-			(Some then_lab,  cmd_this_base);        (* then:  x_then_this := base(x_f)                                                  *)
-			(None,           cmd_goto_end);         (*        goto end                                                                  *)
-			(Some else_lab,  cmd_this_undefined);   (* else:  x_else_this := undefined                                                  *)
-			(Some end_lab,   cmd_ass_xthis);        (* end:   x_this := PHI(x_then_this, x_else_this)                                   *)
-			(None,           cmd_body);             (*        x_body := [xfvm, "@call"]                                              *)
-			(None,           cmd_scope);            (*        x_fscope := [xfvm, "@scope"]                                           *)
-			(None,           cmd_proc_call);        (*        x_rcall := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err *) ]
+			(Some call,       cmd_goto_obj_ref_1);     (* next2: goto [ typeOf(x_f) = ObjReference ] then else                             *)
+			(Some then_lab_1, cmd_goto_obj_ref_2);
+			(Some then_lab_2, cmd_this_base);        (* then:  x_then_this := base(x_f)                                                  *)
+			(None,            cmd_goto_end);         (*        goto end                                                                  *)
+			(Some else_lab,   cmd_this_undefined);   (* else:  x_else_this := undefined                                                  *)
+			(Some end_lab,    cmd_ass_xthis);        (* end:   x_this := PHI(x_then_this, x_else_this)                                   *)
+			(None,            cmd_body);             (*        x_body := [xfvm, "@call"]                                              *)
+			(None,            cmd_scope);            (*        x_fscope := [xfvm, "@scope"]                                           *)
+			(None,            cmd_proc_call);        (*        x_rcall := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err *) ]
 
 		@ (if_verification [] (annotate_cmds [
 
@@ -1645,15 +1652,19 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next2 = fresh_next_label () in
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
-		let goto_guard = is_ref x in
-		let cmd_goto_isref = LGuardedGoto (goto_guard, next1, next4) in
+		let next5 = fresh_next_label () in
+		let next6 = fresh_next_label () in
+		let goto_guard_1 = is_list_type x in
+		let goto_guard_2 = is_ref x in
+		let cmd_goto_isref_1 = LGuardedGoto (goto_guard_1, next1, next5) in
+		let cmd_goto_isref_2 = LGuardedGoto (goto_guard_2, next2, next5) in
 
 		(* next1: goto [ ((base(x) = null) or (base(x) = undefined)) ] err next2 *)
-		let cmd_goto_is_resolvable_ref = LGuardedGoto (make_unresolvable_ref_test x , tr_ctx.tr_err, next2) in
+		let cmd_goto_is_resolvable_ref = LGuardedGoto (make_unresolvable_ref_test x , tr_ctx.tr_err, next3) in
 
 		(* next2: goto [ (typeOf x) = $$v-reference_type ] err next3 *)
 		let goto_guard = is_vref x in
-		let cmd_goto_is_vref = LGuardedGoto (goto_guard, tr_ctx.tr_err, next3) in
+		let cmd_goto_is_vref = LGuardedGoto (goto_guard, tr_ctx.tr_err, next4) in
 
 		(* next3: x_obj := toObject(base(x)) err *)
 		let x_obj = fresh_obj_var () in
@@ -1666,17 +1677,17 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let x_r2 = fresh_var () in
 		let x_r = fresh_var () in
-		let next5 = fresh_next_label () in
 		let cmds = annotate_first_cmd (
 			cmds @ (annotate_cmds [                                                     (*        cmds                                                                     *)
-			(None,       cmd_goto_isref);                                               (*        goto [ (typeOf x) <: $$reference_type ] next1 next4                      *)
-			(Some next1, cmd_goto_is_resolvable_ref);                                   (* next1: goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] err next2   *)
-			(Some next2, cmd_goto_is_vref);                                             (* next2: goto [ (typeOf x) = $$v-reference_type ] err next3                       *)
-			(Some next3, cmd_to_obj);                                                   (* next3: x_obj := toObject(base(x)) err3                                          *)
-			(None,       cmd_delete);                                                   (*        x_r1 := deleteProperty(x_obj, field(x), true) with err                    *)
-			(None,       LGoto next5);                                                 (*        goto next5                                                               *)
-			(Some next4, LBasic (Assignment (x_r2, Literal (Bool true))));            (* next4: x_r2 := true                                                              *)
-			(Some next5, LPhiAssignment (x_r, [| (Var x_r1); (Var x_r2) |]))           (* next5: x_r := PHI(x_r1, x_r2)                                                   *)
+			(None,       cmd_goto_isref_1);                                             (*        goto [ (typeOf x) <: $$reference_type ] next1 next5                      *)
+			(Some next1, cmd_goto_isref_2);                                             (* next1: goto [ (typeOf x) <: $$reference_type ] next2 next3                      *)
+			(Some next2, cmd_goto_is_resolvable_ref);                                   (* next2: goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] err next3       *)
+			(Some next3, cmd_goto_is_vref);                                             (* next3: goto [ (typeOf x) = $$v-reference_type ] err next4                       *)
+			(Some next4, cmd_to_obj);                                                   (* next4: x_obj := toObject(base(x)) err3                                          *)
+			(None,       cmd_delete);                                                   (*        x_r1 := deleteProperty(x_obj, field(x), true) with err                   *)
+			(None,       LGoto next5);                                                  (*        goto next5                                                               *)
+			(Some next5, LBasic (Assignment (x_r2, Literal (Bool true))));              (* next5: x_r2 := true                                                             *)
+			(Some next6, LPhiAssignment (x_r, [| (Var x_r1); (Var x_r2) |]))            (* next6: x_r := PHI(x_r1, x_r2)                                                   *)
 		])) in
 		let errs = errs @ [ var_se; var_se; x_obj; x_r1 ] in
 		cmds, Var x_r, errs
@@ -1707,12 +1718,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		C(e) =  cmds, x
 		C(typeof e) =
 						cmds
-		                goto [ is-ref(typeof (x)) ] next1 next4
-			   next1:   goto [ ((base(x) = null) or (base(x) = undefined)) ] next2 next3
-			   next2:   x1 := undefined
+		                goto [ is-ref(typeof (x)) ] next1 next5
+		       next1:   goto [ is-ref(typeof (x)) ] next2 next5
+			   next2:   goto [ ((base(x) = null) or (base(x) = undefined)) ] next3 next4
+			   next3:   x1 := undefined
 					    goto next4
-			   next3:   x2 := getValue (x) with err
-			   next4:   x3 := PHI (x, x1, x2)
+			   next4:   x2 := getValue (x) with err
+			   next5:   x3 := PHI (x, x1, x2)
 					    x_r := i__typeOf (x3) with err
       *)
 
@@ -1724,11 +1736,12 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next2 = fresh_next_label () in
 		let next3 = fresh_next_label () in
 		let next4 = fresh_next_label () in
-		let cmd_goto_ref_guard = is_ref x in
-		let cmd_goto_ref = LGuardedGoto (cmd_goto_ref_guard, next1, next4) in
+		let next5 = fresh_next_label () in
+		let cmd_goto_ref_1 = LGuardedGoto (is_list_type x, next1, next5) in
+		let cmd_goto_ref_2 = LGuardedGoto (is_ref x, next2, next5) in
 
-		(* goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] next2 next3 *)
-		let cmd_goto_unres_ref = LGuardedGoto (make_unresolvable_ref_test x, next2, next3) in
+		(* goto [ ((base(x_e) = null) or (base(x_e) = undefined)) ] next3 next4 *)
+		let cmd_goto_unres_ref = LGuardedGoto (make_unresolvable_ref_test x, next3, next4) in
 
 		(* x2 := getValue (x) with err *)
 		let x1 = fresh_var () in
@@ -1742,12 +1755,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		let cmds = annotate_first_cmd (
 		    cmds @ (annotate_cmds [                                                              (*             cmds                                                  *)
-			(None, cmd_goto_ref);                                                                (*             goto [ typeof (x) <: $$reference-type ] next1 next4   *)
-			(Some next1, cmd_goto_unres_ref);                                                    (* next1:      goto [ base(x) = undefined] next2 next3               *)
-			(Some next2, LBasic (Assignment (x1, Literal Undefined)));                         (* next2:      x1 := undefined                                     *)
-			(None,       LGoto next4);                                                          (*             goto next4                                            *)
-			(Some next3, cmd_gv_x);                                                              (* next3:      x2 := getValue (x) with err                           *)
-			(Some next4, LPhiAssignment (x3, [| (Var x_name); (Var x1); (Var x2) |]));          (* next4:      x3 := PHI (x, x1, x2)                                 *)
+		    (None,       cmd_goto_ref_1);                                                        (*             goto [ typeof (x) <: $$reference-type ] next1 next5   *)
+			(Some next1, cmd_goto_ref_2);                                                        (*             goto [ typeof (x) <: $$reference-type ] next2 next5   *)
+			(Some next2, cmd_goto_unres_ref);                                                    (* next2:      goto [ base(x) = undefined] next2 next3               *)
+			(Some next3, LBasic (Assignment (x1, Literal Undefined)));                           (* next3:      x1 := undefined                                     *)
+			(None,       LGoto next4);                                                           (*             goto next4                                            *)
+			(Some next4, cmd_gv_x);                                                              (* next4:      x2 := getValue (x) with err                           *)
+			(Some next5, LPhiAssignment (x3, [| (Var x_name); (Var x1); (Var x2) |]));           (* next5:      x3 := PHI (x, x1, x2)                                 *)
 			(None,       cmd_ass_xr)                                                             (*             x_r := i__typeOf (x3) with err                        *)
 		])) in
 		let errs = errs @ [ x2; x_r ] in
