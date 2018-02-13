@@ -1640,20 +1640,20 @@ spec i__getValue (v)
     
     (* Now come the more involved specs, which are a bit difficult for the solver. *)
     
-    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * (#d == undefined) ]]
-    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * (ret == undefined) ]]
+    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * (#d == undefined) ]]
+    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * (ret == undefined) ]]
     normal;
 
-    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * DataDescriptor(#d) ]]
-    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * desc_val(#d, #dval) * (ret == #dval) ]]
+    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * DataDescriptor(#d) ]]
+    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * desc_val(#d, #dval) * (ret == #dval) ]]
     normal;
     
-    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * (#d == undefined) ]]
-    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * (ret == undefined) ]]
+    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * (#d == undefined) ]]
+    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * (ret == undefined) ]]
     normal;
 
-    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * DataDescriptor(#d) ]]
-    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * desc_val(#d, #dval) * (ret == #dval) ]]
+    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * DataDescriptor(#d) ]]
+    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * desc_val(#d, #dval) * (ret == #dval) ]]
     normal 
 
 proc i__getValue (v) {

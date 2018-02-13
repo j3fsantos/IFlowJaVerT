@@ -1372,7 +1372,10 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		| LEq (LVar v, le) 
 		| LEq (le, LVar v) ->
 		   (match (SS.mem v exists) with
-		   | false -> go_through_pfs rest (n + 1)
+		   | false -> 
+		   		print_debug_petar ("Target case: " ^ v ^ " = " ^ JSIL_Print.string_of_logic_expression le);
+		   		
+		   		go_through_pfs rest (n + 1)
 		   | true ->
 		       (* Why? - if not in gamma and we can type the thing on the right, add to gamma *)
 			   (match (Hashtbl.mem gamma v) with
