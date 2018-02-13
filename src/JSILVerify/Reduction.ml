@@ -42,6 +42,17 @@ let lexpr_is_bool ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 let lexpr_is_set ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 	typable ?gamma:gamma le SetType
 
+(**********************************)
+(* Pure formulae helper functions *)
+(**********************************)
+
+let find_first_equality_in_pfs (pfs : pure_formulae) le =
+	let lpfs = pfs_to_list pfs in
+	let lpfs = List.find_opt (fun x -> match x with | LEq (x, y) -> (x = le) || (y = le) | _ -> false) lpfs in
+	let result = Option.map (fun x -> match x with | LEq (x, y) -> if x = le then y else x) lpfs in
+		print_debug_petar (Printf.sprintf "Found equality: %s = %s" (JSIL_Print.string_of_logic_expression le) (Option.map_default (fun x -> JSIL_Print.string_of_logic_expression x) "None" result));
+		result
+
 (***********************************)
 (* LIST REASONING HELPER FUNCTIONS *)
 (***********************************)
@@ -97,13 +108,13 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 	) 
 
 (* Finding the nth element of a list *)
-let rec get_head_and_tail_of_list (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
+let rec get_head_and_tail_of_list ?(pfs : pure_formulae option) (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
 	let f = get_head_and_tail_of_list in
 
 	(match lst with
 	(* Nothing can be done for variables *)
 	| PVar _ -> None
-	| LVar _ -> None
+	| LVar _ -> Option.map_default (fun x -> Option.map_default (fun y -> get_head_and_tail_of_list ?pfs:(Some x) y) None (find_first_equality_in_pfs x lst)) None pfs
 	(* Base lists of literals and logical expressions *)
 	| LLit (LList l) -> it_must_hold_that (lazy (0 < List.length l)); Some (LLit (List.hd l), LLit (LList (List.tl l)))
 	| LEList l       -> it_must_hold_that (lazy (0 < List.length l)); Some (List.nth l 0, LEList (List.tl l))
@@ -399,7 +410,7 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 			(* List head *)
 			| Car ->
 				(match (lexpr_is_list fle) with
-				| true -> let ohdtl = get_head_and_tail_of_list fle in
+				| true -> let ohdtl = get_head_and_tail_of_list ?pfs:pfs fle in
 					Option.map_default (fun (hd, _) -> hd) def ohdtl
 				| false -> 
 					let err_msg = "LUnOp(Car, list): list is not a JSIL list." in
@@ -409,7 +420,7 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 			(* List tail *)
 			| Cdr ->
 				(match (lexpr_is_list fle) with
-				| true -> let ohdtl = get_head_and_tail_of_list fle in
+				| true -> let ohdtl = get_head_and_tail_of_list ?pfs:pfs fle in
 					Option.map_default (fun (_, tl) -> tl) def ohdtl
 				| false -> 
 					let err_msg = "LUnOp(Cdr, list): list is not a JSIL list." in
@@ -451,6 +462,14 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 			LLit (JSIL_Interpreter.evaluate_binop empty_store op (Literal ll) (Literal lr))
 		| _ -> 
 			(match op with
+			| Equal -> 
+				let gamma = Option.default (TypEnv.init()) gamma in
+				let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma flel in
+				let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma fler in
+					(match t1, t2 with
+					| Some t1, Some t2 -> if (t1 = t2) then def else (LLit (Bool false))
+					| _, _             -> def)
+
 			| Plus when (lexpr_is_number ?gamma:gamma def) ->
 				(match flel, fler with
 				(* 0 is the neutral *)
@@ -507,9 +526,8 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 				)
 			| LstCons when (lexpr_is_list ?gamma:gamma def) ->
 				(match flel, fler with
-				(* Empty list on the right *)
-				| x, LLit (LList [])
-				| x, LEList [] -> LEList [ x ]
+				| x, LLit (LList y) -> LEList (x :: (List.map (fun x -> LLit x) y))
+				| x, LEList y -> LEList (x :: y)
 				(* Rest *)
 				| _, _ -> def
 				)
@@ -597,7 +615,7 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 	| _ -> le 
 	) in
 	
-	if (le <> result)  
+	if (le <> result) && (not (le == result))
 		then (print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result)); f result)
 		else 
 		(if (no_timing <> None) then 

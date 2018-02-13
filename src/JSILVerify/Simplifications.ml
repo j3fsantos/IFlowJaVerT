@@ -9,48 +9,6 @@ open Symbolic_State_Print
 exception FoundIt of jsil_logic_expr
 exception UnionInUnion of jsil_logic_expr list
 
-(**
-	List simplifications:
-
-	Finding if the given logical expression is equal to a list.
-	If yes, returning one of those lists
-*)
-let find_me_Im_a_list pfs le =
-	let found = ref [le] in
-	let counter = ref 0 in
-	try
-	(
-		while (!counter < List.length !found)
-		do
-			let lex = List.nth !found !counter in
-			counter := !counter + 1;
-			(match lex with
-			| LVar var ->
-				DynArray.iter
-					(fun x -> (match x with
-						| LEq (LVar v, lexpr)
-						| LEq (lexpr, LVar v) ->
-							if (v = var) then
-							(match lexpr with
-							| LLit (LList _)
-							| LEList _ -> raise (FoundIt lexpr)
-							| LBinOp (lcar, LstCons, lcdr) when (not (lcar = LUnOp (Car, LVar var) && (lcdr = LUnOp (Cdr, LVar var)))) -> raise (FoundIt (LBinOp (lcar, LstCons, lcdr)))
-							| _ ->
-								if (not (List.mem lexpr !found)) then
-									found := !found @ [lexpr])
-						| _ -> ())) pfs;
-			| _ -> ());
-		done;
-		let flist = List.filter
-			(fun x -> match x with
-				| LLit (LList _)
-				| LEList _ -> true
-				| _ -> false) !found in
-		if (flist = [])
-			then le
-			else (List.hd flist)
-	) with FoundIt result -> result
-
 let rec find_me_Im_a_loc pfs lvar = 
 	match pfs with 
 	| [] -> None 

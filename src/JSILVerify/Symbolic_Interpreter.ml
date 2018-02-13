@@ -44,27 +44,8 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 		 c) otherwise, return the lifted binary operator *)
 	| BinOp (e1, op, e2) ->
 		let nle1 = f e1 in
-		let nle2 = f e2 in
-		(match nle1, nle2 with
-		| LLit l1, LLit l2 ->
-			let l = JSIL_Interpreter.evaluate_binop (Hashtbl.create 1) op (Literal l1) (Literal l2) in
-				LLit l
-		| _, _ ->
-			(match op with
-			| Equal ->
-				let t1, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle1 in
-				let t2, _, _ = JSIL_Logic_Utils.type_lexpr gamma nle2 in
-					(match t1, t2 with
-					| Some t1, Some t2 -> if (t1 = t2) then LBinOp (nle1, op, nle2) else (LLit (Bool false))
-					| _, _             -> LBinOp (nle1, op, nle2))
-			| LstCons ->
-				(match nle2 with
-				| LEList les -> LEList (nle1 :: les)
-				| LLit (LList lits) ->
-					let les2 = List.map (fun lit -> LLit lit) lits in
-					LEList (nle1 :: les2)
-				| _ -> LBinOp (nle1, op, nle2))
-			| _ -> LBinOp (nle1, op, nle2)))
+		let nle2 = f e2 in 
+			LBinOp (nle1, op, nle2)
 
   (* Unary operators
 	     a) if the operand evaluates to a literal, execute the operator and return the result
@@ -73,34 +54,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 			 d) otherwise, return the lifted unary operator *)
 	| UnOp (op, e) ->
 		let nle = f e in
-		(match nle with
- 	  | LLit lit ->
-			let l = JSIL_Interpreter.evaluate_unop op lit in
-				LLit l
-		| _ ->
-			(match op with
-			| TypeOf ->
-				let nle_type, _, _ = type_lexpr gamma nle in
-				Option.map_default (fun t -> LLit (Type t)) (LUnOp (TypeOf, nle)) nle_type
-			| Cdr ->
-			let nle = Simplifications.find_me_Im_a_list pure_formulae nle in
-				(match nle with
-				| LLit (LList list) ->
-				 	(match list with
-					 | [] -> raise (Failure "Cdr doesn't exist.")
-					 | _ :: list -> LLit (LList list))
-				 | LEList list ->
-				 	(match list with
-					 | [] -> raise (Failure "Cdr doesn't exist.")
-					 | _ :: list -> LEList list)
-				 | LBinOp (el, LstCons, llist) -> llist
-				 | _ -> LUnOp (op, nle))
-			| LstLen ->
-			 	let nle = Simplifications.find_me_Im_a_list pure_formulae nle in
-				let len = get_list_length nle in
-					Option.map_default (fun len -> LLit (Num (float_of_int len))) (LUnOp (op, nle)) len 
-			| _ -> LUnOp (op, nle)))
-
+			LUnOp (op, nle)
 
   (* List of expressions: Evaluate all elements and then
 	     a) If all are literals, convert to a literal list
@@ -133,31 +87,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 	| LstNth (e1, e2) ->
 		let list = f e1 in
 		let index = f e2 in
-		let list = Simplifications.find_me_Im_a_list pure_formulae list in
-		(match index with
-		 | LLit (Num n) when (Utils.is_int n) ->
-			let n = int_of_float n in
-		 	if (n < 0) then raise (Failure "List index negative.")
-			else
-			(match list with
-				| LLit (LList list) ->
-					(try (LLit (List.nth list n)) with _ ->
-						raise (Failure "List index out of bounds"))
-				| LEList list ->
-					(try (List.nth list n) with _ ->
-						raise (Failure "List index out of bounds"))
-				| LBinOp (el, LstCons, llist) ->
-		  			if (n = 0)
-						then el
-						else (match llist with
-							  | LLit (LList list) -> (try (LLit (List.nth list (n - 1))) with _ ->
-		  							raise (Failure "List index out of bounds"))
-							  | LEList list -> (try (List.nth list (n - 1)) with _ ->
-		  							raise (Failure "List index out of bounds"))
-							  | _ -> LLstNth (list, index))
-				| _ -> LLstNth (list, index))
-			| LLit (Num n) -> raise (Failure "Non-integer list index.")
-		| _ -> LLstNth (list, index))
+			LLstNth (list, index)
 
   (* List n-th: Evaluate the string and the index
 	     a) Attempt to reduce fully, if possible, return the result
@@ -166,17 +96,9 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 	| StrNth (e1, e2) ->
 		let str = f e1 in
 		let index = f e2 in
-		(match index with
-		| LLit (Num n) when (Utils.is_int n) ->
-			let n = int_of_float n in
-		 	if (n < 0) then raise (Failure "String index negative.")
-			else
-				(match str with
-				| LLit (String s) -> LLit (String (String.make 1 (String.get s n)))
-				| _ -> LStrNth (str, index))
-		| LLit (Num n) -> raise (Failure "Non-integer string index.")
-		| _ -> LStrNth (str, index))) in
-	(* Perform simplification *)
+			LStrNth (str, index)) in
+
+	(* Perform reduction *)
 	(Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pure_formulae) result)
 
 
