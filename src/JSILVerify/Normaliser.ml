@@ -740,6 +740,8 @@ let initialise_alocs
 
 	List.iter
 	(fun a -> (match a with
+		| LEmp -> ()
+
 		| LPointsTo (PVar var, _, _)
 		| LEmptyFields (PVar var, _)
 		| LMetaData (PVar var, _) 
