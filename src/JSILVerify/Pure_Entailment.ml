@@ -1120,7 +1120,11 @@ let check_entailment (existentials : SS.t)
 				
 				(match continue with
 				| false -> print_debug_petar "False!"; false
-				| true -> 
+				| true -> let any_insights = Simplifications.now_do_some_more_heuristics existentials left_as right_as gamma in
+					(match any_insights with
+					| Some false -> print_debug_petar "Heuristics: False!"; false
+					| Some true  -> print_debug_petar "Heuristics: True!"; true
+					| None -> 
 				
   				let left_as = DynArray.to_list left_as in
       		let right_as = DynArray.to_list right_as in
@@ -1183,7 +1187,7 @@ let check_entailment (existentials : SS.t)
   				(* Reframe the result *)
     			let ret = (ret = Solver.UNSATISFIABLE) in
   				(* Return *)
-    			ret)) in
+    			ret))) in
 			let end_time = Sys.time () in
 				print_debug_petar (Printf.sprintf "Entailment took: %f" (end_time -. start_time));
 				update_statistics "check_entailment" (end_time -. start_time);

@@ -1211,6 +1211,16 @@ let simplify_symb_state
 								let new_pf = reduce_assertion gamma pfs new_pf in
 								DynArray.add pfs new_pf) subst)
 				
+				| LUnOp (TypeOf, LVar x), LLit (Type t) -> 
+					changes_made := true;
+					DynArray.delete pfs !n;
+					let ot = TypEnv.get_type gamma x in
+						(match ot with
+						| None -> TypEnv.update gamma x (Some t)
+						| Some t' -> if (t <> t') then (pfs_ok := false; msg := "Typing error")
+						);
+						changes_made := true;
+
 				| _, _ -> n := !n + 1))
 			
 			(* Special cases *)
@@ -1374,7 +1384,6 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		   (match (SS.mem v exists) with
 		   | false -> 
 		   		print_debug_petar ("Target case: " ^ v ^ " = " ^ JSIL_Print.string_of_logic_expression le);
-		   		
 		   		go_through_pfs rest (n + 1)
 		   | true ->
 		       (* Why? - if not in gamma and we can type the thing on the right, add to gamma *)
@@ -1690,20 +1699,63 @@ let trim_down (exists : SS.t) (lpfs : jsil_logic_assertion DynArray.t) (rpfs : j
 			| _ -> ())
 		);
   	
+  	(* THIS IS UNSOUND, FIX *)
   	let i = ref 0 in
   	while (!i < DynArray.length lpfs) do
   		let pf = DynArray.get lpfs !i in
   		let pf_lvars = get_asrt_lvars pf in
   		let inter_empty = (SS.inter rhs_lvars pf_lvars = SS.empty) in 
   		(match inter_empty with
-  		| true -> 
-  				print_debug_petar (Printf.sprintf "Removing from lhs:\n\t%s" (JSIL_Print.string_of_logic_assertion pf)); DynArray.delete lpfs !i 
+  		| true -> DynArray.delete lpfs !i 
   		| false -> i := !i + 1)
   	done;
   	true, exists, lpfs, rpfs, gamma)
 	with
 	| Failure _ -> false, exists, lpfs, rpfs, gamma
 
+let now_do_some_more_heuristics (exists : SS.t) (lpfs : jsil_logic_assertion DynArray.t) (rpfs : jsil_logic_assertion DynArray.t) gamma =
+	
+	(* There is only one formula, and the lhs is empty *)
+	if (DynArray.length rpfs = 1) then
+	(
+		let pf = DynArray.get rpfs 0 in
+
+		(match pf with
+		| LEq (LVar v, le)
+		| LEq (le, LVar v) when (DynArray.length lpfs = 0) ->
+			(match le with
+			| LLit _  
+			| LNone -> 
+				let tl, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+				let tl = Option.get tl in 
+				let tv = Hashtbl.find_opt gamma v in
+				(match tv with
+				| None -> Some (SS.mem v exists)
+				| Some tv -> if (tl <> tv) then Some false else Some (SS.mem v exists || tv = Type.UndefinedType || tv = Type.NullType || tv = Type.NoneType || tv = Type.EmptyType)
+				)
+			| _ -> None
+			)
+		| LNot (LEq (LVar v, le))
+		| LNot (LEq (le, LVar v)) when (DynArray.length lpfs = 0) ->
+			(match le with
+			| LLit _  
+			| LNone -> 
+				let tl, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+				let tl = Option.get tl in 
+				let tv = Hashtbl.find_opt gamma v in
+				(match tv with
+				| None -> Some (SS.mem v exists)
+				| Some tv -> if (tl <> tv) then Some true else Some (not (SS.mem v exists || tv = Type.UndefinedType || tv = Type.NullType || tv = Type.NoneType || tv = Type.EmptyType))
+				)
+			| _ -> None
+			)
+		
+		(* Perhaps a bit unsound *)
+		| LEq (LUnOp (TypeOf, LVar tv), LLit (Type _))
+		| LEq (LLit (Type _), LUnOp (TypeOf, LVar tv)) -> Some (SS.mem tv exists)
+		| _ -> None
+		)
+	) else None
 
 let aux_find_me_Im_a_loc pfs gamma v = 
 	let _, subst = simplify_pfs_with_subst pfs gamma in

@@ -1436,7 +1436,7 @@ spec getOwnProperty (l, prop)
     normal;
 
     [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) *
-       MetaData(#l, #md) * ((#md, "@class") -> #cls) ]]
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * types(#cls:Str) ]]
     [[ Cell_o (#l, #prop, #dx) * 
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == #dx) ]]
     normal

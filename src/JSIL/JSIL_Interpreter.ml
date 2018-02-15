@@ -507,18 +507,16 @@ let rec evaluate_bcmd store (heap : jsil_heap) bcmd : Literal.t =
 		let v_e2 = ee e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			(match (Heap.mem heap l) with
-			| false -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (Literal.str v_e1)))
-			| true -> 
-				let obj, ext, _ = Heap.find heap l in
-				(match (Heap.mem obj f) with 
-				| false -> raise (Failure "Field to be deleted does not exist")
-				| true -> 
-					let f_p, _ = Heap.find obj f in
+			(match (Heap.find_opt heap l) with
+			| None -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (Literal.str v_e1)))
+			| Some (fvl, ext, _) -> 
+				(match (Heap.find_opt fvl f) with 
+				| None -> raise (Failure "Field to be deleted does not exist")
+				| Some (f_p, _) -> 
 					(match f_p with
 					| Deletable -> 
 						if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (Literal.str v_e1) (Literal.str v_e2);
-						Heap.remove obj f; 
+						Heap.remove fvl f; 
 						Bool true; 
 					| _ -> raise (Failure (Printf.sprintf "Object %s not deletable" (Literal.str v_e1))))))
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -568,7 +566,7 @@ let rec evaluate_bcmd store (heap : jsil_heap) bcmd : Literal.t =
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
-  | Arguments x ->
+  	| Arguments x ->
 		let arg_obj, _, _ = (try Heap.find heap larguments with
 		| _ -> raise (Failure "The arguments object doesn't exist.")) in
 		let _, v = (try Heap.find arg_obj "args" with

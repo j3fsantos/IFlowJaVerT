@@ -525,11 +525,11 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 				| _, _ -> def
 				)
 			| LstCons when (lexpr_is_list ?gamma:gamma def) ->
-				(match flel, fler with
-				| x, LLit (LList y) -> LEList (x :: (List.map (fun x -> LLit x) y))
-				| x, LEList y -> LEList (x :: y)
-				(* Rest *)
-				| _, _ -> def
+				(match fler with
+				| LLit (LList y) -> LEList (flel :: (List.map (fun x -> LLit x) y))
+				| LEList y -> LEList (flel :: y)
+				| LBinOp (LEList ll, LstCat, lr) -> LBinOp (LEList (flel :: ll), LstCat, lr)
+				| _ -> LBinOp (LEList [ flel ], LstCat, fler)
 				)
 			| LstCat when (lexpr_is_list ?gamma:gamma def) ->
 				(match flel, fler with
