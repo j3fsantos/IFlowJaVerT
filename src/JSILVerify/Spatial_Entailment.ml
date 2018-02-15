@@ -14,7 +14,7 @@ exception UnificationFailure of string
 let consistent_subst_list 
 		(subst_list : substitution_list) 
 		(pfs        : pure_formulae)
-		(gamma      : typing_environment) : substitution_list option = 
+		(gamma      : TypEnv.t) : substitution_list option = 
 
 	let start_time = Sys.time() in
 
@@ -40,7 +40,7 @@ let consistent_subst_list
 
 let safe_substitution_extension 
 		(pfs        : pure_formulae) 
-		(gamma      : typing_environment) 
+		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : bool = 
 	List.fold_left 
@@ -55,7 +55,7 @@ let safe_substitution_extension
 
 let substitution_extension 
 		(pfs        : pure_formulae) 
-		(gamma      : typing_environment) 
+		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : (jsil_logic_assertion list) option = 
 	
@@ -77,8 +77,8 @@ let substitution_extension
 let pre_check_discharges (discharges : discharge_list) : discharge_list option = Some discharges 
 
 let type_check_discharges 
-		(pat_gamma  : typing_environment)
-		(gamma      : typing_environment)
+		(pat_gamma  : TypEnv.t)
+		(gamma      : TypEnv.t)
 		(discharges : discharge_list) : bool =
 	
 	let rets = List.map 
@@ -94,7 +94,7 @@ let type_check_discharges
 
 let unify_lexprs
 	(pfs         : pure_formulae) 
-	(gamma       : typing_environment) 
+	(gamma       : TypEnv.t) 
 	(subst       : substitution)
 	(le_pat      : jsil_logic_expr) 
 	(le          : jsil_logic_expr) : (substitution_list * discharge_list) option =
@@ -113,7 +113,7 @@ let unify_lexprs
 				if (Pure_Entailment.is_different le_pat_subst le pfs gamma)
 					then None else Some ([], [ (le_pat, le) ])   
 			with _ -> 
-				if (not (is_abs_loc_name x)) then Some ([ (x, le) ], []) else (
+				if (not (is_aloc_name x)) then Some ([ (x, le) ], []) else (
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 					match le_type with 
 					| Some ObjectType -> Some ([ (x, le) ], [])
@@ -164,7 +164,7 @@ let unify_lexprs
 
 let unify_stores 
 		(pfs       : pure_formulae) 
-		(gamma     : typing_environment)
+		(gamma     : TypEnv.t)
 		(pat_subst : substitution) 
 		(pat_store : symbolic_store) 
 		(store     : symbolic_store) : discharge_list =
@@ -195,7 +195,7 @@ let unify_stores
 
 let unify_cell_assertion 
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
@@ -214,7 +214,7 @@ let unify_cell_assertion
 				print_debug msg; raise (Failure msg) in 
 
     (* 2. Find the location corresponding to that cell *) 
-	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
+	let loc = if (is_lloc_name pat_loc) then pat_loc else (
 		try (
 			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
 			| Some loc -> loc
@@ -232,9 +232,8 @@ let unify_cell_assertion
 				print_debug msg; raise (Failure msg) in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
-	let fv_list_set = SFV.of_list fv_list in
 	let fv_list_frames = 
-		SFV.fold (fun (field, (perm, value)) ac -> 
+		SFVL.fold (fun field (perm, value) ac -> 
 			(match un_les pat_field field with 
 			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
@@ -248,12 +247,11 @@ let unify_cell_assertion
 							let pat_subst     = Hashtbl.copy pat_subst in 
           		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
           			let heap_frame    = SHeap.copy heap in 
-          			let fv_list_frame = SFV.remove (field, (perm, value)) fv_list_set in 
-          			let fv_list_frame = SFV.elements fv_list_frame in 
+          			let fv_list_frame = SFVL.remove field fv_list in 
           			SHeap.put heap_frame loc fv_list_frame dom metadata ext; 
           			(heap_frame, pat_subst, discharges) :: ac
 							) else ac					
-					| _, _ -> ac)))) fv_list_set [] in 
+					| _, _ -> ac)))) fv_list [] in 
 
 	(* 5. Try to unify the cell assertion using the domain info *)
 	let dom_frame =
@@ -268,7 +266,7 @@ let unify_cell_assertion
 				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
 					let heap_frame = SHeap.copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
-					let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
+					let new_domain = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) new_domain in
 					SHeap.put heap_frame loc fv_list (Some new_domain) metadata ext; 
 					[ (heap_frame, pat_subst, (discharges_field)) ]
 			))) in 
@@ -282,7 +280,7 @@ let unify_cell_assertion
 
 let unify_pred_assertion 
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_pred_asrt : jsil_logic_assertion)
 		(preds         : predicate_set) : (predicate_set * substitution * discharge_list) list = 
@@ -330,7 +328,7 @@ let unify_pred_assertion
 
 let rec find_missing_nones 
 		(pfs            : pure_formulae)
-		(gamma          : typing_environment)
+		(gamma          : TypEnv.t)
 		(fields_to_find : jsil_logic_expr list) 
 		(none_fv_list   : SFVL.t) : SFVL.t =
 	
@@ -338,26 +336,26 @@ let rec find_missing_nones
 
 	let rec find_missing_none 
 			(missing_field          : jsil_logic_expr)
-			(none_fv_list           : SFVL.t) 
-			(traversed_none_fv_list : SFVL.t) : SFVL.t =
-		match none_fv_list with
-		| []                      -> raise (UnificationFailure "") 
-		| (f_name, f_val) :: rest_none_fv_list ->
-			if (Pure_Entailment.is_equal f_name missing_field pfs gamma)
-				then rest_none_fv_list @ traversed_none_fv_list
-				else find_missing_none missing_field rest_none_fv_list ((f_name, f_val) :: traversed_none_fv_list) in
+			(none_fv_list           : SFVL.t) : SFVL.t =
+		(match SFVL.get missing_field none_fv_list with
+		| Some result -> SFVL.remove missing_field none_fv_list
+		| None -> 
+			Option.map_default 
+			(fun (ffn, ffv) -> SFVL.remove ffn none_fv_list)
+			none_fv_list
+			(SFVL.get_first (fun name -> Pure_Entailment.is_equal name missing_field pfs gamma) none_fv_list)) in
 
 	match fields_to_find with
 	| [] -> none_fv_list
 	| f_name :: rest_fields ->
 		(* print_debug (Printf.sprintf "I need to find %s \n" (JSIL_Print.string_of_logic_expression f_name false)); *) 
-		let rest_none_fv_list = find_missing_none f_name none_fv_list [] in
+		let rest_none_fv_list = find_missing_none f_name none_fv_list in
 		fmn rest_fields rest_none_fv_list  
 
 
 let unify_domains 
 		(pfs       : pure_formulae)
-		(gamma     : typing_environment)
+		(gamma     : TypEnv.t)
 		(pat_subst : substitution)
 		(pat_dom   : jsil_logic_expr) 
 		(dom       : jsil_logic_expr) 
@@ -367,7 +365,7 @@ let unify_domains
 	print_debug_petar "Entering unify_domains.";
 
 	(* 1. Split fv_list into two - fields mapped to NONE and the others                   *) 
-	let none_fv_list, non_none_fv_list = List.partition (fun (field, (perm, value)) -> (value = LNone)) fv_list in
+	let none_fv_list, non_none_fv_list = SFVL.partition (fun field (_, value) -> value = LNone) fv_list in
 	
 	(* 2. Find domain_difference = -{ f_1, ..., f_n }- = dom \ subst(pat_dom) 
 	      The fields f_1, ..., f_n MUST be NONE                                           *) 
@@ -382,9 +380,12 @@ let unify_domains
 	
 	(* 4. We can only process explicit sets                                               *) 
 	let domain_difference, domain_frame_difference =
+		print_debug (Printf.sprintf "DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference));
 		(match domain_difference, domain_frame_difference with
 			| LESet domain_difference, LESet domain_frame_difference -> domain_difference, domain_frame_difference
-			| _, _ -> raise (UnificationFailure (Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference)))) in
+			| _, _ -> 
+				let msg = Printf.sprintf "Cannot currently handle: DD %s, DFD %s" (JSIL_Print.string_of_logic_expression domain_difference) (JSIL_Print.string_of_logic_expression domain_frame_difference) in
+				print_debug msg; raise (UnificationFailure msg)) in
 
 	(*
 	let none_q_v_list_strs = List.map (fun (field, value) -> JSIL_Print.string_of_logic_expression field false) none_q_v_list in
@@ -397,18 +398,18 @@ let unify_domains
 	(* 6. When dom is smaller than pat_dom, then the footprint of the associated EF 
 	      assertion is bigger. In this case, the fields in (pat_dom / dom) need to be 
 	      explicitly none cells in the framed heap - but with which permission?! TODO       *)
-	let new_none_fv_list = List.map (fun le -> (le, (perm, LNone))) domain_frame_difference in
+	let new_none_fv_list = List.fold_left (fun ac le -> SFVL.add le (perm, LNone) ac) (SFVL.empty) domain_frame_difference in
 
 	(* 7. The returned framed fv_list is composed of:   
 	        i)  the non-NONE fields in the original fv-list 
 	       ii)  the NONE fields that were not used to compensate the domain_difference
 	      iii)  the NONE fields that resulted from the domain_frame_difference *)
-	non_none_fv_list @ non_matched_none_fields @ new_none_fv_list 
+	SFVL.union non_none_fv_list (SFVL.union non_matched_none_fields new_none_fv_list)
 
 
  let unify_empty_fields_assertion 
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_ef_asrt   : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
@@ -423,7 +424,7 @@ let unify_domains
 	  	| _ -> print_debug "DEATH 1"; raise (Failure "DEATH. unify_empty_fields_assertion. no EF assertion") in 
 
 	(* 2. Find the location corresponding to that EF assertion *) 
-	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
+	let loc = if (is_lloc_name pat_loc) then pat_loc else (
 		try (
 			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
 			| Some loc -> loc
@@ -459,7 +460,7 @@ let unify_domains
 (* TODO : THIS IS NOT SPATIAL?! *)
 let unify_metadata_assertion
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list = 
@@ -476,7 +477,7 @@ let unify_metadata_assertion
 				print_debug msg; raise (Failure msg) in 
 
   (* 2. Find the location corresponding to that cell *) 
-	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
+	let loc = if (is_lloc_name pat_loc) then pat_loc else (
 		try (
 			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
 			| Some loc -> loc
@@ -514,7 +515,7 @@ let unify_metadata_assertion
 
 let unify_extensible_assertion
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
 		(heap          : SHeap.t) : (SHeap.t * substitution * discharge_list) list =
@@ -527,7 +528,7 @@ let unify_extensible_assertion
 		| _ -> raise (Failure "Unify_extensible_assertion: no extensible assertion") in 
 
   (* 2. Find the location corresponding to that cell *) 
-	let loc = if (is_lit_loc_name pat_loc) then pat_loc else (
+	let loc = if (is_lloc_name pat_loc) then pat_loc else (
 		try (
 			match Normaliser.resolve_location_from_lexpr pfs (Hashtbl.find pat_subst pat_loc) with 
 			| Some loc -> loc
@@ -555,7 +556,7 @@ type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitutio
 
 let unify_spatial_assertion
 		(pfs           : pure_formulae) 
-		(gamma         : typing_environment)
+		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_s_asrt    : jsil_logic_assertion)
 		(heap          : SHeap.t) 
@@ -599,8 +600,8 @@ let unify_spatial_assertion
 
 let unify_gammas 
 		(pat_subst : substitution) 
-		(pat_gamma : typing_environment) 
-		(gamma     : typing_environment) : bool =
+		(pat_gamma : TypEnv.t) 
+		(gamma     : TypEnv.t) : bool =
 
 	let start_time = Sys.time() in
 
@@ -656,11 +657,11 @@ let unify_pfs
 		(pat_subst    : substitution) 
 		(existentials : string list)
 		(pat_lvars    : SS.t)
-		(pat_gamma    : typing_environment) 
+		(pat_gamma    : TypEnv.t) 
 		(pat_pfs      : pure_formulae)
-		(gamma        : typing_environment) 
+		(gamma        : TypEnv.t) 
 		(pfs          : pure_formulae)
-		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * typing_environment * SS.t =
+		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * TypEnv.t * SS.t =
 
 	let start_time = Sys.time() in
 
@@ -677,8 +678,8 @@ let unify_pfs
 	let gamma' =
 		if ((List.length pat_existentials) = 0) then gamma else (
 			let gamma_pat_existentials = filter_gamma_with_subst pat_gamma pat_existentials subst_pat_existentials in
-			let gamma'                 = gamma_copy gamma in
-			extend_gamma gamma' gamma_pat_existentials; gamma'			
+			let gamma'                 = TypEnv.copy gamma in
+			TypEnv.extend gamma' gamma_pat_existentials; gamma'			
 		) in 
 		
 	(* 4. pfs |-_{gamma'} Exists_{existentials + pat_existentials} pat_subst(pat_pfs) /\ pf_list_of_discharges(discharges) *)
@@ -689,7 +690,7 @@ let unify_pfs
 		(Symbolic_State_Print.string_of_pfs pfs)
 		(Symbolic_State_Print.string_of_pfs (pfs_of_list pfs_to_prove))
 		(String.concat ", "  (existentials @ fresh_names_for_pat_existentials))
-		(Symbolic_State_Print.string_of_gamma gamma')); 
+		(TypEnv.str gamma')); 
 	let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list (existentials @ fresh_names_for_pat_existentials)) (pfs_to_list pfs) pfs_to_prove gamma' in
 	print_debug (Printf.sprintf "entailment_check: %b" entailment_check_ret);
 
@@ -879,15 +880,15 @@ let unify_symb_states_fold
 	(*   dom(gamma_existentials) \subseteq existentials                                                        *)
 	(*   forall x \in filtered_vars :                                                                          *)
 	(* 	   (pat_gamma |- pat_store(x) : tau) => (gamma + gamma_existentials |- store(x) : tau                  *)
-	let gamma_existentials = gamma_init () in
+	let gamma_existentials = TypEnv.init () in
 	List.iter
 		(fun x ->
-			match store_get_safe store x, gamma_get_type pat_gamma x with
-			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux false gamma gamma_existentials le_x x_type in ()
+			match store_get_safe store x, TypEnv.get_type pat_gamma x with
+			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x x_type in ()
 			|	_, _ -> ())
 		filtered_vars;
-	let gamma_existentials = filter_gamma gamma_existentials existentials in	
-	extend_gamma gamma_existentials gamma;
+	let gamma_existentials = TypEnv.filter_vars gamma_existentials existentials in	
+	TypEnv.extend gamma_existentials gamma;
 	let gamma = gamma_existentials in 
 	
 	(* 4. Initial frame for the search *)
@@ -1001,8 +1002,8 @@ let unify_lexprs_unfold
 					"WE ARE IN THE CASE WE THINK WE ARE IN. pat_loc: %s. lvar: %s\n" pat_loc x); 
 			let loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
 			(match loc with 
-			| Some loc when is_lit_loc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
-			| Some loc when is_abs_loc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])
+			| Some loc when is_lloc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
+			| Some loc when is_aloc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])
 			| None     ->
 				if (Hashtbl.mem subst x) then (
 					Some ([ ], [ (pat_loc, Hashtbl.find subst x) ], [])
@@ -1047,10 +1048,10 @@ let unify_lexprs_unfold
 
 let unify_stores_unfold 
 		(pat_pfs   : pure_formulae)
-		(pat_gamma : typing_environment)
+		(pat_gamma : TypEnv.t)
 		(pat_subst : substitution)
 		(pfs       : pure_formulae)
-		(gamma     : typing_environment)
+		(gamma     : TypEnv.t)
 		(subst     : substitution)
 		(pat_store : symbolic_store) 
 		(store     : symbolic_store) : (jsil_logic_assertion list) * (jsil_logic_assertion list) * discharge_list =
@@ -1085,12 +1086,12 @@ let unify_stores_unfold
 					raise (UnificationFailure ""))) ([], [], []) 
 
 
-let is_sensible_subst (subst : substitution) (gamma_source : typing_environment) (gamma_target : typing_environment) : bool =
+let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_target : TypEnv.t) : bool =
 	Hashtbl.fold
 		(fun x le ac ->
 			if (not ac) then ac else (
 				let le_type, _, _ = type_lexpr gamma_target le in
-				let x_type = gamma_get_type gamma_source x in
+				let x_type = TypEnv.get_type gamma_source x in
 				match le_type, x_type with 
 				| Some le_type, Some x_type -> (le_type = x_type) 
 				| _ -> true))
@@ -1178,20 +1179,20 @@ let unfold_predicate_definition
 	(*   dom(gamma_existentials) \subseteq existentials                                                                    *)
 	(*   forall x \in dom(pat_gamma) :                                                                                     *)
 	(* 	   (pat_gamma |- pat_store(x) : tau) => (gamma + gamma_existentials |- store(x) : tau                              *)
-	let gamma_existentials = gamma_init () in
+	let gamma_existentials = TypEnv.init () in
 	List.iter2
 		(fun x (x_type, pat_x_type) -> 
 			if ((x_type = None) && (pat_x_type <> None)) then (
 				match store_get_safe unfold_store x, pat_x_type with
-				| Some le_x, Some pat_x_type -> let _ = JSIL_Logic_Utils.reverse_type_lexpr_aux false gamma gamma_existentials le_x pat_x_type in ()
+				| Some le_x, Some pat_x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x pat_x_type in ()
 				|	_, _ -> ())) 
 		dom_pat_store (List.combine store_types pat_store_types);
-	let gamma_existentials = filter_gamma gamma_existentials existentials in	
-	extend_gamma gamma_existentials gamma;
+	let gamma_existentials = TypEnv.filter_vars gamma_existentials existentials in	
+	TypEnv.extend gamma_existentials gamma;
 	let gamma = gamma_existentials in 	
 
 	print_debug (Printf.sprintf "unfold_predicate_definition. step 4 - done. gamma_existentials: %s\n"
-		(Symbolic_State_Print.string_of_gamma gamma_existentials)); 
+		(TypEnv.str gamma_existentials)); 
 
 	(* STEP 5 - check whether the pure formulae make sense together - new_pat_subst = subst (pat_subst (.))                 *)
 	(* pfs' = subst(pfs), s_pat_pfs = new_pat_subst (pat_pfs)                                                               *)
@@ -1208,7 +1209,7 @@ let unfold_predicate_definition
 	let pfs_discharges  = pf_list_of_discharges new_pat_subst discharges in 
 	let pfs_subst       = substitution_to_list (filter_substitution_set (SS.union existentials spec_vars) subst) in 
 	let pfs''           = pfs' @ s_pat_pfs @ pfs_discharges @ pfs_subst @ constraints @ pat_constraints in 
-	extend_gamma gamma (gamma_substitution pat_gamma new_pat_subst false);
+	TypEnv.extend gamma (TypEnv.substitution pat_gamma new_pat_subst false);
 	Normaliser.extend_typing_env_using_assertion_info gamma pfs'';
 	(* Printing useful info *)
 	print_debug (Printf.sprintf "substitutions immediately before sat check.\nSubst:\n%s\nPat_Subst:\n%s"
@@ -1216,7 +1217,7 @@ let unfold_predicate_definition
 		(JSIL_Print.string_of_substitution new_pat_subst));
 	print_debug (Printf.sprintf "About to check if the following is SATISFIABLE:\n%s\nGiven the GAMMA:\n%s"
 		(JSIL_Print.str_of_assertion_list pfs'')
-		(Symbolic_State_Print.string_of_gamma gamma));
+		(TypEnv.str gamma));
 	(* Performing the satisfiability check *)
 	if (not (Pure_Entailment.check_satisfiability pfs'' gamma)) then (
 			print_debug("It is NOT satisfiable\n"); 
@@ -1230,7 +1231,7 @@ let unfold_predicate_definition
 	let symb_state = ss_substitution subst true symb_state in
 	let unfolded_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state new_pat_subst in
 	pfs_merge (ss_pfs unfolded_symb_state) (pfs_of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
-	extend_gamma (ss_gamma unfolded_symb_state) gamma;
+	TypEnv.extend (ss_gamma unfolded_symb_state) gamma;
 	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (pfs_to_list (ss_pfs unfolded_symb_state));
 	Some unfolded_symb_state ) with UnificationFailure _ -> None 
 

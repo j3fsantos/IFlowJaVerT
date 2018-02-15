@@ -40,10 +40,9 @@ type jsil_type_constructors = {
 	none_type_constructor      : FuncDecl.func_decl;
 	boolean_type_constructor   : FuncDecl.func_decl;
 	number_type_constructor    : FuncDecl.func_decl;
-	char_type_constructor      : FuncDecl.func_decl;
 	string_type_constructor    : FuncDecl.func_decl;
 	object_type_constructor    : FuncDecl.func_decl;
-  list_type_constructor      : FuncDecl.func_decl;
+	list_type_constructor      : FuncDecl.func_decl;
 	type_type_constructor      : FuncDecl.func_decl;
 	set_type_constructor       : FuncDecl.func_decl
 }
@@ -57,7 +56,6 @@ type z3_basic_jsil_value = {
 	empty_constructor     : FuncDecl.func_decl;
 	boolean_constructor   : FuncDecl.func_decl;
 	number_constructor    : FuncDecl.func_decl;
-	char_constructor      : FuncDecl.func_decl;
 	string_constructor    : FuncDecl.func_decl;
     loc_constructor       : FuncDecl.func_decl;
     type_constructor      : FuncDecl.func_decl;
@@ -68,7 +66,6 @@ type z3_basic_jsil_value = {
     (*************)
     boolean_accessor      : FuncDecl.func_decl;
 	number_accessor       : FuncDecl.func_decl;
-	char_accessor         : FuncDecl.func_decl;
     string_accessor       : FuncDecl.func_decl;
     loc_accessor          : FuncDecl.func_decl;
     type_accessor         : FuncDecl.func_decl;
@@ -81,7 +78,6 @@ type z3_basic_jsil_value = {
 	empty_recognizer      : FuncDecl.func_decl;
 	boolean_recognizer    : FuncDecl.func_decl;
 	number_recognizer     : FuncDecl.func_decl;
-	char_recognizer       : FuncDecl.func_decl;
 	string_recognizer     : FuncDecl.func_decl;
 	loc_recognizer        : FuncDecl.func_decl;
 	type_recognizer       : FuncDecl.func_decl;
@@ -145,7 +141,7 @@ let z3_jsil_type_sort =
 		(List.map mk_string_symb
 			[
 				"UndefinedType"; "NullType"; "EmptyType"; "NoneType"; "BooleanType";
-				"NumberType"; "CharType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
+				"NumberType"; "StringType"; "ObjectType"; "ListType"; "TypeType"; "SetType"
 			])
 
 let type_operations =
@@ -157,12 +153,11 @@ let type_operations =
 		let none_type_constructor      = List.nth z3_jsil_type_constructors 3 in
 		let boolean_type_constructor   = List.nth z3_jsil_type_constructors 4 in
 		let number_type_constructor    = List.nth z3_jsil_type_constructors 5 in
-		let char_type_constructor      = List.nth z3_jsil_type_constructors 6 in
-		let string_type_constructor    = List.nth z3_jsil_type_constructors 7 in
-		let object_type_constructor    = List.nth z3_jsil_type_constructors 8 in
-		let list_type_constructor      = List.nth z3_jsil_type_constructors 9 in
-		let type_type_constructor      = List.nth z3_jsil_type_constructors 10 in
-		let set_type_constructor       = List.nth z3_jsil_type_constructors 11 in
+		let string_type_constructor    = List.nth z3_jsil_type_constructors 6 in
+		let object_type_constructor    = List.nth z3_jsil_type_constructors 7 in
+		let list_type_constructor      = List.nth z3_jsil_type_constructors 8 in
+		let type_type_constructor      = List.nth z3_jsil_type_constructors 9 in
+		let set_type_constructor       = List.nth z3_jsil_type_constructors 10 in
 		{
 			undefined_type_constructor = undefined_type_constructor;
 			null_type_constructor      = null_type_constructor;
@@ -170,7 +165,6 @@ let type_operations =
 			none_type_constructor      = none_type_constructor;
 			boolean_type_constructor   = boolean_type_constructor;
 			number_type_constructor    = number_type_constructor;
-			char_type_constructor      = char_type_constructor;
 			string_type_constructor    = string_type_constructor;
 			object_type_constructor    = object_type_constructor;
 			list_type_constructor      = list_type_constructor;
@@ -303,7 +297,6 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			empty_constructor     = empty_constructor;
 			boolean_constructor   = boolean_constructor;
 			number_constructor    = number_constructor;
-			char_constructor      = char_constructor;
 			string_constructor    = string_constructor;
 			loc_constructor       = loc_constructor;
 			type_constructor      = type_constructor;
@@ -312,7 +305,6 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			(** accessors **)
 			boolean_accessor      = boolean_accessor;
 			number_accessor       = number_accessor;
-			char_accessor         = char_accessor;
 			string_accessor       = string_accessor;
 			loc_accessor          = loc_accessor;
 			type_accessor         = type_accessor;
@@ -323,7 +315,6 @@ let z3_jsil_literal_sort, z3_jsil_list_sort, lit_operations, list_operations =
 			empty_recognizer      = empty_recognizer;
 			boolean_recognizer    = boolean_recognizer;
 			number_recognizer     = number_recognizer;
-			char_recognizer       = char_recognizer;
 			string_recognizer     = string_recognizer;
 			loc_recognizer        = loc_recognizer;
 			type_recognizer       = type_recognizer;
@@ -468,7 +459,6 @@ let encode_type (t : Type.t) =
 		| NoneType      -> Expr.mk_app ctx type_operations.none_type_constructor      []
 		| BooleanType   -> Expr.mk_app ctx type_operations.boolean_type_constructor   []
 		| NumberType    -> Expr.mk_app ctx type_operations.number_type_constructor    []
-		| CharType	    -> Expr.mk_app ctx type_operations.char_type_constructor      []
 		| StringType    -> Expr.mk_app ctx type_operations.string_type_constructor    []
 		| ObjectType    -> Expr.mk_app ctx type_operations.object_type_constructor    []
 		| ListType      -> Expr.mk_app ctx type_operations.list_type_constructor      []
@@ -488,7 +478,6 @@ let typeof_expression x =
 	let empty_guard     = Expr.mk_app ctx lit_operations.empty_recognizer     [ elem_x ] in
 	let boolean_guard   = Expr.mk_app ctx lit_operations.boolean_recognizer   [ elem_x ] in
 	let number_guard    = Expr.mk_app ctx lit_operations.number_recognizer    [ elem_x ] in
-	let char_guard      = Expr.mk_app ctx lit_operations.char_recognizer      [ elem_x ] in
 	let string_guard    = Expr.mk_app ctx lit_operations.string_recognizer    [ elem_x ] in
 	let loc_guard       = Expr.mk_app ctx lit_operations.loc_recognizer       [ elem_x ] in
 	let type_guard      = Expr.mk_app ctx lit_operations.type_recognizer      [ elem_x ] in
@@ -497,7 +486,7 @@ let typeof_expression x =
 
 	let sing_elem_types_guards = [
 		undefined_guard; null_guard; empty_guard; boolean_guard;
-		number_guard; char_guard; string_guard; loc_guard;
+		number_guard; string_guard; loc_guard;
 		type_guard; list_guard; none_guard
 	] in
 
@@ -508,7 +497,7 @@ let typeof_expression x =
   	let results =
   		List.map encode_type
   			[ SetType; UndefinedType; NullType; EmptyType; BooleanType;
- 				NumberType; CharType; StringType; ObjectType; TypeType; ListType; NoneType ] in
+ 				NumberType; StringType; ObjectType; TypeType; ListType; NoneType ] in
 
  	let rec loop guards results =
  		match guards, results with
@@ -542,10 +531,6 @@ let rec encode_lit (lit : Literal.t) =
 			let n_arg = mk_num_s sfn in
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.number_constructor [ n_arg ])
 
-		| Char c ->
-			let s_arg = encode_string (String.make 1 c) in
-			mk_singleton_elem (Expr.mk_app ctx lit_operations.char_constructor [ s_arg ])
-
 		| String s ->
 			let s_arg = encode_string s in
 			mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ s_arg ])
@@ -568,7 +553,7 @@ let rec encode_lit (lit : Literal.t) =
 
 
 (** Encode JSIL binary operators *)
-let encode_binop op le1 le2 =
+let encode_binop (op : BinOp.t) le1 le2 =
 
 	let binop_numbers_to_numbers mk_op le1 le2 =
 		let n_le1 = (Expr.mk_app ctx lit_operations.number_accessor [ (mk_singleton_access le1) ]) in
@@ -623,10 +608,10 @@ let encode_binop op le1 le2 =
 		let n_le  = (Expr.mk_app ctx axiomatised_operations.lcat_fun [ n_le1; n_le2 ]) in 
 		mk_singleton_elem (Expr.mk_app ctx lit_operations.list_constructor [ n_le ])		
 
-	| _ -> raise (Failure "SMT encoding: Construct not supported yet - binop!")
+	| _ -> raise (Failure (Printf.sprintf "SMT encoding: Construct not supported yet - binop: %s" (BinOp.str op)))
 
 
-let encode_unop op le =
+let encode_unop (op : UnOp.t) le =
 	match op with
 
 	| UnaryMinus ->
@@ -674,9 +659,13 @@ let encode_unop op le =
     	let op_le       = Expr.mk_app ctx list_operations.head_accessor [ le_lst ] in
     	mk_singleton_elem op_le 
 
+	| TypeOf ->
+		let res = typeof_expression le in
+		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
+
 	| _          ->
-		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (JSIL_Print.string_of_unop op);
-		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (JSIL_Print.string_of_unop op) in
+		Printf.printf "SMT encoding: Construct not supported yet - unop - %s!\n" (UnOp.str op);
+		let msg = Printf.sprintf "SMT encoding: Construct not supported yet - unop - %s!" (UnOp.str op) in
 		raise (Failure msg)
 
 
@@ -711,14 +700,10 @@ let rec encode_logical_expression le =
 		mk_singleton_elem (Expr.mk_app ctx axiomatised_operations.lnth_fun [ lst'; index' ])
 
 	| LStrNth (str, index)  ->
-		let str'   = Expr.mk_app ctx lit_operations.string_accessor  [ mk_singleton_access (f str) ] in
+	  let str'   = Expr.mk_app ctx lit_operations.string_accessor  [ mk_singleton_access (f str) ] in
 	  let index' = Expr.mk_app ctx lit_operations.number_accessor  [ mk_singleton_access (f index) ] in
 	  let res    = Expr.mk_app ctx axiomatised_operations.snth_fun [ str'; index' ] in
 	  mk_singleton_elem (Expr.mk_app ctx lit_operations.string_constructor [ res ])
-
-	| LTypeOf le ->
-		let res = typeof_expression (f le) in
-		mk_singleton_elem (Expr.mk_app ctx lit_operations.type_constructor [ res ])
 
 	| LESet les ->
 		let args = List.map (fun le -> mk_singleton_access (f le)) les in
@@ -776,7 +761,6 @@ let make_recognizer_assertion x (t_x : Type.t) =
 	| NoneType      -> non_set_type_recognizer lit_operations.none_recognizer
 	| BooleanType   -> non_set_type_recognizer lit_operations.boolean_recognizer
 	| NumberType    -> non_set_type_recognizer lit_operations.number_recognizer
-	| CharType	    -> non_set_type_recognizer lit_operations.char_recognizer
 	| StringType    -> non_set_type_recognizer lit_operations.string_recognizer
 	| ObjectType    -> non_set_type_recognizer lit_operations.loc_recognizer
 	| ListType      -> non_set_type_recognizer lit_operations.list_recognizer
@@ -832,13 +816,13 @@ let rec encode_assertion a : Expr.expr =
 let encode_assertion_top_level a = encode_assertion (JSIL_Logic_Utils.push_in_negations_off a)
 
 let encode_gamma gamma =
-	let gamma_var_type_pairs = get_gamma_var_type_pairs gamma in
+	let gamma_var_type_pairs = TypEnv.get_var_type_pairs gamma in
 	let encoded_gamma =
 		List.filter
 			(fun x -> x <> Boolean.mk_true ctx)
 			(List.map
 				(fun (x, t_x) ->
-					if ((is_lvar_name x) || (is_abs_loc_name x))
+					if ((is_lvar_name x) || (is_aloc_name x))
 						then make_recognizer_assertion x t_x
 						else Boolean.mk_true ctx)
 			gamma_var_type_pairs) in
@@ -978,9 +962,9 @@ let encode_assertions (assertions : SA.t) gamma =
 (** For a given set of pure formulae and its associated gamma, return the corresponding axioms *)
 let get_axioms assertions gamma = 
 	(* Get list variables *)
-  let list_vars   = List.map (fun x -> LVar x) (get_vars_of_type gamma ListType) in 
+  let list_vars   = List.map (fun x -> LVar x) (TypEnv.get_vars_of_type gamma ListType) in 
 	(* Get string variables *)
-	let string_vars = List.map (fun x -> LVar x) (get_vars_of_type gamma StringType) in
+	let string_vars = List.map (fun x -> LVar x) (TypEnv.get_vars_of_type gamma StringType) in
 	(* Get list expressions *)
 	let list_exprs = List.concat (List.map JSIL_Logic_Utils.get_asrt_list_lexprs assertions) in 
 	(* Remove duplicates *)
@@ -1029,7 +1013,7 @@ let get_axioms assertions gamma =
 			
 			print_debug_petar (Printf.sprintf "About to check SAT of: %s\nwith gamma: %s\n" 
 				(Symbolic_State_Print.string_of_pfs (DynArray.of_list assertions_list))
-				(Symbolic_State_Print.string_of_gamma gamma));
+				(TypEnv.str gamma));
 			
 			(* Get the associated axioms - currently we are making the choice not to get them *)
 			let axioms = [] in (* get_axioms assertions_list gamma in *)
@@ -1100,7 +1084,7 @@ let check_satisfiability assertions gamma =
 let check_entailment (existentials : SS.t)
 					 (left_as      : jsil_logic_assertion list)
 					 (right_as     : jsil_logic_assertion list)
-					 (gamma        : typing_environment) =
+					 (gamma        : TypEnv.t) =
 
 		print_time_debug "check_entailment:";
 
@@ -1108,7 +1092,7 @@ let check_entailment (existentials : SS.t)
 		   (String.concat ", " (SS.elements existentials))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list left_as))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
-		   (Symbolic_State_Print.string_of_gamma gamma));
+		   (TypEnv.str gamma));
 
 		let start_time = Sys.time() in
 
@@ -1118,8 +1102,8 @@ let check_entailment (existentials : SS.t)
 		Simplifications.filter_gamma_pfs (DynArray.of_list (DynArray.to_list left_as @ DynArray.to_list right_as)) gamma;
 
 		(* Separate gamma into existentials and non-existentials *)
-		let gamma_left = filter_gamma_f gamma (fun v -> not (SS.mem v existentials)) in
-		let gamma_right = filter_gamma_f gamma (fun v -> SS.mem v existentials) in
+		let gamma_left = TypEnv.filter gamma (fun v -> not (SS.mem v existentials)) in
+		let gamma_right = TypEnv.filter gamma (fun v -> SS.mem v existentials) in
 
 		(* If left side is false, return false *)
 		let result = if (DynArray.length left_as > 0 && DynArray.get left_as 0 = LFalse) then false
@@ -1136,7 +1120,11 @@ let check_entailment (existentials : SS.t)
 				
 				(match continue with
 				| false -> print_debug_petar "False!"; false
-				| true -> 
+				| true -> let any_insights = Simplifications.now_do_some_more_heuristics existentials left_as right_as gamma in
+					(match any_insights with
+					| Some false -> print_debug_petar "Heuristics: False!"; false
+					| Some true  -> print_debug_petar "Heuristics: True!"; true
+					| None -> 
 				
   				let left_as = DynArray.to_list left_as in
       		let right_as = DynArray.to_list right_as in
@@ -1199,7 +1187,7 @@ let check_entailment (existentials : SS.t)
   				(* Reframe the result *)
     			let ret = (ret = Solver.UNSATISFIABLE) in
   				(* Return *)
-    			ret)) in
+    			ret))) in
 			let end_time = Sys.time () in
 				print_debug_petar (Printf.sprintf "Entailment took: %f" (end_time -. start_time));
 				update_statistics "check_entailment" (end_time -. start_time);
@@ -1252,16 +1240,23 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	| _, _ -> None))
 
 let is_equal e1 e2 pure_formulae gamma =
-	let pfs = DynArray.to_list pure_formulae in
-	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
-		| Some b -> b
-		| None ->  check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ (LEq (e1, e2)) ] gamma) in
-	result
-
+	let feq = Simplifications.reduce_assertion gamma pure_formulae (LEq (e1, e2)) in
+	let result = (match feq with
+	| LTrue  -> print_debug "Reduced to true.";  true
+	| LFalse -> print_debug "Reduced to false."; false 
+	| LEq _ -> 
+			check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ feq ] gamma
+	| _ -> raise (Failure ("Equality reduced to something unexpected: " ^ (JSIL_Print.string_of_logic_assertion feq)))
+	) in 
+		result
 
 let is_different e1 e2 pure_formulae gamma =
-	let pfs = DynArray.to_list pure_formulae in
-	let result = (match (is_equal_on_lexprs e1 e2 pfs) with
-		| Some b -> not b
-		| None -> check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ LNot (LEq (e1, e2)) ] gamma) in
-	result
+	let feq = Simplifications.reduce_assertion gamma pure_formulae (LNot (LEq (e1, e2))) in
+	let result = (match feq with
+	| LTrue  -> print_debug "Reduced to true.";  true
+	| LFalse -> print_debug "Reduced to false."; false 
+	| LNot _ -> 
+			check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ feq ] gamma
+	| _ -> raise (Failure ("Equality reduced to something unexpected: " ^ (JSIL_Print.string_of_logic_assertion feq)))
+	) in 
+		result

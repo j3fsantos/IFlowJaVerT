@@ -12,11 +12,9 @@ type t =
 	| Bool      of bool       (** JSIL booleans: [true] and [false] *)
 	| Num       of float      (** JSIL floats - double-precision 64-bit IEEE 754 *)
 	| String    of string     (** JSIL strings *)
-	| Char      of char       (** JSIL char *)
 	| Loc       of string     (** JSIL object locations *)
 	| Type      of Type.t     (** JSIL types ({!type:Type.t}) *)
 	| LList     of t list     (** Lists of JSIL literals *)
-	| CList     of t list     (** Lists of JSIL literals converted from String *)
 	[@@deriving show, compare]
 
 let equal = [%compare.equal : t]
@@ -32,16 +30,9 @@ let rec str (x : t) =
   	| Num n      -> CCommon.string_of_float n
   	| String x   -> let wrap = if !CCommon.escape_string then "\\" else "" in
 		                  Printf.sprintf "%s\"%s%s\"" wrap x wrap
-  	| Char x     -> let wrap = if !CCommon.escape_string then "\\" else "" in
-		                  Printf.sprintf "%s\"%c%s\"" wrap x wrap
   	| Loc loc    -> loc
   	| Type t     -> Type.str t
-  	| LList ll   -> (match ll with
-		                | [] -> "nil"
-										| ll -> Printf.sprintf "{{ %s }}" (String.concat ?sep:(Some ", ") (List.map ll str)))
-  	| CList cl   -> (match cl with
-		                | [] -> "''"
-										| cl -> Printf.sprintf "[[%s]]" (String.concat ?sep:(Some ", ") (List.map cl str)))
+  	| LList ll   -> Printf.sprintf "{{ %s }}" (String.concat ?sep:(Some ", ") (List.map ll str))
 
 (** Typing *)
 let type_of (x : t) : Type.t =
@@ -53,9 +44,6 @@ let type_of (x : t) : Type.t =
 	| Bool _       -> BooleanType
 	| Num n        -> NumberType
 	| String _     -> StringType
-	| Char _       -> CharType
 	| Loc _        -> ObjectType
 	| Type _       -> TypeType
 	| LList _      -> ListType
-	(* TODO: Could this benefit from being something else? *)
-	| CList _      -> StringType

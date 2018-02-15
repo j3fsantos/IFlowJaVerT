@@ -1,6 +1,7 @@
 (***
  JSIL - Interpreter
 *)
+open CCommon
 open Batteries
 open JSIL_Syntax
 
@@ -9,17 +10,6 @@ let largvals = "args"
 
 let verbose = ref false
 let proto_f = "@proto"
-
-let fresh_int =
-  let counter = ref 0 in
-  let rec f () =
-    let v = !counter in
-    counter := !counter + 1;
-    string_of_int v
-  in f
-
-let fresh_loc () : string =
-  "$l" ^ (fresh_int ())
 
 let evaluate_constant (c : Constant.t) : Literal.t =
 	match c with
@@ -196,7 +186,7 @@ let unary_int_thing (lit : Literal.t) (f : float -> float) emsg : Literal.t =
 	let res = f num in
 		Num res
 
-let evaluate_unop op (lit : Literal.t) : Literal.t =
+let evaluate_unop (op : UnOp.t) (lit : Literal.t) : Literal.t =
 	match op with
   | Not ->
 		(match lit with
@@ -249,6 +239,8 @@ let evaluate_unop op (lit : Literal.t) : Literal.t =
 					 if s = "" then 0. else nan in
 				 Num num
 		 | _ -> raise (Failure "Non-string argument to ToNumberOp"))
+	| TypeOf -> 
+		Type (Literal.type_of lit)
 	| Car ->
 		(match lit with
 		| LList ll ->
@@ -303,7 +295,7 @@ let unary_bin_thing_bool (lit1 : Literal.t) (lit2 : Literal.t) (f : float -> flo
 			| _ -> raise (Failure (Printf.sprintf "%s : %s, %s" emsg (Literal.str lit1) (Literal.str lit2)))) in
 	Bool (f num1 num2)
 
-let rec evaluate_binop store op e1 e2 : Literal.t =
+let rec evaluate_binop store (op : BinOp.t) e1 e2 : Literal.t =
 	let ee = evaluate_expr store in
 	(match op with
 	| And ->
@@ -375,7 +367,7 @@ let rec evaluate_binop store op e1 e2 : Literal.t =
 		(match lit1, lit2 with
 		| String s1, String s2 -> (String (s1 ^ s2))
 		| _, _ -> raise (Failure (Printf.sprintf "Non-string argument to StrCat: %s, %s" (Literal.str lit1) (Literal.str lit2))))
-    | _ -> Printf.printf "Unsupported binary operator: %s\n" (JSIL_Print.string_of_binop op); exit 1)
+    | _ -> Printf.printf "Unsupported binary operator: %s\n" (BinOp.str op); exit 1)
 and
 evaluate_expr store (e : jsil_expr) : Literal.t =
 	let ee = evaluate_expr store in
@@ -400,10 +392,6 @@ evaluate_expr store (e : jsil_expr) : Literal.t =
 	| UnOp (unop, e) ->
 		let v = ee e  in
 		evaluate_unop unop v
-
-	| TypeOf e ->
-		let v = ee e in
-		Type (Literal.type_of v)
 
 	| EList ll ->
 		(match ll with
@@ -519,18 +507,16 @@ let rec evaluate_bcmd store (heap : jsil_heap) bcmd : Literal.t =
 		let v_e2 = ee e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			(match (Heap.mem heap l) with
-			| false -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (Literal.str v_e1)))
-			| true -> 
-				let obj, ext, _ = Heap.find heap l in
-				(match (Heap.mem obj f) with 
-				| false -> raise (Failure "Field to be deleted does not exist")
-				| true -> 
-					let f_p, _ = Heap.find obj f in
+			(match (Heap.find_opt heap l) with
+			| None -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (Literal.str v_e1)))
+			| Some (fvl, ext, _) -> 
+				(match (Heap.find_opt fvl f) with 
+				| None -> raise (Failure "Field to be deleted does not exist")
+				| Some (f_p, _) -> 
 					(match f_p with
 					| Deletable -> 
 						if (!verbose) then Printf.printf "Removing field (%s, %s)!\n" (Literal.str v_e1) (Literal.str v_e2);
-						Heap.remove obj f; 
+						Heap.remove fvl f; 
 						Bool true; 
 					| _ -> raise (Failure (Printf.sprintf "Object %s not deletable" (Literal.str v_e1))))))
 		| _, _ -> raise (Failure "Illegal field deletion"))
@@ -580,7 +566,7 @@ let rec evaluate_bcmd store (heap : jsil_heap) bcmd : Literal.t =
 			v
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
-  | Arguments x ->
+  	| Arguments x ->
 		let arg_obj, _, _ = (try Heap.find heap larguments with
 		| _ -> raise (Failure "The arguments object doesn't exist.")) in
 		let _, v = (try Heap.find arg_obj "args" with

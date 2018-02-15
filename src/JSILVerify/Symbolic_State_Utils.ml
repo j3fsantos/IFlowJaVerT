@@ -1,4 +1,5 @@
 open CCommon
+open SCommon
 open JSIL_Syntax
 open Symbolic_State
 open JSIL_Logic_Utils
@@ -17,19 +18,14 @@ exception SymbExecFailure of string
 				pfs |=_{gamma} field = field' 
 *)
 let find_field
-		(pfs : pure_formulae) (gamma : typing_environment)
+		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(fv_list : SFVL.t)
-		(field : jsil_logic_expr) : (SFVL.t * (jsil_logic_expr * (Permission.t * jsil_logic_expr))) option  =
+		(field : jsil_logic_expr) : (SFVL.t * (SFVL.field_name * SFVL.field_value)) option  =
 	
-	(* This is breaking the SFVL abstraction *)
-	let rec find_field_rec fv_list traversed_fv_list =
-		match fv_list with
-		| [] -> None
-		| (field', (perm, value)) :: rest ->
-			(if (Pure_Entailment.is_equal field' field pfs gamma)
-				then Some (traversed_fv_list @ rest, (field', (perm, value)))
-				else find_field_rec rest ((field', (perm, value)) :: traversed_fv_list)) in
-	find_field_rec fv_list []
+	(match SFVL.get field fv_list with
+	| Some result -> Some (SFVL.remove field fv_list, (field, result))
+	| None -> Option.map (fun (ffn, ffv) -> SFVL.remove ffn fv_list, (ffn, ffv))
+		(SFVL.get_first (fun name -> Pure_Entailment.is_equal name field pfs gamma) fv_list))
 
 (**
 
@@ -37,7 +33,7 @@ let find_field
 	
 *)
 let sheap_put 
-			(pfs : pure_formulae) (gamma : typing_environment)
+			(pfs : pure_formulae) (gamma : TypEnv.t)
 			(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : Permission.t) (value : jsil_logic_expr) : unit =
 	
 	let (fv_list, domain), metadata, ext = SHeap.get_unsafe heap loc in
@@ -47,14 +43,14 @@ let sheap_put
 			| Readable -> 
 					let msg = Printf.sprintf "Non-writable field: (%s, %s)" loc (JSIL_Print.string_of_logic_expression field) in
 					raise (Failure msg)
-			| _ -> SHeap.put heap loc ((field, (perm, value)) :: framed_fv_list) domain metadata ext)
+			| _ -> SHeap.put heap loc (SFVL.add field (perm, value) framed_fv_list) domain metadata ext)
 	(* What about permissions in the domain?! *)
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
-			let new_domain = Simplifications.reduce_expression_no_store gamma pfs new_domain in
-			SHeap.put heap loc ((field, (perm, value)) :: fv_list) (Some new_domain) metadata ext
+			let new_domain = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) new_domain in
+			SHeap.put heap loc (SFVL.add field (perm, value) fv_list) (Some new_domain) metadata ext
 		) else (
 			let msg = Printf.sprintf "SHeap.put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
@@ -69,7 +65,7 @@ let sheap_put
 
 
 let sheap_get 
-		(pfs : pure_formulae) (gamma : typing_environment)
+		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
 	let (fv_list, domain), _, _ = SHeap.get_unsafe heap loc in
@@ -84,7 +80,7 @@ let sheap_get
 
 
 let merge_domains 
-		(pfs : pure_formulae) (gamma : typing_environment)
+		(pfs : pure_formulae) (gamma : TypEnv.t)
 		(domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) : jsil_logic_expr option = 
 	match domain_l, domain_r with 
 	| None, None -> None
@@ -92,17 +88,16 @@ let merge_domains
 	| Some domain, None -> Some domain 
 	| Some set1, Some set2 -> 
 		let set = LSetUnion [ set1; set2 ] in
-		(* let set = Normaliser.normalise_lexpr gamma set in *)  
-		let set = Simplifications.reduce_expression_no_store gamma pfs set in
+		let set = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) set in
 		Some set 
 
 let merge_heaps 
-			(store : symbolic_store) (pfs : pure_formulae) (gamma : typing_environment)
+			(store : symbolic_store) (pfs : pure_formulae) (gamma : TypEnv.t)
 			(heap : SHeap.t) (new_heap : SHeap.t) : unit =
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
 		(SHeap.str heap) (SHeap.str new_heap)
-		(Symbolic_State_Print.string_of_pfs pfs) (Symbolic_State_Print.string_of_gamma gamma)
+		(Symbolic_State_Print.string_of_pfs pfs) (TypEnv.str gamma)
 	);
 		
 	let meta_subst = Hashtbl.create 31 in
@@ -114,7 +109,7 @@ let merge_heaps
 			| Some ((fv_list, domain), metadata, ext) -> 
 				let new_ext = Extensibility.merge ext n_ext in
   				Hashtbl.add meta_subst n_metadata metadata; 
-  				SHeap.put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
+  				SHeap.put heap loc (SFVL.union n_fv_list fv_list) (merge_domains pfs gamma domain n_domain) metadata new_ext
 			| None -> 
 				SHeap.put heap loc n_fv_list n_domain n_metadata n_ext); 
 
@@ -135,15 +130,15 @@ let merge_heaps
 
 	(* Garbage collection - What happens here now?! TODO *)
 	SHeap.iterator heap (fun loc ((fv_list, domain), metadata, ext) ->
-		(match fv_list, domain, metadata, ext with
-		| [], None, None, None -> SHeap.remove heap loc
-		| _, _, _, _ -> ()));
+		(match domain, metadata, ext with
+		| None, None, None when (SFVL.is_empty fv_list) -> SHeap.remove heap loc
+		| _, _, _ -> ()));
 
 	print_debug "Finished merging heaps.";
 	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))
 
 
-let lexpr_is_none (pfs : pure_formulae) (gamma : typing_environment) (le : jsil_logic_expr) : bool option = 
+let lexpr_is_none (pfs : pure_formulae) (gamma : TypEnv.t) (le : jsil_logic_expr) : bool option = 
 	if (Pure_Entailment.is_equal le LNone pfs gamma) then Some true else (
 		if (Pure_Entailment.is_different le LNone pfs gamma) 
 			then Some false 
@@ -197,7 +192,7 @@ let subtract_pred
 		(args         : jsil_logic_expr list)
 		(pred_set     : predicate_set)
 		(pfs          : pure_formulae)
-		(gamma        : typing_environment)
+		(gamma        : TypEnv.t)
 		(spec_vars    : SS.t)
 		(existentials : string list) 
 		(delete_pred  : bool) : substitution option =
@@ -234,7 +229,7 @@ let merge_symb_states
 	let heap_l, store_l, pf_l, gamma_l, preds_l = symb_state_l in
 	let heap_r, store_r, pf_r, gamma_r, preds_r = symb_state_r in
 	pfs_merge pf_l pf_r;
-	merge_gammas gamma_l gamma_r;
+	TypEnv.extend gamma_l gamma_r;
 	merge_heaps store_l pf_l gamma_l heap_l heap_r;
 	DynArray.append preds_r preds_l;
 	print_debug ("Finished merge_symb_states");
@@ -255,9 +250,9 @@ let compatible_pfs
 	let pat_gamma = ss_gamma pat_symb_state in
 	
 	let pat_pfs = pfs_substitution subst false pat_pfs in
-	let pat_gamma = gamma_substitution pat_gamma subst false in
-	let gamma = gamma_copy gamma in
-	merge_gammas gamma pat_gamma;
+	let pat_gamma = TypEnv.substitution pat_gamma subst false in
+	let gamma = TypEnv.copy gamma in
+	TypEnv.extend gamma pat_gamma;
 	
 	let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
 	let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
@@ -310,12 +305,12 @@ let enrich_pure_part
 	(symb_state_pat : symbolic_state)
 	(subst          : substitution) : bool * symbolic_state =
 	
-	let pre_gamma = gamma_copy (ss_gamma symb_state_pat)     in
+	let pre_gamma = TypEnv.copy (ss_gamma symb_state_pat)     in
 	let pre_pfs   = pfs_copy (ss_pfs symb_state_pat)         in	
 	let pfs       = pfs_substitution subst false pre_pfs     in
-	let gamma     = gamma_substitution pre_gamma subst false in
+	let gamma     = TypEnv.substitution pre_gamma subst false in
 	
-	merge_gammas gamma (ss_gamma symb_state);
+	TypEnv.extend gamma (ss_gamma symb_state);
 	pfs_merge pfs (ss_pfs symb_state);
 	let store          = store_copy (ss_store symb_state) in
 	let heap           = ss_heap symb_state               in
@@ -341,39 +336,3 @@ let copy_single_spec s_spec =
 		n_subst            = s_spec.n_subst; 
 		n_unification_plan = s_spec.n_unification_plan
 	}
-	
-(*************************************)
-(** Garbage collection              **)
-(*************************************)
-
-let get_locs_symb_state symb_state =
-	let heap, store, pfs, gamma, preds = symb_state in 
-	let lheap  = SHeap.alocs  heap  in
-	let lstore = store_alocs store in
-	let lpfs   = pfs_alocs   pfs   in
-	let lpreds = preds_alocs preds in
-	SS.union lheap (SS.union lstore (SS.union lpfs lpreds))
-	
-let collect_garbage (symb_state : symbolic_state) = 
-	let heap, store, pfs, gamma, preds = symb_state in
-	let dangling_locations = 	Heap.fold
-		(fun loc ((fv_list, default), _, _) locs ->
-			match (is_abs_loc_name loc), default, fv_list with
-			| true, None, [] 
-			| true, Some (LESet []), [] -> SS.add loc locs
-			| _ -> locs
-  	)
-		heap
-		SS.empty in
-	if (dangling_locations = SS.empty) then symb_state else (
-	let ss_vars = get_locs_symb_state symb_state in
-	let collectable_locs = SS.diff dangling_locations ss_vars in
-	SS.iter (fun loc -> Heap.remove heap loc) collectable_locs;
-		print_debug (Printf.sprintf "GCOL: Found locations: %s"
-			(String.concat ", " (SS.elements ss_vars)));
-		print_debug (Printf.sprintf "GCOL: Dangling locations: %s"
-			(String.concat ", " (SS.elements dangling_locations)));
-		print_debug (Printf.sprintf "GCOL: Collectable locations: %s"
-			(String.concat ", " (SS.elements collectable_locs)));
-	symb_state)
-

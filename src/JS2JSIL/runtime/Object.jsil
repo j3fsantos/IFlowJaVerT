@@ -196,11 +196,11 @@ with
 proc Object_construct (xsc, vthis, l) {
 			l := l;
 
-			goto [typeOf(l) = Obj] obj l1b;
+			goto [typeOf l = Obj] obj l1b;
 	obj:	xret := l;
 			goto rlab;
 
-	l1b:	goto [(typeOf(l) = Bool) or (typeOf(l) = Num) or (typeOf(l) = Str)] to_obj norm;
+	l1b:	goto [(typeOf l = Bool) or (typeOf l = Num) or (typeOf l = Str)] to_obj norm;
 	to_obj:	xret := "i__toObject" (l);
 			goto rlab;
 
@@ -217,7 +217,7 @@ with
 (* *** GETPROTOTYPEOF *** *)
 
 proc Object_getPrototypeOf (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] proto throw;
+			goto [typeOf o = Obj] proto throw;
 
 	proto:	m := metadata(o);
 			xret := [m, "@proto"];
@@ -236,7 +236,7 @@ with
 (* *** GETOWNPROPERTYDESCRIPTOR *** *)
 
 proc Object_getOwnPropertyDescriptor (xsc, vthis, o, prop) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start:	xret := "i__toString" (prop) with elab;
 			xret := "getOwnProperty" (o, xret) with elab;
@@ -257,7 +257,7 @@ with
 (* *** GETOWNPROPERTYNAMES *** *)
 
 proc Object_getOwnPropertyNames (xsc, vthis, o) {
-			goto [not (typeOf(o) = Obj)] throw start;
+			goto [not (typeOf o = Obj)] throw start;
 
 	start:	xret := "Array_construct" (xsc, vthis) with elab;
 
@@ -286,7 +286,7 @@ with
 (* *** CREATE *** *)
 
 proc Object_create (xsc, vthis, o, props) {
-			goto [(typeOf(o) = Obj) or (o = null)] main throw;
+			goto [(typeOf o = Obj) or (o = null)] main throw;
 
 	main:	xret := "Object_construct" () with elab;
 			m := metadata(xret);
@@ -310,7 +310,7 @@ with
 (* *** DEFINEPROPERTY *** *)
 
 proc Object_defineProperty (xsc, vthis, o, prop, attr) {
-			goto [typeOf(o) = Obj] main throw;
+			goto [typeOf o = Obj] main throw;
 
 	main:	xret := "i__toString" (prop) with elab;
 			prop := xret;
@@ -334,7 +334,7 @@ with
 (* *** DEFINEPROPERTIES *** *)
 
 proc Object_defineProperties (xsc, vthis, o, props) {
-			goto [not (typeOf(o) = Obj)] throw start;
+			goto [not (typeOf o = Obj)] throw start;
 
 	start:	xret := "i__toObject" (props) with elab;
 			props := xret;
@@ -367,7 +367,7 @@ with
 (* *** PREVENTEXTENSIONS *** *)
 
 proc Object_preventExtensions (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start:	m := metadata(o);
 			[m, "@extensible"] := false;
@@ -387,7 +387,7 @@ with
 (* *** SEAL *** *)
 
 proc Object_seal (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start:	props := "i__getFields" (o);
 
@@ -418,7 +418,7 @@ with
 (* *** ISSEALED *** *)
 
 proc Object_isSealed (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start:	props := "i__getFields" (o);
 
@@ -454,7 +454,7 @@ with
 (* *** FREEZE *** *)
 
 proc Object_freeze (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start:	props := "i__getFields" (o);
 
@@ -488,7 +488,7 @@ with
 (* *** ISFROZEN *** *)
 
 proc Object_isFrozen (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start:	props := "i__getFields" (o);
 
@@ -525,7 +525,7 @@ with
 (* *** ISEXTENSIBLE *** *)
 
 proc Object_isExtensible (xsc, vthis, o) {
-			goto [typeOf(o) = Obj] start throw;
+			goto [typeOf o = Obj] start throw;
 
 	start: 	m := metadata(o);
 			xret := [m, "@extensible"];
@@ -543,7 +543,7 @@ with
 (* *** KEYS *** *)
 
 proc Object_keys (xsc, vthis, o) {
-			goto [not (typeOf(o) = Obj)] throw start;
+			goto [not (typeOf o = Obj)] throw start;
 
 	start:	xret := "Array_construct" () with elab;
 
@@ -670,7 +670,7 @@ with
 (* *** ISPROTOTYPEOF *** *)
 
 proc OP_isPrototypeOf(xsc, vthis, v) {
-			goto [typeOf(v) = Obj] obj fret;
+			goto [typeOf v = Obj] obj fret;
 
 	obj:	xret := "i__toObject" (vthis) with elab;
 

@@ -5,99 +5,25 @@ open JSIL_Syntax
    Generate strings from JSIL program types
 *)
 
-(** JSIL binary operators *)
-let string_of_binop (bop : jsil_binop) : string =
-  	match bop with
-  	| Equal -> "="
-  	| LessThan -> "<"
-  	| LessThanEqual -> "<="
-  	| LessThanString -> "<s"
-  	| Plus -> "+"
-  	| Minus -> "-"
-  	| Times -> "*"
-  	| Div -> "/"
-  	| Mod -> "%"
-  	| And -> "and"
-  	| Or -> "or"
-  	| BitwiseAnd -> "&"
-  	| BitwiseOr -> "|"
-  	| BitwiseXor -> "^"
-  	| LeftShift -> "<<"
-  	| SignedRightShift -> ">>"
-  	| UnsignedRightShift -> ">>>"
-  	| M_atan2 -> "m_atan2"
-  	| M_pow -> "**"
-  	| LstCons -> "::"
-  	| LstCat -> "@"
-  	| StrCat -> "++"
-  	| CharCons -> ":c:"
-  	| CharCat -> "+c+"
-  	| SetDiff -> "-d-"
-  	| SetMem -> "-e-"
-  	| SetSub -> "-s-"
-
-(** JSIL unary operators *)
-let string_of_unop (uop : jsil_unop) : string =
-  	match uop with
-  	| UnaryMinus -> "-"
-  	| Not -> "not"
-  	| BitwiseNot -> "~"
-  	| M_abs -> "m_abs"
-  	| M_acos -> "m_acos"
-  	| M_asin -> "m_asin"
-  	| M_atan -> "m_atan"
-  	| M_ceil -> "m_ceil"
-  	| M_cos -> "m_cos"
-  	| M_exp -> "m_exp"
-  	| M_floor -> "m_floor"
-  	| M_log -> "m_log"
-  	| M_round -> "m_round"
-  	| M_sgn -> "m_sgn"
-  	| M_sin -> "m_sin"
-  	| M_sqrt -> "m_sqrt"
-  	| M_tan -> "m_tan"
-  	| IsPrimitive -> "is_primitive"
-  	| ToStringOp -> "num_to_string"
-  	| ToIntOp -> "num_to_int"
-  	| ToUint16Op -> "num_to_uint16"
-  	| ToInt32Op -> "num_to_int32"
-  	| ToUint32Op -> "num_to_uint32"
-  	| ToNumberOp -> "string_to_num"
-  	| Car -> "car"
-  	| Cdr -> "cdr"
-  	| LstLen -> "l-len"
-  	| StrLen -> "s-len"
-
 (** JSIL expressions *)
 let rec string_of_expression (e : jsil_expr) : string  =
   let se = string_of_expression in
   match e with
   | Literal l -> Literal.str l
   | Var v -> v
-  	(* (e1 bop e2) *)
-  | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (string_of_binop op) (se e2)
-  	(* (uop e) *)
-  | UnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
-  	(* typeof(e) *)
-  | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
-  	(* {{ e1, e2, ... }} *)
-  	| EList ll ->
-    		(match ll with
-     		| [] -> "nil"
-     		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
-  	(* -{ e1, e2, ... }- *)
-  	| ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
-  	(* [['c1', 'c2',...]]*)
-  	| CList ll ->
-    		(match ll with
-     		| [] -> "''"
-     		| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map se ll)))
-  	(* l-nth(e1, e2) *)
-  	| LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
-  	(* s-nth(e1, e2) *)
-  	| StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
-  	| SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
-  	| SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
+  (* (e1 bop e2) *)
+  | BinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (se e1) (BinOp.str op) (se e2)
+  (* (uop e) *)
+  | UnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (se e)
+  | EList ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll))
+  (* -{ e1, e2, ... }- *)
+  | ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
+  (* l-nth(e1, e2) *)
+  | LstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (se e1) (se e2)
+  (* s-nth(e1, e2) *)
+  | StrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (se e1) (se e2)
+  | SetUnion le -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map se le))
+  | SetInter le -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map se le))
 
 (** JSIL Basic statements *)
 let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
@@ -124,7 +50,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
       | None   -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
       | Some p -> Printf.sprintf "%s[%s, %s] := <%s> %s" str_i (se e1) (se e2) (se e3) (sp p))
   	(* delete(e1, e2) *)
-  	| Delete (e1, e2) ->  Printf.sprintf "%sdelete(%s,%s)" str_i (se e1) (se e2)
+  	| Delete (e1, e2) ->  Printf.sprintf "%sdelete (%s,%s)" str_i (se e1) (se e2)
   	(* x := deleteObj(e1) *)
   	| DeleteObj (e1) ->  Printf.sprintf "%sdeleteObject (%s)" str_i (se e1)
   	(* x := hasField(e1, e2) *)
@@ -135,6 +61,8 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	| Arguments var -> Printf.sprintf "%s%s := args" str_i var
 		(* x := metadata(e) *)
 		| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
+    (* seal(e) *)
+    | Seal (e) -> Printf.sprintf "%sseal (%s)" str_i (se e)
 
 (** JSIL logical expressions *)
 let rec string_of_logic_expression (e : jsil_logic_expr) : string = 
@@ -146,25 +74,17 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
   	| ALoc aloc -> aloc 
   	| PVar pvar -> pvar 
   	(* (e1 bop e2) *)
-  | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (string_of_binop op) (sle e2)
+  | LBinOp (e1, op, e2) -> Printf.sprintf "(%s %s %s)" (sle e1) (BinOp.str op) (sle e2)
   	(* (uop e1 e2) *)
-  | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (sle e)
-  	(* typeOf(e) *)
-  | LTypeOf e -> Printf.sprintf "typeOf(%s)" (sle e)
+  | LUnOp (op, e) -> Printf.sprintf "(%s %s)" (UnOp.str op) (sle e)
   	(* {{ e1, ..., en }} *)
-  | LEList list ->
-    			(match list with
-     			| [] -> "nil"
-     			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
+  | LEList list -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle list))
   		(* -{ e1, ..., en }- *)
   | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))
   | LSetUnion list -> Printf.sprintf "-u- (%s)" (String.concat ", " (List.map sle list))
   | LSetInter list -> Printf.sprintf "-i- (%s)" (String.concat ", " (List.map sle list))
-  	| LCList list ->
-    			(match list with
-     			| [] -> "''"
-     			| ll -> Printf.sprintf "[[%s]]" (String.concat ", " (List.map sle ll)))
-  		(* l-nth(e1, e2) *)
+
+		(* l-nth(e1, e2) *)
   	| LLstNth (e1, e2) -> Printf.sprintf "l-nth(%s, %s)" (sle e1) (sle e2)
   	(* s-nth(e1, e2) *)
   	| LStrNth (e1, e2) -> Printf.sprintf "s-nth(%s, %s)" (sle e1) (sle e2)

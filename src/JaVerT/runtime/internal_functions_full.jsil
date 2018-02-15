@@ -486,18 +486,18 @@ proc i__toBoolean (v) {
 	null:	xret := false;
 			goto rlab;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	xret := v;
 			goto rlab;
 
-	inum:	goto [typeOf(v) = Num] num is;
+	inum:	goto [typeOf v = Num] num is;
 	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	goto [v = ""] is_f is_t;
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	xret := true;
 			goto rlab;
 
@@ -764,11 +764,11 @@ spec i__isPrimitive (v)
    normal
 
 proc i__isPrimitive (v) {
-			tv := typeOf(v);
+			tv := typeOf v;
 
 	iu:		goto [(v = undefined) or (v = null) or
-	              (typeOf(v) = Bool) or (typeOf(v) = Num) or
-	              (typeOf(v) = Str)] rt rf;
+	              (typeOf v = Bool) or (typeOf v = Num) or
+	              (typeOf v = Str)] rt rf;
 
 	rt:		xret := true;
 			goto rlab;
@@ -813,22 +813,22 @@ proc i__toNumber (v) {
 	null:	xret := 0;
     		goto rlab;
 
-    ib:		goto [typeOf(v) = Bool] bool inum;
+    ib:		goto [typeOf v = Bool] bool inum;
 	bool:	goto [v = true] is_t is_f;
     is_t:	xret := 1;
     		goto rlab;
     is_f:	xret := 0;
     		goto rlab;
 
-    inum:	goto [typeOf(v) = Num] num is;
+    inum:	goto [typeOf v = Num] num is;
     num:	xret := v;
     		goto rlab;
 
-    is:		goto [typeOf(v) = Str] str io;
+    is:		goto [typeOf v = Str] str io;
     str:	xret := string_to_num v;
     		goto rlab;
 
-    io:		goto [typeOf(v) = Obj] obj oops;
+    io:		goto [typeOf v = Obj] obj oops;
     obj:	xret := "i__toPrimitive" (v, "Number") with elab;
     		xret := "i__toNumber" (xret);
     		goto rlab;
@@ -874,14 +874,14 @@ spec i__toPrimitive (v, hint)
 
 proc i__toPrimitive (v, hint) {
 			xret := v;
-			tv := typeOf(v);
+			tv := typeOf v;
 
 	iu:		goto [(v = undefined) or (v = null) or
-	              (typeOf(v) = Bool) or (typeOf(v) = Num) or
-	              (typeOf(v) = Str)] rlab is_obj;
+	              (typeOf v = Bool) or (typeOf v = Num) or
+	              (typeOf v = Str)] rlab is_obj;
 
 	is_obj:	print := "object";
-			goto [typeOf(v) = Obj] obj oops;
+			goto [typeOf v = Obj] obj oops;
 	obj:	xret := "defaultValue" (v, hint) with elab;
 			goto rlab;
 
@@ -935,7 +935,7 @@ proc i__abstractComparison (v1, v2, leftFirst) {
 			xret := "i__toPrimitive" (v1, "Number") with elab;
 			px := xret;
 
-	is_str:	goto [(typeOf(px) = Str) and (typeOf(py) = Str)] str num;
+	is_str:	goto [(typeOf px = Str) and (typeOf py = Str)] str num;
 
 	str:	xret := (px <s py);
 			goto rlab;
@@ -986,8 +986,8 @@ spec i__abstractEquality (v1, v2)
     normal
 
 proc i__abstractEquality (v1, v2) {
-			tv1 := typeOf(v1);
-			tv2 := typeOf(v2);
+			tv1 := typeOf v1;
+			tv2 := typeOf v2;
 
 			goto [(tv1 = tv2)] same diff;
 
@@ -1092,22 +1092,22 @@ proc i__toString (v) {
 	null:	xret := "null";
 			goto rlab;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	goto [v = true] is_t is_f;
 	is_t:	xret := "true";
 			goto rlab;
 	is_f:	xret := "false";
 			goto rlab;
 
-	inum:	goto [typeOf(v) = Num] num is;
+	inum:	goto [typeOf v = Num] num is;
 	num:	xret := num_to_string v;
 			goto rlab;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	xret := v;
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	xret := "i__toPrimitive" (v, "String") with elab;
 			xret := "i__toString" (xret) with elab;
 			goto rlab;
@@ -1437,8 +1437,8 @@ spec i__sameValue (v1, v2)
 proc i__sameValue (v1, v2) {
 			xret := (v1 = v2);
 
-			goto [(typeOf(v1) = Num)] test2 rlab;
-	test2:	goto [(typeOf(v2) = Num)] inan1 rlab;
+			goto [(typeOf v1 = Num)] test2 rlab;
+	test2:	goto [(typeOf v2 = Num)] inan1 rlab;
 
 	inan1:	goto [(not (v1 = v1))] inan2 zero1;
 	inan2:	goto [(not (v2 = v2))] rt    zero1;
@@ -1565,8 +1565,8 @@ proc i__checkObjectCoercible (v) {
 
 	in:		goto [v = null] throw other;
 
-	other:	goto [(typeOf(v) = Bool) or (typeOf(v) = Num) or
-	              (typeOf(v) = Str) or (typeOf(v) = Obj)] rlab oops;
+	other:	goto [(typeOf v = Bool) or (typeOf v = Num) or
+	              (typeOf v = Str) or (typeOf v = Obj)] rlab oops;
 
 	oops:	xret := "CheckObjectCoercible: This should not happen.";
 
@@ -1599,7 +1599,7 @@ spec i__isCallable (l)
 
 proc i__isCallable (l) {
 			xret := false;
-			goto [typeOf(l) = Obj] obj rlab;
+			goto [typeOf l = Obj] obj rlab;
 	obj:	xret := hasField(l, "@call");
 	rlab:	skip
 }
@@ -2014,7 +2014,7 @@ spec i__getValue (v)
 
 proc i__getValue (v) {
 
-			goto [(typeOf(v) = List)] rcand dflt;
+			goto [(typeOf v = List)] rcand dflt;
 
     rcand:  rtype := l-nth (v, 0);
             goto [(rtype = "v") or (rtype = "o")] init dflt;

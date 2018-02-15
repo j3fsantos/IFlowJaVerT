@@ -241,6 +241,7 @@ let copy_and_clear_globals () =
 %token SETCLOSE
 (* EOF *)
 %token EOF
+
 (***** Precedence of operators *****)
 (* The later an operator is listed, the higher precedence it is given. *)
 (* Logic operators have lower precedence *)
@@ -259,15 +260,15 @@ let copy_and_clear_globals () =
 %left BITWISEOR
 %left BITWISEXOR
 %left BITWISEAND
-%left EQUAL
+%nonassoc EQUAL
 %nonassoc LESSTHAN LESSTHANSTRING LESSTHANEQUAL
 %left LEFTSHIFT SIGNEDRIGHTSHIFT UNSIGNEDRIGHTSHIFT
 %left PLUS MINUS
 %left TIMES DIV MOD M_POW
-%right NOT BITWISENOT unary_minus
-%left M_ATAN2 LSTCAT STRCAT SETUNION SETINTER SETDIFF
-%right M_ABS M_ACOS M_ASIN M_ATAN M_CEIL M_COS M_EXP M_FLOOR M_LOG M_ROUND M_SGN M_SIN M_SQRT M_TAN
-  ISPRIMITIVE TOSTRING TOINT TOUINT16 TOINT32 TOUINT32 TONUMBER CAR CDR LSTLEN STRLEN LSTCONS
+%left M_ATAN2 LSTCAT STRCAT SETDIFF
+
+%nonassoc binop_prec
+%nonassoc unop_prec 
 
 %nonassoc FLOAT
 
@@ -275,6 +276,7 @@ let copy_and_clear_globals () =
 %type <Type.t>     type_target
 %type <Constant.t> constant_target
 %type <Permission.t> permission_target
+%type <UnOp.t> unop_target
 
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
@@ -518,17 +520,14 @@ expr_target:
 	| v=VAR { Var v }
 (* e binop e *)
 	| e1=expr_target; bop=binop_target; e2=expr_target
-		{ BinOp (e1, bop, e2) }
+		{ BinOp (e1, bop, e2) } %prec binop_prec
 (* unop e *)
   | uop=unop_target; e=expr_target
-		{ UnOp (uop, e) }
+		{ UnOp (uop, e) } %prec unop_prec
 (* - e *)
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=expr_target
-		{ UnOp (UnaryMinus, e) } %prec unary_minus
-(* typeOf *)
-	| TYPEOF; LBRACE; e=expr_target; RBRACE
-		{ TypeOf (e) }
+		{ UnOp (UnaryMinus, e) } %prec unop_prec
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
 		{ EList exprlist }
@@ -940,17 +939,14 @@ lexpr_target:
 	  { pvar }
 (* e binop e *)
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target
-		{ LBinOp (e1, bop, e2) }
+		{ LBinOp (e1, bop, e2) } %prec binop_prec
 (* unop e *)
   | uop=unop_target; e=lexpr_target
-		{ LUnOp (uop, e) }
+		{ LUnOp (uop, e) } %prec unop_prec
 (* - e *)
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=lexpr_target
-		{ LUnOp (UnaryMinus, e) } %prec unary_minus
-(* typeOf *)
-	| TYPEOF; LBRACE; e=lexpr_target; RBRACE
-		{ LTypeOf (e) }
+		{ LUnOp (UnaryMinus, e) } %prec unop_prec
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, lexpr_target); LSTCLOSE
 		{ LEList exprlist }
@@ -1077,6 +1073,7 @@ unop_target:
 	| TOINT32     { ToInt32Op }
 	| TOUINT32    { ToUint32Op }
 	| TONUMBER    { ToNumberOp }
+	| TYPEOF      { TypeOf }
 	| CAR         { Car }
 	| CDR         { Cdr }
 	| LSTLEN      { LstLen }
@@ -1238,17 +1235,14 @@ js_lexpr_target:
 	  { JSLVar lvar }
 (* e binop e *)
 	| e1=js_lexpr_target; bop=binop_target; e2=js_lexpr_target
-		{ JSLBinOp (e1, bop, e2) }
+		{ JSLBinOp (e1, bop, e2) } %prec binop_prec
 (* unop e *)
   | uop=unop_target; e=js_lexpr_target
-		{ JSLUnOp (uop, e) }
+		{ JSLUnOp (uop, e) } %prec unop_prec
 (* - e *)
 (* Unary negation has the same precedence as logical not, not as binary negation. *)
 	| MINUS; e=js_lexpr_target
-		{ JSLUnOp (UnaryMinus, e) } %prec unary_minus
-(* typeOf *)
-	| TYPEOF; LBRACE; e=js_lexpr_target; RBRACE
-		{ JSLTypeOf (e) }
+		{ JSLUnOp (UnaryMinus, e) } %prec unop_prec
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, js_lexpr_target); LSTCLOSE
 		{ JSLEList exprlist }

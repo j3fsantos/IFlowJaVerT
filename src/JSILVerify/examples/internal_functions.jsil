@@ -618,11 +618,11 @@ spec i__isPrimitive (v)
    normal
 
 proc i__isPrimitive (v) {
-			tv := typeOf(v);
+			tv := typeOf v;
 
 	iu:		goto [(v = undefined) or (v = null) or
-	              (typeOf(v) = Bool) or (typeOf(v) <: Num) or
-	              (typeOf(v) = Str)] rt rf;
+	              (typeOf v = Bool) or (typeOf v <: Num) or
+	              (typeOf v = Str)] rt rf;
 
 	rt:		xret := true;
 			goto rlab;
@@ -671,22 +671,22 @@ proc i__toNumber (v) {
 	null:	xret := 0;
     		goto rlab;
 
-    ib:		goto [typeOf(v) = Bool] bool inum;
+    ib:		goto [typeOf v = Bool] bool inum;
 	bool:	goto [v = true] is_t is_f;
     is_t:	xret := 1;
     		goto rlab;
     is_f:	xret := 0;
     		goto rlab;
 
-    inum:	goto [typeOf(v) <: Num] num is;
+    inum:	goto [typeOf v <: Num] num is;
     num:	xret := v;
     		goto rlab;
 
-    is:		goto [typeOf(v) = Str] str io;
+    is:		goto [typeOf v = Str] str io;
     str:	xret := string_to_num v;
     		goto rlab;
 
-    io:		goto [typeOf(v) = Obj] obj oops;
+    io:		goto [typeOf v = Obj] obj oops;
     obj:	xret := "i__toPrimitive" (v, "Number") with elab;
     		xret := "i__toNumber" (xret);
     		goto rlab;
@@ -736,14 +736,14 @@ spec i__toPrimitive (v, hint)
 
 proc i__toPrimitive (v, hint) {
 			xret := v;
-			tv := typeOf(v);
+			tv := typeOf v;
 
 	iu:		goto [(v = undefined) or (v = null) or
-	              (typeOf(v) = Bool) or (typeOf(v) <: Num) or
-	              (typeOf(v) = Str)] rlab is_obj;
+	              (typeOf v = Bool) or (typeOf v <: Num) or
+	              (typeOf v = Str)] rlab is_obj;
 
 	is_obj:	print := "object";
-			goto [typeOf(v) = Obj] obj oops;
+			goto [typeOf v = Obj] obj oops;
 	obj:	xret := "defaultValue" (v, hint) with elab;
 			goto rlab;
 
@@ -805,22 +805,22 @@ proc i__toString (v) {
 	null:	xret := "null";
 			goto rlab;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	goto [v = true] is_t is_f;
 	is_t:	xret := "true";
 			goto rlab;
 	is_f:	xret := "false";
 			goto rlab;
 
-	inum:	goto [typeOf(v) <: Num] num is;
+	inum:	goto [typeOf v <: Num] num is;
 	num:	xret := num_to_string v;
 			goto rlab;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	xret := v;
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	xret := "i__toPrimitive" (v, "String") with elab;
 			xret := "i__toString" (xret) with elab;
 			goto rlab;
@@ -1091,8 +1091,8 @@ spec i__sameValue (v1, v2)
 proc i__sameValue (v1, v2) {
 			xret := (v1 = v2);
 
-			goto [(typeOf(v1) <: Num)] test2 rlab;
-	test2:	goto [(typeOf(v2) <: Num)] inan1 rlab;
+			goto [(typeOf v1 <: Num)] test2 rlab;
+	test2:	goto [(typeOf v2 <: Num)] inan1 rlab;
 
 	inan1:	goto [(not (v1 = v1))] inan2 zero1;
 	inan2:	goto [(not (v2 = v2))] rt    zero1;
@@ -1230,8 +1230,8 @@ proc i__checkObjectCoercible (v) {
 
 	in:		goto [v = null] throw other;
 
-	other:	goto [(typeOf(v) = Bool) or (typeOf(v) <: Num) or
-	              (typeOf(v) = Str) or (typeOf(v) = Obj)] rlab oops;
+	other:	goto [(typeOf v = Bool) or (typeOf v <: Num) or
+	              (typeOf v = Str) or (typeOf v = Obj)] rlab oops;
 
 	oops:	xret := "CheckObjectCoercible: This should not happen.";
 
@@ -1340,8 +1340,8 @@ spec s__getOwnProperty (l, prop)
 
 proc s__getOwnProperty (l, prop) {
 
-    ch0:	goto [typeOf(l) = Obj] ch1 elab;
-    ch1:	goto [typeOf(prop) = Str] ch2 elab;
+    ch0:	goto [typeOf l = Obj] ch1 elab;
+    ch1:	goto [typeOf prop = Str] ch2 elab;
     ch2:	goto [0 < s-len prop] ch3 elab;
     ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
@@ -1447,8 +1447,8 @@ spec getProperty (l, prop)
 proc getProperty (l, prop) {
 
 			[* unfold Pi (#l, #prop, #gp_aux_0, #gp_aux_1, #gp_aux_2, #gp_aux_3, #gp_aux_4) *]
-    ch0:	goto [typeOf(l) = Obj] ch1 elab;
-    ch1:	goto [typeOf(prop) = Str] ch2 elab;
+    ch0:	goto [typeOf l = Obj] ch1 elab;
+    ch1:	goto [typeOf prop = Str] ch2 elab;
     ch2:	goto [0 < s-len prop] ch3 elab;
     ch3:	goto [not (s-nth(prop, 0) = "@")] start elab;
 
@@ -1573,7 +1573,7 @@ spec i__getValue (v)
 
 proc i__getValue (v) {
 
-			goto [(typeOf(v) = List)] rcand dflt;
+			goto [(typeOf v = List)] rcand dflt;
 
     rcand:  rtype := l-nth (v, 0);
             goto [(rtype = "v") or (rtype = "o")] init dflt;
@@ -1599,7 +1599,7 @@ proc i__getValue (v) {
 			goto [xret = empty] undef rlab;
 	undef:	xret := undefined;
 
-	ref:	goto [(typeOf(v) = List) and (l-nth (v, 0) = "o")] oref vref;
+	ref:	goto [(typeOf v = List) and (l-nth (v, 0) = "o")] oref vref;
 
 	oref:	xret := "get" (rbase, rfield) with elab;
 			goto rlab;
@@ -2806,7 +2806,7 @@ spec i__putValue (v, w)
 
 proc i__putValue (v, w) {
 
-			goto [(typeOf(v) = List)] isref throw;
+			goto [(typeOf v = List)] isref throw;
 	isref:	goto [((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init throw;
 
 	init:	rbase := l-nth (v, 1);

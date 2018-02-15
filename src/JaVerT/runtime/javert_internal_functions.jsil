@@ -4,7 +4,6 @@
 
 import javert_js_predicates.jsil;
 
-
 (*******************
  *******************
  ***** OBJECTS *****
@@ -82,11 +81,11 @@ spec Object_construct (xsc, vthis, l)
 
 proc Object_construct (xsc, vthis, l) {
 
-			goto [typeOf(l) = Obj] obj l1b;
+			goto [typeOf l = Obj] obj l1b;
 	obj:	xret := l;
 			goto rlab;
 
-	l1b:	goto [(typeOf(l) = Bool) or (typeOf(l) = Num) or (typeOf(l) = Str)] to_obj norm;
+	l1b:	goto [(typeOf l = Bool) or (typeOf l = Num) or (typeOf l = Str)] to_obj norm;
 	to_obj:	xret := "i__toObject" (l);
 			goto rlab;
 
@@ -250,25 +249,16 @@ proc setupInitialHeap () {
 			xret := "create_default_object" ($lbool_proto, $lobj_proto, "Boolean", true);
 			
 			m := metadata($lbool_proto); 
-			[m, "@primitiveValue"] := false;
-
-			[$lbool_proto, "constructor"] := {{ "d", $lbool, true, false, true }};
-			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, true, false, true }};
-			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, true, false, true }};
+			[m,            "@primitiveValue"] := false;
+			[$lbool_proto,     "constructor"] := {{ "d", $lbool, true, false, true }};
 			
 			(* Number.prototype *)
 
 			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", true);
 
 			m := metadata($lnum_proto);
-			[m,           "@primitiveValue"]      := 0;
-			[$lnum_proto, "constructor"]          := {{ "d", $lnum, true, false, true }};
-			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, true, false, true }};
-			[$lnum_proto, "toLocaleString"]       := {{ "d", $lnp_toLocaleString, true, false, true }};
-			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, true, false, true }};
-			[$lnum_proto, "toFixed"]              := {{ "d", $lnp_toFixed, true, false, true }};
-			[$lnum_proto, "toExponential"]        := {{ "d", $lnp_toExponential, true, false, true }};
-			[$lnum_proto, "toPrecision"]          := {{ "d", $lnp_toPrecision, true, false, true }};
+			[m,           "@primitiveValue"] := 0;
+			[$lnum_proto,     "constructor"] := {{ "d", $lnum, true, false, true }};
 			
 			(* Error object *)
 
@@ -335,22 +325,22 @@ proc i__toString (v) {
 	nul:	xret := "null";
 			goto rlab;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	goto [v = true] is_t is_f;
 	is_t:	xret := "true";
 			goto rlab;
 	is_f:	xret := "false";
 			goto rlab;
 
-	inum:	goto [typeOf(v) = Num] num is;
+	inum:	goto [typeOf v = Num] num is;
 	num:	xret := num_to_string v;
 			goto rlab;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	xret := v;
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	xret := "i__toPrimitive" (v, "String") with elab;
 			xret := "i__toString" (xret) with elab;
 			goto rlab;
@@ -402,22 +392,22 @@ proc i__toNumber (v) {
 	nul:	xret := 0;
     		goto rlab;
 
-    ib:		goto [typeOf(v) = Bool] bool inum;
+    ib:		goto [typeOf v = Bool] bool inum;
 	bool:	goto [v = true] is_t is_f;
     is_t:	xret := 1;
     		goto rlab;
     is_f:	xret := 0;
     		goto rlab;
 
-    inum:	goto [typeOf(v) = Num] num is;
+    inum:	goto [typeOf v = Num] num is;
     num:	xret := v;
     		goto rlab;
 
-    is:		goto [typeOf(v) = Str] str io;
+    is:		goto [typeOf v = Str] str io;
     str:	xret := string_to_num v;
     		goto rlab;
 
-    io:		goto [typeOf(v) = Obj] obj oops;
+    io:		goto [typeOf v = Obj] obj oops;
     obj:	xret := "i__toPrimitive" (v, "Number") with elab;
     		xret := "i__toNumber" (xret);
     		goto rlab;
@@ -457,19 +447,19 @@ proc i__toObject (v) {
 
 	in:		goto [v = null] throw ib;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	xret := "Boolean_construct" (undefined, undefined, v);
 			goto rlab;
 
-	inum:	goto [typeOf(v) = Num] num is;
+	inum:	goto [typeOf v = Num] num is;
 	num:	xret := "Number_construct" (undefined, undefined, v);
 			goto rlab;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	xret := "String_construct" (undefined, undefined, v);
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	xret := v;
 			goto rlab;
 
@@ -536,18 +526,18 @@ proc i__toBoolean (v) {
 	nul:	xret := false;
 			goto rlab;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	xret := v;
 			goto rlab;
 
-	inum:	goto [typeOf(v) = Num] num is;
+	inum:	goto [typeOf v = Num] num is;
 	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	goto [v = ""] is_f is_t;
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	xret := true;
 			goto rlab;
 
@@ -593,13 +583,13 @@ spec i__toPrimitive (v, hint)
 
 proc i__toPrimitive (v, hint) {
 			xret := v;
-			tv := typeOf(v);
+			tv := typeOf v;
 
 	iu:		goto [(v = undefined) or (v = null) or
-	              (typeOf(v) = Bool) or (typeOf(v) = Num) or
-	              (typeOf(v) = Str)] rlab is_obj;
+	              (typeOf v = Bool) or (typeOf v = Num) or
+	              (typeOf v = Str)] rlab is_obj;
 
-	is_obj:	goto [typeOf(v) = Obj] obj oops;
+	is_obj:	goto [typeOf v = Obj] obj oops;
 	obj:	xret := "defaultValue" (v, hint) with elab;
 			goto rlab;
 
@@ -846,19 +836,19 @@ proc i__typeOf (v) {
 	nll:	xret := "object";
 			goto rlab;
 
-	ib:		goto [typeOf(v) = Bool] bool inum;
+	ib:		goto [typeOf v = Bool] bool inum;
 	bool:	xret := "boolean";
 			goto rlab;
 
-	inum:	goto [typeOf(v) = Num] num is;
+	inum:	goto [typeOf v = Num] num is;
 	num:	xret := "number";
 			goto rlab;
 
-	is:		goto [typeOf(v) = Str] str io;
+	is:		goto [typeOf v = Str] str io;
 	str:	xret := "string";
 			goto rlab;
 
-	io:		goto [typeOf(v) = Obj] obj oops;
+	io:		goto [typeOf v = Obj] obj oops;
 	obj:	m := metadata(v);
 			xret := hasField(m, "@call");
 			goto [xret] isfun isobj;
@@ -940,7 +930,7 @@ proc i__abstractComparison (v1, v2, leftFirst) {
 			xret := "i__toPrimitive" (v1, "Number") with elab;
 			px := xret;
 
-	is_str:	goto [(typeOf(px) = Str) and (typeOf(py) = Str)] str num;
+	is_str:	goto [(typeOf px = Str) and (typeOf py = Str)] str num;
 
 	str:	xret := (px <s py);
 			goto rlab;
@@ -990,7 +980,7 @@ spec i__isCallable (l)
 
 proc i__isCallable (l) {
 			xret := false;
-			goto [typeOf(l) = Obj] obj rlab;
+			goto [typeOf l = Obj] obj rlab;
 	obj:	m := metadata(l);
 			xret := hasField(m, "@call");
 	rlab:	skip
@@ -1032,8 +1022,8 @@ spec i__sameValue (v1, v2)
 
 proc i__sameValue (v1, v2) {
 
-			goto [(typeOf(v1) = Num)] test2 nonum;
-	test2:	goto [(typeOf(v2) = Num)] inan1 nonum;
+			goto [(typeOf v1 = Num)] test2 nonum;
+	test2:	goto [(typeOf v2 = Num)] inan1 nonum;
 
 	inan1:	goto [(not (v1 = v1))] inan2 zero1;
 	inan2:	goto [(not (v2 = v2))] rt    zero1;
@@ -1108,7 +1098,9 @@ spec i__checkAssignmentErrors (v)
 
 proc i__checkAssignmentErrors (v) {
 			tv := typeOf (v);
-			goto [(tv = List) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] prep rlab;
+			goto [(tv = List)] list rlab; 
+
+	list:    goto [((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] prep rlab;
 
 	prep:	fv := l-nth (v, 2);
 
@@ -1163,8 +1155,8 @@ proc i__checkObjectCoercible (v) {
 
 	in:		goto [v = null] throw other;
 
-	other:	goto [(typeOf(v) = Bool) or (typeOf(v) = Num) or
-	              (typeOf(v) = Str) or (typeOf(v) = Obj)] rlab oops;
+	other:	goto [(typeOf v = Bool) or (typeOf v = Num) or
+	              (typeOf v = Str) or (typeOf v = Obj)] rlab oops;
 
 	oops:	xret := "CheckObjectCoercible: This should not happen.";
 
@@ -1210,11 +1202,11 @@ spec i__isPrimitive (v)
    normal
 
 proc i__isPrimitive (v) {
-			tv := typeOf(v);
+			tv := typeOf v;
 
 	iu:		goto [(v = undefined) or (v = null) or
-	              (typeOf(v) = Bool) or (typeOf(v) = Num) or
-	              (typeOf(v) = Str)] rt rf;
+	              (typeOf v = Bool) or (typeOf v = Num) or
+	              (typeOf v = Str)] rt rf;
 
 	rt:		xret := true;
 			goto rlab;
@@ -1444,7 +1436,7 @@ spec getOwnProperty (l, prop)
     normal;
 
     [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) *
-       MetaData(#l, #md) * ((#md, "@class") -> #cls) ]]
+       MetaData(#l, #md) * ((#md, "@class") -> #cls) * types(#cls:Str) ]]
     [[ Cell_o (#l, #prop, #dx) * 
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == #dx) ]]
     normal
@@ -1648,25 +1640,25 @@ spec i__getValue (v)
     
     (* Now come the more involved specs, which are a bit difficult for the solver. *)
     
-    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * (#d == undefined) ]]
-    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * (ret == undefined) ]]
+    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * (#d == undefined) ]]
+    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * (ret == undefined) ]]
     normal;
 
-    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * DataDescriptor(#d) ]]
-    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, #pls, #plcls, #plpv) * desc_val(#d, #dval) * (ret == #dval) ]]
+    [[ (v == {{ "o", #b, #field }}) * types(#b:Bool) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * DataDescriptor(#d) ]]
+    [[ (xobj == #o) * BooleanObject(#o, #b) * empty_fields(#o : -{ }-) * Pi($lbool_proto, #field, #d, ($lbool_proto :: #ols), ("Boolean" :: #ocls), ("" :: #opv)) * desc_val(#d, #dval) * (ret == #dval) ]]
     normal;
     
-    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * (#d == undefined) ]]
-    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * (ret == undefined) ]]
+    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * (#d == undefined) ]]
+    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * (ret == undefined) ]]
     normal;
 
-    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * DataDescriptor(#d) ]]
-    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, #pls, #plcls, #plpv) * desc_val(#d, #dval) * (ret == #dval) ]]
+    [[ (v == {{ "o", #n, #field }}) * types(#n:Num) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * DataDescriptor(#d) ]]
+    [[ (xobj == #o) * NumberObject(#o, #n) * empty_fields(#o : -{ }-) * Pi($lnum_proto, #field, #d, ($lnum_proto :: #ols), ("Number" :: #ocls), ("" :: #opv)) * desc_val(#d, #dval) * (ret == #dval) ]]
     normal 
 
 proc i__getValue (v) {
 
-			goto [(typeOf(v) = List)] rcand dflt;
+			goto [(typeOf v = List)] rcand dflt;
 
    	rcand:  rtype := l-nth (v, 0);
            	goto [(rtype = "v") or (rtype = "o")] init dflt;
@@ -1696,7 +1688,7 @@ proc i__getValue (v) {
 			goto [xret = empty] undef rlab;
 	undef:	xret := undefined;
 
-	ref:	goto [(typeOf(v) = List) and (l-nth (v, 0) = "o")] oref vref;
+	ref:	goto [(typeOf v = List) and (l-nth (v, 0) = "o")] oref vref;
 
 	oref:	xret := "get" (rbase, rfield) with pelab;
 			goto rlab;
@@ -2553,7 +2545,9 @@ spec i__putValue (v, w)
 
 proc i__putValue (v, w) {
 
-			goto [(typeOf(v) = List) and ((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init throw;
+			goto [(typeOf v = List)] list throw;
+			
+	list:	goto [((l-nth (v, 0) = "v") or (l-nth (v, 0) = "o"))] init throw;
 
 	init:	rbase := l-nth (v, 1);
 			rfield := l-nth (v, 2);
@@ -2562,7 +2556,7 @@ proc i__putValue (v, w) {
 	prim:	prim := "i__isPrimitive" (rbase);
       	    goto [prim] is_pr refr; 
 
-	refr:	goto [(typeOf(v) = List) and (l-nth (v, 0) = "o")] oref vref;
+	refr:	goto [(typeOf v = List) and (l-nth (v, 0) = "o")] oref vref;
 
 	oref:	xret := "put" (rbase, rfield, w, true) with elab;
 			goto dflt;
