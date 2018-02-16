@@ -1668,6 +1668,31 @@ let create_unification_plan
 		print_debug msg;
 		raise (Failure msg)) 
 
+(* Create unification plans for multiple symbolic states at the same time
+	 Returns a Hashtbl from logic assertions to the symbolic states they appear in*)
+let create_multiple_unification_plan
+		(states : (symbolic_state * SS.t) list) :
+		((jsil_logic_assertion, SI.t) Hashtbl.t) =
+		
+	let unification_plan = Hashtbl.create 31 in
+	
+	(* add a new assertion to the set *)
+	let update_unification_plan symb_state_id asrt =
+		if Hashtbl.mem unification_plan asrt then
+			let former_set = Hashtbl.find unification_plan asrt in
+			Hashtbl.replace unification_plan asrt (SI.add symb_state_id former_set)
+		else
+			Hashtbl.add unification_plan asrt (SI.singleton symb_state_id) in
+	
+	let create_single_unification_plan
+			(symb_state_id : int)
+			(state : (symbolic_state * SS.t)) =
+		let symb_state, reachable_alocs = state in
+		let sorted_assertions = create_unification_plan symb_state reachable_alocs in
+		List.iter (update_unification_plan symb_state_id) sorted_assertions in
+	List.iteri create_single_unification_plan states;
+	unification_plan
+
 
 let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) : (string * substitution) option =
 
