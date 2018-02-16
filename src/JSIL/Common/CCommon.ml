@@ -18,10 +18,15 @@ let big_tbl_size    = 1021
  * Debugging *
  *************)
 
-let output_file               = create "normalOutput.txt"
-let output_file_debug         = create "debugOutput.txt"
-let output_file_normalisation = create "normalisationOutput.txt"
-let output_file_njsil         = create "normalisedSpecsPreds.njsil"
+let time = Unix.localtime (Unix.gettimeofday ())
+let time_str = Printf.sprintf "%d%.2d%.2d_%.2dh%.2dm%.2ds"
+                  (time.tm_year+1900) (time.tm_mon+1) time.tm_mday
+                  time.tm_hour time.tm_min time.tm_sec
+
+let output_file               = create ("normalOutput_" ^ time_str ^ ".txt")
+let output_file_debug         = create ("debugOutput_" ^ time_str ^ ".txt")
+let output_file_normalisation = create ("normalisationOutput_" ^ time_str ^ ".txt")
+let output_file_njsil         = create ("normalisedSpecsPreds_" ^ time_str ^ ".njsil")
 
 let close_output_files () =
 	close output_file;
