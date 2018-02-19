@@ -161,15 +161,15 @@ let unify_stores
 		(pfs       : pure_formulae) 
 		(gamma     : TypEnv.t)
 		(pat_subst : substitution) 
-		(pat_store : symbolic_store) 
-		(store     : symbolic_store) : discharge_list =
+		(pat_store : SStore.t) 
+		(store     : SStore.t) : discharge_list =
 
 	print_debug_petar (Printf.sprintf "Unifying stores.\nCalling store: %s\nPat store: %s"
-		(Symbolic_State_Print.string_of_symb_store store) (Symbolic_State_Print.string_of_symb_store pat_store));
+		(SStore.str store) (SStore.str pat_store));
 
-	store_fold pat_store 
+	SStore.fold pat_store 
 		(fun x le_pat discharges -> 
-			match store_get_safe store x with 
+			match SStore.get store x with 
 			| None    -> raise (UnificationFailure "")
 			| Some le -> 
 				(match unify_lexprs pfs gamma pat_subst le_pat le with 
@@ -857,13 +857,13 @@ let unify_symb_states_fold
 	(*  let pat_store' = pat_store|_{unfiltered_vars}                                                          *)
 	(*  let discharges = { (le_pat, le) | x \in filtered_vars /\ le = store(x) /\ le_pat = pat_store(x)        *)
 	(*  let discharges' = unify_stores (pfs, gamma, pat_subst, new_store, new_pat_store)	                   *)
-	let unfiltered_vars, filtered_vars = store_partition store 
+	let unfiltered_vars, filtered_vars = SStore.partition store 
 		(fun le -> SS.is_empty (SS.inter (get_lexpr_lvars le) existentials)) in  					
-	let store'      = store_projection store     unfiltered_vars in
-	let pat_store'  = store_projection pat_store unfiltered_vars in
+	let store'      = SStore.projection store     unfiltered_vars in
+	let pat_store'  = SStore.projection pat_store unfiltered_vars in
 	let discharges  = List.map 
 		(fun x -> 
-			match store_get_safe pat_store x, store_get_safe store x with 
+			match SStore.get pat_store x, SStore.get store x with 
 			| Some le_pat_x, Some le_x -> (le_pat_x, le_x)
 			| _, _ -> raise (UnificationFailure "")) filtered_vars in 
 	let discharges' = (unify_stores pfs gamma pat_subst pat_store' store') in 
@@ -880,7 +880,7 @@ let unify_symb_states_fold
 	let gamma_existentials = TypEnv.init () in
 	List.iter
 		(fun x ->
-			match store_get_safe store x, TypEnv.get_type pat_gamma x with
+			match SStore.get store x, TypEnv.get_type pat_gamma x with
 			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x x_type in ()
 			|	_, _ -> ())
 		filtered_vars;
@@ -1050,12 +1050,12 @@ let unify_stores_unfold
 		(pfs       : pure_formulae)
 		(gamma     : TypEnv.t)
 		(subst     : substitution)
-		(pat_store : symbolic_store) 
-		(store     : symbolic_store) : (jsil_logic_assertion list) * (jsil_logic_assertion list) * discharge_list =
+		(pat_store : SStore.t) 
+		(store     : SStore.t) : (jsil_logic_assertion list) * (jsil_logic_assertion list) * discharge_list =
 
-	store_fold pat_store 
+	SStore.fold pat_store 
 		(fun x le_pat (constraints, pat_constraints, discharges) -> 
-			match store_get_safe store x with 
+			match SStore.get store x with 
 			| None    -> raise (UnificationFailure "")
 			| Some le -> 
 				(match unify_lexprs_unfold pfs subst le_pat le with 
@@ -1105,7 +1105,7 @@ let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_ta
  	symb_state        - the current symbolic state minus the predicate that is to be unfolded	
 *)
 let unfold_predicate_definition 
-		(unfold_store   : symbolic_store)
+		(unfold_store   : SStore.t)
 		(subst          : substitution)
 		(pat_subst      : substitution)
 		(existentials   : SS.t)
@@ -1126,7 +1126,7 @@ let unfold_predicate_definition
 		(JSIL_Print.string_of_substitution subst)
 		(JSIL_Print.string_of_substitution pat_subst)
 		(String.concat ", " (SS.elements existentials))
-		(Symbolic_State_Print.string_of_symb_store unfold_store)); 
+		(SStore.str unfold_store)); 
 
 	(* STEP 1 - Unify(pfs, gamm, pat_subst, subst, pat_store, store) = discharges                                          *)
 	(* subst (store) =_{pfs} pat_subst (pat_store) provided that the discharges hold                                       *)
@@ -1145,11 +1145,11 @@ let unfold_predicate_definition
 	(* STEP 2 - the store must agree on the types                                                                          *)
 	(* forall x \in domain(store) = domain(pat_store) :                                                                    *)
 	(*   (pat_gamma |- pat_store(x) : pat_tau)  /\ (gamma |- store(x) : tau) => pat_tau = tau                              *)
-	let find_store_var_type store gamma x = (match store_get_safe store x with
+	let find_store_var_type store gamma x = (match SStore.get store x with
 			| Some le_x -> let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in x_type
 			| None      -> None) in
-	let dom_store       = SS.elements (store_domain unfold_store) in 
-	let dom_pat_store   = SS.elements (store_domain pat_store) in 
+	let dom_store       = SS.elements (SStore.domain unfold_store) in 
+	let dom_pat_store   = SS.elements (SStore.domain pat_store) in 
 	let store_types     = List.map (find_store_var_type unfold_store gamma) dom_store in
 	let pat_store_types = List.map (find_store_var_type pat_store pat_gamma) dom_pat_store in
 	List.iter2 (fun x (tau, pat_tau) -> match tau, pat_tau with 
@@ -1180,7 +1180,7 @@ let unfold_predicate_definition
 	List.iter2
 		(fun x (x_type, pat_x_type) -> 
 			if ((x_type = None) && (pat_x_type <> None)) then (
-				match store_get_safe unfold_store x, pat_x_type with
+				match SStore.get unfold_store x, pat_x_type with
 				| Some le_x, Some pat_x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x pat_x_type in ()
 				|	_, _ -> ())) 
 		dom_pat_store (List.combine store_types pat_store_types);

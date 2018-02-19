@@ -96,7 +96,7 @@ let rec substitution (gamma : t) (subst : substitution) (partial : bool) : t =
 	new_gamma
 
 (* Convert to assertion *)
-let to_assertion (gamma : t) : jsil_logic_assertion = 
+let assertions (gamma : t) : jsil_logic_assertion = 
 	let le_type_pairs = 
 		Hashtbl.fold
 			(fun x t pairs -> 

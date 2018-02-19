@@ -1265,22 +1265,22 @@ let simplify_ss_with_subst symb_state vars_to_save =
 	symb_state, subst
 
 let simplify_pfs pfs gamma vars_to_save =
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
 	pfs, gamma
 			
 let simplify_pfs_with_subst pfs gamma =
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
 	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
 	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
 	lpfs, rpfs, exists, gamma
 

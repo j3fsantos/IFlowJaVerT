@@ -26,7 +26,7 @@ let rec get_list_length (le : jsil_logic_expr) : int option =
 (* Symbolic evaluation of JSIL expressions *)
 (*******************************************)
 let rec symb_evaluate_expr 
-		(store : symbolic_store) (gamma : TypEnv.t) 
+		(store : SStore.t) (gamma : TypEnv.t) 
 		(pure_formulae : pure_formulae) (expr : jsil_expr) : jsil_logic_expr =
 let f = symb_evaluate_expr store gamma pure_formulae in
 	let result = (match expr with
@@ -36,7 +36,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
   	(* Variables:
 	     a) If a variable is already in the store, return the variable
 		 b) Otherwise, it dies! *)
-	| Var x -> store_get store x
+	| Var x -> SStore.get_unsafe store x
 
   	(* Binary operators:
 	     a) if both operands evaluate to literals, execute the operator and return the result
@@ -111,7 +111,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 	c) Otherwise, an error is thrown
 *)
 let safe_symb_evaluate_expr 
-		(store         : symbolic_store)
+		(store         : SStore.t)
 		(gamma         : TypEnv.t) 
 		(pure_formulae : pure_formulae) 
 		(expr          : jsil_expr) : jsil_logic_expr * (Type.t option) * bool =
@@ -152,7 +152,7 @@ let symb_evaluate_bcmd
 			d) Return nle *)
 	| Assignment (x, e) ->
 		let nle, _, _ = ssee e in
-		store_put store x nle;
+		SStore.put store x nle;
 		nle
 
 	(* Object creation: x = new ();
@@ -170,7 +170,7 @@ let symb_evaluate_bcmd
 			| Some metadata -> let md_val, _, _ = ssee metadata in md_val) in
 		
 		SHeap.put heap new_loc (SFVL.empty) (Some (LESet [])) (Some md_val) (Some Extensible);
-		store_put store x (ALoc new_loc);
+		SStore.put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
 		ALoc new_loc
@@ -193,7 +193,7 @@ let symb_evaluate_bcmd
 				let msg = Printf.sprintf "Lookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 		let ne = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2 in
-		store_put store x ne;
+		SStore.put store x ne;
 		ne
 
   (* Property assignment: [e1, e2] := e3;
@@ -296,11 +296,11 @@ let symb_evaluate_bcmd
 		(match Symbolic_State_Utils.lexpr_is_none pure_formulae gamma f_val  with
 		| Some b ->
 			let ret_lit = LLit (Bool (not b)) in
-			store_put store x ret_lit;
+			SStore.put store x ret_lit;
 			ret_lit
 		| None ->
 			let ret_lexpr = LUnOp (Not, LBinOp (f_val, Equal, LNone)) in
-			store_put store x ret_lexpr;
+			SStore.put store x ret_lexpr;
 			ret_lexpr)
 	
 	(* 
@@ -325,7 +325,7 @@ let symb_evaluate_bcmd
 				(match md with
 				| None -> raise (Failure (Printf.sprintf "Looking up framed-off metadata of the object: %s" l))	
 				| Some md -> 
-						Hashtbl.replace store x md;
+						SStore.put store x md;
 						md))
 (*
 	| Arguments x ->
@@ -364,7 +364,7 @@ let find_and_apply_spec
 	    * Create a new symb_state with the new calling store    *)
 	let proc              = get_proc prog proc_name in
 	let proc_args         = get_proc_args proc in
-	let new_store         = store_init proc_args le_args in
+	let new_store         = SStore.init proc_args le_args in
 	let symb_state_caller = ss_replace_store symb_state new_store in
 
 	(*  Step 1: find the spec(s) of the called function whose preconditions 
@@ -545,7 +545,7 @@ let rec fold_predicate
 	    * Create the symbolic store mapping the formal arguments of the 
 	      predicate to be folded to the corresponding logical expressions
 	    * Create a new symb_state with the new calling store    *)
-	let new_store         = store_init params args in
+	let new_store         = SStore.init params args in
 	let symb_state_caller = ss_replace_store symb_state new_store in
 
 
@@ -746,7 +746,7 @@ let unfold_predicate
 	) pred_defs;
 	
 	let args                 = List.map (lexpr_substitution subst_e true) args in
-	let caller_store         = store_init params args in
+	let caller_store         = SStore.init params args in
   let unfolded_pred_defs   = List.map (fun (i, pred_symb_state) ->
 		i, Spatial_Entailment.unfold_predicate_definition caller_store subst_e pat_subst existentials spec_vars pred_symb_state symb_state) pred_defs in
   	let unfolded_pred_defs   = List.map (fun (i, x) -> i, Option.get x) (List.filter (fun (i, x) -> x <> None) unfolded_pred_defs) in
@@ -1138,7 +1138,7 @@ let rec symb_evaluate_cmd
 				
 				let proc              = get_proc s_prog.program proc_name in
 				let proc_args         = get_proc_args proc in
-				let new_store         = store_init proc_args le_args in
+				let new_store         = SStore.init proc_args le_args in
 				let old_store         = ss_store symb_state in 
 				let symb_state_caller = ss_replace_store symb_state new_store in
 				let old_vis_tbl       = search_info.vis_tbl in 
@@ -1146,11 +1146,11 @@ let rec symb_evaluate_cmd
 				let final_symb_states = pre_symb_evaluate_cmd s_prog proc spec_vars (init_substitution2 [] []) new_search_info symb_state_caller (-1) 0 in 
 				List.map (fun (symb_state, ret_flag, _, search_info) -> 
 					let ret_var   = proc_get_ret_var proc ret_flag in
-					let ret_lexpr = store_get_safe (ss_store symb_state) ret_var in
+					let ret_lexpr = SStore.get (ss_store symb_state) ret_var in
 					match ret_lexpr with 
 					| Some ret_le -> 
-						let new_store = store_copy old_store in
-						store_put new_store x ret_le;
+						let new_store = SStore.copy old_store in
+						SStore.put new_store x ret_le;
 						let search_info = { search_info with vis_tbl = old_vis_tbl } in 
 						let symb_state  = ss_replace_store symb_state new_store in
 						(symb_state, ret_flag, ret_le, search_info)
@@ -1162,7 +1162,7 @@ let rec symb_evaluate_cmd
 	        continue with the symbolic execution *)
 		List.concat (List.map 
 			(fun (symb_state, ret_flag, ret_le, search_info) ->
-				store_put (ss_store symb_state) x ret_le;
+				SStore.put (ss_store symb_state) x ret_le;
 				let symb_state      = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 				let new_search_info = sec_duplicate search_info in
 				(match ret_flag, j with
@@ -1182,7 +1182,7 @@ let rec symb_evaluate_cmd
 		let expr     = x_arr.(cur_which_pred) in
 		let le       = symb_evaluate_expr (ss_store symb_state) (ss_gamma symb_state) (ss_pfs symb_state) expr in
 		let te, _, _ = type_lexpr (ss_gamma symb_state) le in
-		store_put (ss_store symb_state) x le;
+		SStore.put (ss_store symb_state) x le;
 		post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i (i+1) in
 	
 	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in
@@ -1191,7 +1191,7 @@ let rec symb_evaluate_cmd
 
 	(* STATEMENT: There are never program variables in the typing environment *)
 	it_must_hold_that 
-		(lazy (let _, store, _, gamma, _ = symb_state in let pvars = SS.elements (store_domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars));
+		(lazy (let _, store, _, gamma, _ = symb_state in let pvars = SS.elements (SStore.domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars));
 	it_must_hold_that 
 		(lazy (let heap, _, _, _, _ = symb_state in SHeap.is_well_formed heap));
 

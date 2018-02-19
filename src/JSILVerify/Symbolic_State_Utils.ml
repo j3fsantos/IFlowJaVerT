@@ -92,7 +92,7 @@ let merge_domains
 		Some set 
 
 let merge_heaps 
-			(store : symbolic_store) (pfs : pure_formulae) (gamma : TypEnv.t)
+			(store : SStore.t) (pfs : pure_formulae) (gamma : TypEnv.t)
 			(heap : SHeap.t) (new_heap : SHeap.t) : unit =
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
@@ -103,7 +103,7 @@ let merge_heaps
 	let meta_subst = Hashtbl.create 31 in
 	
 	(* TODO This is a bit strange, what if there are duplicates in the fv lists? Or contradictions with empty_fields and existing cells? TODO *)
-	SHeap.iterator new_heap 
+	SHeap.iter new_heap 
 		(fun loc ((n_fv_list, n_domain), n_metadata, n_ext) ->
 			match SHeap.get heap loc with 
 			| Some ((fv_list, domain), metadata, ext) -> 
@@ -119,7 +119,7 @@ let merge_heaps
 		| Some (ALoc l1), Some (ALoc l2) ->
 				print_debug ("Substitution: " ^ l1 ^ " -> " ^ l2); 
 				let aloc_subst = init_substitution2 [ l1 ] [ ALoc l2 ] in 
-				store_substitution_in_place aloc_subst store;
+				SStore.substitution_in_place aloc_subst store;
 				pfs_substitution_in_place aloc_subst pfs;
 				
 				SHeap.substitution_in_place aloc_subst heap
@@ -129,7 +129,7 @@ let merge_heaps
 	) meta_subst;
 
 	(* Garbage collection - What happens here now?! TODO *)
-	SHeap.iterator heap (fun loc ((fv_list, domain), metadata, ext) ->
+	SHeap.iter heap (fun loc ((fv_list, domain), metadata, ext) ->
 		(match domain, metadata, ext with
 		| None, None, None when (SFVL.is_empty fv_list) -> SHeap.remove heap loc
 		| _, _, _ -> ()));
@@ -288,7 +288,7 @@ let merge_symb_state_with_posts
 			let new_symb_state = ss_copy symb_state_frame in
 			let new_symb_state = merge_symb_states new_symb_state post subst in
 			ss_extend_pfs new_symb_state (pfs_of_list pf_discharges);
-			let ret_lexpr = store_get_safe (ss_store post) ret_var in
+			let ret_lexpr = SStore.get (ss_store post) ret_var in
 			let ret_lexpr = (match ret_lexpr with
 			| None -> print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty
 			| Some le -> let result = JSIL_Logic_Utils.lexpr_substitution subst false le in
@@ -312,7 +312,7 @@ let enrich_pure_part
 	
 	TypEnv.extend gamma (ss_gamma symb_state);
 	pfs_merge pfs (ss_pfs symb_state);
-	let store          = store_copy (ss_store symb_state) in
+	let store          = SStore.copy (ss_store symb_state) in
 	let heap           = ss_heap symb_state               in
 	let preds          = ss_preds symb_state              in
 	let new_symb_state = (heap, store, pfs, gamma, preds) in
