@@ -1588,6 +1588,10 @@ let create_unification_plan
 		(reachable_alocs : SS.t) : (jsil_logic_assertion list) =
 	let heap, store, pf, gamma, preds = symb_state in 
 	
+  print_debug "Creating normalisation plan.";
+  print_debug "Symbolic state :";
+  print_debug (Symbolic_State_Print.string_of_symb_state symb_state);
+
 	let heap                    = Heap.copy heap in 
 	let locs_to_visit           = Queue.create () in 
 	let unification_plan        = Queue.create () in 
@@ -1599,9 +1603,24 @@ let create_unification_plan
 		SS.iter (fun aloc -> 
 			if (not (SS.mem aloc !marked_alocs)) then (
 				marked_alocs := SS.add aloc !marked_alocs;  	
-				Queue.add aloc locs_to_visit; ())) alocs in 
+				Queue.add aloc locs_to_visit; ())) alocs in
 
-	let inspect_aloc () = 
+  (* look for equalities between abstract locations
+     Example: #x = #y and #x \in marked_alocs -> we can visit #y *)
+  let inspect_assertion (asrt : jsil_logic_assertion) : unit =
+    match asrt with
+    | LEq (ALoc aloc1, ALoc aloc2) ->
+      if SS.mem aloc1 !marked_alocs then (
+        search_for_new_alocs_in_lexpr (ALoc aloc2);
+        print_debug "found equality assertion!"
+      );
+      if SS.mem aloc2 !marked_alocs then (
+        search_for_new_alocs_in_lexpr (ALoc aloc1);
+        print_debug "found equality assertion!"
+      )
+    | _ -> () in
+
+	let inspect_loc () =
 		if (Queue.is_empty locs_to_visit) then false else (
 			let loc     = Queue.pop locs_to_visit in 
 			let le_loc  = if (is_aloc_name loc) then ALoc loc else LLit (Loc loc) in 
@@ -1631,7 +1650,7 @@ let create_unification_plan
 				Option.may (fun ext -> 
 					Queue.add (LExtensible (le_loc, ext)) unification_plan) ext;
  				Heap.remove heap loc; 
- 				true) in 
+				true) in
 
 	(** Step 1 -- add concrete locs and the reachable alocs to locs to visit *)
 	List.iter (fun loc -> Queue.add loc locs_to_visit) (concrete_locs @ (SS.elements reachable_alocs)) ; 
@@ -1639,8 +1658,8 @@ let create_unification_plan
 	(** Step 2 -- which alocs are directly reachable from the store *)
 	Hashtbl.iter (fun x le -> search_for_new_alocs_in_lexpr le) store;
 
-	(** Step 3 -- inspect the alocs that are in the queue *)
-	while (inspect_aloc ()) do () done; 
+	(** Step 3 -- inspect the locs that are in the queue *)
+	while (inspect_loc ()) do () done;
 
 	(** Step 4 -- add pred assertions *)
 	List.iter (fun (pred_name, les) -> 
@@ -1649,7 +1668,11 @@ let create_unification_plan
 	) (preds_to_list preds);
 
 	(** Step 5 -- inspect the alocs that are in the queue coming from step 4 *)
-	while (inspect_aloc ()) do () done; 
+	while (inspect_loc ()) do () done;
+
+  (** Step 6 -- add pure formulae *)
+  DynArray.iter inspect_assertion pf;
+  while inspect_loc () do () done;
 
 	(** Step 6 -- return *)
 	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
@@ -1657,6 +1680,10 @@ let create_unification_plan
 	print_debug_petar (Printf.sprintf "Heap length is %d" (Heap.length heap));
 	if ((Heap.length heap) = 0) then (
 		(* We found all the locations in the symb_state - we are fine! *)
+    print_debug "Unification plan successful!";
+    print_debug "Unification plan:";
+    List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) unification_plan_lst;
+    print_debug "\n";
 		Queue.clear unification_plan;
 		unification_plan_lst
 	) else (
