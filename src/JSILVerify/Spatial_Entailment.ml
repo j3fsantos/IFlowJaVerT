@@ -91,8 +91,7 @@ let type_check_discharges
 		) discharges in
 	List.for_all (fun x -> x) rets
 
-
-let unify_lexprs
+let rec unify_lexprs
 	(pfs         : pure_formulae) 
 	(gamma       : TypEnv.t) 
 	(subst       : substitution)
@@ -101,17 +100,18 @@ let unify_lexprs
 
 	let start_time = Sys.time() in
 
-	let le_pat     = Normaliser.normalise_list_expressions le_pat in
-	let le         = Normaliser.normalise_list_expressions le in 
+	let le_pat = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) le_pat in
+	let le     = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) le     in
 
 	let rec unify_lexprs_rec le_pat le = 
+
 		match le_pat with 
 		| LVar x
 		| ALoc x ->
 			(try
 				let le_pat_subst = (Hashtbl.find subst x) in
 				if (Pure_Entailment.is_different le_pat_subst le pfs gamma)
-					then None else Some ([], [ (le_pat, le) ])   
+					then None else if (le_pat = le) then Some ([], []) else Some ([], [ (le_pat, le) ])
 			with _ -> 
 				if (not (is_aloc_name x)) then Some ([ (x, le) ], []) else (
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
@@ -125,21 +125,14 @@ let unify_lexprs
 			if (Pure_Entailment.is_equal le_pat le pfs gamma)
 				then Some ([], []) else None
 
-		| LEList pat_lst 
-		| LBinOp (LEList pat_lst, LstCat, _) ->
-			(match le with 
-			| LEList lst 
-			| LBinOp (LEList lst, LstCat, _) -> 
-				let min_len              = min (List.length lst) (List.length pat_lst) in
-				let pat_lst_l, pat_lst_r = Normaliser.reshape_list le_pat min_len in 
-				let lst_l, lst_r         = Normaliser.reshape_list le min_len in 
-				if ((List.length pat_lst_l) <> (List.length lst_l)) then raise (Failure "DEATH") else (
-					match unify_lexpr_lists_rec pat_lst_l lst_l with 
-					| None -> None 
-					| Some (substs, dschrgs) -> Some (substs, (pat_lst_r, lst_r) :: dschrgs))
-			| _ -> Some ([], [ (le_pat, le) ] ))
+		| le_pat when ((Reduction.lexpr_is_list ?gamma:(Some gamma) le_pat) && (Reduction.lexpr_is_list ?gamma:(Some gamma) le)) ->
+			let what_happened, to_unify_further = Simplifications.unify_lists le_pat le false in
+			(match what_happened with
+			| None -> Some ([], [ LLit (Bool true), LLit (Bool false) ]) (* Something wrong happened *)
+			| Some false -> Some ([], [ le_pat, le ])                    (* Couldn't progress        *)
+			| Some true -> let left, right = List.split to_unify_further in unify_lexpr_lists_rec left right)
 
-		| _ -> Some ([], [ (le_pat, le) ] ) 
+		| _ -> Some ([], [ (le_pat, le) ] )
 
 	and unify_lexpr_lists_rec lst_pat lst = 
 		let rets = List.map2 unify_lexprs_rec lst_pat lst in 
@@ -160,6 +153,8 @@ let unify_lexprs
 	let end_time = Sys.time() in
 	update_statistics "unify_lexprs" (end_time -. start_time);
 	result 
+
+
 
 
 let unify_stores 
@@ -237,9 +232,11 @@ let unify_cell_assertion
 			(match un_les pat_field field with 
 			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
+				print_debug (Printf.sprintf "Field discharge length: %d" (List.length discharges_field));
 				(match un_les pat_val value with 
 				| None -> ac 
 				| Some (subst_val, discharges_val) -> 
+					print_debug (Printf.sprintf "Value discharge length: %d" (List.length discharges_val));
 					let subst_list = subst_field @ subst_val in 
 					let discharges = discharges_field @ discharges_val in 
 					(match (consistent_subst_list subst_list pfs gamma), (pre_check_discharges discharges) with 

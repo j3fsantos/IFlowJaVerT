@@ -253,6 +253,9 @@ let pfs_to_list (pfs : pure_formulae) : jsil_logic_assertion list = DynArray.to_
 (** Returns a pure_formulae array given a list of assertions *)
 let pfs_of_list (pfs : jsil_logic_assertion list) : pure_formulae = DynArray.of_list pfs
 
+let pfs_mem (pfs : pure_formulae) (a : jsil_logic_assertion) : bool = 
+	Array.mem a (DynArray.to_array pfs)
+
 (** Extends --pfs-- with --a-- *)
 let pfs_extend (pfs : pure_formulae) (a : jsil_logic_assertion) : unit = DynArray.add pfs a
 

@@ -81,14 +81,14 @@ function insert(v, t)
 	@id find
 	
 	@pre
-		initialHeapPostWeak() *
 		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : Num) * 
-		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _)
+		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _) *
+		GlobalObject() * ObjectPrototype() 
 
 	@post 
-		initialHeapPostWeak() * 
 		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : Bool) *
-		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _)
+		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _) * 
+		GlobalObject() * ObjectPrototype() 
 */
 function find (v, t)
 {

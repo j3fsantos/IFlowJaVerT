@@ -1240,7 +1240,7 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	| _, _ -> None))
 
 let is_equal e1 e2 pure_formulae gamma =
-	let feq = Simplifications.reduce_assertion gamma pure_formulae (LEq (e1, e2)) in
+	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pure_formulae) (LEq (e1, e2)) in
 	let result = (match feq with
 	| LTrue  -> print_debug "Reduced to true.";  true
 	| LFalse -> print_debug "Reduced to false."; false 
@@ -1251,7 +1251,7 @@ let is_equal e1 e2 pure_formulae gamma =
 		result
 
 let is_different e1 e2 pure_formulae gamma =
-	let feq = Simplifications.reduce_assertion gamma pure_formulae (LNot (LEq (e1, e2))) in
+	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pure_formulae) (LNot (LEq (e1, e2))) in
 	let result = (match feq with
 	| LTrue  -> print_debug "Reduced to true.";  true
 	| LFalse -> print_debug "Reduced to false."; false 

@@ -56,8 +56,8 @@
 
 /** 
  	@id PQLib
-    @pre  (initialHeapPostWeak())
-    @post (initialHeapPostWeak() * PriorityQueueModule (ret))
+    @pre  ObjectPrototype()
+    @post ObjectPrototype() * PriorityQueueModule (ret)
 */
 var PriorityQueue = (function () {
 
@@ -67,19 +67,19 @@ var PriorityQueue = (function () {
 	 	@id  Node
 	
 	 	@pre (
-	 		initialHeapPostWeak() * 
 	 	   	(pri == #pri) * (0 <# #pri) *
 	 	   	(val == #val) *
 	 	   	((this, "pri") -> none) * ((this, "val") -> none) * ((this, "next") -> none) * 
 	 	   	((this, "insert") -> none) *
 	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
-	 	   	scope(counter : #c) * types(#c : Num) 
+	 	   	scope(counter : #c) * types(#c : Num) *
+	 	   	ObjectPrototype()
 	 	)
 	 	@post (
-	 		initialHeapPostWeak() * 
 			Node(this, #pri, #val, null, #np) * 
 			NodePrototype(#np) * 
-			scope(counter : #c + 1)
+			scope(counter : #c + 1) * 
+			ObjectPrototype()
 		)
 	*/
 	var Node = function (pri, val) {
@@ -142,7 +142,7 @@ var PriorityQueue = (function () {
 	    @id  PriorityQueue
 	
 		@pre (
-			initialHeapPostWeak() * 
+			ObjectPrototype() *
 	        ((this, "_head") -> none) *
 	        ((this, "enqueue") -> none) *
 	        ((this, "dequeue") -> none) *
@@ -151,7 +151,7 @@ var PriorityQueue = (function () {
 	        QueuePrototype(#pqp, #np, #c, #sc)
 	    )
 	    @post (
-	    	initialHeapPostWeak() * 
+	    	ObjectPrototype() *
 	    	Queue(this, #pqp, #np, 0, 0) *
 	    	QueuePrototype(#pqp, #np, #c, #sc)
 	    )
@@ -165,33 +165,33 @@ var PriorityQueue = (function () {
 		@id enqueue
 				
 		@pre (
-			initialHeapPostWeak() * 
 			(pri == #pri) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
 			o_chains(enqueue: #sc, PQLib: $$scope) *
-			(#pri <=# #pri_q)
+			(#pri <=# #pri_q) *
+			ObjectPrototype()
 		)
 		@post (
-			initialHeapPostWeak() * 
 			Queue(this, #pqp, #np, #pri_q, #length + 1) *
-			QueuePrototype(#pqp, #np, #c + 1, #sc)
+			QueuePrototype(#pqp, #np, #c + 1, #sc) *
+			ObjectPrototype()
 		)
 		
 		@pre (
-			initialHeapPostWeak() * 
 			(pri == #pri) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
 			o_chains(enqueue: #sc, PQLib: $$scope) *
-			(#pri_q <# #pri)
+			(#pri_q <# #pri) *
+			ObjectPrototype()
 		)
 		@post (
-			initialHeapPostWeak() * 
 			Queue(this, #pqp, #np, #pri, #length + 1) *
-			QueuePrototype(#pqp, #np, #c + 1, #sc)
+			QueuePrototype(#pqp, #np, #c + 1, #sc) *
+			ObjectPrototype()
 		)
 	*/
 	PQ.prototype.enqueue = function(pri, val) {
@@ -215,16 +215,16 @@ var PriorityQueue = (function () {
        DataProp(#r, "pri", #pri_q) * DataProp(#r, "val", #some_val)
      )
      @pre (
-       initialHeapPostWeak() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       o_chains(enqueue: #sc, dequeue: $$scope)
+       o_chains(enqueue: #sc, dequeue: $$scope) *
+       GlobalObject() * BI_ErrorObject()
      )
      @posterr (
-       initialHeapPostWeak() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty")
+       (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty") *
+       GlobalObject() * BI_ErrorObject()
      )
    */
    PQ.prototype.dequeue = function () {

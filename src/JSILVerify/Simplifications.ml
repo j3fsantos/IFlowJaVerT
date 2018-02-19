@@ -95,64 +95,57 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	) true lset 
 
 (* Reduction of assertions *)
-let rec reduce_assertion gamma pfs a =
-	let f = reduce_assertion gamma pfs in
-	let fe = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) in
+let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(pfs : pure_formulae option) a =
+
+	let start_time = Sys.time () in
+
+	let f = reduce_assertion ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
+	let fe = Reduction.reduce_lexpr ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
+
 	let result = (match a with
-	| LAnd (LFalse, _)
-	| LAnd (_, LFalse) -> LFalse
-	| LAnd (LTrue, a1)
-	| LAnd (a1, LTrue) -> f a1
-	| LAnd (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LAnd (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
 
-	| LOr (LTrue, _)
-	| LOr (_, LTrue) -> LTrue
-	| LOr (LFalse, a1)
-	| LOr (a1, LFalse) -> f a1
-	| LOr (LAnd (a1, a2), a3) ->
-			f (LAnd (LOr (a1, a3), LOr (a2, a3))) 
-	(* | LOr (LNot (LEq (LVar x, e1)), a) ->
-			let subst = Hashtbl.create 1 in
-			Hashtbl.add subst x e1;
-			let a = asrt_substitution subst true a in
-				f a *)
-	| LOr (LOr (a1, a2), a3) -> 
-			f (LOr (a1, LOr (a2, a3)))
-	| LOr (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LOr (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
-
-	| LNot LTrue -> LFalse
-	| LNot LFalse -> LTrue
-	| LNot (LNot a) -> f a
-	| LNot (LOr (al, ar)) ->
-			f (LAnd (LNot al, LNot ar))
-	| LNot (LAnd (al, ar)) -> 
-			f (LOr (LNot al, LNot ar))
-	| LNot a1 ->
-		let ra1 = f a1 in
-		let a' = LNot ra1 in
-		if (ra1 = a1)
-			then a' else f a'
-
-	| LStar (LFalse, _)
-	| LStar (_, LFalse) -> LFalse
-	| LStar (LTrue, a1)
-	| LStar (a1, LTrue) -> f a1
 	| LStar (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LStar (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
+		let fa1  = f a1 in
+		let fa2 = f a2 in
+		(match fa1, fa2 with
+		| LFalse, _
+		| _, LFalse -> LFalse
+		| LTrue, a
+		| a, LTrue -> a
+		| _, _ -> LStar (fa1, fa2)
+		)
+
+	| LAnd (a1, a2) ->
+		let fa1 = f a1 in
+		let fa2 = f a2 in
+		(match fa1, fa2 with
+		| LFalse, _
+		| _, LFalse -> LFalse
+		| LTrue, a
+		| a, LTrue -> a
+		| _, _ -> LAnd (fa1, fa2)
+		)
+
+	| LOr (a1, a2) ->
+		let fa1 = f a1 in
+		let fa2 = f a2 in
+		(match fa1, fa2 with
+		| LFalse, a
+		| a, LFalse -> a
+		| LTrue, a
+		| a, LTrue -> LTrue
+		| _, _ -> LOr (fa1, fa2)
+		)
+
+	| LNot a -> 
+		let fa = f a in 
+		(match a with 
+		| LTrue -> LFalse
+		| LFalse -> LTrue
+		| LNot a -> a
+		| LOr (a1, a2) -> f (LAnd (LNot a1, LNot a2))
+		| LAnd (a1, a2) -> f (LOr (LNot a1, LNot a2))
+		| _ -> LNot fa)
 
 	| LEq (e1, e2) ->
 		let re1 = fe e1 in
@@ -186,10 +179,13 @@ let rec reduce_assertion gamma pfs a =
 			| PVar x, LNone -> default e1 e2 re1 re2
 			| LNone, LVar x
 			| LVar x, LNone -> 
-				if (Hashtbl.mem gamma x) 
-					then (let tx = Hashtbl.find gamma x in 
-						if tx = NoneType then default e1 e2 re1 re2 else LFalse)
-					else default e1 e2 re1 re2
+				(match gamma with
+				| None -> default e1 e2 re1 re2
+				| Some gamma -> let tx = Hashtbl.find_opt gamma x in
+					(match tx with 
+					| None -> default e1 e2 re1 re2
+					| Some tx -> if tx = NoneType then default e1 e2 re1 re2 else LFalse)
+				)
 			| LNone, e
 			| e, LNone -> LFalse
 
@@ -204,7 +200,7 @@ let rec reduce_assertion gamma pfs a =
 				      that the var-string doesn't start with @, we know it's false *)
 				if (str <> "" && String.get str 0 = '@') 
 					then
-						let pfs = DynArray.to_list pfs in 
+						let pfs = pfs_to_list (Option.default (DynArray.create ()) pfs) in 
 						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
 							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
 						then LFalse 
@@ -309,7 +305,7 @@ let rec reduce_assertion gamma pfs a =
 				(JSIL_Print.string_of_logic_assertion result)); 
 			f result
 
-	| LForAll (bt, a) -> 
+	| LForAll (bt, a) -> (* Think about quantifier instantiation *)
 			let ra = f a in
 			let vars = get_asrt_lvars a in
 			let bt = List.filter (fun (b, _) -> SS.mem b vars) bt in
@@ -318,13 +314,13 @@ let rec reduce_assertion gamma pfs a =
 			| _ -> LForAll (bt, ra))
 
 	| _ -> a) in
-	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
-		(JSIL_Print.string_of_logic_assertion a)
-		(JSIL_Print.string_of_logic_assertion result)); *)
-	result
 
-let reduce_assertion_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (DynArray.create ())
-let reduce_assertion_no_gamma        = reduce_assertion (Hashtbl.create 1)
+	let final_result = if (a <> result) && (not (a == result))
+		then (print_debug (Printf.sprintf "Reduce_assertion: %s -> %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); f result)
+		else result in
+
+	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));
+	final_result
 
 
 let simplify_equalities_between_booleans (p_assertions : pure_formulae) = 
@@ -375,13 +371,9 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : TypEn
 (** Symbolic state simplification   **)
 (*************************************)
 
-
-let reduce_pfs_no_gamma pfs = DynArray.map (fun x -> reduce_assertion_no_gamma pfs x) pfs
-let reduce_pfs    gamma pfs = DynArray.map (fun x -> reduce_assertion    gamma pfs x) pfs
-
 let reduce_pfs_in_place store gamma pfs =
 	DynArray.iteri (fun i pf ->
-		let rpf = reduce_assertion gamma pfs pf in
+		let rpf = reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) pf in
 		DynArray.set pfs i rpf) pfs
 	
 let sanitise_pfs store gamma pfs =
@@ -902,15 +894,14 @@ let simplify_symb_state
 					let save_v1 = (save_all || SS.mem v1 to_save) in
 					let save_v2 = (save_all || SS.mem v2 to_save) in
 					(match save_v1, save_v2 with
-					| true, true 
-				  | false, true -> ()
+					| _, true -> ()
 					| true, false -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
 					| false, false -> 
-							let lvar_v1 = (String.get v1 0 = '#') in
-							let lvar_v2 = (String.get v2 0 = '#') in
-							(match lvar_v1, lvar_v2 with
-							| false, true -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
-							| _, _ -> ()))
+						let lvar_v1 = (String.get v1 0 = '#') in
+						let lvar_v2 = (String.get v2 0 = '#') in
+						(match lvar_v1, lvar_v2 with
+						| true, false -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
+						| _, _ -> ()))
 			| LEq (e, LVar v) -> DynArray.set pfs i (LEq (LVar v, e))
 			| _ -> ())) pfs in
 		
@@ -1180,7 +1171,7 @@ let simplify_symb_state
 									changes_made := true;
 									DynArray.delete pfs !n;
 									let new_pf = LEq (lst, new_lst) in
-									let new_pf = reduce_assertion gamma pfs new_pf in
+									let new_pf = reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) new_pf in
 									DynArray.add pfs new_pf
 								)
 						)
@@ -1208,7 +1199,7 @@ let simplify_symb_state
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> 
 								let new_pf = LEq (x, y) in
-								let new_pf = reduce_assertion gamma pfs new_pf in
+								let new_pf = reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) new_pf in
 								DynArray.add pfs new_pf) subst)
 				
 				| LUnOp (TypeOf, LVar x), LLit (Type t) -> 

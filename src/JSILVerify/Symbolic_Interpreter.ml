@@ -469,7 +469,7 @@ let find_and_apply_spec
 				false, (List.map (fun (symb_state, ret_flag, ret_lexpr) -> 
 					(* Code for PETAR to clean up *)
 					let pfs  = ss_pfs symb_state in 
-					let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion (ss_gamma symb_state) pfs x) pfs in
+					let rpfs = DynArray.map (fun x -> Simplifications.reduce_assertion ?gamma:(Some (ss_gamma symb_state)) ?pfs:(Some pfs) x) pfs in
 					Simplifications.sanitise_pfs_no_store (ss_gamma symb_state) rpfs;
 					let symb_state' = ss_replace_pfs symb_state rpfs in 
 					let ret_lexpr'  = Reduction.reduce_lexpr ret_lexpr in 
