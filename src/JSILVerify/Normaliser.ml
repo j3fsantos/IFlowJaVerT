@@ -1583,7 +1583,93 @@ let normalise_normalised_assertion
   * -----------------------------------------------------
   * -----------------------------------------------------
 **)
-let create_unification_plan 
+let old_create_unification_plan 
+		(symb_state      : symbolic_state)
+		(reachable_alocs : SS.t) : (jsil_logic_assertion list) =
+	let heap, store, pf, gamma, preds = symb_state in 
+	
+	let heap                    = Heap.copy heap in 
+	let locs_to_visit           = Queue.create () in 
+	let unification_plan        = Queue.create () in 
+	let marked_alocs            = ref SS.empty in 
+	let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in 
+
+	let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit = 
+		let alocs = get_lexpr_alocs le in 
+		SS.iter (fun aloc -> 
+			if (not (SS.mem aloc !marked_alocs)) then (
+				marked_alocs := SS.add aloc !marked_alocs;  	
+				Queue.add aloc locs_to_visit; ())) alocs in 
+
+	let inspect_aloc () = 
+		if (Queue.is_empty locs_to_visit) then false else (
+			let loc     = Queue.pop locs_to_visit in 
+			let le_loc  = if (is_aloc_name loc) then ALoc loc else LLit (Loc loc) in 
+			match SHeap.get heap loc with
+			(* The aloc does not correspond to any cell - it is an argument for a predicate *) 
+			| None -> true
+				
+			(* The aloc correspond to a cell - get the fv_list, domain, metadata, extensibility *)
+			| Some ((fv_list, domain), metadata, ext) ->
+				(* Partition the field-value list into concrete and symbolic properties *)
+				let fv_list_c, fv_list_nc = 
+					SFVL.partition (fun le _ -> 
+						match le with 
+						| LLit (String _) -> true 
+						| _               -> false 
+					) fv_list in 
+				let f = (fun le_f (perm, le_v) -> 
+ 					Queue.add (LPointsTo (le_loc, le_f, (perm, le_v))) unification_plan; 
+ 					search_for_new_alocs_in_lexpr le_v) in
+				SFVL.iter f fv_list_c; SFVL.iter f fv_list_nc;
+ 				Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
+				(* Now, metadata *)
+				Option.may (fun metadata -> 
+					Queue.add (LMetaData (le_loc, metadata)) unification_plan;
+					search_for_new_alocs_in_lexpr metadata) metadata;
+				(* Now, extensibility *)
+				Option.may (fun ext -> 
+					Queue.add (LExtensible (le_loc, ext)) unification_plan) ext;
+ 				Heap.remove heap loc; 
+ 				true) in 
+
+	(** Step 1 -- add concrete locs and the reachable alocs to locs to visit *)
+	List.iter (fun loc -> Queue.add loc locs_to_visit) (concrete_locs @ (SS.elements reachable_alocs)) ; 
+
+	(** Step 2 -- which alocs are directly reachable from the store *)
+	Hashtbl.iter (fun x le -> search_for_new_alocs_in_lexpr le) store;
+
+	(** Step 3 -- inspect the alocs that are in the queue *)
+	while (inspect_aloc ()) do () done; 
+
+	(** Step 4 -- add pred assertions *)
+	List.iter (fun (pred_name, les) -> 
+		List.iter search_for_new_alocs_in_lexpr les; 
+		Queue.add (LPred (pred_name, les)) unification_plan; 
+	) (preds_to_list preds);
+
+	(** Step 5 -- inspect the alocs that are in the queue coming from step 4 *)
+	while (inspect_aloc ()) do () done; 
+
+	(** Step 6 -- return *)
+	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
+	let unification_plan_lst = List.rev unification_plan_lst in 
+	print_debug_petar (Printf.sprintf "Heap length is %d" (Heap.length heap));
+	if ((Heap.length heap) = 0) then (
+		(* We found all the locations in the symb_state - we are fine! *)
+		Queue.clear unification_plan;
+		unification_plan_lst
+	) else (
+		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:%s\n" 
+			(String.concat ", " (SS.elements !marked_alocs))
+			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
+			(SHeap.str heap)
+			(Symbolic_State_Print.string_of_symb_state symb_state) in 
+		print_debug msg;
+		raise (Failure msg)) 
+
+(* New, improved version of create_unification_plan *)
+let new_create_unification_plan 
 		(symb_state      : symbolic_state)
 		(reachable_alocs : SS.t) : (jsil_logic_assertion list) =
 	let heap, store, pf, gamma, preds = symb_state in 
@@ -1592,6 +1678,7 @@ let create_unification_plan
 	let locs_to_visit           = Queue.create () in 
 	let unification_plan        = Queue.create () in 
 	let marked_alocs            = ref SS.empty in
+  let marked_vars = ref SS.empty in
   (* remember which predicates we discharged along the way *)
   let marked_predicates = ref SS.empty in
 	let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in 
@@ -1605,8 +1692,11 @@ let create_unification_plan
       | LVar var
       | PVar var ->
         if Hashtbl.mem gamma var then
-          let var_type = Hashtbl.find gamma var in
-          Queue.add (LTypes [le, var_type]) unification_plan
+          if (not (SS.mem var !marked_vars)) then (
+            marked_vars := SS.add var !marked_vars;
+            let var_type = Hashtbl.find gamma var in
+            Queue.add (LTypes [le, var_type]) unification_plan
+          )
       | _ -> () in
 
   let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit =
@@ -1692,6 +1782,13 @@ let create_unification_plan
 			(Symbolic_State_Print.string_of_symb_state symb_state) in 
 		print_debug msg;
 		raise (Failure msg)) 
+
+(* Little wrapper so we can print the debug output of
+   the new unification plan and use the old one *)
+let create_unification_plan symb_state reachable_alocs =
+  let new_res = new_create_unification_plan symb_state reachable_alocs in
+  let old_res = old_create_unification_plan symb_state reachable_alocs in
+  old_res
 
 (* Create unification plans for multiple symbolic states at the same time
 	 Returns a Hashtbl from logic assertions to the symbolic states they appear in*)
