@@ -612,9 +612,6 @@ js_pred_head_target:
 	}
 ;
 
-pred_in_target:
-  | { false }
-  | PLUS { true }
 
 pred_param_target:
 (* Logic literal *)
@@ -624,7 +621,7 @@ pred_param_target:
 	| LNONE
 	  { LNone, None }
 (* Program variable with in-parameter status and optional type *)
-	| in_v = pred_in_target; v = VAR; t = option(preceded(COLON, type_target))
+	| in_v = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
 	  { PVar v, t }
 ;
 
