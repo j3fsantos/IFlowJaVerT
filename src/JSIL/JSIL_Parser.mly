@@ -612,6 +612,10 @@ js_pred_head_target:
 	}
 ;
 
+pred_in_target:
+  | { false }
+  | PLUS { true }
+
 pred_param_target:
 (* Logic literal *)
 	| lit = lit_target
@@ -619,12 +623,9 @@ pred_param_target:
 (* None *)
 	| LNONE
 	  { LNone, None }
-(* Program variable with type *)
-	| v = VAR; COLON; t = type_target
-	  { PVar v, Some t }
-(* Program variable *)
-	| v = VAR
-	  { PVar v, None }
+(* Program variable with in-parameter status and optional type *)
+	| in_v = pred_in_target; v = VAR; t = option(preceded(COLON, type_target))
+	  { PVar v, t }
 ;
 
 
@@ -635,12 +636,9 @@ js_pred_param_target:
 (* None *)
 	| LNONE
 	  { JSLNone, None }
-(* Program variable with type *)
-	| v = VAR; COLON; t = type_target
-	  { JSPVar v, Some t }
-(* Program variable *)
-	| v = VAR
-	  { JSPVar v, None }
+(* Program variable with optional type *)
+	| v = VAR; t = option(preceded(COLON, type_target))
+	  { JSPVar v, t }
 ;
 
 
