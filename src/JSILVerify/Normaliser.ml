@@ -1602,23 +1602,53 @@ let create_unification_plan
 		let alocs = get_lexpr_alocs le in 
 		SS.iter (fun aloc -> 
 			if (not (SS.mem aloc !marked_alocs)) then (
-				marked_alocs := SS.add aloc !marked_alocs;  	
+				marked_alocs := SS.add aloc !marked_alocs;
+        print_debug (Printf.sprintf "added aloc %s to queue" aloc);
 				Queue.add aloc locs_to_visit; ())) alocs in
 
-  (* look for equalities between abstract locations
-     Example: #x = #y and #x \in marked_alocs -> we can visit #y *)
+    let all_alocs_marked_in_lexpr (le : jsil_logic_expr) : bool =
+      let alocs = get_lexpr_alocs le in
+      SS.for_all (fun aloc -> SS.mem aloc !marked_alocs) alocs in
+
+  (* look for equalities between abstract locations and computable expressions
+     Example: #x = #y + #z and #y, #z \in marked_alocs -> we can visit #x *)
   let inspect_assertion (asrt : jsil_logic_assertion) : unit =
     match asrt with
-    | LEq (ALoc aloc1, ALoc aloc2) ->
-      if SS.mem aloc1 !marked_alocs then (
-        search_for_new_alocs_in_lexpr (ALoc aloc2);
-        print_debug "found equality assertion!"
-      );
-      if SS.mem aloc2 !marked_alocs then (
-        search_for_new_alocs_in_lexpr (ALoc aloc1);
-        print_debug "found equality assertion!"
+    | LEq (ALoc aloc, le)
+    | LEq (le, ALoc aloc) ->
+      if all_alocs_marked_in_lexpr le then (
+        print_debug (Printf.sprintf "found equality (%s)" (JSIL_Print.string_of_logic_assertion asrt));
+(*        Queue.add asrt unification_plan; *)
+        search_for_new_alocs_in_lexpr (ALoc aloc);
       )
-    | _ -> () in
+    | LSetMem(le1, le2) ->
+      if all_alocs_marked_in_lexpr le2 then (
+        print_debug (Printf.sprintf "found LSetMem (%s)" (JSIL_Print.string_of_logic_assertion asrt));
+(*        Queue.add asrt unification_plan; *)
+        search_for_new_alocs_in_lexpr le1;
+      )
+    | _ -> print_debug (Printf.sprintf "found assertion %s" (JSIL_Print.string_of_logic_assertion asrt)); in
+
+  (* adds [Some (lexpr, type)] to the ac if the variable is reachable *)
+  let inspect_type (var : string)
+                   (var_type : Type.t)
+                   (types_ac : (jsil_logic_expr * Type.t) list) : (jsil_logic_expr * Type.t) list =
+    let is_reachable_lvar var =
+    (* check that the variable is reachable *)
+      if (not (is_lvar_name var)) || (not (Hashtbl.mem store var)) then
+        false
+      else
+        let loc = match Hashtbl.find store var with
+          | ALoc l
+          | LLit (Loc l) -> l
+          | _ -> raise (Failure "variable doesn't correspond to a location") in
+        SS.mem loc !marked_alocs in
+
+    if (is_pvar_name var) || (is_reachable_lvar var) then
+      let le = if is_pvar_name var then PVar var else LVar var in
+        (le, var_type)::types_ac
+      else
+        types_ac in
 
 	let inspect_loc () =
 		if (Queue.is_empty locs_to_visit) then false else (
@@ -1674,7 +1704,11 @@ let create_unification_plan
   DynArray.iter inspect_assertion pf;
   while inspect_loc () do () done;
 
-	(** Step 6 -- return *)
+  (** Step 7 -- look at the gamma *)
+(*  let var_types = Hashtbl.fold inspect_type gamma [] in
+  Queue.add (LTypes var_types) unification_plan; *)
+
+	(** Step 8 -- return *)
 	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
 	let unification_plan_lst = List.rev unification_plan_lst in 
 	print_debug_petar (Printf.sprintf "Heap length is %d" (Heap.length heap));
@@ -1710,7 +1744,7 @@ let create_multiple_unification_plan
 			Hashtbl.replace unification_plan asrt (SI.add symb_state_id former_set)
 		else
 			Hashtbl.add unification_plan asrt (SI.singleton symb_state_id) in
-	
+
 	let create_single_unification_plan
 			(symb_state_id : int)
 			(state : (symbolic_state * SS.t)) =
