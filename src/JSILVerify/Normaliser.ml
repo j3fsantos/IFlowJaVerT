@@ -1681,7 +1681,8 @@ let new_create_unification_plan
   let marked_vars = ref SS.empty in
   (* remember which predicates we discharged along the way *)
   let marked_predicates = ref SS.empty in
-	let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in 
+  let marked_pf = DynArray.init (DynArray.length pf) (fun _ -> false) in
+  let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in
 
   print_debug "Creating normalisation plan.";
   print_debug "Symbolic state :";
@@ -1698,6 +1699,24 @@ let new_create_unification_plan
             Queue.add (LTypes [le, var_type]) unification_plan
           )
       | _ -> () in
+
+  (* check if all the alocs in the assertion are visited; if that's true,
+     we can discharge it right now, so add it to the unification plan *)
+  let inspect_assertion (asrt_i : int) (asrt : jsil_logic_assertion) : unit =
+    match asrt with
+    | LEq (le1, le2) ->
+      print_debug (Printf.sprintf "found equality assertion: %s" (JSIL_Print.string_of_logic_assertion asrt));
+      let asrt_alocs = get_asrt_alocs asrt in
+      print_debug "equality alocs:";
+      SS.iter print_debug asrt_alocs;
+    | _ ->
+      let asrt_alocs = get_asrt_alocs asrt in
+      if DynArray.get marked_pf asrt_i = false then
+        if SS.subset asrt_alocs !marked_alocs then (
+          DynArray.set marked_pf asrt_i true;
+          Queue.add asrt unification_plan;
+        )
+    in
 
   let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit =
     insert_type_lookup le;
@@ -1732,10 +1751,10 @@ let new_create_unification_plan
 						| _               -> false 
 					) fv_list in 
 				let f = (fun le_f (perm, le_v) -> 
- 					Queue.add (LPointsTo (le_loc, le_f, (perm, le_v))) unification_plan; 
- 					search_for_new_alocs_in_lexpr le_v) in
+					Queue.add (LPointsTo (le_loc, le_f, (perm, le_v))) unification_plan; 
+					search_for_new_alocs_in_lexpr le_v) in
 				SFVL.iter f fv_list_c; SFVL.iter f fv_list_nc;
- 				Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
+				Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
 				(* Now, metadata *)
 				Option.may (fun metadata -> 
 					Queue.add (LMetaData (le_loc, metadata)) unification_plan;
@@ -1743,8 +1762,8 @@ let new_create_unification_plan
 				(* Now, extensibility *)
 				Option.may (fun ext -> 
 					Queue.add (LExtensible (le_loc, ext)) unification_plan) ext;
- 				Heap.remove heap loc; 
- 				true) in 
+				Heap.remove heap loc; 
+				true) in 
 
 	(** Step 1 -- add concrete locs and the reachable alocs to locs to visit *)
 	List.iter (fun loc -> Queue.add loc locs_to_visit) (concrete_locs @ (SS.elements reachable_alocs)) ; 
@@ -1759,7 +1778,11 @@ let new_create_unification_plan
 	List.iter inspect_predicate (preds_to_list preds);
 
 	(** Step 5 -- inspect the alocs that are in the queue coming from step 4 *)
-	while (inspect_aloc ()) do () done; 
+  while (inspect_aloc ()) do () done; 
+
+  (** Step 6 -- look if we can find pure formulae to discharge now *)
+  DynArray.iteri inspect_assertion pf;
+  
 
 	(** Step 6 -- return *)
 	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
@@ -1783,8 +1806,7 @@ let new_create_unification_plan
 		print_debug msg;
 		raise (Failure msg)) 
 
-(* Little wrapper so we can print the debug output of
-   the new unification plan and use the old one *)
+
 let create_unification_plan symb_state reachable_alocs =
   let new_res = new_create_unification_plan symb_state reachable_alocs in
   let old_res = old_create_unification_plan symb_state reachable_alocs in
