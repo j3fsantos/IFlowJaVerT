@@ -1679,7 +1679,6 @@ let new_create_unification_plan
 	let unification_plan        = Queue.create () in 
 	let marked_alocs            = ref SS.empty in
   let marked_vars = ref SS.empty in
-  (* remember which predicates we discharged along the way *)
   let marked_predicates = ref SS.empty in
   let marked_pf = DynArray.init (DynArray.length pf) (fun _ -> false) in
   let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in
@@ -1702,7 +1701,7 @@ let new_create_unification_plan
 
   (* check if all the alocs in the assertion are visited; if that's true,
      we can discharge it right now, so add it to the unification plan *)
-  let inspect_assertion (asrt_i : int) (asrt : jsil_logic_assertion) : unit =
+  let inspect_pure_formula (asrt_i : int) (asrt : jsil_logic_assertion) : unit =
     match asrt with
     | LEq (le1, le2) ->
       print_debug (Printf.sprintf "found equality assertion: %s" (JSIL_Print.string_of_logic_assertion asrt));
@@ -1712,25 +1711,29 @@ let new_create_unification_plan
       if ((is_bijective_lexpr le1) && (SS.subset lhs_alocs !marked_alocs)) ||
          ((is_bijective_lexpr le2) && (SS.subset rhs_alocs !marked_alocs)) then (
         print_debug "equality is useful, add it to the unification plan!";
-        Queue.add asrt unification_plan;
+        if DynArray.get marked_pf asrt_i = false then (
+          DynArray.set marked_pf asrt_i true;
+          Queue.add asrt unification_plan;
+        )
       ) else
         print_debug "we can't use this equality..."
     | _ ->
       let asrt_alocs = get_asrt_alocs asrt in
-      if DynArray.get marked_pf asrt_i = false then
-        if SS.subset asrt_alocs !marked_alocs then (
+      if SS.subset asrt_alocs !marked_alocs then
+        if DynArray.get marked_pf asrt_i = false then (
           DynArray.set marked_pf asrt_i true;
           Queue.add asrt unification_plan;
-        )
-    in
+        ) in
+
+  let inspect_all_pf () : unit = DynArray.iteri inspect_pure_formula pf in
 
   let search_for_new_alocs_in_lexpr (le : jsil_logic_expr) : unit =
     insert_type_lookup le;
     let alocs = get_lexpr_alocs le in 
     SS.iter (fun aloc -> 
-      if (not (SS.mem aloc !marked_alocs)) then (
-        marked_alocs := SS.add aloc !marked_alocs;  	
-        Queue.add aloc locs_to_visit; ())) alocs in 
+      if not (SS.mem aloc !marked_alocs) then
+        Queue.add aloc locs_to_visit)
+      alocs in
 
   let inspect_predicate (pred_name, les : string * (jsil_logic_expr list)) : unit =
     if not (SS.mem pred_name !marked_predicates) then (
@@ -1739,37 +1742,42 @@ let new_create_unification_plan
       Queue.add (LPred (pred_name, les)) unification_plan; 
     ) in
   
-	let inspect_aloc () = 
-		if (Queue.is_empty locs_to_visit) then false else (
-			let loc     = Queue.pop locs_to_visit in 
-			let le_loc  = if (is_aloc_name loc) then ALoc loc else LLit (Loc loc) in 
-			match SHeap.get heap loc with
-			(* The aloc does not correspond to any cell - it is an argument for a predicate *) 
-			| None -> true
-				
-			(* The aloc correspond to a cell - get the fv_list, domain, metadata, extensibility *)
-			| Some ((fv_list, domain), metadata, ext) ->
-				(* Partition the field-value list into concrete and symbolic properties *)
-				let fv_list_c, fv_list_nc = 
-					SFVL.partition (fun le _ -> 
-						match le with 
-						| LLit (String _) -> true 
-						| _               -> false 
-					) fv_list in 
-				let f = (fun le_f (perm, le_v) -> 
-					Queue.add (LPointsTo (le_loc, le_f, (perm, le_v))) unification_plan; 
-					search_for_new_alocs_in_lexpr le_v) in
-				SFVL.iter f fv_list_c; SFVL.iter f fv_list_nc;
-				Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
-				(* Now, metadata *)
-				Option.may (fun metadata -> 
-					Queue.add (LMetaData (le_loc, metadata)) unification_plan;
-					search_for_new_alocs_in_lexpr metadata) metadata;
-				(* Now, extensibility *)
-				Option.may (fun ext -> 
-					Queue.add (LExtensible (le_loc, ext)) unification_plan) ext;
-				Heap.remove heap loc; 
-				true) in 
+  let inspect_aloc () =
+    if (Queue.is_empty locs_to_visit) then false else
+      let loc = Queue.pop locs_to_visit in
+      if not (SS.mem loc !marked_alocs) then (
+        marked_alocs := SS.add loc !marked_alocs; (* only mark alocs when we actually visit them *)
+        let le_loc  = if (is_aloc_name loc) then ALoc loc else LLit (Loc loc) in 
+        match SHeap.get heap loc with
+        (* The aloc does not correspond to any cell - it is an argument for a predicate *) 
+        | None -> ()
+
+        (* The aloc correspond to a cell - get the fv_list, domain, metadata, extensibility *)
+        | Some ((fv_list, domain), metadata, ext) ->
+          (* Partition the field-value list into concrete and symbolic properties *)
+          let fv_list_c, fv_list_nc =
+            SFVL.partition (fun le _ ->
+              match le with
+              | LLit (String _) -> true
+              | _               -> false
+            ) fv_list in
+          let f = (fun le_f (perm, le_v) ->
+            Queue.add (LPointsTo (le_loc, le_f, (perm, le_v))) unification_plan;
+            search_for_new_alocs_in_lexpr le_v) in
+          SFVL.iter f fv_list_c; SFVL.iter f fv_list_nc;
+          Option.may (fun domain -> Queue.add (LEmptyFields (le_loc, domain)) unification_plan) domain;
+          (* Now, metadata *)
+          Option.may (fun metadata ->
+            Queue.add (LMetaData (le_loc, metadata)) unification_plan;
+            search_for_new_alocs_in_lexpr metadata) metadata;
+          (* Now, extensibility *)
+          Option.may (fun ext ->
+            Queue.add (LExtensible (le_loc, ext)) unification_plan) ext;
+          Heap.remove heap loc;
+          (* See if we can discharge any pure formula now *)
+          inspect_all_pf ();
+      );
+      true in
 
 	(** Step 1 -- add concrete locs and the reachable alocs to locs to visit *)
 	List.iter (fun loc -> Queue.add loc locs_to_visit) (concrete_locs @ (SS.elements reachable_alocs)) ; 
@@ -1786,11 +1794,11 @@ let new_create_unification_plan
 	(** Step 5 -- inspect the alocs that are in the queue coming from step 4 *)
   while (inspect_aloc ()) do () done; 
 
-  (** Step 6 -- look if we can find pure formulae to discharge now *)
-  DynArray.iteri inspect_assertion pf;
+  (** Step 6 -- look if we can find any last pure formulae to discharge now *)
+  inspect_all_pf ();
   
 
-	(** Step 6 -- return *)
+	(** Step 7 -- return *)
 	let unification_plan_lst = Queue.fold (fun ac a -> a :: ac) [] unification_plan in 
 	let unification_plan_lst = List.rev unification_plan_lst in 
 	print_debug_petar (Printf.sprintf "Heap length is %d" (Heap.length heap));
