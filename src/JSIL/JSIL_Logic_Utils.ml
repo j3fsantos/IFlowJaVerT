@@ -309,6 +309,36 @@ let get_asrt_pred_names (a : jsil_logic_assertion) : string list =
 		| _            -> List.concat ac) in
 	assertion_fold None f_ac None None a
 
+(* a bijective logical expression only performs bijective actions, ie if we
+   know the structure of the expression, we can get back all the values *)
+let rec is_bijective_lexpr (le : jsil_logic_expr) : bool =
+  match le with
+  | LLit _
+  | LVar _
+  | ALoc _
+  | PVar _ ->
+    true
+  | LBinOp (le1, binop, le2) -> begin
+    match binop with
+      | LstCons ->
+        let lhs_ok = is_bijective_lexpr le1 in
+        let rhs_ok = is_bijective_lexpr le2 in
+        lhs_ok && rhs_ok
+      | _ ->
+        false
+    end
+  | LUnOp _
+  | LLstNth _
+  | LStrNth _ ->
+    false (* if we know x = 'c' and x = LStrNth(#foo, 3), we can't get back #foo *)
+  | LEList les
+  | LESet les ->
+    List.for_all is_bijective_lexpr les
+  | LSetUnion _
+  | LSetInter _ ->
+    false
+  | LNone ->
+    true
 
 (***************************************************************)
 (***************************************************************)
