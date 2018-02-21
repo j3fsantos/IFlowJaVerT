@@ -1706,9 +1706,15 @@ let new_create_unification_plan
     match asrt with
     | LEq (le1, le2) ->
       print_debug (Printf.sprintf "found equality assertion: %s" (JSIL_Print.string_of_logic_assertion asrt));
-      let asrt_alocs = get_asrt_alocs asrt in
-      print_debug "equality alocs:";
-      SS.iter print_debug asrt_alocs;
+      let lhs_alocs = get_lexpr_alocs le1 in
+      let rhs_alocs = get_lexpr_alocs le2 in
+      (* we know enough about the lhs to infer the rhs, or vice versa *)
+      if ((is_bijective_lexpr le1) && (SS.subset lhs_alocs !marked_alocs)) ||
+         ((is_bijective_lexpr le2) && (SS.subset rhs_alocs !marked_alocs)) then (
+        print_debug "equality is useful, add it to the unification plan!";
+        Queue.add asrt unification_plan;
+      ) else
+        print_debug "we can't use this equality..."
     | _ ->
       let asrt_alocs = get_asrt_alocs asrt in
       if DynArray.get marked_pf asrt_i = false then
