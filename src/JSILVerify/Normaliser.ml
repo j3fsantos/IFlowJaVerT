@@ -1854,8 +1854,12 @@ let new_create_unification_plan
 
 
 let create_unification_plan symb_state reachable_alocs =
+  let t0 = Sys.time () in
   let old_res = old_create_unification_plan symb_state reachable_alocs in
+  let t1 = Sys.time () in
   let new_res = new_create_unification_plan symb_state reachable_alocs in
+  let t2 = Sys.time () in
+  print_debug (Printf.sprintf "Old unif. plan: %fs, new: %fs" (t1 -. t0) (t2 -. t1));
   old_res
 
 (* Create unification plans for multiple symbolic states at the same time
