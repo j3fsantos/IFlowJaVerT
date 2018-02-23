@@ -232,25 +232,11 @@ let detect_trivia_and_nonsense (u_pred : unfolded_predicate) : unfolded_predicat
 let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 	let new_params, new_asrts =
 		List.fold_right
-			(fun (cur_param, cur_param_type) (params, new_asrts) ->
-				match cur_param with
-				| LLit _ | LNone ->
-					(* If the parameter is a JSIL literal or None...     *)
-			  		(* Get a fresh program variable a add an additional
-			  		   constraint to each definition *)
-			  		let new_pvar = fresh_pvar () in
-						print_debug_petar (Printf.sprintf "Generated fresh PVar: %s" new_pvar); 
-			  		((new_pvar, None) :: params), (LEq (PVar new_pvar, cur_param) :: new_asrts)
-			  	| PVar x         ->
-			  		(* If the parameter is a program variable, add the
-			  		   parameter as it is *)
-						let new_asrts = (match cur_param_type with
-							| None -> new_asrts
-							| Some t -> LTypes [ PVar x, t ] :: new_asrts) in
-			  		((x, cur_param_type) :: params, new_asrts)
-			  	| _              ->
-			  		(* Otherwise, it's an error *)
-					raise (Failure ("Error in predicate " ^ pred.name ^ ": Unexpected parameter.")))
+			(fun (x, cur_param_type) (params, new_asrts) ->
+				let new_asrts = (match cur_param_type with
+					| None -> new_asrts
+					| Some t -> LTypes [ PVar x, t ] :: new_asrts) in
+		  		((x, cur_param_type) :: params, new_asrts))
 			pred.params ([], []) in
 	let new_definitions = List.map (fun (oid, a) -> (oid, star_asses (a :: new_asrts))) pred.definitions in
 	{ name	       = pred.name;

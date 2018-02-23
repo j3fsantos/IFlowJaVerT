@@ -3,7 +3,7 @@
 		types(o : Obj),
 		(o == null) * types (o : Null);
 
-	@pred Node(n : Obj, val : Num, left, right) :
+	@pred Node(+n : Obj, val : Num, left, right) :
 		JSObject(n) *
 		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right);
 

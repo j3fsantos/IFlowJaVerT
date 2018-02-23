@@ -1,4 +1,5 @@
 %{
+open CCommon
 open JSIL_Syntax
 open JSIL_Logic_Utils
 open JSLogic
@@ -273,10 +274,11 @@ let copy_and_clear_globals () =
 %nonassoc FLOAT
 
 (***** Types and entry points *****)
-%type <Type.t>     type_target
-%type <Constant.t> constant_target
+%type <Literal.t>    lit_target
+%type <Type.t>       type_target
+%type <Constant.t>   constant_target
 %type <Permission.t> permission_target
-%type <UnOp.t> unop_target
+%type <UnOp.t>       unop_target
 
 %type <JSIL_Syntax.jsil_ext_program> main_target
 %type <string list> param_list_FC_target
@@ -587,6 +589,10 @@ js_pred_target:
 	definitions = separated_nonempty_list(COMMA, js_named_assertion_target); SCOLON
   	{ (* Add the predicate to the collection *)
 	  let (name, num_params, params, ins) = pred_head in
+	  Printf.printf "\tJS Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
+	  	name
+	  	(String.concat ", " (List.map (fun (x, _) -> x) params))
+	  	(String.concat ", " ins);
 	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_ins = ins; js_definitions = definitions } in
     pred
 	}
@@ -598,8 +604,9 @@ pred_head_target:
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
 		let params, ins = List.split params in
+		let param_names, _ = List.split params in
 		let ins = List.map Option.get (List.filter (fun x -> x <> None) ins) in
-		let ins = if (List.length ins > 0) then Some ins else None in 
+		let ins = if (List.length ins > 0) then ins else param_names in 
 		(* register_predicate name num_params; *)
 		(* enter_predicate params; *)
 	  (name, num_params, params, ins)
@@ -612,37 +619,26 @@ js_pred_head_target:
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
 		let params, ins = List.split params in
+		let param_names, _ = List.split params in
 		let ins = List.map Option.get (List.filter (fun x -> x <> None) ins) in
-		let ins = if (List.length ins > 0) then Some ins else None in 
+		let ins = if (List.length ins > 0) then ins else param_names in 
 		(name, num_params, params, ins)
 	}
 ;
 
 pred_param_target:
-(* Logic literal *)
-	| lit = lit_target
-	  { (LLit lit, None), None }
-(* None *)
-	| LNONE
-	  { (LNone, None), None }
-(* Program variable with in-parameter status and optional type *)
+	(* Program variable with in-parameter status and optional type *)
 	| in_param = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
 	  { let in_param = Option.map_default (fun _ -> Some v) None in_param in
-	  	(PVar v, t), in_param }
+	  	(v, t), in_param }
 ;
 
 
 js_pred_param_target:
-(* Logic literal *)
-	| lit = lit_target
-	  { (JSLLit lit, None), None }
-(* None *)
-	| LNONE
-	  { (JSLNone, None), None }
-(* Program variable with optional type *)
+	(* Program variable with optional type *)
 	| in_param = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
 	  { let in_param = Option.map_default (fun _ -> Some v) None in_param in
-	  	(JSPVar v, t), in_param }
+	  	(v, t), in_param }
 ;
 
 

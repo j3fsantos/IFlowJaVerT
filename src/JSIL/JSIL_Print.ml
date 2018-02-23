@@ -178,7 +178,7 @@ let rec string_of_lcmd (lcmd : jsil_logic_command) : string =
 (** JSIL logic predicates *)
 let rec string_of_predicate (predicate : jsil_logic_predicate) : string =
   	let sle = fun e -> string_of_logic_expression e in
-		let slp = fun (e, ot) -> (sle e) ^ (Option.map_default (fun t -> " : " ^ Type.str t) "" ot) in
+		let slp = fun (e, ot) -> e ^ (Option.map_default (fun t -> " : " ^ Type.str t) "" ot) in
   	List.fold_left
     		(fun acc_str (id, assertion) ->
        			let id_str = match id with
