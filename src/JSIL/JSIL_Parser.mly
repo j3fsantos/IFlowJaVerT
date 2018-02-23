@@ -558,11 +558,11 @@ pred_target:
 	definitions = separated_nonempty_list(COMMA, named_assertion_target); SCOLON
   	{
   		(* Add the predicate to the collection *)
-		let (name, num_params, params) = pred_head in
-    let previously_normalised_pred = !previously_normalised in
-		let pred = { name; num_params; params; definitions; previously_normalised_pred } in
-		Hashtbl.add predicate_table name pred;
-    	pred
+		let (name, num_params, params, ins) = pred_head in
+    	let previously_normalised_pred = !previously_normalised in
+		let pred = { name; num_params; params; ins; definitions; previously_normalised_pred } in
+			Hashtbl.add predicate_table name pred;
+    		pred
 	}
 ;
 
@@ -585,9 +585,9 @@ js_pred_target:
 (* pred name (arg1, ..., argn) : [def1_id] def1, ..., [def1_id] defn ; *)
 	PRED; pred_head = js_pred_head_target; COLON;
 	definitions = separated_nonempty_list(COMMA, js_named_assertion_target); SCOLON
-  { (* Add the predicate to the collection *)
-		let (name, num_params, params) = pred_head in
-	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_definitions = definitions } in
+  	{ (* Add the predicate to the collection *)
+	  let (name, num_params, params, ins) = pred_head in
+	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_ins = ins; js_definitions = definitions } in
     pred
 	}
 ;
@@ -597,9 +597,12 @@ pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
+		let params, ins = List.split params in
+		let ins = List.map Option.get (List.filter (fun x -> x <> None) ins) in
+		let ins = if (List.length ins > 0) then Some ins else None in 
 		(* register_predicate name num_params; *)
 		(* enter_predicate params; *)
-	  (name, num_params, params)
+	  (name, num_params, params, ins)
 	}
 ;
 
@@ -608,34 +611,38 @@ js_pred_head_target:
   name = VAR; LBRACE; params = separated_list(COMMA, js_pred_param_target); RBRACE;
 	{ (* Register the predicate declaration in the syntax checker *)
 		let num_params = List.length params in
-	  (name, num_params, params)
+		let params, ins = List.split params in
+		let ins = List.map Option.get (List.filter (fun x -> x <> None) ins) in
+		let ins = if (List.length ins > 0) then Some ins else None in 
+		(name, num_params, params, ins)
 	}
 ;
-
 
 pred_param_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { LLit lit, None }
+	  { (LLit lit, None), None }
 (* None *)
 	| LNONE
-	  { LNone, None }
+	  { (LNone, None), None }
 (* Program variable with in-parameter status and optional type *)
-	| in_v = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
-	  { PVar v, t }
+	| in_param = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
+	  { let in_param = Option.map_default (fun _ -> Some v) None in_param in
+	  	(PVar v, t), in_param }
 ;
 
 
 js_pred_param_target:
 (* Logic literal *)
 	| lit = lit_target
-	  { JSLLit lit, None }
+	  { (JSLLit lit, None), None }
 (* None *)
 	| LNONE
-	  { JSLNone, None }
+	  { (JSLNone, None), None }
 (* Program variable with optional type *)
-	| v = VAR; t = option(preceded(COLON, type_target))
-	  { JSPVar v, t }
+	| in_param = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
+	  { let in_param = Option.map_default (fun _ -> Some v) None in_param in
+	  	(JSPVar v, t), in_param }
 ;
 
 
