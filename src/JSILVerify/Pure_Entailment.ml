@@ -1239,24 +1239,24 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	(* other *)
 	| _, _ -> None))
 
-let is_equal e1 e2 pure_formulae gamma =
-	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pure_formulae) (LEq (e1, e2)) in
+let is_equal e1 e2 pfs gamma =
+	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) (LEq (e1, e2)) in
 	let result = (match feq with
 	| LTrue  -> print_debug "Reduced to true.";  true
 	| LFalse -> print_debug "Reduced to false."; false 
 	| LEq _ -> 
-			check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ feq ] gamma
+			check_entailment SS.empty (PFS.to_list pfs) [ feq ] gamma
 	| _ -> raise (Failure ("Equality reduced to something unexpected: " ^ (JSIL_Print.string_of_logic_assertion feq)))
 	) in 
 		result
 
-let is_different e1 e2 pure_formulae gamma =
-	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pure_formulae) (LNot (LEq (e1, e2))) in
+let is_different e1 e2 pfs gamma =
+	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) (LNot (LEq (e1, e2))) in
 	let result = (match feq with
 	| LTrue  -> print_debug "Reduced to true.";  true
 	| LFalse -> print_debug "Reduced to false."; false 
 	| LNot _ -> 
-			check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ feq ] gamma
+			check_entailment SS.empty (PFS.to_list pfs) [ feq ] gamma
 	| _ -> raise (Failure ("Equality reduced to something unexpected: " ^ (JSIL_Print.string_of_logic_assertion feq)))
 	) in 
 		result

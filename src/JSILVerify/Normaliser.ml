@@ -718,11 +718,11 @@ let resolve_location (lvar : string) (pfs : jsil_logic_assertion list) : (string
 	loop original_pfs
 
 
-let resolve_location_from_lexpr (pfs : pure_formulae) (le : jsil_logic_expr) : string option = 
+let resolve_location_from_lexpr (pfs : PFS.t) (le : jsil_logic_expr) : string option = 
 	match le with
 	| LLit (Loc l)
 	| ALoc l        -> Some l
-	| LVar x        -> Option.map (fun (result, _) -> result) (resolve_location x (pfs_to_list pfs)) 
+	| LVar x        -> Option.map (fun (result, _) -> result) (resolve_location x (PFS.to_list pfs)) 
 	| _             -> None
 
 
@@ -823,7 +823,7 @@ let normalise_pure_assertions
 		(gamma  : TypEnv.t)
 		(subst  : substitution)
 		(args   : SS.t option)
-		(a      : jsil_logic_assertion) : pure_formulae =
+		(a      : jsil_logic_assertion) : PFS.t =
 
 	let pvar_equalities           = Hashtbl.create 31 in
 	let non_store_pure_assertions = Stack.create () in
@@ -1016,7 +1016,7 @@ let normalise_pure_assertions
 **)
 let rec normalise_cell_assertions
 		(heap : SHeap.t) (store : SStore.t)
-		(p_formulae : pure_formulae) (gamma : TypEnv.t)
+		(p_formulae : PFS.t) (gamma : TypEnv.t)
 		(subst : substitution) (a : jsil_logic_assertion) : unit =
 	let f = normalise_cell_assertions heap store p_formulae gamma subst in
 	let fe = normalise_logic_expression store gamma subst in
@@ -1148,9 +1148,9 @@ let normalise_pred_assertions
 					new_assertions
 			| _ -> []) in
 	let new_assertions = init_preds_aux preds a in
-	let pfs = pfs_of_list new_assertions in
+	let pfs = PFS.of_list new_assertions in
 	Simplifications.sanitise_pfs store gamma pfs;
-	preds, (pfs_to_list pfs)
+	preds, (PFS.to_list pfs)
 
 
 (** -----------------------------------------------------
@@ -1162,7 +1162,7 @@ let normalise_pred_assertions
 **)
 let normalise_ef_assertions
 	(heap : SHeap.t) (store : SStore.t)
-	(p_formulae : pure_formulae) (gamma : TypEnv.t)
+	(p_formulae : PFS.t) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_empty_fields a =
@@ -1221,7 +1221,7 @@ let extend_typing_env_using_assertion_info
 **)
 let normalise_metadata
 	(heap : SHeap.t) (store : SStore.t)
-	(p_formulae : pure_formulae) (gamma : TypEnv.t)
+	(p_formulae : PFS.t) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_metadata a =
@@ -1304,7 +1304,7 @@ let normalise_metadata
 **)
 let normalise_extensibility
 	(heap : SHeap.t) (store : SStore.t)
-	(p_formulae : pure_formulae) (gamma : TypEnv.t)
+	(p_formulae : PFS.t) (gamma : TypEnv.t)
 	(subst : substitution) (a : jsil_logic_assertion) : unit =
 
 	let rec get_all_extens a =
@@ -1463,7 +1463,7 @@ let normalise_assertion
 		| true -> print_debug "WARNING: normalise_assertion: pure formulae false"; None
 		| false -> 
 			(** Step 4 -- Add to the store the program variables that are not there yet, BUT for which we know the types *)
-			extend_typing_env_using_assertion_info gamma (pfs_to_list p_formulae);
+			extend_typing_env_using_assertion_info gamma (PFS.to_list p_formulae);
 
 			(** Step 5 -- Normalise cell assertions, pred assertions, and ef assertions
 				* 5.1 - cell assertions -> initialises heap
@@ -1473,7 +1473,7 @@ let normalise_assertion
 			normalise_cell_assertions heap store p_formulae gamma subst a;
 			let preds, new_assertions = normalise_pred_assertions store gamma subst a in
 			extend_typing_env_using_assertion_info gamma new_assertions;
-			pfs_merge p_formulae (pfs_of_list new_assertions);
+			pfs_merge p_formulae (PFS.of_list new_assertions);
 			normalise_ef_assertions heap store p_formulae gamma subst a;
 
 			(* NEW *)
@@ -1482,7 +1482,7 @@ let normalise_assertion
 
 			(** Step 6 -- Check if the symbolic state makes sense *)
 			let heap_constraints = get_heap_well_formedness_constraints heap in
-			if (Pure_Entailment.check_satisfiability (heap_constraints @ (pfs_to_list p_formulae)) gamma)
+			if (Pure_Entailment.check_satisfiability (heap_constraints @ (PFS.to_list p_formulae)) gamma)
 				then ( 
 					let ret_ss = (heap, store, p_formulae, gamma, preds) in 
 					print_debug ( Printf.sprintf "normalise_assertion returning:\n %s\n and subst: %s\n" (Symbolic_State_Print.string_of_symb_state ret_ss) (JSIL_Print.string_of_substitution subst));
@@ -1513,7 +1513,7 @@ let normalise_normalised_assertion
   let heap  : SHeap.t            = SHeap.init () in
   let store : SStore.t           = SStore.init [] [] in
   let gamma : TypEnv.t           = TypEnv.init () in
-  let pfs   : pure_formulae      = DynArray.make 0 in
+  let pfs   : PFS.t      = DynArray.make 0 in
   let preds : predicate_set      = DynArray.make 0 in
 
   (* Step 2 - Map over assertion, populate gamma, store and heap *)
@@ -1694,8 +1694,8 @@ let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) :
 let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbolic_state option = 
 	let pfs_pre  = (ss_pfs ss_pre) in 
 	let pfs_post = (ss_pfs ss_post) in 
-	let pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list pfs_post) in 
-	let pfs      = (pfs_of_list pfs_list) in 
+	let pfs_list = (PFS.to_list pfs_pre) @ (PFS.to_list pfs_post) in 
+	let pfs      = (PFS.of_list pfs_list) in 
 	
 	print_debug_petar (Printf.sprintf "ENTERING COLLAPSE_ALOCS with\n\nPrecondition:\n%s\nPostcondition:\n%s"
 		(Symbolic_State_Print.string_of_symb_state ss_pre) (Symbolic_State_Print.string_of_symb_state ss_post));
@@ -1722,7 +1722,7 @@ let collapse_alocs (ss_pre : symbolic_state) (ss_post : symbolic_state) : symbol
 		) relevant_new_alocs; 
 
 		let new_pfs_post = pfs_substitution aloc_subst true pfs_post in 
-		let new_pfs_list = (pfs_to_list pfs_pre) @ (pfs_to_list new_pfs_post) in 
+		let new_pfs_list = (PFS.to_list pfs_pre) @ (PFS.to_list new_pfs_post) in 
 
 		if (Pure_Entailment.check_satisfiability new_pfs_list (ss_gamma ss_post)) then (
 			Some (ss_substitution aloc_subst true ss_post) 
@@ -1756,7 +1756,7 @@ let normalise_post
 			(JSIL_Print.string_of_substitution post_subst)
 			(String.concat ", " post_new_spec_var_alocs));
 		let extra_post_pfs = List.map (fun x -> LEq (LVar x, Hashtbl.find post_subst x)) post_new_spec_var_alocs in
-		ss_extend_pfs ss_post (pfs_of_list extra_post_pfs);
+		ss_extend_pfs ss_post (PFS.of_list extra_post_pfs);
 		Some (Simplifications.simplify_ss ss_post (Some (Some spec_vars))))
 
 (** -----------------------------------------------------

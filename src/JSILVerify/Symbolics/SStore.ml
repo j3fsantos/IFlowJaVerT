@@ -69,6 +69,7 @@ let substitution (subst : substitution) (partial : bool) (store : t) : t =
 	let new_store = init [] [] in
 		Hashtbl.iter (fun x le -> 
 			let le_subst = lexpr_substitution subst partial le in
+			let le_subst = if (le <> le_subst) then Reduction.reduce_lexpr le_subst else le_subst in
 			Hashtbl.replace new_store x le_subst) store;
 		new_store
 
@@ -76,6 +77,7 @@ let substitution (subst : substitution) (partial : bool) (store : t) : t =
 let substitution_in_place (subst : substitution) (store : t) : unit =
 	Hashtbl.iter (fun x le ->
 		let s_le = lexpr_substitution subst true le in
+		let s_le = if (le <> s_le) then Reduction.reduce_lexpr s_le else s_le in
 		Hashtbl.replace store x s_le)
 	store
 

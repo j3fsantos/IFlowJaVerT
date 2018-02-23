@@ -18,7 +18,7 @@ exception SymbExecFailure of string
 				pfs |=_{gamma} field = field' 
 *)
 let find_field
-		(pfs : pure_formulae) (gamma : TypEnv.t)
+		(pfs : PFS.t) (gamma : TypEnv.t)
 		(fv_list : SFVL.t)
 		(field : jsil_logic_expr) : (SFVL.t * (SFVL.field_name * SFVL.field_value)) option  =
 	
@@ -33,7 +33,7 @@ let find_field
 	
 *)
 let sheap_put 
-			(pfs : pure_formulae) (gamma : TypEnv.t)
+			(pfs : PFS.t) (gamma : TypEnv.t)
 			(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) (perm : Permission.t) (value : jsil_logic_expr) : unit =
 	
 	let (fv_list, domain), metadata, ext = SHeap.get_unsafe heap loc in
@@ -47,7 +47,7 @@ let sheap_put
 	(* What about permissions in the domain?! *)
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
-		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
+		if (Pure_Entailment.check_entailment SS.empty (PFS.to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
 			let new_domain = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) new_domain in
 			SHeap.put heap loc (SFVL.add field (perm, value) fv_list) (Some new_domain) metadata ext
@@ -65,7 +65,7 @@ let sheap_put
 
 
 let sheap_get 
-		(pfs : pure_formulae) (gamma : TypEnv.t)
+		(pfs : PFS.t) (gamma : TypEnv.t)
 		(heap : SHeap.t) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
 	let (fv_list, domain), _, _ = SHeap.get_unsafe heap loc in
@@ -73,14 +73,14 @@ let sheap_get
 	| Some (_, (_, (_, value))), _ -> value 
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
-		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) 
+		if (Pure_Entailment.check_entailment SS.empty (PFS.to_list pfs) [ a_set_inclusion ] gamma) 
 			then LNone
 			else raise (SymbExecFailure "SHeap.get")
 	| _ -> raise (SymbExecFailure "SHeap.get"))
 
 
 let merge_domains 
-		(pfs : pure_formulae) (gamma : TypEnv.t)
+		(pfs : PFS.t) (gamma : TypEnv.t)
 		(domain_l : jsil_logic_expr option) (domain_r : jsil_logic_expr option) : jsil_logic_expr option = 
 	match domain_l, domain_r with 
 	| None, None -> None
@@ -92,7 +92,7 @@ let merge_domains
 		Some set 
 
 let merge_heaps 
-			(store : SStore.t) (pfs : pure_formulae) (gamma : TypEnv.t)
+			(store : SStore.t) (pfs : PFS.t) (gamma : TypEnv.t)
 			(heap : SHeap.t) (new_heap : SHeap.t) : unit =
 	
 	print_debug_petar (Printf.sprintf "STARTING merge_heaps with heap:\n%s\npat_heap:\n%s\npfs:\n%s\ngamma:\n%s\n"
@@ -138,7 +138,7 @@ let merge_heaps
 	print_debug (Printf.sprintf "Resulting heap: %s" (SHeap.str heap))
 
 
-let lexpr_is_none (pfs : pure_formulae) (gamma : TypEnv.t) (le : jsil_logic_expr) : bool option = 
+let lexpr_is_none (pfs : PFS.t) (gamma : TypEnv.t) (le : jsil_logic_expr) : bool option = 
 	if (Pure_Entailment.is_equal le LNone pfs gamma) then Some true else (
 		if (Pure_Entailment.is_different le LNone pfs gamma) 
 			then Some false 
@@ -191,7 +191,7 @@ let subtract_pred
 		(pred_name    : string)
 		(args         : jsil_logic_expr list)
 		(pred_set     : predicate_set)
-		(pfs          : pure_formulae)
+		(pfs          : PFS.t)
 		(gamma        : TypEnv.t)
 		(spec_vars    : SS.t)
 		(existentials : string list) 
@@ -254,7 +254,7 @@ let compatible_pfs
 	let gamma = TypEnv.copy gamma in
 	TypEnv.extend gamma pat_gamma;
 	
-	let pf_list = (pfs_to_list pat_pfs) @ (pfs_to_list pfs) in
+	let pf_list = (PFS.to_list pat_pfs) @ (PFS.to_list pfs) in
 	let is_sat = Pure_Entailment.check_satisfiability pf_list gamma in
 
 	(if (not is_sat) then 
@@ -287,7 +287,7 @@ let merge_symb_state_with_posts
 			print_debug_petar (Printf.sprintf "Postcondition is: %s" (Symbolic_State_Print.string_of_symb_state post));
 			let new_symb_state = ss_copy symb_state_frame in
 			let new_symb_state = merge_symb_states new_symb_state post subst in
-			ss_extend_pfs new_symb_state (pfs_of_list pf_discharges);
+			ss_extend_pfs new_symb_state (PFS.of_list pf_discharges);
 			let ret_lexpr = SStore.get (ss_store post) ret_var in
 			let ret_lexpr = (match ret_lexpr with
 			| None -> print_debug_petar "Warning: Store return variable not present; implicitly empty"; LLit Empty

@@ -95,7 +95,7 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	) true lset 
 
 (* Reduction of assertions *)
-let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(pfs : pure_formulae option) a =
+let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(pfs : PFS.t option) a =
 
 	let start_time = Sys.time () in
 
@@ -200,7 +200,7 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 				      that the var-string doesn't start with @, we know it's false *)
 				if (str <> "" && String.get str 0 = '@') 
 					then
-						let pfs = pfs_to_list (Option.default (DynArray.create ()) pfs) in 
+						let pfs = PFS.to_list (Option.default (DynArray.create ()) pfs) in 
 						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
 							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
 						then LFalse 
@@ -323,7 +323,7 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 	final_result
 
 
-let simplify_equalities_between_booleans (p_assertions : pure_formulae) = 
+let simplify_equalities_between_booleans (p_assertions : PFS.t) = 
  	let new_as = 
  		DynArray.map 
  			(fun a -> 
@@ -344,7 +344,7 @@ let simplify_equalities_between_booleans (p_assertions : pure_formulae) =
  				| _ -> a) p_assertions in 
  	new_as 
 
-let naively_infer_type_information (p_assertions : pure_formulae) (gamma : TypEnv.t) = 
+let naively_infer_type_information (p_assertions : PFS.t) (gamma : TypEnv.t) = 
  	DynArray.iter 
  		(fun a -> 
  			match a with 
@@ -1349,7 +1349,7 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 
 	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
 	(match pfs with
-	 | [] -> if (test_for_nonsense (pfs_to_list p_formulae))
+	 | [] -> if (test_for_nonsense (PFS.to_list p_formulae))
 			 	then pfs_false "Nonsense."
 				else
 			 (let pf_list = DynArray.to_list p_formulae in

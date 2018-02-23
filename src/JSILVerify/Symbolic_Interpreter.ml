@@ -27,8 +27,8 @@ let rec get_list_length (le : jsil_logic_expr) : int option =
 (*******************************************)
 let rec symb_evaluate_expr 
 		(store : SStore.t) (gamma : TypEnv.t) 
-		(pure_formulae : pure_formulae) (expr : jsil_expr) : jsil_logic_expr =
-let f = symb_evaluate_expr store gamma pure_formulae in
+		(pfs : PFS.t) (expr : jsil_expr) : jsil_logic_expr =
+let f = symb_evaluate_expr store gamma pfs in
 	let result = (match expr with
 	(* Literals: Return the literal *)
 	| Literal lit -> LLit lit
@@ -99,7 +99,7 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 			LStrNth (str, index)) in
 
 	(* Perform reduction *)
-	(Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pure_formulae) result)
+	(Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) result)
 
 
 (************************************************)
@@ -113,12 +113,12 @@ let f = symb_evaluate_expr store gamma pure_formulae in
 let safe_symb_evaluate_expr 
 		(store         : SStore.t)
 		(gamma         : TypEnv.t) 
-		(pure_formulae : pure_formulae) 
+		(pfs           : PFS.t) 
 		(expr          : jsil_expr) : jsil_logic_expr * (Type.t option) * bool =
-	let nle = symb_evaluate_expr store gamma pure_formulae expr in
-	let nle = Simplifications.replace_nle_with_lvars pure_formulae nle in
+	let nle = symb_evaluate_expr store gamma pfs expr in
+	let nle = Simplifications.replace_nle_with_lvars pfs nle in
 	let nle_type, is_typable, constraints = type_lexpr gamma nle in
-	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (pfs_to_list pure_formulae) constraints gamma)) in
+	let is_typable = is_typable && ((List.length constraints = 0) || (Pure_Entailment.check_entailment SS.empty (PFS.to_list pfs) constraints gamma)) in
 	if (is_typable) then
 		nle, nle_type, true
 	else
@@ -126,7 +126,7 @@ let safe_symb_evaluate_expr
 		| LVar _ ->  nle, None, false
 		| _ ->
 				let gamma_str = TypEnv.str gamma in
-				let pure_str = Symbolic_State_Print.string_of_pfs pure_formulae in
+				let pure_str = Symbolic_State_Print.string_of_pfs pfs in
 				let msg = Printf.sprintf "The logical expression %s is not typable in the typing enviroment: %s \n with the pure formulae %s" (JSIL_Print.string_of_logic_expression nle) gamma_str pure_str in
 				raise (Failure msg))
 
@@ -137,8 +137,8 @@ let safe_symb_evaluate_expr
 let symb_evaluate_bcmd 
 		(bcmd       : jsil_basic_cmd) 
 		(symb_state : symbolic_state) : jsil_logic_expr =
-	let heap, store, pure_formulae, gamma, _ = symb_state in
-	let ssee = safe_symb_evaluate_expr store gamma pure_formulae in
+	let heap, store, pfs, gamma, _ = symb_state in
+	let ssee = safe_symb_evaluate_expr store gamma pfs in
 	match bcmd with
 	(* Skip: skip;
 			Always return empty *)
@@ -172,7 +172,7 @@ let symb_evaluate_bcmd
 		SHeap.put heap new_loc (SFVL.empty) (Some (LESet [])) (Some md_val) (Some Extensible);
 		SStore.put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
-		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
+		DynArray.add pfs (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));
 		ALoc new_loc
 
   (* Property lookup: x = [e1, e2];
@@ -187,12 +187,12 @@ let symb_evaluate_bcmd
 		let ne1, te1, _ = ssee e1 in
 		let ne2, te2, _ = ssee e2 in
 		let l = 
-			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pfs ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "Lookup. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
-		let ne = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2 in
+		let ne = Symbolic_State_Utils.sheap_get pfs gamma heap l ne2 in
 		SStore.put store x ne;
 		ne
 
@@ -209,7 +209,7 @@ let symb_evaluate_bcmd
 		let ne2, t_le2, _ = ssee e2 in
 		let ne3, _, _ = ssee e3 in
 		let l = 
-			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pfs ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "Mutation. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -217,7 +217,7 @@ let symb_evaluate_bcmd
 		let perm : Permission.t = match op with
 		| None -> Deletable
 		| Some perm -> perm in
-		Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 perm ne3; 
+		Symbolic_State_Utils.sheap_put pfs gamma heap l ne2 perm ne3; 
 		ne3
 
   	(* Property deletion: delete(e1, e2)
@@ -231,7 +231,7 @@ let symb_evaluate_bcmd
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let l = 
-			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pfs ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "Delete: %s does not denote a location." (JSIL_Print.string_of_logic_expression ne1) in 
@@ -242,13 +242,13 @@ let symb_evaluate_bcmd
 				let msg = Printf.sprintf "Delete: object %s does not exist in the heap." (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) 
 		| Some ((fv_list, domain), metadata, ext) ->
-				let opt_f = Symbolic_State_Utils.find_field pure_formulae gamma fv_list ne2 in
+				let opt_f = Symbolic_State_Utils.find_field pfs gamma fv_list ne2 in
 				(match opt_f with
 				(* Default is Deletable *)
-				| None -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone
+				| None -> Symbolic_State_Utils.sheap_put pfs gamma heap l ne2 Deletable LNone
 				| Some (_, (_, (perm, _))) -> 
 					(match perm with 
-					| Deletable -> Symbolic_State_Utils.sheap_put pure_formulae gamma heap l ne2 Deletable LNone; 
+					| Deletable -> Symbolic_State_Utils.sheap_put pfs gamma heap l ne2 Deletable LNone; 
 				  | _ -> 
 						let msg = Printf.sprintf "Delete: property %s not deletable." (JSIL_Print.string_of_logic_expression ne1) in 
 						raise (Symbolic_State_Utils.SymbExecFailure msg)));
@@ -263,7 +263,7 @@ let symb_evaluate_bcmd
 	| DeleteObj e1 ->
 		let ne1, t_le1, _ = ssee e1 in
 		let l = 
-			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pfs ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "DeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
@@ -286,14 +286,14 @@ let symb_evaluate_bcmd
 		let ne1, t_le1, _ = ssee e1 in
 		let ne2, t_le2, _ = ssee e2 in
 		let l = 
-			match Normaliser.resolve_location_from_lexpr pure_formulae ne1 with
+			match Normaliser.resolve_location_from_lexpr pfs ne1 with
 			| Some l -> l 
 			| None   -> 
 				let msg = Printf.sprintf "DeleteObj. LExpr %s does NOT denote a location" (JSIL_Print.string_of_logic_expression ne1) in 
 				raise (Symbolic_State_Utils.SymbExecFailure msg) in
 	
-		let f_val = Symbolic_State_Utils.sheap_get pure_formulae gamma heap l ne2 in
-		(match Symbolic_State_Utils.lexpr_is_none pure_formulae gamma f_val  with
+		let f_val = Symbolic_State_Utils.sheap_get pfs gamma heap l ne2 in
+		(match Symbolic_State_Utils.lexpr_is_none pfs gamma f_val  with
 		| Some b ->
 			let ret_lit = LLit (Bool (not b)) in
 			SStore.put store x ret_lit;
@@ -313,7 +313,7 @@ let symb_evaluate_bcmd
 	| MetaData (x, e) ->
 		let l, _, _ = ssee e in
 		let l = 
-			match Normaliser.resolve_location_from_lexpr pure_formulae l with
+			match Normaliser.resolve_location_from_lexpr pfs l with
 			| Some l -> l 
 			| None   -> 
 					let msg = Printf.sprintf "MetaData: %s does not denote a location" (JSIL_Print.string_of_logic_expression l) in 
@@ -504,7 +504,7 @@ let rec fold_predicate
 		let symb_state = ss_replace_heap symb_state framed_heap in
 		let symb_state = ss_replace_preds symb_state framed_preds in
 		let symb_state = ss_replace_gamma symb_state new_gamma in
-		ss_extend_pfs symb_state (pfs_of_list new_pfs);
+		ss_extend_pfs symb_state (PFS.of_list new_pfs);
 		symb_state in
 
 
@@ -820,12 +820,12 @@ let make_spec_var_subst (subst : substitution) (spec_vars : SS.t) : substitution
 
 let extend_spec_vars_subst 
 		(spec_vars : SS.t) 
-		(pfs       : pure_formulae) 
+		(pfs       : PFS.t) 
 		(subst     : substitution) : unit = 
 
 	List.iter (fun x -> 
 		if (not (Hashtbl.mem subst x)) then (
-			let res_loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
+			let res_loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (PFS.to_list pfs)) in
 			match res_loc with 
 				| Some loc  when is_lloc_name loc  -> Hashtbl.replace subst x (LLit (Loc loc)) 
 				| Some aloc when is_aloc_name aloc -> Hashtbl.replace subst x (ALoc aloc) 
@@ -870,7 +870,7 @@ let lemma_recursive_call_termination_check
 			print_debug (Printf.sprintf "Termination assertion: %s" (JSIL_Print.string_of_logic_assertion termination_assertion));
 
 	    (* Check that the current symb state entails the termination_assertion *)
-	    let state_entails_termination_assertion = Pure_Entailment.check_entailment SS.empty (Symbolic_State.pfs_to_list pfs) [termination_assertion] gamma in
+	    let state_entails_termination_assertion = Pure_Entailment.check_entailment SS.empty (PFS.to_list pfs) [termination_assertion] gamma in
 
 	    (* Throw an error if the assertion is not entailed *)
 	    match state_entails_termination_assertion with
@@ -1339,7 +1339,10 @@ let unify_symb_state_against_post
 			) with Spatial_Entailment.UnificationFailure _ -> loop rest_posts (i + 1)) in 
 	loop spec.n_post 0
 
-
+(** Detecting program variable usage - including precondition and postcondition *)
+let prog_var_table (proc : JSIL_Syntax.jsil_procedure) : (string, int list) Hashtbl.t =
+	let result = Hashtbl.create big_tbl_size in
+	result
 
 (**
 	Symbolic execution of a JSIL procedure
@@ -1369,6 +1372,7 @@ let symb_evaluate_proc
 
 	(* Get the procedure to be symbolically executed *)
 	let proc = get_proc s_prog.program proc_name in
+	let prog_var_table = prog_var_table proc in
 	let success, failure_msg =
 		try (
 			print_debug (Printf.sprintf "Initial symbolic state:\n%s" (Symbolic_State_Print.string_of_symb_state spec.n_pre));

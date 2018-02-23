@@ -30,7 +30,7 @@ let string_of_heap (h : jsil_heap) =
 		h
 		""
 
-let string_of_pfs (p_formulae : pure_formulae) : string =
+let string_of_pfs (p_formulae : PFS.t) : string =
 	DynArray.fold_left
 		(fun ac cur_ass ->
 			let cur_ass_str = string_of_logic_assertion cur_ass in

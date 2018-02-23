@@ -13,7 +13,7 @@ exception UnificationFailure of string
   *)
 let consistent_subst_list 
 		(subst_list : substitution_list) 
-		(pfs        : pure_formulae)
+		(pfs        : PFS.t)
 		(gamma      : TypEnv.t) : substitution_list option = 
 
 	let start_time = Sys.time() in
@@ -39,7 +39,7 @@ let consistent_subst_list
 
 
 let safe_substitution_extension 
-		(pfs        : pure_formulae) 
+		(pfs        : PFS.t) 
 		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : bool = 
@@ -54,7 +54,7 @@ let safe_substitution_extension
 
 
 let substitution_extension 
-		(pfs        : pure_formulae) 
+		(pfs        : PFS.t) 
 		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : (jsil_logic_assertion list) option = 
@@ -92,7 +92,7 @@ let type_check_discharges
 	List.for_all (fun x -> x) rets
 
 let rec unify_lexprs
-	(pfs         : pure_formulae) 
+	(pfs         : PFS.t) 
 	(gamma       : TypEnv.t) 
 	(subst       : substitution)
 	(le_pat      : jsil_logic_expr) 
@@ -158,7 +158,7 @@ let rec unify_lexprs
 
 
 let unify_stores 
-		(pfs       : pure_formulae) 
+		(pfs       : PFS.t) 
 		(gamma     : TypEnv.t)
 		(pat_subst : substitution) 
 		(pat_store : SStore.t) 
@@ -189,7 +189,7 @@ let unify_stores
 								raise (UnificationFailure "Store unification failure.")))) []
 
 let unify_cell_assertion 
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
@@ -260,7 +260,7 @@ let unify_cell_assertion
     		if (not (safe_substitution_extension pfs gamma pat_subst subst_field)) then [] else (
     			let s_pat_field  = lexpr_substitution pat_subst true pat_field in
 				let a_set_inclusion = LNot (LSetMem (s_pat_field, le_dom)) in 
-				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
+				if (not (Pure_Entailment.check_entailment SS.empty (PFS.to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
 					let heap_frame = SHeap.copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
 					let new_domain = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) new_domain in
@@ -276,7 +276,7 @@ let unify_cell_assertion
 	result 
 
 let unify_pred_assertion 
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_pred_asrt : jsil_logic_assertion)
@@ -324,7 +324,7 @@ let unify_pred_assertion
 
 
 let rec find_missing_nones 
-		(pfs            : pure_formulae)
+		(pfs            : PFS.t)
 		(gamma          : TypEnv.t)
 		(fields_to_find : jsil_logic_expr list) 
 		(none_fv_list   : SFVL.t) : SFVL.t =
@@ -351,7 +351,7 @@ let rec find_missing_nones
 
 
 let unify_domains 
-		(pfs       : pure_formulae)
+		(pfs       : PFS.t)
 		(gamma     : TypEnv.t)
 		(pat_subst : substitution)
 		(pat_dom   : jsil_logic_expr) 
@@ -405,7 +405,7 @@ let unify_domains
 
 
  let unify_empty_fields_assertion 
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_ef_asrt   : jsil_logic_assertion)
@@ -456,7 +456,7 @@ let unify_domains
 
 (* TODO : THIS IS NOT SPATIAL?! *)
 let unify_metadata_assertion
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
@@ -511,7 +511,7 @@ let unify_metadata_assertion
 	result
 
 let unify_extensible_assertion
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
@@ -552,7 +552,7 @@ let unify_extensible_assertion
 type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitution 
 
 let unify_spatial_assertion
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_s_asrt    : jsil_logic_assertion)
@@ -655,9 +655,9 @@ let unify_pfs
 		(existentials : string list)
 		(pat_lvars    : SS.t)
 		(pat_gamma    : TypEnv.t) 
-		(pat_pfs      : pure_formulae)
+		(pat_pfs      : PFS.t)
 		(gamma        : TypEnv.t) 
-		(pfs          : pure_formulae)
+		(pfs          : PFS.t)
 		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * TypEnv.t * SS.t =
 
 	let start_time = Sys.time() in
@@ -680,15 +680,15 @@ let unify_pfs
 		) in 
 		
 	(* 4. pfs |-_{gamma'} Exists_{existentials + pat_existentials} pat_subst(pat_pfs) /\ pf_list_of_discharges(discharges) *)
-	let s_pat_pfs      = List.map (asrt_substitution pat_subst true) (pfs_to_list pat_pfs) in
+	let s_pat_pfs      = List.map (asrt_substitution pat_subst true) (PFS.to_list pat_pfs) in
 	let pfs_discharges = pf_list_of_discharges pat_subst discharges in
 	let pfs_to_prove   = s_pat_pfs @ pfs_discharges in
 	print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
 		(Symbolic_State_Print.string_of_pfs pfs)
-		(Symbolic_State_Print.string_of_pfs (pfs_of_list pfs_to_prove))
+		(Symbolic_State_Print.string_of_pfs (PFS.of_list pfs_to_prove))
 		(String.concat ", "  (existentials @ fresh_names_for_pat_existentials))
 		(TypEnv.str gamma')); 
-	let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list (existentials @ fresh_names_for_pat_existentials)) (pfs_to_list pfs) pfs_to_prove gamma' in
+	let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list (existentials @ fresh_names_for_pat_existentials)) (PFS.to_list pfs) pfs_to_prove gamma' in
 	print_debug (Printf.sprintf "entailment_check: %b" entailment_check_ret);
 
 	(* 5. Constraints on the existentials - they come from the pat_pfs and from the discharges          *)
@@ -971,7 +971,7 @@ let unify_symb_states_fold
 
 
 let unify_lexprs_unfold
-	(pfs         : pure_formulae)
+	(pfs         : PFS.t)
 	(subst       : substitution)
 	(le_pat      : jsil_logic_expr) 
 	(le          : jsil_logic_expr) : (substitution_list * substitution_list * discharge_list) option =
@@ -997,7 +997,7 @@ let unify_lexprs_unfold
 		| ALoc pat_loc, LVar x -> 
 			print_debug (Printf.sprintf 
 					"WE ARE IN THE CASE WE THINK WE ARE IN. pat_loc: %s. lvar: %s\n" pat_loc x); 
-			let loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
+			let loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (PFS.to_list pfs)) in
 			(match loc with 
 			| Some loc when is_lloc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
 			| Some loc when is_aloc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])
@@ -1044,10 +1044,10 @@ let unify_lexprs_unfold
 
 
 let unify_stores_unfold 
-		(pat_pfs   : pure_formulae)
+		(pat_pfs   : PFS.t)
 		(pat_gamma : TypEnv.t)
 		(pat_subst : substitution)
-		(pfs       : pure_formulae)
+		(pfs       : PFS.t)
 		(gamma     : TypEnv.t)
 		(subst     : substitution)
 		(pat_store : SStore.t) 
@@ -1200,8 +1200,8 @@ let unfold_predicate_definition
 	(* |-_{gamma} pfs                                                                                                       *)
 	let new_pat_subst   = compose_partial_substitutions subst pat_subst in
 	let constraints     = List.map (asrt_substitution subst true) constraints in 
-	let pfs'            = pfs_to_list (pfs_substitution subst true pfs) in
-	let s_pat_pfs       = pfs_to_list (pfs_substitution new_pat_subst false pat_pfs) in
+	let pfs'            = PFS.to_list (pfs_substitution subst true pfs) in
+	let s_pat_pfs       = PFS.to_list (pfs_substitution new_pat_subst false pat_pfs) in
 	let pat_constraints = List.map (asrt_substitution new_pat_subst true) pat_constraints in 
 	let pfs_discharges  = pf_list_of_discharges new_pat_subst discharges in 
 	let pfs_subst       = substitution_to_list (filter_substitution_set (SS.union existentials spec_vars) subst) in 
@@ -1227,9 +1227,9 @@ let unfold_predicate_definition
 	(* subst(Sigma_0) + pat_subst(Sigma_1) + (_, _, pfs_discharges + pfs_subst, gamma , _)                 *)
 	let symb_state = ss_substitution subst true symb_state in
 	let unfolded_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state new_pat_subst in
-	pfs_merge (ss_pfs unfolded_symb_state) (pfs_of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
+	pfs_merge (ss_pfs unfolded_symb_state) (PFS.of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
 	TypEnv.extend (ss_gamma unfolded_symb_state) gamma;
-	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (pfs_to_list (ss_pfs unfolded_symb_state));
+	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (PFS.to_list (ss_pfs unfolded_symb_state));
 	Some unfolded_symb_state ) with UnificationFailure _ -> None 
 
 let grab_resources 
@@ -1247,12 +1247,12 @@ let grab_resources
 		let outcome, (heap_f, preds_f, subst, pf_discharges, _) = unify_symb_states pat_unification_plan (Some pat_subst) pat_symb_state symb_state in
 		match outcome with
 		| true ->
-			ss_extend_pfs symb_state (pfs_of_list pf_discharges);
+			ss_extend_pfs symb_state (PFS.of_list pf_discharges);
 			let symb_state = ss_replace_heap symb_state heap_f in
 			let symb_state = ss_replace_preds symb_state preds_f in
 			let new_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state subst in
 			let subst_pfs = assertions_of_substitution subst in
-			ss_extend_pfs symb_state (pfs_of_list subst_pfs);
+			ss_extend_pfs symb_state (PFS.of_list subst_pfs);
 			let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 			Some symb_state
 		| false -> None

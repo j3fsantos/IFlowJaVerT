@@ -9,7 +9,6 @@ open Z3
 (*************************************)
 
 (** The rest is as-is *)
-type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
@@ -19,7 +18,7 @@ type predicate_assertion       = (string * (jsil_logic_expr list))
 *)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 
-type symbolic_state       = SHeap.t * SStore.t * pure_formulae * TypEnv.t * predicate_set
+type symbolic_state       = SHeap.t * SStore.t * PFS.t * TypEnv.t * predicate_set
 type symbolic_state_frame = SHeap.t * predicate_set * substitution * (jsil_logic_assertion list) * TypEnv.t 
 type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
@@ -114,45 +113,36 @@ type symbolic_execution_context = {
 (** Pure Formulae functions         **)
 (*************************************)
 
-(** Returns a new (empty) predicate set *)
-let pfs_init () : pure_formulae = DynArray.make medium_tbl_size
-
-(** Returns the serialization of --pfs-- as a list *)
-let pfs_to_list (pfs : pure_formulae) : jsil_logic_assertion list = DynArray.to_list pfs
-
-(** Returns a pure_formulae array given a list of assertions *)
-let pfs_of_list (pfs : jsil_logic_assertion list) : pure_formulae = DynArray.of_list pfs
-
-let pfs_mem (pfs : pure_formulae) (a : jsil_logic_assertion) : bool = 
+let pfs_mem (pfs : PFS.t) (a : jsil_logic_assertion) : bool = 
 	Array.mem a (DynArray.to_array pfs)
 
 (** Extends --pfs-- with --a-- *)
-let pfs_extend (pfs : pure_formulae) (a : jsil_logic_assertion) : unit = DynArray.add pfs a
+let pfs_extend (pfs : PFS.t) (a : jsil_logic_assertion) : unit = DynArray.add pfs a
 
 (** Returns a copie of --pfs-- *)
-let pfs_copy (pfs : pure_formulae) : pure_formulae = DynArray.copy pfs
+let pfs_copy (pfs : PFS.t) : PFS.t = DynArray.copy pfs
 
 (** Extend --pfs_l-- with --pfs_r-- *)
-let pfs_merge (pfs_l : pure_formulae) (pfs_r : pure_formulae) : unit = DynArray.append pfs_r pfs_l
+let pfs_merge (pfs_l : PFS.t) (pfs_r : PFS.t) : unit = DynArray.append pfs_r pfs_l
 
 (** Returns subst(pf) *)
-let pfs_substitution (subst : substitution) (partial : bool) (pf : pure_formulae) : pure_formulae =
-	let asrts   = pfs_to_list pf in 
+let pfs_substitution (subst : substitution) (partial : bool) (pf : PFS.t) : PFS.t =
+	let asrts   = PFS.to_list pf in 
 	let s_asrts = List.map (asrt_substitution subst partial) asrts in 
-	pfs_of_list s_asrts
+	PFS.of_list s_asrts
 
 (** Updates pfs to subst(pfs) *)
-let pfs_substitution_in_place (subst : substitution) (pfs : pure_formulae) : unit =
+let pfs_substitution_in_place (subst : substitution) (pfs : PFS.t) : unit =
 	DynArray.iteri (fun i a ->
 		let s_a = JSIL_Logic_Utils.asrt_substitution subst true a in
 		DynArray.set pfs i s_a) pfs
 
 (** Returns the set containing all the lvars occurring in --pfs-- *)
-let pfs_lvars (pfs : pure_formulae) : SS.t  =
+let pfs_lvars (pfs : PFS.t) : SS.t  =
 	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_lvars a)) SS.empty pfs
 
 (** Returns the set containing all the alocs occurring in --pfs-- *)
-let pfs_alocs (pfs : pure_formulae) : SS.t =
+let pfs_alocs (pfs : PFS.t) : SS.t =
 	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_alocs a)) SS.empty pfs
 
 
@@ -265,7 +255,7 @@ let ss_store (symb_state : symbolic_state) : SStore.t =
 	let _, store, _, _, _ = symb_state in store
 
 (** Symbolic state third projection *)
-let ss_pfs (symb_state : symbolic_state) : pure_formulae =
+let ss_pfs (symb_state : symbolic_state) : PFS.t =
 	let _, _, pfs, _, _ = symb_state in pfs
 
 (** Symbolic state fourth projection *)
@@ -277,12 +267,12 @@ let ss_preds (symb_state : symbolic_state) : predicate_set =
 	let _, _, _, _, preds = symb_state in preds
 
 let ss_pfs_list (symb_state : symbolic_state) : jsil_logic_assertion list =
-	pfs_to_list (ss_pfs symb_state)
+	PFS.to_list (ss_pfs symb_state)
 
 let ss_extend_preds (symb_state : symbolic_state) (pred_assertion : predicate_assertion) : unit =
 	preds_extend (ss_preds symb_state) pred_assertion
 
-let ss_extend_pfs (symb_state : symbolic_state) (pfs_to_add : pure_formulae) : unit =
+let ss_extend_pfs (symb_state : symbolic_state) (pfs_to_add : PFS.t) : unit =
 	pfs_merge (ss_pfs symb_state) pfs_to_add
 
 (** Replaces the --symb_state-- heap with --heap--   *)
@@ -294,7 +284,7 @@ let ss_replace_store (symb_state : symbolic_state) (store : SStore.t) : symbolic
 	let heap, _, pfs, gamma, preds   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- pfs with --pfs--     *)
-let ss_replace_pfs (symb_state : symbolic_state) (pfs : pure_formulae) : symbolic_state =
+let ss_replace_pfs (symb_state : symbolic_state) (pfs : PFS.t) : symbolic_state =
 	let heap, store, _, gamma, preds = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- gamma with --gamma-- *)
@@ -306,7 +296,7 @@ let ss_replace_preds (symb_state : symbolic_state) (preds : predicate_set) : sym
 	let heap, store, pfs, gamma, _   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Returns a new empty symbolic state *)
-let ss_init () : symbolic_state = (SHeap.init (), (SStore.init [] []), pfs_init (), TypEnv.init (), preds_init ())
+let ss_init () : symbolic_state = (SHeap.init (), (SStore.init [] []), PFS.init (), TypEnv.init (), preds_init ())
 
 (** Returns a copy of the symbolic state *)
 let ss_copy (symb_state : symbolic_state) : symbolic_state =
@@ -374,7 +364,7 @@ let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion
 	let heap_asrts  = SHeap.assertions heap in
 	let store_asrts = SStore.assertions store in
 	let gamma_asrt  = TypEnv.assertions gamma in
-	let pure_asrts  = pfs_to_list pfs in
+	let pure_asrts  = PFS.to_list pfs in
 	let pred_asrts  = assertions_of_preds preds in 
 	let asrts       = heap_asrts @ store_asrts @ pure_asrts @ [ gamma_asrt ] @ pred_asrts in
 	JSIL_Logic_Utils.star_asses asrts 
