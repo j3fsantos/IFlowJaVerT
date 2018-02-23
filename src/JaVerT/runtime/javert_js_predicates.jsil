@@ -113,6 +113,20 @@ pred NumberPrototype () :
 	MetaData(#npmd, null) * Extensible(#npmd, true) *
 	empty_fields (#npmd : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-);
 
+pred GlobalObject () :
+	JSObject ($lg) *
+	(($lg, "Error") -> {{ "d", $lerr, true, false, true }});
+    
+pred ObjectPrototype () :
+	JSObjWithProto ($lobj_proto, null) *
+    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
+    empty_fields ($lobj_proto : -{ "hasOwnProperty" }-);
+
+pred BI_ErrorObject () :
+	BIFunctionObject ($lerr, 1, $lerr_proto) *
+    MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct");
+ 
+
 (************************
  ***** INITIAL HEAP *****
  ************************)
@@ -136,9 +150,7 @@ pred initialHeapPost (globals) :
 	(($lg, "Error") -> {{ "d", $lerr, true, false, true }}) *
     empty_fields ($lg : -u- (-{ "Error" }-, globals) ) *
     
-    JSObjWithProto ($lobj_proto, null) *
-    (($lobj_proto, "hasOwnProperty") -> {{ "d", $lop_hasOwnProperty, true, false, true }}) *
-    empty_fields ($lobj_proto : -{ "hasOwnProperty" }-) *
+    ObjectPrototype () *
 
 	JSBIFunction($lop_hasOwnProperty, "OP_hasOwnProperty", 1) * empty_fields($lop_hasOwnProperty : -{ "length" }-) *
     
@@ -155,8 +167,7 @@ pred initialHeapPost (globals) :
     NumberPrototype () *
     empty_fields ($lnum_proto : -{ "constructor" }-) *
     
-    BIFunctionObject ($lerr, 1, $lerr_proto) * empty_fields($lerr : -{ "length", "prototype" }-) *
-    MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
+    BI_ErrorObject () * empty_fields($lerr : -{ "length", "prototype" }-) *
      
     JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true) * 
     (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
@@ -185,9 +196,8 @@ pred initialHeapPostWeak ( ) :
     NumberPrototype () *
     empty_fields ($lnum_proto : -{ "constructor" }-) *
     
-    BIFunctionObject ($lerr, 1, $lerr_proto) * empty_fields($lerr : -{ "length", "prototype" }-) *
-    MetaData($lerr, #mlerr) * ((#mlerr, "@call") -> "Error_call") * ((#mlerr, "@construct") -> "Error_construct") *
-     
+    BI_ErrorObject () * empty_fields($lerr : -{ "length", "prototype" }-) *
+    
     JSObjGeneral ($lerr_proto, $lobj_proto, "Error", true) * 
     (($lerr_proto, "message") -> {{ "d", "", true, false, true }}) *
     empty_fields($lerr_proto : -{ "message" }-);
@@ -200,10 +210,10 @@ pred ErrorObject (l:Obj, pr:Obj) :
 	JSObjGeneral(l, pr, "Error", true);
 
 pred ErrorObjectWithMessage (l:Obj, m:Str) :
-  MetaData(l, #md) * Extensible(l, true) *
-  ((l, "message") -> {{"d", m, true, false, true}}) *
-  ((#md, "@proto") -> $lerr_proto) * ((#md, "@class") -> "Error") * ((#md, "@extensible") -> true) *
-  MetaData(#md, null) * Extensible(#md, true);
+	MetaData(l, #md) * Extensible(l, true) *
+	((l, "message") -> {{"d", m, true, false, true}}) *
+	((#md, "@proto") -> $lerr_proto) * ((#md, "@class") -> "Error") * ((#md, "@extensible") -> true) *
+	MetaData(#md, null) * Extensible(#md, true);
 
 pred isTypeError(l:Obj) :
     ErrorObject (l, $lterr_proto) * empty_fields(l : -{ }-);

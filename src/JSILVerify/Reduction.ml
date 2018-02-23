@@ -2,7 +2,6 @@ open CCommon
 open SCommon
 open JSIL_Syntax
 open JSIL_Logic_Utils
-open Symbolic_State
 
 (* When reduction fails *)
 exception ReductionException of jsil_logic_expr * string
@@ -46,8 +45,8 @@ let lexpr_is_set ?(gamma : TypEnv.t option) (le : jsil_logic_expr) : bool =
 (* Pure formulae helper functions *)
 (**********************************)
 
-let find_first_equality_in_pfs (pfs : pure_formulae) le =
-	let lpfs = pfs_to_list pfs in
+let find_first_equality_in_pfs (pfs : PFS.t) le =
+	let lpfs = PFS.to_list pfs in
 	let lpfs = List.find_opt (fun x -> match x with | LEq (x, y) -> (x = le) || (y = le) | _ -> false) lpfs in
 	let result = Option.map (fun x -> match x with | LEq (x, y) -> if x = le then y else x) lpfs in
 		print_debug_petar (Printf.sprintf "Found equality: %s = %s" (JSIL_Print.string_of_logic_expression le) (Option.map_default (fun x -> JSIL_Print.string_of_logic_expression x) "None" result));
@@ -108,7 +107,7 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 	) 
 
 (* Finding the nth element of a list *)
-let rec get_head_and_tail_of_list ?(pfs : pure_formulae option) (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
+let rec get_head_and_tail_of_list ?(pfs : PFS.t option) (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
 	let f = get_head_and_tail_of_list in
 
 	(match lst with
@@ -245,7 +244,7 @@ let all_different pfs les =
 (*************)
 
 (** Reduction of logical expressions *)
-let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs : pure_formulae option) (le : jsil_logic_expr) = 
+let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs : PFS.t option) (le : jsil_logic_expr) = 
 
 	let start_time = Sys.time () in
 
@@ -475,16 +474,23 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 				(* 0 is the neutral *)
 				| LLit (Num 0.), x
 				| x, LLit (Num 0.) -> x
+				| LLit (Num x), _ when (x == nan) -> LLit (Num nan)
+				| _, LLit (Num x) when (x == nan) -> LLit (Num nan)
+				(* This can be more general *)
+				| LBinOp (LLit (Num x), Plus, y), LLit (Num z) -> LBinOp (LLit (Num (x +. z)), Plus, y)
+				| LLit (Num z), LBinOp (LLit (Num x), Plus, y) -> LBinOp (LLit (Num (z +. x)), Plus, y)
 				(* Associate to the right *)
 				| LBinOp (flell, Plus, flelr), fler -> LBinOp (flell, Plus, LBinOp (flelr, Plus, fler))
 				(* Rest *)
-				| _, _ -> def
+				| _, _ -> print_debug "P6"; def
 				)
 			| Minus when (lexpr_is_number ?gamma:gamma def) ->
 				(match flel, fler with
 				(* 0 is the neutral *)
 				| LLit (Num 0.), x -> LUnOp (UnaryMinus, x)
 				| x, LLit (Num 0.) -> x
+				| LLit (Num x), _ when (x == nan) -> LLit (Num nan)
+				| _, LLit (Num x) when (x == nan) -> LLit (Num nan)
 				(* Transform to unary minus *)
 				| _, _ -> LBinOp (flel, Plus, (LUnOp (UnaryMinus, fler)))
 				)
@@ -493,6 +499,10 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 				(* 1 is the neutral *)
 				| LLit (Num 1.), x 
 				| x, LLit (Num 1.) -> x
+				| LLit (Num x), _ when (x == nan) -> LLit (Num nan)
+				| _, LLit (Num x) when (x == nan) -> LLit (Num nan)
+				| LBinOp (LLit (Num x), Times, y), LLit (Num z) -> LBinOp (LLit (Num (x *. z)), Times, y)
+				| LLit (Num z), LBinOp (LLit (Num x), Times, y) -> LBinOp (LLit (Num (z *. x)), Times, y)
 				(* Rest *)
 				| _, _ -> def
 				)
@@ -555,7 +565,7 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 
 			| SetDiff when (lexpr_is_set ?gamma:gamma def) ->
 				print_debug_petar (Printf.sprintf "SetDiff: %s -d- %s" (JSIL_Print.string_of_logic_expression flel) (JSIL_Print.string_of_logic_expression fler));
-				let pfs = Option.map_default (fun pfs -> pfs_to_list pfs) [] pfs in
+				let pfs = Option.map_default (fun pfs -> PFS.to_list pfs) [] pfs in
 				(match flel, fler with
 				| x, y when (x = y) -> LESet []
 				| LESet [], _ -> LESet []
@@ -607,6 +617,13 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 					LLit (Bool (SLExpr.subset (SLExpr.of_list left) (SLExpr.of_list right)))
 				| LVar v, LSetUnion les -> if (List.mem flel les) then (LLit (Bool true)) else def
 				| _, _ -> def)
+
+			| LessThan -> 
+				(match flel, fler with
+				| LUnOp (LstLen, _), LLit (Num n) when (n <= 0.)-> LLit (Bool false)
+				| LUnOp (LstLen, le), LLit (Num 1.) -> LBinOp (le, Equal, LEList [])
+				| _, _ -> def)
+
 			| _ -> def
 			)
 		)
@@ -615,9 +632,9 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 	| _ -> le 
 	) in
 	
-	if (le <> result) && (not (le == result))
+	let final_result = if (le <> result) && (not (le == result))
 		then (print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result)); f result)
-		else 
-		(if (no_timing <> None) then 
-			(let end_time = Sys.time () in update_statistics "reduce_lexpr" (end_time -. start_time));
-		result)
+		else result in
+
+	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_lexpr" (end_time -. start_time));
+	final_result
