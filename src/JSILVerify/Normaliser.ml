@@ -1723,6 +1723,12 @@ let new_create_unification_plan
 
   let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
 
+  (* duplicate assertions with multiple in-var sets (for now, only LEq) *)
+  let duplicate_asrt asrt ac = match asrt with
+    | LEq (le1, le2) -> LEq (le1, le2) :: LEq (le2, le1) :: ac
+    | _ -> asrt::ac in
+  let all_asrts = List.fold_right duplicate_asrt all_asrts [] in
+  
   let print_asrts (name, asrts) =
     print_debug (name ^ " assertions:");
     List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
@@ -1740,7 +1746,7 @@ let new_create_unification_plan
 
   let nb_vars = SS.cardinal all_vars in
   let var_asrts = Hashtbl.create nb_vars in (* for each variable, the list of asrts of which it is an in-var *)
-  SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* too tedious to check everywhere else *)
+  SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* it's too tedious to have to check everywhere else *)
   let seen_vars = Hashtbl.create nb_vars in
   let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
 
@@ -1767,7 +1773,7 @@ let new_create_unification_plan
         get_lexpr_vars le1, get_lexpr_vars le2
       | _ -> get_asrt_vars asrt, SS.empty in
     let update_var var =
-      let cur_asrts = if Hashtbl.mem var_asrts var then Hashtbl.find var_asrts var else [] in
+      let cur_asrts = Hashtbl.find var_asrts var in
       Hashtbl.replace var_asrts var (asrt_i::cur_asrts) in
     SS.iter update_var in_vars;
     print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
