@@ -1698,7 +1698,7 @@ let new_create_unification_plan
   let gamma_vars = Hashtbl.fold (fun x v ac -> SS.add x ac) gamma SS.empty in
   let preds_vars = DynArray.fold_right (fun pred ac -> SS.union (get_pred_vars pred) ac) preds SS.empty in
 
-  let all_vars = List.fold_right SS.union [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars] SS.empty in
+  let all_vars = List.fold_right SS.union [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars; reachable_alocs] SS.empty in
   let concrete_locs = SS.of_list (List.filter (fun n -> not (is_aloc_name n)) (SS.elements (SHeap.domain heap))) in
   let init_vars = List.fold_right SS.union [store_vars; concrete_locs; reachable_alocs] SS.empty in
 
@@ -1835,20 +1835,13 @@ let new_create_unification_plan
     print_debug "Unification plan:";
     List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
     print_debug "";
-    !unification_plan
   ) else (
     let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\n" 
         (Symbolic_State_Print.string_of_unification_plan !unification_plan)
         (Symbolic_State_Print.string_of_symb_state symb_state) in
     print_debug msg;
-    raise (Failure msg)
-  )
-
-  
-  print_debug "New unification plan successful!";
-  print_debug "Unification plan:";
-  List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
-  print_debug "";
+    (* raise (Failure msg) *)
+  );
 
   !unification_plan
 
