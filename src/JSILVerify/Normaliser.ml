@@ -1657,10 +1657,14 @@ let old_create_unification_plan
 	print_debug_petar (Printf.sprintf "Heap length is %d" (Heap.length heap));
 	if ((Heap.length heap) = 0) then (
 		(* We found all the locations in the symb_state - we are fine! *)
-		Queue.clear unification_plan;
+   Queue.clear unification_plan;
+   print_debug "New unification plan successful!";
+   print_debug "Unification plan:";
+   List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) unification_plan_lst;
+   print_debug "";
 		unification_plan_lst
 	) else (
-		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:%s\n" 
+		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:\n%s\n" 
 			(String.concat ", " (SS.elements !marked_alocs))
 			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
 			(SHeap.str heap)
@@ -1834,6 +1838,7 @@ let new_create_unification_plan
   print_debug (Symbolic_State_Print.string_of_symb_state symb_state);
 
   (* Step 1 -- find all the variables: Locs, PVars and LVars *)
+  
   let get_pred_vars (pred: string * (jsil_logic_expr list)) : SS.t =
     let _, lexprs = pred in
     List.fold_right (fun le ac -> SS.union (get_lexpr_vars le) ac) lexprs SS.empty in
@@ -1845,13 +1850,16 @@ let new_create_unification_plan
   let preds_vars = DynArray.fold_right (fun pred ac -> SS.union (get_pred_vars pred) ac) preds SS.empty in
 
   let all_vars = List.fold_right SS.union [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars] SS.empty in
-  let init_vars = SS.union store_vars reachable_alocs in
+  let concrete_locs = SS.of_list (List.filter (fun n -> not (is_aloc_name n)) (SS.elements (SHeap.domain heap))) in
+  let init_vars = List.fold_right SS.union [store_vars; concrete_locs; reachable_alocs] SS.empty in
 
   let print_ss (name, ss) =
     print_debug (name ^ " variables:");
-    SS.iter print_debug ss in
+    SS.iter (fun s -> print_debug ("\t" ^ s)) ss in
   List.iter print_ss ["Heap", heap_vars; "Store", store_vars; "PF", pf_vars;
-                      "Gamma", gamma_vars; "Preds", preds_vars; "Reachable", reachable_alocs];
+                      "Gamma", gamma_vars; "Preds", preds_vars; "Reachable", reachable_alocs;
+                      "Initial", init_vars];
+  print_debug "";
 
   (* Step 2 -- find all assertions *)
 
@@ -1868,9 +1876,10 @@ let new_create_unification_plan
 
   let print_asrts (name, asrts) =
     print_debug (name ^ " assertions:");
-    List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) asrts in
+    List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
 
   List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
+  print_debug "";
 
   (* Step 3 -- build the dependency graph
     There are two kinds of nodes: variables and assertions.
@@ -1884,6 +1893,7 @@ let new_create_unification_plan
   let var_asrts = Hashtbl.create nb_vars in (* for each variable, the list of asrts of which it is an in-var *)
   SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* too tedious to check everywhere else *)
   let seen_vars = Hashtbl.create nb_vars in
+  let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
 
   let nb_asrts = List.length all_asrts in
   let asrt_array = DynArray.of_list all_asrts in
@@ -1912,17 +1922,24 @@ let new_create_unification_plan
       Hashtbl.replace var_asrts var (asrt_i::cur_asrts) in
     SS.iter update_var in_vars;
     print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
-    print_debug ("In vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
-    print_debug ("Out vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""));
+    print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
+    print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""));
     in_vars, out_vars in
 
   let asrt_nodes = DynArray.init nb_asrts fill_asrt in
+  let unification_plan = ref [] in
 
   SS.iter (fun var ->
       print_debug ("assertions using variable " ^ var ^ ":");
-      List.iter (fun asrt_i -> print_debug (JSIL_Print.string_of_logic_assertion (DynArray.get asrt_array asrt_i))) (Hashtbl.find var_asrts var)
-  ) all_vars;
+      List.iter (fun asrt_i ->
+          let asrt = DynArray.get asrt_array asrt_i in
+          print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))
+        ) (Hashtbl.find var_asrts var)
+    ) all_vars;
+  print_debug "";
 
+  (* Step 4 -- visit the assertion graph *)
+  
   let rec visit_var (var : string) : unit =
     if not (Hashtbl.mem seen_vars var) then (
       print_debug ("visiting variable " ^ var);
@@ -1932,24 +1949,58 @@ let new_create_unification_plan
     )
   and visit_asrt (asrt_i : int) : unit =
     let in_vars, out_vars = DynArray.get asrt_nodes asrt_i in
-    let cur_seen_in = (DynArray.get seen_in_vars asrt_i) in
-    print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion (DynArray.get asrt_array asrt_i))); 
+    let cur_seen_in = DynArray.get seen_in_vars asrt_i in
+    let asrt = DynArray.get asrt_array asrt_i in
+    print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt)); 
     DynArray.set seen_in_vars asrt_i (cur_seen_in + 1);
     if DynArray.get seen_in_vars asrt_i = SS.cardinal in_vars then (
-      print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion (DynArray.get asrt_array asrt_i)));
+      print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
+      begin match asrt with
+      | LPointsTo _
+      | LMetaData _
+      | LExtensible _
+      | LEmptyFields _-> incr seen_heap_asrts;
+      | _ -> ();
+      end;
+      unification_plan := asrt::(!unification_plan);
       SS.iter visit_var out_vars
     )
   in
 
   print_debug "Starting dependency graph traversal...";
   SS.iter visit_var init_vars;
+  unification_plan := List.rev (!unification_plan);
+  print_debug "";
+
+  (** Step 7 -- we're done! *)
+  print_debug (Printf.sprintf "saw %d heap assertions (out of %d)" !seen_heap_asrts (List.length heap_asrts));
+  if (!seen_heap_asrts = (List.length heap_asrts)) then (
+    (* We found all the locations in the symb_state - we are fine! *)
+    print_debug "Unification plan successful!";
+    print_debug "Unification plan:";
+    List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
+    print_debug "";
+    !unification_plan
+  ) else (
+    let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\n" 
+        (Symbolic_State_Print.string_of_unification_plan !unification_plan)
+        (Symbolic_State_Print.string_of_symb_state symb_state) in
+    print_debug msg;
+    raise (Failure msg)
+  )
+
   
-  []
+  print_debug "New unification plan successful!";
+  print_debug "Unification plan:";
+  List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
+  print_debug "";
+
+  !unification_plan
 
 
 let create_unification_plan symb_state reachable_alocs =
-  let new_res = new_create_unification_plan symb_state reachable_alocs in
   let old_res = old_create_unification_plan symb_state reachable_alocs in
+  let new_res = new_create_unification_plan symb_state reachable_alocs in
   old_res
 
 (* Create unification plans for multiple symbolic states at the same time
