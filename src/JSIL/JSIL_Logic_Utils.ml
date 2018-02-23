@@ -290,16 +290,36 @@ let rec get_asrt_alocs (a : jsil_logic_assertion) : SS.t =
 		| _ -> List.concat ac in
 	let fe = logic_expression_fold fe_ac None None in 
 	let f_ac a _ _ ac = List.concat ac in
- 	SS.of_list (assertion_fold (Some fe) f_ac None None a)
+  SS.of_list (assertion_fold (Some fe) f_ac None None a)
 
-(* Get all the variables in [a] *)
-let get_asrt_vars (a : jsil_logic_assertion) : SS.t =
-  let vars = [get_asrt_alocs a; get_asrt_lvars a; get_asrt_pvars a] in
-  List.fold_left SS.union SS.empty vars
+
+(* Get all the concrete locations in [le] *)
+let rec get_lexpr_clocs (le : jsil_logic_expr) : SS.t =
+  let fe_ac le _ _ ac =
+    match le with
+    | LLit (Loc l) -> l :: (List.concat ac)
+    | _ -> List.concat ac in
+  SS.of_list (logic_expression_fold fe_ac None None le)
+
+(* Get all the concrete locations in [a] *)
+let rec get_asrt_clocs (a : jsil_logic_assertion) : SS.t =
+  let fe_ac le _ _ ac =
+    match le with
+    | LLit (Loc l) -> l :: (List.concat ac)
+    | _ -> List.concat ac in
+  let fe = logic_expression_fold fe_ac None None in 
+  let f_ac a _ _ ac = List.concat ac in
+  SS.of_list (assertion_fold (Some fe) f_ac None None a)
+
 
 (* Get all the variables in [le] *)
 let get_lexpr_vars (le : jsil_logic_expr) : SS.t =
-  let vars = [get_lexpr_alocs le; get_lexpr_lvars le; get_lexpr_pvars le] in
+  let vars = [get_lexpr_alocs le; get_lexpr_clocs le; get_lexpr_lvars le; get_lexpr_pvars le] in
+  List.fold_left SS.union SS.empty vars
+
+(* Get all the variables in [a] *)
+let get_asrt_vars (a : jsil_logic_assertion) : SS.t =
+  let vars = [get_asrt_alocs a; get_asrt_clocs a; get_asrt_lvars a; get_asrt_pvars a] in
   List.fold_left SS.union SS.empty vars
 
 
