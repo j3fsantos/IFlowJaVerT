@@ -1696,7 +1696,7 @@ let new_create_unification_plan
     List.fold_right (fun le ac -> SS.union (get_lexpr_vars le) ac) lexprs SS.empty in
 
   let heap_vars = List.fold_right (fun asrt ac -> SS.union (get_asrt_vars asrt) ac) (SHeap.assertions heap) SS.empty in
-  let store_vars = Hashtbl.fold (fun x v ac -> SS.union (SS.add x (get_lexpr_vars v)) ac) store SS.empty in
+  let store_vars = SStore.fold store (fun x v ac -> SS.union (SS.add x (get_lexpr_vars v)) ac) SS.empty in
   let pf_vars = DynArray.fold_right (fun asrt ac -> SS.union (get_asrt_vars asrt) ac) pf SS.empty in
   let gamma_vars = Hashtbl.fold (fun x v ac -> SS.add x ac) gamma SS.empty in
   let preds_vars = DynArray.fold_right (fun pred ac -> SS.union (get_pred_vars pred) ac) preds SS.empty in
