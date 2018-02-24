@@ -111,9 +111,10 @@ type jsil_logic_assertion =
 type jsil_logic_predicate = {
 	name        : string;                                        (** Name of the predicate  *)
 	num_params  : int;                                           (** Number of parameters   *)
-	params      : (jsil_logic_expr * Type.t option) list;        (** Actual parameters      *)
-  definitions : ((string option) * jsil_logic_assertion) list; (** Predicate definitions  *)
-  previously_normalised_pred : bool                            (** If the predicate has been previously normalised *)
+	params      : (string * Type.t option) list;                 (** Actual parameters      *)
+	ins         : string list;                                   (** Ins                    *)
+	definitions : ((string option) * jsil_logic_assertion) list; (** Predicate definitions  *)
+	previously_normalised_pred : bool                            (** If the predicate has been previously normalised *)
 }
 
 (** Creates/populates a Hashtbl from the predicate list pred_defs *)
