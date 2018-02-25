@@ -1711,6 +1711,8 @@ let new_create_unification_plan
     (symb_state      : symbolic_state)
     (reachable_alocs : SS.t) : (jsil_logic_assertion list) =
 	
+	let t0 = Sys.time () in
+
 	let heap, store, pf, gamma, preds = symb_state in
 
 	let heap                    = Heap.copy heap in
@@ -1727,6 +1729,8 @@ let new_create_unification_plan
 	print_debug "Creating unification plan.";
 	print_debug "Symbolic state :";
 	print_debug (Symbolic_State_Print.string_of_symb_state symb_state);
+
+	let t1 = Sys.time () in
 
 	(* Step 1 -- find all the variables: Locs, PVars and LVars *)
 
@@ -1751,6 +1755,8 @@ let new_create_unification_plan
 		"Initial", init_vars];
 	print_debug "";
 
+	let t2 = Sys.time () in
+
 	(* Step 2 -- find all assertions *)
 
 	let type_to_asrt (x : string) (t : Type.t) =
@@ -1770,6 +1776,8 @@ let new_create_unification_plan
 	List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
 	print_debug "";
 
+	let t3 = Sys.time () in
+
 	(* Step 3 -- build the dependency graph
 	   There are two kinds of nodes: variables and assertions.
 	   Edges flow from the in-variables of assertions to their out-variables.
@@ -1779,7 +1787,7 @@ let new_create_unification_plan
 	   and the out-vars for the assertion. *)
 
 	let nb_vars = SS.cardinal all_vars in
-	let var_asrts = Hashtbl.create nb_vars in (* for each variable, the list of asrts of which it is an in-var *)
+	let var_asrts = Hashtbl.create nb_vars in       (* for each variable, the list of asrts of which it is an in-var *)
 	SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* it's too tedious to have to check everywhere else *)
 	let seen_vars = Hashtbl.create nb_vars in
 	let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
@@ -1814,6 +1822,8 @@ let new_create_unification_plan
 	) all_vars;
 	print_debug "";
 
+	let t4 = Sys.time () in
+
 	(* Step 4 -- visit the assertion graph *)
 
 	let rec visit_var (var : string) : unit =
@@ -1847,7 +1857,9 @@ let new_create_unification_plan
 	SS.iter visit_var init_vars;
 	unification_plan := List.rev (!unification_plan);
 
-	(** Step 7 -- we're done! *)
+	let t5 = Sys.time () in
+
+	(** Step 5 -- we're done! *)
 	print_debug (Printf.sprintf "saw %d heap assertions (out of %d)" !seen_heap_asrts (List.length heap_asrts));
 	if (!seen_heap_asrts = (List.length heap_asrts)) then (
 	(* We found all the locations in the symb_state - we are fine! *)
@@ -1862,6 +1874,9 @@ let new_create_unification_plan
 	print_debug msg;
 	(* raise (Failure msg) *)
 	);
+
+	print_debug (Printf.sprintf "Prep: %f\nStep 1: %f\nStep 2: %f\nStep 3: %f\nStep 4: %f\nTotal: %f" 
+		(t1 -. t0) (t2 -. t1) (t3 -.t2) (t4 -. t3) (t5 -. t4) (t5 -. t0));
 
 	!unification_plan
 
