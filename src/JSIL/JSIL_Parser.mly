@@ -562,10 +562,10 @@ pred_target:
   		(* Add the predicate to the collection *)
 		let (name, num_params, params, ins) = pred_head in
     	let previously_normalised_pred = !previously_normalised in
-    	Printf.printf "\tJSIL Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
+    	(* Printf.printf "\tJSIL Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
 		  	name
 		  	(String.concat ", " (List.map (fun (x, _) -> x) params))
-		  	(String.concat ", " (List.map (fun x -> Printf.sprintf "%d" x) ins));
+		  	(String.concat ", " (List.map (fun x -> Printf.sprintf "%d" x) ins)); *)
 		let pred = { name; num_params; params; ins; definitions; previously_normalised_pred } in
 			Hashtbl.add predicate_table name pred;
     		pred
@@ -593,10 +593,10 @@ js_pred_target:
 	definitions = separated_nonempty_list(COMMA, js_named_assertion_target); SCOLON
   	{ (* Add the predicate to the collection *)
 	  let (name, num_params, params, ins) = pred_head in
-	  Printf.printf "\tJS Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
+	  (* Printf.printf "\tJS Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
 	  	name
 	  	(String.concat ", " (List.map (fun (x, _) -> x) params))
-	  	(String.concat ", " (List.map (fun x -> Printf.sprintf "%d" x) ins));
+	  	(String.concat ", " (List.map (fun x -> Printf.sprintf "%d" x) ins)); *)
 	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_ins = ins; js_definitions = definitions } in
     pred
 	}
