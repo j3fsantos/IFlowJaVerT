@@ -81,6 +81,11 @@ let substitution_in_place (subst : substitution) (store : t) : unit =
 		Hashtbl.replace store x s_le)
 	store
 
+(** Returns the set containing all the vars occurring in --store-- *)
+let vars (store : t) : SS.t =
+	Hashtbl.fold (fun x le ac -> 
+		SS.union ac (SS.add x (get_lexpr_vars le))) store SS.empty
+
 (** Returns the set containing all the lvars occurring in --store-- *)
 let lvars (store : t) : SS.t =
 	Hashtbl.fold (fun _ le ac -> SS.union ac (get_lexpr_lvars le)) store SS.empty

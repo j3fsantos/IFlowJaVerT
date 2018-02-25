@@ -1,5 +1,5 @@
 /**
-	@pred Node(n, pri, val, next, np) :
+	@pred Node(+n, pri, val, next, np) :
 		JSObjWithProto(n, np)      * 
 		DataProp(n, "pri",  pri)   * (0 <# pri) *
 		DataProp(n, "val",  val)   *
@@ -15,7 +15,7 @@
 		((np, "val") -> none) * 
 		((np, "next") -> none);
 	
-	@pred NodeList(nl, np, max_pri, length) :
+	@pred NodeList(+nl, np, max_pri, length) :
 		(nl == null) * (max_pri == 0) * (length == 0),
 	
 		Node(nl, max_pri, #val, #next, np) * (0 <# max_pri) *
@@ -23,7 +23,7 @@
 	  	(length == #len_nl + 1);
 	
 	
-	@pred Queue(pq, qp, np, max_pri : Num, length : Num) :
+	@pred Queue(+pq, qp, np, max_pri : Num, length : Num) :
 		JSObjWithProto(pq, qp) * 
 		DataProp(pq, "_head",  #head) *
 		NodeList(#head, np, max_pri, length) *
@@ -31,7 +31,7 @@
 		((pq, "dequeue") -> none);
 	
 	
-	@pred QueuePrototype(qp, np, c : Num, enq_sc):
+	@pred QueuePrototype(+qp, np, c : Num, enq_sc):
 		JSObject(qp) *
 		DataProp(qp, "enqueue", #enqueue_loc) * JSFunctionObject(#enqueue_loc, "enqueue", enq_sc, _, _) *
 		DataProp(qp, "dequeue", #dequeue_loc) * JSFunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _, _) *

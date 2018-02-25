@@ -1,13 +1,13 @@
 /**
 	@pred NullableObject(o) : 
 		types(o : Obj),
-		(o == null) * types (o : Null);
+		types (o : Null);
 
 	@pred Node(+n : Obj, val : Num, left, right) :
 		JSObject(n) *
 		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right);
 
-	@pred BST(n, K : Set) :
+	@pred BST(+n, K : Set) :
 		(n == null) * (K == -{ }-) * types (n : Null, K : Set),
 		
 		Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 

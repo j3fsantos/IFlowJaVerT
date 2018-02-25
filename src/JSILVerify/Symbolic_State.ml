@@ -41,6 +41,7 @@ type n_jsil_logic_predicate = {
 	n_pred_name             : string;
 	n_pred_num_params       : int;
 	n_pred_params           : jsil_logic_var list;
+	n_pred_ins              : int list;
 	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
 	n_pred_is_rec           : bool; 
   n_pred_is_pure          : bool;
@@ -333,7 +334,7 @@ let ss_lvars (symb_state : symbolic_state) : SS.t =
 	let v_h  : SS.t = SHeap.lvars heap in
 	let v_s  : SS.t = SStore.lvars store in
 	let v_pf : SS.t = pfs_lvars pfs in
-	let v_g  : SS.t = TypEnv.get_lvars gamma in
+	let v_g  : SS.t = TypEnv.lvars gamma in
 	let v_pr : SS.t = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
 

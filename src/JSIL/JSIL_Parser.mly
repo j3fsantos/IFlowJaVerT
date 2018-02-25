@@ -562,6 +562,10 @@ pred_target:
   		(* Add the predicate to the collection *)
 		let (name, num_params, params, ins) = pred_head in
     	let previously_normalised_pred = !previously_normalised in
+    	Printf.printf "\tJSIL Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
+		  	name
+		  	(String.concat ", " (List.map (fun (x, _) -> x) params))
+		  	(String.concat ", " (List.map (fun x -> Printf.sprintf "%d" x) ins));
 		let pred = { name; num_params; params; ins; definitions; previously_normalised_pred } in
 			Hashtbl.add predicate_table name pred;
     		pred
@@ -592,7 +596,7 @@ js_pred_target:
 	  Printf.printf "\tJS Predicate:\n\tName: %s\n\tParams: %s\n\tIns: %s\n\n" 
 	  	name
 	  	(String.concat ", " (List.map (fun (x, _) -> x) params))
-	  	(String.concat ", " ins);
+	  	(String.concat ", " (List.map (fun x -> Printf.sprintf "%d" x) ins));
 	  let pred = { js_name = name; js_num_params = num_params; js_params = params; js_ins = ins; js_definitions = definitions } in
     pred
 	}
@@ -605,8 +609,8 @@ pred_head_target:
 		let num_params = List.length params in
 		let params, ins = List.split params in
 		let param_names, _ = List.split params in
-		let ins = List.map Option.get (List.filter (fun x -> x <> None) ins) in
-		let ins = if (List.length ins > 0) then ins else param_names in 
+		let ins = List.map Option.get (List.filter (fun x -> x <> None) (List.mapi (fun i is_in -> if is_in then Some i else None) ins)) in
+		let ins = if (List.length ins > 0) then ins else (List.mapi (fun i _ -> i) param_names) in 
 		(* register_predicate name num_params; *)
 		(* enter_predicate params; *)
 	  (name, num_params, params, ins)
@@ -620,8 +624,8 @@ js_pred_head_target:
 		let num_params = List.length params in
 		let params, ins = List.split params in
 		let param_names, _ = List.split params in
-		let ins = List.map Option.get (List.filter (fun x -> x <> None) ins) in
-		let ins = if (List.length ins > 0) then ins else param_names in 
+		let ins = List.map Option.get (List.filter (fun x -> x <> None) (List.mapi (fun i is_in -> if is_in then Some i else None) ins)) in
+		let ins = if (List.length ins > 0) then ins else (List.mapi (fun i _ -> i) param_names) in 
 		(name, num_params, params, ins)
 	}
 ;
@@ -629,7 +633,7 @@ js_pred_head_target:
 pred_param_target:
 	(* Program variable with in-parameter status and optional type *)
 	| in_param = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
-	  { let in_param = Option.map_default (fun _ -> Some v) None in_param in
+	  { let in_param = Option.map_default (fun _ -> true) false in_param in
 	  	(v, t), in_param }
 ;
 
@@ -637,7 +641,7 @@ pred_param_target:
 js_pred_param_target:
 	(* Program variable with optional type *)
 	| in_param = option(PLUS); v = VAR; t = option(preceded(COLON, type_target))
-	  { let in_param = Option.map_default (fun _ -> Some v) None in_param in
+	  { let in_param = Option.map_default (fun _ -> true) false in_param in
 	  	(v, t), in_param }
 ;
 

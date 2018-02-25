@@ -125,7 +125,7 @@ type js_logic_predicate = {
 	js_name        : string;
 	js_num_params  : int;
 	js_params      : (string * Type.t option) list;
-	js_ins         : string list;
+	js_ins         : int list;
 	js_definitions : ((string option) * js_logic_assertion) list;
 }
 

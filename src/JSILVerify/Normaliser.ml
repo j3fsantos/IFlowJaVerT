@@ -164,9 +164,10 @@ type unfolded_predicate = {
 	name                         : string;
 	num_params                   : int;
 	params                       : (jsil_var * Type.t option) list;
+	ins                          : int list;                                      
 	definitions                  : ((string option) * jsil_logic_assertion) list;
 	is_recursive                 : bool;
-  is_pure                      : bool;
+    is_pure                      : bool;
 	previously_normalised_u_pred : bool
 }
 
@@ -245,6 +246,7 @@ let replace_non_pvar_params (pred : jsil_logic_predicate) : unfolded_predicate =
 	{ name	       = pred.name;
 	  num_params   = pred.num_params;
 	  params       = new_params;
+	  ins          = pred.ins;
 	  definitions  = new_definitions;
     is_recursive = false;
     is_pure      = false;
@@ -1661,192 +1663,226 @@ let old_create_unification_plan
 		print_debug msg;
 		raise (Failure msg)) 
 
+let ins_and_outs 
+	?(predicates_unf : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option) 
+    (a : jsil_logic_assertion): (SS.t * SS.t) list =
+	let glev = get_lexpr_vars in
+	let get_ins name = match predicates_unf with 
+		| Some preds -> let pred = Hashtbl.find preds name in pred.ins
+		| None -> match predicates_sym with 
+			| Some preds -> let pred = Hashtbl.find preds name in pred.n_pred_ins
+			| None -> raise (Failure "Predicate table not supplied to ins_and_outs") in
+	let in_and_out_vars = match a with
+	  | LPointsTo (le_loc, le_f, (perm, le_v)) -> [ (SS.union (glev le_loc) (glev le_f), glev le_v) ]
+	  | LMetaData (le_loc, metadata)           -> [ (glev le_loc, glev metadata) ]
+	  | LExtensible (le_loc, ext)              -> [ (glev le_loc, SS.empty) ]
+	  | LTypes type_exprs                      -> [ List.fold_left (fun ac (le, t) -> SS.union (get_lexpr_vars le) ac) SS.empty type_exprs, SS.empty ]
+	  | LPred (name, param_les) ->
+	  		let ins    = get_ins name in
+	  		let ins_v  = ref SS.empty in
+	  		let outs_v = ref SS.empty in
+	      		List.iteri (fun i x -> 
+	      			let vars = glev x in
+	      			if (List.mem i ins) 
+	      				then ins_v := SS.union !ins_v vars 
+	      				else outs_v := SS.union !outs_v vars 
+	      		) param_les;
+	      		[ !ins_v, !outs_v ]
+	  
+	  | LEq (le1, le2) -> 
+	  		let glev1 = glev le1 in 
+	  		let glev2 = glev le2 in 
+	  			[ (glev1, glev2); (glev2, glev1) ]
+
+	  | _ -> [ (get_asrt_vars a, SS.empty) ] in
+
+	print_debug (Printf.sprintf "Assertion %s:" (JSIL_Print.string_of_logic_assertion a));
+	List.iter (fun (in_vars, out_vars) -> 
+	    print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
+	    print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""))) in_and_out_vars;
+	in_and_out_vars
+
 
 let new_create_unification_plan
+    ?(predicates_unf : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+
     (symb_state      : symbolic_state)
     (reachable_alocs : SS.t) : (jsil_logic_assertion list) =
-  let heap, store, pf, gamma, preds = symb_state in
+	
+	let heap, store, pf, gamma, preds = symb_state in
 
-  let heap                    = Heap.copy heap in
-  let unification_plan        = Queue.create () in
-  let abs_locs, concrete_locs = List.partition is_aloc_name (SS.elements (SHeap.domain heap)) in
+	let heap                    = Heap.copy heap in
 
-  print_debug "Creating unification plan.";
-  print_debug "Symbolic state :";
-  print_debug (Symbolic_State_Print.string_of_symb_state symb_state);
+	let heap_domain             = SHeap.domain heap in
+	let heap_domain_list        = SS.elements heap_domain in
+	let heap_asrts              = SHeap.assertions heap in
 
-  (* Step 1 -- find all the variables: Locs, PVars and LVars *)
-  
-  let get_pred_vars (pred: string * (jsil_logic_expr list)) : SS.t =
-    let _, lexprs = pred in
-    List.fold_right (fun le ac -> SS.union (get_lexpr_vars le) ac) lexprs SS.empty in
+	let unification_plan        = Queue.create () in
 
-  let heap_vars = List.fold_right (fun asrt ac -> SS.union (get_asrt_vars asrt) ac) (SHeap.assertions heap) SS.empty in
-  let store_vars = SStore.fold store (fun x v ac -> SS.union (SS.add x (get_lexpr_vars v)) ac) SS.empty in
-  let pf_vars = DynArray.fold_right (fun asrt ac -> SS.union (get_asrt_vars asrt) ac) pf SS.empty in
-  let gamma_vars = Hashtbl.fold (fun x v ac -> SS.add x ac) gamma SS.empty in
-  let preds_vars = DynArray.fold_right (fun pred ac -> SS.union (get_pred_vars pred) ac) preds SS.empty in
+	let abs_locs, concrete_locs = List.partition is_aloc_name heap_domain_list in
+	let abs_locs, concrete_locs = SS.of_list abs_locs, SS.of_list concrete_locs in
 
-  let all_vars = List.fold_right SS.union [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars; reachable_alocs] SS.empty in
-  let concrete_locs = SS.of_list (List.filter (fun n -> not (is_aloc_name n)) (SS.elements (SHeap.domain heap))) in
-  let init_vars = List.fold_right SS.union [store_vars; concrete_locs; reachable_alocs] SS.empty in
+	print_debug "Creating unification plan.";
+	print_debug "Symbolic state :";
+	print_debug (Symbolic_State_Print.string_of_symb_state symb_state);
 
-  let print_ss (name, ss) =
-    print_debug (name ^ " variables:");
-    SS.iter (fun s -> print_debug ("\t" ^ s)) ss in
-  List.iter print_ss ["Heap", heap_vars; "Store", store_vars; "PF", pf_vars;
-                      "Gamma", gamma_vars; "Preds", preds_vars; "Reachable", reachable_alocs;
-                      "Initial", init_vars];
-  print_debug "";
+	(* Step 1 -- find all the variables: Locs, PVars and LVars *)
 
-  (* Step 2 -- find all assertions *)
+	let get_pred_vars (pred: string * (jsil_logic_expr list)) : SS.t =
+	let _, lexprs = pred in
+	List.fold_left (fun ac le -> SS.union (get_lexpr_vars le) ac) SS.empty lexprs in
 
-  let type_to_asrt (x : string) (t : Type.t) =
-    let x_var = if is_lvar_name x then (LVar x) else (PVar x) in
-    LTypes [x_var, t] in
+	let heap_vars  = List.fold_left     (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty heap_asrts in
+	let store_vars = SStore.fold store  (fun x v ac  -> SS.union (SS.add x (get_lexpr_vars v)) ac) SS.empty in
+	let pf_vars    = DynArray.fold_left (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty pf in
+	let gamma_vars = Hashtbl.fold       (fun x v ac  -> SS.add x ac) gamma SS.empty in
+	let preds_vars = DynArray.fold_left (fun ac pred -> SS.union (get_pred_vars pred) ac) SS.empty preds in
 
-  let heap_asrts = SHeap.assertions heap in
-  let pf_asrts = DynArray.to_list pf in
-  let gamma_asrts = Hashtbl.fold (fun x v ac -> (type_to_asrt x v)::ac) gamma [] in
-  let pred_asrts = DynArray.fold_right (fun (n, les) ac -> (LPred (n, les))::ac) preds [] in
+	let all_vars = List.fold_left SS.union SS.empty [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars; reachable_alocs] in
+	let init_vars = List.fold_left SS.union SS.empty [store_vars; concrete_locs; reachable_alocs]  in
 
-  let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
+	let print_ss (name, ss) =
+	print_debug (name ^ " variables:");
+	SS.iter (fun s -> print_debug ("\t" ^ s)) ss in
+	List.iter print_ss ["Heap", heap_vars; "Store", store_vars; "PF", pf_vars;
+		"Gamma", gamma_vars; "Preds", preds_vars; "Reachable", reachable_alocs; 
+		"Initial", init_vars];
+	print_debug "";
 
-  (* duplicate assertions with multiple in-var sets (for now, only LEq) *)
-  let duplicate_asrt asrt ac = match asrt with
-    | LEq (le1, le2) -> LEq (le1, le2) :: LEq (le2, le1) :: ac
-    | _ -> asrt::ac in
-  let all_asrts = List.fold_right duplicate_asrt all_asrts [] in
-  
-  let print_asrts (name, asrts) =
-    print_debug (name ^ " assertions:");
-    List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
+	(* Step 2 -- find all assertions *)
 
-  List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
-  print_debug "";
+	let type_to_asrt (x : string) (t : Type.t) =
+	let x_var = if is_lvar_name x then (LVar x) else (PVar x) in
+	LTypes [ x_var, t ] in
 
-  (* Step 3 -- build the dependency graph
-    There are two kinds of nodes: variables and assertions.
-     Edges flow from the in-variables of assertions to their out-variables.
-     If an assertion has several possible sets of in-vars (like LEq), we
-     create one node for each of them (TODO: not implemented right now).
-     Here, an assertion is a couple (SS.t, SS.t), which represents the in-vars
-     and the out-vars for the assertion. *)
+	let pf_asrts    = DynArray.to_list pf in
+	let gamma_asrts = Hashtbl.fold (fun x v ac -> (type_to_asrt x v)::ac) gamma [] in
+	let pred_asrts  = DynArray.fold_left (fun ac (n, les) -> (LPred (n, les))::ac) [] preds in
 
-  let nb_vars = SS.cardinal all_vars in
-  let var_asrts = Hashtbl.create nb_vars in (* for each variable, the list of asrts of which it is an in-var *)
-  SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* it's too tedious to have to check everywhere else *)
-  let seen_vars = Hashtbl.create nb_vars in
-  let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
+	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
 
-  let nb_asrts = List.length all_asrts in
-  let asrt_array = DynArray.of_list all_asrts in
-  let seen_in_vars = DynArray.init nb_asrts (fun k -> 0) in (* the number*)
+	let print_asrts (name, asrts) =
+	print_debug (name ^ " assertions:");
+	List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
 
-  let fill_asrt (asrt_i : int) : (SS.t * SS.t) =
-    let asrt = DynArray.get asrt_array asrt_i in
-    let in_vars, out_vars = match asrt with
-      | LPointsTo (le_loc, le_f, (perm, le_v)) ->
-        SS.union (get_lexpr_vars le_loc) (get_lexpr_vars le_f), get_lexpr_vars le_v
-      | LMetaData (le_loc, metadata) ->
-        get_lexpr_vars le_loc, get_lexpr_vars metadata
-      | LExtensible (le_loc, ext) ->
-        get_lexpr_vars le_loc, SS.empty
-      | LPred (name, param_les) ->
-        (* assume predicates only have in-vars for now *)
-        List.fold_right (fun p_le ac -> SS.union (get_lexpr_vars p_le) ac) param_les SS.empty, SS.empty
-      | LTypes type_exprs ->
-        List.fold_right (fun (le, t) ac -> SS.union (get_lexpr_vars le) ac) type_exprs SS.empty, SS.empty
-      | LEq (le1, le2) ->
-        (* LEqs are duplicated before this, so we can assume in = lhs and out = rhs *)
-        get_lexpr_vars le1, get_lexpr_vars le2
-      | _ -> get_asrt_vars asrt, SS.empty in
-    let update_var var =
-      let cur_asrts = Hashtbl.find var_asrts var in
-      Hashtbl.replace var_asrts var (asrt_i::cur_asrts) in
-    SS.iter update_var in_vars;
-    print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
-    print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
-    print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""));
-    in_vars, out_vars in
+	List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
+	print_debug "";
 
-  let asrt_nodes = DynArray.init nb_asrts fill_asrt in
-  let unification_plan = ref [] in
+	(* Step 3 -- build the dependency graph
+	   There are two kinds of nodes: variables and assertions.
+	   Edges flow from the in-variables of assertions to their out-variables.
+	   If an assertion has several possible sets of in-vars (like LEq), we
+	   create one node for each of them (TODO: not implemented right now).
+	   Here, an assertion is a couple (SS.t, SS.t), which represents the in-vars
+	   and the out-vars for the assertion. *)
 
-  SS.iter (fun var ->
-      print_debug ("assertions using variable " ^ var ^ ":");
-      List.iter (fun asrt_i ->
-          let asrt = DynArray.get asrt_array asrt_i in
-          print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))
-        ) (Hashtbl.find var_asrts var)
-    ) all_vars;
-  print_debug "";
+	let nb_vars = SS.cardinal all_vars in
+	let var_asrts = Hashtbl.create nb_vars in (* for each variable, the list of asrts of which it is an in-var *)
+	SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* it's too tedious to have to check everywhere else *)
+	let seen_vars = Hashtbl.create nb_vars in
+	let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
 
-  (* Step 4 -- visit the assertion graph *)
-  
-  let rec visit_var (var : string) : unit =
-    if not (Hashtbl.mem seen_vars var) then (
-      print_debug ("visiting variable " ^ var);
-      Hashtbl.add seen_vars var true;
-      let children_asrts = Hashtbl.find var_asrts var in
-      List.iter visit_asrt children_asrts
-    )
-  and visit_asrt (asrt_i : int) : unit =
-    let in_vars, out_vars = DynArray.get asrt_nodes asrt_i in
-    let cur_seen_in = DynArray.get seen_in_vars asrt_i in
-    let asrt = DynArray.get asrt_array asrt_i in
-    print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt)); 
-    DynArray.set seen_in_vars asrt_i (cur_seen_in + 1);
-    if DynArray.get seen_in_vars asrt_i = SS.cardinal in_vars then (
-      print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
-      begin match asrt with
-      | LPointsTo _
-      | LMetaData _
-      | LExtensible _
-      | LEmptyFields _-> incr seen_heap_asrts;
-      | _ -> ();
-      end;
-      unification_plan := asrt::(!unification_plan);
-      SS.iter visit_var out_vars
-    )
-  in
+	let nb_asrts = List.length all_asrts in
+	let asrt_array = DynArray.of_list all_asrts in
+	let seen_in_vars = DynArray.init nb_asrts (fun k -> 0) in (* the number*)
 
-  print_debug "Starting dependency graph traversal...";
-  SS.iter visit_var init_vars;
-  unification_plan := List.rev (!unification_plan);
-  print_debug "";
+	let fill_asrt (asrt_i : int) : (SS.t * SS.t) =
+	let asrt = DynArray.get asrt_array asrt_i in
+	let in_vars, out_vars = 
+		(* THIS NEEDS TO BE TAKEN CARE OF *)
+		List.hd (ins_and_outs ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym asrt) in
+	let update_var var =
+	  let cur_asrts = Hashtbl.find var_asrts var in
+	  Hashtbl.replace var_asrts var (asrt_i::cur_asrts) in
+	SS.iter update_var in_vars;
+	print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
+	print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
+	print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""));
+	in_vars, out_vars in
 
-  (** Step 7 -- we're done! *)
-  print_debug (Printf.sprintf "saw %d heap assertions (out of %d)" !seen_heap_asrts (List.length heap_asrts));
-  if (!seen_heap_asrts = (List.length heap_asrts)) then (
-    (* We found all the locations in the symb_state - we are fine! *)
-    print_debug "Unification plan successful!";
-    print_debug "Unification plan:";
-    List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
-    print_debug "";
-  ) else (
-    let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\n" 
-        (Symbolic_State_Print.string_of_unification_plan !unification_plan)
-        (Symbolic_State_Print.string_of_symb_state symb_state) in
-    print_debug msg;
-    (* raise (Failure msg) *)
-  );
+	let asrt_nodes = DynArray.init nb_asrts fill_asrt in
+	let unification_plan = ref [] in
 
-  !unification_plan
+	SS.iter (fun var ->
+	  print_debug ("assertions using variable " ^ var ^ ":");
+	  List.iter (fun asrt_i ->
+	      let asrt = DynArray.get asrt_array asrt_i in
+	      print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))
+	    ) (Hashtbl.find var_asrts var)
+	) all_vars;
+	print_debug "";
+
+	(* Step 4 -- visit the assertion graph *)
+
+	let rec visit_var (var : string) : unit =
+	if not (Hashtbl.mem seen_vars var) then (
+	  print_debug ("visiting variable " ^ var);
+	  Hashtbl.add seen_vars var true;
+	  let children_asrts = Hashtbl.find var_asrts var in
+	  List.iter visit_asrt children_asrts
+	)
+	and visit_asrt (asrt_i : int) : unit =
+	let in_vars, out_vars = DynArray.get asrt_nodes asrt_i in
+	let cur_seen_in = DynArray.get seen_in_vars asrt_i in
+	let asrt = DynArray.get asrt_array asrt_i in
+	print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt)); 
+	DynArray.set seen_in_vars asrt_i (cur_seen_in + 1);
+	if DynArray.get seen_in_vars asrt_i = SS.cardinal in_vars then (
+	  print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
+	  begin match asrt with
+	  | LPointsTo _
+	  | LMetaData _
+	  | LExtensible _
+	  | LEmptyFields _-> incr seen_heap_asrts;
+	  | _ -> ();
+	  end;
+	  unification_plan := asrt::(!unification_plan);
+	  SS.iter visit_var out_vars
+	)
+	in
+
+	print_debug "Starting dependency graph traversal...";
+	SS.iter visit_var init_vars;
+	unification_plan := List.rev (!unification_plan);
+
+	(** Step 7 -- we're done! *)
+	print_debug (Printf.sprintf "saw %d heap assertions (out of %d)" !seen_heap_asrts (List.length heap_asrts));
+	if (!seen_heap_asrts = (List.length heap_asrts)) then (
+	(* We found all the locations in the symb_state - we are fine! *)
+	print_debug "Unification plan successful!";
+	print_debug "Unification plan:";
+	List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
+	print_debug "";
+	) else (
+	let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\n" 
+	    (Symbolic_State_Print.string_of_unification_plan !unification_plan)
+	    (Symbolic_State_Print.string_of_symb_state symb_state) in
+	print_debug msg;
+	(* raise (Failure msg) *)
+	);
+
+	!unification_plan
 
 
-let create_unification_plan symb_state reachable_alocs =
-  let t0 = Sys.time () in
-  let old_res = old_create_unification_plan symb_state reachable_alocs in
-  let t1 = Sys.time () in
-  let new_res = new_create_unification_plan symb_state reachable_alocs in
-  let t2 = Sys.time () in
-  print_debug (Printf.sprintf "Old unif. plan: %fs, new: %fs" (t1 -. t0) (t2 -. t1));
-  old_res
+let create_unification_plan 
+	?(predicates_unf : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+	symb_state reachable_alocs =
+
+		let t0 = Sys.time () in
+		let old_res = old_create_unification_plan symb_state reachable_alocs in
+		let t1 = Sys.time () in
+		let new_res = new_create_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in
+		let t2 = Sys.time () in
+		print_debug (Printf.sprintf "Old unif. plan: %fs, new: %fs" (t1 -. t0) (t2 -. t1));
+		old_res
 
 (* Create unification plans for multiple symbolic states at the same time
-	 Returns a Hashtbl from logic assertions to the symbolic states they appear in*)
+	 Returns a Hashtbl from logic assertions to the symbolic states they appear in
 let create_multiple_unification_plan
+		(predicates : (string, unfolded_predicate) Hashtbl.t)
 		(states : (symbolic_state * SS.t) list) :
 		((jsil_logic_assertion, SI.t) Hashtbl.t) =
 		
@@ -1861,13 +1897,14 @@ let create_multiple_unification_plan
 			Hashtbl.add unification_plan asrt (SI.singleton symb_state_id) in
 
 	let create_single_unification_plan
+	        (predicates : (string, unfolded_predicate) Hashtbl.t)
 			(symb_state_id : int)
 			(state : (symbolic_state * SS.t)) =
 		let symb_state, reachable_alocs = state in
 		let sorted_assertions = create_unification_plan symb_state reachable_alocs in
 		List.iter (update_unification_plan symb_state_id) sorted_assertions in
-	List.iteri create_single_unification_plan states;
-	unification_plan
+	List.iteri (fun i x -> create_single_unification_plan predicates i x) states;
+	unification_plan *)
 
 
 let is_overlapping_aloc (pfs_list : jsil_logic_assertion list) (aloc : string) : (string * substitution) option =
@@ -1963,6 +2000,7 @@ let normalise_post
   * -----------------------------------------------------
  **)
 let normalise_single_normalised_spec
+    (predicates : (string, unfolded_predicate) Hashtbl.t)
     (spec_name  : string)
     (spec       : jsil_single_spec) : jsil_n_single_spec list =
 
@@ -1975,12 +2013,12 @@ let normalise_single_normalised_spec
   let posts : symbolic_state list = List.map normalise_normalised_assertion spec.post in
 	
 	[{
-      n_pre              = pre;
+        n_pre              = pre;
   		n_post             = posts;
   		n_ret_flag         = spec.ret_flag;
   		n_lvars            = spec_vars;
-      n_subst            = init_substitution []; 
-      n_unification_plan = (create_unification_plan pre SS.empty)
+        n_subst            = init_substitution []; 
+        n_unification_plan = (create_unification_plan ?predicates_unf:(Some predicates) pre SS.empty)
 	}]
 
 (** -----------------------------------------------------
@@ -2030,7 +2068,7 @@ let normalise_single_spec
 			n_ret_flag         = spec.ret_flag;
 			n_lvars            = spec_vars;
 			n_subst            = subst; 
-			n_unification_plan = (create_unification_plan ss_pre SS.empty) }) ss_pres' in
+			n_unification_plan = (create_unification_plan ?predicates_unf:(Some predicates) ss_pre SS.empty) }) ss_pres' in
 
 	let n_specs' = List.filter (fun n_spec -> (List.length n_spec.n_post) > 0) n_specs in
 	if (n_specs' = []) then (
@@ -2060,7 +2098,7 @@ let normalise_spec
   (** Treat pre-normalised specs differently *)
   let normalised_pre_post_list =
     match spec.previously_normalised with
-    | true -> List.concat (List.map (normalise_single_normalised_spec spec.spec_name) spec.proc_specs)
+    | true -> List.concat (List.map (normalise_single_normalised_spec predicates spec.spec_name) spec.proc_specs)
     | false -> List.concat (List.map (normalise_single_spec predicates spec.spec_name (SS.of_list spec.spec_params)) spec.proc_specs)
   in
 	{	n_spec_name = spec.spec_name;
@@ -2138,23 +2176,24 @@ let normalise_predicate_definitions
           			match pred.previously_normalised_u_pred with
            			| true ->
            				let ss = normalise_normalised_assertion a in  
-                		[os, ss, (create_unification_plan ss SS.empty) ]
+                		[os, ss, (create_unification_plan ?predicates_unf:(Some pred_defs) ss SS.empty) ]
               		| false ->
                 		let pred_vars = get_asrt_lvars a in
                 		let a' = JSIL_Logic_Utils.push_in_negations a in
                 		match (normalise_assertion None None (Some (SS.of_list param_names)) a') with
                 		| Some (ss, _) ->
                   			let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
-                  			[ (os, ss', (create_unification_plan ss' SS.empty)) ]
+                  			[ (os, ss', (create_unification_plan ?predicates_unf:(Some pred_defs) ss' SS.empty)) ]
                 		| None -> []
      			) definitions)) in
 			let n_pred = {
 				n_pred_name        = pred.name;
 				n_pred_num_params  = pred.num_params;
 				n_pred_params      = param_names;
+				n_pred_ins         = pred.ins;
 				n_pred_definitions = n_definitions;
 				n_pred_is_rec      = pred.is_recursive;
-        n_pred_is_pure     = pred.is_pure 
+				n_pred_is_pure     = pred.is_pure 
 			} in
 			Hashtbl.replace n_pred_defs pred_name n_pred) pred_defs;
 	n_pred_defs

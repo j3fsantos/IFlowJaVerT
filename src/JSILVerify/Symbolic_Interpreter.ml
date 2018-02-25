@@ -489,6 +489,7 @@ exception SuccessfullyFolded of (symbolic_state * SS.t * symbolic_execution_cont
 (** Fold a predicate assertion recursively 
  *)
 let rec fold_predicate 
+	 predicates
 	(pred_name    : string) 
 	(pred_defs    : ((string option) * symbolic_state * (jsil_logic_assertion list)) array)  
 	(symb_state   : symbolic_state) 
@@ -545,6 +546,10 @@ let rec fold_predicate
 	    * Create the symbolic store mapping the formal arguments of the 
 	      predicate to be folded to the corresponding logical expressions
 	    * Create a new symb_state with the new calling store    *)
+
+
+	print_debug_petar ("Inside fold_predicate.");
+	print_debug_petar (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x) args)));
 	let new_store         = SStore.init params args in
 	let symb_state_caller = ss_replace_store symb_state new_store in
 
@@ -608,7 +613,7 @@ let rec fold_predicate
 			(* Fold Incomplete - Must recursively fold the predicate *)
 			let new_symb_state, missing_pred_args, existentials' = 
 				process_missing_pred_assertion missing_pred_args subst existentials symb_state framed_heap framed_preds pf_discharges new_gamma in 
-			fold_predicate pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some existentials') search_info
+			fold_predicate predicates pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some existentials') search_info
 
 		| _ -> 
 			(* Fold Failed - we try to fold again removing a recursive call to the predicate from 
@@ -624,7 +629,7 @@ let rec fold_predicate
 					pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
 
 				let pred_def' = ss_replace_preds pred_def preds_pred_def' in
-				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan pred_def' SS.empty) pred_def' symb_state_caller))
+				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) pred_def' SS.empty) pred_def' symb_state_caller))
 					with | Spatial_Entailment.UnificationFailure _ -> None in
 
 				(match unifier with
@@ -635,7 +640,7 @@ let rec fold_predicate
 		  			let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
 		  			let new_symb_state', missing_pred_args, existentials' = 
 						process_missing_pred_assertion missing_pred_args subst (SS.union existentials new_existentials) new_symb_state framed_heap framed_preds pf_discharges new_gamma in 
-					fold_predicate pred_name pred_defs new_symb_state' params missing_pred_args new_spec_vars (Some existentials') search_info
+					fold_predicate predicates pred_name pred_defs new_symb_state' params missing_pred_args new_spec_vars (Some existentials') search_info
 
 		  		| _ -> None)))) in
 
@@ -902,6 +907,9 @@ let rec symb_evaluate_logic_cmd
 			List.map
 				(fun le -> Normaliser.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le)
 				les in
+		print_debug_petar (Printf.sprintf "Args_unsubst: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x) les)));
+		print_debug_petar (JSIL_Print.string_of_substitution subst);
+		print_debug_petar (Printf.sprintf "Args_subst: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x) args)));
 		let params = pred.n_pred_params in
     	let pred_defs = pred.n_pred_definitions in
 		(params, pred_defs, args) in
@@ -913,12 +921,11 @@ let rec symb_evaluate_logic_cmd
 		| LPred	(pred_name, les) ->
 			print_time (Printf.sprintf "Fold %s(%s)." pred_name
 				(String.concat ", " (List.map JSIL_Print.string_of_logic_expression les))); 
-			print_debug (Printf.sprintf "\nSTATE #1: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
+			print_debug (Printf.sprintf "\nSTATE: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
       		let params, pred_defs, args = get_pred_data pred_name les in
-      		print_debug (Printf.sprintf "\nSTATE #2: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
 			let pred_defs = Array.of_list pred_defs in
 
-      		let folded_predicate = fold_predicate pred_name pred_defs symb_state params args spec_vars None search_info in
+      		let folded_predicate = fold_predicate s_prog.pred_defs pred_name pred_defs symb_state params args spec_vars None search_info in
 			(match folded_predicate with
 			| Some (symb_state, new_spec_vars, new_search_info) ->
 				ss_extend_preds symb_state (pred_name, args);
@@ -1011,7 +1018,7 @@ let rec symb_evaluate_logic_cmd
 		let gamma_spec_vars         = TypEnv.filter (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
 		let pat_subst, spec_alocs   = make_spec_var_subst subst spec_vars in
-		(match (Spatial_Entailment.grab_resources new_spec_vars_for_later (Normaliser.create_unification_plan new_symb_state spec_alocs) pat_subst new_symb_state symb_state) with
+		(match (Spatial_Entailment.grab_resources new_spec_vars_for_later (Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) new_symb_state spec_alocs) pat_subst new_symb_state symb_state) with
 			| Some new_symb_state -> [ new_symb_state, new_spec_vars_for_later, search_info ]
 			| None -> raise (Failure "Assert: could not grab resources.")))					
 and
@@ -1224,7 +1231,8 @@ and post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state cu
 	List.concat (List.map 
 		(* Get the symbolic state *)
 		(fun (symb_state, spec_vars', search_info) ->
-			pre_symb_evaluate_cmd s_prog proc spec_vars' subst search_info symb_state cur next)
+			let new_subst = copy_substitution subst in 
+			pre_symb_evaluate_cmd s_prog proc spec_vars' new_subst search_info symb_state cur next)
 		symb_states_with_spec_vars)
 
 and pre_symb_evaluate_cmd 
@@ -1256,7 +1264,7 @@ and pre_symb_evaluate_cmd
 				print_normal (Printf.sprintf "spec_alocs: %s\n" (String.concat ", " (SS.elements spec_alocs)));
 
 				try 
-					let outcome, (_, _, new_subst, _, _) = Spatial_Entailment.unify_symb_states (Normaliser.create_unification_plan symb_state_inv spec_alocs) None symb_state_inv symb_state in
+					let outcome, (_, _, new_subst, _, _) = Spatial_Entailment.unify_symb_states (Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) symb_state_inv spec_alocs) None symb_state_inv symb_state in
 					print_normal (Printf.sprintf "new_subst: %s\n" (JSIL_Print.string_of_substitution new_subst)); 
 					
 					if (outcome) then [] else raise (Failure "Unification with invariant failed")
@@ -1288,7 +1296,7 @@ and pre_symb_evaluate_cmd
 					print_normal (Printf.sprintf "spec_alocs: %s\n" (String.concat ", " (SS.elements spec_alocs))); 
 
 					try 
-						let outcome, _ = Spatial_Entailment.unify_symb_states (Normaliser.create_unification_plan symb_state_inv spec_alocs) (Some pat_subst) symb_state_inv symb_state in
+						let outcome, _ = Spatial_Entailment.unify_symb_states (Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) symb_state_inv spec_alocs) (Some pat_subst) symb_state_inv symb_state in
 						if (outcome) then symb_state_inv, spec_vars_inv else raise (Failure "Unification with invariant failed")
 					with _ -> raise (Failure "Unification with invariant failed")) in 
 			 
@@ -1308,6 +1316,7 @@ and pre_symb_evaluate_cmd
 let unify_symb_state_against_post 
 		(intuitionistic : bool)
 		(symb_exe_info  : symbolic_execution_context)
+		predicates
 		(proc_name      : string) 
 		(spec           : jsil_n_single_spec)
 		(flag           : jsil_return_flag) 
@@ -1332,7 +1341,7 @@ let unify_symb_state_against_post
 		| post :: rest_posts ->
 			try (
 				let pat_subst, spec_alocs = make_spec_var_subst spec.n_subst spec.n_lvars in 
-				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan post spec_alocs) (Some pat_subst) post symb_state in 
+				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) post spec_alocs) (Some pat_subst) post symb_state in 
 				turn_on_post i symb_exe_info; 
 				print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name); 
 				post 
@@ -1384,7 +1393,7 @@ let symb_evaluate_proc
 			List.iter (fun (ss, _, _, _) -> print_debug (Symbolic_State_Print.string_of_symb_state ss)) final_symb_states;
 			
 			List.iter (fun (symb_state, ret_flag, spec_vars, search_info) -> 
-				let successful_post = unify_symb_state_against_post !js search_info proc_name spec ret_flag symb_state in 
+				let successful_post = unify_symb_state_against_post !js search_info s_prog.pred_defs proc_name spec ret_flag symb_state in 
 				let node_info       = Symbolic_Traces.sg_node_from_post successful_post in
 				let _               = sec_create_new_info_node search_info node_info in 
 				()) final_symb_states; 
@@ -1512,7 +1521,7 @@ let prove_all_lemmas
 			| post :: posts ->
 	      let success =
 					try
-						Spatial_Entailment.fully_unify_symb_state false (Normaliser.create_unification_plan post SS.empty) None post symb_state;
+						Spatial_Entailment.fully_unify_symb_state false (Normaliser.create_unification_plan ?predicates_sym:(Some n_pred_defs) post SS.empty) None post symb_state;
 						(* fully_unify_symb_state throws an error when it fails, so if it succeeds success is assumed *)
 						true
 				  	with

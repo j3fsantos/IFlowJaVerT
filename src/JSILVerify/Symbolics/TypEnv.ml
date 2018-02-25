@@ -31,11 +31,11 @@ let get_type (gamma : t) (var : string) : Type.t option =
 	Hashtbl.find_opt gamma var
 
 (* Get all variables *)
-let get_vars (gamma : t) : SS.t =
+let vars (gamma : t) : SS.t =
 	Hashtbl.fold (fun var _ ac -> SS.add var ac) gamma SS.empty
 
 (* Get all logical variables *)
-let get_lvars (gamma : t) : SS.t =
+let lvars (gamma : t) : SS.t =
 	Hashtbl.fold (fun var _ ac -> if is_lvar_name var then SS.add var ac else ac) gamma SS.empty
 
 (* Get all variables of specific type *)
