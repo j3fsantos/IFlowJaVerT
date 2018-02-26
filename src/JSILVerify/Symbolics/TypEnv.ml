@@ -4,9 +4,15 @@ open CCommon
 open SCommon
 open JSIL_Syntax
 
-type t = (string, Type.t) Hashtbl.t
+type t = 
+	{
+		gamma : (string, Type.t) Hashtbl.t;
+		lvars : SS.t ref;
+		vars  : SS.t ref
+	}
 
 let str (x : t) : string =
+	let x = x.gamma in
 	Hashtbl.fold
 		(fun var var_type ac ->
 			let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
@@ -20,95 +26,86 @@ let str (x : t) : string =
 (*************************************)
 
 (* Initialisation *)
-let init () : t = Hashtbl.create medium_tbl_size
+let init () : t = { 
+	gamma = Hashtbl.create medium_tbl_size; 
+	lvars = ref SS.empty;
+	vars  = ref SS.empty }
 
 (* Copy *)
-let copy (gamma : t) : t =
-	Hashtbl.copy gamma
+let copy (x : t) : t =
+	{ 
+		gamma = Hashtbl.copy x.gamma;
+		lvars = ref !(x.lvars);
+		vars  = ref !(x.vars)
+	}
 
 (* Type of a variable *)
-let get (gamma : t) (var : string) : Type.t option =
-	Hashtbl.find_opt gamma var
+let get (x : t) (var : string) : Type.t option =
+	Hashtbl.find_opt x.gamma var
 
 (* Membership *)
-let mem (gamma : t) (x : string) : bool = 
-	Hashtbl.mem gamma x
+let mem (x : t) (v : string) : bool = 
+	Hashtbl.mem x.gamma v
 
 (* Type of a variable *)
-let get_unsafe (gamma : t) (var : string) : Type.t =
-	(match Hashtbl.mem gamma var with
-	| true -> Hashtbl.find gamma var
+let get_unsafe (x : t) (var : string) : Type.t =
+	(match Hashtbl.mem x.gamma var with
+	| true -> Hashtbl.find x.gamma var
 	| false -> raise (Failure ("TypEnv.get_unsafe: variable " ^ var ^ " not found.")))
 
 (* Get all variables *)
-let vars (gamma : t) : SS.t =
-	Hashtbl.fold (fun var _ ac -> SS.add var ac) gamma SS.empty
+let vars (x : t) : SS.t = !(x.lvars)
 
 (* Get all logical variables *)
-let lvars (gamma : t) : SS.t =
-	Hashtbl.fold (fun var _ ac -> if is_lvar_name var then SS.add var ac else ac) gamma SS.empty
+let lvars (x : t) : SS.t = !(x.vars)
 
 (* Get all variables of specific type *)
-let get_vars_of_type (gamma : t) (tt : Type.t) : string list =
-	Hashtbl.fold (fun var t ac_vars -> (if (t = tt) then var :: ac_vars else ac_vars)) gamma []
+let get_vars_of_type (x : t) (tt : Type.t) : string list =
+	Hashtbl.fold (fun var t ac_vars -> (if (t = tt) then var :: ac_vars else ac_vars)) x.gamma []
 
 (* Get all var-type pairs as a list *)
-let get_var_type_pairs (gamma : t) : (string * Type.t) list = Hashtbl.fold (fun var t ac_vars -> ((var, t) :: ac_vars)) gamma []
-
-(* Update with removal *)
-let update (gamma : t) (x : string) (te : Type.t option) : unit =
-	(match te with
-	| None    -> Hashtbl.remove  gamma x
-	| Some te -> Hashtbl.replace gamma x te)
-
-(* Update without removal *)
-let weak_update (gamma : t) (x : string) (te : Type.t option) : unit =
-	(match te with
-	| None -> ()
-	| Some te -> Hashtbl.replace gamma x te)
-
-(* Extend gamma with more_gamma *)
-let extend (gamma : t) (more_gamma : t) : unit =
-	Hashtbl.iter
-		(fun v t ->
-			match (Hashtbl.find_opt gamma v) with
-			| None    -> Hashtbl.add gamma v t
-			| Some t' -> if (t <> t') then raise (Failure "Typing environment cannot be extended.")
-		)
-		more_gamma
-
-let safe_extend (gamma_l : t) (gamma_r : t) : unit =
-	Hashtbl.iter
-		(fun var v_type ->
-			(match (Hashtbl.mem gamma_l var) with
-			| false -> 
-					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (Type.str v_type)); 
-					update gamma_l var (Some v_type)
-			| true -> let t = Hashtbl.find gamma_l var in
-					(match (t = v_type) with
-					| true -> ()
-					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (Type.str v_type) (Type.str t))); 
-					)
-			)
-		)
-		gamma_r
+let get_var_type_pairs (x : t) : (string * Type.t) list = Hashtbl.fold (fun var t ac_vars -> ((var, t) :: ac_vars)) x.gamma []
 
 (* Iteration *)
-let iter (gamma : t) (f : string -> Type.t -> unit) : unit = 
-	Hashtbl.iter f gamma
+let iter (x : t) (f : string -> Type.t -> unit) : unit = 
+	Hashtbl.iter f x.gamma
 
-let fold (gamma : t) (f : string -> Type.t -> 'a -> 'a) (init : 'a) : 'a = 
-	Hashtbl.fold f gamma init
+let fold (x : t) (f : string -> Type.t -> 'a -> 'a) (init : 'a) : 'a = 
+	Hashtbl.fold f x.gamma init
+
+let update_vars_and_lvars (x : t) (v : string) : unit = 
+	if (is_lvar_name v) then (x.lvars := SS.add v !(x.lvars)); x.vars := SS.add v !(x.vars)
+
+(* Update with removal *)
+let update (x : t) (v : string) (te : Type.t option) : unit =
+	(match te with
+	| None    -> Hashtbl.remove x.gamma v; x.lvars := SS.remove v !(x.lvars); x.vars := SS.remove v !(x.vars)
+	| Some te -> Hashtbl.replace x.gamma v te; update_vars_and_lvars x v)
+
+(* Update without removal *)
+let weak_update (x : t) (v : string) (te : Type.t option) : unit =
+	(match te with
+	| None -> ()
+	| Some te -> Hashtbl.replace x.gamma v te; update_vars_and_lvars x v)
+
+(* Extend gamma with more_gamma *)
+let extend (x : t) (y : t) : unit =
+	iter y
+		(fun v t ->
+			match (Hashtbl.find_opt x.gamma v) with
+			| None    -> Hashtbl.replace x.gamma v t; update_vars_and_lvars x v
+			| Some t' -> if (t <> t') then raise (Failure "Typing environment cannot be extended.")
+		)
 
 (* Filter using function on variables *)
-let filter (gamma : t) (f : string -> bool) : t =
+let filter (x : t) (f : string -> bool) : t =
 	let new_gamma = init () in
-	Hashtbl.iter (fun v v_type -> (if (f v) then Hashtbl.replace new_gamma v v_type)) gamma;
+	iter x (fun v v_type -> (if (f v) then update new_gamma v (Some v_type)));
 	new_gamma
 
 (* Filter using function on variables *)
-let filter_in_place (gamma : t) (f : string -> bool) : unit =
-	Hashtbl.iter (fun v v_type -> (if (not (f v)) then Hashtbl.remove gamma v)) gamma
+let filter_in_place (x : t) (f : string -> bool) : unit =
+	iter x (fun v v_type -> (if (not (f v)) then update x v None))
 
 (* Filter for specific variables *)
 let filter_vars (gamma : t) (vars : SS.t) : t = filter gamma (fun v -> SS.mem v vars)
@@ -117,30 +114,39 @@ let filter_vars (gamma : t) (vars : SS.t) : t = filter gamma (fun v -> SS.mem v 
 let filter_vars_in_place (gamma : t) (vars : SS.t) : unit = filter_in_place gamma (fun v -> SS.mem v vars)
 
 (* Perform substitution, return new typing environment *)
-let rec substitution (gamma : t) (subst : substitution) (partial : bool) : t =
+let rec substitution (x : t) (subst : substitution) (partial : bool) : t =
 	let new_gamma = init () in
-	Hashtbl.iter
+	iter x
 		(fun var v_type ->
 			let new_var = Hashtbl.find_opt subst var in
 			(match new_var with
-			| Some (LVar new_var) -> Hashtbl.replace new_gamma new_var v_type
-			| Some _ -> if partial then Hashtbl.add new_gamma var v_type
-			| None   -> if partial then Hashtbl.add new_gamma var v_type
+			| Some (LVar new_var) -> update new_gamma new_var (Some v_type)
+			| Some _ -> if partial then update new_gamma var (Some v_type)
+			| None   -> if partial then update new_gamma var (Some v_type)
 		                else 
 						if (is_lvar_name var) then (
 							let new_lvar = fresh_lvar () in
 							Hashtbl.add subst var (LVar new_lvar);
-							Hashtbl.add new_gamma new_lvar v_type
-						)))
-		gamma;
+							update new_gamma new_lvar (Some v_type)
+						)));
 	new_gamma
 
 (* Convert to assertion *)
-let assertions (gamma : t) : jsil_logic_assertion = 
+let assertions (x : t) : jsil_logic_assertion = 
 	let le_type_pairs = 
 		Hashtbl.fold
 			(fun x t pairs -> 
 				(if (is_lvar_name x) 
 					then (LVar x, t) :: pairs
-					else (PVar x, t) :: pairs)) gamma [] in 
+					else (PVar x, t) :: pairs)) x.gamma [] in 
 	LTypes le_type_pairs 
+
+let is_well_formed (x : t) : bool =
+	let lvars, vars = Hashtbl.fold (fun v _ (lvars, vars) -> 
+		if (is_lvar_name v) 
+			then (SS.add v lvars, SS.add v vars)
+			else (lvars, SS.add v vars)) x.gamma (SS.empty, SS.empty) in
+		print_debug_petar (Printf.sprintf "Counted lvars: %s\nTracked lvars: %s\nCounted vars: %s\nCounter vars: %s"
+			(String.concat ", " (SS.elements lvars)) (String.concat ", " (SS.elements !(x.lvars)))
+			(String.concat ", " (SS.elements  vars)) (String.concat ", " (SS.elements !(x.vars))));
+		(SS.equal lvars !(x.lvars)) && (SS.equal vars !(x.vars)) 

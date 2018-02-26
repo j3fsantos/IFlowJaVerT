@@ -16,7 +16,6 @@ val get_var_type_pairs : t -> (string * Type.t) list
 val get_vars_of_type : t -> Type.t -> string list
 val init : unit -> t
 val mem : t -> string -> bool
-val safe_extend : t -> t -> unit
 val str : t -> string
 val update : t -> string -> Type.t option -> unit
 val weak_update : t -> string -> Type.t option -> unit
@@ -29,3 +28,5 @@ val lvars : t -> CCommon.SS.t
 
 val assertions : t -> JSIL_Syntax.jsil_logic_assertion
 val substitution : t -> JSIL_Syntax.substitution -> bool -> t
+
+val is_well_formed : t -> bool

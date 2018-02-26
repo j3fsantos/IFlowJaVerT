@@ -844,7 +844,7 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 let safe_extend_gamma gamma le t = 
   let new_gamma = reverse_type_lexpr true gamma le t in
     (match new_gamma with
-    | Some new_gamma -> TypEnv.safe_extend gamma new_gamma
+    | Some new_gamma -> TypEnv.extend gamma new_gamma
     | None -> 
 		let msg = Printf.sprintf "SEG: Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (TypEnv.str gamma) in
 		print_debug_petar msg;
