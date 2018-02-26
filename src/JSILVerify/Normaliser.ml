@@ -1741,7 +1741,7 @@ let new_create_unification_plan
 	let heap_vars  = List.fold_left     (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty heap_asrts in
 	let store_vars = SStore.fold store  (fun x v ac  -> SS.union (SS.add x (get_lexpr_vars v)) ac) SS.empty in
 	let pf_vars    = DynArray.fold_left (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty pf in
-	let gamma_vars = TypEnv.fold gamma  (fun x v ac  -> SS.add x ac) SS.empty in
+	let gamma_vars = TypEnv.vars gamma in
 	let preds_vars = DynArray.fold_left (fun ac pred -> SS.union (get_pred_vars pred) ac) SS.empty preds in
 
 	let all_vars = List.fold_left SS.union SS.empty [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars; reachable_alocs] in
