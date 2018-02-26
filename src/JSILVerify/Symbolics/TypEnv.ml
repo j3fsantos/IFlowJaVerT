@@ -27,8 +27,18 @@ let copy (gamma : t) : t =
 	Hashtbl.copy gamma
 
 (* Type of a variable *)
-let get_type (gamma : t) (var : string) : Type.t option =
+let get (gamma : t) (var : string) : Type.t option =
 	Hashtbl.find_opt gamma var
+
+(* Membership *)
+let mem (gamma : t) (x : string) : bool = 
+	Hashtbl.mem gamma x
+
+(* Type of a variable *)
+let get_unsafe (gamma : t) (var : string) : Type.t =
+	(match Hashtbl.mem gamma var with
+	| true -> Hashtbl.find gamma var
+	| false -> raise (Failure ("TypEnv.get_unsafe: variable " ^ var ^ " not found.")))
 
 (* Get all variables *)
 let vars (gamma : t) : SS.t =
@@ -67,14 +77,44 @@ let extend (gamma : t) (more_gamma : t) : unit =
 		)
 		more_gamma
 
+let safe_extend (gamma_l : t) (gamma_r : t) : unit =
+	Hashtbl.iter
+		(fun var v_type ->
+			(match (Hashtbl.mem gamma_l var) with
+			| false -> 
+					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (Type.str v_type)); 
+					update gamma_l var (Some v_type)
+			| true -> let t = Hashtbl.find gamma_l var in
+					(match (t = v_type) with
+					| true -> ()
+					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (Type.str v_type) (Type.str t))); 
+					)
+			)
+		)
+		gamma_r
+
+(* Iteration *)
+let iter (gamma : t) (f : string -> Type.t -> unit) : unit = 
+	Hashtbl.iter f gamma
+
+let fold (gamma : t) (f : string -> Type.t -> 'a -> 'a) (init : 'a) : 'a = 
+	Hashtbl.fold f gamma init
+
 (* Filter using function on variables *)
 let filter (gamma : t) (f : string -> bool) : t =
 	let new_gamma = init () in
 	Hashtbl.iter (fun v v_type -> (if (f v) then Hashtbl.replace new_gamma v v_type)) gamma;
 	new_gamma
 
+(* Filter using function on variables *)
+let filter_in_place (gamma : t) (f : string -> bool) : unit =
+	Hashtbl.iter (fun v v_type -> (if (not (f v)) then Hashtbl.remove gamma v)) gamma
+
 (* Filter for specific variables *)
 let filter_vars (gamma : t) (vars : SS.t) : t = filter gamma (fun v -> SS.mem v vars)
+
+(* Filter for specific variables *)
+let filter_vars_in_place (gamma : t) (vars : SS.t) : unit = filter_in_place gamma (fun v -> SS.mem v vars)
 
 (* Perform substitution, return new typing environment *)
 let rec substitution (gamma : t) (subst : substitution) (partial : bool) : t =

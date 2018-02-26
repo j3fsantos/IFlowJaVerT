@@ -602,7 +602,7 @@ let unify_gammas
 
 	let start_time = Sys.time() in
 
-	let result = Hashtbl.fold 
+	let result = TypEnv.fold pat_gamma
 		(fun x x_type ac ->
 			if (not ac) then ac else (
 				try 
@@ -619,7 +619,7 @@ let unify_gammas
 						print_debug (Printf.sprintf "failed unify_gamma. pat gamma: %s. gamma: %s. pat_type: %s. type: None"
 							x (JSIL_Print.string_of_logic_expression le_x) (Type.str x_type));
 						false)
-				with Not_found -> true)) pat_gamma true in 
+				with Not_found -> true)) true in 
 	
 	let end_time = Sys.time() in
 	update_statistics "unify_gammas" (end_time -. start_time);
@@ -637,16 +637,15 @@ let pf_list_of_discharges
 	) discharges  
 
 let filter_gamma_with_subst gamma vars subst =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
+	let new_gamma = TypEnv.init () in
+	TypEnv.iter gamma
 		(fun v v_type ->
 			(if (List.mem v vars) then
 				try
 					match (Hashtbl.find subst v) with
-					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
+					| LVar new_v -> TypEnv.update new_gamma new_v (Some v_type)
 					| _ -> ()
-				with Not_found -> ()))
-		gamma;
+				with Not_found -> ()));
 	new_gamma
 
 
@@ -880,7 +879,7 @@ let unify_symb_states_fold
 	let gamma_existentials = TypEnv.init () in
 	List.iter
 		(fun x ->
-			match SStore.get store x, TypEnv.get_type pat_gamma x with
+			match SStore.get store x, TypEnv.get pat_gamma x with
 			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x x_type in ()
 			|	_, _ -> ())
 		filtered_vars;
@@ -1088,7 +1087,7 @@ let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_ta
 		(fun x le ac ->
 			if (not ac) then ac else (
 				let le_type, _, _ = type_lexpr gamma_target le in
-				let x_type = TypEnv.get_type gamma_source x in
+				let x_type = TypEnv.get gamma_source x in
 				match le_type, x_type with 
 				| Some le_type, Some x_type -> (le_type = x_type) 
 				| _ -> true))

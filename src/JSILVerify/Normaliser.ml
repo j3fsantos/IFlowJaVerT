@@ -65,7 +65,7 @@ let rec normalise_lexpr ?(store : SStore.t option) ?(subst : substitution option
 						| LLit llit -> LLit (Type (Literal.type_of llit))
 						| LNone -> raise (Failure "Illegal Logic Expression: TypeOf of None")
 						| LVar lvar ->
-							(try LLit (Type (Hashtbl.find gamma lvar)) with _ -> LUnOp (TypeOf, LVar lvar))
+							(try LLit (Type (TypEnv.get_unsafe gamma lvar)) with _ -> LUnOp (TypeOf, LVar lvar))
 								(* raise (Failure (Printf.sprintf "Logical variables always have a type, in particular: %s." lvar))) *)
 						| ALoc _ -> LLit (Type ObjectType)
 						| PVar _ -> raise (Failure "This should never happen: program variable in normalised expression")
@@ -1070,7 +1070,7 @@ let normalise_type_assertions
 
 		| LVar x ->
 			(* if x is a lvar, we simply add (x, t) to gamma *) 
-			Hashtbl.replace gamma x t; true 
+			TypEnv.update gamma x (Some t); true 
 
 		| PVar x -> 
 			let le = SStore.get store x in 
@@ -1193,7 +1193,7 @@ let extend_typing_env_using_assertion_info
 		match a with
 		| LEq (LVar x, le) | LEq (le, LVar x)
 		| LEq (PVar x, le) | LEq (le, PVar x) ->
-			let x_type = TypEnv.get_type gamma x in
+			let x_type = TypEnv.get gamma x in
 			(match x_type with
 			| None ->
 				let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
@@ -1479,7 +1479,7 @@ let normalise_assertion
 
 					(* STATEMENT: Normalised assertions do not have program variables in the typing environment *)
 					it_must_hold_that 
-						(lazy (let pvars = SS.elements (SStore.domain store) in List.for_all (fun v -> not (Hashtbl.mem gamma v)) pvars));
+						(lazy (let pvars = SS.elements (SStore.domain store) in List.for_all (fun v -> not (TypEnv.mem gamma v)) pvars));
 
 					Some (ret_ss, subst)
 				) else (print_debug "WARNING: normalise_assertion: returning None"; None)))
@@ -1508,7 +1508,7 @@ let normalise_normalised_assertion
   let populate_state_from_assertion a =
     (match a with
     | LTypes type_assertions ->
-      let _ = List.map (fun (e, t) -> Hashtbl.replace gamma (JSIL_Print.string_of_logic_expression e) t) type_assertions in 
+      let _ = List.map (fun (e, t) -> TypEnv.update gamma (JSIL_Print.string_of_logic_expression e) (Some t)) type_assertions in 
       (a, false)
     | LPointsTo (PVar loc, le2, (perm, le3))
 		| LPointsTo (ALoc loc, le2, (perm, le3))
@@ -1741,7 +1741,7 @@ let new_create_unification_plan
 	let heap_vars  = List.fold_left     (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty heap_asrts in
 	let store_vars = SStore.fold store  (fun x v ac  -> SS.union (SS.add x (get_lexpr_vars v)) ac) SS.empty in
 	let pf_vars    = DynArray.fold_left (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty pf in
-	let gamma_vars = Hashtbl.fold       (fun x v ac  -> SS.add x ac) gamma SS.empty in
+	let gamma_vars = TypEnv.fold gamma  (fun x v ac  -> SS.add x ac) SS.empty in
 	let preds_vars = DynArray.fold_left (fun ac pred -> SS.union (get_pred_vars pred) ac) SS.empty preds in
 
 	let all_vars = List.fold_left SS.union SS.empty [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars; reachable_alocs] in
@@ -1764,7 +1764,7 @@ let new_create_unification_plan
 	LTypes [ x_var, t ] in
 
 	let pf_asrts    = DynArray.to_list pf in
-	let gamma_asrts = Hashtbl.fold (fun x v ac -> (type_to_asrt x v)::ac) gamma [] in
+	let gamma_asrts = TypEnv.fold gamma (fun x v ac -> (type_to_asrt x v)::ac) [] in
 	let pred_asrts  = DynArray.fold_left (fun ac (n, les) -> (LPred (n, les))::ac) [] preds in
 
 	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in

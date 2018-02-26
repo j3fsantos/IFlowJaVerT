@@ -630,7 +630,7 @@ let rec infer_types_to_gamma flag gamma new_gamma le (tt : Type.t) : bool =
 	(* with the target type or if they are not typable           *)
 	| LVar var
 	| PVar var ->
-		(match (TypEnv.get_type gamma var), (TypEnv.get_type new_gamma var) with
+		(match (TypEnv.get gamma var), (TypEnv.get new_gamma var) with
 		| Some t, None
 		| None, Some t     -> (t = tt)
 		| None, None       -> (TypEnv.update new_gamma var (Some tt)); true
@@ -736,7 +736,7 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 
 	(* Variables are typable if in gamma, otherwise no, but typing continues *)
 	| LVar var
-	| PVar var -> def_pos (TypEnv.get_type gamma var)
+	| PVar var -> def_pos (TypEnv.get gamma var)
 
 	(* Abstract locations are always typable, by construction *)
 	| ALoc _ -> def_pos (Some ObjectType)
@@ -837,45 +837,16 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 
 	result
 
-let string_of_gamma (gamma : TypEnv.t) : string =
-	let gamma_str =
-		Hashtbl.fold
-			(fun var var_type ac ->
-				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
-				if (ac = "")
-					then var_type_pair_str
-					else ac ^ "\n\t" ^ var_type_pair_str)
-			gamma
-			"\t" in
-	gamma_str
-
 (* ******************** *)
 (* ** TYPE INFERENCE ** *)
 (* ******************** *)
 
-let safe_merge_gammas (gamma_l : TypEnv.t) (gamma_r : TypEnv.t) =
-	(* print_debug_petar (Printf.sprintf "Merging gammas: %s \nand %s" (string_of_gamma gamma_l) (string_of_gamma gamma_r)); *)
-	Hashtbl.iter
-		(fun var v_type ->
-			(match (Hashtbl.mem gamma_l var) with
-			| false -> 
-					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (Type.str v_type)); 
-					Hashtbl.add gamma_l var v_type
-			| true -> let t = Hashtbl.find gamma_l var in
-					(match (t = v_type) with
-					| true -> ()
-					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (Type.str v_type) (Type.str t))); 
-					)
-			)
-		)
-		gamma_r
-
 let safe_extend_gamma gamma le t = 
   let new_gamma = reverse_type_lexpr true gamma le t in
     (match new_gamma with
-    | Some new_gamma -> safe_merge_gammas gamma new_gamma
+    | Some new_gamma -> TypEnv.safe_extend gamma new_gamma
     | None -> 
-		let msg = Printf.sprintf "SEG: Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
+		let msg = Printf.sprintf "SEG: Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (TypEnv.str gamma) in
 		print_debug_petar msg;
 		raise (Failure msg)) 
 

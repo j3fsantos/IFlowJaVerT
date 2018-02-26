@@ -1135,7 +1135,7 @@ let check_entailment (existentials : SS.t)
   				(* Encode left side *)
   				let left_as = encode_assertions (SA.of_list left_as) gamma_left in
   				(* Encode right side with negations and empty gamma *)
-  				let right_as = encode_assertions (SA.of_list (List.map (fun a -> LNot a) right_as)) (Hashtbl.create 11) in 
+  				let right_as = encode_assertions (SA.of_list (List.map (fun a -> LNot a) right_as)) (TypEnv.init()) in 
   				
   				(* Initialise solver depending on if a sat check of the left side was performed *)
   				Solver.reset masterSolver; Solver.add masterSolver left_as;
