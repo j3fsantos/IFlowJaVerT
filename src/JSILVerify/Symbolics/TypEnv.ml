@@ -54,10 +54,10 @@ let get_unsafe (x : t) (var : string) : Type.t =
 	| false -> raise (Failure ("TypEnv.get_unsafe: variable " ^ var ^ " not found.")))
 
 (* Get all variables *)
-let vars (x : t) : SS.t = !(x.lvars)
+let vars (x : t) : SS.t = !(x.vars)
 
 (* Get all logical variables *)
-let lvars (x : t) : SS.t = !(x.vars)
+let lvars (x : t) : SS.t = !(x.lvars)
 
 (* Get all variables of specific type *)
 let get_vars_of_type (x : t) (tt : Type.t) : string list =
