@@ -1880,7 +1880,7 @@ let new_create_unification_plan
 	(* raise (Failure msg) *)
 	);
 
-	print_debug (Printf.sprintf "Prep: %f\nStep 1: %f\nStep 2: %f\nStep 3: %f\nStep 4: %f\nTotal: %f" 
+	print_debug (Printf.sprintf "Prep:\t%f\nStep 1:\t%f\nStep 2:\t%f\nStep 3:\t%f\nStep 4:\t%f\nTotal:\t%f"
 		(t1 -. t0) (t2 -. t1) (t3 -.t2) (t4 -. t3) (t5 -. t4) (t5 -. t0));
 
 	!unification_plan
