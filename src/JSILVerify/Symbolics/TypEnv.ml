@@ -146,7 +146,4 @@ let is_well_formed (x : t) : bool =
 		if (is_lvar_name v) 
 			then (SS.add v lvars, SS.add v vars)
 			else (lvars, SS.add v vars)) x.gamma (SS.empty, SS.empty) in
-		print_debug_petar (Printf.sprintf "Counted lvars: %s\nTracked lvars: %s\nCounted vars: %s\nCounter vars: %s"
-			(String.concat ", " (SS.elements lvars)) (String.concat ", " (SS.elements !(x.lvars)))
-			(String.concat ", " (SS.elements  vars)) (String.concat ", " (SS.elements !(x.vars))));
 		(SS.equal lvars !(x.lvars)) && (SS.equal vars !(x.vars)) 

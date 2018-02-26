@@ -1,5 +1,7 @@
 true: package(Z3), package(stdio), package(batteries), package(extlib), package(oUnit), package(JS_Parser), package(menhirLib), package(base), package(ppx_import), package(ppx_compare), package(ppx_deriving.std)
 true: use_menhir, table
+true: package(core)
+true: thread, debug
 <src/**>: include
 <tests/*>: package(oUnit), include
 <lib/runtests>: not_hygienic
