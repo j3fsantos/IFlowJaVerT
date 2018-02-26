@@ -1,6 +1,6 @@
 S src/**
 B _build/**
 
-PKG oUnit Z3 stdio batteries extlib JS_Parser menhirLib base ppx_import ppx_compare ppx_deriving.std
+PKG oUnit Z3 stdio batteries extlib JS_Parser menhirLib base ppx_import ppx_compare ppx_deriving.std containers
 
 FLG -thread
