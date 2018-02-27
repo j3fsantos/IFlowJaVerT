@@ -4,9 +4,15 @@ open CCommon
 open SCommon
 open JSIL_Syntax
 
-type t = (string, Type.t) Hashtbl.t
+type t = 
+	{
+		gamma : (string, Type.t) Hashtbl.t;
+		lvars : SS.t ref;
+		vars  : SS.t ref
+	}
 
 let str (x : t) : string =
+	let x = x.gamma in
 	Hashtbl.fold
 		(fun var var_type ac ->
 			let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
@@ -20,69 +26,77 @@ let str (x : t) : string =
 (*************************************)
 
 (* Initialisation *)
-let init () : t = Hashtbl.create medium_tbl_size
-	
+let init () : t = { 
+	gamma = Hashtbl.create medium_tbl_size; 
+	lvars = ref SS.empty;
+	vars  = ref SS.empty }
+
 (* Copy *)
-let copy (x : t) : t = Hashtbl.copy x
+let copy (x : t) : t =
+	{ 
+		gamma = Hashtbl.copy x.gamma;
+		lvars = ref !(x.lvars);
+		vars  = ref !(x.vars)
+	}
 
 (* Type of a variable *)
 let get (x : t) (var : string) : Type.t option =
-	Hashtbl.find_opt x var
+	Hashtbl.find_opt x.gamma var
 
 (* Membership *)
 let mem (x : t) (v : string) : bool = 
-	Hashtbl.mem x v
+	Hashtbl.mem x.gamma v
 
 (* Type of a variable *)
 let get_unsafe (x : t) (var : string) : Type.t =
-	(match Hashtbl.mem x var with
-	| true -> Hashtbl.find x var
+	(match Hashtbl.mem x.gamma var with
+	| true -> Hashtbl.find x.gamma var
 	| false -> raise (Failure ("TypEnv.get_unsafe: variable " ^ var ^ " not found.")))
 
 (* Get all unifiable elements *)
-let unifiables (x : t) : SS.t = 
-	Hashtbl.fold (fun var _ ac -> SS.add var ac) x SS.empty
+let unifiables (x : t) : SS.t = !(x.vars)
 
 (* Get all variables *)
-let vars (x : t) : SS.t =
-	Hashtbl.fold (fun var _ ac -> SS.add var ac) x SS.empty
+let vars (x : t) : SS.t = !(x.vars)
 
 (* Get all logical variables *)
-let lvars (x : t) : SS.t =
-	Hashtbl.fold (fun var _ ac -> if is_lvar_name var then SS.add var ac else ac) x SS.empty
+let lvars (x : t) : SS.t = !(x.lvars)
 
 (* Get all variables of specific type *)
 let get_vars_of_type (x : t) (tt : Type.t) : string list =
-	Hashtbl.fold (fun var t ac_vars -> (if (t = tt) then var :: ac_vars else ac_vars)) x []
+	Hashtbl.fold (fun var t ac_vars -> (if (t = tt) then var :: ac_vars else ac_vars)) x.gamma []
 
 (* Get all var-type pairs as a list *)
-let get_var_type_pairs (x : t) : (string * Type.t) list = Hashtbl.fold (fun var t ac_vars -> ((var, t) :: ac_vars)) x []
+let get_var_type_pairs (x : t) : (string * Type.t) list = Hashtbl.fold (fun var t ac_vars -> ((var, t) :: ac_vars)) x.gamma []
 
 (* Iteration *)
 let iter (x : t) (f : string -> Type.t -> unit) : unit = 
-	Hashtbl.iter f x
+	Hashtbl.iter f x.gamma
 
 let fold (x : t) (f : string -> Type.t -> 'a -> 'a) (init : 'a) : 'a = 
-	Hashtbl.fold f x init
+	Hashtbl.fold f x.gamma init
+
+let update_vars_and_lvars (x : t) (v : string) : unit = 
+	if (is_lvar_name v) then (x.lvars := SS.add v !(x.lvars)); x.vars := SS.add v !(x.vars)
 
 (* Update with removal *)
 let update (x : t) (v : string) (te : Type.t option) : unit =
 	(match te with
-	| None    -> Hashtbl.remove x v
-	| Some te -> Hashtbl.replace x v te)
+	| None    -> Hashtbl.remove x.gamma v; x.lvars := SS.remove v !(x.lvars); x.vars := SS.remove v !(x.vars)
+	| Some te -> Hashtbl.replace x.gamma v te; update_vars_and_lvars x v)
 
 (* Update without removal *)
 let weak_update (x : t) (v : string) (te : Type.t option) : unit =
 	(match te with
 	| None -> ()
-	| Some te -> Hashtbl.replace x v te)
+	| Some te -> Hashtbl.replace x.gamma v te; update_vars_and_lvars x v)
 
 (* Extend gamma with more_gamma *)
 let extend (x : t) (y : t) : unit =
 	iter y
 		(fun v t ->
-			match (Hashtbl.find_opt x v) with
-			| None    -> Hashtbl.replace x v t
+			match (Hashtbl.find_opt x.gamma v) with
+			| None    -> Hashtbl.replace x.gamma v t; update_vars_and_lvars x v
 			| Some t' -> if (t <> t') then raise (Failure "Typing environment cannot be extended.")
 		)
 
@@ -127,7 +141,12 @@ let assertions (x : t) : jsil_logic_assertion =
 			(fun x t pairs -> 
 				(if (is_lvar_name x) 
 					then (LVar x, t) :: pairs
-					else (PVar x, t) :: pairs)) x [] in 
+					else (PVar x, t) :: pairs)) x.gamma [] in 
 	LTypes le_type_pairs 
 
-let is_well_formed (x : t) : bool = true
+let is_well_formed (x : t) : bool =
+	let lvars, vars = Hashtbl.fold (fun v _ (lvars, vars) -> 
+		if (is_lvar_name v) 
+			then (SS.add v lvars, SS.add v vars)
+			else (lvars, SS.add v vars)) x.gamma (SS.empty, SS.empty) in
+		(SS.equal lvars !(x.lvars)) && (SS.equal vars !(x.vars)) 

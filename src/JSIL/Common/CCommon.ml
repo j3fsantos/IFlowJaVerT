@@ -10,9 +10,9 @@ exception Syntax_error of string
  * Hashtables *
  **************)
 
-let small_tbl_size  = 31
-let medium_tbl_size = 101 
-let big_tbl_size    = 1021
+let small_tbl_size  = 53
+let medium_tbl_size = 211 
+let big_tbl_size    = 557
 
 (*************
  * Debugging *
