@@ -19,10 +19,13 @@ val str        : t -> string
 val iter       : t -> (string -> JSIL_Syntax.jsil_logic_expr -> unit) -> unit
 val fold       : t -> (string -> JSIL_Syntax.jsil_logic_expr -> 'a -> 'a) -> 'a -> 'a
 
-val vars  : t -> CCommon.SS.t
-val lvars : t -> CCommon.SS.t
-val alocs : t -> CCommon.SS.t
+val vars       : t -> CCommon.SS.t
+val lvars      : t -> CCommon.SS.t
+val alocs      : t -> CCommon.SS.t
+val unifiables : t -> CCommon.SS.t
 
 val assertions            : t -> JSIL_Syntax.jsil_logic_assertion list
 val substitution          : JSIL_Syntax.substitution -> bool -> t -> t
 val substitution_in_place : JSIL_Syntax.substitution -> t -> unit
+
+val is_well_formed : t -> bool

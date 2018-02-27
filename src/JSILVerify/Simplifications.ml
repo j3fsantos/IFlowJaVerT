@@ -914,7 +914,7 @@ let simplify_symb_state
 	 *)
 	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
 	let lvars = SS.union (ss_vars_no_gamma symb_state) (pfs_lvars other_pfs) in
-	let lvars_gamma = TypEnv.vars gamma in		
+	let lvars_gamma = TypEnv.lvars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
 	TypEnv.filter_vars_in_place gamma (SS.union lvars_inter (SS.union vars_to_save !initial_existentials));
 		

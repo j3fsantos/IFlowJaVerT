@@ -57,11 +57,12 @@ let print_njsil_file msg  =
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
 
-(********
- * Sets *
- ********)
+(**********************
+ * Sets and multisets *
+ **********************)
 
 module SS = Set.Make(String)
+module MS = CCMultiSet.Make(String)
 
 (*************************)
 (** Generic fresh names **)

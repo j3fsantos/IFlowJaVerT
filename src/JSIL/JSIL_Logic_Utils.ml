@@ -229,6 +229,45 @@ let get_lexpr_lvars (le : jsil_logic_expr) : SS.t =
 		| _      -> List.concat ac in 
 	SS.of_list (logic_expression_fold fe_ac None None le)
 
+(* ********************************* *)
+(* MULTISETS FOR LOGICAL EXPRESSIONS *)
+(* ********************************* *)
+
+(* Unifiables *)
+
+let rec get_lexpr_unifiables (le : jsil_logic_expr) : MS.t * MS.t * MS.t * MS.t = 
+	let f = get_lexpr_unifiables in
+	(match le with
+	| LLit (Loc x) -> MS.empty,       MS.empty,       MS.singleton x, MS.empty
+	| LVar x       -> MS.singleton x, MS.empty,       MS.empty,       MS.empty
+	| PVar x       -> MS.empty,       MS.singleton x, MS.empty,       MS.empty
+	| ALoc x       -> MS.empty,       MS.empty,       MS.empty,       MS.singleton x
+
+	| LLit _       
+	| LNone         -> MS.empty, MS.empty, MS.empty,       MS.empty
+
+  	| LBinOp  (e1, _, e2) 
+  	| LLstNth (e1, e2)
+  	| LStrNth (e1, e2) -> 
+  		let lv1, pv1, ll1, al1 = f e1 in
+  		let lv2, pv2, ll2, al2 = f e2 in
+  			MS.union lv1 lv2, MS.union pv1 pv2, MS.union ll1 ll2, MS.union al1 al2
+
+  	| LUnOp (op, e) -> f e
+
+  	| LEList    les
+  	| LESet     les
+  	| LSetUnion les
+  	| LSetInter les -> List.fold_left (fun (lv1, pv1, ll1, al1) x -> 
+  		let lv2, pv2, ll2, al2 = f x in
+  			MS.union lv1 lv2, MS.union pv1 pv2, MS.union ll1 ll2, MS.union al1 al2
+  		) (MS.empty, MS.empty, MS.empty, MS.empty) les
+	)
+
+(* ********************************* *)
+(* ********************************* *)
+(* ********************************* *)
+
 let get_lexpr_substitutables (le : jsil_logic_expr) : SS.t = 
 	let fe_ac le _ _ ac = match le with
 		| LVar x 

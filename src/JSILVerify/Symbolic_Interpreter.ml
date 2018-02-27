@@ -365,6 +365,8 @@ let find_and_apply_spec
 	let proc              = get_proc prog proc_name in
 	let proc_args         = get_proc_args proc in
 	let new_store         = SStore.init proc_args le_args in
+	print_debug_petar (Printf.sprintf "%d %d" (List.length proc_args) (List.length le_args));
+	print_debug_petar (SStore.str new_store);
 	let symb_state_caller = ss_replace_store symb_state new_store in
 
 	(*  Step 1: find the spec(s) of the called function whose preconditions 
@@ -1200,10 +1202,11 @@ let rec symb_evaluate_cmd
 	it_must_hold_that 
 		(lazy (let _, _, _, gamma, _ = symb_state in TypEnv.lvars gamma = TypEnv.vars gamma));
 	it_must_hold_that 
-		(lazy (let heap, _, _, _, _ = symb_state in SHeap.is_well_formed heap));
+		(lazy (let heap, _, _, _, _  = symb_state in SHeap.is_well_formed heap));
 	it_must_hold_that
 		(lazy (let _, _, _, gamma, _ = symb_state in TypEnv.is_well_formed gamma));
-
+	it_must_hold_that
+		(lazy (let _, store, _, _, _ = symb_state in SStore.is_well_formed store));
 
 	let metadata, cmd = get_proc_cmd proc i in
 	sec_visit_node search_info i;

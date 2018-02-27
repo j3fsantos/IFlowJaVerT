@@ -53,6 +53,9 @@ let get_unsafe (x : t) (var : string) : Type.t =
 	| true -> Hashtbl.find x.gamma var
 	| false -> raise (Failure ("TypEnv.get_unsafe: variable " ^ var ^ " not found.")))
 
+(* Get all unifiable elements *)
+let unifiables (x : t) : SS.t = !(x.vars)
+
 (* Get all variables *)
 let vars (x : t) : SS.t = !(x.vars)
 
