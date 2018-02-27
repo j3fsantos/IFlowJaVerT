@@ -1791,6 +1791,7 @@ let new_create_unification_plan
 	SS.iter (fun var -> Hashtbl.add var_asrts var []) all_vars; (* it's too tedious to have to check everywhere else *)
 	let seen_vars = Hashtbl.create nb_vars in
 	let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
+	let seen_gamma_asrts = ref 0 in
 
  (* turn the [all_asrts] list of assertions into an (asrt, ins, outs) list and duplicate assertions as needed *)
   let expand_ins_outs asrt =
@@ -1850,7 +1851,8 @@ let new_create_unification_plan
 	  | LPointsTo _
 	  | LMetaData _
 	  | LExtensible _
-	  | LEmptyFields _-> incr seen_heap_asrts;
+	  | LEmptyFields _ -> incr seen_heap_asrts;
+		| LTypes _ -> incr seen_gamma_asrts;
 	  | _ -> ();
 	  end;
 	  unification_plan := asrt::(!unification_plan);
@@ -1866,6 +1868,8 @@ let new_create_unification_plan
 
 	(** Step 5 -- we're done! *)
 	print_debug (Printf.sprintf "saw %d heap assertions (out of %d)" !seen_heap_asrts (List.length heap_asrts));
+	print_debug (Printf.sprintf "saw %d gamma assertions (out of %d)" !seen_gamma_asrts (List.length gamma_asrts));
+
 	if (!seen_heap_asrts = (List.length heap_asrts)) then (
 	(* We found all the locations in the symb_state - we are fine! *)
 	print_debug "Unification plan successful!";
@@ -1897,7 +1901,7 @@ let create_unification_plan
 		let new_res = new_create_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in
 		let t2 = Sys.time () in
 		print_debug (Printf.sprintf "Old unif. plan: %fs, new: %fs" (t1 -. t0) (t2 -. t1));
-		old_res
+		new_res
 
 (* Create unification plans for multiple symbolic states at the same time
 	 Returns a Hashtbl from logic assertions to the symbolic states they appear in
