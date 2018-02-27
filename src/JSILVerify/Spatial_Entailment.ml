@@ -776,7 +776,7 @@ let unify_symb_states
 			| LMetaData _ :: rest_up
 			| LExtensible _ :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 
 				(* B - Unify spatial assertion *)
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
@@ -790,18 +790,42 @@ let unify_symb_states
 				search (new_frames @ rest_frame_list) found_partial_matches
 
 			| LTypes type_asrts :: rest_up ->
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
 				let local_gamma = TypEnv.init () in
 				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
 				if not (unify_gammas pat_subst local_gamma gamma) then (
-					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges));
+					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges));
 					search rest_frame_list found_partial_matches
 				)
 				else 
 					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst) in
 					search (new_frame::rest_frame_list) found_partial_matches
-			| _ ->
+
+			| LEmp :: _
+			| LStar _ :: _ -> 
 				let asrt_str = JSIL_Print.string_of_logic_assertion (List.hd up) in
-				raise (Failure (Printf.sprintf "DEATH: Unknown assertion in unification plan (%s)." asrt_str))
+					raise (Failure (Printf.sprintf "DEATH: Unknown assertion in unification plan (%s)." asrt_str))
+	
+			(* PURE FORMULAE *)
+			| pf :: rest_up -> (* PURE FORMULAE *)
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				(* Get existentials *)
+				let existentials = get_asrt_lvars pf in 
+				let existentials = SS.diff existentials (substitution_domain pat_subst) in 
+				(* Substitute in formula *)
+				let pf = asrt_substitution pat_subst true pf in 
+				(* Check if the current pfs entail the obtained substituted pf *)
+				let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf ] gamma in 
+				(match pf_entailed with 
+				| false -> search rest_frame_list found_partial_matches
+				| true -> 
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst) in
+						search (new_frame :: rest_frame_list) found_partial_matches)
+				
 			) in 
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] [] in
@@ -935,7 +959,7 @@ let unify_symb_states_fold
 			| LMetaData _ :: rest_up 
 			| LExtensible _ :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 				
 				(* B - Unify spatial assertion - no predicate assertion *)
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
@@ -950,7 +974,7 @@ let unify_symb_states_fold
 
 			| LPred (p_name, largs) :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 				
 				(* C - Unify pred assertion *)
 				let new_frames : fold_extended_intermediate_frame list =
@@ -973,7 +997,43 @@ let unify_symb_states_fold
 						search ((rest_up, (heap_frame, preds_frame, discharges, pat_subst), (Some (p_name, largs))) :: rest_frame_list)
 					)
 
-			| _ -> raise (Failure "DEATH: Unknown assertion in fold unification.")) in
+			| LTypes type_asrts :: rest_up ->
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				let local_gamma = TypEnv.init () in
+				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
+				if not (unify_gammas pat_subst local_gamma gamma) then (
+					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges));
+					search rest_frame_list 
+				)
+				else 
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred in
+					search (new_frame::rest_frame_list) 
+
+			| LEmp :: _
+			| LStar _ :: _ -> 
+				let asrt_str = JSIL_Print.string_of_logic_assertion (List.hd up) in
+					raise (Failure (Printf.sprintf "DEATH: Unknown assertion in unification plan (%s)." asrt_str))
+	
+			(* PURE FORMULAE *)
+			| pf :: rest_up -> (* PURE FORMULAE *)
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				(* Get existentials *)
+				let existentials = get_asrt_lvars pf in 
+				let existentials = SS.diff existentials (substitution_domain pat_subst) in 
+				(* Substitute in formula *)
+				let pf = asrt_substitution pat_subst true pf in 
+				(* Check if the current pfs entail the obtained substituted pf *)
+				let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf ] gamma in 
+				(match pf_entailed with 
+				| false -> search rest_frame_list 
+				| true -> 
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred in
+						search (new_frame :: rest_frame_list))
+			) in
 			
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] in
