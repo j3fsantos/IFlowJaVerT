@@ -789,7 +789,20 @@ let unify_symb_states
 
 				search (new_frames @ rest_frame_list) found_partial_matches
 
-			| _ -> raise (Failure "DEATH: Unknown assertion in unification plan.")) in 
+			| LTypes type_asrts :: rest_up ->
+				let local_gamma = TypEnv.init () in
+				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
+				if not (unify_gammas pat_subst local_gamma gamma) then (
+					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges));
+					search rest_frame_list found_partial_matches
+				)
+				else 
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst) in
+					search (new_frame::rest_frame_list) found_partial_matches
+			| _ ->
+				let asrt_str = JSIL_Print.string_of_logic_assertion (List.hd up) in
+				raise (Failure (Printf.sprintf "DEATH: Unknown assertion in unification plan (%s)." asrt_str))
+			) in 
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] [] in
 	let end_time = Sys.time() in
