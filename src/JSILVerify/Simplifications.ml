@@ -1764,6 +1764,7 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 
 (* Assume le = target, understand equalities, put in subst. It's all about le, nothing about the target *)
 let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : jsil_logic_assertion list =
+	print_debug (Printf.sprintf "SfUP: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression target));
 	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
 	(match le with 
 	| LLit _ -> [ LEq (le, target) ]

@@ -814,8 +814,9 @@ let unify_symb_states
 				(match pf with 
 				(* We know le1, learning le2 *)
 				| LEq (le1, le2) -> 
+					let sle1 = lexpr_substitution pat_subst true le1 in 
 					let more_subst  = Hashtbl.create small_tbl_size in 
-					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 le1 more_subst in  
+					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 sle1 more_subst in  
 					let pfs_to_check = pfs_to_check @ more_pfs in 
 					print_debug_petar ("More subst:\n" ^ (JSIL_Print.string_of_substitution more_subst));
 					Hashtbl.iter (fun v le -> Hashtbl.replace more_subst v (lexpr_substitution pat_subst true le) ) more_subst;
