@@ -4,19 +4,19 @@
     types(o : Obj),
     (o == null);
 
- @pred Node(n:Obj, v:Num, t):
+ @pred Node(+n:Obj, v:Num, t):
    JSObject(n) *
    DataProp(n, "value", v) *
    DataProp(n, "next", t);
  
- @pred NDList(l, E):
+ @pred NDList(+l, E):
    (l == null) * (E == -{ }-),
 
    Node(l, #v, #t) * NDList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
    (!(#v --e-- #tE));
 
- @pred SOList(l, E):
+ @pred SOList(+l, E):
    (l == null) * (E == -{ }-),
 
    Node(l, #v, #t) * SOList(#t, #tE) *

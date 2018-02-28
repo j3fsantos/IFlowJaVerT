@@ -13,13 +13,13 @@
 */
 
 /**	
-	@pred Map (m, mp, kvs, keys) :
+	@pred Map (+m, mp, kvs, keys) :
 		JSObjWithProto(m, mp) *
 		DataProp(m, "_contents", #c) * JSObject(#c) *
 		((m, "get") -> none) * ((m, "put") -> none) * ((m, "validKey") -> none) *
 		((#c, "hasOwnProperty") -> none) * KVPairs(#c, kvs, keys) * empty_fields(#c : -u- (keys, -{ "hasOwnProperty" }-));
   	
-	@pred KVPairs (o, kvs, keys) :
+	@pred KVPairs (+o, kvs, keys) :
 		[def1] (kvs == -{ }-) * (keys == -{ }-),
 		[def2] (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * (keys == -u- (-{ #key }-, #rkeys)) *
 					ValidKey(#key) * DataProp(o, #key, #value) * KVPairs(o, #rkvs, #rkeys);

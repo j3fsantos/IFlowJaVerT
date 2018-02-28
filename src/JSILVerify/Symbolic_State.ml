@@ -226,6 +226,13 @@ let preds_alocs (preds : predicate_set) : SS.t =
 		preds
 
 (** Return the set containing all the alocs occurring in --preds-- *)
+let preds_clocs (preds : predicate_set) : SS.t =
+	DynArray.fold_left 
+		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_clocs le)) ac les) 
+		SS.empty 
+		preds
+
+(** Return the set containing all the alocs occurring in --preds-- *)
 let preds_alocs (preds : predicate_set) : SS.t =
 	DynArray.fold_left 
 		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_alocs le)) ac les)

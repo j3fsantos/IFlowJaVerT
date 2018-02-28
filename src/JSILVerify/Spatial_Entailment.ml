@@ -706,10 +706,10 @@ let unify_pfs
 	result
 
 
-type extended_intermediate_frame         = (jsil_logic_assertion list) * intermediate_frame
+type extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * jsil_logic_assertion list
 
 let unify_symb_states 
-		(pat_unification_plan   : jsil_logic_assertion list) 
+		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst             : substitution option)
 		(pat_symb_state        : symbolic_state) 
 		(symb_state            : symbolic_state) : bool * symbolic_state_frame =
@@ -732,7 +732,7 @@ let unify_symb_states
 	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure "");
 
 	(* 3. Initial frame for the search *)
-	let initial_frame = pat_unification_plan, (heap, preds, discharges, pat_subst) in 
+	let initial_frame = pat_unification_plan, (heap, preds, discharges, pat_subst), [] in 
 
 	(* 4. SEARCH *)
 	let rec search 
@@ -744,7 +744,7 @@ let unify_symb_states
 			| [] -> raise (UnificationFailure "")
 			| ssf :: _ -> false, ssf)
 		
-		| (up, (heap_frame, preds_frame, discharges, pat_subst)) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 				(* A - All the spatial resources were successfully unified *)
@@ -753,10 +753,9 @@ let unify_symb_states
 					(JSIL_Print.string_of_substitution pat_subst)
 					(Symbolic_State_Print.string_of_discharges discharges)); 
 
-				(* A.1 - Unify gammas *)
-				if (not (unify_gammas pat_subst pat_gamma gamma)) then search rest_frame_list found_partial_matches else (
-					(* A.2 - Unify pfs *)
-					let complete_match_b, pfs_existentials, pfs_discharges, new_gamma, existentials = unify_pfs pat_subst [] pat_lvars pat_gamma pat_pfs gamma pfs discharges in 
+					(* A.2 - Unify remaining pfs *)
+					let complete_match_b, pfs_existentials, pfs_discharges, new_gamma, existentials = 
+						unify_pfs pat_subst [] pat_lvars pat_gamma (DynArray.of_list pfs_to_check) gamma pfs discharges in 
 					
 					print_debug (Printf.sprintf "DONE with unify_pfs and gammas. ret: %b.\nexistentials: %s.\npfs_existentials:%s\n" 
 						complete_match_b 
@@ -768,7 +767,6 @@ let unify_symb_states
 					if (complete_match_b) 
 						then complete_match_b, (heap_frame, preds_frame, pat_subst, pfs_existentials, new_gamma) 
 						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches)
-				)
 
 			| LPointsTo _ :: rest_up
 			| LPred _ :: rest_up 
@@ -782,7 +780,7 @@ let unify_symb_states
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
 				let new_frames : extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst)) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b\n" ((List.length new_frames) > 0)); 
@@ -800,7 +798,7 @@ let unify_symb_states
 					search rest_frame_list found_partial_matches
 				)
 				else 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst) in
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
 					search (new_frame::rest_frame_list) found_partial_matches
 
 			| LEmp :: _
@@ -813,18 +811,34 @@ let unify_symb_states
 
 				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 
-				(* Get existentials *)
-				let existentials = get_asrt_lvars pf in 
-				let existentials = SS.diff existentials (substitution_domain pat_subst) in 
-				(* Substitute in formula *)
-				let pf = asrt_substitution pat_subst true pf in 
-				(* Check if the current pfs entail the obtained substituted pf *)
-				let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf ] gamma in 
-				(match pf_entailed with 
-				| false -> search rest_frame_list found_partial_matches
-				| true -> 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst) in
+				(match pf with 
+				(* We know le1, learning le2 *)
+				| LEq (le1, le2) -> 
+					let pfdyn = PFS.init () in 
+						DynArray.add pfdyn pf;
+					let _, ounifier = Simplifications.simplify_pfs_with_subst pfdyn (TypEnv.init()) in
+					(match ounifier with 
+					| None -> raise (UnificationFailure "")
+					| Some more_subst -> 
+						print_debug_petar ("More subst:\n" ^ (JSIL_Print.string_of_substitution more_subst));
+						Hashtbl.iter (fun v le -> Hashtbl.replace more_subst v (lexpr_substitution pat_subst true le) ) more_subst;
+						extend_subst_with_subst pat_subst more_subst;
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
 						search (new_frame :: rest_frame_list) found_partial_matches)
+				| _ -> 
+					let existentials = get_asrt_lvars pf in 
+					let existentials = SS.diff existentials (substitution_domain pat_subst) in 
+					(* Substitute in formula *)
+					let pf_sbst = asrt_substitution pat_subst true pf in 
+					(* Check if the current pfs entail the obtained substituted pf *)
+					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf_sbst ] gamma in 
+					(match pf_entailed with 
+					| false -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check) in
+							search (new_frame :: rest_frame_list) found_partial_matches
+					| true -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
+							search (new_frame :: rest_frame_list) found_partial_matches))
 				
 			) in 
 	let start_time = Sys.time() in

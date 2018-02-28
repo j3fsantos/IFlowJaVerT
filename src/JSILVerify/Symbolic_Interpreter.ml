@@ -1346,7 +1346,8 @@ let unify_symb_state_against_post
 		| post :: rest_posts ->
 			try (
 				let pat_subst, spec_alocs = make_spec_var_subst spec.n_subst spec.n_lvars in 
-				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) post spec_alocs) (Some pat_subst) post symb_state in 
+				let spec_vars = SS.union spec_alocs (substitution_domain pat_subst) in 
+				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) post spec_vars) (Some pat_subst) post symb_state in 
 				turn_on_post i symb_exe_info; 
 				print_normal (Printf.sprintf "Verified one spec of proc %s" proc_name); 
 				post 
