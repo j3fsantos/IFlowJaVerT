@@ -1767,7 +1767,8 @@ let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : 
 	print_debug (Printf.sprintf "SfUP: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression target));
 	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
 	(match le with 
-	| LLit _ -> [ LEq (le, target) ]
+	| LLit _ 
+	| LEList [] -> [ LEq (le, target) ]
 	| ALoc x
 	| LVar x -> 
 		let le' = Hashtbl.find_opt subst x in 
@@ -1784,10 +1785,13 @@ let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : 
 		let res = Reduction.get_head_and_tail_of_list le in
 		(match res with
 			| Some (head, tail) ->
+				let head = Reduction.reduce_lexpr ?gamma:gamma head in  
+				let tail = Reduction.reduce_lexpr ?gamma:gamma tail in  
 				let red_target_head = Reduction.reduce_lexpr ?gamma:gamma (LUnOp (Car, target)) in
 				let red_target_tail = Reduction.reduce_lexpr ?gamma:gamma (LUnOp (Cdr, target)) in
 				(subst_for_unification_plan ?gamma:gamma head red_target_head subst ) @ (subst_for_unification_plan ?gamma:gamma tail red_target_tail subst)
 			| _ ->
+				print_debug_petar "SfUP: head_and_tail returned None.";
 				[ LEq (le, target) ]
 		)
 	(* NOW, MORE CASES FOR LISTS - LEList, Cons, Cat - there are functions for getting a head of a list in Reduction.ml *)
