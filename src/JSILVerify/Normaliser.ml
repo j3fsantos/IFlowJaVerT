@@ -1793,8 +1793,14 @@ let new_create_unification_plan
 	let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
 	let seen_gamma_asrts = ref 0 in
 
- (* turn the [all_asrts] list of assertions into an (asrt, ins, outs) list and duplicate assertions as needed *)
+	(* turn the [all_asrts] list of assertions into an (asrt, ins, outs) list and duplicate assertions as needed *)
+	(* We remember two kinds of assertions: the exp_asrts (with duplicates), and
+		the orig_asrts (without). We need both because we have to check that we
+		don't visit duplicated assertions twice, but still need two different nodes
+		to tell which in-variables we're coming from. *)
   let expand_ins_outs asrt =
+		(* expand_ins_out should return an orig_asrt_i as well as part of a fold *)
+
     let ins_outs = ins_and_outs ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym asrt in
     List.map (fun in_out -> (asrt, in_out)) ins_outs in
 
