@@ -1346,6 +1346,8 @@ let unify_symb_state_against_post
 		| post :: rest_posts ->
 			try (
 				let pat_subst, spec_alocs = make_spec_var_subst spec.n_subst spec.n_lvars in 
+				let _, what_do_we_know = Simplifications.simplify_ss_with_subst symb_state (Some (Some spec.n_lvars)) in
+				extend_subst_with_subst pat_subst what_do_we_know;
 				let spec_vars = SS.union spec_alocs (substitution_domain pat_subst) in 
 				let _ = Spatial_Entailment.fully_unify_symb_state intuitionistic (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) post spec_vars) (Some pat_subst) post symb_state in 
 				turn_on_post i symb_exe_info; 

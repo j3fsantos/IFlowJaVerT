@@ -815,7 +815,7 @@ let unify_symb_states
 				(* We know le1, learning le2 *)
 				| LEq (le1, le2) -> 
 					let pfdyn = PFS.init () in 
-						DynArray.add pfdyn pf;
+						DynArray.add pfdyn (asrt_substitution pat_subst true pf);
 					let _, ounifier = Simplifications.simplify_pfs_with_subst pfdyn (TypEnv.init()) in
 					(match ounifier with 
 					| None -> raise (UnificationFailure "")
@@ -851,7 +851,7 @@ let unify_symb_states
 
 let fully_unify_symb_state 
 		(intuitionistic       : bool) 
-		(pat_unification_plan  : jsil_logic_assertion list) 
+		(pat_unification_plan : jsil_logic_assertion list) 
 		(pat_subst            : substitution option)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : substitution =
