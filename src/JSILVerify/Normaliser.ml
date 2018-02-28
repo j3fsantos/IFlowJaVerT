@@ -1860,12 +1860,12 @@ let new_create_unification_plan
 	)
 	and visit_asrt (asrt : jsil_logic_assertion) : unit =
 	let orig_asrt_i, (in_vars, out_vars) = Hashtbl.find asrt_array asrt in
-	if not (Hashtbl.mem seen_asrts orig_asrt_i) then (
-		Hashtbl.add seen_asrts orig_asrt_i true;
 		let cur_seen_in = Hashtbl.find seen_in_vars asrt in
 		print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt));
 		Hashtbl.replace seen_in_vars asrt (cur_seen_in + 1);
 		if (cur_seen_in + 1) = SS.cardinal in_vars then (
+			if not (Hashtbl.mem seen_asrts orig_asrt_i) then (
+				Hashtbl.add seen_asrts orig_asrt_i true;
 			print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
 			begin match asrt with
 			| LPointsTo _
@@ -1877,8 +1877,8 @@ let new_create_unification_plan
 			end;
 			unification_plan := asrt :: (!unification_plan);
 			SS.iter visit_var out_vars
+			)
 		)
-	)
 	in
 
 	print_debug "Starting dependency graph traversal...";
