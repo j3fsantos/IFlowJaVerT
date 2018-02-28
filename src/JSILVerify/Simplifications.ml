@@ -100,7 +100,7 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 	let start_time = Sys.time () in
 
 	let f = reduce_assertion ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
-	let fe = Reduction.reduce_lexpr ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
+	let fe = Reduction.reduce_lexpr ?gamma:gamma ?pfs:pfs in
 
 	let result = (match a with
 
@@ -319,7 +319,7 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 		then (print_debug (Printf.sprintf "Reduce_assertion: %s -> %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); f result)
 		else result in
 
-	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));
+	if (no_timing = None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));
 	final_result
 
 
