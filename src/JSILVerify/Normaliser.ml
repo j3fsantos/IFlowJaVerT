@@ -1902,7 +1902,7 @@ let new_create_unification_plan
 	    (Symbolic_State_Print.string_of_unification_plan !unification_plan)
 	    (Symbolic_State_Print.string_of_symb_state symb_state) in
 	print_debug msg;
-	(* raise (Failure msg) *)
+	raise (Failure msg)
 	);
 
 	print_debug (Printf.sprintf "Prep:\t%f\nStep 1:\t%f\nStep 2:\t%f\nStep 3:\t%f\nStep 4:\t%f\nTotal:\t%f"
@@ -1910,6 +1910,185 @@ let new_create_unification_plan
 
 	!unification_plan
 
+(********************************)
+(* ALTERNATIVE UNIFICATION PLAN *)
+(********************************)
+
+let alternative_new_unification_plan
+    ?(predicates_unf     : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym     : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+
+    (symb_state          : symbolic_state)
+    (reachable_variables : SS.t) : (jsil_logic_assertion list) =
+	
+	let t0 = Sys.time () in
+
+	let heap, store, pf, gamma, preds = symb_state in
+
+	let heap                    = Heap.copy heap in
+
+	let heap_domain             = SHeap.domain heap in
+	let heap_domain_list        = SS.elements heap_domain in
+	let heap_asrts              = SHeap.assertions heap in
+
+	let abs_locs, concrete_locs = List.partition is_aloc_name heap_domain_list in
+	let abs_locs, concrete_locs = SS.of_list abs_locs, SS.of_list concrete_locs in
+
+	(* Concrete locations also exist in the store and in the predicates *)
+	let concrete_locs = SS.union concrete_locs (SStore.clocs store) in 
+	let concrete_locs = SS.union concrete_locs (preds_clocs preds) in
+
+	print_debug "ALTERNATIVE NEW UNIFICATION PLAN.";
+	print_debug "Symbolic state :";
+	print_debug (Symbolic_State_Print.string_of_symb_state symb_state);
+
+	let t1 = Sys.time () in
+
+	(* Step 1 -- find all the variables: Locs, PVars and LVars *)
+
+	let get_pred_vars (pred: string * (jsil_logic_expr list)) : SS.t =
+	let _, lexprs = pred in
+	List.fold_left (fun ac le -> SS.union (get_lexpr_vars le) ac) SS.empty lexprs in
+
+	let heap_vars  = List.fold_left     (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty heap_asrts in
+	let store_vars = SStore.unifiables store in
+	let pf_vars    = DynArray.fold_left (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty pf in
+	let gamma_vars = TypEnv.unifiables gamma in
+	let preds_vars = DynArray.fold_left (fun ac pred -> SS.union (get_pred_vars pred) ac) SS.empty preds in
+
+	(* The variables that we initially know *)
+	let init_vars = List.fold_left SS.union SS.empty [store_vars; concrete_locs; reachable_variables]  in
+
+	let print_ss (name, ss) = print_debug (name ^ " variables: "); print_debug ("\t" ^ String.concat ", " (SS.elements ss)) in
+	List.iter print_ss ["Heap", heap_vars; "Store", store_vars; "PF", pf_vars; "Gamma", gamma_vars; "Preds", preds_vars; "Reachable", reachable_variables; "Initial", init_vars];
+	print_debug "";
+
+	let t2 = Sys.time () in
+
+	(* Step 2 -- find all assertions *)
+
+	let type_to_asrt (x : string) (t : Type.t) =
+	let x_var = if is_lvar_name x then (LVar x) else (PVar x) in
+	LTypes [ x_var, t ] in
+
+	let pf_asrts    = DynArray.to_list pf in
+	let gamma_asrts = TypEnv.fold gamma (fun x v ac -> (type_to_asrt x v)::ac) [] in
+	let pred_asrts  = DynArray.fold_left (fun ac (n, les) -> (LPred (n, les))::ac) [] preds in
+
+	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
+
+	let print_asrts (name, asrts) =
+	print_debug (name ^ " assertions:");
+	List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
+
+	List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
+	print_debug "";
+
+	let t3 = Sys.time () in
+
+	(* Step 3 -- Setup structure *)
+
+	let main = Hashtbl.create medium_tbl_size in 
+
+	let setup_single_assertion a io =
+		let ins, outs = io in 
+		let unknown_ins = SS.diff ins init_vars in 
+		let known_outs  = SS.inter outs init_vars in 
+			Hashtbl.replace main a (unknown_ins, outs, known_outs) in 
+	
+	List.iter (fun (a : jsil_logic_assertion) -> 
+		let ins_outs = ins_and_outs ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym a in 
+		(match a, ins_outs with 
+		| LEq (le1, le2), [ io1; io2 ] ->
+			setup_single_assertion (LEq (le1, le2)) io1; 
+			setup_single_assertion (LEq (le2, le1)) io2
+
+		| LEq _, _-> raise (Failure (Printf.sprintf "%s supposed to have two sets of ins and outs" (JSIL_Print.string_of_logic_assertion a)))
+
+		| _, [ io ] ->
+			setup_single_assertion a io
+
+		| _, _ -> raise (Failure (Printf.sprintf "%s not supposed to have multiple ins and outs" (JSIL_Print.string_of_logic_assertion a)))
+		)
+	) all_asrts;
+
+	let known_vars   = ref init_vars in 
+	let can_progress = ref true in 
+
+	let unification_plan = ref [] in
+
+	let sort_function = fun (a, _) (b, _) -> 
+		Pervasives.compare b a in
+
+	(* Step 4 - Loop *)
+
+	let t4 = Sys.time () in 
+
+	while (!can_progress && Hashtbl.length main > 0) do
+
+		print_debug_petar "Starting iteration.";
+
+		let learned_variables = ref SS.empty in 
+
+		(* Separate main into good and bad assertions *)
+		let ko_assertions, good_assertions = Hashtbl.fold (fun asrt (ui, ou, ko) (acl, acr) -> 
+			if (ui = SS.empty) then (
+				(* The assertion is consumed *)
+				Hashtbl.remove main asrt;
+				(* Mirror equality assertion is also consumed *)
+				(match asrt with | LEq (le1, le2) -> Hashtbl.remove main (LEq (le2, le1)) | _ -> ());
+				learned_variables := SS.union !learned_variables ou;
+				let ko = SS.cardinal ko in 
+				if (ko = 0) 
+					then (acl, asrt :: acr)
+					else ((ko, asrt) :: acl, acr)
+			) else (acl, acr)
+		) main ([], []) in
+ 
+ 		if (List.length ko_assertions + List.length good_assertions = 0) then can_progress := false else (
+			let ko_assertions = List.sort sort_function ko_assertions in 
+			let _, ko_assertions = List.split ko_assertions in 
+			print_debug "Assertions to be added in the following order:";
+			List.iter (fun a -> print_debug_petar ("\t" ^ (JSIL_Print.string_of_logic_assertion a))) good_assertions;
+
+			(* Update *)
+			print_debug_petar (Printf.sprintf "Variables learned: %s" (String.concat ", " (SS.elements (SS.diff !learned_variables !known_vars))));
+			known_vars := SS.union !known_vars !learned_variables;
+			unification_plan := !unification_plan @ ko_assertions @ good_assertions;
+
+			(* Update bad assertions *)
+			Hashtbl.iter (fun asrt (ui, ou, ko) -> 
+				let new_ui = SS.diff ui !known_vars in 
+				let new_ko = SS.inter ou !known_vars in 
+				Hashtbl.replace main asrt (new_ui, ou, new_ko)
+			) main
+		)
+	done;
+
+	let t5 = Sys.time () in 
+
+	if (Hashtbl.length main = 0) then (
+		print_debug "Unification plan successful!";
+		print_debug "Unification plan:";
+		List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
+		print_debug "";
+	) else (
+		let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\nUnvisited assertions:\n%s" 
+		    (Symbolic_State_Print.string_of_unification_plan !unification_plan)
+		    (Symbolic_State_Print.string_of_symb_state symb_state)
+		    (Hashtbl.fold (fun asrt _ ac -> 
+		    	let str = JSIL_Print.string_of_logic_assertion asrt in 
+		    	if (ac = "") 
+		    		then "\t" ^ str 
+		    		else ac ^ "\n\t" ^ str) main "") in
+		print_debug msg;
+		(* raise (Failure msg) *)
+	);
+
+	print_debug (Printf.sprintf "Prep:\t%f\nStep 1:\t%f\nStep 2:\t%f\nStep 3:\t%f\nStep 4:\t%f\nTotal:\t%f"
+		(t1 -. t0) (t2 -. t1) (t3 -.t2) (t4 -. t3) (t5 -. t4) (t5 -. t0));
+
+	!unification_plan
 
 let create_unification_plan 
 	?(predicates_unf : (string, unfolded_predicate) Hashtbl.t option)
@@ -1917,14 +2096,14 @@ let create_unification_plan
 	symb_state reachable_alocs =
 
 		let t0 = Sys.time () in
-		(* let old_res = old_create_unification_plan symb_state reachable_alocs in *)
+		let res = alternative_new_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in 
 		let t1 = Sys.time () in
-		let new_res = new_create_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in
+		let res = new_create_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in 
 		let t2 = Sys.time () in
 		(* update_statistics "Old unification plan" (t1 -. t0); *)
 		update_statistics "New unification plan" (t2 -. t1);
-		print_debug (Printf.sprintf "Old unif. plan: %fs, new: %fs" (t1 -. t0) (t2 -. t1));
-		new_res
+		print_debug (Printf.sprintf "AltNewUP: %fs, NewUP: %fs" (t1 -. t0) (t2 -. t1));
+		res
 
 (* Create unification plans for multiple symbolic states at the same time
 	 Returns a Hashtbl from logic assertions to the symbolic states they appear in

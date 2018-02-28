@@ -606,7 +606,7 @@ let unify_gammas
 		(fun x x_type ac ->
 			if (not ac) then ac else (
 				try 
-					let le_x          =  Hashtbl.find pat_subst x in 
+					let le_x          = Hashtbl.find pat_subst x in 
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
 					(match le_type with
 					| Some le_type ->
@@ -878,7 +878,7 @@ let fully_unify_symb_state
 	) with UnificationFailure _ -> raise (UnificationFailure "")
 	
 
-type fold_extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * ((string * (jsil_logic_expr list)) option)
+type fold_extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * jsil_logic_assertion list * ((string * (jsil_logic_expr list)) option)
 
 let unify_symb_states_fold 
 			(pred_name            : string)
@@ -938,7 +938,7 @@ let unify_symb_states_fold
 	let gamma = gamma_existentials in 
 	
 	(* 4. Initial frame for the search *)
-	let initial_frame = pat_unification_plan, (heap, preds, (discharges @ discharges'), pat_subst), None in 
+	let initial_frame = pat_unification_plan, (heap, preds, (discharges @ discharges'), pat_subst), [], None in 
 
 	(* 5. SEARCH *)
 	let rec search 
@@ -946,7 +946,7 @@ let unify_symb_states_fold
 		match frame_list with 
 		| [] -> raise (UnificationFailure "")
 		
-		| (up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 				(* A - All the spatial resources were successfully unified *)
@@ -978,7 +978,7 @@ let unify_symb_states_fold
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
 				let new_frames : fold_extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, missing_pred) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
@@ -992,7 +992,7 @@ let unify_symb_states_fold
 				(* C - Unify pred assertion *)
 				let new_frames : fold_extended_intermediate_frame list =
 					List.map 
-						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
+						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, missing_pred) 
 						(unify_pred_assertion pfs gamma pat_subst (LPred (p_name, largs)) preds_frame) in  
 
 				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
@@ -1007,7 +1007,7 @@ let unify_symb_states_fold
 						print_debug "Predicate Assertion NOT FOUND. PAS DE PROBLEME ON CONTINUE\n"; 
 
 						(* C.2 - the predicate is the one we are looking for but we could NOT unify it  *)
-						search ((rest_up, (heap_frame, preds_frame, discharges, pat_subst), (Some (p_name, largs))) :: rest_frame_list)
+						search ((rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, (Some (p_name, largs))) :: rest_frame_list)
 					)
 
 			| LTypes type_asrts :: rest_up ->
@@ -1021,7 +1021,7 @@ let unify_symb_states_fold
 					search rest_frame_list 
 				)
 				else 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred in
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred in
 					search (new_frame::rest_frame_list) 
 
 			| LEmp :: _
@@ -1034,18 +1034,33 @@ let unify_symb_states_fold
 
 				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 
-				(* Get existentials *)
-				let existentials = get_asrt_lvars pf in 
-				let existentials = SS.diff existentials (substitution_domain pat_subst) in 
-				(* Substitute in formula *)
-				let pf = asrt_substitution pat_subst true pf in 
-				(* Check if the current pfs entail the obtained substituted pf *)
-				let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf ] gamma in 
-				(match pf_entailed with 
-				| false -> search rest_frame_list 
-				| true -> 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred in
+				(match pf with 
+				(* We know le1, learning le2 *)
+				| LEq (le1, le2) -> 
+					let sle1 = lexpr_substitution pat_subst true le1 in 
+					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 sle1 pat_subst in  
+					(match more_pfs with 
+					| None -> search rest_frame_list 
+					| Some more_pfs -> 
+						let pfs_to_check = pfs_to_check @ more_pfs in 
+						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
+						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred in 
 						search (new_frame :: rest_frame_list))
+				| _ -> 
+					let existentials = get_asrt_lvars pf in 
+					let existentials = SS.diff existentials (substitution_domain pat_subst) in 
+					(* Substitute in formula *)
+					let pf_sbst = asrt_substitution pat_subst true pf in 
+					(* Check if the current pfs entail the obtained substituted pf *)
+					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf_sbst ] gamma in 
+					(match pf_entailed with 
+					| false -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check), missing_pred in
+							search (new_frame :: rest_frame_list) 
+					| true -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred in
+							search (new_frame :: rest_frame_list)))
 			) in
 			
 	let start_time = Sys.time() in
