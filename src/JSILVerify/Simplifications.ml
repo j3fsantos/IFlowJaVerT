@@ -1762,20 +1762,24 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 		let e = lexpr_substitution subst true e in
 			Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e)
 
-let subst_for_unification_plan le1 le2 : substitution option =
-	(* Return substitution *)
-	let return_subst = Hashtbl.create small_tbl_size in 
-
-	(* We care about abstract locations and logical variables inside le2 *)
-	let targets = SS.union (get_lexpr_alocs le2) (get_lexpr_lvars le2) in
-
-	(* Some kind of unification here for le2, we can be on a need-to-do basis:
-		1) variable
-		2) lists - there's unify_lists, but it doesn't treat alocs
-		3) sets? 
-
-		It could be what Jose said - it's all about the pattern of le2 and nothing about le1,
-		but then we need to be able to reduce whatever we get to something reasonable
-	*)
-
-	Some return_subst
+(* Assume le = target, understand equalities, put in subst. It's all about le, nothing about the target *)
+let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : bool =
+	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
+	(match le with 
+	| ALoc x
+	| LVar x -> 
+		let le' = Hashtbl.find_opt subst x in 
+		(match le' with 
+		| None -> 
+			print_debug (Printf.sprintf "SfUP: adding %s : %s" x (JSIL_Print.string_of_logic_expression target));
+			Hashtbl.add subst x target
+		| Some le' -> 
+			print_debug (Printf.sprintf "SfUP: already in subst: %s : %s --> %s" x (JSIL_Print.string_of_logic_expression le') (JSIL_Print.string_of_logic_expression target));
+			Hashtbl.replace subst x target)
+	| _ when Reduction.lexpr_is_list ?gamma:gamma le -> 
+		print_debug (Printf.sprintf "SfUP: list %s" (JSIL_Print.string_of_logic_expression le));
+	(* NOW, MORE CASES FOR LISTS - LEList, Cons, Cat - there are functions for getting a head of a list in Reduction.ml *)
+	(* Otherwise, whatever *)
+	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le))
+	);
+	true
