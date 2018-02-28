@@ -815,15 +815,13 @@ let unify_symb_states
 				(* We know le1, learning le2 *)
 				| LEq (le1, le2) -> 
 					let more_subst  = Hashtbl.create small_tbl_size in 
-					let success = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 le1 more_subst in
-					(match success with 
-					| false -> raise (UnificationFailure "")
-					| true -> 
-						print_debug_petar ("More subst:\n" ^ (JSIL_Print.string_of_substitution more_subst));
-						Hashtbl.iter (fun v le -> Hashtbl.replace more_subst v (lexpr_substitution pat_subst true le) ) more_subst;
-						extend_subst_with_subst pat_subst more_subst;
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
-						search (new_frame :: rest_frame_list) found_partial_matches)
+					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 le1 more_subst in  
+					let pfs_to_check = pfs_to_check @ more_pfs in 
+					print_debug_petar ("More subst:\n" ^ (JSIL_Print.string_of_substitution more_subst));
+					Hashtbl.iter (fun v le -> Hashtbl.replace more_subst v (lexpr_substitution pat_subst true le) ) more_subst;
+					extend_subst_with_subst pat_subst more_subst;
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
+					search (new_frame :: rest_frame_list) found_partial_matches
 				| _ -> 
 					let existentials = get_asrt_lvars pf in 
 					let existentials = SS.diff existentials (substitution_domain pat_subst) in 

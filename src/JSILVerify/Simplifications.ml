@@ -1763,9 +1763,10 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 			Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e)
 
 (* Assume le = target, understand equalities, put in subst. It's all about le, nothing about the target *)
-let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : bool =
+let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : jsil_logic_assertion list =
 	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
 	(match le with 
+	| LLit _ -> [ LEq (le, target) ]
 	| ALoc x
 	| LVar x -> 
 		let le' = Hashtbl.find_opt subst x in 
@@ -1775,11 +1776,13 @@ let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : 
 			Hashtbl.add subst x target
 		| Some le' -> 
 			print_debug (Printf.sprintf "SfUP: already in subst: %s : %s --> %s" x (JSIL_Print.string_of_logic_expression le') (JSIL_Print.string_of_logic_expression target));
-			Hashtbl.replace subst x target)
+			Hashtbl.replace subst x target);
+		[]
 	| _ when Reduction.lexpr_is_list ?gamma:gamma le -> 
 		print_debug (Printf.sprintf "SfUP: list %s" (JSIL_Print.string_of_logic_expression le));
+		[ LEq (le, target) ]
 	(* NOW, MORE CASES FOR LISTS - LEList, Cons, Cat - there are functions for getting a head of a list in Reduction.ml *)
 	(* Otherwise, whatever *)
-	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le))
+	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le)); [ LEq (le, target) ]
 	);
-	true
+
