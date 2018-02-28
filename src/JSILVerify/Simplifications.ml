@@ -1761,3 +1761,21 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	| Some subst ->
 		let e = lexpr_substitution subst true e in
 			Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e)
+
+let subst_for_unification_plan le1 le2 : substitution option =
+	(* Return substitution *)
+	let return_subst = Hashtbl.create small_tbl_size in 
+
+	(* We care about abstract locations and logical variables inside le2 *)
+	let targets = SS.union (get_lexpr_alocs le2) (get_lexpr_lvars le2) in
+
+	(* Some kind of unification here for le2, we can be on a need-to-do basis:
+		1) variable
+		2) lists - there's unify_lists, but it doesn't treat alocs
+		3) sets? 
+
+		It could be what Jose said - it's all about the pattern of le2 and nothing about le1,
+		but then we need to be able to reduce whatever we get to something reasonable
+	*)
+
+	Some return_subst

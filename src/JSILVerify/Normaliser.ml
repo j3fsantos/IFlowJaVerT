@@ -1721,8 +1721,6 @@ let new_create_unification_plan
 	let heap_domain_list        = SS.elements heap_domain in
 	let heap_asrts              = SHeap.assertions heap in
 
-	let unification_plan        = Queue.create () in
-
 	let abs_locs, concrete_locs = List.partition is_aloc_name heap_domain_list in
 	let abs_locs, concrete_locs = SS.of_list abs_locs, SS.of_list concrete_locs in
 
@@ -1743,7 +1741,7 @@ let new_create_unification_plan
 	List.fold_left (fun ac le -> SS.union (get_lexpr_vars le) ac) SS.empty lexprs in
 
 	let heap_vars  = List.fold_left     (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty heap_asrts in
-	let store_vars = SStore.fold store  (fun x v ac  -> SS.union (SS.add x (get_lexpr_vars v)) ac) SS.empty in
+	let store_vars = SStore.unifiables store in
 	let pf_vars    = DynArray.fold_left (fun ac asrt -> SS.union (get_asrt_vars asrt) ac) SS.empty pf in
 	let gamma_vars = TypEnv.unifiables gamma in
 	let preds_vars = DynArray.fold_left (fun ac pred -> SS.union (get_pred_vars pred) ac) SS.empty preds in

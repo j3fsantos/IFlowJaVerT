@@ -814,10 +814,8 @@ let unify_symb_states
 				(match pf with 
 				(* We know le1, learning le2 *)
 				| LEq (le1, le2) -> 
-					let pfdyn = PFS.init () in 
-						DynArray.add pfdyn (asrt_substitution pat_subst true pf);
-					let _, ounifier = Simplifications.simplify_pfs_with_subst pfdyn (TypEnv.init()) in
-					(match ounifier with 
+					let more_subst : substitution option = Simplifications.subst_for_unification_plan le1 le2 in
+					(match more_subst with 
 					| None -> raise (UnificationFailure "")
 					| Some more_subst -> 
 						print_debug_petar ("More subst:\n" ^ (JSIL_Print.string_of_substitution more_subst));
@@ -1320,7 +1318,7 @@ let unfold_predicate_definition
 
 let grab_resources 
 		(spec_vars            : SS.t) 
-		(pat_unification_plan  : jsil_logic_assertion list) 
+		(pat_unification_plan : jsil_logic_assertion list) 
 		(pat_subst            : substitution)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : symbolic_state option   =
