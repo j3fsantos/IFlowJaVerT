@@ -78,17 +78,35 @@ let copy (x : t) : t = Hashtbl.copy x
 
 (** Returns subst(store) *)
 let substitution (subst : substitution) (partial : bool) (x : t) : t =
+	
+	(* Do not substitute spec vars for spec vars *)
+	let store_subst = copy_substitution subst in 
+	Hashtbl.filter_map_inplace (fun v le -> 
+		match (is_spec_var_name v), le with 
+		| false, _ -> Some le
+		| true, LVar w -> Some (LVar v)
+		| _, _ -> Some le) store_subst;
+
 	let new_store = init [] [] in
 		iter x (fun v le -> 
-			let le_subst = lexpr_substitution subst partial le in
+			let le_subst = lexpr_substitution store_subst partial le in
 			let le_subst = if (le <> le_subst) then Reduction.reduce_lexpr le_subst else le_subst in
 			put new_store v le_subst);
 		new_store
 
 (** Updates --store-- to subst(store) *)
 let substitution_in_place (subst : substitution) (x : t) : unit =
+
+	(* Do not substitute spec vars for spec vars *)
+	let store_subst = copy_substitution subst in 
+	Hashtbl.filter_map_inplace (fun v le -> 
+		match (is_spec_var_name v), le with 
+		| false, _ -> Some le
+		| true, LVar w -> Some (LVar v)
+		| _, _ -> Some le) store_subst;
+	
 	iter x (fun v le ->
-		let s_le = lexpr_substitution subst true le in
+		let s_le = lexpr_substitution store_subst true le in
 		let s_le = if (le <> s_le) then Reduction.reduce_lexpr s_le else s_le in
 		if (le <> s_le) then put x v s_le)
 
@@ -104,6 +122,10 @@ let lvars (x : t) : SS.t =
 (** Returns the set containing all the alocs occurring in --x-- *)
 let alocs (x : t) : SS.t =
 	fold x (fun _ le ac -> SS.union ac (get_lexpr_alocs le)) SS.empty
+
+(** Returns the set containing all the alocs occurring in --x-- *)
+let clocs (x : t) : SS.t =
+	fold x (fun _ le ac -> SS.union ac (get_lexpr_clocs le)) SS.empty
 
 let unifiables (x : t) : SS.t = 
 	let lv, pv, ll, al = fold x (fun v le (lv1, pv1, ll1, al1) -> 

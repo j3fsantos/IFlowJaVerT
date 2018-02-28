@@ -163,12 +163,15 @@ let string_of_unification_plan (up : jsil_logic_assertion list) : string =
 let string_of_unification_step 
 			(a : jsil_logic_assertion) (pat_subst : substitution) 
 			(heap_frame : SHeap.t) (preds_frame : predicate_set) 
+			(pfs : PFS.t) (gamma : TypEnv.t)
 			(discharges : discharge_list) : string = 
-	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\ndischarges:%s\n"
+	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\nPure formulae: %s\nGamma:%s\ndischarges:%s\n"
 		(JSIL_Print.string_of_logic_assertion a)
 		(string_of_substitution pat_subst)
 		(SHeap.str heap_frame)
 		(string_of_preds preds_frame)
+		(string_of_pfs pfs)
+		(TypEnv.str gamma)
 		(string_of_discharges discharges)
 
 

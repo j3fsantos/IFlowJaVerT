@@ -100,7 +100,7 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 	let start_time = Sys.time () in
 
 	let f = reduce_assertion ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
-	let fe = Reduction.reduce_lexpr ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
+	let fe = Reduction.reduce_lexpr ?gamma:gamma ?pfs:pfs in
 
 	let result = (match a with
 
@@ -319,7 +319,7 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 		then (print_debug (Printf.sprintf "Reduce_assertion: %s -> %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); f result)
 		else result in
 
-	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));
+	if (no_timing = None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));
 	final_result
 
 
@@ -1761,3 +1761,28 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	| Some subst ->
 		let e = lexpr_substitution subst true e in
 			Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e)
+
+(* Assume le = target, understand equalities, put in subst. It's all about le, nothing about the target *)
+let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : jsil_logic_assertion list =
+	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
+	(match le with 
+	| LLit _ -> [ LEq (le, target) ]
+	| ALoc x
+	| LVar x -> 
+		let le' = Hashtbl.find_opt subst x in 
+		(match le' with 
+		| None -> 
+			print_debug (Printf.sprintf "SfUP: adding %s : %s" x (JSIL_Print.string_of_logic_expression target));
+			Hashtbl.add subst x target
+		| Some le' -> 
+			print_debug (Printf.sprintf "SfUP: already in subst: %s : %s --> %s" x (JSIL_Print.string_of_logic_expression le') (JSIL_Print.string_of_logic_expression target));
+			Hashtbl.replace subst x target);
+		[]
+	| _ when Reduction.lexpr_is_list ?gamma:gamma le -> 
+		print_debug (Printf.sprintf "SfUP: list %s" (JSIL_Print.string_of_logic_expression le));
+		[ LEq (le, target) ]
+	(* NOW, MORE CASES FOR LISTS - LEList, Cons, Cat - there are functions for getting a head of a list in Reduction.ml *)
+	(* Otherwise, whatever *)
+	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le)); [ LEq (le, target) ]
+	);
+

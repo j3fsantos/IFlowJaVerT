@@ -10,7 +10,7 @@ pred JSObject (l:Obj) :
 	MetaData(#md, null) * Extensible(#md, true) *
 	empty_fields (#md : -{ "@class", "@extensible", "@proto" }-);
 
-pred JSObjWithProto (l:Obj, proto) :
+pred JSObjWithProto (+l:Obj, proto) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> "Object") *
@@ -18,7 +18,7 @@ pred JSObjWithProto (l:Obj, proto) :
 	MetaData(#md, null) * Extensible(#md, true) *
 	empty_fields (#md : -{ "@class", "@extensible", "@proto" }-);
 	
-pred JSObjGeneral (l:Obj, proto, class:Str, ext:Bool) :
+pred JSObjGeneral (+l:Obj, proto, class:Str, ext:Bool) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> proto) *
 	((#md, "@class")      -> class) *
@@ -34,7 +34,7 @@ pred EmptyExtensibleObject(l:Obj) :
  **** FUNCTION OBJECTS ****
  **************************)
 
-pred JSFunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj) : 
+pred JSFunctionObject (+l:Obj, fid:Str, sc:List, len:Num, proto:Obj) : 
 	((l, "length")     -> {{ "d", len, false, false, false }}) *
 	((l, "arguments")  -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
 	((l, "caller")     -> {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }}) *
@@ -49,7 +49,7 @@ pred JSFunctionObject (l:Obj, fid:Str, sc:List, len:Num, proto:Obj) :
 	empty_fields(#md : -{ "@call", "@class", "@construct", "@extensible", "@proto", "@scope" }-) *
 	MetaData(#md, null) * Extensible(#md, true);
 
-pred JSBIFunction (l:Obj, fid:Str, len:Num) : 
+pred JSBIFunction (+l:Obj, fid:Str, len:Num) : 
 	((l, "length")     -> {{ "d", len, false, false, false }}) *
 	MetaData(l, #md) * Extensible (l, true) *
 	((#md, "@proto")      -> $lfun_proto) * 
@@ -60,7 +60,7 @@ pred JSBIFunction (l:Obj, fid:Str, len:Num) :
 	empty_fields(#md : -{ "@call", "@class", "@extensible", "@proto", "@scope" }-) *
 	MetaData(#md, null) * Extensible(#md, true);
 
-pred BIFunctionObject (l:Obj, len:Num, proto:Obj) : 
+pred BIFunctionObject (+l:Obj, len:Num, proto:Obj) : 
 	((l, "length")     -> {{ "d", len, false, false, false }}) *
 	((l, "prototype")  -> {{ "d", proto, false, false, false }}) *
 	MetaData(l, #md) * Extensible (l, true) *
@@ -75,7 +75,7 @@ pred BIFunctionObject (l:Obj, len:Num, proto:Obj) :
  **** BUILT-IN OBJECTS ****
  **************************)
 
-pred BooleanObject (l:Obj, b:Bool) :
+pred BooleanObject (+l:Obj, b:Bool) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> $lbool_proto) *
 	((#md, "@class")      -> "Boolean") *
@@ -84,7 +84,7 @@ pred BooleanObject (l:Obj, b:Bool) :
 	MetaData(#md, null) * Extensible(#md, true) *
 	empty_fields (#md : -{ "@class", "@extensible", "@primitiveValue", "@proto" }-);
 	
-pred NumberObject (l:Obj, n:Num) :
+pred NumberObject (+l:Obj, n:Num) :
     MetaData(l, #md) * Extensible(l, true) *
 	((#md, "@proto")      -> $lnum_proto) *
 	((#md, "@class")      -> "Number") *
@@ -206,10 +206,10 @@ pred initialHeapPostWeak ( ) :
  **** ERROR OBJECTS ****
  ***********************)
  
-pred ErrorObject (l:Obj, pr:Obj) :
+pred ErrorObject (+l:Obj, pr:Obj) :
 	JSObjGeneral(l, pr, "Error", true);
 
-pred ErrorObjectWithMessage (l:Obj, m:Str) :
+pred ErrorObjectWithMessage (+l:Obj, m:Str) :
 	MetaData(l, #md) * Extensible(l, true) *
 	((l, "message") -> {{"d", m, true, false, true}}) *
 	((#md, "@proto") -> $lerr_proto) * ((#md, "@class") -> "Error") * ((#md, "@extensible") -> true) *
@@ -228,15 +228,15 @@ pred isReferenceError(l:Obj) :
  **** PROPERTIES ****
  ********************)
 
-pred DataProp (l:Obj, prop:Str, v) :
+pred DataProp (+l:Obj, +prop:Str, v) :
 	((l, prop) -> {{ "d", v, true, true, true }}) *
 	(! (v == empty));
 	
-pred DataPropGen (l:Obj, prop:Str, v, writ:Bool, enum:Bool, conf:Bool) : 
+pred DataPropGen (+l:Obj, +prop:Str, v, writ:Bool, enum:Bool, conf:Bool) : 
 	((l, prop) -> {{ "d", v, writ, enum, conf }}) *
 	(! (v == empty));
 	
-pred DataPropConst (l:Obj, prop:Str, v) :
+pred DataPropConst (+l:Obj, +prop:Str, v) :
 	((l, prop) -> {{ "d", v, false, #e, false }}) *
 	types(#e:Bool) * (! (v == empty));
 
@@ -320,7 +320,7 @@ pred desc_conf (d:List, v) :
  *      (l, prop)
  *
  *)
-pred Cell_o (l:Obj, prop:Str, d) :
+pred Cell_o (+l:Obj, +prop:Str, d) :
     ((l, prop) -> d) * (d == none),
     ((l, prop) -> d) * DataDescriptor(d),
     ((l, prop) -> d) * AccessorDescriptor(d);
@@ -336,7 +336,7 @@ pred Cell_o (l:Obj, prop:Str, d) :
  *      (l, prop)
  *
  *)
-pred Cell_s (l:Obj, prop:Str, d) :
+pred Cell_s (+l:Obj, +prop:Str, d) :
     ((l, prop) -> d) * DataDescriptor(d),
     ((l, prop) -> d) * AccessorDescriptor(d);
  
@@ -361,7 +361,7 @@ pred isClass (c:Str, case:Str) :
  **** PI: PROTOTYPE INHERITANCE ***
  **********************************)
 
-pred Pi (l:Obj, prop:Str, d, ls:List, lcls:List, lpv:List) :
+pred Pi (+l:Obj, +prop:Str, d, ls:List, lcls:List, lpv:List) :
 
     (* Any object, cell exists in the heap *)
     Cell_o (l, prop, d) * Descriptor(d) *

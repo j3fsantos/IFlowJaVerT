@@ -21,6 +21,7 @@ val fold       : t -> (string -> JSIL_Syntax.jsil_logic_expr -> 'a -> 'a) -> 'a 
 
 val vars       : t -> CCommon.SS.t
 val lvars      : t -> CCommon.SS.t
+val clocs      : t -> CCommon.SS.t
 val alocs      : t -> CCommon.SS.t
 val unifiables : t -> CCommon.SS.t
 
