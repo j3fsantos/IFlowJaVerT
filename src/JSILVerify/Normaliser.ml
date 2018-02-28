@@ -1769,7 +1769,7 @@ let new_create_unification_plan
 	let gamma_asrts = TypEnv.fold gamma (fun x v ac -> (type_to_asrt x v)::ac) [] in
 	let pred_asrts  = DynArray.fold_left (fun ac (n, les) -> (LPred (n, les))::ac) [] preds in
 
-  	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
+	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
 
 	let print_asrts (name, asrts) =
 	print_debug (name ^ " assertions:");
@@ -1792,37 +1792,51 @@ let new_create_unification_plan
 	let var_asrts = Hashtbl.create nb_vars in                         (* for each variable, the list of asrts of which it is an in-var *)
 	SS.iter (fun var -> Hashtbl.add var_asrts var SA.empty) all_vars; (* it's too tedious to have to check everywhere else *)
 	let seen_vars = Hashtbl.create nb_vars in
+	let nb_asrts = List.length all_asrts in
+	let seen_asrts = Hashtbl.create nb_asrts in (* we might visit equality assertions twice, so we have to remember if we saw them *)
 	let seen_heap_asrts = ref 0 in (* we count the heap assertions that we see to make sure that we unify them all *)
 	let seen_gamma_asrts = ref 0 in
 
-	(* turn the [all_asrts] list of assertions into an (asrt, ins, outs) list and duplicate assertions as needed *)
-	let expand_ins_outs asrt : (jsil_logic_assertion * (SS.t * SS.t)) list =
-	let ins_outs = ins_and_outs ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym asrt in
-	(match ins_outs with 
-	| [ io ] -> [ (asrt, io ) ]
-	| [ io1; io2 ] -> (match asrt with 
-		| LEq (le1, le2) -> [ (LEq (le1, le2), io1); (LEq (le2, le1), io2) ])
-	) in
+	(* turn the [all_asrts] list of assertions into an (asrt, orig_asrt_i, (ins, outs)) list and duplicate assertions as needed *)
 
-	let expanded_asrts = List.concat (List.map expand_ins_outs all_asrts) in
+	let expand_asrt asrt_i asrt =
+		let ins_outs = ins_and_outs ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym asrt in
+		match asrt, ins_outs with
+		| LEq (le1, le2), [ io1; io2 ] ->
+			[ LEq(le1, le2), asrt_i, io1 ; LEq(le2, le1), asrt_i, io2 ]
+
+		| LEq _, _->
+			raise (Failure (Printf.sprintf "LEq %s supposed to have 2 ins and outs" (JSIL_Print.string_of_logic_assertion asrt)))
+
+		| _, [ io ] ->
+			[ asrt, asrt_i, io ]
+
+		| _, _ ->
+			raise (Failure (Printf.sprintf "asrt %s not supposed to have multiple ins and outs" (JSIL_Print.string_of_logic_assertion asrt)))
+	in
+
+	let expanded_asrts = List.concat (List.mapi expand_asrt all_asrts) in
 
 	let asrt_array   = Hashtbl.create medium_tbl_size in 
 	let seen_in_vars = Hashtbl.create medium_tbl_size in 
-		List.iter (fun (asrt, (ins, outs)) -> 
-			Hashtbl.add asrt_array   asrt (ins, outs);
-			Hashtbl.add seen_in_vars asrt 0) expanded_asrts;
+
+	List.iter (fun (asrt, orig_asrt_i, (ins, outs)) -> 
+		Hashtbl.add asrt_array asrt (orig_asrt_i, (ins, outs));
+		Hashtbl.add seen_in_vars asrt 0) expanded_asrts;
 
 	let fill_asrt (asrt : jsil_logic_assertion) (ins_outs : SS.t * SS.t) : unit =
-	let in_vars, out_vars = ins_outs in
-	let update_var var =
-		let cur_asrts : SA.t = Hashtbl.find var_asrts var in
-		Hashtbl.replace var_asrts var (SA.add asrt cur_asrts) in
-	SS.iter update_var in_vars;
-	print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
-	print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
-	print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars "")) in
+		let in_vars, out_vars = ins_outs in
+		let update_var var =
+			let cur_asrts : SA.t = Hashtbl.find var_asrts var in
+			Hashtbl.replace var_asrts var (SA.add asrt cur_asrts)
+		in
+		SS.iter update_var in_vars;
+		print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
+		print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
+		print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""))
+	in
 
-	List.iter (fun (asrt, ins_outs) -> fill_asrt asrt ins_outs) expanded_asrts;
+	List.iter (fun (asrt, _, ins_outs) -> fill_asrt asrt ins_outs) expanded_asrts;
 	let unification_plan = ref [] in
 
 	SS.iter (fun var ->
@@ -1845,28 +1859,25 @@ let new_create_unification_plan
 	  SA.iter visit_asrt children_asrts
 	)
 	and visit_asrt (asrt : jsil_logic_assertion) : unit =
-	let in_vars, out_vars = Hashtbl.find asrt_array asrt in
-	let cur_seen_in = Hashtbl.find seen_in_vars asrt in
-	print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt)); 
-	Hashtbl.replace seen_in_vars asrt (cur_seen_in + 1);
-	if (cur_seen_in + 1) = SS.cardinal in_vars then (
-	  print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
-	  begin match asrt with
-	  | LPointsTo _
-	  | LMetaData _
-	  | LExtensible _
-	  | LEmptyFields _ -> incr seen_heap_asrts;
-	  | LTypes _ -> incr seen_gamma_asrts;
-	  | LEq (le1, le2) -> 
-	  	let asrt' = LEq (le2, le1) in 
-	  	let vars', _ = Hashtbl.find asrt_array asrt' in 
-	  		SS.iter (fun var -> 
-	  			let asrts : SA.t = Hashtbl.find var_asrts var in 
-	  			Hashtbl.replace var_asrts var (SA.remove asrt' asrts)) vars'
-	  | _ -> ();
-	  end;
-	  unification_plan := asrt :: (!unification_plan);
-	  SS.iter visit_var out_vars
+	let orig_asrt_i, (in_vars, out_vars) = Hashtbl.find asrt_array asrt in
+	if not (Hashtbl.mem seen_asrts orig_asrt_i) then (
+		Hashtbl.add seen_asrts orig_asrt_i true;
+		let cur_seen_in = Hashtbl.find seen_in_vars asrt in
+		print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt));
+		Hashtbl.replace seen_in_vars asrt (cur_seen_in + 1);
+		if (cur_seen_in + 1) = SS.cardinal in_vars then (
+			print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
+			begin match asrt with
+			| LPointsTo _
+			| LMetaData _
+			| LExtensible _
+			| LEmptyFields _ -> incr seen_heap_asrts
+			| LTypes _ -> incr seen_gamma_asrts
+			| _ -> ()
+			end;
+			unification_plan := asrt :: (!unification_plan);
+			SS.iter visit_var out_vars
+		)
 	)
 	in
 
