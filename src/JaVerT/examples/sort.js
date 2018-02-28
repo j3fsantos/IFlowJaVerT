@@ -9,14 +9,14 @@
    DataProp(n, "value", v) *
    DataProp(n, "next", t);
  
- @pred NDList(+l, E):
+ @pred NDList(+l, E:Set):
    (l == null) * (E == -{ }-),
 
    Node(l, #v, #t) * NDList(#t, #tE) *
    (E == -u- (#tE, -{ #v }-)) *
    (!(#v --e-- #tE));
 
- @pred SOList(+l, E):
+ @pred SOList(+l, E:Set):
    (l == null) * (E == -{ }-),
 
    Node(l, #v, #t) * SOList(#t, #tE) *

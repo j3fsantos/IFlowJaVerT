@@ -815,14 +815,15 @@ let unify_symb_states
 				(* We know le1, learning le2 *)
 				| LEq (le1, le2) -> 
 					let sle1 = lexpr_substitution pat_subst true le1 in 
-					let more_subst  = Hashtbl.create small_tbl_size in 
-					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 sle1 more_subst in  
-					let pfs_to_check = pfs_to_check @ more_pfs in 
-					print_debug_petar ("More subst:\n" ^ (JSIL_Print.string_of_substitution more_subst));
-					Hashtbl.iter (fun v le -> Hashtbl.replace more_subst v (lexpr_substitution pat_subst true le) ) more_subst;
-					extend_subst_with_subst pat_subst more_subst;
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
-					search (new_frame :: rest_frame_list) found_partial_matches
+					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 sle1 pat_subst in  
+					(match more_pfs with 
+					| None -> search rest_frame_list found_partial_matches
+					| Some more_pfs -> 
+						let pfs_to_check = pfs_to_check @ more_pfs in 
+						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
+						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
+						search (new_frame :: rest_frame_list) found_partial_matches)
 				| _ -> 
 					let existentials = get_asrt_lvars pf in 
 					let existentials = SS.diff existentials (substitution_domain pat_subst) in 

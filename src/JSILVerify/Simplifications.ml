@@ -1763,23 +1763,28 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 			Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e)
 
 (* Assume le = target, understand equalities, put in subst. It's all about le, nothing about the target *)
-let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : jsil_logic_assertion list =
-	print_debug (Printf.sprintf "SfUP: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression target));
+let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : jsil_logic_assertion list option =
+	print_debug (Printf.sprintf "SfUP: %s -> %s with %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression target) (JSIL_Print.string_of_substitution subst));
 	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
 	(match le with 
 	| LLit _ 
-	| LEList [] -> [ LEq (le, target) ]
+	| LEList [] -> Some [ LEq (le, target) ]
 	| ALoc x
 	| LVar x -> 
 		let le' = Hashtbl.find_opt subst x in 
 		(match le' with 
 		| None -> 
 			print_debug (Printf.sprintf "SfUP: adding %s : %s" x (JSIL_Print.string_of_logic_expression target));
-			Hashtbl.add subst x target
+			Hashtbl.add subst x target;
+			Some []
 		| Some le' -> 
 			print_debug (Printf.sprintf "SfUP: already in subst: %s : %s --> %s" x (JSIL_Print.string_of_logic_expression le') (JSIL_Print.string_of_logic_expression target));
-			Hashtbl.replace subst x target);
-		[]
+			let check = reduce_assertion ?gamma:gamma (LEq (le', target)) in 
+			(match check with 
+			| LFalse -> None
+			| LTrue  -> Hashtbl.replace subst x target; Some []
+			| _ -> Some [ LEq (le', target) ])
+			)
 	| _ when Reduction.lexpr_is_list ?gamma:gamma le ->
 		print_debug (Printf.sprintf "SfUP: list %s" (JSIL_Print.string_of_logic_expression le));
 		let res = Reduction.get_head_and_tail_of_list le in
@@ -1789,13 +1794,21 @@ let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : 
 				let tail = Reduction.reduce_lexpr ?gamma:gamma tail in  
 				let red_target_head = Reduction.reduce_lexpr ?gamma:gamma (LUnOp (Car, target)) in
 				let red_target_tail = Reduction.reduce_lexpr ?gamma:gamma (LUnOp (Cdr, target)) in
-				(subst_for_unification_plan ?gamma:gamma head red_target_head subst ) @ (subst_for_unification_plan ?gamma:gamma tail red_target_tail subst)
+				Option.map_default  
+					(fun pfs_head -> 
+						Option.map_default
+							(fun pfs_tail -> Some (pfs_head @ pfs_tail))
+							None 
+							(subst_for_unification_plan ?gamma:gamma tail red_target_tail subst)
+					)
+					None 
+					(subst_for_unification_plan ?gamma:gamma head red_target_head subst)  
 			| _ ->
 				print_debug_petar "SfUP: head_and_tail returned None.";
-				[ LEq (le, target) ]
+				Some [ LEq (le, target) ]
 		)
 	(* NOW, MORE CASES FOR LISTS - LEList, Cons, Cat - there are functions for getting a head of a list in Reduction.ml *)
 	(* Otherwise, whatever *)
-	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le)); [ LEq (le, target) ]
+	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le)); Some [ LEq (le, target) ]
 	);
 

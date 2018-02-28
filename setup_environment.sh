@@ -1,6 +1,7 @@
 #!/bin/bash
 mkdir -p environment/test262
 cp remake.sh environment
+cp cleanup.sh environment
 cp test.sh environment
 cp JaVerT.sh environment
 cp *.native environment

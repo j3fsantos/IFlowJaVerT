@@ -107,7 +107,7 @@ type extended_jsil_value_constructor = {
 	set_recognizer             : FuncDecl.func_decl
 }
 
-let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")]
+let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true"); ("timeout", "3600")]
 let ctx : Z3.context = (mk_context cfg)
 
 let masterSolver = Solver.mk_solver ctx None
@@ -1088,11 +1088,12 @@ let check_entailment (existentials : SS.t)
 
 		print_time_debug "check_entailment:";
 
-		print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+		let msg = Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 		   (String.concat ", " (SS.elements existentials))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list left_as))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
-		   (TypEnv.str gamma));
+		   (TypEnv.str gamma) in 
+		print_debug_petar msg;
 
 		let start_time = Sys.time() in
 
@@ -1127,8 +1128,8 @@ let check_entailment (existentials : SS.t)
 					| None -> 
 				
   				let left_as = DynArray.to_list left_as in
-      		let right_as = DynArray.to_list right_as in
-  				
+      			let right_as = DynArray.to_list right_as in
+
   				(* Get axioms *)
   				let axioms = get_axioms (left_as @ right_as) gamma in
   				
