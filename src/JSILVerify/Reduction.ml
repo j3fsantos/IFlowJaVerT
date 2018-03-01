@@ -108,6 +108,7 @@ let rec get_nth_of_list (lst : jsil_logic_expr) (idx : int) : jsil_logic_expr op
 
 (* Finding the nth element of a list *)
 let rec get_head_and_tail_of_list ?(pfs : PFS.t option) (lst : jsil_logic_expr) : (jsil_logic_expr * jsil_logic_expr) option =
+
 	let f = get_head_and_tail_of_list in
 
 	(match lst with
@@ -656,6 +657,8 @@ let rec get_lexpr_unifiables ?(no_timing : unit option) (le : jsil_logic_expr) :
 		| PVar x       -> MS.empty,       MS.singleton x, MS.empty,       MS.empty
 		| ALoc x       -> MS.empty,       MS.empty,       MS.empty,       MS.singleton x
 
+		| LLit _ -> MS.empty, MS.empty, MS.empty, MS.empty
+
 		| _ when (lexpr_is_list ?gamma:(Some (TypEnv.init ())) le) -> 
 			(match le with 
 			| LEList [] -> MS.empty, MS.empty, MS.empty, MS.empty  
@@ -663,7 +666,8 @@ let rec get_lexpr_unifiables ?(no_timing : unit option) (le : jsil_logic_expr) :
 				let lv2, pv2, ll2, al2 = f x in
 					MS.union lv1 lv2, MS.union pv1 pv2, MS.union ll1 ll2, MS.union al1 al2
 				) (MS.empty, MS.empty, MS.empty, MS.empty) les
-			| _ -> let head_and_tail = get_head_and_tail_of_list le in 
+			| _ ->
+				let head_and_tail = get_head_and_tail_of_list le in 
 				(match head_and_tail with 
 				| None -> MS.empty, MS.empty, MS.empty, MS.empty
 				| Some (head, tail) -> 

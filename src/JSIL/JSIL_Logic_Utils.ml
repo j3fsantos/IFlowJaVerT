@@ -727,7 +727,15 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 			(fun (ac, ac_constraints) elem ->
 				if (not ac) then (false, [])
 				else 
-					let (t, ite, constraints) = f elem in
+					let (t, ite, constraints) = 
+						let (t, ite, constraints) = f elem in
+						(match t with 
+						| Some _ -> (t, ite, constraints)
+						| None -> (match target_type with 
+							| None -> (t, ite, constraints)
+							| Some tt -> infer_type elem tt constraints
+							)
+						) in 
 					let correct_type = (target_type = None) || (t = target_type) in
 					(ac && correct_type && ite, constraints @ ac_constraints))
 			(true, [])

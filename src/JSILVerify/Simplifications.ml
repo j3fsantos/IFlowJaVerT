@@ -861,19 +861,22 @@ let simplify_symb_state
 					| _ -> None) in
 				(match lexpr with
 				| Some lexpr -> 
-						(* print_debug (Printf.sprintf "Singleton: (%s, %s)" v (Type.str t)); *)
+						print_debug (Printf.sprintf "Singleton: (%s, %s)" v (Type.str t));
 						Hashtbl.add subst v lexpr;
 				| None -> ()));
 			(* Substitute *)
 			let symb_state = ss_substitution subst true symb_state in
+			let gamma  = ss_gamma symb_state in
 			let others = pfs_substitution subst true others in
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
 			Hashtbl.iter (fun v _ ->
-				match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
+				(* match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
 				| true -> ()
-				| false -> 
+				| false -> *)
+						print_debug_petar (Printf.sprintf "Removing: %s" v);
 						while (TypEnv.mem gamma v) do 
+							print_debug_petar (Printf.sprintf "I am in the gamma!");
 							let t = TypEnv.get_unsafe gamma v in
 							let it = type_index t in
 							types.(it) <- types.(it) - 1;
@@ -927,6 +930,8 @@ let simplify_symb_state
 	(* Instantiate uniquely determined variables *)
 	let subst = Hashtbl.create 57 in
 	let symb_state, subst, others, exists = simplify_singleton_types other_pfs !initial_existentials symb_state subst types in
+
+	let heap, store, p_formulae, gamma, preds = symb_state in	
 
 	let pfs = ss_pfs symb_state in
 

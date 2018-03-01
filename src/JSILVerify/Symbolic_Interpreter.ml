@@ -1015,9 +1015,9 @@ let rec symb_evaluate_logic_cmd
  		extend_spec_vars_subst spec_vars (ss_pfs symb_state) subst;
    		print_normal (Printf.sprintf "Assert %s." (JSIL_Print.string_of_logic_assertion a));
 		let existentials            = get_asrt_lvars a in
-		let existentials            = SS.diff existentials spec_vars in
-		let new_spec_vars_for_later = SS.union existentials spec_vars in
-		let gamma_spec_vars         = TypEnv.filter (ss_gamma symb_state) (fun x -> SS.mem x spec_vars) in
+		let diff_existentials       = SS.diff existentials spec_vars in
+		let new_spec_vars_for_later = SS.union diff_existentials spec_vars in
+		let gamma_spec_vars         = TypEnv.filter (ss_gamma symb_state) (fun x -> SS.mem x existentials) in
 		let new_symb_state          = Option.get (Normaliser.normalise_post gamma_spec_vars subst spec_vars (get_asrt_pvars a) a) in
 		let pat_subst, spec_alocs   = make_spec_var_subst subst spec_vars in
 		(match (Spatial_Entailment.grab_resources new_spec_vars_for_later (Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) new_symb_state spec_alocs) pat_subst new_symb_state symb_state) with
