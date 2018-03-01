@@ -230,36 +230,6 @@ let get_lexpr_lvars (le : jsil_logic_expr) : SS.t =
 	SS.of_list (logic_expression_fold fe_ac None None le)
 
 (* ********************************* *)
-(* MULTISETS FOR LOGICAL EXPRESSIONS *)
-(* ********************************* *)
-
-(* Unifiables *)
-
-let rec get_lexpr_unifiables ?(no_timing : unit option) (le : jsil_logic_expr) : MS.t * MS.t * MS.t * MS.t = 
-
-	let f = get_lexpr_unifiables ?no_timing:(Some ()) in
-	let start_time = Sys.time() in 
-
-	let result = match le with
-		| LLit (Loc x) -> MS.empty,       MS.empty,       MS.singleton x, MS.empty
-		| LVar x       -> MS.singleton x, MS.empty,       MS.empty,       MS.empty
-		| PVar x       -> MS.empty,       MS.singleton x, MS.empty,       MS.empty
-		| ALoc x       -> MS.empty,       MS.empty,       MS.empty,       MS.singleton x
-
-		| LEList    les -> List.fold_left (fun (lv1, pv1, ll1, al1) x -> 
-			let lv2, pv2, ll2, al2 = f x in
-				MS.union lv1 lv2, MS.union pv1 pv2, MS.union ll1 ll2, MS.union al1 al2
-			) (MS.empty, MS.empty, MS.empty, MS.empty) les
-
-		| _ -> MS.empty, MS.empty, MS.empty, MS.empty
-	in
-
-	if (no_timing = None) then 
-		(let end_time = Sys.time() in 
-		update_statistics "LExpr unification separation" (end_time -. start_time));
-	result
-
-(* ********************************* *)
 (* ********************************* *)
 (* ********************************* *)
 

@@ -2034,18 +2034,26 @@ let alternative_new_unification_plan
 		let learned_variables = ref SS.empty in 
 
 		(* Separate main into good and bad assertions *)
-		let unifiable_assertions = Hashtbl.fold (fun asrt (ui, ou) ac -> 
+		let asrtt, asrto = Hashtbl.fold (fun asrt (ui, ou) (act, aco) -> 
 			if (ui = SS.empty) then (
 				(* The assertion is consumed *)
 				Hashtbl.remove main asrt;
 				(* Mirror equality assertion is also consumed *)
 				(match asrt with | LEq (le1, le2) -> Hashtbl.remove main (LEq (le2, le1)) | _ -> ());
 				learned_variables := SS.union !learned_variables ou;
-				asrt :: ac)
-			else ac
-		) main [] in
+				(match asrt with 
+				| LTypes _ -> asrt :: act, aco 
+				| _ -> act, asrt :: aco))
+			else (act, aco)
+		) main ([], []) in
+
+		let unifiable_assertions = asrtt @ asrto in 
  
  		if (List.length unifiable_assertions = 0) then can_progress := false else (
+			print_debug "Assertions to be added in the following order:";
+			List.iter (fun a -> print_debug_petar ("\t" ^ (JSIL_Print.string_of_logic_assertion a))) unifiable_assertions;
+			print_debug_petar (Printf.sprintf "Variables learned: %s" (String.concat ", " (SS.elements (SS.diff !learned_variables !known_vars))));
+
 			(* Update *)
 			known_vars := SS.union !known_vars !learned_variables;
 			unification_plan := !unification_plan @ unifiable_assertions;

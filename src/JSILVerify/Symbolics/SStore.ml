@@ -132,7 +132,7 @@ let clocs (x : t) : SS.t =
 
 let unifiables (x : t) : SS.t = 
 	let lv, pv, ll, al = fold x (fun v le (lv1, pv1, ll1, al1) -> 
-		let lv2, _, ll2, al2 = get_lexpr_unifiables le in 
+		let lv2, _, ll2, al2 = Reduction.get_lexpr_unifiables le in 
 		(MS.union lv1 lv2, MS.add pv1 v, MS.union ll1 ll2, MS.union al1 al2)
 	) (MS.empty, MS.empty, MS.empty, MS.empty) in
 	SS.of_list (MS.to_list (List.fold_left MS.union MS.empty [lv; pv; ll; al]))

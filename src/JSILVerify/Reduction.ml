@@ -638,3 +638,47 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 
 	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_lexpr" (end_time -. start_time));
 	final_result
+
+(* ********************************* *)
+(* MULTISETS FOR LOGICAL EXPRESSIONS *)
+(* ********************************* *)
+
+(* Unifiables *)
+
+let rec get_lexpr_unifiables ?(no_timing : unit option) (le : jsil_logic_expr) : MS.t * MS.t * MS.t * MS.t = 
+
+	let f = get_lexpr_unifiables ?no_timing:(Some ()) in
+	let start_time = Sys.time() in 
+
+	let result = match le with
+		| LLit (Loc x) -> MS.empty,       MS.empty,       MS.singleton x, MS.empty
+		| LVar x       -> MS.singleton x, MS.empty,       MS.empty,       MS.empty
+		| PVar x       -> MS.empty,       MS.singleton x, MS.empty,       MS.empty
+		| ALoc x       -> MS.empty,       MS.empty,       MS.empty,       MS.singleton x
+
+		| _ when (lexpr_is_list ?gamma:(Some (TypEnv.init ())) le) -> 
+			(match le with 
+			| LEList [] -> MS.empty, MS.empty, MS.empty, MS.empty  
+			| LEList les -> List.fold_left (fun (lv1, pv1, ll1, al1) x -> 
+				let lv2, pv2, ll2, al2 = f x in
+					MS.union lv1 lv2, MS.union pv1 pv2, MS.union ll1 ll2, MS.union al1 al2
+				) (MS.empty, MS.empty, MS.empty, MS.empty) les
+			| _ -> let head_and_tail = get_head_and_tail_of_list le in 
+				(match head_and_tail with 
+				| None -> MS.empty, MS.empty, MS.empty, MS.empty
+				| Some (head, tail) -> 
+					let rhead = reduce_lexpr head in 
+					let rtail = reduce_lexpr tail in 
+						let lv1, pv1, ll1, al1 = f rhead in 
+						let lv2, pv2, ll2, al2 = f rtail in 
+							MS.union lv1 lv2, MS.union pv1 pv2, MS.union ll1 ll2, MS.union al1 al2
+				)
+			)
+
+		| _ -> MS.empty, MS.empty, MS.empty, MS.empty
+	in
+
+	if (no_timing = None) then 
+		(let end_time = Sys.time() in 
+		update_statistics "LExpr unification separation" (end_time -. start_time));
+	result
