@@ -322,8 +322,7 @@ pred desc_conf (d:List, v) :
  *)
 pred Cell_o (+l:Obj, +prop:Str, d) :
     ((l, prop) -> d) * (d == none),
-    ((l, prop) -> d) * DataDescriptor(d),
-    ((l, prop) -> d) * AccessorDescriptor(d);
+    ((l, prop) -> d) * DataDescriptor(d);
     
 (***************************
  **** TODO: STRING CELL ****
@@ -364,7 +363,7 @@ pred isClass (c:Str, case:Str) :
 pred Pi (+l:Obj, +prop:Str, d, ls:List, lcls:List, lpv:List) :
 
     (* Any object, cell exists in the heap *)
-    Cell_o (l, prop, d) * Descriptor(d) *
+    Cell_o (l, prop, d) * DataDescriptor(d) *
 	MetaData(l, #md) * ((#md, "@class") -> #cls) * types(#cls:Str) *
     (ls == {{ l }}) * (lcls == {{ #cls }}) * (lpv == {{ "" }}),
 

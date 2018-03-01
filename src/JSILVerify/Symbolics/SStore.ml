@@ -76,6 +76,9 @@ let domain (x : t) : SS.t =
 (** Returns a copy of --store-- *)
 let copy (x : t) : t = Hashtbl.copy x
 
+let filter (x : t) (f : string -> jsil_logic_expr -> jsil_logic_expr option) : unit = 
+	Hashtbl.filter_map_inplace f x
+
 (** Returns subst(store) *)
 let substitution (subst : substitution) (partial : bool) (x : t) : t =
 	

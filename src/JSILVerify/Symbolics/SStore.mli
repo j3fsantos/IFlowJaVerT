@@ -18,6 +18,7 @@ val str        : t -> string
 
 val iter       : t -> (string -> JSIL_Syntax.jsil_logic_expr -> unit) -> unit
 val fold       : t -> (string -> JSIL_Syntax.jsil_logic_expr -> 'a -> 'a) -> 'a -> 'a
+val filter     : t -> (string -> JSIL_Syntax.jsil_logic_expr -> JSIL_Syntax.jsil_logic_expr option) -> unit
 
 val vars       : t -> CCommon.SS.t
 val lvars      : t -> CCommon.SS.t

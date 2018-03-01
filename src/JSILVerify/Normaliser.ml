@@ -1697,16 +1697,17 @@ let ins_and_outs
 
 	  | _ -> [ (get_asrt_vars a, SS.empty) ] in
 
-	print_debug (Printf.sprintf "Assertion %s:" (JSIL_Print.string_of_logic_assertion a));
+	(* print_debug (Printf.sprintf "Assertion %s:" (JSIL_Print.string_of_logic_assertion a));
 	List.iter (fun (in_vars, out_vars) -> 
 	    print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
-	    print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""))) in_and_out_vars;
+	    print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""))) in_and_out_vars; *)
 	in_and_out_vars
 
 
 let new_create_unification_plan
-    ?(predicates_unf     : (string, unfolded_predicate) Hashtbl.t option)
-    ?(predicates_sym     : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+	?(take_from_store : SS.t option)
+    ?(predicates_unf  : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym  : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
 
     (symb_state          : symbolic_state)
     (reachable_variables : SS.t) : (jsil_logic_assertion list) =
@@ -1715,7 +1716,13 @@ let new_create_unification_plan
 
 	let heap, store, pf, gamma, preds = symb_state in
 
-	let heap                    = Heap.copy heap in
+	let store = (match take_from_store with
+	| None -> store
+	| Some take_from_store -> 
+		let store' = SStore.copy store in 
+		SStore.filter store' (fun k v -> if (SS.mem k take_from_store) then Some v else None);
+		store' 
+	) in 
 
 	let heap_domain             = SHeap.domain heap in
 	let heap_domain_list        = SS.elements heap_domain in
@@ -1771,12 +1778,12 @@ let new_create_unification_plan
 
 	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
 
-	let print_asrts (name, asrts) =
+	(* let print_asrts (name, asrts) =
 	print_debug (name ^ " assertions:");
 	List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
 
 	List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
-	print_debug "";
+	print_debug ""; *)
 
 	let t3 = Sys.time () in
 
@@ -1831,21 +1838,21 @@ let new_create_unification_plan
 			Hashtbl.replace var_asrts var (SA.add asrt cur_asrts)
 		in
 		SS.iter update_var in_vars;
-		print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
+		(* print_debug (Printf.sprintf "filling assertion %s:" (JSIL_Print.string_of_logic_assertion asrt));
 		print_debug ("\tIn vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) in_vars ""));
-		print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars ""))
+		print_debug ("\tOut vars: " ^ (SS.fold (fun s ss -> s ^ " " ^ ss) out_vars "")) *)
 	in
 
 	List.iter (fun (asrt, _, ins_outs) -> fill_asrt asrt ins_outs) expanded_asrts;
 	let unification_plan = ref [] in
 
-	SS.iter (fun var ->
+	(* SS.iter (fun var ->
 	  print_debug ("assertions using variable " ^ var ^ ":");
 	  SA.iter (fun asrt ->
 	      print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))
 	    ) (Hashtbl.find var_asrts var)
 	) all_vars;
-	print_debug "";
+	print_debug ""; *)
 
 	let t4 = Sys.time () in
 
@@ -1861,12 +1868,12 @@ let new_create_unification_plan
 	and visit_asrt (asrt : jsil_logic_assertion) : unit =
 	let orig_asrt_i, (in_vars, out_vars) = Hashtbl.find asrt_array asrt in
 		let cur_seen_in = Hashtbl.find seen_in_vars asrt in
-		print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt));
+		(* print_debug (Printf.sprintf "visiting assertion %s..." (JSIL_Print.string_of_logic_assertion asrt)); *)
 		Hashtbl.replace seen_in_vars asrt (cur_seen_in + 1);
 		if (cur_seen_in + 1) = SS.cardinal in_vars then (
 			if not (Hashtbl.mem seen_asrts orig_asrt_i) then (
 				Hashtbl.add seen_asrts orig_asrt_i true;
-			print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt));
+			(* print_debug (Printf.sprintf "assertion %s OK!" (JSIL_Print.string_of_logic_assertion asrt)); *)
 			begin match asrt with
 			| LPointsTo _
 			| LMetaData _
@@ -1915,8 +1922,9 @@ let new_create_unification_plan
 (********************************)
 
 let alternative_new_unification_plan
-    ?(predicates_unf     : (string, unfolded_predicate) Hashtbl.t option)
-    ?(predicates_sym     : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+	?(take_from_store : SS.t option)
+    ?(predicates_unf  : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym  : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
 
     (symb_state          : symbolic_state)
     (reachable_variables : SS.t) : (jsil_logic_assertion list) =
@@ -1925,7 +1933,13 @@ let alternative_new_unification_plan
 
 	let heap, store, pf, gamma, preds = symb_state in
 
-	let heap                    = Heap.copy heap in
+	let store = (match take_from_store with
+	| None -> store
+	| Some take_from_store -> 
+		let store' = SStore.copy store in 
+		SStore.filter store' (fun k v -> if (SS.mem k take_from_store) then Some v else None);
+		store' 
+	) in 
 
 	let heap_domain             = SHeap.domain heap in
 	let heap_domain_list        = SS.elements heap_domain in
@@ -1977,13 +1991,6 @@ let alternative_new_unification_plan
 
 	let all_asrts = List.concat [heap_asrts; pf_asrts; gamma_asrts; pred_asrts] in
 
-	let print_asrts (name, asrts) =
-	print_debug (name ^ " assertions:");
-	List.iter (fun asrt -> print_debug ("\t" ^ (JSIL_Print.string_of_logic_assertion asrt))) asrts in
-
-	List.iter print_asrts ["Heap", heap_asrts; "PF", pf_asrts; "Gamma", gamma_asrts; "Preds", pred_asrts];
-	print_debug "";
-
 	let t3 = Sys.time () in
 
 	(* Step 3 -- Setup structure *)
@@ -1993,8 +2000,7 @@ let alternative_new_unification_plan
 	let setup_single_assertion a io =
 		let ins, outs = io in 
 		let unknown_ins = SS.diff ins init_vars in 
-		let known_outs  = SS.inter outs init_vars in 
-			Hashtbl.replace main a (unknown_ins, outs, known_outs) in 
+			Hashtbl.replace main a (unknown_ins, outs) in 
 	
 	List.iter (fun (a : jsil_logic_assertion) -> 
 		let ins_outs = ins_and_outs ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym a in 
@@ -2017,9 +2023,6 @@ let alternative_new_unification_plan
 
 	let unification_plan = ref [] in
 
-	let sort_function = fun (a, _) (b, _) -> 
-		Pervasives.compare b a in
-
 	(* Step 4 - Loop *)
 
 	let t4 = Sys.time () in 
@@ -2031,36 +2034,26 @@ let alternative_new_unification_plan
 		let learned_variables = ref SS.empty in 
 
 		(* Separate main into good and bad assertions *)
-		let ko_assertions, good_assertions = Hashtbl.fold (fun asrt (ui, ou, ko) (acl, acr) -> 
+		let unifiable_assertions = Hashtbl.fold (fun asrt (ui, ou) ac -> 
 			if (ui = SS.empty) then (
 				(* The assertion is consumed *)
 				Hashtbl.remove main asrt;
 				(* Mirror equality assertion is also consumed *)
 				(match asrt with | LEq (le1, le2) -> Hashtbl.remove main (LEq (le2, le1)) | _ -> ());
 				learned_variables := SS.union !learned_variables ou;
-				let ko = SS.cardinal ko in 
-				if (ko = 0) 
-					then (acl, asrt :: acr)
-					else ((ko, asrt) :: acl, acr)
-			) else (acl, acr)
-		) main ([], []) in
+				asrt :: ac)
+			else ac
+		) main [] in
  
- 		if (List.length ko_assertions + List.length good_assertions = 0) then can_progress := false else (
-			let ko_assertions = List.sort sort_function ko_assertions in 
-			let _, ko_assertions = List.split ko_assertions in 
-			print_debug "Assertions to be added in the following order:";
-			List.iter (fun a -> print_debug_petar ("\t" ^ (JSIL_Print.string_of_logic_assertion a))) good_assertions;
-
+ 		if (List.length unifiable_assertions = 0) then can_progress := false else (
 			(* Update *)
-			print_debug_petar (Printf.sprintf "Variables learned: %s" (String.concat ", " (SS.elements (SS.diff !learned_variables !known_vars))));
 			known_vars := SS.union !known_vars !learned_variables;
-			unification_plan := !unification_plan @ ko_assertions @ good_assertions;
+			unification_plan := !unification_plan @ unifiable_assertions;
 
 			(* Update bad assertions *)
-			Hashtbl.iter (fun asrt (ui, ou, ko) -> 
+			Hashtbl.iter (fun asrt (ui, ou) -> 
 				let new_ui = SS.diff ui !known_vars in 
-				let new_ko = SS.inter ou !known_vars in 
-				Hashtbl.replace main asrt (new_ui, ou, new_ko)
+				Hashtbl.replace main asrt (new_ui, ou)
 			) main
 		)
 	done;
@@ -2082,7 +2075,7 @@ let alternative_new_unification_plan
 		    		then "\t" ^ str 
 		    		else ac ^ "\n\t" ^ str) main "") in
 		print_debug msg;
-		(* raise (Failure msg) *)
+		raise (Failure msg)
 	);
 
 	print_debug (Printf.sprintf "Prep:\t%f\nStep 1:\t%f\nStep 2:\t%f\nStep 3:\t%f\nStep 4:\t%f\nTotal:\t%f"
@@ -2091,16 +2084,17 @@ let alternative_new_unification_plan
 	!unification_plan
 
 let create_unification_plan 
-	?(predicates_unf : (string, unfolded_predicate) Hashtbl.t option)
-    ?(predicates_sym : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+	?(take_from_store : SS.t option)
+	?(predicates_unf  : (string, unfolded_predicate) Hashtbl.t option)
+    ?(predicates_sym  : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
 	symb_state reachable_alocs =
 
 		let t0 = Sys.time () in
-		let res = alternative_new_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in 
+		let res = alternative_new_unification_plan ?take_from_store:take_from_store ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in 
 		let t1 = Sys.time () in
-		let res = new_create_unification_plan ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in 
+		(* let _ = new_create_unification_plan ?take_from_store:take_from_store ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in  *)
 		let t2 = Sys.time () in
-		(* update_statistics "Old unification plan" (t1 -. t0); *)
+		update_statistics "Alt unification plan" (t1 -. t0);
 		update_statistics "New unification plan" (t2 -. t1);
 		print_debug (Printf.sprintf "AltNewUP: %fs, NewUP: %fs" (t1 -. t0) (t2 -. t1));
 		res
@@ -2409,7 +2403,8 @@ let normalise_predicate_definitions
                 		match (normalise_assertion None None (Some (SS.of_list param_names)) a') with
                 		| Some (ss, _) ->
                   			let ss', _ = Simplifications.simplify_ss_with_subst ss (Some (Some pred_vars)) in
-                  			[ (os, ss', (create_unification_plan ?predicates_unf:(Some pred_defs) ss' SS.empty)) ]
+                  			let ins = SS.of_list (List.map (fun i -> List.nth param_names i) pred.ins) in 
+                  			[ (os, ss', (create_unification_plan ?take_from_store:(Some ins) ?predicates_unf:(Some pred_defs) ss' SS.empty)) ]
                 		| None -> []
      			) definitions)) in
 			let n_pred = {
