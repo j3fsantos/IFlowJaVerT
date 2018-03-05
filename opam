@@ -15,8 +15,9 @@ depends: [
   "extlib" {build}
   "menhir" {build}
   "batteries" {build}
-  "base"
-  "stdio"
+  "base" {build}
+  "stdio" {build}
+  "core" 
   "ppx_import"
   "ppx_deriving"
   "ppx_compare"
