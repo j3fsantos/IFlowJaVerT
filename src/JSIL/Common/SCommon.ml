@@ -42,8 +42,8 @@ let is_spec_var_name (name : string) : bool =
 (**************************)
 
 (* Maps each assertion to true or false (if it's sasisfiable) *)
-let sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create 513
-let encoding_cache : (SA.t, Z3.Expr.expr list) Hashtbl.t = Hashtbl.create 513
+let sat_cache : (SA.t, bool) Hashtbl.t = Hashtbl.create big_tbl_size
+let encoding_cache : (SA.t, Z3.Expr.expr list) Hashtbl.t = Hashtbl.create big_tbl_size
 
 (* Default values *)
 let initialise_caches =

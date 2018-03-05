@@ -1348,7 +1348,7 @@ spec o__getOwnProperty (l, prop)
     [[ Cell_o (#l, #prop, none) * (ret == undefined) ]]
     normal;
 
-    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) ]]
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * DataDescriptor(#dx) ]]
     [[ Cell_o (#l, #prop, #dx) * (ret == #dx) ]]
     normal
 
@@ -1380,7 +1380,7 @@ with
 
 spec s__getOwnProperty (l, prop) 
 
-    [[ (l == #l) * (prop == #prop) * Cell_s (#l, #prop, #dx) * Descriptor(#dx) ]]
+    [[ (l == #l) * (prop == #prop) * Cell_s (#l, #prop, #dx) * DataDescriptor(#dx) ]]
     [[ Cell_s (#l, #prop, #dx) * (ret == #dx) ]]
     normal
 
@@ -1435,7 +1435,7 @@ spec getOwnProperty (l, prop)
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == undefined) ]]
     normal;
 
-    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * Descriptor(#dx) *
+    [[ (l == #l) * (prop == #prop) * Cell_o (#l, #prop, #dx) * DataDescriptor(#dx) *
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * types(#cls:Str) ]]
     [[ Cell_o (#l, #prop, #dx) * 
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == #dx) ]]
@@ -1726,7 +1726,7 @@ spec hasProperty (l, prop)
 	normal;
 
 	[[ (l == #l) * (prop == #prop) *
-	   Pi (#l, #prop, #d, #ls, #cls, #pv) * Descriptor(#d) ]]
+	   Pi (#l, #prop, #d, #ls, #cls, #pv) * DataDescriptor(#d) ]]
 	[[ Pi (#l, #prop, #d, #ls, #cls, #pv) * (ret == true) ]]
 	normal
 
@@ -1755,21 +1755,21 @@ spec deleteProperty (l, prop, throw)
     normal;
     
 	[[ (l == #l) * (prop == #prop) *
-	   Cell_o(#l, #prop, #d) * Descriptor(#d) * desc_conf(#d, true) * 
+	   Cell_o(#l, #prop, #d) * DataDescriptor(#d) * desc_conf(#d, true) * 
 	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
 	[[ Cell_o(#l, #prop, none) * 
 	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == true) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) * (throw == false) *
-	   Cell_o(#l, #prop, #d) * Descriptor(#d) * desc_conf(#d, false) * 
+	   Cell_o(#l, #prop, #d) * DataDescriptor(#d) * desc_conf(#d, false) * 
 	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
 	[[ Cell_o(#l, #prop, #d) * 
 	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * (ret == false) ]]
 	normal;
 
 	[[ (l == #l) * (prop == #prop) * (throw == true) *
-	   Cell_o(#l, #prop, #d) * Descriptor(#d) * desc_conf(#d, false) * 
+	   Cell_o(#l, #prop, #d) * DataDescriptor(#d) * desc_conf(#d, false) * 
 	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-String") ]]
 	[[ Cell_o(#l, #prop, #d) * 
 	   MetaData(#l, #md) * ((#md, "@class") -> #cls) * isTypeError(err) ]]
@@ -2134,7 +2134,7 @@ spec defineOwnProperty(l, prop, desc, throw)
 
 	(* Current is defined, configurable is false, data descriptor, configurable is true, non-array, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
-       Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+       Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * desc_conf(#dcur, false) *
        DataDescriptor(#desc) * desc_conf(#desc, true) *
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
        ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
@@ -2145,7 +2145,7 @@ spec defineOwnProperty(l, prop, desc, throw)
 
 	(* Current is defined, configurable is false, data descriptor, configurable is true, non-array, don't throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
-       Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+       Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * desc_conf(#dcur, false) *
        DataDescriptor(#desc) * desc_conf(#desc, true) *
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
        ((#md, "@extensible") -> #ext) * types(#ext:Bool) ]]
@@ -2156,7 +2156,7 @@ spec defineOwnProperty(l, prop, desc, throw)
 
 	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-array, throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == true) *
-	   Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+	   Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * desc_conf(#dcur, false) *
        DataDescriptor(#desc) * desc_conf(#desc, false) *
        desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 
@@ -2168,7 +2168,7 @@ spec defineOwnProperty(l, prop, desc, throw)
 
 	(* Current is defined, configurable is false, data descriptor, configurable is false, enumerables are different, non-array, don't throw *)
     [[ (l == #l) * (prop == #prop) * (desc == #desc) * (throw == false) *
-	   Cell_o (#l, #prop, #dcur) * Descriptor(#dcur) * desc_conf(#dcur, false) *
+	   Cell_o (#l, #prop, #dcur) * DataDescriptor(#dcur) * desc_conf(#dcur, false) *
        DataDescriptor(#desc) * desc_conf(#desc, false) *
        desc_enum(#desc, #ed) * desc_enum(#dcur, #ec) * (! (#ed == #ec)) *
        MetaData(#l, #md) * ((#md, "@class") -> #cls) * isClass(#cls, "Non-Array") * 

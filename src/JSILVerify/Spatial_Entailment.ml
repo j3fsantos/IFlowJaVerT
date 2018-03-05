@@ -13,7 +13,7 @@ exception UnificationFailure of string
   *)
 let consistent_subst_list 
 		(subst_list : substitution_list) 
-		(pfs        : pure_formulae)
+		(pfs        : PFS.t)
 		(gamma      : TypEnv.t) : substitution_list option = 
 
 	let start_time = Sys.time() in
@@ -39,7 +39,7 @@ let consistent_subst_list
 
 
 let safe_substitution_extension 
-		(pfs        : pure_formulae) 
+		(pfs        : PFS.t) 
 		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : bool = 
@@ -54,7 +54,7 @@ let safe_substitution_extension
 
 
 let substitution_extension 
-		(pfs        : pure_formulae) 
+		(pfs        : PFS.t) 
 		(gamma      : TypEnv.t) 
 		(subst      : substitution) 
 		(subst_list : substitution_list) : (jsil_logic_assertion list) option = 
@@ -91,9 +91,8 @@ let type_check_discharges
 		) discharges in
 	List.for_all (fun x -> x) rets
 
-
-let unify_lexprs
-	(pfs         : pure_formulae) 
+let rec unify_lexprs
+	(pfs         : PFS.t) 
 	(gamma       : TypEnv.t) 
 	(subst       : substitution)
 	(le_pat      : jsil_logic_expr) 
@@ -101,17 +100,18 @@ let unify_lexprs
 
 	let start_time = Sys.time() in
 
-	let le_pat     = Normaliser.normalise_list_expressions le_pat in
-	let le         = Normaliser.normalise_list_expressions le in 
+	let le_pat = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) le_pat in
+	let le     = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) le     in
 
 	let rec unify_lexprs_rec le_pat le = 
+
 		match le_pat with 
 		| LVar x
 		| ALoc x ->
 			(try
 				let le_pat_subst = (Hashtbl.find subst x) in
 				if (Pure_Entailment.is_different le_pat_subst le pfs gamma)
-					then None else Some ([], [ (le_pat, le) ])   
+					then None else if (le_pat = le) then Some ([], []) else Some ([], [ (le_pat, le) ])
 			with _ -> 
 				if (not (is_aloc_name x)) then Some ([ (x, le) ], []) else (
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
@@ -125,21 +125,14 @@ let unify_lexprs
 			if (Pure_Entailment.is_equal le_pat le pfs gamma)
 				then Some ([], []) else None
 
-		| LEList pat_lst 
-		| LBinOp (LEList pat_lst, LstCat, _) ->
-			(match le with 
-			| LEList lst 
-			| LBinOp (LEList lst, LstCat, _) -> 
-				let min_len              = min (List.length lst) (List.length pat_lst) in
-				let pat_lst_l, pat_lst_r = Normaliser.reshape_list le_pat min_len in 
-				let lst_l, lst_r         = Normaliser.reshape_list le min_len in 
-				if ((List.length pat_lst_l) <> (List.length lst_l)) then raise (Failure "DEATH") else (
-					match unify_lexpr_lists_rec pat_lst_l lst_l with 
-					| None -> None 
-					| Some (substs, dschrgs) -> Some (substs, (pat_lst_r, lst_r) :: dschrgs))
-			| _ -> Some ([], [ (le_pat, le) ] ))
+		| le_pat when ((Reduction.lexpr_is_list ?gamma:(Some gamma) le_pat) && (Reduction.lexpr_is_list ?gamma:(Some gamma) le)) ->
+			let what_happened, to_unify_further = Simplifications.unify_lists le_pat le false in
+			(match what_happened with
+			| None -> Some ([], [ LLit (Bool true), LLit (Bool false) ]) (* Something wrong happened *)
+			| Some false -> Some ([], [ le_pat, le ])                    (* Couldn't progress        *)
+			| Some true -> let left, right = List.split to_unify_further in unify_lexpr_lists_rec left right)
 
-		| _ -> Some ([], [ (le_pat, le) ] ) 
+		| _ -> Some ([], [ (le_pat, le) ] )
 
 	and unify_lexpr_lists_rec lst_pat lst = 
 		let rets = List.map2 unify_lexprs_rec lst_pat lst in 
@@ -162,19 +155,21 @@ let unify_lexprs
 	result 
 
 
+
+
 let unify_stores 
-		(pfs       : pure_formulae) 
+		(pfs       : PFS.t) 
 		(gamma     : TypEnv.t)
 		(pat_subst : substitution) 
-		(pat_store : symbolic_store) 
-		(store     : symbolic_store) : discharge_list =
+		(pat_store : SStore.t) 
+		(store     : SStore.t) : discharge_list =
 
 	print_debug_petar (Printf.sprintf "Unifying stores.\nCalling store: %s\nPat store: %s"
-		(Symbolic_State_Print.string_of_symb_store store) (Symbolic_State_Print.string_of_symb_store pat_store));
+		(SStore.str store) (SStore.str pat_store));
 
-	store_fold pat_store 
+	SStore.fold pat_store 
 		(fun x le_pat discharges -> 
-			match store_get_safe store x with 
+			match SStore.get store x with 
 			| None    -> raise (UnificationFailure "")
 			| Some le -> 
 				(match unify_lexprs pfs gamma pat_subst le_pat le with 
@@ -194,7 +189,7 @@ let unify_stores
 								raise (UnificationFailure "Store unification failure.")))) []
 
 let unify_cell_assertion 
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
@@ -237,9 +232,11 @@ let unify_cell_assertion
 			(match un_les pat_field field with 
 			| None -> ac 
 			| Some (subst_field, discharges_field) -> 
+				print_debug (Printf.sprintf "Field discharge length: %d" (List.length discharges_field));
 				(match un_les pat_val value with 
 				| None -> ac 
 				| Some (subst_val, discharges_val) -> 
+					print_debug (Printf.sprintf "Value discharge length: %d" (List.length discharges_val));
 					let subst_list = subst_field @ subst_val in 
 					let discharges = discharges_field @ discharges_val in 
 					(match (consistent_subst_list subst_list pfs gamma), (pre_check_discharges discharges) with 
@@ -263,7 +260,7 @@ let unify_cell_assertion
     		if (not (safe_substitution_extension pfs gamma pat_subst subst_field)) then [] else (
     			let s_pat_field  = lexpr_substitution pat_subst true pat_field in
 				let a_set_inclusion = LNot (LSetMem (s_pat_field, le_dom)) in 
-				if (not (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
+				if (not (Pure_Entailment.check_entailment SS.empty (PFS.to_list pfs) [ a_set_inclusion ] gamma)) then [] else (
 					let heap_frame = SHeap.copy heap in 
 					let new_domain = LSetUnion [ le_dom; LESet [ s_pat_field ] ] in (* NORMALISE_LEXPR *)
 					let new_domain = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) new_domain in
@@ -279,7 +276,7 @@ let unify_cell_assertion
 	result 
 
 let unify_pred_assertion 
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_pred_asrt : jsil_logic_assertion)
@@ -327,7 +324,7 @@ let unify_pred_assertion
 
 
 let rec find_missing_nones 
-		(pfs            : pure_formulae)
+		(pfs            : PFS.t)
 		(gamma          : TypEnv.t)
 		(fields_to_find : jsil_logic_expr list) 
 		(none_fv_list   : SFVL.t) : SFVL.t =
@@ -354,7 +351,7 @@ let rec find_missing_nones
 
 
 let unify_domains 
-		(pfs       : pure_formulae)
+		(pfs       : PFS.t)
 		(gamma     : TypEnv.t)
 		(pat_subst : substitution)
 		(pat_dom   : jsil_logic_expr) 
@@ -408,7 +405,7 @@ let unify_domains
 
 
  let unify_empty_fields_assertion 
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_ef_asrt   : jsil_logic_assertion)
@@ -459,7 +456,7 @@ let unify_domains
 
 (* TODO : THIS IS NOT SPATIAL?! *)
 let unify_metadata_assertion
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
@@ -514,7 +511,7 @@ let unify_metadata_assertion
 	result
 
 let unify_extensible_assertion
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_cell_asrt : jsil_logic_assertion)
@@ -555,7 +552,7 @@ let unify_extensible_assertion
 type intermediate_frame = SHeap.t * predicate_set * discharge_list * substitution 
 
 let unify_spatial_assertion
-		(pfs           : pure_formulae) 
+		(pfs           : PFS.t) 
 		(gamma         : TypEnv.t)
 		(pat_subst     : substitution) 
 		(pat_s_asrt    : jsil_logic_assertion)
@@ -605,11 +602,11 @@ let unify_gammas
 
 	let start_time = Sys.time() in
 
-	let result = Hashtbl.fold 
+	let result = TypEnv.fold pat_gamma
 		(fun x x_type ac ->
 			if (not ac) then ac else (
 				try 
-					let le_x          =  Hashtbl.find pat_subst x in 
+					let le_x          = Hashtbl.find pat_subst x in 
 					let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in
 					(match le_type with
 					| Some le_type ->
@@ -622,7 +619,7 @@ let unify_gammas
 						print_debug (Printf.sprintf "failed unify_gamma. pat gamma: %s. gamma: %s. pat_type: %s. type: None"
 							x (JSIL_Print.string_of_logic_expression le_x) (Type.str x_type));
 						false)
-				with Not_found -> true)) pat_gamma true in 
+				with Not_found -> true)) true in 
 	
 	let end_time = Sys.time() in
 	update_statistics "unify_gammas" (end_time -. start_time);
@@ -640,16 +637,15 @@ let pf_list_of_discharges
 	) discharges  
 
 let filter_gamma_with_subst gamma vars subst =
-	let new_gamma = Hashtbl.create small_tbl_size in
-	Hashtbl.iter
+	let new_gamma = TypEnv.init () in
+	TypEnv.iter gamma
 		(fun v v_type ->
 			(if (List.mem v vars) then
 				try
 					match (Hashtbl.find subst v) with
-					| LVar new_v -> Hashtbl.replace new_gamma new_v v_type
+					| LVar new_v -> TypEnv.update new_gamma new_v (Some v_type)
 					| _ -> ()
-				with Not_found -> ()))
-		gamma;
+				with Not_found -> ()));
 	new_gamma
 
 
@@ -658,9 +654,9 @@ let unify_pfs
 		(existentials : string list)
 		(pat_lvars    : SS.t)
 		(pat_gamma    : TypEnv.t) 
-		(pat_pfs      : pure_formulae)
+		(pat_pfs      : PFS.t)
 		(gamma        : TypEnv.t) 
-		(pfs          : pure_formulae)
+		(pfs          : PFS.t)
 		(discharges   : discharge_list) : bool * (jsil_logic_assertion list) * (jsil_logic_assertion list) * TypEnv.t * SS.t =
 
 	let start_time = Sys.time() in
@@ -683,15 +679,15 @@ let unify_pfs
 		) in 
 		
 	(* 4. pfs |-_{gamma'} Exists_{existentials + pat_existentials} pat_subst(pat_pfs) /\ pf_list_of_discharges(discharges) *)
-	let s_pat_pfs      = List.map (asrt_substitution pat_subst true) (pfs_to_list pat_pfs) in
+	let s_pat_pfs      = List.map (asrt_substitution pat_subst true) (PFS.to_list pat_pfs) in
 	let pfs_discharges = pf_list_of_discharges pat_subst discharges in
 	let pfs_to_prove   = s_pat_pfs @ pfs_discharges in
 	print_debug (Printf.sprintf "Checking if %s\n entails %s\n with existentials\n%s\nand gamma %s"
 		(Symbolic_State_Print.string_of_pfs pfs)
-		(Symbolic_State_Print.string_of_pfs (pfs_of_list pfs_to_prove))
+		(Symbolic_State_Print.string_of_pfs (PFS.of_list pfs_to_prove))
 		(String.concat ", "  (existentials @ fresh_names_for_pat_existentials))
 		(TypEnv.str gamma')); 
-	let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list (existentials @ fresh_names_for_pat_existentials)) (pfs_to_list pfs) pfs_to_prove gamma' in
+	let entailment_check_ret = Pure_Entailment.check_entailment (SS.of_list (existentials @ fresh_names_for_pat_existentials)) (PFS.to_list pfs) pfs_to_prove gamma' in
 	print_debug (Printf.sprintf "entailment_check: %b" entailment_check_ret);
 
 	(* 5. Constraints on the existentials - they come from the pat_pfs and from the discharges          *)
@@ -710,10 +706,10 @@ let unify_pfs
 	result
 
 
-type extended_intermediate_frame         = (jsil_logic_assertion list) * intermediate_frame
+type extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * jsil_logic_assertion list
 
 let unify_symb_states 
-		(pat_unification_plan   : jsil_logic_assertion list) 
+		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst             : substitution option)
 		(pat_symb_state        : symbolic_state) 
 		(symb_state            : symbolic_state) : bool * symbolic_state_frame =
@@ -736,7 +732,7 @@ let unify_symb_states
 	if (not (type_check_discharges pat_gamma gamma discharges)) then raise (UnificationFailure "");
 
 	(* 3. Initial frame for the search *)
-	let initial_frame = pat_unification_plan, (heap, preds, discharges, pat_subst) in 
+	let initial_frame = pat_unification_plan, (heap, preds, discharges, pat_subst), [] in 
 
 	(* 4. SEARCH *)
 	let rec search 
@@ -748,7 +744,7 @@ let unify_symb_states
 			| [] -> raise (UnificationFailure "")
 			| ssf :: _ -> false, ssf)
 		
-		| (up, (heap_frame, preds_frame, discharges, pat_subst)) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 				(* A - All the spatial resources were successfully unified *)
@@ -757,10 +753,9 @@ let unify_symb_states
 					(JSIL_Print.string_of_substitution pat_subst)
 					(Symbolic_State_Print.string_of_discharges discharges)); 
 
-				(* A.1 - Unify gammas *)
-				if (not (unify_gammas pat_subst pat_gamma gamma)) then search rest_frame_list found_partial_matches else (
-					(* A.2 - Unify pfs *)
-					let complete_match_b, pfs_existentials, pfs_discharges, new_gamma, existentials = unify_pfs pat_subst [] pat_lvars pat_gamma pat_pfs gamma pfs discharges in 
+					(* A.2 - Unify remaining pfs *)
+					let complete_match_b, pfs_existentials, pfs_discharges, new_gamma, existentials = 
+						unify_pfs pat_subst [] pat_lvars pat_gamma (DynArray.of_list pfs_to_check) gamma pfs discharges in 
 					
 					print_debug (Printf.sprintf "DONE with unify_pfs and gammas. ret: %b.\nexistentials: %s.\npfs_existentials:%s\n" 
 						complete_match_b 
@@ -772,7 +767,6 @@ let unify_symb_states
 					if (complete_match_b) 
 						then complete_match_b, (heap_frame, preds_frame, pat_subst, pfs_existentials, new_gamma) 
 						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches)
-				)
 
 			| LPointsTo _ :: rest_up
 			| LPred _ :: rest_up 
@@ -780,20 +774,72 @@ let unify_symb_states
 			| LMetaData _ :: rest_up
 			| LExtensible _ :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 
 				(* B - Unify spatial assertion *)
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
 				let new_frames : extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst)) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b\n" ((List.length new_frames) > 0)); 
 
 				search (new_frames @ rest_frame_list) found_partial_matches
 
-			| _ -> raise (Failure "DEATH: Unknown assertion in unification plan.")) in 
+			| LTypes type_asrts :: rest_up ->
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				let local_gamma = TypEnv.init () in
+				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
+				if not (unify_gammas pat_subst local_gamma gamma) then (
+					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges));
+					search rest_frame_list found_partial_matches
+				)
+				else 
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
+					search (new_frame::rest_frame_list) found_partial_matches
+
+			| LEmp :: _
+			| LStar _ :: _ -> 
+				let asrt_str = JSIL_Print.string_of_logic_assertion (List.hd up) in
+					raise (Failure (Printf.sprintf "DEATH: Unknown assertion in unification plan (%s)." asrt_str))
+	
+			(* PURE FORMULAE *)
+			| pf :: rest_up -> (* PURE FORMULAE *)
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				(match pf with 
+				(* We know le1, learning le2 *)
+				| LEq (le1, le2) -> 
+					let sle1 = lexpr_substitution pat_subst true le1 in 
+					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 sle1 pat_subst in  
+					(match more_pfs with 
+					| None -> search rest_frame_list found_partial_matches
+					| Some more_pfs -> 
+						let pfs_to_check = pfs_to_check @ more_pfs in 
+						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
+						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
+						search (new_frame :: rest_frame_list) found_partial_matches)
+				| _ -> 
+					let existentials = get_asrt_lvars pf in 
+					let existentials = SS.diff existentials (substitution_domain pat_subst) in 
+					(* Substitute in formula *)
+					let pf_sbst = asrt_substitution pat_subst true pf in 
+					(* Check if the current pfs entail the obtained substituted pf *)
+					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf_sbst ] gamma in 
+					(match pf_entailed with 
+					| false -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check) in
+							search (new_frame :: rest_frame_list) found_partial_matches
+					| true -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
+							search (new_frame :: rest_frame_list) found_partial_matches))
+				
+			) in 
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] [] in
 	let end_time = Sys.time() in
@@ -804,7 +850,7 @@ let unify_symb_states
 
 let fully_unify_symb_state 
 		(intuitionistic       : bool) 
-		(pat_unification_plan  : jsil_logic_assertion list) 
+		(pat_unification_plan : jsil_logic_assertion list) 
 		(pat_subst            : substitution option)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : substitution =
@@ -832,7 +878,7 @@ let fully_unify_symb_state
 	) with UnificationFailure _ -> raise (UnificationFailure "")
 	
 
-type fold_extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * ((string * (jsil_logic_expr list)) option)
+type fold_extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * jsil_logic_assertion list * ((string * (jsil_logic_expr list)) option)
 
 let unify_symb_states_fold 
 			(pred_name            : string)
@@ -860,13 +906,13 @@ let unify_symb_states_fold
 	(*  let pat_store' = pat_store|_{unfiltered_vars}                                                          *)
 	(*  let discharges = { (le_pat, le) | x \in filtered_vars /\ le = store(x) /\ le_pat = pat_store(x)        *)
 	(*  let discharges' = unify_stores (pfs, gamma, pat_subst, new_store, new_pat_store)	                   *)
-	let unfiltered_vars, filtered_vars = store_partition store 
+	let unfiltered_vars, filtered_vars = SStore.partition store 
 		(fun le -> SS.is_empty (SS.inter (get_lexpr_lvars le) existentials)) in  					
-	let store'      = store_projection store     unfiltered_vars in
-	let pat_store'  = store_projection pat_store unfiltered_vars in
+	let store'      = SStore.projection store     unfiltered_vars in
+	let pat_store'  = SStore.projection pat_store unfiltered_vars in
 	let discharges  = List.map 
 		(fun x -> 
-			match store_get_safe pat_store x, store_get_safe store x with 
+			match SStore.get pat_store x, SStore.get store x with 
 			| Some le_pat_x, Some le_x -> (le_pat_x, le_x)
 			| _, _ -> raise (UnificationFailure "")) filtered_vars in 
 	let discharges' = (unify_stores pfs gamma pat_subst pat_store' store') in 
@@ -883,7 +929,7 @@ let unify_symb_states_fold
 	let gamma_existentials = TypEnv.init () in
 	List.iter
 		(fun x ->
-			match store_get_safe store x, TypEnv.get_type pat_gamma x with
+			match SStore.get store x, TypEnv.get pat_gamma x with
 			| Some le_x, Some x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x x_type in ()
 			|	_, _ -> ())
 		filtered_vars;
@@ -892,7 +938,7 @@ let unify_symb_states_fold
 	let gamma = gamma_existentials in 
 	
 	(* 4. Initial frame for the search *)
-	let initial_frame = pat_unification_plan, (heap, preds, (discharges @ discharges'), pat_subst), None in 
+	let initial_frame = pat_unification_plan, (heap, preds, (discharges @ discharges'), pat_subst), [], None in 
 
 	(* 5. SEARCH *)
 	let rec search 
@@ -900,7 +946,7 @@ let unify_symb_states_fold
 		match frame_list with 
 		| [] -> raise (UnificationFailure "")
 		
-		| (up, (heap_frame, preds_frame, discharges, pat_subst), missing_pred) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 				(* A - All the spatial resources were successfully unified *)
@@ -926,13 +972,13 @@ let unify_symb_states_fold
 			| LMetaData _ :: rest_up 
 			| LExtensible _ :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 				
 				(* B - Unify spatial assertion - no predicate assertion *)
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (List.hd up) heap_frame preds_frame in 
 				let new_frames : fold_extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, missing_pred) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
@@ -941,12 +987,12 @@ let unify_symb_states_fold
 
 			| LPred (p_name, largs) :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 				
 				(* C - Unify pred assertion *)
 				let new_frames : fold_extended_intermediate_frame list =
 					List.map 
-						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), missing_pred) 
+						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, missing_pred) 
 						(unify_pred_assertion pfs gamma pat_subst (LPred (p_name, largs)) preds_frame) in  
 
 				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
@@ -961,10 +1007,61 @@ let unify_symb_states_fold
 						print_debug "Predicate Assertion NOT FOUND. PAS DE PROBLEME ON CONTINUE\n"; 
 
 						(* C.2 - the predicate is the one we are looking for but we could NOT unify it  *)
-						search ((rest_up, (heap_frame, preds_frame, discharges, pat_subst), (Some (p_name, largs))) :: rest_frame_list)
+						search ((rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, (Some (p_name, largs))) :: rest_frame_list)
 					)
 
-			| _ -> raise (Failure "DEATH: Unknown assertion in fold unification.")) in
+			| LTypes type_asrts :: rest_up ->
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				let local_gamma = TypEnv.init () in
+				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
+				if not (unify_gammas pat_subst local_gamma gamma) then (
+					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges));
+					search rest_frame_list 
+				)
+				else 
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred in
+					search (new_frame::rest_frame_list) 
+
+			| LEmp :: _
+			| LStar _ :: _ -> 
+				let asrt_str = JSIL_Print.string_of_logic_assertion (List.hd up) in
+					raise (Failure (Printf.sprintf "DEATH: Unknown assertion in unification plan (%s)." asrt_str))
+	
+			(* PURE FORMULAE *)
+			| pf :: rest_up -> (* PURE FORMULAE *)
+
+				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
+
+				(match pf with 
+				(* We know le1, learning le2 *)
+				| LEq (le1, le2) -> 
+					let sle1 = lexpr_substitution pat_subst true le1 in 
+					let more_pfs = Simplifications.subst_for_unification_plan ?gamma:(Some pat_gamma) le2 sle1 pat_subst in  
+					(match more_pfs with 
+					| None -> search rest_frame_list 
+					| Some more_pfs -> 
+						let pfs_to_check = pfs_to_check @ more_pfs in 
+						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
+						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred in 
+						search (new_frame :: rest_frame_list))
+				| _ -> 
+					let existentials = get_asrt_lvars pf in 
+					let existentials = SS.diff existentials (substitution_domain pat_subst) in 
+					(* Substitute in formula *)
+					let pf_sbst = asrt_substitution pat_subst true pf in 
+					(* Check if the current pfs entail the obtained substituted pf *)
+					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf_sbst ] gamma in 
+					(match pf_entailed with 
+					| false -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check), missing_pred in
+							search (new_frame :: rest_frame_list) 
+					| true -> 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, missing_pred in
+							search (new_frame :: rest_frame_list)))
+			) in
 			
 	let start_time = Sys.time() in
 	let result = search [ initial_frame ] in
@@ -974,7 +1071,7 @@ let unify_symb_states_fold
 
 
 let unify_lexprs_unfold
-	(pfs         : pure_formulae)
+	(pfs         : PFS.t)
 	(subst       : substitution)
 	(le_pat      : jsil_logic_expr) 
 	(le          : jsil_logic_expr) : (substitution_list * substitution_list * discharge_list) option =
@@ -1000,7 +1097,7 @@ let unify_lexprs_unfold
 		| ALoc pat_loc, LVar x -> 
 			print_debug (Printf.sprintf 
 					"WE ARE IN THE CASE WE THINK WE ARE IN. pat_loc: %s. lvar: %s\n" pat_loc x); 
-			let loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (pfs_to_list pfs)) in
+			let loc = Option.map (fun (result, _) -> result) (Normaliser.resolve_location x (PFS.to_list pfs)) in
 			(match loc with 
 			| Some loc when is_lloc_name loc -> Some ([ ], [ (pat_loc, LLit (Loc loc)) ], [ ])
 			| Some loc when is_aloc_name loc -> Some ([ ], [ (pat_loc, ALoc loc) ], [ ])
@@ -1047,18 +1144,18 @@ let unify_lexprs_unfold
 
 
 let unify_stores_unfold 
-		(pat_pfs   : pure_formulae)
+		(pat_pfs   : PFS.t)
 		(pat_gamma : TypEnv.t)
 		(pat_subst : substitution)
-		(pfs       : pure_formulae)
+		(pfs       : PFS.t)
 		(gamma     : TypEnv.t)
 		(subst     : substitution)
-		(pat_store : symbolic_store) 
-		(store     : symbolic_store) : (jsil_logic_assertion list) * (jsil_logic_assertion list) * discharge_list =
+		(pat_store : SStore.t) 
+		(store     : SStore.t) : (jsil_logic_assertion list) * (jsil_logic_assertion list) * discharge_list =
 
-	store_fold pat_store 
+	SStore.fold pat_store 
 		(fun x le_pat (constraints, pat_constraints, discharges) -> 
-			match store_get_safe store x with 
+			match SStore.get store x with 
 			| None    -> raise (UnificationFailure "")
 			| Some le -> 
 				(match unify_lexprs_unfold pfs subst le_pat le with 
@@ -1091,7 +1188,7 @@ let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_ta
 		(fun x le ac ->
 			if (not ac) then ac else (
 				let le_type, _, _ = type_lexpr gamma_target le in
-				let x_type = TypEnv.get_type gamma_source x in
+				let x_type = TypEnv.get gamma_source x in
 				match le_type, x_type with 
 				| Some le_type, Some x_type -> (le_type = x_type) 
 				| _ -> true))
@@ -1108,7 +1205,7 @@ let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_ta
  	symb_state        - the current symbolic state minus the predicate that is to be unfolded	
 *)
 let unfold_predicate_definition 
-		(unfold_store   : symbolic_store)
+		(unfold_store   : SStore.t)
 		(subst          : substitution)
 		(pat_subst      : substitution)
 		(existentials   : SS.t)
@@ -1129,7 +1226,7 @@ let unfold_predicate_definition
 		(JSIL_Print.string_of_substitution subst)
 		(JSIL_Print.string_of_substitution pat_subst)
 		(String.concat ", " (SS.elements existentials))
-		(Symbolic_State_Print.string_of_symb_store unfold_store)); 
+		(SStore.str unfold_store)); 
 
 	(* STEP 1 - Unify(pfs, gamm, pat_subst, subst, pat_store, store) = discharges                                          *)
 	(* subst (store) =_{pfs} pat_subst (pat_store) provided that the discharges hold                                       *)
@@ -1148,11 +1245,11 @@ let unfold_predicate_definition
 	(* STEP 2 - the store must agree on the types                                                                          *)
 	(* forall x \in domain(store) = domain(pat_store) :                                                                    *)
 	(*   (pat_gamma |- pat_store(x) : pat_tau)  /\ (gamma |- store(x) : tau) => pat_tau = tau                              *)
-	let find_store_var_type store gamma x = (match store_get_safe store x with
+	let find_store_var_type store gamma x = (match SStore.get store x with
 			| Some le_x -> let x_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le_x in x_type
 			| None      -> None) in
-	let dom_store       = SS.elements (store_domain unfold_store) in 
-	let dom_pat_store   = SS.elements (store_domain pat_store) in 
+	let dom_store       = SS.elements (SStore.domain unfold_store) in 
+	let dom_pat_store   = SS.elements (SStore.domain pat_store) in 
 	let store_types     = List.map (find_store_var_type unfold_store gamma) dom_store in
 	let pat_store_types = List.map (find_store_var_type pat_store pat_gamma) dom_pat_store in
 	List.iter2 (fun x (tau, pat_tau) -> match tau, pat_tau with 
@@ -1183,7 +1280,7 @@ let unfold_predicate_definition
 	List.iter2
 		(fun x (x_type, pat_x_type) -> 
 			if ((x_type = None) && (pat_x_type <> None)) then (
-				match store_get_safe unfold_store x, pat_x_type with
+				match SStore.get unfold_store x, pat_x_type with
 				| Some le_x, Some pat_x_type -> let _ = JSIL_Logic_Utils.infer_types_to_gamma false gamma gamma_existentials le_x pat_x_type in ()
 				|	_, _ -> ())) 
 		dom_pat_store (List.combine store_types pat_store_types);
@@ -1203,8 +1300,8 @@ let unfold_predicate_definition
 	(* |-_{gamma} pfs                                                                                                       *)
 	let new_pat_subst   = compose_partial_substitutions subst pat_subst in
 	let constraints     = List.map (asrt_substitution subst true) constraints in 
-	let pfs'            = pfs_to_list (pfs_substitution subst true pfs) in
-	let s_pat_pfs       = pfs_to_list (pfs_substitution new_pat_subst false pat_pfs) in
+	let pfs'            = PFS.to_list (pfs_substitution subst true pfs) in
+	let s_pat_pfs       = PFS.to_list (pfs_substitution new_pat_subst false pat_pfs) in
 	let pat_constraints = List.map (asrt_substitution new_pat_subst true) pat_constraints in 
 	let pfs_discharges  = pf_list_of_discharges new_pat_subst discharges in 
 	let pfs_subst       = substitution_to_list (filter_substitution_set (SS.union existentials spec_vars) subst) in 
@@ -1230,14 +1327,14 @@ let unfold_predicate_definition
 	(* subst(Sigma_0) + pat_subst(Sigma_1) + (_, _, pfs_discharges + pfs_subst, gamma , _)                 *)
 	let symb_state = ss_substitution subst true symb_state in
 	let unfolded_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state new_pat_subst in
-	pfs_merge (ss_pfs unfolded_symb_state) (pfs_of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
+	pfs_merge (ss_pfs unfolded_symb_state) (PFS.of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
 	TypEnv.extend (ss_gamma unfolded_symb_state) gamma;
-	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (pfs_to_list (ss_pfs unfolded_symb_state));
+	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (PFS.to_list (ss_pfs unfolded_symb_state));
 	Some unfolded_symb_state ) with UnificationFailure _ -> None 
 
 let grab_resources 
 		(spec_vars            : SS.t) 
-		(pat_unification_plan  : jsil_logic_assertion list) 
+		(pat_unification_plan : jsil_logic_assertion list) 
 		(pat_subst            : substitution)
 		(pat_symb_state       : symbolic_state) 
 		(symb_state           : symbolic_state) : symbolic_state option   =
@@ -1250,12 +1347,12 @@ let grab_resources
 		let outcome, (heap_f, preds_f, subst, pf_discharges, _) = unify_symb_states pat_unification_plan (Some pat_subst) pat_symb_state symb_state in
 		match outcome with
 		| true ->
-			ss_extend_pfs symb_state (pfs_of_list pf_discharges);
+			ss_extend_pfs symb_state (PFS.of_list pf_discharges);
 			let symb_state = ss_replace_heap symb_state heap_f in
 			let symb_state = ss_replace_preds symb_state preds_f in
 			let new_symb_state = Symbolic_State_Utils.merge_symb_states symb_state pat_symb_state subst in
 			let subst_pfs = assertions_of_substitution subst in
-			ss_extend_pfs symb_state (pfs_of_list subst_pfs);
+			ss_extend_pfs symb_state (PFS.of_list subst_pfs);
 			let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 			Some symb_state
 		| false -> None

@@ -9,8 +9,6 @@ open Z3
 (*************************************)
 
 (** The rest is as-is *)
-type symbolic_store            = (string, jsil_logic_expr) Hashtbl.t
-type pure_formulae             = jsil_logic_assertion DynArray.t
 type predicate_set             = ((string * (jsil_logic_expr list)) DynArray.t)
 type predicate_assertion       = (string * (jsil_logic_expr list))
 
@@ -20,7 +18,7 @@ type predicate_assertion       = (string * (jsil_logic_expr list))
 *)
 type symbolic_discharge_list   = ((jsil_logic_expr * jsil_logic_expr) list)
 
-type symbolic_state       = SHeap.t * symbolic_store * pure_formulae * TypEnv.t * predicate_set
+type symbolic_state       = SHeap.t * SStore.t * PFS.t * TypEnv.t * predicate_set
 type symbolic_state_frame = SHeap.t * predicate_set * substitution * (jsil_logic_assertion list) * TypEnv.t 
 type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
@@ -43,6 +41,7 @@ type n_jsil_logic_predicate = {
 	n_pred_name             : string;
 	n_pred_num_params       : int;
 	n_pred_params           : jsil_logic_var list;
+	n_pred_ins              : int list;
 	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
 	n_pred_is_rec           : bool; 
   n_pred_is_pure          : bool;
@@ -112,174 +111,39 @@ type symbolic_execution_context = {
 }
 
 (*************************************)
-(** Abstract Store functions        **)
-(*************************************)
-
-(** Returns a new symbolic store where the variables in vars are 
-    mapped to the logical expressions in --les--. 
-    When |les| > |vars|, the additional les are ignored. 
-    When |les| < |vars|, the vars for which we do not have le are
-    set to undefined *)  
-let store_init (vars : string list) (les : jsil_logic_expr list) : symbolic_store =
-	let store = Hashtbl.create medium_tbl_size in
-	let rec loop vars les =
-		match vars, les with
-		| [], _ -> ()
-		| var :: rest_vars, le :: rest_les ->
-				Hashtbl.replace store var le; loop rest_vars rest_les
-		| var :: rest_vars, [] ->
-				Hashtbl.replace store var (LLit Undefined); loop rest_vars [] in
-	loop vars les;
-	store
-
-(** Returns Some store(x) if defined and None otherwise *)
-let store_get_safe (store : symbolic_store) (x : string) : jsil_logic_expr option =
-	try
-		Some (Hashtbl.find store x)
-	with Not_found -> None
-
-(** Returns Some store(x) if defined and throws an error otherwise *)
-let store_get (store : symbolic_store) (x : string) : jsil_logic_expr =
-	(try
-		Hashtbl.find store x
-	with _ ->
-		let msg = Printf.sprintf "DEATH. store_get_var. var: %s" x in
-		raise (Failure msg))
-
-(** Returns Some --x-- for which store(x) = --y-- *)
-let store_get_rev (store : symbolic_store) (le : jsil_logic_expr) : string option =
-	Hashtbl.fold
-		(fun x le' ac -> if (le = le') then Some x else ac)
-		store
-		None
-
-(** Updates store(x) with --le-- *)
-let store_put (store : symbolic_store) (x : string) (le : jsil_logic_expr) : unit =
-	Hashtbl.replace store x le
-
-(** Removes the binding of --x-- from --store-- *)
-let store_remove (store : symbolic_store) (x : string) : unit =
-	Hashtbl.remove store x
-
-(** Removes the domian of --store-- *)
-let store_domain (store : symbolic_store) : SS.t =
-	SS.of_list (Hashtbl.fold (fun x _ ac -> x :: ac) store [])
-
-(** Returns a copie of --store-- *)
-let store_copy (store : symbolic_store) : symbolic_store = Hashtbl.copy store 
-
-(** Returns subst(store) *)
-let store_substitution 
-		(subst : substitution) (partial : bool) (store : symbolic_store) : symbolic_store =
-	let vars, les =
-		Hashtbl.fold
-			(fun pvar le (vars, les) -> (pvar :: vars), ((lexpr_substitution subst partial le) :: les))
-			store
-			([], []) in
-	let store = store_init vars les in
-	store
-
-(** Updates --store-- to subst(store) *)
-let store_substitution_in_place (subst : substitution) (store : symbolic_store) : unit =
-	Hashtbl.iter
-		(fun x le ->
-			let s_le = lexpr_substitution subst true le in
-			Hashtbl.replace store x s_le)
-		store
-
-(** Returns the set containing all the lvars occurring in --store-- *)
-let store_lvars (store : symbolic_store) : SS.t =
-	Hashtbl.fold (fun _ le ac -> SS.union ac (get_lexpr_lvars le)) store SS.empty
-
-(** Returns the set containing all the alocs occurring in --store-- *)
-let store_alocs (store : symbolic_store) : SS.t =
-	Hashtbl.fold (fun _ le ac -> SS.union ac (get_lexpr_alocs le)) store SS.empty
-
-(** Extend store_l with store_r *)
-let store_merge_left (store_l : symbolic_store) (store_r : symbolic_store) : unit =
-	Hashtbl.iter 
-		(fun x le -> if (not (Hashtbl.mem store_l x)) then Hashtbl.replace store_l x le)
-		store_r
-
-(** Partitions the variables in the domain of --store-- into two groups: 
-    - the group containing the variables mapped onto lexprs satisfying --pred--
-    - the rest *)
-let store_partition (store : symbolic_store) (pred_fun : jsil_logic_expr -> bool) : (string list) * (string list) =
-	Hashtbl.fold
-		(fun x le (pred_xs, npred_xs) ->
-			if (pred_fun le) then ((x :: pred_xs), npred_xs) else (pred_xs, (x :: npred_xs)))
-		store
-		([], [])
-
-(** Returns the projection of --store-- onto --xs-- *)
-let store_projection (store : symbolic_store) (xs : string list) : symbolic_store =
-	let xs, les =
-		List.fold_left
-			(fun (xs, les) x ->
-				if (Hashtbl.mem store x)
-					then (x :: xs), ((Hashtbl.find store x) :: les)
-					else xs, les)
-			([], [])
-			xs in
-	store_init xs les
-
-(** Converts --store-- into a list of assertions *)
-let asrts_of_store (store : symbolic_store) : jsil_logic_assertion list =
-	Hashtbl.fold (fun x le asrts -> ((LEq (PVar x, le)) :: asrts)) store []
-
-(** Calls --f-- on all variables of --store--; f(x, le_x) *)
-let store_iter (store: symbolic_store) (f : string -> jsil_logic_expr -> unit) : unit =
-	Hashtbl.iter f store
-
-let store_fold (store: symbolic_store) (f : string -> jsil_logic_expr -> 'a  -> 'a) (init : 'a) : 'a =
-	Hashtbl.fold f store init 
-
-(** conversts a symbolic store to a list of assertions *)
-let assertions_of_store (s : symbolic_store) : jsil_logic_assertion list= 
-	Hashtbl.fold
-		(fun x le assertions -> 
-			(LEq (PVar x, le)) :: assertions) s []
-
-(*************************************)
 (** Pure Formulae functions         **)
 (*************************************)
 
-(** Returns a new (empty) predicate set *)
-let pfs_init () : pure_formulae = DynArray.make medium_tbl_size
-
-(** Returns the serialization of --pfs-- as a list *)
-let pfs_to_list (pfs : pure_formulae) : jsil_logic_assertion list = DynArray.to_list pfs
-
-(** Returns a pure_formulae array given a list of assertions *)
-let pfs_of_list (pfs : jsil_logic_assertion list) : pure_formulae = DynArray.of_list pfs
+let pfs_mem (pfs : PFS.t) (a : jsil_logic_assertion) : bool = 
+	Array.mem a (DynArray.to_array pfs)
 
 (** Extends --pfs-- with --a-- *)
-let pfs_extend (pfs : pure_formulae) (a : jsil_logic_assertion) : unit = DynArray.add pfs a
+let pfs_extend (pfs : PFS.t) (a : jsil_logic_assertion) : unit = DynArray.add pfs a
 
 (** Returns a copie of --pfs-- *)
-let pfs_copy (pfs : pure_formulae) : pure_formulae = DynArray.copy pfs
+let pfs_copy (pfs : PFS.t) : PFS.t = DynArray.copy pfs
 
 (** Extend --pfs_l-- with --pfs_r-- *)
-let pfs_merge (pfs_l : pure_formulae) (pfs_r : pure_formulae) : unit = DynArray.append pfs_r pfs_l
+let pfs_merge (pfs_l : PFS.t) (pfs_r : PFS.t) : unit = DynArray.append pfs_r pfs_l
 
 (** Returns subst(pf) *)
-let pfs_substitution (subst : substitution) (partial : bool) (pf : pure_formulae) : pure_formulae =
-	let asrts   = pfs_to_list pf in 
+let pfs_substitution (subst : substitution) (partial : bool) (pf : PFS.t) : PFS.t =
+	let asrts   = PFS.to_list pf in 
 	let s_asrts = List.map (asrt_substitution subst partial) asrts in 
-	pfs_of_list s_asrts
+	PFS.of_list s_asrts
 
 (** Updates pfs to subst(pfs) *)
-let pfs_substitution_in_place (subst : substitution) (pfs : pure_formulae) : unit =
+let pfs_substitution_in_place (subst : substitution) (pfs : PFS.t) : unit =
 	DynArray.iteri (fun i a ->
 		let s_a = JSIL_Logic_Utils.asrt_substitution subst true a in
 		DynArray.set pfs i s_a) pfs
 
 (** Returns the set containing all the lvars occurring in --pfs-- *)
-let pfs_lvars (pfs : pure_formulae) : SS.t  =
+let pfs_lvars (pfs : PFS.t) : SS.t  =
 	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_lvars a)) SS.empty pfs
 
 (** Returns the set containing all the alocs occurring in --pfs-- *)
-let pfs_alocs (pfs : pure_formulae) : SS.t =
+let pfs_alocs (pfs : PFS.t) : SS.t =
 	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_alocs a)) SS.empty pfs
 
 
@@ -362,6 +226,13 @@ let preds_alocs (preds : predicate_set) : SS.t =
 		preds
 
 (** Return the set containing all the alocs occurring in --preds-- *)
+let preds_clocs (preds : predicate_set) : SS.t =
+	DynArray.fold_left 
+		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_clocs le)) ac les) 
+		SS.empty 
+		preds
+
+(** Return the set containing all the alocs occurring in --preds-- *)
 let preds_alocs (preds : predicate_set) : SS.t =
 	DynArray.fold_left 
 		(fun ac (_, les) -> List.fold_left (fun ac le -> SS.union ac (get_lexpr_alocs le)) ac les)
@@ -388,11 +259,11 @@ let ss_heap (symb_state : symbolic_state) : SHeap.t =
 	let heap, _, _, _, _ = symb_state in heap
 
 (** Symbolic state second projection *)
-let ss_store (symb_state : symbolic_state) : symbolic_store =
+let ss_store (symb_state : symbolic_state) : SStore.t =
 	let _, store, _, _, _ = symb_state in store
 
 (** Symbolic state third projection *)
-let ss_pfs (symb_state : symbolic_state) : pure_formulae =
+let ss_pfs (symb_state : symbolic_state) : PFS.t =
 	let _, _, pfs, _, _ = symb_state in pfs
 
 (** Symbolic state fourth projection *)
@@ -404,12 +275,12 @@ let ss_preds (symb_state : symbolic_state) : predicate_set =
 	let _, _, _, _, preds = symb_state in preds
 
 let ss_pfs_list (symb_state : symbolic_state) : jsil_logic_assertion list =
-	pfs_to_list (ss_pfs symb_state)
+	PFS.to_list (ss_pfs symb_state)
 
 let ss_extend_preds (symb_state : symbolic_state) (pred_assertion : predicate_assertion) : unit =
 	preds_extend (ss_preds symb_state) pred_assertion
 
-let ss_extend_pfs (symb_state : symbolic_state) (pfs_to_add : pure_formulae) : unit =
+let ss_extend_pfs (symb_state : symbolic_state) (pfs_to_add : PFS.t) : unit =
 	pfs_merge (ss_pfs symb_state) pfs_to_add
 
 (** Replaces the --symb_state-- heap with --heap--   *)
@@ -417,11 +288,11 @@ let ss_replace_heap (symb_state : symbolic_state) (heap : SHeap.t) : symbolic_st
 	let _, store, pfs, gamma, preds  = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- store with --store-- *)
-let ss_replace_store (symb_state : symbolic_state) (store : symbolic_store) : symbolic_state =
+let ss_replace_store (symb_state : symbolic_state) (store : SStore.t) : symbolic_state =
 	let heap, _, pfs, gamma, preds   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- pfs with --pfs--     *)
-let ss_replace_pfs (symb_state : symbolic_state) (pfs : pure_formulae) : symbolic_state =
+let ss_replace_pfs (symb_state : symbolic_state) (pfs : PFS.t) : symbolic_state =
 	let heap, store, _, gamma, preds = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Replaces the --symb_state-- gamma with --gamma-- *)
@@ -433,13 +304,13 @@ let ss_replace_preds (symb_state : symbolic_state) (preds : predicate_set) : sym
 	let heap, store, pfs, gamma, _   = symb_state in (heap, store, pfs, gamma, preds)
 
 (** Returns a new empty symbolic state *)
-let ss_init () : symbolic_state = (SHeap.init (), (store_init [] []), pfs_init (), TypEnv.init (), preds_init ())
+let ss_init () : symbolic_state = (SHeap.init (), (SStore.init [] []), PFS.init (), TypEnv.init (), preds_init ())
 
 (** Returns a copy of the symbolic state *)
 let ss_copy (symb_state : symbolic_state) : symbolic_state =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let c_heap   = SHeap.copy heap in
-	let c_store  = store_copy store in
+	let c_store  = SStore.copy store in
 	let c_pfs    = pfs_copy pfs in
 	let c_gamma  = TypEnv.copy gamma in
 	let c_preds  = preds_copy preds in
@@ -450,7 +321,7 @@ let ss_substitution
 		(subst : substitution) (partial : bool) (symb_state : symbolic_state) : symbolic_state =
 	let heap, store, pf, gamma, preds = symb_state in
 	let s_heap  = SHeap.substitution subst partial heap in
-	let s_store = store_substitution subst partial store in
+	let s_store = SStore.substitution subst partial store in
 	let s_pf    = pfs_substitution subst partial pf in
 	let s_gamma = TypEnv.substitution gamma subst partial in
 	let s_preds = preds_substitution subst partial preds in
@@ -460,7 +331,7 @@ let ss_substitution_in_place_no_gamma
 		(subst : substitution) (symb_state : symbolic_state) : unit =
 	let heap, store, pfs, gamma, preds = symb_state in
 	SHeap.substitution_in_place subst heap;		
-	store_substitution_in_place subst store;
+	SStore.substitution_in_place subst store;
 	pfs_substitution_in_place   subst pfs;	
 	preds_substitution_in_place subst preds
 
@@ -468,9 +339,9 @@ let ss_substitution_in_place_no_gamma
 let ss_lvars (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let v_h  : SS.t = SHeap.lvars heap in
-	let v_s  : SS.t = store_lvars store in
+	let v_s  : SS.t = SStore.lvars store in
 	let v_pf : SS.t = pfs_lvars pfs in
-	let v_g  : SS.t = TypEnv.get_lvars gamma in
+	let v_g  : SS.t = TypEnv.lvars gamma in
 	let v_pr : SS.t = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf (SS.union v_g v_pr)))
 
@@ -478,7 +349,7 @@ let ss_lvars (symb_state : symbolic_state) : SS.t =
 let ss_alocs (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let v_h  : SS.t = SHeap.alocs heap in
-	let v_s  : SS.t = store_alocs store in
+	let v_s  : SS.t = SStore.alocs store in
 	let v_pf : SS.t = pfs_alocs pfs in
 	let v_pr : SS.t = preds_alocs preds in
 		SS.union v_h (SS.union v_s (SS.union v_pf v_pr))
@@ -489,8 +360,8 @@ let ss_alocs (symb_state : symbolic_state) : SS.t =
 let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 	let heap, store, pfs, gamma, preds = symb_state in
 	let v_h  = SHeap.lvars heap in
-	let v_s  = store_lvars store in
-	let v_sp = store_domain store in 
+	let v_s  = SStore.lvars store in
+	let v_sp = SStore.domain store in 
 	let v_pf = pfs_lvars pfs in
 	let v_pr = preds_lvars preds in
 		SS.union v_h (SS.union v_s (SS.union v_sp (SS.union v_pf v_pr)))
@@ -499,9 +370,9 @@ let ss_vars_no_gamma (symb_state : symbolic_state) : SS.t =
 let assertion_of_symb_state (symb_state : symbolic_state) : jsil_logic_assertion = 
 	let heap, store, pfs, gamma, preds = symb_state in
 	let heap_asrts  = SHeap.assertions heap in
-	let store_asrts = assertions_of_store store in
-	let gamma_asrt  = TypEnv.to_assertion gamma in
-	let pure_asrts  = pfs_to_list pfs in
+	let store_asrts = SStore.assertions store in
+	let gamma_asrt  = TypEnv.assertions gamma in
+	let pure_asrts  = PFS.to_list pfs in
 	let pred_asrts  = assertions_of_preds preds in 
 	let asrts       = heap_asrts @ store_asrts @ pure_asrts @ [ gamma_asrt ] @ pred_asrts in
 	JSIL_Logic_Utils.star_asses asrts 
@@ -697,7 +568,7 @@ let selective_symb_state_substitution_in_place_no_gamma
 		(subst : substitution) (symb_state : symbolic_state) : unit =
 	let lexpr_subst = JSIL_Logic_Utils.lexpr_selective_substitution in
 	let heap, store, pfs, gamma, preds = symb_state in
-	store_substitution_in_place          subst store;
+	SStore.substitution_in_place         subst store;
 	preds_substitution_in_place          subst preds;
 	pfs_substitution_in_place            subst pfs;
 	selective_heap_substitution_in_place subst heap 

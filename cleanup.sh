@@ -1,0 +1,2 @@
+rm debug*
+rm normal*

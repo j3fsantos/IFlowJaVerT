@@ -161,9 +161,9 @@ let process_file path =
 		close_output_files();
 		exit 0
 
+
 let main () =
 		arguments ();
 		process_file !file
-
 
 let _ = main()

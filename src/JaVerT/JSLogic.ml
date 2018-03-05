@@ -20,6 +20,9 @@ let find_in_list (lst : string list) (x : string) =
 	loop lst 0
 
 let list_overlap (lst_1 : string list) (lst_2 : string list) =
+	print_endline (Printf.sprintf "List overlap:\n\t%s\n\t%s"
+		(String.concat ", " lst_1) (String.concat ", " lst_2)
+	);
 	let rec loop lst_1 lst_2 i =
 		match lst_1, lst_2 with
 		| [], _
@@ -124,7 +127,8 @@ type js_logic_command =
 type js_logic_predicate = {
 	js_name        : string;
 	js_num_params  : int;
-	js_params      : (js_logic_expr * Type.t option) list;
+	js_params      : (string * Type.t option) list;
+	js_ins         : int list;
 	js_definitions : ((string option) * js_logic_assertion) list;
 }
 
@@ -302,12 +306,9 @@ let rec js2jsil_assertion
 	| JSOSChains (fid1, le_sc1, fid2, le_sc2) ->
 		let i  = o_psi vis_tbl fid1 fid2 in
 		let is = Array.to_list (Array.init i (fun i -> i)) in
-		let le_sc1' = fe le_sc1 in
-		let le_sc2' = fe le_sc2 in
-		let f j     =
-			let asrt = LEq (LLstNth (le_sc1', LLit (Num (float_of_int j))), LLstNth (le_sc2', LLit (Num (float_of_int j)))) in
-			(* add_extra_scope_chain_info fid2 le_sc2 (add_extra_scope_chain_info fid1 le_sc1 asrt) *)
-			asrt in
+		let le_sc1'  = fe le_sc1 in
+		let le_sc2'  = fe le_sc2 in
+		let f j      = LEq (LLstNth (le_sc1', LLit (Num (float_of_int j))), LLstNth (le_sc2', LLit (Num (float_of_int j)))) in
 		JSIL_Logic_Utils.star_asses (List.map f is)
 
 	(*	Tr(scope(x: le_x)) ::= Tr(scope(x: le_x, sc, fid)) *)
@@ -327,7 +328,31 @@ let rec js2jsil_assertion
 
 		let asrt_vars = List.map (fun (x, le_x) -> JSLVarSChain (fid_1, x, le_x, le_sc_1)) var_les in
 		let asrt_scs  = List.map (fun (fid_j, le_sc_j) -> JSOSChains (fid_j, le_sc_j, fid_1, le_sc_1)) rest_fid_sc_les in
-		f (js_star_asses (asrt_vars @ asrt_scs))
+
+		let fsclens = List.map (fun (x, y) -> (List.length (get_vis_list vis_tbl x), x, y)) fid_sc_les in 
+		let fsclens = List.sort (fun (x1, _, _) (x2, _, _) -> Pervasives.compare x1 x2) fsclens in 
+
+		print_endline (Printf.sprintf "Sorting:\n\t%s" (String.concat "\n\t" (List.map (fun (x, y, _) -> 
+			Printf.sprintf "%s : %d" y x) fsclens)));
+		assert (let x0, _, _ = List.hd fsclens in let x1, _, _  = List.hd (List.tl fsclens) in x0 < x1);
+
+		let fsclens = List.mapi (fun i (x, y, z) -> let x = (if i <> 0 then (x - 1) else x) in (x, y, z)) fsclens in 
+
+		print_endline (Printf.sprintf "Adjusted:\n\t%s" (String.concat "\n\t" (List.map (fun (x, y, _) -> 
+			Printf.sprintf "%s : %d" y x) fsclens)));
+
+		let asrt_lens : js_logic_assertion list = List.map (fun (x, _, z) -> JSLEq (JSLUnOp (LstLen, z), JSLLit (Num (float_of_int x)))) fsclens in 
+
+		f (js_star_asses (asrt_vars @ asrt_scs @ asrt_lens))
+
+(*
+		let len_fid1 = List.length (get_vis_list vis_tbl fid1) in 
+		let len_fid2 = List.length (get_vis_list vis_tbl fid2) in 
+		
+		print_endline (Printf.sprintf "fid1: %s; len: %d\nfid2: %s; len: %d" fid1 len_fid1 fid2 len_fid2);
+
+		let len_fid1 = LEq (LUnOp(LstLen, le_sc1'), LLit (Num (float_of_int len_fid1))) in 
+		let len_fid2 = LEq (LUnOp(LstLen, le_sc2'), LLit (Num (float_of_int len_fid2))) in  *)
 
 	(*
 		le_fid = "fid"
@@ -411,9 +436,9 @@ let js2jsil_predicate_def
 		(vis_tbl    : vis_tbl_type)
 		(fun_tbl    : pre_fun_tbl_type)  =
 
-	let jsil_params = List.map (fun (le, ot) -> (js2jsil_lexpr None le, ot)) pred_def.js_params in
+	let jsil_params = pred_def.js_params in
 	let jsil_definitions = List.map (fun (os, a) -> os, (js2jsil_assertion None cc_tbl vis_tbl fun_tbl None a)) pred_def.js_definitions in
-	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = jsil_params; definitions = jsil_definitions; previously_normalised_pred = false }
+	{ name = pred_def.js_name; num_params = pred_def.js_num_params; params = pred_def.js_params; ins = pred_def.js_ins; definitions = jsil_definitions; previously_normalised_pred = false }
 
 
 let rec js2jsil_single_spec

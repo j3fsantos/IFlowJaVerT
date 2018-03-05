@@ -175,22 +175,19 @@ let rec string_of_lcmd (lcmd : jsil_logic_command) : string =
   	| Assert a -> "assert (" ^ (string_of_logic_assertion a) ^ ")"
 
 
-(** JSIL logic predicates *)
+(** JSIL logic predicates *) 
 let rec string_of_predicate (predicate : jsil_logic_predicate) : string =
-  	let sle = fun e -> string_of_logic_expression e in
-		let slp = fun (e, ot) -> (sle e) ^ (Option.map_default (fun t -> " : " ^ Type.str t) "" ot) in
-  	List.fold_left
-    		(fun acc_str (id, assertion) ->
-       			let id_str = match id with
-         			| None    -> ""
-         			| Some id -> "[" ^ id ^ "]" in
-       			acc_str ^ (Printf.sprintf "pred %s (%s) : %s %s;\n"
-                    				predicate.name
-                    				(String.concat ", " (List.map slp predicate.params))
-                    				id_str
-                    				(string_of_logic_assertion assertion)))
-    		""
-    		predicate.definitions
+    let exist_ins = List.length predicate.ins <> List.length predicate.params in
+    let slp = fun i (e, ot) -> 
+      let is_in = if (exist_ins && List.mem i predicate.ins) then "+" else "" in
+        is_in ^ e ^ (Option.map_default (fun t -> " : " ^ Type.str t) "" ot) in
+    let header = Printf.sprintf "pred %s (%s) :\n\t" predicate.name (String.concat ", " (List.mapi slp predicate.params)) in 
+    let definitions = String.concat ",\n\t" (List.map 
+      (fun (id, assertion) -> 
+          let id_str = Option.map_default (fun id -> "[" ^ id ^ "] ") "" id in 
+          id_str ^ string_of_logic_assertion assertion
+      ) predicate.definitions) in
+      header ^ definitions ^ ";\n" 
 
 let string_of_predicate_header (pred_asrt : (string * (jsil_logic_expr list))) : string =
   	let name, args = pred_asrt in

@@ -10,18 +10,23 @@ exception Syntax_error of string
  * Hashtables *
  **************)
 
-let small_tbl_size  = 31
-let medium_tbl_size = 101 
-let big_tbl_size    = 1021
+let small_tbl_size  = 53
+let medium_tbl_size = 211 
+let big_tbl_size    = 557
 
 (*************
  * Debugging *
  *************)
 
-let output_file               = create "normalOutput.txt"
-let output_file_debug         = create "debugOutput.txt"
-let output_file_normalisation = create "normalisationOutput.txt"
-let output_file_njsil         = create "normalisedSpecsPreds.njsil"
+let time = Unix.localtime (Unix.gettimeofday ())
+let time_str = Printf.sprintf "%d%.2d%.2d_%.2dh%.2dm%.2ds"
+                  (time.tm_year+1900) (time.tm_mon+1) time.tm_mday
+                  time.tm_hour time.tm_min time.tm_sec
+
+let output_file               = create ("normalOutput_" ^ time_str ^ ".txt")
+let output_file_debug         = create ("debugOutput_" ^ time_str ^ ".txt")
+let output_file_normalisation = create ("normalisationOutput_" ^ time_str ^ ".txt")
+let output_file_njsil         = create ("normalisedSpecsPreds_" ^ time_str ^ ".njsil")
 
 let close_output_files () =
 	close output_file;
@@ -40,23 +45,24 @@ let print_debug  msg  =
 
 let print_normal msg  = 
   if !output then
-    output_string output_file (msg ^ "\n"); print_debug msg
+    output_string output_file (msg ^ "\n%!"); print_debug msg
 
 let print_normalisation msg = 
   if !output then
-    output_string output_file_normalisation (msg ^ "\n") 
+    output_string output_file_normalisation (msg ^ "\n%!") 
 let print_njsil_file msg  = 
   if !output then
-    output_string output_file_njsil (msg ^ "\n") 
+    output_string output_file_njsil (msg ^ "\n%!") 
 
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
 
-(********
- * Sets *
- ********)
+(**********************
+ * Sets and multisets *
+ **********************)
 
 module SS = Set.Make(String)
+module MS = CCMultiSet.Make(String)
 
 (*************************)
 (** Generic fresh names **)

@@ -229,6 +229,10 @@ let get_lexpr_lvars (le : jsil_logic_expr) : SS.t =
 		| _      -> List.concat ac in 
 	SS.of_list (logic_expression_fold fe_ac None None le)
 
+(* ********************************* *)
+(* ********************************* *)
+(* ********************************* *)
+
 let get_lexpr_substitutables (le : jsil_logic_expr) : SS.t = 
 	let fe_ac le _ _ ac = match le with
 		| LVar x 
@@ -290,10 +294,40 @@ let rec get_asrt_alocs (a : jsil_logic_assertion) : SS.t =
 		| _ -> List.concat ac in
 	let fe = logic_expression_fold fe_ac None None in 
 	let f_ac a _ _ ac = List.concat ac in
- 	SS.of_list (assertion_fold (Some fe) f_ac None None a)
+  SS.of_list (assertion_fold (Some fe) f_ac None None a)
 
 
-(* Get all the abstract locations in --a-- *)
+(* Get all the concrete locations in [le] *)
+let rec get_lexpr_clocs (le : jsil_logic_expr) : SS.t =
+  let fe_ac le _ _ ac =
+    match le with
+    | LLit (Loc l) -> l :: (List.concat ac)
+    | _ -> List.concat ac in
+  SS.of_list (logic_expression_fold fe_ac None None le)
+
+(* Get all the concrete locations in [a] *)
+let rec get_asrt_clocs (a : jsil_logic_assertion) : SS.t =
+  let fe_ac le _ _ ac =
+    match le with
+    | LLit (Loc l) -> l :: (List.concat ac)
+    | _ -> List.concat ac in
+  let fe = logic_expression_fold fe_ac None None in 
+  let f_ac a _ _ ac = List.concat ac in
+  SS.of_list (assertion_fold (Some fe) f_ac None None a)
+
+
+(* Get all the variables in [le] *)
+let get_lexpr_vars (le : jsil_logic_expr) : SS.t =
+  let vars = [get_lexpr_alocs le; get_lexpr_clocs le; get_lexpr_lvars le; get_lexpr_pvars le] in
+  List.fold_left SS.union SS.empty vars
+
+(* Get all the variables in [a] *)
+let get_asrt_vars (a : jsil_logic_assertion) : SS.t =
+  let vars = [get_asrt_alocs a; get_asrt_clocs a; get_asrt_lvars a; get_asrt_pvars a] in
+  List.fold_left SS.union SS.empty vars
+
+
+(* Get all the types in --a-- *)
 let rec get_asrt_types (a : jsil_logic_assertion) : (jsil_logic_expr * Type.t) list =
 	let f_ac a _ _ ac =  match a with 
 		| LTypes vts -> vts @ (List.concat ac)
@@ -309,6 +343,36 @@ let get_asrt_pred_names (a : jsil_logic_assertion) : string list =
 		| _            -> List.concat ac) in
 	assertion_fold None f_ac None None a
 
+(* a bijective logical expression only performs bijective actions, ie if we
+   know the structure of the expression, we can get back all the values *)
+let rec is_bijective_lexpr (le : jsil_logic_expr) : bool =
+  match le with
+  | LLit _
+  | LVar _
+  | ALoc _
+  | PVar _ ->
+    true
+  | LBinOp (le1, binop, le2) -> begin
+    match binop with
+      | LstCons ->
+        let lhs_ok = is_bijective_lexpr le1 in
+        let rhs_ok = is_bijective_lexpr le2 in
+        lhs_ok && rhs_ok
+      | _ ->
+        false
+    end
+  | LUnOp _
+  | LLstNth _
+  | LStrNth _ ->
+    false (* if we know x = 'c' and x = LStrNth(#foo, 3), we can't get back #foo *)
+  | LEList les
+  | LESet les ->
+    List.for_all is_bijective_lexpr les
+  | LSetUnion _
+  | LSetInter _ ->
+    false
+  | LNone ->
+    true
 
 (***************************************************************)
 (***************************************************************)
@@ -570,7 +634,7 @@ let rec infer_types_to_gamma flag gamma new_gamma le (tt : Type.t) : bool =
 	(* with the target type or if they are not typable           *)
 	| LVar var
 	| PVar var ->
-		(match (TypEnv.get_type gamma var), (TypEnv.get_type new_gamma var) with
+		(match (TypEnv.get gamma var), (TypEnv.get new_gamma var) with
 		| Some t, None
 		| None, Some t     -> (t = tt)
 		| None, None       -> (TypEnv.update new_gamma var (Some tt)); true
@@ -663,7 +727,15 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 			(fun (ac, ac_constraints) elem ->
 				if (not ac) then (false, [])
 				else 
-					let (t, ite, constraints) = f elem in
+					let (t, ite, constraints) = 
+						let (t, ite, constraints) = f elem in
+						(match t with 
+						| Some _ -> (t, ite, constraints)
+						| None -> (match target_type with 
+							| None -> (t, ite, constraints)
+							| Some tt -> infer_type elem tt constraints
+							)
+						) in 
 					let correct_type = (target_type = None) || (t = target_type) in
 					(ac && correct_type && ite, constraints @ ac_constraints))
 			(true, [])
@@ -676,7 +748,7 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 
 	(* Variables are typable if in gamma, otherwise no, but typing continues *)
 	| LVar var
-	| PVar var -> def_pos (TypEnv.get_type gamma var)
+	| PVar var -> def_pos (TypEnv.get gamma var)
 
 	(* Abstract locations are always typable, by construction *)
 	| ALoc _ -> def_pos (Some ObjectType)
@@ -777,45 +849,16 @@ let rec type_lexpr (gamma : TypEnv.t) (le : jsil_logic_expr) : Type.t option * b
 
 	result
 
-let string_of_gamma (gamma : TypEnv.t) : string =
-	let gamma_str =
-		Hashtbl.fold
-			(fun var var_type ac ->
-				let var_type_pair_str = Printf.sprintf "(%s: %s)" var (Type.str var_type) in
-				if (ac = "")
-					then var_type_pair_str
-					else ac ^ "\n\t" ^ var_type_pair_str)
-			gamma
-			"\t" in
-	gamma_str
-
 (* ******************** *)
 (* ** TYPE INFERENCE ** *)
 (* ******************** *)
 
-let safe_merge_gammas (gamma_l : TypEnv.t) (gamma_r : TypEnv.t) =
-	(* print_debug_petar (Printf.sprintf "Merging gammas: %s \nand %s" (string_of_gamma gamma_l) (string_of_gamma gamma_r)); *)
-	Hashtbl.iter
-		(fun var v_type ->
-			(match (Hashtbl.mem gamma_l var) with
-			| false -> 
-					print_debug_petar (Printf.sprintf "Inferred type: %s : %s" var (Type.str v_type)); 
-					Hashtbl.add gamma_l var v_type
-			| true -> let t = Hashtbl.find gamma_l var in
-					(match (t = v_type) with
-					| true -> ()
-					| false -> raise (Failure (Printf.sprintf "Incompatible gamma merge: Variable %s: tried %s but %s" var (Type.str v_type) (Type.str t))); 
-					)
-			)
-		)
-		gamma_r
-
 let safe_extend_gamma gamma le t = 
   let new_gamma = reverse_type_lexpr true gamma le t in
     (match new_gamma with
-    | Some new_gamma -> safe_merge_gammas gamma new_gamma
+    | Some new_gamma -> TypEnv.extend gamma new_gamma
     | None -> 
-		let msg = Printf.sprintf "SEG: Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (string_of_gamma gamma) in
+		let msg = Printf.sprintf "SEG: Untypable expression: %s in %s" (JSIL_Print.string_of_logic_expression le) (TypEnv.str gamma) in
 		print_debug_petar msg;
 		raise (Failure msg)) 
 
@@ -1222,3 +1265,4 @@ let rec lexpr_selective_substitution subst partial lexpr =
 
 	| LLstNth (le1, le2) -> LLstNth ((f le1), (f le2))
 	| LStrNth (le1, le2) -> LStrNth ((f le1), (f le2))
+

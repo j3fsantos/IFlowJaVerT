@@ -35,7 +35,7 @@ let get (heap : t) (loc : string) =
 let get_unsafe (heap : t) (loc : string) =
 	match (Heap.find_opt heap loc) with 
 	| Some result -> result
-	| None -> raise (Failure (Printf.sprintf "SHeap.heap_get_unsafe: object %s does not exist" loc))
+	| None -> raise (Failure (Printf.sprintf "SHeap.get_unsafe: object %s does not exist" loc))
 
 (** Symbolic heap put heap(loc) is assigned to fv_list *)
 let put (heap : t) (loc : string) (fv_list : SFVL.t) (dom : jsil_logic_expr option) (metadata : jsil_logic_expr option) (ext : Extensibility.t option) =
@@ -164,7 +164,7 @@ let to_list (heap : t) : (string * ((SFVL.t * (jsil_logic_expr option)) * jsil_l
 	Heap.fold (fun loc obj ac -> ((loc, obj) :: ac)) heap []
 
 (** Calls --f-- on all objects of --heap--; f(loc, (fv_list, dom)) *)
-let iterator (heap: t) (f : string -> (((SFVL.t * (jsil_logic_expr option)) * jsil_logic_expr option * Extensibility.t option) -> unit)) =
+let iter (heap: t) (f : string -> (((SFVL.t * (jsil_logic_expr option)) * jsil_logic_expr option * Extensibility.t option) -> unit)) =
 	Heap.iter f heap
 
 (** Returns true if --heap-- is empty : TODO *)

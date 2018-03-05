@@ -107,7 +107,7 @@ type extended_jsil_value_constructor = {
 	set_recognizer             : FuncDecl.func_decl
 }
 
-let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true")]
+let cfg = [("model", "true"); ("proof", "true"); ("unsat_core", "true"); ("timeout", "3600")]
 let ctx : Z3.context = (mk_context cfg)
 
 let masterSolver = Solver.mk_solver ctx None
@@ -1088,11 +1088,12 @@ let check_entailment (existentials : SS.t)
 
 		print_time_debug "check_entailment:";
 
-		print_debug_petar (Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
+		let msg = Printf.sprintf "Preparing entailment check:\nExistentials:\n%s\nLeft:\n%s\nRight:\n%s\nGamma:\n%s\n"
 		   (String.concat ", " (SS.elements existentials))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list left_as))
 		   (Symbolic_State_Print.string_of_pfs (DynArray.of_list right_as))
-		   (TypEnv.str gamma));
+		   (TypEnv.str gamma) in 
+		print_debug_petar msg;
 
 		let start_time = Sys.time() in
 
@@ -1127,15 +1128,15 @@ let check_entailment (existentials : SS.t)
 					| None -> 
 				
   				let left_as = DynArray.to_list left_as in
-      		let right_as = DynArray.to_list right_as in
-  				
+      			let right_as = DynArray.to_list right_as in
+
   				(* Get axioms *)
   				let axioms = get_axioms (left_as @ right_as) gamma in
   				
   				(* Encode left side *)
   				let left_as = encode_assertions (SA.of_list left_as) gamma_left in
   				(* Encode right side with negations and empty gamma *)
-  				let right_as = encode_assertions (SA.of_list (List.map (fun a -> LNot a) right_as)) (Hashtbl.create 11) in 
+  				let right_as = encode_assertions (SA.of_list (List.map (fun a -> LNot a) right_as)) (TypEnv.init()) in 
   				
   				(* Initialise solver depending on if a sat check of the left side was performed *)
   				Solver.reset masterSolver; Solver.add masterSolver left_as;
@@ -1239,24 +1240,24 @@ let is_equal_on_lexprs e1 e2 pfs : bool option =
 	(* other *)
 	| _, _ -> None))
 
-let is_equal e1 e2 pure_formulae gamma =
-	let feq = Simplifications.reduce_assertion gamma pure_formulae (LEq (e1, e2)) in
+let is_equal e1 e2 pfs gamma =
+	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) (LEq (e1, e2)) in
 	let result = (match feq with
 	| LTrue  -> print_debug "Reduced to true.";  true
 	| LFalse -> print_debug "Reduced to false."; false 
 	| LEq _ -> 
-			check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ feq ] gamma
+			check_entailment SS.empty (PFS.to_list pfs) [ feq ] gamma
 	| _ -> raise (Failure ("Equality reduced to something unexpected: " ^ (JSIL_Print.string_of_logic_assertion feq)))
 	) in 
 		result
 
-let is_different e1 e2 pure_formulae gamma =
-	let feq = Simplifications.reduce_assertion gamma pure_formulae (LNot (LEq (e1, e2))) in
+let is_different e1 e2 pfs gamma =
+	let feq = Simplifications.reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) (LNot (LEq (e1, e2))) in
 	let result = (match feq with
 	| LTrue  -> print_debug "Reduced to true.";  true
 	| LFalse -> print_debug "Reduced to false."; false 
 	| LNot _ -> 
-			check_entailment SS.empty (Symbolic_State.pfs_to_list pure_formulae) [ feq ] gamma
+			check_entailment SS.empty (PFS.to_list pfs) [ feq ] gamma
 	| _ -> raise (Failure ("Equality reduced to something unexpected: " ^ (JSIL_Print.string_of_logic_assertion feq)))
 	) in 
 		result

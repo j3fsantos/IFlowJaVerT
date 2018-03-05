@@ -95,64 +95,57 @@ let all_set_literals lset = List.fold_left (fun x le ->
 	) true lset 
 
 (* Reduction of assertions *)
-let rec reduce_assertion gamma pfs a =
-	let f = reduce_assertion gamma pfs in
-	let fe = Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) in
+let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(pfs : PFS.t option) a =
+
+	let start_time = Sys.time () in
+
+	let f = reduce_assertion ?no_timing:(Some ()) ?gamma:gamma ?pfs:pfs in
+	let fe = Reduction.reduce_lexpr ?gamma:gamma ?pfs:pfs in
+
 	let result = (match a with
-	| LAnd (LFalse, _)
-	| LAnd (_, LFalse) -> LFalse
-	| LAnd (LTrue, a1)
-	| LAnd (a1, LTrue) -> f a1
-	| LAnd (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LAnd (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
 
-	| LOr (LTrue, _)
-	| LOr (_, LTrue) -> LTrue
-	| LOr (LFalse, a1)
-	| LOr (a1, LFalse) -> f a1
-	| LOr (LAnd (a1, a2), a3) ->
-			f (LAnd (LOr (a1, a3), LOr (a2, a3))) 
-	(* | LOr (LNot (LEq (LVar x, e1)), a) ->
-			let subst = Hashtbl.create 1 in
-			Hashtbl.add subst x e1;
-			let a = asrt_substitution subst true a in
-				f a *)
-	| LOr (LOr (a1, a2), a3) -> 
-			f (LOr (a1, LOr (a2, a3)))
-	| LOr (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LOr (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
-
-	| LNot LTrue -> LFalse
-	| LNot LFalse -> LTrue
-	| LNot (LNot a) -> f a
-	| LNot (LOr (al, ar)) ->
-			f (LAnd (LNot al, LNot ar))
-	| LNot (LAnd (al, ar)) -> 
-			f (LOr (LNot al, LNot ar))
-	| LNot a1 ->
-		let ra1 = f a1 in
-		let a' = LNot ra1 in
-		if (ra1 = a1)
-			then a' else f a'
-
-	| LStar (LFalse, _)
-	| LStar (_, LFalse) -> LFalse
-	| LStar (LTrue, a1)
-	| LStar (a1, LTrue) -> f a1
 	| LStar (a1, a2) ->
-		let ra1 = f a1 in
-		let ra2 = f a2 in
-		let a' = LStar (ra1, ra2) in
-		if ((ra1 = a1) && (ra2 = a2))
-			then a' else f a'
+		let fa1  = f a1 in
+		let fa2 = f a2 in
+		(match fa1, fa2 with
+		| LFalse, _
+		| _, LFalse -> LFalse
+		| LTrue, a
+		| a, LTrue -> a
+		| _, _ -> LStar (fa1, fa2)
+		)
+
+	| LAnd (a1, a2) ->
+		let fa1 = f a1 in
+		let fa2 = f a2 in
+		(match fa1, fa2 with
+		| LFalse, _
+		| _, LFalse -> LFalse
+		| LTrue, a
+		| a, LTrue -> a
+		| _, _ -> LAnd (fa1, fa2)
+		)
+
+	| LOr (a1, a2) ->
+		let fa1 = f a1 in
+		let fa2 = f a2 in
+		(match fa1, fa2 with
+		| LFalse, a
+		| a, LFalse -> a
+		| LTrue, a
+		| a, LTrue -> LTrue
+		| _, _ -> LOr (fa1, fa2)
+		)
+
+	| LNot a -> 
+		let fa = f a in 
+		(match a with 
+		| LTrue -> LFalse
+		| LFalse -> LTrue
+		| LNot a -> a
+		| LOr (a1, a2) -> f (LAnd (LNot a1, LNot a2))
+		| LAnd (a1, a2) -> f (LOr (LNot a1, LNot a2))
+		| _ -> LNot fa)
 
 	| LEq (e1, e2) ->
 		let re1 = fe e1 in
@@ -186,10 +179,13 @@ let rec reduce_assertion gamma pfs a =
 			| PVar x, LNone -> default e1 e2 re1 re2
 			| LNone, LVar x
 			| LVar x, LNone -> 
-				if (Hashtbl.mem gamma x) 
-					then (let tx = Hashtbl.find gamma x in 
-						if tx = NoneType then default e1 e2 re1 re2 else LFalse)
-					else default e1 e2 re1 re2
+				(match gamma with
+				| None -> default e1 e2 re1 re2
+				| Some gamma -> let tx = TypEnv.get gamma x in
+					(match tx with 
+					| None -> default e1 e2 re1 re2
+					| Some tx -> if tx = NoneType then default e1 e2 re1 re2 else LFalse)
+				)
 			| LNone, e
 			| e, LNone -> LFalse
 
@@ -204,7 +200,7 @@ let rec reduce_assertion gamma pfs a =
 				      that the var-string doesn't start with @, we know it's false *)
 				if (str <> "" && String.get str 0 = '@') 
 					then
-						let pfs = DynArray.to_list pfs in 
+						let pfs = PFS.to_list (Option.default (DynArray.create ()) pfs) in 
 						if ((List.mem (LNot (LEq (LStrNth (LVar x, LLit (Num 0.)), LLit (String "@")))) pfs)  ||
 							 (List.mem (LNot (LEq (LLit (String "@"), LStrNth (LVar x, LLit (Num 0.))))) pfs))
 						then LFalse 
@@ -309,7 +305,7 @@ let rec reduce_assertion gamma pfs a =
 				(JSIL_Print.string_of_logic_assertion result)); 
 			f result
 
-	| LForAll (bt, a) -> 
+	| LForAll (bt, a) -> (* Think about quantifier instantiation *)
 			let ra = f a in
 			let vars = get_asrt_lvars a in
 			let bt = List.filter (fun (b, _) -> SS.mem b vars) bt in
@@ -318,16 +314,16 @@ let rec reduce_assertion gamma pfs a =
 			| _ -> LForAll (bt, ra))
 
 	| _ -> a) in
-	(* print_debug (Printf.sprintf "Reduce assertion: %s ---> %s"
-		(JSIL_Print.string_of_logic_assertion a)
-		(JSIL_Print.string_of_logic_assertion result)); *)
-	result
 
-let reduce_assertion_no_gamma_no_pfs = reduce_assertion (Hashtbl.create 1) (DynArray.create ())
-let reduce_assertion_no_gamma        = reduce_assertion (Hashtbl.create 1)
+	let final_result = if (a <> result) && (not (a == result))
+		then (print_debug (Printf.sprintf "Reduce_assertion: %s -> %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); f result)
+		else result in
+
+	if (no_timing = None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));
+	final_result
 
 
-let simplify_equalities_between_booleans (p_assertions : pure_formulae) = 
+let simplify_equalities_between_booleans (p_assertions : PFS.t) = 
  	let new_as = 
  		DynArray.map 
  			(fun a -> 
@@ -348,13 +344,13 @@ let simplify_equalities_between_booleans (p_assertions : pure_formulae) =
  				| _ -> a) p_assertions in 
  	new_as 
 
-let naively_infer_type_information (p_assertions : pure_formulae) (gamma : TypEnv.t) = 
+let naively_infer_type_information (p_assertions : PFS.t) (gamma : TypEnv.t) = 
  	DynArray.iter 
  		(fun a -> 
  			match a with 
  			| LEq (LVar x, le) 
  			| LEq (le, LVar x) -> 
- 				if (not (Hashtbl.mem gamma x)) 
+ 				if (not (TypEnv.mem gamma x)) 
  					then (
  						let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
  						TypEnv.weak_update gamma x le_type
@@ -375,13 +371,9 @@ let naively_infer_type_information (p_assertions : pure_formulae) (gamma : TypEn
 (** Symbolic state simplification   **)
 (*************************************)
 
-
-let reduce_pfs_no_gamma pfs = DynArray.map (fun x -> reduce_assertion_no_gamma pfs x) pfs
-let reduce_pfs    gamma pfs = DynArray.map (fun x -> reduce_assertion    gamma pfs x) pfs
-
 let reduce_pfs_in_place store gamma pfs =
 	DynArray.iteri (fun i pf ->
-		let rpf = reduce_assertion gamma pfs pf in
+		let rpf = reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) pf in
 		DynArray.set pfs i rpf) pfs
 	
 let sanitise_pfs store gamma pfs =
@@ -407,7 +399,7 @@ let sanitise_pfs store gamma pfs =
 			then DynArray.delete pfs (length - 1 - i)
 	done
 
-let sanitise_pfs_no_store_no_gamma = sanitise_pfs (Hashtbl.create 1) (Hashtbl.create 1)
+let sanitise_pfs_no_store_no_gamma = sanitise_pfs (Hashtbl.create 1) (TypEnv.init())
 let sanitise_pfs_no_store          = sanitise_pfs (Hashtbl.create 1)
 
 let allowedListMember le =
@@ -449,9 +441,7 @@ let get_lvars_pfs pfs =
 	
 let filter_gamma_pfs pfs gamma = 
 	let pfs_vars = pfs_lvars pfs in
-	Hashtbl.filter_map_inplace 
-		(fun k v -> if (SS.mem k pfs_vars) then Some v else None) 
-		gamma
+	TypEnv.filter_vars_in_place gamma pfs_vars
 	
 (*
 	SIMPLIFICATION AND MORE INFORMATION
@@ -720,7 +710,7 @@ unify_lists (le1 : jsil_logic_expr) (le2 : jsil_logic_expr) to_swap : bool optio
  * ULTIMATE SIMPLIFICATION *
  * *********************** *)
 
-let rec understand_types exists pf_list gamma : bool = 
+let rec understand_types exists pf_list (gamma : TypEnv.t) : bool = 
 	let f = understand_types exists in
 	(match pf_list with
 	| [] -> true
@@ -752,18 +742,18 @@ let rec understand_types exists pf_list gamma : bool =
 					(match te1, te2 with
 					| Some t1, None ->
 						if ((from_where = "l") || ((from_where = "r") && (SS.mem y exists))) 
-						then Hashtbl.add gamma y t1; 
+						then TypEnv.update gamma y (Some t1); 
 						f rest gamma
 					| None, Some t2 ->
 							if ((from_where = "l") || ((from_where = "r") && (SS.mem x exists))) 
-							then Hashtbl.add gamma x t2; 
+							then TypEnv.update gamma x (Some t2); 
 							f rest gamma 
 					| Some t1, Some t2 -> f rest gamma
 					| None, None -> raise (Failure "Impossible branch."))
 				| LVar x, le
 				| le, LVar x ->
 					(* print_debug (Printf.sprintf "Checking: (%s, %s) vs %s" x from_where (JSIL_Print.string_of_logic_expression le false)); *)
-					let tx = TypEnv.get_type gamma x in
+					let tx = TypEnv.get gamma x in
 					let te, _, _ = type_lexpr gamma le in
 					(match te with
 					| None -> f rest gamma
@@ -771,7 +761,7 @@ let rec understand_types exists pf_list gamma : bool =
 						(match tx with
 						| None -> 
 								if ((from_where = "l") || ((from_where = "r") && (SS.mem x exists)))
-								then Hashtbl.add gamma x te; 
+								then TypEnv.update gamma x (Some te); 
 								f rest gamma
 						| Some tx -> f rest gamma))
 					| _, _ -> f rest gamma))
@@ -836,7 +826,7 @@ let simplify_symb_state
 	(vars_to_save : (SS.t option) option)
 	(other_pfs    : jsil_logic_assertion DynArray.t)
 	(existentials : SS.t)
-	(symb_state   : symbolic_state) =
+	(symb_state   : symbolic_state) : symbolic_state * substitution * PFS.t * SS.t =
 
 	print_time_debug "simplify_symb_state:";
 
@@ -862,7 +852,7 @@ let simplify_symb_state
 	let simplify_singleton_types others exists symb_state subst types =		 
 		let gamma = ss_gamma symb_state in
 		if (types.(0) + types.(1) + types.(2) + types.(3) > 0) then
-			(Hashtbl.iter (fun v (t : Type.t) -> 
+			(TypEnv.iter gamma (fun v (t : Type.t) -> 
 				let lexpr = (match t with
 					| UndefinedType -> Some (LLit Undefined)
 					| NullType -> Some (LLit Null)
@@ -871,23 +861,26 @@ let simplify_symb_state
 					| _ -> None) in
 				(match lexpr with
 				| Some lexpr -> 
-						(* print_debug (Printf.sprintf "Singleton: (%s, %s)" v (Type.str t)); *)
+						print_debug (Printf.sprintf "Singleton: (%s, %s)" v (Type.str t));
 						Hashtbl.add subst v lexpr;
-				| None -> ())) gamma;
+				| None -> ()));
 			(* Substitute *)
 			let symb_state = ss_substitution subst true symb_state in
+			let gamma  = ss_gamma symb_state in
 			let others = pfs_substitution subst true others in
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
 			Hashtbl.iter (fun v _ ->
-				match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
+				(* match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
 				| true -> ()
-				| false -> 
-						while (Hashtbl.mem gamma v) do 
-							let t = Hashtbl.find gamma v in
+				| false -> *)
+						print_debug_petar (Printf.sprintf "Removing: %s" v);
+						while (TypEnv.mem gamma v) do 
+							print_debug_petar (Printf.sprintf "I am in the gamma!");
+							let t = TypEnv.get_unsafe gamma v in
 							let it = type_index t in
 							types.(it) <- types.(it) - 1;
-							Hashtbl.remove gamma v 
+							TypEnv.update gamma v None
 						done
 				) subst;
 				symb_state, subst, others, exists) 
@@ -902,15 +895,14 @@ let simplify_symb_state
 					let save_v1 = (save_all || SS.mem v1 to_save) in
 					let save_v2 = (save_all || SS.mem v2 to_save) in
 					(match save_v1, save_v2 with
-					| true, true 
-				  | false, true -> ()
+					| _, true -> ()
 					| true, false -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
 					| false, false -> 
-							let lvar_v1 = (String.get v1 0 = '#') in
-							let lvar_v2 = (String.get v2 0 = '#') in
-							(match lvar_v1, lvar_v2 with
-							| false, true -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
-							| _, _ -> ()))
+						let lvar_v1 = (String.get v1 0 = '#') in
+						let lvar_v2 = (String.get v2 0 = '#') in
+						(match lvar_v1, lvar_v2 with
+						| true, false -> DynArray.set pfs i (LEq (LVar v2, LVar v1))
+						| _, _ -> ()))
 			| LEq (e, LVar v) -> DynArray.set pfs i (LEq (LVar v, e))
 			| _ -> ())) pfs in
 		
@@ -925,22 +917,21 @@ let simplify_symb_state
 	 *)
 	(* print_debug (Printf.sprintf "SS: %s" (Symbolic_State_Print.string_of_shallow_symb_state symb_state)); *)
 	let lvars = SS.union (ss_vars_no_gamma symb_state) (pfs_lvars other_pfs) in
-	let lvars_gamma = TypEnv.get_vars gamma in		
+	let lvars_gamma = TypEnv.lvars gamma in		
 	let lvars_inter = SS.inter lvars lvars_gamma in
-	Hashtbl.filter_map_inplace (fun v t ->
-		(match (save_all || SS.mem v (SS.union lvars_inter (SS.union vars_to_save !initial_existentials))) with
-		| true  -> Some t
-		| false -> (* print_debug (Printf.sprintf "Cutting %s : %s from gamma" v (Type.str t)); *) None)) gamma;
+	TypEnv.filter_vars_in_place gamma (SS.union lvars_inter (SS.union vars_to_save !initial_existentials));
 		
 	(* Setup the type indexes *)
 	let types = Array.make type_length 0 in
-	Hashtbl.iter (fun _ t -> 
+	TypEnv.iter gamma (fun _ t -> 
 		let it = type_index t in
-			types.(it) <- types.(it) + 1) gamma;
+			types.(it) <- types.(it) + 1);
 		
 	(* Instantiate uniquely determined variables *)
 	let subst = Hashtbl.create 57 in
 	let symb_state, subst, others, exists = simplify_singleton_types other_pfs !initial_existentials symb_state subst types in
+
+	let heap, store, p_formulae, gamma, preds = symb_state in	
 
 	let pfs = ss_pfs symb_state in
 
@@ -1077,55 +1068,52 @@ let simplify_symb_state
 							(* Understand gamma if subst is another LVar *)
 							(match le with
 							| LVar v' ->
-								(match (Hashtbl.mem gamma v) with
-								| false -> ()
-								| true -> 
-									let t = Hashtbl.find gamma v in
-										(match (Hashtbl.mem gamma v') with
-										| false -> 
-												let it = type_index t in
-												types.(it) <- types.(it) + 1;
-												Hashtbl.add gamma v' t
-										| true -> 
-											let t' = Hashtbl.find gamma v' in
-											(match (t = t') with
-											| false -> pfs_ok := false; msg := "Horrific type mismatch."
-											| true -> ()))
+								(match (TypEnv.get gamma v) with
+								| None -> ()
+								| Some t -> 
+									(match (TypEnv.get gamma v') with
+									| None -> 
+										let it = type_index t in
+										types.(it) <- types.(it) + 1;
+										TypEnv.update gamma v' (Some t)
+									| Some t' -> 
+										(match (t = t') with
+										| false -> pfs_ok := false; msg := "Horrific type mismatch."
+										| true -> ()))
 								)
 							| _ -> ());
 									
 								
 							(* Remove (or add) from (or to) gamma *)
 							(match (save_all || SS.mem v (SS.union vars_to_save !exists)) with
-		      		| true -> 
-									let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
-									(match le_type with
-									| None -> ()
-									| Some t -> 
-										(match Hashtbl.mem gamma v with
-										| false -> 
-												let it = type_index t in
-												types.(it) <- types.(it) + 1;
-												(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (Type.str t)); *)
-												Hashtbl.add gamma v t
-										| true -> 
-												let tv = Hashtbl.find gamma v in
-												(match (tv = t) with
-												| true -> ()
-												| false ->
-														(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (Type.str tv) (Type.str t)); *) 
-														pfs_ok := false; msg := "Horrific type mismatch.")))
-		      		| false -> 
-		    					while (Hashtbl.mem gamma v) do 
-		    						let t = Hashtbl.find gamma v in
-		    						let it = type_index t in
-		    						types.(it) <- types.(it) - 1;
+				      		| true -> 
+								let le_type, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
+								(match le_type with
+								| None -> ()
+								| Some t -> 
+									(match TypEnv.get gamma v with
+									| None -> 
+										let it = type_index t in
+										types.(it) <- types.(it) + 1;
+										(* print_debug_petar (Printf.sprintf "GAT: %s : %s" v (Type.str t)); *)
+										TypEnv.update gamma v (Some t)
+									| Some tv -> 
+										(match (tv = t) with
+										| true -> ()
+										| false ->
+												(* print_debug_petar (Printf.sprintf "Type mismatch: %s -> %s, but %s." v (Type.str tv) (Type.str t)); *) 
+												pfs_ok := false; msg := "Horrific type mismatch.")))
+				      		| false -> 
+								while (TypEnv.mem gamma v) do 
+									let t = TypEnv.get_unsafe gamma v in
+									let it = type_index t in
+									types.(it) <- types.(it) - 1;
 										(* print_debug_petar (Printf.sprintf "Removing from gamma: %s" v); *)
-		    						Hashtbl.remove gamma v 
-		    					done);
-							
-							(* Remove from existentials *)
-							exists := SS.remove v !exists))
+									TypEnv.update gamma v None 
+								done);
+									
+									(* Remove from existentials *)
+									exists := SS.remove v !exists))
 					
 				(* List length *)
 				| LLit (Num len), LUnOp (LstLen, LVar v)
@@ -1170,7 +1158,7 @@ let simplify_symb_state
 									(* Get the part of the list before the nth and the part of the list after the nth *)
 									let front, back = List.tl subst_list, List.hd subst_list in
 									(* The part after is of list type *)
-									Hashtbl.add gamma back ListType;
+									TypEnv.update gamma back (Some ListType);
 									let front = List.map (fun x -> LVar x) front in
 									let back = LVar back in
 									
@@ -1180,7 +1168,7 @@ let simplify_symb_state
 									changes_made := true;
 									DynArray.delete pfs !n;
 									let new_pf = LEq (lst, new_lst) in
-									let new_pf = reduce_assertion gamma pfs new_pf in
+									let new_pf = reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) new_pf in
 									DynArray.add pfs new_pf
 								)
 						)
@@ -1208,13 +1196,13 @@ let simplify_symb_state
 							DynArray.delete pfs !n;
 							List.iter (fun (x, y) -> 
 								let new_pf = LEq (x, y) in
-								let new_pf = reduce_assertion gamma pfs new_pf in
+								let new_pf = reduce_assertion ?gamma:(Some gamma) ?pfs:(Some pfs) new_pf in
 								DynArray.add pfs new_pf) subst)
 				
 				| LUnOp (TypeOf, LVar x), LLit (Type t) -> 
 					changes_made := true;
 					DynArray.delete pfs !n;
-					let ot = TypEnv.get_type gamma x in
+					let ot = TypEnv.get gamma x in
 						(match ot with
 						| None -> TypEnv.update gamma x (Some t)
 						| Some t' -> if (t <> t') then (pfs_ok := false; msg := "Typing error")
@@ -1232,14 +1220,12 @@ let simplify_symb_state
 					
 			| LNot (LEq (LVar v, LLit Empty)) 
 			| LNot (LEq (LLit Empty, LVar v)) ->
-				(match (Hashtbl.mem gamma v) with
-				| false -> n := !n + 1
-				| true -> 	
-						let t = Hashtbl.find gamma v in
-						(match (t = EmptyType) with
-						| true -> pfs_ok := false; msg := "Negation incorrect."
-						| false -> DynArray.delete pfs !n))
-
+				(match (TypEnv.get gamma v) with
+				| None -> n := !n + 1
+				| Some t -> 	
+					(match (t = EmptyType) with
+					| true -> pfs_ok := false; msg := "Negation incorrect."
+					| false -> DynArray.delete pfs !n))
 			| _ -> n := !n + 1);
 		done;
 	done;
@@ -1274,22 +1260,22 @@ let simplify_ss_with_subst symb_state vars_to_save =
 	symb_state, subst
 
 let simplify_pfs pfs gamma vars_to_save =
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), _, _, _ = simplify_symb_state vars_to_save (DynArray.create()) (SS.empty) fake_symb_state in
 	pfs, gamma
 			
 let simplify_pfs_with_subst pfs gamma =
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy pfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, pfs, gamma, _), subst, _, _ = simplify_symb_state None (DynArray.create()) (SS.empty) fake_symb_state in
 	if (DynArray.to_list pfs = [ LFalse ]) then (pfs, None) else (pfs, Some subst)
 
 let simplify_pfs_with_exists exists lpfs gamma vars_to_save = 
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, _, exists = simplify_symb_state vars_to_save (DynArray.create()) exists fake_symb_state in
 	lpfs, exists, gamma
 
 let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma = 
-	let fake_symb_state = (Heap.create 1, Hashtbl.create 1, (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
+	let fake_symb_state = (Heap.create 1, SStore.init [] [], (DynArray.copy lpfs), (TypEnv.copy gamma), DynArray.create ()) in
 	let (_, _, lpfs, gamma, _), _, rpfs, exists = simplify_symb_state None rpfs exists fake_symb_state in
 	lpfs, rpfs, exists, gamma
 
@@ -1297,7 +1283,7 @@ let simplify_pfs_with_exists_and_others exists lpfs rpfs gamma =
  * IMPLICATION SIMPLIFICATION *
  * ************************** *)
 	
-let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : (string, Type.t) Hashtbl.t) =
+let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_assertion DynArray.t) (gamma : TypEnv.t) =
 
 	(* print_time_debug ("simplify_existentials:"); *)
 	
@@ -1312,15 +1298,15 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		print_debug_petar (msg ^ " Pure formulae false.\n");
 		DynArray.clear p_formulae;
 		DynArray.add p_formulae LFalse;
-		SS.empty, lpfs, p_formulae, (Hashtbl.create 1) in
+		SS.empty, lpfs, p_formulae, TypEnv.init() in
 
-	let delete_substitute_proceed exists p_formulae gamma v n le =
+	let delete_substitute_proceed exists p_formulae (gamma : TypEnv.t) v n le =
 		(* print_debug (Printf.sprintf "Deleting the formula \n%s\nand substituting the variable %s for %s." 
 			(JSIL_Print.string_of_logic_assertion (DynArray.get p_formulae n) false) 
 			v (JSIL_Print.string_of_logic_expression le false)); *)
 		DynArray.delete p_formulae n;
 		let exists = SS.remove v exists in
-		while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
+		while (TypEnv.mem gamma v) do TypEnv.update gamma v None done;
 		let subst = Hashtbl.create 1 in
 		Hashtbl.add subst v le;
 		simplify_existentials exists lpfs (pfs_substitution subst true p_formulae) gamma in
@@ -1356,9 +1342,9 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 
 	test_for_nonsense_iter pfs in
 
-	let rec go_through_pfs (pfs : jsil_logic_assertion list) n =
+	let rec go_through_pfs (pfs : jsil_logic_assertion list) n : SS.t * PFS.t * PFS.t * TypEnv.t =
 	(match pfs with
-	 | [] -> if (test_for_nonsense (pfs_to_list p_formulae))
+	 | [] -> if (test_for_nonsense (PFS.to_list p_formulae))
 			 	then pfs_false "Nonsense."
 				else
 			 (let pf_list = DynArray.to_list p_formulae in
@@ -1387,34 +1373,33 @@ let rec simplify_existentials (exists : SS.t) lpfs (p_formulae : jsil_logic_asse
 		   		go_through_pfs rest (n + 1)
 		   | true ->
 		       (* Why? - if not in gamma and we can type the thing on the right, add to gamma *)
-			   (match (Hashtbl.mem gamma v) with
-			    | false -> 
+			   (match (TypEnv.get gamma v) with
+			    | None -> 
 					(match le with
 						 | LLit lit ->
 							 let ltype = Literal.type_of lit in
-							 Hashtbl.replace gamma v ltype;
+							 TypEnv.update gamma v (Some ltype);
 							 delete_substitute_proceed exists p_formulae gamma v n le
 						 | ALoc _ ->
-						 	 Hashtbl.replace gamma v ObjectType;
+						 	 TypEnv.update gamma v (Some ObjectType);
 							 delete_substitute_proceed exists p_formulae gamma v n le
 						 | LEList _
 						 | LBinOp (_, LstCons, _) ->
-						 	 Hashtbl.replace gamma v ListType;
+						 	 TypEnv.update gamma v (Some ListType);
 							 let can_we_substitute = isExistentiallySubstitutable le in
 							 (match can_we_substitute with
 							  | false -> go_through_pfs rest (n + 1)
 							  | true -> delete_substitute_proceed exists p_formulae gamma v n le
 							 )
 						 | LBinOp (_, StrCat, _) ->
-						 	 Hashtbl.replace gamma v StringType;
+						 	 TypEnv.update gamma v (Some StringType);
 							 let can_we_substitute = isExistentiallySubstitutable le in
 							 (match can_we_substitute with
 							  | false -> go_through_pfs rest (n + 1)
 							  | true -> delete_substitute_proceed exists p_formulae gamma v n le
 							 )
 						 | _ -> go_through_pfs rest (n + 1))
-				| true ->
-					let vtype = Hashtbl.find gamma v in
+				| Some vtype ->
 					(match le with
 					 | LLit lit ->
 					     let ltype = Literal.type_of lit in
@@ -1558,11 +1543,11 @@ let get_set_intersections pfs =
 	let intersections = List.map (fun s -> SLExpr.elements s) !intersections in
 	List.sort compare intersections
 	
-let resolve_set_existentials lpfs rpfs exists gamma =
+let resolve_set_existentials lpfs rpfs exists (gamma : TypEnv.t) =
 
 	let exists = ref exists in
 
-	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = Type.SetType)) !exists in
+	let set_exists = SS.filter (fun x -> TypEnv.get gamma x = Some SetType) !exists in
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
@@ -1611,7 +1596,7 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 								Hashtbl.add temp_subst v rhs;
 								pfs_substitution_in_place temp_subst rpfs;
 								exists := SS.remove v !exists;
-								while (Hashtbl.mem gamma v) do Hashtbl.remove gamma v done;
+								while (TypEnv.mem gamma v) do TypEnv.update gamma v None done;
 								DynArray.delete rpfs !i
 						| _ -> DynArray.set rpfs !i (LEq (lhs, rhs)); i := !i + 1;)
 						) else i := !i + 1
@@ -1624,11 +1609,11 @@ let resolve_set_existentials lpfs rpfs exists gamma =
 	
 	
 	
-let find_impossible_unions lpfs rpfs exists gamma =
+let find_impossible_unions lpfs rpfs exists (gamma : TypEnv.t) =
 	
 	let exists = ref exists in
 
-	let set_exists = SS.filter (fun x -> Hashtbl.mem gamma x && (Hashtbl.find gamma x = Type.SetType)) !exists in
+	let set_exists = SS.filter (fun x -> TypEnv.get gamma x = Some SetType) !exists in
 	if (SS.cardinal set_exists > 0) then (
 	let intersections = get_set_intersections ((DynArray.to_list lpfs) @ (DynArray.to_list rpfs)) in
 	print_debug_petar (Printf.sprintf "Intersections we have:\n%s"
@@ -1662,11 +1647,11 @@ let find_impossible_unions lpfs rpfs exists gamma =
 		done;	
 	
 		rpfs, !exists, gamma) with
-		| Failure _ -> DynArray.of_list [ LFalse ], SS.empty, Hashtbl.create 1) else rpfs, !exists, gamma
+		| Failure _ -> DynArray.of_list [ LFalse ], SS.empty, TypEnv.init()) else rpfs, !exists, gamma
 
 
 
-let simplify_implication exists lpfs rpfs gamma =
+let simplify_implication exists lpfs rpfs (gamma : TypEnv.t) =
 	let lpfs, rpfs, exists, gamma = simplify_pfs_with_exists_and_others exists lpfs rpfs gamma in
 	let exists, lpfs, rpfs, gamma = simplify_existentials exists lpfs rpfs gamma in
 	let rpfs, exists, gamma = resolve_set_existentials lpfs rpfs exists gamma in
@@ -1728,7 +1713,7 @@ let now_do_some_more_heuristics (exists : SS.t) (lpfs : jsil_logic_assertion Dyn
 			| LNone -> 
 				let tl, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 				let tl = Option.get tl in 
-				let tv = Hashtbl.find_opt gamma v in
+				let tv = TypEnv.get gamma v in
 				(match tv with
 				| None -> Some (SS.mem v exists)
 				| Some tv -> if (tl <> tv) then Some false else Some (SS.mem v exists || tv = Type.UndefinedType || tv = Type.NullType || tv = Type.NoneType || tv = Type.EmptyType)
@@ -1742,7 +1727,7 @@ let now_do_some_more_heuristics (exists : SS.t) (lpfs : jsil_logic_assertion Dyn
 			| LNone -> 
 				let tl, _, _ = JSIL_Logic_Utils.type_lexpr gamma le in
 				let tl = Option.get tl in 
-				let tv = Hashtbl.find_opt gamma v in
+				let tv = TypEnv.get gamma v in
 				(match tv with
 				| None -> Some (SS.mem v exists)
 				| Some tv -> if (tl <> tv) then Some true else Some (not (SS.mem v exists || tv = Type.UndefinedType || tv = Type.NullType || tv = Type.NoneType || tv = Type.EmptyType))
@@ -1781,3 +1766,54 @@ let reduce_expression_using_pfs_no_store gamma pfs e =
 	| Some subst ->
 		let e = lexpr_substitution subst true e in
 			Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs) e)
+
+(* Assume le = target, understand equalities, put in subst. It's all about le, nothing about the target *)
+let rec subst_for_unification_plan ?(gamma : TypEnv.t option) le target subst : jsil_logic_assertion list option =
+	print_debug (Printf.sprintf "SfUP: %s -> %s with %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression target) (JSIL_Print.string_of_substitution subst));
+	(* Here goes, essentially, what Jose wrote on the whiteboard yesterday *)
+	(match le with 
+	| LLit _ 
+	| LEList [] -> Some [ LEq (le, target) ]
+	| ALoc x
+	| LVar x -> 
+		let le' = Hashtbl.find_opt subst x in 
+		(match le' with 
+		| None -> 
+			print_debug (Printf.sprintf "SfUP: adding %s : %s" x (JSIL_Print.string_of_logic_expression target));
+			Hashtbl.add subst x target;
+			Some []
+		| Some le' -> 
+			print_debug (Printf.sprintf "SfUP: already in subst: %s : %s --> %s" x (JSIL_Print.string_of_logic_expression le') (JSIL_Print.string_of_logic_expression target));
+			let check = reduce_assertion ?gamma:gamma (LEq (le', target)) in 
+			(match check with 
+			| LFalse -> None
+			| LTrue  -> Hashtbl.replace subst x target; Some []
+			| _ -> Some [ LEq (le', target) ])
+			)
+	| _ when Reduction.lexpr_is_list ?gamma:gamma le ->
+		print_debug (Printf.sprintf "SfUP: list %s" (JSIL_Print.string_of_logic_expression le));
+		let res = Reduction.get_head_and_tail_of_list le in
+		(match res with
+			| Some (head, tail) ->
+				let head = Reduction.reduce_lexpr ?gamma:gamma head in  
+				let tail = Reduction.reduce_lexpr ?gamma:gamma tail in  
+				let red_target_head = Reduction.reduce_lexpr ?gamma:gamma (LUnOp (Car, target)) in
+				let red_target_tail = Reduction.reduce_lexpr ?gamma:gamma (LUnOp (Cdr, target)) in
+				Option.map_default  
+					(fun pfs_head -> 
+						Option.map_default
+							(fun pfs_tail -> Some (pfs_head @ pfs_tail))
+							None 
+							(subst_for_unification_plan ?gamma:gamma tail red_target_tail subst)
+					)
+					None 
+					(subst_for_unification_plan ?gamma:gamma head red_target_head subst)  
+			| _ ->
+				print_debug_petar "SfUP: head_and_tail returned None.";
+				Some [ LEq (le, target) ]
+		)
+	(* NOW, MORE CASES FOR LISTS - LEList, Cons, Cat - there are functions for getting a head of a list in Reduction.ml *)
+	(* Otherwise, whatever *)
+	| _ -> print_debug (Printf.sprintf "SfUP: don't know how to continue: %s" (JSIL_Print.string_of_logic_expression le)); Some [ LEq (le, target) ]
+	);
+

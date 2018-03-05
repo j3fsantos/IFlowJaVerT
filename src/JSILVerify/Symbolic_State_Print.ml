@@ -30,17 +30,7 @@ let string_of_heap (h : jsil_heap) =
 		h
 		""
 
-let string_of_symb_store (store : symbolic_store) : string =
-	Hashtbl.fold
-		(fun var le ac ->
-			 let le_str = string_of_logic_expression le in
-			 let var_le_str = "(" ^ var ^ ": " ^ le_str ^ ")" in
-			if (ac = "") then var_le_str else ac ^ "\n\t" ^ var_le_str )
-		store
-		"\t"
-
-
-let string_of_pfs (p_formulae : pure_formulae) : string =
+let string_of_pfs (p_formulae : PFS.t) : string =
 	DynArray.fold_left
 		(fun ac cur_ass ->
 			let cur_ass_str = string_of_logic_assertion cur_ass in
@@ -73,7 +63,7 @@ let string_of_preds (pred_set : predicate_set) : string =
 let string_of_symb_state (symb_state : symbolic_state) : string =
 	(* let heap, store, p_formulae, gamma, preds = symb_state in *)
 	let str_heap       = "Heap: " ^ (SHeap.str (ss_heap symb_state)) ^ "\n" in
-	let str_store      = "Store: " ^ (string_of_symb_store (ss_store symb_state)) ^ "\n" in
+	let str_store      = "Store: " ^ (SStore.str (ss_store symb_state)) ^ "\n" in
 	let str_p_formulae = "Pure Formulae: " ^ (string_of_pfs (ss_pfs symb_state)) ^ "\n" in
 	let str_gamma      = "Gamma:\n" ^ (TypEnv.str (ss_gamma symb_state)) ^ "\n" in
 	let str_preds      = "Preds: " ^ (string_of_preds (ss_preds symb_state)) ^ "\n" in
@@ -173,12 +163,15 @@ let string_of_unification_plan (up : jsil_logic_assertion list) : string =
 let string_of_unification_step 
 			(a : jsil_logic_assertion) (pat_subst : substitution) 
 			(heap_frame : SHeap.t) (preds_frame : predicate_set) 
+			(pfs : PFS.t) (gamma : TypEnv.t)
 			(discharges : discharge_list) : string = 
-	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\ndischarges:%s\n"
+	Printf.sprintf "Following UP. Unifying the pat assertion %s\npat_subst: %s\nheap frame: %s\npreds_frame:%s\nPure formulae: %s\nGamma:%s\ndischarges:%s\n"
 		(JSIL_Print.string_of_logic_assertion a)
 		(string_of_substitution pat_subst)
 		(SHeap.str heap_frame)
 		(string_of_preds preds_frame)
+		(string_of_pfs pfs)
+		(TypEnv.str gamma)
 		(string_of_discharges discharges)
 
 
