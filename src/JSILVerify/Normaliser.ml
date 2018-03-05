@@ -2270,6 +2270,7 @@ let normalise_single_spec
 
 	(** Step 1 - Unfold non-recursive predicates + push-in negations *)
 	let spec_vars = get_asrt_lvars spec.pre in
+	(* TODO: GET SPEC VARS FOR ALL POSTS *)
 	let pres      = pre_normalise spec.pre in
 	let posts     = List.concat (List.map pre_normalise spec.post) in
 
@@ -2291,6 +2292,7 @@ let normalise_single_spec
 		let ss_posts = oget_list (List.map (normalise_post post_gamma_0' subst spec_vars params) posts) in
 		let ss_posts = oget_list (List.map (fun ss_post -> collapse_alocs ss_pre ss_post) ss_posts) in 
 		let ss_posts = List.map (fun ss_post -> Simplifications.simplify_ss ss_post (Some (Some spec_vars))) ss_posts in 
+		(* TODO: HERE, WE NEED TO UNDERSTAND WHAT'S GOING ON *)
 		{	n_pre              = ss_pre;
 			n_post             = ss_posts;
 			n_ret_flag         = spec.ret_flag;
