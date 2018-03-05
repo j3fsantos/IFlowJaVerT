@@ -37,7 +37,7 @@
 		DataProp(qp, "dequeue", #dequeue_loc) * JSFunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _, _) *
 		((qp, "_head") -> none) *
 		JSFunctionObject(#n, "Node", #node_sc, _, np) * NodePrototype(np) * 
-		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc);
+		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc, PQLib: #pq_sc);
 	
 	@pred PriorityQueueModule(pq) :
 	  QueuePrototype(#pqp, #np, 0, #sc) *
