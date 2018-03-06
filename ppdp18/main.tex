@@ -1,0 +1,274 @@
+\documentclass[sigconf, anonymous, review]{acmart}
+
+\usepackage{listingsutf8}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{xspace}
+\usepackage{textcomp}
+\usepackage{amssymb,amsfonts,textcomp,stmaryrd}
+\usepackage{mathpartir}
+\usepackage{url}
+\usepackage{upgreek}
+\usepackage{xparse}
+\usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\usepackage{wrapfig}
+
+\usepackage{macros_js}
+\usepackage{gdshojs}
+
+\usepackage{fancyvrb}
+
+\makeatletter
+\newif\ifFV@bgcolor
+\newbox\FV@bgbox
+\define@key{FV}{bgcolor}{\FV@bgcolortrue\def\FV@bgcolor{#1}}
+
+\def\FV@BeginVBox{%
+  \leavevmode\ifFV@bgcolor\setbox\FV@bgbox=\fi
+  \hbox\ifx\FV@boxwidth\relax\else to\FV@boxwidth\fi\bgroup
+  \ifcase\FV@baseline\vbox\or\vtop\or$\vcenter\fi\bgroup}
+\def\FV@EndVBox{\egroup\ifmmode$\fi\hfil\egroup
+  \ifFV@bgcolor\colorbox{\FV@bgcolor}{\box\FV@bgbox}\fi}
+\makeatother
+
+% Copyright
+%\setcopyright{none}
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+\setcopyright{rightsretained}
+%\setcopyright{usgov}
+%\setcopyright{usgovmixed}
+%\setcopyright{cagov}
+%\setcopyright{cagovmixed}
+
+% DOI
+\acmDOI{10.475/123_4}
+
+% ISBN
+\acmISBN{123-4567-24-567/08/06}
+
+%Conference
+\acmConference[WOODSTOCK'97]{ACM Woodstock conference}{July 1997}{El
+  Paso, Texas USA}
+\acmYear{1997}
+\copyrightyear{2016}
+
+\acmPrice{15.00}
+
+%\acmBadgeL[http://ctuning.org/ae/ppopp2016.html]{ae-logo}
+%\acmBadgeR[http://ctuning.org/ae/ppopp2016.html]{ae-logo}
+
+\newcommand{\shat}{\^{s}}
+
+%JavaScript 
+\definecolor{SkyBlue}{rgb}{0.20,0.39,0.64}
+\definecolor{Plum}{rgb}{0.46,0.31,0.48}
+\definecolor{Chocolate}{rgb}{0.75,0.49,0.07}
+\definecolor{Aluminium5}{rgb}{0.33,0.34,0.32}
+\definecolor{DarkGreen}{rgb}{0.2,0.5,0.2}
+\definecolor{ltblue}{rgb}{0,0.4,0.4}
+\definecolor{dkblue}{rgb}{0,0.2,0.7}
+\definecolor{dkgreen}{rgb}{0,0.4,0}
+\definecolor{dkviolet}{rgb}{0.3,0,0.5}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{talkred}{rgb}{0.69,.20,0.22}
+\definecolor{talkblue}{rgb}{0.04,0.40,0.80}
+\definecolor{talkgreen}{rgb}{0.34,.81,0.10}
+\definecolor{oldtalkblue}{rgb}{0.22,.20,0.69}
+\definecolor{greenish}{rgb}{.0,.65,.0}
+\definecolor{mygray}{gray}{0.9}
+
+\lstset{
+	showstringspaces=false
+}
+
+\lstdefinelanguage{Scheme}{
+  morekeywords=[1]{define, define-syntax, define-macro, lambda, define-stream, stream-lambda},
+  morekeywords=[2]{begin, call-with-current-continuation, call/cc,
+    call-with-input-file, call-with-output-file, case, cond,
+    do, else, for-each, if,
+    let*, let, let-syntax, letrec, letrec-syntax,
+    let-values, let*-values,
+    and, or, not, delay, force,
+    quasiquote, quote, unquote, unquote-splicing,
+    map, fold, syntax, syntax-rules, eval, environment, query },
+  morekeywords=[3]{import, export},
+  alsodigit=!\$\%&*+-./:<=>?@^_~,
+  sensitive=true,
+  morecomment=[l]{;},
+  morecomment=[s]{\#|}{|\#},
+  morestring=[b]",
+  basicstyle=\scriptsize\ttfamily,
+  keywordstyle=\bf\ttfamily\color[rgb]{0,.3,.7},
+  commentstyle=\color[rgb]{0.133,0.545,0.133},
+  stringstyle={\color[rgb]{0.75,0.49,0.07}},
+  upquote=true,
+  breaklines=true,
+  breakatwhitespace=true,
+  literate=*{`}{{`}}{1}
+}
+
+\def\schemeinline{\lstinline[language=Scheme, basicstyle=\small\ttfamily]}
+
+\lstdefinelanguage{JavaScript}{
+  morekeywords=[1]{typeof, new, true, false, catch,
+    function, return, null, catch, switch, var,
+    if, in, while, do, else, case, break, continue},
+  morekeywords=[2]{class, export, boolean, throw, implements, import, this},
+  numbers=left,
+  numbersep=4pt,
+  numberstyle=\tiny\color{dkblue},
+  columns=fullflexible,
+  sensitive=false,
+  comment=[l]{//},
+  captionpos=b,   
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  basicstyle=\scriptsize\texttt,
+  identifierstyle=\ttfamily\color{Aluminium5},
+  keywordstyle=[1]\ttfamily\color{Plum},
+  keywordstyle=[2]\ttfamily\color{SkyBlue},
+  stringstyle=\ttfamily\color{DarkGreen},
+  commentstyle=\ttfamily, 
+%  commandchars=\$\{\}
+}[keywords,comments,strings]
+
+\lstnewenvironment{lstjs}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}}}{}
+\def\jsinline{\lstinline[language=JavaScript, basicstyle=\small]}
+
+
+% The Acronyms of the project and some other stuff
+\newcommand{\jsil}{JSIL\xspace}
+\newcommand{\jsverify}{JSVerify\xspace}
+\newcommand{\JSComp}{JS-2-JSIL\xspace}
+\newcommand{\jsilverify}{JSILVerify\xspace}
+
+\newcommand{\jilette}{Cosette\xspace}
+\newcommand{\rosette}{Rosette\xspace}
+
+\newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
+\newcommand{\myparagraphq}[1]{\smallskip\noindent {\bf #1?}\hspace{1pt}}
+
+% COMMENTS
+
+\newcommand{\polish}[1]{{\color{red}#1}}
+
+\newcommand{\pginline}[1]{ {\color{red} *** PG : #1 ***} }
+\newcommand{\pmaxinline}[1]{ {\color{blue} *** PM : #1 ***} }
+\newcommand{\jfsinline}[1]{ {\color{green} *** JFS : #1 ***} }
+\newcommand{\jdinline}[1]{ {\color{purple} *** JD : #1 ***} }
+
+\newif\ifComments
+\Commentstrue
+
+\newcommand{\pg}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{red}
+{\rm PG: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\pmax}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{blue}
+{\rm PM: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\jfs}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{green}
+{\rm JFS: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\jd}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{purple}
+{\rm JD: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\begin{document}
+\title{\jilette: Trusted Symbolic Testing for JavaScript}
+
+\begin{abstract}
+We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. 
+At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. 
+This interpreter is written in \underline{Rosette}, a symbolic virtual machine that enables the design of new solver-aided languages. 
+\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+We study two complementary uses of \jilette. 
+First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
+We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find witnesses for bugs in both specification and code.
+\end{abstract}
+
+%
+% The code below should be generated by the tool at
+% http://dl.acm.org/ccs.cfm
+% Please copy and paste the code instead of the example below.
+%
+%\begin{CCSXML}
+%<ccs2012>
+% <concept>
+%  <concept_id>10010520.10010553.10010562</concept_id>
+%  <concept_desc>Computer systems organization~Embedded systems</concept_desc>
+%  <concept_significance>500</concept_significance>
+% </concept>
+% <concept>
+%  <concept_id>10010520.10010575.10010755</concept_id>
+%  <concept_desc>Computer systems organization~Redundancy</concept_desc>
+%  <concept_significance>300</concept_significance>
+% </concept>
+% <concept>
+%  <concept_id>10010520.10010553.10010554</concept_id>
+%  <concept_desc>Computer systems organization~Robotics</concept_desc>
+%  <concept_significance>100</concept_significance>
+% </concept>
+% <concept>
+%  <concept_id>10003033.10003083.10003095</concept_id>
+%  <concept_desc>Networks~Network reliability</concept_desc>
+%  <concept_significance>100</concept_significance>
+% </concept>
+%</ccs2012>
+%\end{CCSXML}
+%
+%\ccsdesc[500]{Computer systems organization~Embedded systems}
+%\ccsdesc[300]{Computer systems organization~Redundancy}
+%\ccsdesc{Computer systems organization~Robotics}
+%\ccsdesc[100]{Networks~Network reliability}
+
+
+%\keywords{ACM proceedings, \LaTeX, text tagging}
+
+
+\maketitle
+
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
+\input{sections/jilette}
+
+\section{Debugging Separation Logic Specifications}\label{sec:specs}
+\input{sections/specs}
+
+\newpage
+\section{Evaluation}\label{sec:evaluation}
+\input{sections/evaluation}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{biblio}
+
+\end{document}

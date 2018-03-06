@@ -1,5 +1,15 @@
 %!TEX root = main.tex
 
+\ExplSyntaxOn
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyTF}{mmm}
+ {
+  \IfNoValueTF{#1}{#2}
+   {
+    \tl_if_empty:nTF {#1} {#2} {#3}
+   }
+ }
+\ExplSyntaxOff
+
 %frame inference
 \newcommand{\pass}[0]{\Pi}
 \newcommand{\gfrinference}[3]{#1 \vdash #2 * [ #3 ]}
@@ -285,7 +295,6 @@
 % 
 \newcommand\procs{\mathcal{P}_{names}}
 \newcommand\procset{\mathtt{Proc}}
-\newcommand\proc{\mathtt{proc}}
 \newcommand\procedure[3]{\darkmath{\sf proc} \ #1(#2) \{ #3 \}}
 \newcommand\nprocedure[4]{\darkmath{\sf proc} \ #1(#2) \{ #3 \} \, \darkmath{\sf with} \, (#4)}
 % operators
@@ -440,6 +449,7 @@
 \newcommand{\ieq}[1]{{\bf I#1}}
 \newcommand{\indhyp}[0]{{\bf IH}}
 \newcommand{\prooflab}[1]{{\small {\scshape [#1]}}}
+\newcommand{\fact}[1]{{\bf [F#1]}}
 
 \newcommand{\ilvars}{{\sf vars}}
 \newcommand{\betaequal}[1]{\sim_{#1}}
@@ -485,7 +495,7 @@
 \newcommand{\jsabsheaps}{\oheaps^\emptyset_\jssuffix}
 
 \newcommand\trdefault{}
-\newcommand\ltr{\mathcal{T}}
+\newcommand\ltr{\mathcal{C}_A}
 \newcommand\ltrv[1][\trdefault]{\ltr_{#1 v}}
 \newcommand\ltre[1][\trdefault]{\ltr_{#1 e}}
 \newcommand\ltra[1][\trdefault]{\ltr_{#1 a}}
@@ -521,6 +531,7 @@
 
 %%
 %% Auxiliary
+\newcommand{\sspc}[0]{\phantom{a}}
 \newcommand\cfresh[0]{{\sf fresh}}
 \newcommand\semeq{\,\triangleq\,}
 \newcommand{\domain}{\command{dom}}
@@ -530,6 +541,7 @@
 \newcommand{\optionnone}[0]{\mathtt{None}}
 \newcommand{\jssuffix}{\mathtt{JS}}
 \newcommand{\jsilsuffix}{\mathtt{JSIL}}
+\newcommand{\functionset}[2]{[ #1 \rightarrow #2 ]}
 % Lists
 \newcommand{\lstcons}[0]{::}
 \newcommand{\lstconcat}[0]{\cdot}
@@ -549,10 +561,12 @@
 \newcommand\bcmd{bc}
 \newcommand\jcmd{c}
 \newcommand\prog{\mathtt{p}}
+\newcommand\progs{\mathcal{P}}
 \newcommand\pid{f}
 \newcommand\unoper{\ominus}
 \newcommand\binoper{\oplus}
 \newcommand{\jsilset}[1]{ \{ \, #1 \, \} }
+\newcommand\proc{proc}
 % indexes
 \newcommand\procretlab[0]{i_{\fnormal}}
 \newcommand\procerrlab[0]{i_{\ferror}}
@@ -586,23 +600,52 @@
 %%%%%%%%%%%%%%%
 \newcommand\ctx{C}
 \newcommand\semop[1]{\overline{#1}}
-\DeclareDocumentCommand{\semtrans}{ o m m o o }
+\newcommand\mode{\mu}
+\DeclareDocumentCommand{\semtrans}{ o o o m m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \rightarrow \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \rightarrow \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4} \rightarrow \tuple{#5} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6} \rightarrow \tuple{#5}_{#6}}
+			{\tuple{#4}_{#6} \rightarrow \tuple{#5}_{#7}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#5}^{#2} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#6}^{#2}}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#7}^{#2}} } }
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#5}^{#3} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#6}^{#3}}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#7}^{#3}} } }
+	}
+}
 
-\DeclareDocumentCommand{\semtranstrans}{ o m m o o }
+\DeclareDocumentCommand{\semtranstrans}{ o o o m o m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \rightarrow^* \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \rightarrow^* \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \rightarrow^* \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4} \rightarrow \tuple{#6} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}}
+			{\tuple{#4}_{#7} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#6}^{#2} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#2}}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#2}} } }
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#6}^{#3} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#3}}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#3}} } }
+	}
+}
 
 
 \DeclareDocumentCommand{\semtranserr}{ o m o }
@@ -620,7 +663,6 @@
 	{\tuple{#2}_#3 \rightarrow^* \bot} }
 
 
-
 \DeclareDocumentCommand{\ccmd}{ o o m }
 {
   \IfNoValueTF{#1}
@@ -633,36 +675,68 @@
 \newcommand\sstate{\sigma}
 \newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
 
-\DeclareDocumentCommand{\symbtrans}{ o m m o o }
+\DeclareDocumentCommand{\symbtrans}{ o o o m m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \leadsto \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \leadsto \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4} \leadsto \tuple{#5} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6} \leadsto \tuple{#5}_{#6}}
+			{\tuple{#4}_{#6} \leadsto \tuple{#5}_{#7}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \leadsto \tuple{#5}^{#2} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#6}^{#2}}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#7}^{#2}} } }
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \leadsto \tuple{#5}^{#3} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#6}^{#3}}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#7}^{#3}} } }
+	}
+}
 
 
-\DeclareDocumentCommand{\symbtranstrans}{ o m m o o }
+\DeclareDocumentCommand{\symbtranstrans}{ o o o m o m o o }
 { 
-  \IfNoValueTF{#1}{}{#1: }
-  \IfNoValueTF{#4}
-	{\tuple{#2} \leadsto^* \tuple{#3} }
-	{ \IfNoValueTF{#5}
-		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#4}}
-		{\tuple{#2}_{#4} \leadsto^* \tuple{#3}_{#5}} } }
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4} \leadsto \tuple{#6} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}}
+			{\tuple{#4}_{#7} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \leadsto \tuple{#6}^{#2} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#2}}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#2}} } }
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \leadsto \tuple{#6}^{#3} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#3}}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#3}} } }
+	}
+}
 
 
 \newcommand{\symbtranserr}[3]{ \tuple{#1}_{#2} \leadsto \tuple{\bot, #3}}
 
 \newcommand{\symbtranstranserr}[3]{ \tuple{#1}_{#2} \leadsto^* \tuple{\bot, #3}}
 
+\newcommand\ext{+}
+
 \newcommand\pc{\pi}
 \newcommand\sexpr{\hat{e}}
+\newcommand\pvsexpr{\hat{\sf e}}
 \newcommand\sexprp{\hat{p}}
 \newcommand\sexprv{\hat{v}}
 \newcommand\func{\mathtt{fun}}
 \newcommand\sctx{\hat{C}}
+\newcommand\sctxmain{\hat{C}_{\sf main}^0}
 \newcommand\sstring{\hat{s}}
 \newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
 \newcommand\snumber{\hat{n}}
@@ -672,14 +746,18 @@
 \newcommand\senv[0]{\varepsilon}
 \newcommand\svar[0]{\hat{x}} 
 \newcommand\svars[0]{\hat{\sortstyle{X}}} 
+\newcommand\svarsreallyqueen[0]{\command{svars}} 
 \newcommand\smodels[2]{\sortstyle{M}_{#2}(#1)}
+\newcommand\smodelsext[2]{\sortstyle{M}_{#2}^\ext(#1)}
 \newcommand\symbop[1]{\hat{#1}}
 %%%%%%%%%%%
 % memory model
 %%%%%%%%%%%
 \newcommand\heap[0]{h}
 \newcommand\heaps[0]{{\mathcal H}}
+\newcommand\hlocs[1]{{\sf locs}(#1)}
 \newcommand\store[0]{\rho}
+\newcommand{\emptystore}[0]{\emptyset}
 \newcommand\sheap[0]{\hat{h}}
 \newcommand\sstore[0]{\hat\rho}
 \newcommand\sstores[0]{\hat{{\mathcal S}to}}
@@ -716,7 +794,7 @@
 % %
 %% Rosette
 %% 
-\newcommand\roscomp[1]{{\cal R}(#1)}
+\newcommand\roscomp[1]{{\mathcal{R}}(#1)}
 \newcommand\racketlist[0]{\text{\bf list}}
 \newcommand\racketcons[0]{\text{\bf cons} \ }
 \newcommand\racketquote[0]{\text{\bf quote} \ }
@@ -732,7 +810,8 @@
 \newcommand\lvar[0]{\mathrm{X}}
 \newcommand\lexpr[0]{\ensuremath{E}}
 \newcommand\sepmodels[1]{\sortstyle{M}_{*}(#1)}
-\newcommand\sepassert{\darkmath{\textsf {assert}_*}}
+\newcommand\sepmodelsext[1]{\sortstyle{M}_{*}^\ext(#1)}
+\newcommand\sepassert{\darkmath{\textsf {assert}_*}\xspace}
 \newcommand\sfs[0]{\sigma}
 \newcommand\pfs[0]{\pi}
 \newcommand\existentials[0]{\mathtt{L}}
@@ -751,31 +830,38 @@
 %%
 
 \newcommand{\subst}[0]{\theta}
-\newcommand{\unification}[3]{{\cal CU}_{#3}((#1), #2)} %\checkmark
-\newcommand{\unificationef}[2]{{\cal U}_{EF}(#1, #2)} 
-\newcommand{\unificationefl}[2]{{\cal U}_{EF}(#1, #2)} 
-\newcommand{\unificationfail}[4]{{\cal U}_{#4}^{\times}((#1), #2, #3)}
-\newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{S}}^{#3}}
-\newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\cal U}_{\mathtt{F}}^{#3}(#4)}
-\newcommand{\cellunification}[3]{#3 \vdash \tuple{#1} \rightarrow_{\cal CU} \tuple{#2}}
-\newcommand{\cellunificationiter}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\cal CU} \tuple{#2}}
+\newcommand{\unification}[3]{{\mathcal{CU}}_{#3}((#1), #2)} %\checkmark
+\newcommand{\unificationef}[2]{{\mathcal{U}}_{NR}(#1, #2)} 
+\newcommand{\unificationefl}[2]{{\mathcal{U}}_{NR}(#1, #2)} 
+\newcommand{\unificationfail}[4]{{\mathcal{U}}_{#4}^{\times}((#1), #2, #3)}
+\newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\mathcal{U}}_{\mathtt{S}}^{#3}}
+\newcommand{\unificationfullP}[2]{\tuple{(#1), #2} \in {\mathcal{U}}_{\mathtt{S}}}
+\newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\mathcal{U}}_{\mathtt{F}}^{#3}(#4)}
+\newcommand{\unificationfullfailP}[3]{\tuple{(#1), #2} \in {\mathcal{U}}_{\mathtt{F}}(#3)}
+\newcommand{\cellunification}[3]{#3 \vdash \tuple{#1} \rightarrow_{\mathcal{CU}} \tuple{#2}}
+\newcommand{\cellunificationx}[3]{#3 \vdash \tuple{#1} \rightarrow_{\mathcal{CU}} #2}
+\newcommand{\cellunificationiter}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\mathcal{CU}} \tuple{#2}}
+\newcommand{\cellunificationiterx}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\mathcal{CU}} #2}
 \newcommand{\uyes}[1]{{\mathtt{S}}(#1)}
 \newcommand{\uno}[1]{{\mathtt{F}}(#1)}
 \newcommand{\substs}[0]{{\sf substs}}
 \newcommand{\efproj}[2]{#1\!\mid_{#2}}
-\newcommand{\sanity}[1]{{\cal S}(#1)}
-\newcommand{\sanityl}[2]{{\cal S}_{#2}(#1)}
+\newcommand{\sanity}[1]{{\mathcal{S}}(#1)}
+\newcommand{\sanityl}[2]{{\mathcal{S}}_{#2}(#1)}
 \newcommand{\eflocs}[0]{{\sf locs}}
 
 %%
 %% Specs - test generation
 %%
+\newcommand{\specsig}[4]{\lconf{#1} \, #2 \,  \lconf{#3}^{#4}}
 \newcommand{\concretise}[2]{\llfloor #1 \rrfloor_{#2}}
-\newcommand{\normalise}[0]{Normalise}
+\newcommand{\testify}[1]{{\mathcal{T}}_{#1}}
+\newcommand{\testifyfun}[1]{{\mathcal{T}}_{#1}}
 %%
 %% Jilette - JS extended syntax
 %%
 \newcommand\sexprs{\hat{\sortstyle{E}}_{\jsilsuffix}}
+\newcommand\pvsexprs{\underline{\hat{\sortstyle{E}}}_{\jsilsuffix}}
 \newcommand{\jsassert}[0]{\mathtt{assert}}
 \newcommand{\jsassume}[0]{\mathtt{assume}}
 \newcommand{\jssymbstring}[0]{\_\_{\mathtt{s}}}
