@@ -709,6 +709,7 @@ let unify_pfs
 type extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * jsil_logic_assertion list
 
 let unify_symb_states 
+		(existentials          : SS.t) 
 		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst             : substitution option)
 		(pat_symb_state        : symbolic_state) 
@@ -845,6 +846,245 @@ let unify_symb_states
 	let end_time = Sys.time() in
 	update_statistics "unify_ss : search" (end_time -. start_time);
 	result
+
+
+and 
+
+(**********************************************)
+(** Fold a predicate assertion recursively 
+ *)
+fold_predicate 
+	(predicates   : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
+	(pred_name    : string) 
+	(symb_state   : symbolic_state) 
+	(args         : jsil_logic_expr list) 
+	(spec_vars    : SS.t) 
+	(existentials : SS.t option) 
+	(search_info  : symbolic_execution_context) : (symbolic_state * SS.t * symbolic_execution_context) option =
+
+
+	let predicate = (try Hashtbl.get predicates pred_name with Failure Not_found -> "DEATH. fold_predicate") in 
+	let pred_defs = predicate.n_pred_definitions in 
+	let params    = predicate.n_pred_params in 
+
+	
+	let update_symb_state_after_folding symb_state framed_heap framed_preds new_pfs new_gamma =
+		print_time_debug ("update_symb_state_after_folding:");
+		let symb_state = ss_replace_heap symb_state framed_heap in
+		let symb_state = ss_replace_preds symb_state framed_preds in
+		let symb_state = ss_replace_gamma symb_state new_gamma in
+		ss_extend_pfs symb_state (PFS.of_list new_pfs);
+		symb_state in
+
+
+	let rec fold_predicate_aux (index : int) : (symbolic_state * SS.t) option =
+		
+		print_time_debug ("check_pred_def:");
+		let _, pred_def, pred_def_up = Array.get pred_defs index in
+		print_debug (Printf.sprintf "----------------------------");
+		print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_symb_state pred_def));
+		
+		let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials pred_def_up pred_def symb_state_caller))
+			with | Spatial_Entailment.UnificationFailure _ -> None in
+		
+		(match unifier with
+		| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), _, None) ->
+		  	(* Fold Complete *)
+
+		  	(* Remove from the symb_state the spatial resources corresponding to the folded predicate *)
+		  	let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+			
+		  	(* Print useful INFO *)
+			print_debug (Printf.sprintf "Folding Complete!");
+			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_symb_state new_symb_state));
+			Some (new_symb_state, new_spec_vars, search_info)
+
+		| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) 
+				when missing_pred_name = pred_name ->
+			
+			print_debug (Printf.sprintf "Folding Incomplete. Missing %s(%s)\n"
+				pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
+		
+			(* Fold Incomplete - Must recursively fold the predicate *)
+			let new_symb_state, missing_pred_args, existentials' = 
+				process_missing_pred_assertion missing_pred_args subst existentials symb_state framed_heap framed_preds pf_discharges new_gamma in 
+			fold_predicate predicates pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some existentials') search_info
+
+		| _ -> 
+			(* Fold Failed - we try to fold again removing a recursive call to the predicate from 
+			   the predicate definition  *)
+			print_debug (Printf.sprintf "Folding Failed."); 	
+
+			let preds_pred_def  = (ss_preds pred_def) in 
+			let preds_pred_def' = preds_copy preds_pred_def in 
+			(match preds_remove_by_name preds_pred_def' pred_name with 
+			| None -> None 
+			| Some (_, missing_pred_args) -> (
+				print_debug (Printf.sprintf "Going to remove %s(%s) and try to fold again"
+					pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
+
+				let pred_def' = ss_replace_preds pred_def preds_pred_def' in
+				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) pred_def' SS.empty) pred_def' symb_state_caller))
+					with | Spatial_Entailment.UnificationFailure _ -> None in
+
+				(match unifier with
+				| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), new_existentials, None) ->
+		  			(* We were able to fold the predicate up to a recursive call  *)
+		  			(* Now we need to fold the recursive call                     *)
+
+		  			let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+		  			let new_symb_state', missing_pred_args, existentials' = 
+						process_missing_pred_assertion missing_pred_args subst (SS.union existentials new_existentials) new_symb_state framed_heap framed_preds pf_discharges new_gamma in 
+					fold_predicate predicates pred_name pred_defs new_symb_state' params missing_pred_args new_spec_vars (Some existentials') search_info
+
+		  		| _ -> None)))) in
+
+
+	let pred_def_indexes  = Array.to_list (Array.init (Array.length pred_defs) (fun i -> i)) in 
+	List.fold_left (fun ac i -> if (ac = None) then fold_predicate_aux i else ac) None pred_def_indexes
+
+
+
+
+
+
+
+	let process_missing_pred_assertion
+			(missing_pred_args : jsil_logic_expr list)  (subst : substitution) (existentials : SS.t)
+			(symb_state : symbolic_state) (framed_heap : SHeap.t) (framed_preds : predicate_set) 
+			(pf_discharges : jsil_logic_assertion list) (new_gamma : TypEnv.t) : symbolic_state * (jsil_logic_expr list) * SS.t = 
+		
+		let missing_pred_args = List.map (JSIL_Logic_Utils.lexpr_substitution subst false) missing_pred_args in
+				
+		(* 1. Remove from the symb_state the spatial resources corresponding to the folded predicate *)
+		let new_symb_state          = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+				
+		(* 2. After folding, we may be able to determine the exact expressions for some of the
+			existentials. These existentials cease to be existentials. We need to substitute 
+			them on the symb_state and on the arguments for the missing predicate assertion  *)
+		let new_symb_state, e_subst = Simplifications.simplify_ss_with_subst new_symb_state (Some None) in
+		let e_subst                 = filter_substitution (fun v le -> (SS.inter existentials (get_lexpr_lvars le)) = SS.empty) e_subst in 				
+		let e_subst_domain          = get_subst_vars (fun x -> false) e_subst in 
+		let existentials'           = SS.filter (fun v -> (not (SS.mem v e_subst_domain))) existentials in
+		let e_subst'                = filter_substitution_set existentials' e_subst in				
+		let new_symb_state          = ss_substitution e_subst' true new_symb_state in
+		let missing_pred_args       = List.map (fun le -> JSIL_Logic_Utils.lexpr_substitution e_subst' true le) missing_pred_args in
+				
+		(* Print useful INFO *)
+		(* print_debug (Printf.sprintf "Old exists: %s" (String.concat "," (SS.elements existentials)));
+		print_debug (Printf.sprintf "New subst: %s" (Symbolic_State_Print.string_of_substitution e_subst'));
+		print_debug (Printf.sprintf "New exists: %s" (String.concat "," (SS.elements existentials')));
+		print_debug (Printf.sprintf "Missing %s(%s)!!!"
+			pred_name (String.concat ", " (List.map (fun le -> JSIL_Print.string_of_logic_expression le false) missing_pred_args)));
+		print_debug (Printf.sprintf "Symbolic state after partial FOLDING:\n%s" (Symbolic_State_Print.string_of_shallow_symb_state new_symb_state)); *)
+		
+		new_symb_state, missing_pred_args, existentials' in 		
+
+
+	(*  Step 0: create a symb_state with the appropriate calling store
+	    --------------------------------------------------------------
+	    * Create the symbolic store mapping the formal arguments of the 
+	      predicate to be folded to the corresponding logical expressions
+	    * Create a new symb_state with the new calling store    *)
+
+
+	print_debug_petar ("Inside fold_predicate.");
+	print_debug_petar (Printf.sprintf "Arguments: %s" (String.concat ", " (List.map (fun x -> JSIL_Print.string_of_logic_expression x) args)));
+	let new_store         = SStore.init params args in
+	let symb_state_caller = ss_replace_store symb_state new_store in
+
+
+	(* Step 1: compute the existentials
+	    --------------------------------------------------------------
+		* the existentials are the new logical variables used in the logical 
+		  expressions given as parameters to the fold 
+		  e.g. fold(#x, #y) if #y is not a spec var, then it is an existential 
+		* the spec vars need to be updated with the existentials 
+	*)
+	let existentials =
+		(match existentials with
+		| None ->
+			let symb_state_vars : SS.t = ss_lvars symb_state  in
+			let args_vars       : SS.t = get_lexpr_list_lvars args in
+			let existentials    : SS.t = SS.diff args_vars symb_state_vars in
+			existentials
+		| Some existentials -> existentials) in
+	let new_spec_vars = SS.union spec_vars existentials in
+	(* print_debug (Printf.sprintf "New spec vars (fold): %s" (String.concat ", " (SS.elements existentials))); *)
+
+	(* Printing useful info *)
+	let existentials_str = print_var_list (SS.elements existentials) in
+	print_debug (Printf.sprintf ("\nFOLDING %s(%s) with the existentials %s in the symbolic state: \n%s\n")
+	  pred_name
+		(String.concat ", " (List.map JSIL_Print.string_of_logic_expression args))
+		existentials_str
+		(Symbolic_State_Print.string_of_symb_state symb_state));
+
+	let rec one_step_fold  
+			(index : int) 
+			(search_info : symbolic_execution_context) : (symbolic_state * SS.t * symbolic_execution_context) option =
+		
+		print_time_debug ("check_pred_def:");
+		let _, pred_def, pred_def_up = Array.get pred_defs index in
+		print_debug (Printf.sprintf "----------------------------");
+		print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_symb_state pred_def));
+		
+		let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials pred_def_up pred_def symb_state_caller))
+			with | Spatial_Entailment.UnificationFailure _ -> None in
+		
+		(match unifier with
+		| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), _, None) ->
+		  	(* Fold Complete *)
+
+		  	(* Remove from the symb_state the spatial resources corresponding to the folded predicate *)
+		  	let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+			
+		  	(* Print useful INFO *)
+			print_debug (Printf.sprintf "Folding Complete!");
+			print_debug (Printf.sprintf "Symbolic state after FOLDING:\n%s" (Symbolic_State_Print.string_of_symb_state new_symb_state));
+			Some (new_symb_state, new_spec_vars, search_info)
+
+		| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), existentials, Some (missing_pred_name, missing_pred_args) ) 
+				when missing_pred_name = pred_name ->
+			
+			print_debug (Printf.sprintf "Folding Incomplete. Missing %s(%s)\n"
+				pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
+		
+			(* Fold Incomplete - Must recursively fold the predicate *)
+			let new_symb_state, missing_pred_args, existentials' = 
+				process_missing_pred_assertion missing_pred_args subst existentials symb_state framed_heap framed_preds pf_discharges new_gamma in 
+			fold_predicate predicates pred_name pred_defs new_symb_state params missing_pred_args new_spec_vars (Some existentials') search_info
+
+		| _ -> 
+			(* Fold Failed - we try to fold again removing a recursive call to the predicate from 
+			   the predicate definition  *)
+			print_debug (Printf.sprintf "Folding Failed."); 	
+
+			let preds_pred_def  = (ss_preds pred_def) in 
+			let preds_pred_def' = preds_copy preds_pred_def in 
+			(match preds_remove_by_name preds_pred_def' pred_name with 
+			| None -> None 
+			| Some (_, missing_pred_args) -> (
+				print_debug (Printf.sprintf "Going to remove %s(%s) and try to fold again"
+					pred_name (String.concat ", " (List.map JSIL_Print.string_of_logic_expression missing_pred_args)));
+
+				let pred_def' = ss_replace_preds pred_def preds_pred_def' in
+				let unifier = try (Some (Spatial_Entailment.unify_symb_states_fold pred_name existentials (Normaliser.create_unification_plan ?predicates_sym:(Some predicates) pred_def' SS.empty) pred_def' symb_state_caller))
+					with | Spatial_Entailment.UnificationFailure _ -> None in
+
+				(match unifier with
+				| Some ((framed_heap, framed_preds, subst, pf_discharges, new_gamma), new_existentials, None) ->
+		  			(* We were able to fold the predicate up to a recursive call  *)
+		  			(* Now we need to fold the recursive call                     *)
+
+		  			let new_symb_state = update_symb_state_after_folding symb_state framed_heap framed_preds pf_discharges new_gamma in
+		  			let new_symb_state', missing_pred_args, existentials' = 
+						process_missing_pred_assertion missing_pred_args subst (SS.union existentials new_existentials) new_symb_state framed_heap framed_preds pf_discharges new_gamma in 
+					fold_predicate predicates pred_name pred_defs new_symb_state' params missing_pred_args new_spec_vars (Some existentials') search_info
+
+		  		| _ -> None)))) in
+
+	
 
 
 
