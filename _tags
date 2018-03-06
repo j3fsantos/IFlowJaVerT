@@ -8,7 +8,6 @@ true: package(Z3)
 true: use_menhir, table
 true: package(containers)
 true: package(containers.data)
-true: package(core)
 true: thread, debug
 <src/**>: include
 <tests/*>: package(oUnit), include
