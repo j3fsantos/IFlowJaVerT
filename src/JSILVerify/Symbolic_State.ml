@@ -22,13 +22,22 @@ type symbolic_state       = SHeap.t * SStore.t * PFS.t * TypEnv.t * predicate_se
 type symbolic_state_frame = SHeap.t * predicate_set * substitution * (jsil_logic_assertion list) * TypEnv.t 
 type discharge_list       = ((jsil_logic_expr * jsil_logic_expr) list)
 
+(* For each assertion, we have [None] if it's not a predicate; if it is one,  *)
+(* [Some true] if we should try to unify the predicate as it is, and          *)
+(* [Some false] if we have to unfold it before unifying.                      *)
+type unification_plan = (jsil_logic_assertion * bool option) list
+
+let head_unification_plan = function
+	| [] -> raise (Failure "DEATH head_unification_plan: empty unification plan")
+	| (asrt, _) :: _ -> asrt
+
 type jsil_n_single_spec = {
 	n_pre              : symbolic_state;
 	n_post             : symbolic_state list;
 	n_ret_flag         : jsil_return_flag;
 	n_lvars            : SS.t; 
 	n_subst            : substitution; 
-	n_unification_plan : jsil_logic_assertion list; 
+	n_unification_plan : unification_plan; 
 }
 
 type jsil_n_spec = {
@@ -42,7 +51,7 @@ type n_jsil_logic_predicate = {
 	n_pred_num_params       : int;
 	n_pred_params           : jsil_logic_var list;
 	n_pred_ins              : int list;
-	n_pred_definitions      : ((string option) * symbolic_state * (jsil_logic_assertion list)) list;
+	n_pred_definitions      : ((string option) * symbolic_state * unification_plan) list;
 	n_pred_is_rec           : bool; 
   n_pred_is_pure          : bool;
 }

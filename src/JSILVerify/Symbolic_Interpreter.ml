@@ -501,7 +501,7 @@ exception SuccessfullyFolded of (symbolic_state * SS.t * symbolic_execution_cont
  *)
 let use_unfold_info
 	(unfold_info : (string * ((string * jsil_logic_expr) list)) option)
-	(pred_defs   : ((string option) * symbolic_state * (jsil_logic_assertion list)) list)
+	(pred_defs   : ((string option) * symbolic_state * unification_plan) list)
 	(subst       : substitution) : ((int * symbolic_state) list) * substitution =
 	match unfold_info with
 	| None                    ->
@@ -529,7 +529,7 @@ let use_unfold_info
 ----------------------------------------------------------------*)
 let unfold_predicate
 		(pred_name   : string)
-		(pred_defs   : ((string option) * symbolic_state * (jsil_logic_assertion list)) list)
+		(pred_defs   : ((string option) * symbolic_state * unification_plan) list)
 		(symb_state  : symbolic_state)
 		(params      : string list)
 		(args        : jsil_logic_expr list)
@@ -610,7 +610,7 @@ let unfold_predicate
 ----------------------------------------------------------------*)
 let recursive_unfold_predicate
 		(pred_name  : string)
-		(pred_defs  : ((string option) * symbolic_state * (jsil_logic_assertion list)) list)
+		(pred_defs  : ((string option) * symbolic_state * unification_plan) list)
 		(symb_state : symbolic_state)
 		(params     : jsil_var list)
 		(spec_vars  : SS.t)
@@ -763,16 +763,21 @@ let rec symb_evaluate_logic_cmd
 				let symb_state = ss_replace_gamma symb_state new_gamma in
 				ss_extend_pfs symb_state (PFS.of_list new_pfs);
 				symb_state in
+				
+			let args = List.map (fun le ->
+				Normaliser.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le
+			) les in
 
 			let symb_state_vars = ss_lvars symb_state in
 			let args_vars = get_lexpr_list_lvars les in
 			let existentials = SS.diff args_vars symb_state_vars in
 
-			let folded_predicate = Spatial_Entailment.fold_predicate s_prog.pred_defs pred_name les spec_vars existentials symb_state None in
+			let folded_predicate = Spatial_Entailment.fold_predicate s_prog.pred_defs pred_name args spec_vars existentials symb_state None in
 			(match folded_predicate with
 			| Some (heap_f, preds_f, subst, pf_discharges, new_gamma) ->
 				let new_symb_state = update_symb_state_after_folding symb_state heap_f preds_f pf_discharges new_gamma in
 				let new_spec_vars = SS.union spec_vars existentials in
+				ss_extend_preds new_symb_state (pred_name, args);
 				[ new_symb_state, new_spec_vars, search_info ]
 			| _ ->
 				print_normal (Printf.sprintf "\nSTATE ON ERROR: %s" (Symbolic_State_Print.string_of_symb_state symb_state));
@@ -784,9 +789,9 @@ let rec symb_evaluate_logic_cmd
 
 	| Unfold (a, unfold_info) ->
 		(match a with
-   		| LPred (pred_name, les) ->
-   			print_time (Printf.sprintf "Unfold %s." pred_name); 
-      		let params, pred_defs, args = get_pred_data pred_name les in
+		| LPred (pred_name, les) ->
+			print_time (Printf.sprintf "Unfold %s." pred_name); 
+			let params, pred_defs, args = get_pred_data pred_name les in
 			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args spec_vars search_info unfold_info in
 			if ((List.length unfolded_symb_states) = 0) then (
 				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);

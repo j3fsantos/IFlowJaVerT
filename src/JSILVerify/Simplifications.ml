@@ -315,8 +315,10 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 
 	| _ -> a) in
 
+	print_debug (Printf.sprintf "Reduce_assertion: %s -> %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result));
+
 	let final_result = if (a <> result) && (not (a == result))
-		then (print_debug (Printf.sprintf "Reduce_assertion: %s -> %s" (JSIL_Print.string_of_logic_assertion a) (JSIL_Print.string_of_logic_assertion result)); f result)
+		then (f result)
 		else result in
 
 	if (no_timing = None) then (let end_time = Sys.time () in update_statistics "reduce_assertion" (end_time -. start_time));

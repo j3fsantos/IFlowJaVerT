@@ -155,8 +155,15 @@ let string_of_discharges (discharges : discharge_list) : string =
 	"[" ^ (String.concat ", " discharge_strs) ^ "]" 
 
 
-let string_of_unification_plan (up : jsil_logic_assertion list) : string = 
+let string_of_pre_unification_plan (up : jsil_logic_assertion list) : string = 
 	let up_strs = List.map string_of_logic_assertion up in 
+	"[ " ^ (String.concat "; " up_strs) ^ " ]"
+
+let string_of_unification_plan (up : unification_plan) : string = 
+	let up_strs = List.map (fun (asrt, unify_as_is) ->
+		let unify_str = Option.map_default (fun b -> Printf.sprintf "(unify_as_is: %s)" (string_of_bool b)) "" unify_as_is in
+		Printf.sprintf "%s %s" (string_of_logic_assertion asrt) unify_str
+		) up in 
 	"[ " ^ (String.concat "; " up_strs) ^ " ]"
 
 

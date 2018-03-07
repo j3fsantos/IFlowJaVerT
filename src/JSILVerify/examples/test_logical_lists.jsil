@@ -1,11 +1,11 @@
 (** Totals: 0 fails and 1 passes **)
 
-pred my_list (x, alpha) :
+pred my_list (+x, alpha) :
 	(x == null) * (alpha == {{ }}) * types(alpha: List, x: Null),
 
 	((x, "value") -> #y) * ((x, "next") -> #z) * ((x, "@proto") -> null) *
 		(alpha == (#y :: #beta)) * my_list(#z, #beta) *
-		types(#y: Num, #alpha: List, #beta: List);
+		types(#y: Num, alpha: List, #beta: List);
 
 spec list_count (x)
    [[ my_list(x, #alpha) * types(#alpha: List) ]]

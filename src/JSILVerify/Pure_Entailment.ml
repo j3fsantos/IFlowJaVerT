@@ -901,11 +901,21 @@ let make_list_axioms a_list =
 		let len_axiom  = LEq (LUnOp (LstLen, a_list), LLit (Num (float_of_int (List.length les)))) in
 		let nth_axioms = loop_nth les les 0 [] in
 		len_axiom :: nth_axioms
+		
 	| LBinOp (le_hd, LstCons, le_tail) ->
 		let len_axiom  = LEq (LUnOp (LstLen, a_list),
 							  LBinOp (LLit (Num (float_of_int 1)), Plus, LUnOp (LstLen, le_tail))) in
 	    let nth_axiom  = LEq ((LLstNth (a_list, LLit (Num (float_of_int 0)))), le_hd) in
 	    [ len_axiom; nth_axiom ]
+	
+		| LBinOp (LEList lst, LstCat, le_tail) ->
+		    let len = List.length lst in 
+				let len_axiom  = LEq (LUnOp (LstLen, a_list),
+									  LBinOp (LLit (Num (float_of_int len)), Plus, LUnOp (LstLen, le_tail))) in
+				let is = Array.to_list (Array.init (len - 1) (fun i -> i)) in
+			  let nth_axioms = List.map (fun i -> LEq ((LLstNth (a_list, LLit (Num (float_of_int i)))), (List.nth lst i))) is in
+			  len_axiom :: nth_axioms
+	
 	| _ -> []
 
 
@@ -978,6 +988,11 @@ let get_axioms assertions gamma =
   let axioms = SA.elements (SA.of_list axioms) in
 	(* Encode axioms *)
 	let axioms = List.map encode_assertion_top_level axioms in
+	
+	
+	(* let axioms_string = 
+		String.concat "\n\t%s" (List.map JSIL_Print.string_of_logic_assertion axioms) in
+	print_debug "HERE ARE THE AXIOMS idiot!!!%s\n" axioms_string; *)
 	
 	(* Return *)
 	axioms
@@ -1132,7 +1147,7 @@ let check_entailment (existentials : SS.t)
 
   				(* Get axioms *)
   				let axioms = get_axioms (left_as @ right_as) gamma in
-  				
+  
   				(* Encode left side *)
   				let left_as = encode_assertions (SA.of_list left_as) gamma_left in
   				(* Encode right side with negations and empty gamma *)

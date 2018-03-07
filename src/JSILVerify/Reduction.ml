@@ -483,7 +483,7 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 				(* Associate to the right *)
 				| LBinOp (flell, Plus, flelr), fler -> LBinOp (flell, Plus, LBinOp (flelr, Plus, fler))
 				(* Rest *)
-				| _, _ -> print_debug "P6"; def
+				| _, _ -> def
 				)
 			| Minus when (lexpr_is_number ?gamma:gamma def) ->
 				(match flel, fler with
@@ -633,8 +633,10 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 	| _ -> le 
 	) in
 	
+	print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result));
+	
 	let final_result = if (le <> result) && (not (le == result))
-		then (print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result)); f result)
+		then (f result)
 		else result in
 
 	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_lexpr" (end_time -. start_time));

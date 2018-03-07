@@ -1657,7 +1657,7 @@ let old_create_unification_plan
 	) else (
 		let msg = Printf.sprintf "create_unification_plan FAILURE!\nInspected alocs: %s\nUnification plan:%s\nDisconnected Heap:%s\nOriginal symb_state:\n%s\n" 
 			(String.concat ", " (SS.elements !marked_alocs))
-			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
+			(Symbolic_State_Print.string_of_pre_unification_plan unification_plan_lst)
 			(SHeap.str heap)
 			(Symbolic_State_Print.string_of_symb_state symb_state) in 
 		print_debug msg;
@@ -1906,7 +1906,7 @@ let new_create_unification_plan
 	print_debug "";
 	) else (
 	let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\n" 
-	    (Symbolic_State_Print.string_of_unification_plan !unification_plan)
+	    (Symbolic_State_Print.string_of_pre_unification_plan !unification_plan)
 	    (Symbolic_State_Print.string_of_symb_state symb_state) in
 	print_debug msg;
 	raise (Failure msg)
@@ -2075,7 +2075,7 @@ let alternative_new_unification_plan
 		print_debug "";
 	) else (
 		let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\nUnvisited assertions:\n%s" 
-		    (Symbolic_State_Print.string_of_unification_plan !unification_plan)
+		    (Symbolic_State_Print.string_of_pre_unification_plan !unification_plan)
 		    (Symbolic_State_Print.string_of_symb_state symb_state)
 		    (Hashtbl.fold (fun asrt _ ac -> 
 		    	let str = JSIL_Print.string_of_logic_assertion asrt in 
@@ -2094,8 +2094,9 @@ let alternative_new_unification_plan
 let create_unification_plan 
 	?(take_from_store : SS.t option)
 	?(predicates_unf  : (string, unfolded_predicate) Hashtbl.t option)
-    ?(predicates_sym  : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
-	symb_state reachable_alocs =
+	?(predicates_sym  : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t option)
+	(symb_state : symbolic_state)
+	(reachable_alocs : SS.t) : unification_plan =
 
 		let t0 = Sys.time () in
 		let res = alternative_new_unification_plan ?take_from_store:take_from_store ?predicates_unf:predicates_unf ?predicates_sym:predicates_sym symb_state reachable_alocs in 
@@ -2105,6 +2106,12 @@ let create_unification_plan
 		update_statistics "Alt unification plan" (t1 -. t0);
 		update_statistics "New unification plan" (t2 -. t1);
 		print_debug (Printf.sprintf "AltNewUP: %fs, NewUP: %fs" (t1 -. t0) (t2 -. t1));
+		
+		(* add the try_as_is predicate flag *)
+		let res = List.map (fun asrt -> match asrt with
+			| LPred _ -> asrt, Some true
+			| _ -> asrt, None
+			) res in 
 		res
 
 (* Create unification plans for multiple symbolic states at the same time
