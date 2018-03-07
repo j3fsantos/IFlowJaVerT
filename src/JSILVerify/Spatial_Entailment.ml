@@ -708,7 +708,7 @@ let unify_pfs
 
 type extended_intermediate_frame = (jsil_logic_assertion list) * intermediate_frame * jsil_logic_assertion list
 
-let unify_symb_states 
+let rec unify_symb_states 
 		(predicates            : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
 		(existentials          : SS.t) 
 		(spec_vars             : SS.t) 
@@ -784,7 +784,7 @@ let unify_symb_states
 		| [] -> 
 			(match found_partial_matches with 
 			| [] -> raise (UnificationFailure "")
-			| ssf :: _ -> false, ssf)
+			| ssf :: _ -> Some ssf)
 
 
 		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check) :: rest_frame_list -> 	
@@ -807,8 +807,8 @@ let unify_symb_states
 					(* A.3 - If complete_match -> return
 					         Otherwise, continue searching and register the partial match *)
 					if (complete_match_b) 
-						then complete_match_b, (heap_frame, preds_frame, pat_subst, (SS.union existentials new_existentials), new_gamma) 
-						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches
+						then Some (heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma)
+						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches)
 
 
 			| LPointsTo _ :: rest_up
@@ -835,7 +835,7 @@ let unify_symb_states
 				print_debug (Symbolic_State_Print.string_of_unification_step (List.hd up) pat_subst heap_frame preds_frame pfs gamma discharges); 
 				
 				(* C - Unify pred assertion *)
-				let new_frames : intermediate_frame list = unify_pred_assertion pfs gamma pat_subst (List.hd up) preds_frame in 
+				let new_frames = unify_pred_assertion pfs gamma pat_subst (List.hd up) preds_frame in 
 				let new_frames : extended_intermediate_frame list =
 					List.map 
 						(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check) 
@@ -843,7 +843,7 @@ let unify_symb_states
 
 				print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
-				if (((List.length new_frames) <> 0)))
+				if List.length new_frames <> 0
 					then (
 						(* C.1 - the predicate was unified successfully or 
 						   the predicate was not unified but it was not the one being folded - 
@@ -853,10 +853,10 @@ let unify_symb_states
 						print_debug "Predicate Assertion NOT FOUND. PAS DE PROBLEME ON CONTINUE\n"; 
 
 						let ss  = heap_frame, store, pfs, gamma, preds_frame in 
-						let ret = fold_predicate predicates p_name ss largs spec_vars existentials pat_subst in 
+						let ret = fold_predicate predicates p_name largs spec_vars existentials ss (Some pat_subst) in 
 						match ret with 
-						| true, (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
-							let new_frames = (new_heap_frame, new_preds_frame, discharges, pat_subst) in 
+						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
+							let new_frames = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check in 
 							search (new_frames :: rest_frame_list) found_partial_matches
 					)
 
@@ -932,13 +932,13 @@ fold_predicate
 	(pred_name    : string) 
 	(args         : jsil_logic_expr list) 
 	(spec_vars    : SS.t) 
-	(existentials : SS.t option) 
+	(existentials : SS.t) 
 	(symb_state   : symbolic_state) 
-	(pat_subst    : substitution option) : (symbolic_state * SS.t) option =
+	(pat_subst    : substitution option) : symbolic_state_frame option =
 
 
-	let predicate = (try Hashtbl.get predicates pred_name with Failure Not_found -> "DEATH. fold_predicate") in 
-	let pred_defs = predicate.n_pred_definitions in 
+	let predicate = (try Hashtbl.find predicates pred_name with Not_found -> raise (Failure "DEATH. fold_predicate")) in 
+	let pred_defs = Array.of_list predicate.n_pred_definitions in 
 	let params    = predicate.n_pred_params in 
 
 	
@@ -960,8 +960,8 @@ fold_predicate
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_symb_state pred_def));
 		
-			let unifier = try Some (unify_symb_states predicates existentials spec_vars pred_def_up pat_subst pred_def symb_state_caller)
-				with | Spatial_Entailment.UnificationFailure _ -> None in
+			let unifier = try unify_symb_states predicates existentials spec_vars pred_def_up pat_subst pred_def symb_state_caller
+				with | UnificationFailure _ -> None in
 
 			match unifier with
 			| Some _ -> unifier
