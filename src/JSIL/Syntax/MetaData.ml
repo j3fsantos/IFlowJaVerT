@@ -3,9 +3,6 @@
 *)
 
 type t = Literal.t
-	[@@deriving show, compare]
-
-let equal = [%compare.equal : t]
 
 (** Print *)
 let str (x : t) =

@@ -1,5 +1,3 @@
-open Base
-
 (** 
 	JSIL Literals 
 *)
@@ -15,9 +13,6 @@ type t =
 	| Loc       of string     (** JSIL object locations *)
 	| Type      of Type.t     (** JSIL types ({!type:Type.t}) *)
 	| LList     of t list     (** Lists of JSIL literals *)
-	[@@deriving show, compare]
-
-let equal = [%compare.equal : t]
 
 (** Print *)
 let rec str (x : t) =
@@ -32,7 +27,7 @@ let rec str (x : t) =
 		                  Printf.sprintf "%s\"%s%s\"" wrap x wrap
   	| Loc loc    -> loc
   	| Type t     -> Type.str t
-  	| LList ll   -> Printf.sprintf "{{ %s }}" (String.concat ?sep:(Some ", ") (List.map ll str))
+  	| LList ll   -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map str ll))
 
 (** Typing *)
 let type_of (x : t) : Type.t =

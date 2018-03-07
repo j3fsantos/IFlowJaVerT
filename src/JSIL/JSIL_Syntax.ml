@@ -64,7 +64,7 @@ type jsil_cmd =
 (** {2 Syntax of JSIL Logic} *)
 
 (** {b JSIL logic variables}. JSIL logic variables are internally represented as strings. *)
-type jsil_logic_var = string [@@deriving show]
+type jsil_logic_var = string 
 
 (** {b JSIL logic expressions}. *)
 type jsil_logic_expr =
@@ -81,7 +81,6 @@ type jsil_logic_expr =
 	| LSetUnion of jsil_logic_expr list                        (** Unions *)
 	| LSetInter of jsil_logic_expr list                        (** Intersections *)
 	| LNone                                                    (** Empty field value *)
-	[@@deriving show]
 
 (** {b JSIL logic assertions}. *)
 type jsil_logic_assertion =
