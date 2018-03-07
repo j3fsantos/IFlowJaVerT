@@ -1,4 +1,3 @@
-true: package(stdio)
 true: package(batteries)
 true: package(ppx_import), package(ppx_compare), package(ppx_deriving.std)
 true: package(extlib)

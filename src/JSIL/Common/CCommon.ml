@@ -1,5 +1,3 @@
-open Stdio.Out_channel
-
 (**************
  * Exceptions *
  **************)
@@ -23,15 +21,16 @@ let time_str = Printf.sprintf "%d%.2d%.2d_%.2dh%.2dm%.2ds"
                   (time.tm_year+1900) (time.tm_mon+1) time.tm_mday
                   time.tm_hour time.tm_min time.tm_sec
 
-let output_file               = create ("normalOutput_" ^ time_str ^ ".txt")
-let output_file_debug         = create ("debugOutput_" ^ time_str ^ ".txt")
-let output_file_normalisation = create ("normalisationOutput_" ^ time_str ^ ".txt")
-let output_file_njsil         = create ("normalisedSpecsPreds_" ^ time_str ^ ".njsil")
+let output_file               = open_out ("normalOutput_" ^ time_str ^ ".txt")
+let output_file_debug         = open_out ("debugOutput_" ^ time_str ^ ".txt")
+let output_file_normalisation = open_out ("normalisationOutput_" ^ time_str ^ ".txt")
+let output_file_njsil         = open_out ("normalisedSpecsPreds_" ^ time_str ^ ".njsil")
 
 let close_output_files () =
-	close output_file;
-  close output_file_debug;
-  close output_file_normalisation
+	close_out output_file;
+  close_out output_file_debug;
+  close_out output_file_normalisation;
+  close_out output_file_njsil
 
 let im_petar    = ref true
 let newencoding = ref false

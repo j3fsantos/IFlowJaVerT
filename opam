@@ -16,7 +16,6 @@ depends: [
   "menhir" {build}
   "batteries" {build}
   "base" {build}
-  "stdio" {build}
   "containers"
   "core" 
   "ppx_import"
