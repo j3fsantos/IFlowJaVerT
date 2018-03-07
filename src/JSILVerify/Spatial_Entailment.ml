@@ -715,7 +715,7 @@ let rec unify_symb_states
 		(pat_unification_plan  : jsil_logic_assertion list) 
 		(pat_subst             : substitution option)
 		(pat_symb_state        : symbolic_state) 
-		(symb_state            : symbolic_state) : symbolic_state_frame option =
+		(symb_state            : symbolic_state) : (bool * symbolic_state_frame) option =
 
 	let heap, store, pfs, gamma, preds                     = symb_state in
 	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = pat_symb_state in
@@ -779,12 +779,12 @@ let rec unify_symb_states
 	(* 5. SEARCH *)
 	let rec search 
 			(frame_list            : extended_intermediate_frame list) 
-			(found_partial_matches : symbolic_state_frame list) : symbolic_state_frame option = 
+			(found_partial_matches : symbolic_state_frame list) : (bool * symbolic_state_frame) option = 
 		match frame_list with 
 		| [] -> 
 			(match found_partial_matches with 
 			| [] -> raise (UnificationFailure "")
-			| ssf :: _ -> Some ssf)
+			| ssf :: _ -> Some (false, ssf))
 
 
 		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check) :: rest_frame_list -> 	
@@ -806,8 +806,8 @@ let rec unify_symb_states
 
 					(* A.3 - If complete_match -> return
 					         Otherwise, continue searching and register the partial match *)
-					if (complete_match_b) 
-						then Some (heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma)
+					if (complete_match_b)
+						then Some (true, (heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma))
 						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches)
 
 
@@ -964,15 +964,17 @@ fold_predicate
 				with | UnificationFailure _ -> None in
 
 			match unifier with
-			| Some _ -> unifier
-			| None   -> fold_predicate_aux (index+1)) in 
+			| Some (true, ssf) -> Some ssf
+			| _ -> fold_predicate_aux (index+1)) in 
 
 	fold_predicate_aux 0 
 
 
 
-let fully_unify_symb_state 
+let fully_unify_symb_state
 		(intuitionistic       : bool) 
+		(predicates           : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
+		(spec_vars            : SS.t)
 		(pat_unification_plan : jsil_logic_assertion list) 
 		(pat_subst            : substitution option)
 		(pat_symb_state       : symbolic_state) 
@@ -983,11 +985,11 @@ let fully_unify_symb_state
 		(Symbolic_State_Print.string_of_symb_state pat_symb_state));
 
 	try (
-		let outcome, (heap_f, preds_f, subst, _, _) = unify_symb_states pat_unification_plan pat_subst pat_symb_state symb_state in
-		match outcome, intuitionistic with
-		| true, true -> subst 
+		let res = unify_symb_states predicates SS.empty spec_vars pat_unification_plan pat_subst pat_symb_state symb_state in
+		match res, intuitionistic with
+		| Some (true, (_, _, subst, _, _)), true -> subst
 
-		| true, false ->
+		| Some (true, (heap_f, preds_f, subst, _, _)), false ->
 			let emp_heap  = SHeap.is_empty heap_f in
 			let emp_preds = is_preds_empty preds_f in 
 		 	if (emp_heap && emp_preds) then subst else
@@ -997,7 +999,7 @@ let fully_unify_symb_state
 				let _ = if (emp_preds) then begin print_debug "Quotient predicates empty.\n" end
 							else begin print_debug (Printf.sprintf "Quotient predicates left: \n%s\n" (Symbolic_State_Print.string_of_preds preds_f)) end in
 				raise (UnificationFailure "")
-		| false, _ -> raise (UnificationFailure "")
+		| None, _ -> raise (UnificationFailure "")
 	) with UnificationFailure _ -> raise (UnificationFailure "")
 	
 
@@ -1456,7 +1458,8 @@ let unfold_predicate_definition
 	Some unfolded_symb_state ) with UnificationFailure _ -> None 
 
 let grab_resources 
-		(spec_vars            : SS.t) 
+		(predicates           : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
+		(spec_vars            : SS.t)
 		(pat_unification_plan : jsil_logic_assertion list) 
 		(pat_subst            : substitution)
 		(pat_symb_state       : symbolic_state) 
@@ -1467,9 +1470,9 @@ let grab_resources
 		(Symbolic_State_Print.string_of_symb_state pat_symb_state));
 	
 	try (
-		let outcome, (heap_f, preds_f, subst, pf_discharges, _) = unify_symb_states pat_unification_plan (Some pat_subst) pat_symb_state symb_state in
-		match outcome with
-		| true ->
+		let res = unify_symb_states predicates SS.empty spec_vars pat_unification_plan (Some pat_subst) pat_symb_state symb_state in
+		match res with
+		| Some (true, (heap_f, preds_f, subst, pf_discharges, _)) ->
 			ss_extend_pfs symb_state (PFS.of_list pf_discharges);
 			let symb_state = ss_replace_heap symb_state heap_f in
 			let symb_state = ss_replace_preds symb_state preds_f in
@@ -1478,5 +1481,5 @@ let grab_resources
 			ss_extend_pfs symb_state (PFS.of_list subst_pfs);
 			let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 			Some symb_state
-		| false -> None
+		| _ -> None
 	) with UnificationFailure _ -> None 
