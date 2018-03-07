@@ -185,8 +185,10 @@ let get_asrt_non_list_lits (a : jsil_logic_assertion) : Literal.t list =
 let get_lexpr_lists (le : jsil_logic_expr) : jsil_logic_expr list =
 	let fe_ac le _ _ ac =
 		match le with
-		| LLit (LList ls) -> [ (LEList (List.map (fun x -> LLit x) ls)) ]
-		| LEList les      -> (LEList les) :: (List.concat ac)
+		| LLit (LList ls)           -> [ (LEList (List.map (fun x -> LLit x) ls)) ]
+		| LEList les                -> (LEList les) :: (List.concat ac)
+		| LBinOp(le1, LstCat, le2)  -> le :: le1 :: le2 :: (List.concat ac)
+		| LBinOp(_, LstCons, tail)  -> le :: tail :: (List.concat ac)
 		| _               -> List.concat ac in 
 	logic_expression_fold fe_ac None None le 
 
