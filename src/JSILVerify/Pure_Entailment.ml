@@ -888,6 +888,8 @@ let make_global_axioms list_vars string_vars list_exprs =
 
 let make_list_axioms a_list =
 
+	print_debug ("make_list_axioms on expr " ^ (JSIL_Print.string_of_logic_expression a_list));
+
 	let rec loop_nth original_les les i axioms =
 		match les with
 		| []               -> axioms
@@ -908,14 +910,15 @@ let make_list_axioms a_list =
 	    let nth_axiom  = LEq ((LLstNth (a_list, LLit (Num (float_of_int 0)))), le_hd) in
 	    [ len_axiom; nth_axiom ]
 	
-		| LBinOp (LEList lst, LstCat, le_tail) ->
-		    let len = List.length lst in 
-				let len_axiom  = LEq (LUnOp (LstLen, a_list),
-									  LBinOp (LLit (Num (float_of_int len)), Plus, LUnOp (LstLen, le_tail))) in
-				let is = Array.to_list (Array.init (len - 1) (fun i -> i)) in
-			  let nth_axioms = List.map (fun i -> LEq ((LLstNth (a_list, LLit (Num (float_of_int i)))), (List.nth lst i))) is in
-			  len_axiom :: nth_axioms
-	
+	| LBinOp (LEList lst, LstCat, le_tail) ->
+			print_debug (Printf.sprintf "make_list_axioms LBinop %s" (JSIL_Print.string_of_logic_expression a_list));
+	    let len = List.length lst in 
+			let len_axiom  = LEq (LUnOp (LstLen, a_list),
+								  LBinOp (LLit (Num (float_of_int len)), Plus, LUnOp (LstLen, le_tail))) in
+			let is = Array.to_list (Array.init (len - 1) (fun i -> i)) in
+		  let nth_axioms = List.map (fun i -> LEq ((LLstNth (a_list, LLit (Num (float_of_int i)))), (List.nth lst i))) is in
+		  len_axiom :: nth_axioms
+
 	| _ -> []
 
 
@@ -945,6 +948,8 @@ let make_relevant_axioms a list_vars string_vars list_exprs =
 	(* list axioms *)
 	let a_lists      = JSIL_Logic_Utils.get_asrt_lists a in
 	let l_axioms     = List.concat (List.map make_list_axioms a_lists) in
+	
+	print_debug ("make_relevant_axioms a_lists:" ^ (String.concat "; " (List.map JSIL_Print.string_of_logic_expression a_lists)));
 
 	let constant_axioms = make_global_axioms list_vars string_vars list_exprs in 
 
@@ -980,7 +985,10 @@ let get_axioms assertions gamma =
 	(* Remove duplicates *)
 	let list_exprs = SLExpr.elements (SLExpr.of_list list_exprs) in 
 	(* Put list-related expressions together *)
-	let list_exprs = list_exprs @ list_vars in 
+	let list_exprs = list_exprs @ list_vars in
+	
+	print_debug ("get_axiom list exprs:" ^ (String.concat "; " (List.map JSIL_Print.string_of_logic_expression list_exprs)));
+	print_debug ("get_axiom asrts:" ^ (String.concat "; " (List.map JSIL_Print.string_of_logic_assertion assertions)));
   
 	(* Get all axioms *)
 	let axioms = List.concat (List.map (fun a -> make_relevant_axioms a list_vars string_vars list_exprs) assertions) in
