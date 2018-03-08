@@ -212,7 +212,7 @@ let print_symb_state_and_cmd (proc : jsil_procedure) (i : int) (symb_state : sym
 	let cmd_str = JSIL_Print.string_of_cmd 0 0 cmd in
 	let time = Sys.time() in
 	print_normal (Printf.sprintf
-		"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------"
+		"----------------------------------\n--%i--\nTIME: %f\nSTATE:\n%sCMD: %s\n----------------------------------\n"
 		i time symb_state_str cmd_str)
 
 

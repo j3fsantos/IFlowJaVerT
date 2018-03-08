@@ -44,14 +44,15 @@ let print_debug  msg  =
 
 let print_normal msg  = 
   if !output then
-    output_string output_file (msg ^ "\n%!"); print_debug msg
+    output_string output_file (Printf.sprintf "%s\n%!" msg); print_debug msg
 
 let print_normalisation msg = 
   if !output then
-    output_string output_file_normalisation (msg ^ "\n%!") 
+    output_string output_file_normalisation (Printf.sprintf "%s\n%!" msg)
+
 let print_njsil_file msg  = 
   if !output then
-    output_string output_file_njsil (msg ^ "\n%!") 
+    output_string output_file_njsil (Printf.sprintf "%s\n%!" msg)
 
 let print_debug_petar msg =
 	if (!im_petar) then (print_debug msg) else ()
