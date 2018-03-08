@@ -128,8 +128,8 @@ let rec unify_lexprs
 		| le_pat when ((Reduction.lexpr_is_list ?gamma:(Some gamma) le_pat) && (Reduction.lexpr_is_list ?gamma:(Some gamma) le)) ->
 			let what_happened, to_unify_further = Simplifications.unify_lists le_pat le false in
 			(match what_happened with
-			| None -> Some ([], [ LLit (Bool true), LLit (Bool false) ]) (* Something wrong happened *)
-			| Some false -> Some ([], [ le_pat, le ])                    (* Couldn't progress        *)
+			| None -> None                            (* Something wrong happened *)
+			| Some false -> Some ([], [ le_pat, le ]) (* Couldn't progress        *)
 			| Some true -> let left, right = List.split to_unify_further in unify_lexpr_lists_rec left right)
 
 		| _ -> Some ([], [ (le_pat, le) ] )
@@ -298,6 +298,8 @@ let unify_pred_assertion
 		List.mapi (fun i (pname, pargs) -> 
 			if (pname <> pat_pname) then None else (
 				print_debug ("Predicate: " ^ pname);
+				print_debug (Printf.sprintf "\tppargs: %s" (String.concat ", " (List.map JSIL_Print.string_of_logic_expression pat_pargs)));
+				print_debug (Printf.sprintf "\tcpargs: %s" (String.concat ", " (List.map JSIL_Print.string_of_logic_expression pargs)));
 				let ret_un_args = List.map2 un_les pat_pargs pargs in 
 				let ret_un_args_nones, ret_un_args_somes = List.partition (fun ret -> ret = None) ret_un_args in
 				if ((List.length ret_un_args_nones) > 0) then None else (
@@ -311,7 +313,7 @@ let unify_pred_assertion
 	let frames = List.map (fun (i, subst_list, discharges) -> 
     		let pat_subst = Hashtbl.copy pat_subst in 
     		if (safe_substitution_extension pfs gamma pat_subst subst_list) then (
-    			let preds_frame   = preds_copy preds in 
+    			let preds_frame = preds_copy preds in 
     			preds_remove_by_index preds_frame i; 
     			Some (preds_frame, pat_subst, discharges)
     		) else None 
