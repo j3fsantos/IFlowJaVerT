@@ -840,21 +840,27 @@ let rec unify_symb_states
 					let new_frames = unify_pred_assertion pfs gamma pat_subst (head_unification_plan up) preds_frame in 
 					let new_frames : extended_intermediate_frame list =
 						List.map 
-							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check) 
+							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check) 
 							new_frames in  
 
 					print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
 					let folding_pred_up = (LPred (p_name, largs), Some false) :: rest_up in
-					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
+					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check in
 
 					search (new_frames @ (folding_frame :: rest_frame_list)) found_partial_matches
 				) 
 				else (
-						print_debug "Predicate Assertion NOT FOUND. Trying to fold the predicate\n";  
+
+						let largs' = List.map (lexpr_substitution pat_subst true) largs in
+
+						print_debug (Printf.sprintf 
+							"Predicate Assertion NOT FOUND. Trying to fold the predicate %s and substitution %s\n" 
+							(JSIL_Print.string_of_logic_assertion (LPred (p_name, largs')))
+							(JSIL_Print.string_of_substitution pat_subst));  
 
 						let ss  = heap_frame, store, pfs, gamma, preds_frame in 
-						let ret = fold_predicate predicates p_name largs spec_vars existentials ss (Some pat_subst) in 
+						let ret = fold_predicate predicates p_name largs' spec_vars existentials ss (Some pat_subst) in 
 						(match ret with 
 						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
 							let new_frames = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check in 
