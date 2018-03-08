@@ -777,7 +777,7 @@ let rec unify_symb_states
 
 
 	(* 4. Initial frame for the search *)
-	let initial_frame = pat_unification_plan, (heap, preds, discharges @ discharges', pat_subst), [] in 
+	let initial_frame = pat_unification_plan, (heap, preds, discharges @ discharges', pat_subst), [], existentials in
 
 
 	(* 5. SEARCH *)
@@ -850,7 +850,7 @@ let rec unify_symb_states
 					print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
 					let folding_pred_up = (LPred (p_name, largs), Some false) :: rest_up in
-					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check in
+					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check, existentials in
 
 					search (new_frames @ (folding_frame :: rest_frame_list)) found_partial_matches
 				) 
@@ -871,8 +871,8 @@ let rec unify_symb_states
 							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
 							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
 							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
-							let new_frames = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check in 
-							search (new_frames :: rest_frame_list) found_partial_matches
+							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, existentials in 
+							search (new_frame :: rest_frame_list) found_partial_matches
 						| None -> search rest_frame_list found_partial_matches)
 					)
 
@@ -887,7 +887,7 @@ let rec unify_symb_states
 					search rest_frame_list found_partial_matches
 				)
 				else 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials in
 					search (new_frame::rest_frame_list) found_partial_matches
 
 
@@ -913,7 +913,7 @@ let rec unify_symb_states
 						let pfs_to_check = pfs_to_check @ more_pfs in 
 						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
 						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in 
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials in
 						search (new_frame :: rest_frame_list) found_partial_matches)
 				| _ -> 
 					let existentials = get_asrt_lvars pf in 
@@ -924,15 +924,15 @@ let rec unify_symb_states
 					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf_sbst ] gamma in 
 					(match pf_entailed with 
 					| false -> 
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check) in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check), existentials in
 							search (new_frame :: rest_frame_list) found_partial_matches
 					| true -> 
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials in
 							search (new_frame :: rest_frame_list) found_partial_matches))
 				
 			) in 
 	let start_time = Sys.time() in
-	let result = search [ initial_frame ] [] existentials in
+	let result = search [ initial_frame ] [] in
 	let end_time = Sys.time() in
 	update_statistics "unify_ss : search" (end_time -. start_time);
 	result
