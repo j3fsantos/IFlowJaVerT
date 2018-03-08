@@ -791,14 +791,13 @@ let rec symb_evaluate_logic_cmd
 		(match a with
 		| LPred (pred_name, les) ->
 			print_time (Printf.sprintf "Unfold %s." pred_name); 
-			let params, pred_defs, args = get_pred_data pred_name les in
 
+			let params, pred_defs, args = get_pred_data pred_name les in
 			let symb_state_vars = ss_lvars symb_state in
 			let args_vars = get_lexpr_list_lvars les in
 			let new_spec_vars =  SS.union spec_vars (SS.diff args_vars symb_state_vars) in
 
-			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args new_spec_vars search_info unfold_info in
-			if ((List.length unfolded_symb_states) = 0) then (
+			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args new_spec_vars search_info unfold_info in			if ((List.length unfolded_symb_states) = 0) then (
 				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);
 				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a) in
 				raise (Failure msg))
@@ -1050,6 +1049,8 @@ let rec symb_evaluate_cmd
 	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 	Symbolic_State_Print.print_symb_state_and_cmd proc i symb_state;
+	print_debug_petar (Printf.sprintf "Spec vars: %s" (String.concat ", " (SS.elements spec_vars)));
+	print_debug_petar (Printf.sprintf "Substitution:\n%s" (JSIL_Print.string_of_substitution subst));
 
 	(* STATEMENT: There are never program variables in the typing environment *)
 	it_must_hold_that 
