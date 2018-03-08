@@ -862,7 +862,7 @@ let rec unify_symb_states
 							(JSIL_Print.string_of_substitution pat_subst));  
 
 						let ss  = heap_frame, store, pfs, gamma, preds_frame in 
-						let ret = fold_predicate predicates p_name largs' spec_vars existentials ss (Some pat_subst) in 
+						let ret = try fold_predicate predicates p_name largs' spec_vars existentials ss (Some pat_subst) with (Failure _) -> None in 
 						(match ret with 
 						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
 							let new_frames = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check in 
