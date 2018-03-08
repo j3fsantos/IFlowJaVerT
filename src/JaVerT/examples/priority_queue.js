@@ -228,9 +228,9 @@ var PriorityQueue = (function () {
      )
    */
    PQ.prototype.dequeue = function () {
-      /** @tactic unfold NodeList(this, #np, #pri_q, #length) */
+      /** @tactic unfold NodeList(#head, #np, #pri_q, #length) */
       if (this._head === null) {
-        /** @tactic fold NodeList(this, #np, #pri_q, #length) */
+        /** @tactic fold NodeList(#head, #np, #pri_q, #length) */
         throw new Error("Queue is empty");
       }
 

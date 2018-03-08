@@ -594,8 +594,10 @@ let unfold_predicate
 	   ------------------------------------------------------------------
 	*)
 	List.map (fun (i, unfolded_symb_state) -> 
-		let new_search_info = sec_duplicate search_info in 
+		let new_search_info  = sec_duplicate search_info in 
 		sec_unfold_pred_def new_search_info pred_name i; 
+		let existential_constraints = PFS.of_list (assertions_of_substitution subst_e) in 
+		ss_extend_pfs unfolded_symb_state existential_constraints; 
 		unfolded_symb_state, new_spec_vars, new_search_info) unfolded_pred_defs 
 
 
