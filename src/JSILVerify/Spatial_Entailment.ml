@@ -708,7 +708,7 @@ let unify_pfs
 	result
 
 
-type extended_intermediate_frame = unification_plan * intermediate_frame * jsil_logic_assertion list * SS.t 
+type extended_intermediate_frame = unification_plan * intermediate_frame * jsil_logic_assertion list
 
 let rec unify_symb_states 
 		(predicates            : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
@@ -777,7 +777,7 @@ let rec unify_symb_states
 
 
 	(* 4. Initial frame for the search *)
-	let initial_frame = pat_unification_plan, (heap, preds, discharges @ discharges', pat_subst), [], existentials in
+	let initial_frame = pat_unification_plan, (heap, preds, discharges @ discharges', pat_subst), [] in
 
 
 	(* 5. SEARCH *)
@@ -791,7 +791,7 @@ let rec unify_symb_states
 			| ssf :: _ -> Some (false, ssf))
 
 
-		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 					(* A - All the spatial resources were successfully unified *)
@@ -826,7 +826,7 @@ let rec unify_symb_states
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (head_unification_plan up) heap_frame preds_frame in 
 				let new_frames : extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, existentials) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b\n" ((List.length new_frames) > 0)); 
@@ -844,34 +844,43 @@ let rec unify_symb_states
 					let new_frames = unify_pred_assertion pfs gamma pat_subst (head_unification_plan up) preds_frame in 
 					let new_frames : extended_intermediate_frame list =
 						List.map 
-							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check, existentials) 
+							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check) 
 							new_frames in  
 
 					print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
 					let folding_pred_up = (LPred (p_name, largs), Some false) :: rest_up in
-					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check, existentials in
+					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check in
 
 					search (new_frames @ (folding_frame :: rest_frame_list)) found_partial_matches
 				) 
 				else (
+						let predicate              = (try Hashtbl.find predicates p_name with Not_found -> raise (Failure "DEATH. fold_predicate")) in 
+						let out_params_indexes     = get_out_parameters predicate in 
+						let args_with_existentials = List.mapi (fun (i : int) (x : jsil_logic_expr) -> if (SI.mem i out_params_indexes) then Some x else None) largs in 
+						let args_with_existentials = List.filter (Option.map_default (fun _ -> true) false) args_with_existentials in 
+						let args_with_existentials = List.map (Option.get) args_with_existentials in 
+						let new_existentials       = List.fold_left (fun ac x -> SS.union (get_lexpr_lvars x) ac) SS.empty args_with_existentials in 
+						let new_existentials       = SS.diff new_existentials (substitution_domain pat_subst) in  
+						let new_existentials       = SS.union existentials new_existentials in 
 
 						let largs' = List.map (lexpr_substitution pat_subst true) largs in
-
 						print_debug (Printf.sprintf 
 							"Predicate Assertion NOT FOUND. Trying to fold the predicate %s and substitution %s\n" 
 							(JSIL_Print.string_of_logic_assertion (LPred (p_name, largs')))
 							(JSIL_Print.string_of_substitution pat_subst));  
 
+
 						let ss  = heap_frame, store, pfs, gamma, preds_frame in 
-						let ret = try fold_predicate predicates p_name largs' spec_vars existentials ss None with (Failure _) -> None in 
+						let ret = try fold_predicate predicates p_name largs' spec_vars new_existentials ss None with (Failure _) -> None in 
 						(match ret with 
 						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
+							print_debug_petar (Printf.sprintf "LOST: new_pat_subst:\n%s" (JSIL_Print.string_of_substitution new_pat_subst));
 							print_debug_petar (Printf.sprintf "LOST: new_pfs:\n%s" (String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs)));
 							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
 							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
 							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
-							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, existentials in 
+							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), new_pfs @ pfs_to_check in 
 							search (new_frame :: rest_frame_list) found_partial_matches
 						| None -> search rest_frame_list found_partial_matches)
 					)
@@ -887,7 +896,7 @@ let rec unify_symb_states
 					search rest_frame_list found_partial_matches
 				)
 				else 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials in
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
 					search (new_frame::rest_frame_list) found_partial_matches
 
 
@@ -913,7 +922,7 @@ let rec unify_symb_states
 						let pfs_to_check = pfs_to_check @ more_pfs in 
 						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
 						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
 						search (new_frame :: rest_frame_list) found_partial_matches)
 				| _ -> 
 					let existentials = get_asrt_lvars pf in 
@@ -924,10 +933,10 @@ let rec unify_symb_states
 					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list pfs) [ pf_sbst ] gamma in 
 					(match pf_entailed with 
 					| false -> 
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check), existentials in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check) in
 							search (new_frame :: rest_frame_list) found_partial_matches
 					| true -> 
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check in
 							search (new_frame :: rest_frame_list) found_partial_matches))
 				
 			) in 
@@ -956,18 +965,6 @@ fold_predicate
 	let predicate          = (try Hashtbl.find predicates pred_name with Not_found -> raise (Failure "DEATH. fold_predicate")) in 
 	let pred_defs          = Array.of_list predicate.n_pred_definitions in 
 	let params             = predicate.n_pred_params in 
-	let out_params_indexes = get_out_parameters predicate in 
-
-
-	(*  Step 0: compute the new existentials
-	    -------------------------------------------------------------- *)
-	let args_with_existentials = List.mapi (fun (i : int) (x : jsil_logic_expr) -> if (SI.mem i out_params_indexes) then Some x else None) args in 
-	let args_with_existentials = List.filter (Option.map_default (fun _ -> true) false) args_with_existentials in 
-	let args_with_existentials = List.map (Option.get) args_with_existentials in 
-	let new_existentials       = List.fold_left (fun ac x -> SS.union (get_lexpr_lvars x) ac) SS.empty args_with_existentials in 
-	let new_existentials       = Option.map_default (fun subst -> SS.diff new_existentials (substitution_domain subst)) new_existentials pat_subst in  
-	let new_existentials       = SS.union existentials new_existentials in 
-
 
 	(*  Step 1: create a symb_state with the appropriate calling store
 	    --------------------------------------------------------------
@@ -987,7 +984,7 @@ fold_predicate
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_symb_state pred_def));
 		
-			let unifier = try unify_symb_states predicates new_existentials spec_vars pred_def_up pat_subst pred_def symb_state_caller
+			let unifier = try unify_symb_states predicates existentials spec_vars pred_def_up pat_subst pred_def symb_state_caller
 				with | UnificationFailure _ -> None in
 
 			match unifier with
