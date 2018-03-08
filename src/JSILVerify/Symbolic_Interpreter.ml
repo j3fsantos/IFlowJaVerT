@@ -1352,7 +1352,7 @@ let sym_run_procs
 	let results_str, dot_graphs = Symbolic_State_Print.string_of_symb_exe_results results in
 	
 	(* Some statistics *)
-	let count_verified, count_prunings = compute_verification_statistics pruning_info procs_to_verify spec_table in 
+	let count_prunings, count_verified = compute_verification_statistics pruning_info procs_to_verify spec_table in 
 	print_normal (Printf.sprintf "\nVerified: %d.\t\tPrunings: %d.\n" count_verified count_prunings);
 
 	(* Return *)
