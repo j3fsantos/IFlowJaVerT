@@ -430,8 +430,13 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 			(* List length *)
 			| LstLen ->
 				(match (lexpr_is_list fle) with
-				| true -> let len = get_length_of_list fle in
-					Option.map_default (fun len -> LLit (Num (float_of_int len))) def len
+				| true -> 
+					(match fle with
+					| LLit (LList le) -> LLit (Num (float_of_int (List.length le)))
+					| LEList le -> LLit (Num (float_of_int (List.length le)))
+					| LBinOp (_, LstCons, lr) -> f (LBinOp (LLit (Num 1.), Plus, LUnOp (LstLen, lr)))
+					| LBinOp (ll, LstCat, lr) -> f (LBinOp (LUnOp (LstLen, ll), Plus, LUnOp (LstLen, lr)))
+					| _ -> def)
 				| false -> 
 					let err_msg = "LUnOp(LstLen, list): list is not a JSIL list." in
 					raise (ReductionException (def, err_msg))
@@ -633,10 +638,8 @@ let rec reduce_lexpr ?(no_timing: unit option) ?(gamma: TypEnv.t option) ?(pfs :
 	| _ -> le 
 	) in
 	
-	print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result));
-	
 	let final_result = if (le <> result) && (not (le == result))
-		then (f result)
+		then (print_debug (Printf.sprintf "Reduce_lexpr: %s -> %s" (JSIL_Print.string_of_logic_expression le) (JSIL_Print.string_of_logic_expression result)); f result)
 		else result in
 
 	if (no_timing <> None) then (let end_time = Sys.time () in update_statistics "reduce_lexpr" (end_time -. start_time));
