@@ -791,7 +791,11 @@ let rec symb_evaluate_logic_cmd
 		(match a with
 		| LPred (pred_name, les) ->
 			print_time (Printf.sprintf "Unfold %s." pred_name); 
-			let params, pred_defs, args = get_pred_data pred_name les in
+			let args = List.map (fun le ->
+				Normaliser.normalise_lexpr ~store:(ss_store symb_state) ~subst:subst (ss_gamma symb_state) le
+			) les in
+
+			let params, pred_defs, args = get_pred_data pred_name args in
 			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args spec_vars search_info unfold_info in
 			if ((List.length unfolded_symb_states) = 0) then (
 				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);
