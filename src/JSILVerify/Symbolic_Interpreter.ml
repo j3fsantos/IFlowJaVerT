@@ -1050,6 +1050,7 @@ let rec symb_evaluate_cmd
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 	Symbolic_State_Print.print_symb_state_and_cmd proc i symb_state;
 	print_debug_petar (Printf.sprintf "Spec vars: %s" (String.concat ", " (SS.elements spec_vars)));
+	print_debug_petar (Printf.sprintf "Substitution:\n%s" (JSIL_Print.string_of_substitution subst));
 
 	(* STATEMENT: There are never program variables in the typing environment *)
 	it_must_hold_that 
