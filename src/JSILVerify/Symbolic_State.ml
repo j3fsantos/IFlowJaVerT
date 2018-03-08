@@ -53,8 +53,17 @@ type n_jsil_logic_predicate = {
 	n_pred_ins              : int list;
 	n_pred_definitions      : ((string option) * symbolic_state * unification_plan) list;
 	n_pred_is_rec           : bool; 
-  n_pred_is_pure          : bool;
+  	n_pred_is_pure          : bool;
 }
+
+let get_out_parameters (pred : n_jsil_logic_predicate) : SI.t = 
+	let params     = pred.n_pred_params in 
+	let ins_list   = pred.n_pred_ins in 
+	let params     = List.mapi (fun i x -> if (List.mem i ins_list) then None else Some i) params in 
+	let out_params = List.filter (Option.map_default (fun _ -> true) false) params in 
+	let out_params = List.map (Option.get) out_params in 
+	SI.of_list out_params 
+
 
 type specification_table = (string, jsil_n_spec) Hashtbl.t
 

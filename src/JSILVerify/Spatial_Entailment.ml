@@ -947,11 +947,22 @@ fold_predicate
 	(pat_subst    : substitution option) : symbolic_state_frame option =
 
 
-	let predicate = (try Hashtbl.find predicates pred_name with Not_found -> raise (Failure "DEATH. fold_predicate")) in 
-	let pred_defs = Array.of_list predicate.n_pred_definitions in 
-	let params    = predicate.n_pred_params in 
+	let predicate          = (try Hashtbl.find predicates pred_name with Not_found -> raise (Failure "DEATH. fold_predicate")) in 
+	let pred_defs          = Array.of_list predicate.n_pred_definitions in 
+	let params             = predicate.n_pred_params in 
+	let out_params_indexes = get_out_parameters predicate in 
 
-	
+
+	(*  Step 0: compute the new existentials
+	    -------------------------------------------------------------- *)
+	let args_with_existentials = List.mapi (fun (i : int) (x : jsil_logic_expr) -> if (SI.mem i out_params_indexes) then Some x else None) args in 
+	let args_with_existentials = List.filter (Option.map_default (fun _ -> true) false) args_with_existentials in 
+	let args_with_existentials = List.map (Option.get) args_with_existentials in 
+	let new_existentials       = List.fold_left (fun ac x -> SS.union (get_lexpr_lvars x) ac) SS.empty args_with_existentials in 
+	let new_existentials       = Option.map_default (fun subst -> SS.diff new_existentials (substitution_domain subst)) new_existentials pat_subst in  
+	let new_existentials       = SS.union existentials new_existentials in 
+
+
 	(*  Step 1: create a symb_state with the appropriate calling store
 	    --------------------------------------------------------------
 	    * Create the symbolic store mapping the formal parameters of the 
@@ -970,7 +981,7 @@ fold_predicate
 			print_debug (Printf.sprintf "----------------------------");
 			print_debug (Printf.sprintf "Current pred symbolic state: %s" (Symbolic_State_Print.string_of_symb_state pred_def));
 		
-			let unifier = try unify_symb_states predicates existentials spec_vars pred_def_up pat_subst pred_def symb_state_caller
+			let unifier = try unify_symb_states predicates new_existentials spec_vars pred_def_up pat_subst pred_def symb_state_caller
 				with | UnificationFailure _ -> None in
 
 			match unifier with
