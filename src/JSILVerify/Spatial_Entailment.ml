@@ -708,7 +708,7 @@ let unify_pfs
 	result
 
 
-type extended_intermediate_frame = unification_plan * intermediate_frame * jsil_logic_assertion list
+type extended_intermediate_frame = unification_plan * intermediate_frame * jsil_logic_assertion list * SS.t 
 
 let rec unify_symb_states 
 		(predicates            : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
@@ -719,6 +719,7 @@ let rec unify_symb_states
 		(pat_symb_state        : symbolic_state) 
 		(symb_state            : symbolic_state) : (bool * symbolic_state_frame) option =
 
+
 	let heap, store, pfs, gamma, preds                     = symb_state in
 	let pat_heap, pat_store, pat_pfs, pat_gamma, pat_preds = pat_symb_state in
 	let pat_lvars = (ss_lvars pat_symb_state) in 
@@ -728,6 +729,7 @@ let rec unify_symb_states
 
 	(* 1. Init the substitution          *)
 	let pat_subst  = Option.default (init_substitution []) pat_subst in
+
 
 	(* 2. Unify stores                   *)
 	(*  2.1 - find the pvars that are mapped to expressions containing existentials                            *)
@@ -789,7 +791,7 @@ let rec unify_symb_states
 			| ssf :: _ -> Some (false, ssf))
 
 
-		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, existentials) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 					(* A - All the spatial resources were successfully unified *)
@@ -824,7 +826,7 @@ let rec unify_symb_states
 				let new_frames : intermediate_frame list = unify_spatial_assertion pfs gamma pat_subst (head_unification_plan up) heap_frame preds_frame in 
 				let new_frames : extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, existentials) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b\n" ((List.length new_frames) > 0)); 
@@ -842,7 +844,7 @@ let rec unify_symb_states
 					let new_frames = unify_pred_assertion pfs gamma pat_subst (head_unification_plan up) preds_frame in 
 					let new_frames : extended_intermediate_frame list =
 						List.map 
-							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check) 
+							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check, existentials) 
 							new_frames in  
 
 					print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
@@ -926,7 +928,7 @@ let rec unify_symb_states
 				
 			) in 
 	let start_time = Sys.time() in
-	let result = search [ initial_frame ] [] in
+	let result = search [ initial_frame ] [] existentials in
 	let end_time = Sys.time() in
 	update_statistics "unify_ss : search" (end_time -. start_time);
 	result
