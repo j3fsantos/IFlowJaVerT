@@ -867,6 +867,10 @@ let rec unify_symb_states
 						let ret = try fold_predicate predicates p_name largs' spec_vars existentials ss None with (Failure _) -> None in 
 						(match ret with 
 						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
+							print_debug_petar (Printf.sprintf "LOST: new_pfs:\n%s" (String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs)));
+							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
+							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
+							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
 							let new_frames = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check in 
 							search (new_frames :: rest_frame_list) found_partial_matches
 						| None -> search rest_frame_list found_partial_matches)
