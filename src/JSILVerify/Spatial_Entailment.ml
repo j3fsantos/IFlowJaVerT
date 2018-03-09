@@ -473,7 +473,7 @@ let unify_metadata_assertion
 		| LMetaData (ALoc loc, metadata) -> loc, metadata
 		| _ ->
 				let msg = "Unify_metadata_assertion: no metadata assertion" in
-				print_debug msg; raise (Failure msg) in 
+				print_debug msg; raise (UnificationFailure msg) in 
 
   (* 2. Find the location corresponding to that cell *) 
 	let loc = if (is_lloc_name pat_loc) then pat_loc else (
@@ -483,7 +483,7 @@ let unify_metadata_assertion
 			| None     -> raise (Failure "")   
 		)  with _ -> 
 			let msg = Printf.sprintf "Unify_metadata_assertion: unmatched pat_loc: %s" pat_loc in 
-				print_debug msg; raise (Failure msg)) in 
+				print_debug msg; raise (UnificationFailure msg)) in 
 
 	(* 3. Get the metadata *)
 	let fv_list, domain, metadata, ext = 
