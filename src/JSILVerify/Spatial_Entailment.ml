@@ -865,7 +865,7 @@ let rec unify_symb_states
 						let new_existentials       = SS.diff new_existentials (substitution_domain pat_subst) in  
 						let new_existentials       = SS.union existentials new_existentials in 
 
-						let largs' = List.map (lexpr_substitution pat_subst true) largs in
+						let largs' = List.map (lexpr_substitution pat_subst false) largs in
 						print_debug (Printf.sprintf 
 							"Predicate Assertion NOT FOUND. Trying to fold the predicate %s and substitution %s\n" 
 							(JSIL_Print.string_of_logic_assertion (LPred (p_name, largs')))
