@@ -633,6 +633,7 @@ let recursive_unfold_predicate
 				let unfolded_symb_states_with_spec_vars = unfold_predicate pred_name pred_defs symb_state params args cur_spec_vars search_info None in
 				(match unfolded_symb_states_with_spec_vars with 
 				| [ (new_symb_state, new_spec_vars, new_search_info) ] ->
+					print_debug (Printf.sprintf "RecUnfold: new_spec_vars: %s" (String.concat ", " (SS.elements new_spec_vars)));
 					let new_symb_state = Simplifications.simplify_ss new_symb_state (Some (Some new_spec_vars)) in
 					loop new_spec_vars new_symb_state new_search_info
 				| _ -> 
@@ -1056,6 +1057,7 @@ let rec symb_evaluate_cmd
 		post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state i (i+1) in
 	
 	let spec_vars = SS.filter (fun x -> is_spec_var_name x) spec_vars in
+	print_debug (Printf.sprintf "SPEC_VARS_BEFORE_SIMPL: %s" (String.concat ", " (SS.elements spec_vars)));
 	let symb_state = Simplifications.simplify_ss symb_state (Some (Some spec_vars)) in
 	Symbolic_State_Print.print_symb_state_and_cmd proc i symb_state;
 	print_debug_petar (Printf.sprintf "Spec vars: %s" (String.concat ", " (SS.elements spec_vars)));
