@@ -871,9 +871,9 @@ let simplify_symb_state
 			let exists = Hashtbl.fold (fun v _ ac -> SS.remove v ac) subst exists in
 			(* and remove from gamma, if allowed *)
 			Hashtbl.iter (fun v _ ->
-				(* match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
+				match (save_all || SS.mem v (SS.union vars_to_save !initial_existentials)) with
 				| true -> ()
-				| false -> *)
+				| false ->
 						print_debug_petar (Printf.sprintf "Removing: %s" v);
 						while (TypEnv.mem gamma v) do 
 							print_debug_petar (Printf.sprintf "I am in the gamma!");
