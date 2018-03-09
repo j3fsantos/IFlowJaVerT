@@ -1152,6 +1152,7 @@ let is_sensible_subst (subst : substitution) (gamma_source : TypEnv.t) (gamma_ta
 		subst true
 
 
+
 (**
 	unfold_store      - a mapping from the parameters of the predicate to the arguments given in the unfolding
  	subst             - substitution that maps some of the newly introduced existentials to logical expressions
@@ -1192,7 +1193,7 @@ let unfold_predicate_definition
 	(* The store unification also generates a list of discharges - discharges - which need to hold for the stores to match *)
 	let constraints, pat_constraints, discharges = unify_stores_unfold pat_pfs pat_gamma pat_subst pfs gamma subst pat_store unfold_store in
 	
-	print_debug (Printf.sprintf "unfold_predicate_definition. step 1 - done.\nsubst: %s\npat_subst:%s\n.discharges:%s.\nconstraints:%s\npat_constraints:%s\n" 
+	print_debug (Printf.sprintf "unfold_predicate_definition. step 1 - done.\nsubst: %s\npat_subst:%s\ndischarges:%s.\nconstraints:%s\npat_constraints:%s\n" 
 		(JSIL_Print.string_of_substitution subst)
 		(JSIL_Print.string_of_substitution pat_subst)
 		(Symbolic_State_Print.string_of_discharges discharges)
@@ -1255,6 +1256,7 @@ let unfold_predicate_definition
 	(* pfs'' = pfs' + s_pat_pfs + pfs_discharges + pfs_subst                                                                *)
 	(* gamma =  gamma + new_pat_subst (pat_gamma)                                                                           *)
 	(* |-_{gamma} pfs                                                                                                       *)
+	let subst           = JSIL_Logic_Utils.close_substitution subst in 
 	let new_pat_subst   = compose_partial_substitutions subst pat_subst in
 	let constraints     = List.map (asrt_substitution subst true) constraints in 
 	let pfs'            = PFS.to_list (pfs_substitution subst true pfs) in

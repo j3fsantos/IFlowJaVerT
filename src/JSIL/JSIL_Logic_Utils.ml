@@ -563,6 +563,20 @@ let apply_subst_to_subst subst' subst =
 		Hashtbl.replace subst k v')
 	subst
 
+let rec close_substitution (subst : substitution) : substitution =
+	let subst_domain = substitution_domain subst in 
+
+	let subst_list = Hashtbl.fold (fun x le subst_list -> 
+		let le' = lexpr_substitution subst true le in  
+		if (le' <> le) then (x, le') :: subst_list else subst_list  
+		) subst [] in
+
+	match subst_list with 
+	| [] -> subst 
+	| _  ->
+		List.iter (fun (x, le') -> extend_substitution_with_mapping subst x le') subst_list; 
+		close_substitution subst    
+
 (***************************************************************)
 (***************************************************************)
 (** Logic Commmands                                           **)

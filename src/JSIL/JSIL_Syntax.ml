@@ -443,6 +443,9 @@ let assertions_of_substitution (subst : substitution) =
 
 let copy_substitution (subst : substitution) : substitution = Hashtbl.copy subst
 
+let extend_substitution_with_mapping (subst : substitution) (x : string) (le : jsil_logic_expr) : unit =
+	Hashtbl.replace subst x le 
+
 let extend_substitution (subst : substitution) (vars : string list) (les : jsil_logic_expr list) : unit =
 	List.iter2 (fun v le -> Hashtbl.replace subst v le) vars les
 
@@ -451,6 +454,11 @@ let extend_subst_with_subst (subst : substitution) (subst_ext : substitution) : 
 
 let substitution_domain (subst : substitution) : SS.t = 
 	Hashtbl.fold (fun k v ac -> SS.add k ac) subst SS.empty
+
+
+
+
+	
 	
 (* JS2JSIL *)
 let for_verification = ref false

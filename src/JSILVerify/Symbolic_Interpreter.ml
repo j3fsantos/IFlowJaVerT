@@ -897,12 +897,13 @@ symb_evaluate_logic_cmds s_prog
 		let new_symb_states_with_spec_vars = 
 			List.concat (List.map (fun (symb_state, spec_vars, search_info) ->
 				if print_symb_states then (
-					print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\n----------------------------------\n" 
+					print_normal (Printf.sprintf "----------------------------------\nSTATE:\n%s\nLOGIC COMMAND: %s\nSPEC VARSs: %s\n----------------------------------\n" 
 						(Symbolic_State_Print.string_of_symb_state symb_state) 
-						(JSIL_Print.string_of_lcmd l_cmd)));
-					let info_node       = Symbolic_Traces.sg_node_from_lcmd symb_state l_cmd in
-					let new_search_info = sec_create_new_info_node search_info info_node in  
-					symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars new_search_info print_symb_states lemma) symb_states_with_spec_vars) in 
+						(JSIL_Print.string_of_lcmd l_cmd)
+						(String.concat ", " (SS.elements spec_vars))));
+				let info_node       = Symbolic_Traces.sg_node_from_lcmd symb_state l_cmd in
+				let new_search_info = sec_create_new_info_node search_info info_node in
+				symb_evaluate_logic_cmd s_prog l_cmd symb_state subst spec_vars new_search_info print_symb_states lemma) symb_states_with_spec_vars) in 
 		symb_evaluate_logic_cmds s_prog rest_l_cmds new_symb_states_with_spec_vars print_symb_states subst lemma)
 
 
@@ -1093,7 +1094,7 @@ and post_symb_evaluate_cmd s_prog proc spec_vars subst search_info symb_state cu
 	(* Get the current command and the associated metadata *)
 	let metadata, cmd = get_proc_cmd proc cur in
 	(* Evaluate logic commands, if any *)
-	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec_vars, search_info ] false subst None in
+	let symb_states_with_spec_vars = symb_evaluate_logic_cmds s_prog metadata.post_logic_cmds [ symb_state, spec_vars, search_info ] true subst None in
 	(* For each obtained symbolic state *)
 	List.concat (List.map 
 		(* Get the symbolic state *)
