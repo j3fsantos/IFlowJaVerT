@@ -563,6 +563,8 @@ let unfold_predicate
 			with _ -> 
 				print_debug ("Failed to subtract pred\n");  
 				(raise (Failure (Printf.sprintf "Predicate %s not found in the predicate set!!!" pred_name))) in
+	print_debug (Printf.sprintf "subst_e: %s\n" (JSIL_Print.string_of_substitution subst_e)); 
+
 
 	(* print_debug (Printf.sprintf "New spec vars (unfold): %s" (String.concat ", " (SS.elements existentials)));
 	print_debug(Printf.sprintf "After subtract pred with substitution:\n%s\n" (Symbolic_State_Print.string_of_substitution subst0)); *) 
