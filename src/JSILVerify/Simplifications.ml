@@ -1013,7 +1013,10 @@ let simplify_symb_state
 					(* Understand, if there are two lvars, which should be substituted *)
 					let v, le = (match le with
 					| LVar w -> 
-							(match (SS.mem v vars_to_save), (SS.mem w vars_to_save) with
+						let save_v = SS.mem v vars_to_save in 
+						let save_w = SS.mem w vars_to_save in 
+						print_debug_petar (Printf.sprintf "Saving %s: %b\tSaving %s: %b" v save_v w save_w);
+							(match save_v, save_w with
 							| true, false -> w, LVar v
 							| true, true 
 							| false, true -> v, le
@@ -1025,7 +1028,7 @@ let simplify_symb_state
 								| _, _ -> v, le))
 					| _ -> v, le) in
 					
-					(* print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (string_of_logic_expression le)); *)
+					print_debug_petar (Printf.sprintf "LVAR: %s --> %s" v (string_of_logic_expression le)); 
 					
 					let lvars_le = get_lexpr_lvars le in
 					(match (SS.mem v lvars_le) with

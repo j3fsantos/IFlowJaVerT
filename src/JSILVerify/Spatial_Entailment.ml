@@ -1287,6 +1287,7 @@ let unfold_predicate_definition
 	pfs_merge (ss_pfs unfolded_symb_state) (PFS.of_list (pfs_discharges @ pfs_subst @ constraints @ pat_constraints));
 	TypEnv.extend (ss_gamma unfolded_symb_state) gamma;
 	Normaliser.extend_typing_env_using_assertion_info (ss_gamma unfolded_symb_state) (PFS.to_list (ss_pfs unfolded_symb_state));
+	print_debug_petar (Printf.sprintf "Final unfolded symb state: %s" (Symbolic_State_Print.string_of_symb_state unfolded_symb_state));
 	Some unfolded_symb_state ) with UnificationFailure _ -> None 
 
 let grab_resources 
