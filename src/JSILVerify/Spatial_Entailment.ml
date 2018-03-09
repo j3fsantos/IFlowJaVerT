@@ -866,16 +866,20 @@ let rec unify_symb_states
 						let new_existentials       = SS.diff new_existentials (substitution_domain pat_subst) in  
 						
 						let largs' = List.map (lexpr_substitution pat_subst false) largs in
-						print_debug (Printf.sprintf 
-							"Predicate Assertion NOT FOUND. Trying to fold the predicate %s and substitution %s\n" 
-							(JSIL_Print.string_of_logic_assertion (LPred (p_name, largs')))
-							(JSIL_Print.string_of_substitution pat_subst));  
+						
 						let new_existentials = 
 							SS.fold (fun x ac -> match substition_get pat_subst x with
 										| Some (LVar y) -> SS.add y ac 
 										| _ -> SS.add x ac) new_existentials SS.empty in 
 						let new_existentials = SS.union existentials new_existentials in 
 
+
+						print_debug (Printf.sprintf 
+							"Predicate Assertion NOT FOUND. Trying to fold the predicate %s and substitution %s\nExistentials:%s\n" 
+							(JSIL_Print.string_of_logic_assertion (LPred (p_name, largs')))
+							(JSIL_Print.string_of_substitution pat_subst)
+							(String.concat ", " (SS.elements new_existentials)));  
+						
 
 						let ss  = heap_frame, store, known_pfs, gamma, preds_frame in 
 						let ret = try fold_predicate predicates p_name largs' spec_vars new_existentials ss None with (Failure _) -> None in 
