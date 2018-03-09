@@ -800,8 +800,10 @@ let rec symb_evaluate_logic_cmd
 			let symb_state_vars = ss_lvars symb_state in
 			let args_vars = get_lexpr_list_lvars les in
 			let new_spec_vars =  SS.union spec_vars (SS.diff args_vars symb_state_vars) in
+			print_debug (Printf.sprintf "NEW SPEC VARS: %s" (String.concat ", " (SS.elements new_spec_vars)));
 
-			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args new_spec_vars search_info unfold_info in			if ((List.length unfolded_symb_states) = 0) then (
+			let unfolded_symb_states = unfold_predicate pred_name pred_defs symb_state params args new_spec_vars search_info unfold_info in			
+			if ((List.length unfolded_symb_states) = 0) then (
 				print_normal (Printf.sprintf "\nCould not unfold: %s" pred_name);
 				let msg = Printf.sprintf "Could not unfold: %s " (JSIL_Print.string_of_logic_assertion a) in
 				raise (Failure msg))
