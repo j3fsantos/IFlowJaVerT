@@ -812,8 +812,8 @@ let rec unify_symb_states
 					(* A.3 - If complete_match -> return
 					         Otherwise, continue searching and register the partial match *)
 					if (complete_match_b)
-						then Some (true, (heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma))
-						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges, new_gamma) :: found_partial_matches)
+						then Some (true, (heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges @ known_pfs, new_gamma))
+						else search rest_frame_list ((heap_frame, preds_frame, pat_subst, pfs_existentials @ pfs_discharges @ known_pfs, new_gamma) :: found_partial_matches)
 
 
 			| (LPointsTo _, _) :: rest_up
