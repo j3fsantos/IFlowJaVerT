@@ -456,8 +456,9 @@ let substitution_domain (subst : substitution) : SS.t =
 	Hashtbl.fold (fun k v ac -> SS.add k ac) subst SS.empty
 
 
-
-
+let substition_get (subst : substitution) (x : string) : jsil_logic_expr option = 
+	Hashtbl.find_opt subst x 
+ 
 	
 	
 (* JS2JSIL *)

@@ -863,13 +863,17 @@ let rec unify_symb_states
 						let args_with_existentials = List.map (Option.get) args_with_existentials in 
 						let new_existentials       = List.fold_left (fun ac x -> SS.union (get_lexpr_lvars x) ac) SS.empty args_with_existentials in 
 						let new_existentials       = SS.diff new_existentials (substitution_domain pat_subst) in  
-						let new_existentials       = SS.union existentials new_existentials in 
-
+						
 						let largs' = List.map (lexpr_substitution pat_subst false) largs in
 						print_debug (Printf.sprintf 
 							"Predicate Assertion NOT FOUND. Trying to fold the predicate %s and substitution %s\n" 
 							(JSIL_Print.string_of_logic_assertion (LPred (p_name, largs')))
 							(JSIL_Print.string_of_substitution pat_subst));  
+						let new_existentials = 
+							SS.fold (fun x ac -> match substition_get pat_subst x with
+										| Some (LVar y) -> SS.add y ac 
+										| _ -> SS.add x ac) new_existentials SS.empty in 
+						let new_existentials = SS.union existentials new_existentials in 
 
 
 						let ss  = heap_frame, store, pfs, gamma, preds_frame in 
@@ -879,9 +883,12 @@ let rec unify_symb_states
 							print_debug_petar (Printf.sprintf "LOST: new_pat_subst:\n%s" (JSIL_Print.string_of_substitution new_pat_subst));
 							print_debug_petar (Printf.sprintf "LOST: new_pfs:\n%s" (String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs)));
 							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
+
+							let new_pat_subst_pfs = substitution_to_list new_pat_subst in
+
 							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
 							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
-							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, new_pfs @ known_pfs in 
+							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, (new_pat_subst_pfs @ new_pfs @ known_pfs) in 
 							search (new_frame :: rest_frame_list) found_partial_matches
 						| None -> search rest_frame_list found_partial_matches)
 					)
