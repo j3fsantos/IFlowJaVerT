@@ -40,14 +40,14 @@ function make_node(v)
 	@id insert
 
 	@pre
-		initialHeapPostWeak() * 
+		GlobalObject() * ObjectPrototype() * 
 		(t == #t) * BST(#t, #K) * 
 		(v == #v) * types (#v : Num) *
 		scope(make_node : #makeNode) * JSFunctionObject(#makeNode, "makeNode", _, _, _) *
 		scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)
 		
 	@post 
-		initialHeapPostWeak() * 
+		GlobalObject() * ObjectPrototype() * 
 		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : Obj) *
 		scope(make_node : #makeNode) * JSFunctionObject(#makeNode, "makeNode", _, _, _) *
 		scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)

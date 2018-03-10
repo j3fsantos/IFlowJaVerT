@@ -1489,7 +1489,6 @@ proc getProperty (l, prop) {
 
 	call:	xret := "getProperty" (proto, prop) with elab;
 
-			[* fold Pi (#l, #prop, #d, #ls, #cls, #pv) *]
     rlab:   skip;
     elab:	skip
 }
@@ -1672,10 +1671,10 @@ proc i__getValue (v) {
 
 	is_pr:	xobj := "i__toObject" (rbase) with pelab;
 	
-			[* fold Pi(xobj, #field, #d, #ls, #lcls, #lpv) *]
 			xret := "getProperty" (xobj, rfield) with pelab;
-			[* unfold Pi(xobj, #field, #d, #ls, #lcls, #lpv) *]
+			[* unfold* Pi *]
 			goto [xret = undefined] rlab def;
+
 	def:	d := l-nth (xret, 0);	(* Get the descriptor type *)
 			xret := l-nth (xret, 1);	(* Get the value/getter *)
 			goto [d = "d"] rlab acc;	(* Is it a data descriptor? *)
@@ -1842,7 +1841,7 @@ spec canPut (l, prop)
 proc canPut (l, prop) {
 			[* unfold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
             xret := "getOwnProperty" (l, prop) with elab;
-            [* fold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
+
 	op:		goto [xret = undefined] nop odesc; 	(* Does the own property exist? *)
 
 	odesc:	d := l-nth (xret, 0);						(* It does; get the descriptor type *)
@@ -2348,10 +2347,8 @@ proc put (l, prop, value, throw) {
 
     dd:		desc := {{ "g", empty, empty, value, empty, empty, empty }};
     		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
-			[* fold Pi (#l, #prop, {{ "d", #value, true, #denum, #dconf }}, {{ #l }}, _, _) *]
     		goto remp;
 
-			[* fold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
     gp:		xret := "getProperty" (l, prop) with elab;
     		ad := "i__isAccessorDescriptor" (xret);
     		goto [ad] ad def;
@@ -2365,7 +2362,6 @@ proc put (l, prop, value, throw) {
     def:	desc := {{ "d", value, true, true, true }};
 			[* unfold Pi (#l, #prop, #d, #ls, #lcls, #lpv) *]
     		xret := "defineOwnProperty" (l, prop, desc, throw) with elab;
-			[* fold Pi (#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, _, _) *]
 			skip;
 
     remp:   xret := empty;
