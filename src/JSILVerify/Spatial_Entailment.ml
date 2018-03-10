@@ -896,7 +896,7 @@ let rec unify_symb_states
 							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
 
 							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
-							let new_known_pfs = PFS.of_list (new_pat_subst_pfs @ (PFS.to_list new_pfs') @ (PFS.to_list known_pfs)) in
+							let new_known_pfs = PFS.of_list ((PFS.to_list new_pfs') @ (PFS.to_list known_pfs)) in
 							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
 							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, new_known_pfs, new_gamma in 
 							search (new_frame :: rest_frame_list) found_partial_matches
