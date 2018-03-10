@@ -58,14 +58,7 @@ function insert(v, t)
   
   /** @tactic unfold BST(#t, #K) */
   if (t === null) {
-  
-  	result = make_node(v);
-  	
-  	/** @tactic assert (scope(result : #r))
-  		@tactic fold BST(null, -{ }-)
-  		@tactic fold BST(null, -{ }-)
-  		@tactic fold BST(#r, -{ #v }-) */
-    return result
+  	return make_node(v);
   }
 
   if (v < t.value)
@@ -73,7 +66,6 @@ function insert(v, t)
   else if (v > t.value) 
     t.right = insert(v, t.right);
 
-  /** @tactic fold BST(#t, -u- (#K, -{ #v }-)) */
   return t;
 }
 
@@ -106,7 +98,6 @@ function find (v, t)
 		  result = find(v, t.right);
 	}
 	
-	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -136,7 +127,6 @@ function find_min(t)
 	else
 		result = find_min(t.left);
 		
-	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -160,7 +150,6 @@ function remove(v, t)
 {
 	/** @tactic unfold BST(#t, #K) */
 	if (t === null)
-		/** @tactic fold BST(#t, #K) */
 		return null;
 
 	/** @tactic assert(DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR)) */
@@ -186,6 +175,5 @@ function remove(v, t)
 	else
 		t.right = remove(v, t.right);	
 
-	/** @tactic fold BST(#t, #K -d- -{ #v }-) */
   	return t;
 }
