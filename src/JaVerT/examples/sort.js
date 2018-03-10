@@ -59,23 +59,17 @@
 */
 function insert(node, value) {
     
-    var result;
-
     /** @tactic unfold SOList(#n, #E) */
     if (node === null) {
-        result = { next: null, value: value }
+        return { next: null, value: value }
     } else if (node.value === value) {
-        result = node;
+        return node;
     } else if (node.value < value) {
         var rec = insert(node.next, value);
-        result = { next: rec, value: node.value }
+        return { next: rec, value: node.value }
     } else {
-        result = { next: node, value: value }
+        return { next: node, value: value }
     }
-    
-    /** @tactic assert(scope(result : #res)) 
-        @tactic fold SOList(#res, -u- (-{ #v }-, #E)) */
-    return result;
 }
 
 /**
@@ -92,7 +86,6 @@ function sort(head) {
     var result;
     /** @tactic unfold NDList(#h, #E) */
     if (head === null) {
-        /** @tactic fold SOList(null, -{ }-) */
         result = null
     } else {
         var rec = sort(head.next);
