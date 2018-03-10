@@ -122,7 +122,6 @@ var PriorityQueue = (function () {
 	Node.prototype.insert = function (nl) {
 		/** @tactic unfold NodeList(#nl, #np, #pri_nl, #length) */
 		if (nl === null) {
-		   /** @tactic fold NodeList(this, #np, #npri, #length + 1) */
 		   return this
 		}
 		
@@ -134,7 +133,6 @@ var PriorityQueue = (function () {
 		
 		var tmp = this.insert (nl.next);
 		nl.next = tmp;
-		/** @tactic fold NodeList(#nl, #np, #pri_nl, #length + 1) */
 		return nl
 	}
 
@@ -157,7 +155,6 @@ var PriorityQueue = (function () {
 	    )
 	*/
 	var PQ = function () {
-		/** @tactic fold NodeList(null, #np, 0, 0) */
 		this._head = null;
 	};
 
@@ -230,7 +227,6 @@ var PriorityQueue = (function () {
    PQ.prototype.dequeue = function () {
       /** @tactic unfold NodeList(#head, #np, #pri_q, #length) */
       if (this._head === null) {
-        /** @tactic fold NodeList(#head, #np, #pri_q, #length) */
         throw new Error("Queue is empty");
       }
 
