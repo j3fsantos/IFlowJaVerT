@@ -75,14 +75,14 @@ Map.prototype.validKey = function (key) {
 /**
 	@id mapGet
 	
-	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak() 
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * GlobalObject() * ObjectPrototype()
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * GlobalObject() * ObjectPrototype()
 
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == null) * initialHeapPostWeak() 
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * GlobalObject() * ObjectPrototype()
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == null) * GlobalObject() * ObjectPrototype()
 	
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * initialHeapPostWeak() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * initialHeapPostWeak() 
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * GlobalObject() * ObjectPrototype()
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * GlobalObject() * ObjectPrototype()
 */
 Map.prototype.get = function (k) {
 	/* @tactic assert ( DataProp(this, "_contents", #c) ) */
@@ -100,15 +100,15 @@ Map.prototype.get = function (k) {
 /**
 	@id mapPut
 	
-	@pre    ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak())
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * GlobalObject() * ObjectPrototype()
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * GlobalObject() * ObjectPrototype()
 
-	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak())
- 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPostWeak() 
+	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * GlobalObject() * ObjectPrototype()
+ 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * GlobalObject() * ObjectPrototype()
 
-	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
-			(#kvs == -u- (-{ {{ #k, #w }} }-, #rkvs)) * initialHeapPostWeak())
-	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPostWeak() 
+	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
+			(#kvs == -u- (-{ {{ #k, #w }} }-, #rkvs)) * GlobalObject() * ObjectPrototype()
+	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * GlobalObject() * ObjectPrototype()
 */
 Map.prototype.put = function (k, v) {
 	/* @tactic assert( DataProp(this, "_contents", #c) * scope (v : #v) ) */
