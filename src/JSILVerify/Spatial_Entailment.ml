@@ -886,15 +886,17 @@ let rec unify_symb_states
 						let ret = try fold_predicate predicates p_name largs' spec_vars new_existentials ss None with (Failure _) -> None in 
 						(match ret with 
 						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
+							
+							let new_pat_subst_pfs = substitution_to_list new_pat_subst in
+							let new_pfs', _ = Simplifications.simplify_pfs (PFS.of_list new_pfs) new_gamma (Some None) in 
+							Simplifications.naively_infer_type_information new_pfs' new_gamma; 
+
 							print_debug_petar (Printf.sprintf "LOST: new_pat_subst:\n%s" (JSIL_Print.string_of_substitution new_pat_subst));
 							print_debug_petar (Printf.sprintf "LOST: new_pfs:\n%s" (String.concat ", " (List.map JSIL_Print.string_of_logic_assertion new_pfs)));
 							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
 
-							let new_pat_subst_pfs = substitution_to_list new_pat_subst in
-							Simplifications.naively_infer_type_information (PFS.of_list new_pfs) new_gamma; 
-
 							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
-							let new_known_pfs = PFS.of_list (new_pat_subst_pfs @ new_pfs @ (PFS.to_list known_pfs)) in
+							let new_known_pfs = PFS.of_list (new_pat_subst_pfs @ (PFS.to_list new_pfs') @ (PFS.to_list known_pfs)) in
 							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
 							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, new_known_pfs, new_gamma in 
 							search (new_frame :: rest_frame_list) found_partial_matches
@@ -907,7 +909,7 @@ let rec unify_symb_states
 
 				let local_gamma = TypEnv.init () in
 				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
-				if not (unify_gammas pat_subst local_gamma gamma) then (
+				if not (unify_gammas pat_subst local_gamma known_gamma) then (
 					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs known_gamma discharges));
 					search rest_frame_list found_partial_matches
 				)
