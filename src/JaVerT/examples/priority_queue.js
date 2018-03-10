@@ -127,7 +127,6 @@ var PriorityQueue = (function () {
 		
 		if (this.pri > nl.pri) {
 		   this.next = nl;
-		   /** @tactic fold NodeList(this, #np, #npri, #length + 1) */
 		   return this
 		}
 		
