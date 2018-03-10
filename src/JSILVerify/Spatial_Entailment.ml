@@ -708,7 +708,7 @@ let unify_pfs
 	result
 
 (* unification plan, intermediate frame, pfs to check, known pfs (from folding) *)
-type extended_intermediate_frame = unification_plan * intermediate_frame * jsil_logic_assertion list * PFS.t
+type extended_intermediate_frame = unification_plan * intermediate_frame * jsil_logic_assertion list * PFS.t * TypEnv.t
 
 let rec unify_symb_states 
 		(predicates            : (string, Symbolic_State.n_jsil_logic_predicate) Hashtbl.t)
@@ -777,8 +777,9 @@ let rec unify_symb_states
 
 
 	(* 4. Initial frame for the search *)
-	let initial_known_pfs = pfs in
-	let initial_frame = pat_unification_plan, (heap, preds, discharges @ discharges', pat_subst), [], initial_known_pfs in
+	let initial_known_pfs   = pfs_copy pfs in
+	let initial_known_gamma = TypEnv.copy gamma in 
+	let initial_frame       = pat_unification_plan, (heap, preds, discharges @ discharges', pat_subst), [], initial_known_pfs, initial_known_gamma in
 
 
 	(* 5. SEARCH *)
@@ -792,7 +793,7 @@ let rec unify_symb_states
 			| ssf :: _ -> Some (false, ssf))
 
 
-		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs) :: rest_frame_list -> 	
+		| (up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs, known_gamma) :: rest_frame_list -> 	
 			(match up with 
 			| [] -> 
 					(* A - All the spatial resources were successfully unified *)
@@ -803,7 +804,7 @@ let rec unify_symb_states
 					(* A.2 - Unify remaining pfs *)
 					let all_pfs = PFS.of_list ((PFS.to_list known_pfs) @ (PFS.to_list pfs)) in
 					let complete_match_b, pfs_existentials, pfs_discharges, new_gamma, new_existentials = 
-						unify_pfs pat_subst (SS.elements existentials) pat_lvars pat_gamma (DynArray.of_list pfs_to_check) gamma all_pfs discharges in 
+						unify_pfs pat_subst (SS.elements existentials) pat_lvars pat_gamma (DynArray.of_list pfs_to_check) known_gamma all_pfs discharges in 
 					
 					print_debug (Printf.sprintf "DONE with unify_pfs and gammas. ret: %b.\nexistentials: %s.\npfs_existentials:%s\n" 
 						complete_match_b 
@@ -822,13 +823,13 @@ let rec unify_symb_states
 			| (LMetaData _, _) :: rest_up
 			| (LExtensible _, _) :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs gamma discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs known_gamma discharges); 
 
 				(* B - Unify spatial assertion - no predicate assertion *)
-				let new_frames : intermediate_frame list = unify_spatial_assertion known_pfs gamma pat_subst (head_unification_plan up) heap_frame preds_frame in 
+				let new_frames : intermediate_frame list = unify_spatial_assertion known_pfs known_gamma pat_subst (head_unification_plan up) heap_frame preds_frame in 
 				let new_frames : extended_intermediate_frame list = 
 					List.map 
-						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, known_pfs) 
+						(fun (h_f, p_f, new_discharges, pat_subst) -> rest_up, (h_f, p_f, (new_discharges @ discharges), pat_subst), pfs_to_check, known_pfs, known_gamma) 
 						new_frames in 
 
 				print_debug (Printf.sprintf "Unification result: %b\n" ((List.length new_frames) > 0)); 
@@ -839,20 +840,20 @@ let rec unify_symb_states
 			| (LPred _, None) :: _ -> raise (Failure "DEATH unify_symb_states. misformed unification plan")
 			| (LPred (p_name, largs), Some unify_as_is) :: rest_up -> 
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs gamma discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs known_gamma discharges); 
 				
 				if unify_as_is then (		
 					(* C - Unify pred assertion *)
-					let new_frames = unify_pred_assertion known_pfs gamma pat_subst (head_unification_plan up) preds_frame in 
+					let new_frames = unify_pred_assertion known_pfs known_gamma pat_subst (head_unification_plan up) preds_frame in 
 					let new_frames : extended_intermediate_frame list =
 						List.map 
-							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check, known_pfs)
+							(fun (p_f, pat_subst, new_discharges) -> rest_up, (SHeap.copy heap_frame, p_f, (new_discharges @ discharges), (copy_substitution pat_subst)), pfs_to_check, known_pfs, known_gamma)
 							new_frames in  
 
 					print_debug (Printf.sprintf "Unification result: %b" ((List.length new_frames) > 0));
 
 					let folding_pred_up = (LPred (p_name, largs), Some false) :: rest_up in
-					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check, known_pfs in
+					let folding_frame   = folding_pred_up, (heap_frame, preds_frame, discharges, (copy_substitution pat_subst)), pfs_to_check, known_pfs, known_gamma in
 
 					search (new_frames @ (folding_frame :: rest_frame_list)) found_partial_matches
 				) 
@@ -881,7 +882,7 @@ let rec unify_symb_states
 							(String.concat ", " (SS.elements new_existentials)));  
 						
 
-						let ss  = heap_frame, store, known_pfs, gamma, preds_frame in 
+						let ss  = heap_frame, store, known_pfs, known_gamma, preds_frame in 
 						let ret = try fold_predicate predicates p_name largs' spec_vars new_existentials ss None with (Failure _) -> None in 
 						(match ret with 
 						| Some (new_heap_frame, new_preds_frame, new_pat_subst, new_pfs, new_gamma) -> 
@@ -890,27 +891,28 @@ let rec unify_symb_states
 							print_debug_petar (Printf.sprintf "LOST: new_gamma:\n%s" (TypEnv.str new_gamma));
 
 							let new_pat_subst_pfs = substitution_to_list new_pat_subst in
+							Simplifications.naively_infer_type_information (PFS.of_list new_pfs) new_gamma; 
 
 							let _, new_subst = Simplifications.simplify_pfs_with_subst (DynArray.of_list new_pfs) new_gamma in 
 							let new_known_pfs = PFS.of_list (new_pat_subst_pfs @ new_pfs @ (PFS.to_list known_pfs)) in
 							(match new_subst with | Some new_subst -> print_debug_petar (Printf.sprintf "LOST: Substitution:\n%s" (JSIL_Print.string_of_substitution new_subst)) | _ -> ());
-							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, new_known_pfs in 
+							let new_frame = rest_up, (new_heap_frame, new_preds_frame, discharges, pat_subst), pfs_to_check, new_known_pfs, new_gamma in 
 							search (new_frame :: rest_frame_list) found_partial_matches
 						| None -> search rest_frame_list found_partial_matches)
 					)
 
 			| (LTypes type_asrts, _) :: rest_up ->
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs gamma discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs known_gamma discharges); 
 
 				let local_gamma = TypEnv.init () in
 				List.iter (fun (x, typ) -> let x = match x with | LVar x -> x in TypEnv.update local_gamma x (Some typ)) type_asrts;
 				if not (unify_gammas pat_subst local_gamma gamma) then (
-					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs gamma discharges));
+					print_debug (Printf.sprintf "Failed type assertion %s; moving to next frame" (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs known_gamma discharges));
 					search rest_frame_list found_partial_matches
 				)
 				else 
-					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs in
+					let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs, known_gamma in
 					search (new_frame::rest_frame_list) found_partial_matches
 
 
@@ -923,7 +925,7 @@ let rec unify_symb_states
 			(* PURE FORMULAE *)
 			| (pf, _) :: rest_up -> (* PURE FORMULAE *)
 
-				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs gamma discharges); 
+				print_debug (Symbolic_State_Print.string_of_unification_step (head_unification_plan up) pat_subst heap_frame preds_frame known_pfs known_gamma discharges); 
 
 				(match pf with 
 				(* We know le1, learning le2 *)
@@ -936,7 +938,7 @@ let rec unify_symb_states
 						let pfs_to_check = pfs_to_check @ more_pfs in 
 						print_debug_petar ("New pat subst:\n" ^ (JSIL_Print.string_of_substitution pat_subst));
 						Hashtbl.iter (fun v le -> Hashtbl.replace pat_subst v (lexpr_substitution pat_subst true le) ) pat_subst;
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs, known_gamma in
 						search (new_frame :: rest_frame_list) found_partial_matches)
 				| _ -> 
 					let existentials = get_asrt_lvars pf in 
@@ -947,10 +949,10 @@ let rec unify_symb_states
 					let pf_entailed : bool = Pure_Entailment.check_entailment existentials (PFS.to_list known_pfs) [ pf_sbst ] gamma in 
 					(match pf_entailed with 
 					| false -> 
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check), known_pfs in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), (pf :: pfs_to_check), known_pfs, known_gamma in
 							search (new_frame :: rest_frame_list) found_partial_matches
 					| true -> 
-						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs in
+						let new_frame = rest_up, (heap_frame, preds_frame, discharges, pat_subst), pfs_to_check, known_pfs, known_gamma in
 							search (new_frame :: rest_frame_list) found_partial_matches))
 				
 			) in 
