@@ -2225,6 +2225,12 @@ let normalise_post
 		print_debug (Printf.sprintf "post substitution:\n%s\npost_new_spec_var_alocs: %s\n"
 			(JSIL_Print.string_of_substitution post_subst)
 			(String.concat ", " post_new_spec_var_alocs));
+		(* PETAR: TO CHECK: AD-HOC *)
+		let found_aloc_vars = SS.fold (fun x ac -> 
+			match (Hashtbl.find_opt post_subst x) with | Some (ALoc _) -> SS.add x ac | _ -> ac)
+		spec_vars SS.empty in 
+		let spec_vars = SS.diff spec_vars found_aloc_vars in 
+		(* PETAR: TO CHECK: AD-HOC *)
 		let extra_post_pfs = List.map (fun x -> LEq (LVar x, Hashtbl.find post_subst x)) post_new_spec_var_alocs in
 		ss_extend_pfs ss_post (PFS.of_list extra_post_pfs);
 		Some (Simplifications.simplify_ss ss_post (Some (Some spec_vars))))
