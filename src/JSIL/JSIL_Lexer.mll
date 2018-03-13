@@ -68,6 +68,8 @@ rule read = parse
 	| "}}"                 { JSIL_Parser.LSTCLOSE      }
 (* Binary operators *)
 	| "="                  { JSIL_Parser.EQUAL         }
+	| ">"                  { JSIL_Parser.MORETHAN      }
+	| ">="                 { JSIL_Parser.MORETHANEQUAL }
 	| "<"                  { JSIL_Parser.LESSTHAN      }
 	| "<="                 { JSIL_Parser.LESSTHANEQUAL }
 	| "<s"                 { JSIL_Parser.LESSTHANSTRING}
