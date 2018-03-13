@@ -101,6 +101,17 @@ let spec_of_normalised_single_spec
 	}
 
 
+let ordered_assertion_of_symb_state (ss : symbolic_state) : jsil_logic_assertion =
+	let _, store, pfs, gamma, _ = ss in
+	let store_asrts             = assertions_of_store store in
+	let up                      = Normaliser.create_unification_plan ss SS.empty in 
+	let gamma_asrt              = assertion_of_gamma gamma in
+	let pure_asrts              = pfs_to_list pfs in
+	let asrts                   = store_asrts @ up @ pure_asrts @ [ gamma_asrt ] in
+	JSIL_Logic_Utils.star_asses asrts 
+
+
+
 let post_symb_state_to_asrt 
 		(ret_var      : string)
 		(proc_ret_var : string option)
@@ -115,7 +126,7 @@ let post_symb_state_to_asrt
 			| Some var_val -> store_init [ ret_var ] [ var_val ]) in 
 
 	let ss'    = ss_replace_store ss store' in 
-	assertion_of_symb_state ss' 
+	ordered_assertion_of_symb_state ss' 
 
 
 let make_counter (n : int) (depth : int) : (unit -> int array) * (bool -> bool) = 

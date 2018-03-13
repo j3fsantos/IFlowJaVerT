@@ -221,6 +221,15 @@
     (list p-ass-types p-ass-cells p-ass-none-cells p-ass-empty-fields p-ass-pure-asses p-ass-lvars)))
 
 
+(define (normalised-assertion-replace-ncells nass new-ncells)
+  (let ((na-ntypes (normalised-assertion-ntypes nass))
+        (na-nnone-cells (normalised-assertion-nnone-cells nass))
+        (na-nempty-fields (normalised-assertion-nempty-fields nass))
+        (na-npure-asses (normalised-assertion-npure-asses nass))
+        (na-nlvars (normalised-assertion-nlvars nass)))
+    (normalised-assertion na-ntypes new-ncells na-nnone-cells na-nempty-fields na-npure-asses na-nlvars)))
+
+
 (define (pure-ass-lvars pass)
   (println (format "pure-ass-lvars ~v" pass))
   (cond
@@ -242,7 +251,31 @@
     ;; set-sub
     [(and (list? pass) (> (length pass) 0) (eq? (first pass) 'set-sub))
      (set-union (expr-lvars (second pass)) (expr-lvars (third pass)))]))
-    
+
+
+(define (pure-ass-subst pass subst)
+  (println (format "pure-ass-subst ~v" pass))
+  (cond
+    ;; = 
+    [(and (list? pass) (> (length pass) 0) (eq? (first pass) 'eq?))
+     (list 'eq? (lexpr-substitution (second pass) subst) (lexpr-substitution (third pass) subst))]
+    ;; <
+    [(and (list? pass) (> (length pass) 0) (eq? (first pass) '<))
+     (list '< (lexpr-substitution (second pass) subst) (lexpr-substitution (third pass) subst))]
+    ;; <=
+    [(and (list? pass) (> (length pass) 0) (eq? (first pass) '<=))
+     (list '<= (lexpr-substitution (second pass) subst) (lexpr-substitution (third pass) subst))]
+    ;; string-less
+    [(and (list? pass) (> (length pass) 0) (eq? (first pass) 'string-less))
+     (list 'string-less (lexpr-substitution (second pass) subst) (lexpr-substitution (third pass) subst))]
+    ;; set-mem
+    [(and (list? pass) (> (length pass) 0) (eq? (first pass) 'set-mem))
+     (list 'set-mem (lexpr-substitution (second pass) subst) (lexpr-substitution (third pass) subst))]
+    ;; set-sub
+    [(and (list? pass) (> (length pass) 0) (eq? (first pass) 'set-sub))
+     (list 'set-sub (lexpr-substitution (second pass) subst) (lexpr-substitution (third pass) subst))]))
+
+  
     
 (define (normalise-assertion ass)
   (let ((n-ass (partition-assertion ass))) 
@@ -305,7 +338,12 @@
                (list #t (list (list 'eq? lexpr pat-val)) '())))))
 
 
+;; returns a list of candidate unifications.
+;; each candidate unification is composed of three elements: (framed-heap, positive-constraints, substitution-list)
 (define (unify-cell heap cell subst store)
+
+  (println (format "The cell: ~v" cell))
+  
   (let ((pat-loc (first cell))
         (pat-field (second cell))
         (pat-val (third cell)))
@@ -331,21 +369,96 @@
                    (u-vals (unify-lexprs val pat-val subst store)))
               
               (if (and (car u-fields) (car u-vals))
-                  (let ((unification 
-                         (list (append visited-fv-pairs (cdr fv-pairs))
-                               (append (second u-fields) (second u-vals))
-                               (append (third u-fields) (third u-vals)))))
+                  (let ((unification
+                         (let* ((new-obj (append visited-fv-pairs (cdr fv-pairs)))
+                                (new-heap (heap-replace-object heap s-pat-loc new-obj)))                     
+                           (list
+                            new-heap
+                            (append (second u-fields) (second u-vals))
+                            (append (third u-fields) (third u-vals))))))
                     (loop (cdr fv-pairs) (cons (car fv-pairs) visited-fv-pairs) (cons unification viable-unifications)))
                   (loop (cdr fv-pairs) (cons (car fv-pairs) visited-fv-pairs) viable-unifications)))))))) 
                   
-      
 
-;;(define (unify-ass heap n-ass)
-;;  (let ((cells (normalised-assertion-ncells n-ass))
-;;        (subst (make-hash)))
-;;    (let loop ((cells  
-  
+(define (unify-pure-assertions pure-asses additional-constraints subst store)
+  (let* ((s-pure-asses (map (lambda (x) (pure-ass-subst x subst)) pure-asses))
+         (pure-constraints (append s-pure-asses additional-constraints)))
+    (let ((pure-constraint (foldl (lambda (x ac) (and x ac)) #t pure-constraints)))
+      (if (unsat? (solve (assert (not pure-constraint))))
+          (cons #t '())
+          (cons #f pure-constraints)))))
+
+
+(define (extend-substitution subst subst-list) 
+  (let loop ((subst (hash-copy subst))
+             (subst-list subst-list)
+             (subst-constraints '()))
+    (if (null? subst-list)
+        (cons subst subst-constraints)
+        (let ((var (caar subst-list))
+              (lexpr (cdar subst-list))) 
+          (if (hash-has-key? subst var)
+              ;; the var already exists in the substitution
+              ;;    - we have to test the corresponding lexprs are equal.
+              (loop subst (cdr subst-list) (cons (eq? lexpr (hash-ref subst var)) subst-constraints))
+              ;; the var does not exist in the substitution
+              ;;   - we simply extend the substitution
+              (begin
+                (hash-set! subst var lexpr)
+                (loop subst (cdr subst-list) subst-constraints)))))))
+
+
+(define (unify-ass heap n-ass store)
+  ;; frame -> heap, n-ass, subst, positive-constraints 
+  (let loop ((cur-frames (list (list heap n-ass (make-hash) '())))
+             (failing-constraints '()))
+
+    (println "inside unify assertions!!!")
     
+    (if (null? cur-frames)
+        ;; we have collected all the failing constraints 
+        (cons #f failing-constraints)
+        (let* ((cur-frame (first cur-frames))
+               (f-cells
+                (begin
+                  ;;(println (format "cur-frame: ~v" cur-frame))
+                  (normalised-assertion-ncells (second cur-frame)))))
+          (if (null? f-cells)
+
+              ;; successfully unified all the spation resource
+              (begin
+                (println "Unified all postitive spatial resource")
+                (let ((unification (unify-pure-assertions (normalised-assertion-npure-asses (second cur-frame)) (fourth cur-frame) (third cur-frame) store)))
+                  (if (first unification)
+                      (cons #t '())
+                      (loop (cdr cur-frames) (cons (second unification) failing-constraints)))))
+
+              ;; we have once cell to unify
+              (begin
+                (println "Cell assertions still need to be unified")
+                (let* ((cur-cell (first f-cells))
+                       (cur-cell-unifications (unify-cell (first cur-frame) cur-cell (third cur-frame) store))
+                       ;; cell-unifications -> ((list quotient-heap subst-list discharges))
+                       (next-n-ass (normalised-assertion-replace-ncells (second cur-frame) (cdr f-cells)))
+                       
+                       (new-frames
+                        (begin
+                          (map (lambda (x)
+                                 (println (format "computing the new frames: ~v!!!" x))
+                                 (let* ((new-heap (first x))
+                                        (new-constraints (second x))
+                                        (subst-list (third x))
+                                        (new-subst-plus-constraints
+                                         (begin
+                                           (println (format "REACHED extend-substitution!"))
+                                           (extend-substitution (third cur-frame) subst-list)))
+                                        (new-subst (car new-subst-plus-constraints))
+                                        (subst-constraints (cdr new-subst-plus-constraints)))
+                                   (list new-heap next-n-ass new-subst (append (append subst-constraints new-constraints) (fourth cur-frame)))))
+                               cur-cell-unifications))))
+                  (loop (append new-frames (cdr cur-frames)) failing-constraints))))))))
+
+
 (define (expr-lvars expr)
   (cond
     ;; pvar
@@ -389,11 +502,14 @@
     ;;
     [else (set)]))
                    
-
-
-
 (define (sep-assert ass heap store)
   (let ((n-ass (normalise-assertion ass)))
-    (println (format "sep-assert(~v)" (nass-to-list n-ass)))))
+    (println (format "sep-assert(~v)" (nass-to-list n-ass)))
+    (let ((res (unify-ass heap n-ass store)))
+      (if (not (car res))
+          (begin
+            (println "The sep-assert failed!!!!"))
+          (begin
+            (println "one symbolic execution terminated successfully"))))))
   
 (provide clear-assertions! get-assertions get-assumptions op-assert op-assume sep-assert)
