@@ -80,6 +80,8 @@ let copy_and_clear_globals () =
 %token <string> FILENAME
 (* Binary operators *)
 %token EQUAL
+%token MORETHAN
+%token MORETHANEQUAL
 %token LESSTHAN
 %token LESSTHANEQUAL
 %token LESSTHANSTRING
@@ -442,6 +444,10 @@ expr_target:
 (* e binop e *)
 	| e1=expr_target; bop=binop_target; e2=expr_target
 		{ BinOp (e1, bop, e2) }
+  | e1=expr_target; bop=MORETHAN; e2=expr_target
+    { BinOp (e2, LessThan, e1) }
+  | e1=expr_target; bop=MORETHANEQUAL; e2=expr_target
+    { BinOp (e2, LessThanEqual, e1) }
 (* unop e *)
   | uop=unop_target; e=expr_target
 		{ UnOp (uop, e) }
@@ -938,7 +944,11 @@ lexpr_target:
 	  { pvar }
 (* e binop e *)
 	| e1=lexpr_target; bop=binop_target; e2=lexpr_target
-		{ LBinOp (e1, bop, e2) }
+    { LBinOp (e1, bop, e2) }
+  | e1=lexpr_target; bop=MORETHAN; e2=lexpr_target
+    { LBinOp (e2, LessThan, e1) }
+  | e1=lexpr_target; bop=MORETHANEQUAL; e2=lexpr_target
+    { LBinOp (e2, LessThanEqual, e1) }
 (* unop e *)
   | uop=unop_target; e=lexpr_target
 		{ LUnOp (uop, e) }
