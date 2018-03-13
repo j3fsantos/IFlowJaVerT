@@ -20,8 +20,9 @@ in \rosette~\cite{Rosette1,Rosette2}.
 
 %\pg{When talking about JSIL Logic, how are you going to explain the difficulty associated with a dynamci goto language v a static one, I don't think your work is a boring adaptation of reasoning about a staitc goto language. You need to grab at some of this is you can. We've have not paid ebough attention on this, so people jsut think this is a variant of previous work..} 
 
-\begin{figure}[!t]
+\begin{figure*}[!t]
 \begin{minipage}{\textwidth}
+\centering
 \begin{tabular}{lllll}
 	 Numbers: $\jnumber \in \numbers$ &  Booleans: $\jbool \in \bools$ & \  \ Strings: $\jstring \in \strings$ & \  \ Locs: $\loc \in \locs$ & \  Vars: $\jvar \in \jvars$ \\[0.1cm]
 	Types: $\ivltype \in \ivltypes$ & \multicolumn{4}{l}{Values: $\val \in \vals$ \defeq \ $\jnumber \mid \jbool \mid \jstring \mid  \jsundefined \mid \jsnull \mid \loc \mid \ivltype \mid \fid \mid \jsilempty$} \\[0.1cm]
@@ -37,7 +38,7 @@ in \rosette~\cite{Rosette1,Rosette2}.
  \label{def:jsil-types}
  \vspace*{-0.5cm}
  \end{minipage}
- \end{figure}
+ \end{figure*}
  
 %Most syntactic constructs of JSIL either come directly from JavaScript or are useful for JavaScript analysis. 
 
@@ -171,11 +172,6 @@ We denote the semantic interpretation of unary operators $\unoper$ by $\semop{\u
 %
 \\
 %
-\inferrule[\textsc{Assume}]
-  { 
-      \symbeval{\jsilexpr}{\store} =  \jtrue
-  }{\semtrans[][\top]{\heap, \store, \assume(\jsilexpr)}{\heap, \store}} 
-\and
 \inferrule[\textsc{Assert - True}]
   { 
       \symbeval{\jsilexpr}{\store} =  \jtrue
@@ -184,14 +180,21 @@ We denote the semantic interpretation of unary operators $\unoper$ by $\semop{\u
 \inferrule[\textsc{Assert - False}]
   { 
       \symbeval{\jsilexpr}{\store} = \jfalse
-  }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}} 
+  }{\semtrans[][\top][\bot]{\heap, \store, \assert(\jsilexpr)}{\heap, \store}}
+\and
+ \inferrule[\textsc{Assume}]
+  { 
+      \symbeval{\jsilexpr}{\store} =  \jtrue
+  }{\semtrans[][\top]{\heap, \store, \assume(\jsilexpr)}{\heap, \store}} 
+
 \end{mathpar}}
 \vspace*{-0.5cm}
 \caption{Execution for Basic Commands: {\scriptsize$\semtrans[][\mode][\mode']{\heap, \store, \bcmd}{\heap', \store'}$}\label{fig:sem:basic:commands}}
 \vspace*{-0.5cm}
 \end{figure}
 
-To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$. Call stacks are lists of tuples of the form $(\pid, \store, \jvar, i, j)$, where: 
+To describe transitions for \jsil commands, we introduce call stacks, denoted~$\ctx$.
+Call stacks are lists of tuples of the form $(\pid, \store, \jvar, i, j)$, where: 
 \dtag{1}~$\pid$~is a procedure identifier;
 \dtag{2}~$\store$~is the store of the procedure that called $\pid$; 
 \dtag{3}~$\jvar$~is the variable to which the return of $\pid$ must be assigned in $\store$; 
@@ -233,7 +236,7 @@ Path conditions are given by the following grammar:
 \pc \triangleq \sexpr_1 = \sexpr_2 \mid \sexpr_1 \leq \sexpr_2 \mid \pc_1 \, \wedge \, \pc_2 \mid \pc_1 \vee \pc_2 \mid \neg \pc \mid \jtrue \mid \jfalse
 \end{equation*}
 
-\begin{figure}[!t]
+\begin{figure*}[!t]
 {\scriptsize
 \begin{mathpar} 
 %
@@ -438,12 +441,12 @@ Path conditions are given by the following grammar:
 \vspace*{-0.4cm}
 \caption{Symbolic Semantics for \jsil Basic Commands: {$\symbtrans[][\mode][\mode']{\sheap, \sstore, \bcmd, \pc}{\sheap', \sstore', \pc'}$}\label{fig:symbexe:bcmds}}
 \vspace*{-0.4cm}
-\end{figure}
+\end{figure*}
 %\end{display}  
 
 
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Basic Command}]
@@ -513,7 +516,7 @@ Path conditions are given by the following grammar:
  \vspace*{-0.4cm}
 \caption{Symbolic Semantics for \jsil Commands: {$\symbtrans{\sheap, \sstore, i, \pc}{\sheap', \sstore', j, \pc'}[\sctx][\sctx']$}\label{fig:symbexe:cmds}}
  \vspace*{-0.4cm}
-\end{figure}
+\end{figure*}
 
 To avoid clutter, we conflate logical values with \jsil logical values and \jsil logical 
 operators with the boolean logical operators. Alternatively, we could have chosen to 
@@ -561,7 +564,7 @@ We now present our theoretical results. We denote the reflexive-transitive closu
 %\vspace*{-0.3cm}
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.83\textwidth]{figures/symbSemEx.png}
+\includegraphics[width=\linewidth]{figures/symbSemEx.png}
 \vspace*{-0.1cm}
 \caption{Example of a \jilette symbolic execution}
 \label{fig:sexecexample}
@@ -1031,15 +1034,15 @@ on a symbolic value is encountered, the symbolic execution stops.
 \section{Symbolic Testing for JavaScript}
 \label{sec:sym:exec:js}
 
-\begin{wrapfigure}{R}{0.58\textwidth}
-\vspace*{-0.4cm}
+\begin{figure}[h]
+%\vspace*{-0.4cm}
 \centering
-\includegraphics[width=0.57\textwidth]{figures/jilette_blue.png}
-\vspace*{-0.2cm}
+\includegraphics[width=\linewidth]{figures/jilette_blue.png}
+%\vspace*{-0.2cm}
 \caption{\jilette: Symbolic execution for JavaScript}
-\vspace*{-0.3cm}
+%\vspace*{-0.3cm}
 \label{fig:jilette:diagram}
-\end{wrapfigure}
+\end{figure}
 
 Symbolic execution designed directly on JavaScript is not feasible, for the same reasons verification is not~\cite{JoseCADE}: the semantics of the language is too complex, with numerous intertwined internal functions called under the hood. 
 In particular, the simple assignment alone would have more than twenty potential branchings. 
@@ -1211,7 +1214,7 @@ evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:e
 because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
 
  \begin{figure}[t!]
- \begin{minipage}{0.56\textwidth}
+ \begin{subfigure}{\linewidth}
  \begin{lstjs}[firstnumber=1]
 function Map () { this._contents = {} }
 
@@ -1232,19 +1235,22 @@ Map.prototype.put = function (k, v) {
 
 Map.prototype.validKey = function (k) { ... }
 \end{lstjs}
-\end{minipage}
-\ 
- \begin{minipage}{0.43\textwidth}
- \vspace*{-0.3cm}
- \hspace*{-1.2cm}
- \includegraphics[width=1.2\textwidth]{figures/mapDiagram.png}
- \end{minipage}
-\vspace*{-0.3cm}
-\caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
-\vspace*{-0.5cm}
+\caption{JS map implementation}
+\end{subfigure}
+
+\begin{subfigure}{\linewidth}
+%\vspace*{-0.3cm}
+%\hspace*{-1.2cm}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/mapDiagram.png}
+\caption{Example heap for the map library}
+\end{subfigure}
+%\vspace*{-0.3cm}
+\caption{JS map implementation (top) and example of a map library heap (bottom) \label{map:example}}
+%\vspace*{-0.5cm}
 \end{figure}
 
-\myparagraph{Bug-finding}
+\myparagraph{Bugfinding}
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 

@@ -369,7 +369,8 @@ The second and third examples of Table~\ref{example:symb:states:vs:assertions} i
 	    \pc = \{ \sexprp_i \mid_{i = 0}^n \} \subseteq \sexpr_d 
 	}{ \unificationefl{\sheap}{\emptyfields{\loc}{\sexpr_d}}{} =  \pc  } 
 %
-\qquad
+\\
+
 \inferrule[\textsc{NR-Unification}]
 	{}{ \unificationef{\sheap}{\efs} =  \bigwedge_{\efa \in \efs}  \unificationefl{\sheap}{\efa}} 
 \\
@@ -571,8 +572,8 @@ The {\bf proofs} of the above results are given in the Appendix.
 \subsection{Compiling \jsil Logic Specifications to Symbolic Tests}
 \label{specs:to:symbolic:tests}
 
-\begin{figure}
-{\scriptsize
+\begin{figure*}
+\begin{center}
 $$
 \begin{array}{ll}
 \testify{\fnormal}(\fid, \svar_i\mid_{i=0}^n, \pc, Q) \ \semeq & \\
@@ -628,11 +629,12 @@ $$
      %
       \dspc \dspc \dspc (\proc, \sheap) 
 \end{array}
-$$}
+$$
 \vspace*{-0.2cm}
 \caption{Symbolic Test Generation Algorithm~\label{fig:test:generation}}
 \vspace*{-0.2cm}
-\end{figure}
+\end{center}
+\end{figure*}
 
 
 \myparagraph{\jsil Logic specifications}
@@ -733,7 +735,7 @@ Finally, we run the generated \jsil symbolic tests on the \jsil symbolic executi
 
 \begin{figure}[t!]
 \centering
-\includegraphics[width=0.6\textwidth]{figures/symbvsass.png}
+\includegraphics[width=\linewidth]{figures/symbvsass.png}
 
 \vspace*{-0.7cm}
 {\small $$
@@ -794,7 +796,7 @@ Below, we show the relevant parts of the specifications of \jsinline|get(k)| and
  \jsinline|k| already exists in the map:
 
 \noindent
-\begin{minipage}{0.475\textwidth}
+\begin{minipage}{\linewidth}
 \begin{displaymath} 
 {\scriptsize
 \hspace*{-0.2cm}
@@ -814,7 +816,7 @@ Below, we show the relevant parts of the specifications of \jsinline|get(k)| and
 \end{displaymath}
 \end{minipage}
 \quad
-\begin{minipage}{0.48\textwidth}
+\begin{minipage}{\linewidth}
 %
 \begin{displaymath} 
 {\scriptsize
@@ -842,7 +844,7 @@ The predicate \jsinline|MapProto| specifies the resource of a valid map prototyp
 
 \begin{figure}[t!]
 \centering
-\includegraphics[width=0.9\textwidth]{figures/heapfail.png}
+\includegraphics[width=\linewidth]{figures/heapfail.png}
 \caption{Property shadowing: \jsinline|c.hasOwnProperty(...)| cannot reach \jsinline|Object.prototype|.} 
 \label{fig:cexget}
 \vspace{-0.5cm}
