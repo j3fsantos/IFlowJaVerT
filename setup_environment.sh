@@ -18,3 +18,4 @@ cp -r environment test262/environment
 mkdir -p environment/concrete
 cp src/Cosette/Tests/concrete/*.js environment/concrete
 cp test_concrete_cosette.sh environment
+cp test_single_file.sh environment
