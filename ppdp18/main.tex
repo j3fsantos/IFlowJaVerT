@@ -14,6 +14,7 @@
 \usepackage{booktabs}
 \usepackage[utf8]{inputenc}
 \usepackage{wrapfig}
+\usepackage{subcaption}
 
 \usepackage{macros_js}
 \usepackage{gdshojs}
@@ -258,17 +259,31 @@ Second, building on \jilette, we develop a tool for debugging separation logic s
 \section{Introduction}
 \input{sections/introduction}
 
-\section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
-\input{sections/jilette}
+\section{Background}
+\input{sections/background}
 
-\section{Debugging Separation Logic Specifications}\label{sec:specs}
-\input{sections/specs}
+\section{Overview}
+\input{sections/overview}
 
+\section{Extending Symbolic Execution with Separation Logic Assertions}
+\input{sections/assertions}
+
+\section{Compiling Specifications to Tests}
+\input{sections/testing}
+
+\clearpage
 \newpage
-\section{Evaluation}\label{sec:evaluation}
-\input{sections/evaluation}
+
+\section{OLD -- Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
+\input{sections/old_jilette}
+
+\section{OLD -- Debugging Separation Logic Specifications}\label{sec:specs}
+\input{sections/old_specs}
+
+\section{OLD -- Evaluation}\label{sec:evaluation}
+\input{sections/old_evaluation}
 
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sample-bibliography}
+\bibliography{biblio}
 
 \end{document}

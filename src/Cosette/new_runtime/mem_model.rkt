@@ -595,7 +595,7 @@
 ;;
 (define (heap-get-obj heap object)
   (let*
-      (obj (lht-value heap object))
+      ((obj (lht-value heap object)))
     (if (eq? obj empty) (error (format "Error: ~v is not in the heap." object)) obj)))
 
 ;;
