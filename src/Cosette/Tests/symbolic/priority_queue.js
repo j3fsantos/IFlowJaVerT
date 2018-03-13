@@ -59,13 +59,13 @@ var p3 = symb_number (p3);
 var s3 = symb_number (s3);
 q = new PriorityQueue();
 
-assume ((p1 < p2) and (p2 < p3));
+Assume ((p1 < p2) and (p2 < p3));
 
 q.enqueue (p1, s1); 
 q.enqueue (p2, s2); 
 q.enqueue (p3, s3); 
 r = (q.dequeue()).val;
-assert (r = s3); 
+Assert (r = s3); 
 r
 
 
