@@ -62,6 +62,7 @@ environment
 *.aux
 *.out
 *.log
+*.synctex.gz
 tutorial/main.pdf
 
 # Rosette
