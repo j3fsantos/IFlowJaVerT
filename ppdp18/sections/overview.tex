@@ -1,42 +1,74 @@
 %!TEX root = ../main.tex
- 
+\subsection{Symbolic Testing by Example} 
+\label{symbolic:testing}
+
+We illustrate how \jilette can be used to write symbolic tests for JavaScript code by using the JavaScript implementation 
+of a  \emph{key-value map} given in Figure~\ref{map:example}~(left). 
+This implementation contains four functions: 
+\jsinline|Map|, for constructing an empty map;
+\jsinline|get|, for retrieving the value associated with the key given as input;
+\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values of existing keys; and
+\jsinline|validKey|, for deciding whether a key is valid.
+
+\myparagraph{Prototype chains and $\mathtt{Object.prototype}$}
+In order to better understand the implementation of the map library as well as its possible bugs, 
+one must first understand the \emph{prototype-based inheritance} mechanism of JavaScript. 
+Every JavaScript object has a prototype, which (for presentation purposes) we assume to 
+be stored  in an internal property \jsinline|@proto|. In order to determine the value of a property
+\jsinline|p| of an object \jsinline|o|, the semantics first checks if \jsinline|o| has a 
+property named \jsinline|p|, in which case the property look-up yields its value. Otherwise, the 
+semantics checks if \jsinline|p| belongs to the properties of the prototype of \jsinline|o| and so 
+forth. Hence, in the example, when looking up the value of the property \jsinline|hasOwnProperty|
+of the object \jsinline|contents|, one gets the value associated with the property  \jsinline|hasOwnProperty|
+of its prototype.
+The sequence of objects that can be accessed from a given object through the inspection 
+of the respective prototypes is called a \emph{prototype chain}.
+Prototype chains typically finish with the object \jsinline|Object.prototype| from which JavaScript 
+programs can access a number of built-in functions, which are part of the language runtime environment and are used for inspecting and manipulating objects.
+An example of such a function is \jsinline|hasOwnProperty(p)|, which checks whether or not the object 
+on which it is invoked has the property \jsinline|p| (e.g. {\small \jsinline|map.hasOwnProperty("_contents")|}
+evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:example}-(right), 
+because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
+
+ \begin{figure}[t!]
+ \begin{subfigure}{\linewidth}
+ \begin{lstjs}[firstnumber=1]
+function Map () { this._contents = {} }
+
+Map.prototype.get = function (k) {
+  var c = this._contents;
+  if (c.hasOwnProperty(k)) {
+    return this._contents[k] 
+  } else { return null }
+}
+
+Map.prototype.put = function (k, v) {
+  var c = this._contents;
+  if this._contents.validKey(k)) {  
+    contents[k] = v   
+  } else
+    throw new Error("Invalid Key");
+} 
+
+Map.prototype.validKey = function (k) { ... }
+\end{lstjs}
+\caption{JS map implementation}
+\end{subfigure}
+
+\begin{subfigure}{\linewidth}
+%\vspace*{-0.3cm}
+%\hspace*{-1.2cm}
+\centering
+\includegraphics[width=0.8\textwidth]{figures/mapDiagram.png}
+\caption{Example heap for the map library}
+\end{subfigure}
+%\vspace*{-0.3cm}
+\caption{JS map implementation (top) and example of a map library heap (bottom) \label{map:example}}
+%\vspace*{-0.5cm}
+\end{figure}
+
 \subsection{Compiling JaVerT Specifications to Symbolic Tests} 
 \label{specs:example}
-
-\myparagraph{\javert Specifications} 
-\javert specifications of JavaScript functions are analogous to \jsil specifications of \jsil procedures, and are of the form $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$. A~\javert specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
-is valid for a JavaScript program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$, 
-if and only if $\jstmt$ contains a function literal with identifier $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P_\jssuffix$, then, 
-if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mode $\flag$''. The assertion language used by \javert is very similar to the assertion language of \jsil Logic and is described in detail in~\cite{javert}.
-There, the authors present 
-a compiler from \javert specifications to \jsil Logic specifications, denoted by $\ltr$, and prove the soundness 
-of that compiler, assuming a correct compiler $\compile$ from JavaScript to~\jsil.
-This theoretical result ensures that the verification of \jsil programs can be lifted to   the verification of JavaScript programs. More concretely, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
-is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
-$\ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag})$ is valid for the compilation 
-of $\jstmt$ by a correct compiler $\compile$. Put formally:  
-\begin{equation}
-   \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
-      \iff
-           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}).
-\end{equation}
-
-We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. First, we convert the JavaScript program and its \javert specification to a \jsil program with its \jsil Logic specification, using the \JSComp and $\ltr$ compilers. Next, we 
-generate a set of symbolic tests from the obtained \jsil program and \jsil Logic specification, as described in \S\ref{specs:to:symbolic:tests}. 
-Finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. If \jilette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
-
-\begin{figure}[t!]
-\centering
-\includegraphics[width=\linewidth]{figures/symbvsass.png}
-
-\vspace*{-0.7cm}
-{\small $$
-\text{\emph{Negative resource constraints: }} \{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}
-$$}
-\vspace{-0.8cm}
-\caption{Assertion vs. Symbolic Heap: {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}}\label{fig:symb:state:versus:assertion}
-\vspace{-0.5cm}
-\end{figure}
 
 \myparagraph{Example}
 We illustrate the debugging of SL-specifications by appealing to the \jsinline|Map| example shown in Figure \ref{map:example}. In order to reason about a key-value map,
