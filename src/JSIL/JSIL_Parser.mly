@@ -137,6 +137,7 @@ let copy_and_clear_globals () =
 %token SEPASSERT
 %token RNUMSYM
 %token RSTRSYM
+%token RUNTYPEDSYM
 %token LSTNTH
 %token STRNTH
 (* Command keywords  *)
@@ -474,6 +475,9 @@ expr_target:
 (* make_symbol_string(x) *)
   | RSTRSYM; LBRACE; x=option(VAR); RBRACE
 	  { RStrSymb x }
+(* make-untyped-sym(x) *)
+	| RUNTYPEDSYM; LBRACE; x=option(VAR); RBRACE
+	  { RUntypedSymb x }
 (* (e) *)
   | LBRACE; e=expr_target; RBRACE
 		{ e }

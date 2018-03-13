@@ -132,6 +132,7 @@ rule read = parse
 	| "assume"             { JSIL_Parser.ASSUME          }
 	| "make-symbol-number" { JSIL_Parser.RNUMSYM         }
 	| "make-symbol-string" { JSIL_Parser.RSTRSYM         }
+	| "make-untyped-symbol"{ JSIL_Parser.RUNTYPEDSYM     }
 	| "l-nth"              { JSIL_Parser.LSTNTH          }
 	| "s-nth"              { JSIL_Parser.STRNTH          }
 (* Command keywords *)
