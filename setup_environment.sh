@@ -5,6 +5,9 @@ cp src/Cosette/new_runtime/interpreter.rkt environment
 cp src/Cosette/new_runtime/util.rkt environment
 cp src/Cosette/new_runtime/internals_racket.rkt environment 
 cp src/Cosette/new_runtime/assertions.rkt environment
+
+cp src/Cosette/new_runtime/racket/*.rkt environment
+
 cp src/JS2JSIL/runtime/*.jsil environment
 cp src/JS2JSIL/runtime/harness.js environment
 cp src/JaVerT/runtime/* environment
