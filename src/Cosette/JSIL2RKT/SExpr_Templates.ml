@@ -49,6 +49,24 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
   (run-program prog-full (register-racket-methods hp)))
 "
 
+
+let (template_procs_jsil_racket: ('a -> 'b, unit, string) format) = "
+#lang rosette
+
+(require (file \"mem_model.rkt\"))
+(require (file \"interpreter.rkt\"))
+
+(define prog
+	(program
+		%s
+	)
+)
+
+(run-program prog (make-heap))
+"
+
+
+
 let (template_wp_racket:  ('a -> 'b, unit, string) format) = "
 #lang rosette
 

@@ -688,6 +688,17 @@
       (cons (car heap) (heap-delete-object (cdr heap) object))]))
 
 
+;; Replace object at loc with new-obj
+(define (heap-replace-object heap loc new-obj)
+  (cond
+    [(null? heap) (list (cons loc new-obj))]
+    [(equal? (car (car heap)) loc)
+     ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
+     (cons (cons loc new-obj) (cdr heap))]
+    [ else
+      (cons (car heap) (heap-replace-object (cdr heap) loc new-obj))]))
+
+
 ;;
 ;;
 ;;
@@ -759,7 +770,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap cell get-new-loc make-jsil-list heap-delete-prop heap-delete-object is-loc? is-operator?) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap cell get-new-loc make-jsil-list heap-delete-prop heap-delete-object is-loc? is-operator? heap-replace-object) ;; heap-contains?
 
 
 ;; stores - my stuff

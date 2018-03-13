@@ -88,14 +88,17 @@ let main () =
   	
   	(* serializing the which_pred table *)
   	let wp_array_str = SExpr_Print.print_which_pred which_pred in
-  	let str_wp = Printf.sprintf SExpr_Templates.template_wp_racket wp_array_str in
+  	let str_wp =Printf.sprintf SExpr_Templates.template_wp_racket wp_array_str in 
   	burn_to_disk ("wp.rkt") str_wp;
   	
   	(* I have to understand what this is doing *)
   	(* let _ = Hashtbl.iter (fun k _ -> if (Hashtbl.mem int_prog k) then (Hashtbl.remove prog k)) prog in *)
   	
   	let sprog = SExpr_Print.sexpr_of_program prog false in
-  	let sprog_in_template = Printf.sprintf SExpr_Templates.template_procs_racket sprog in
+  	let sprog_in_template =
+      (match !js with
+      | false -> Printf.sprintf SExpr_Templates.template_procs_jsil_racket sprog
+      | true  -> Printf.sprintf SExpr_Templates.template_procs_racket sprog) in
   	let filename = Filename.chop_extension !file in
   	let just_the_filename = Filename.basename filename in
   	print_endline just_the_filename;

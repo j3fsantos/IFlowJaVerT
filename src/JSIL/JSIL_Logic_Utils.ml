@@ -1816,13 +1816,13 @@ let filter_vars vars ignore_vars : SS.t =
 	SS.diff vars ignore_vars
 
 let star_asses asses =
-	List.fold_left
-		(fun ac a ->
+	List.fold_right
+		(fun a ac ->
 			if (not (a = LEmp))
 				then (if (ac = LEmp) then a else LStar (a, ac))
 				else ac)
-		 LEmp
 		asses
+		LEmp
 
 
 
