@@ -7,6 +7,8 @@ function baz () {
 }
 
 var n1 = symb_number (n1);
+
+if (n1 === n1) { 
 var z; 
 
 if (n1 > 0) { 
@@ -17,3 +19,4 @@ if (n1 > 0) {
 
 var s = z (); 
 Assert (not ((s-len s) < 4))
+}
