@@ -11,7 +11,7 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 3)
+(define max-depth 7)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -391,9 +391,11 @@
               (kill expr-val)]
              
              [(eq? expr-val #t)
+                (print-info proc-name (format "THEN BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx then-label cur-index)]
              
              [(eq? expr-val #f)
+                (print-info proc-name (format "ELSE BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else

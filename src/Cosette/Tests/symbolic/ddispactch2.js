@@ -1,9 +1,9 @@
 function foo () { 
-	return "foo"
+	return "bazuca"
 }
 
 function baz () { 
-	return "bazuca"
+	return "foo"
 }
 
 var n1 = symb_number (n1);
