@@ -15,12 +15,10 @@
 
 (define (op-assert e) 
   (set! current-assertions (and current-assertions e))
-  (println (format "Assertions: ~v" current-assertions))
   #t)
 
 (define (op-assume e)
   (set! current-assumptions (and current-assumptions e))
-  (println (format "Assumptions: ~v" current-assumptions))
   #t)
 
 
