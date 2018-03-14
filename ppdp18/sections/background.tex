@@ -20,8 +20,9 @@ this is the background section
 %	 Locs: $\loc \in \locs$ & Vars: $\jvar \in \jvars$ & Types: $\ivltype \in \ivltypes$ \\[0.1cm]
 	\multicolumn{3}{l}{$\val \in \vals$ \defeq \ $\jnumber \mid \jbool \mid \jstring \mid  \jsundefined \mid \jsnull \mid \loc \mid \ivltype \mid \fid \mid \jsilempty$} \\[0.1cm]
 	\multicolumn{3}{l}{$\jsilexpr \in \exprs$ \defeq \ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
-	\multicolumn{3}{l}{$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
-	\multicolumn{3}{l}{\phantom{$\bcmd \in \bcmds$ \defeq} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
+	\multicolumn{3}{l}{$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid$} \\[0.1cm]
+	\multicolumn{3}{l}{\phantom{$\bcmd \in \bcmds$ \defeq} $ [\jsilexpr, \jsilexpr] := \jsilexpr \mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid$} \\[0.1cm]
+	\multicolumn{3}{l}{\phantom{$\bcmd \in \bcmds$ \defeq} $\jvar := \getfields(\jsilexpr) \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
 	% Commands
 	\multicolumn{3}{l}{$\ivlcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$} \\[0.1cm]
 	\multicolumn{3}{l}{$\proc \in \procset$ \defeq \ $\procedure{\fid}{\jvec{\jvar}}{\jvec{\ivlcmd}}$}
@@ -157,29 +158,28 @@ which simply removes the none-cells from the instrumented heap given as input.  
 
 \begin{display}{\jsil Logic Assertions - Syntax and Semantics}
 %
-{\scriptsize \begin{tabular}{lll}
+\begin{tabular}{llll}
   %%%% 
-  $\quad \lexpr \triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
-  %%%%
-  $\quad P_\pc\triangleq$ & $\jtrue \mid \jfalse \mid  \neg P_\pc \mid P_\pc \land P_\pc \mid P_\pc \lor P_\pc  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{~{Pure Assertions}} \\
-  $\quad P\triangleq$ & $P_\pc \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. P \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{~Assertions} \\
-\end{tabular}} \\ [5pt]
+  $\quad \lexpr$ & $\triangleq$ & $\lit \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ &   \text{ Logical Expressions} \\[3pt]
+  $\quad P_\pc$ & $\triangleq$ & $\jtrue \mid \jfalse \mid  \neg P_\pc \mid P_\pc \land P_\pc \mid P_\pc \lor P_\pc  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$ & \text{~{Pure Assertions}} \\
+  $\quad P$ & $\triangleq$ & $P_\pc \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. P \mid P \sep P  \mid \emptyfields{\lexpr}{\lexpr} $ &  \text{~Assertions} \\
+\end{tabular} \\ [5pt]
   %%%%%
   %%%%%
   
 \quad 
-{\scriptsize
 \begin{tabular}{lll} 
        $\iheap, \store, \senv  \satisfies  \lemp$ & $\Leftrightarrow$ & $\iheap = \hemp$  \\[2pt]
            %
 	   $\iheap, \store, \senv  \satisfies (\lexpr_1,\lexpr_2)\pointsto \lexpr_3$  &
             $\Leftrightarrow$ & $\iheap =  \hcell{\symbeval{\lexpr_1}{\store, \senv}}{\symbeval{\lexpr_2}{\store, \senv}}{\symbeval{\lexpr_3}{\store, \senv}}$  \\[2pt]
            % 
-           $\iheap, \store, \senv  \satisfies P \sep Q$ & $\Leftrightarrow$ & $\exists \iheap_1, \iheap_2.  \, \iheap = \iheap_1 \dunion \iheap_2\ \wedge \ \iheap_1,  \store, \senv  \satisfies P \, \wedge \, \iheap_2,  \store, \senv \satisfies Q$ \\[2pt]
+           $\iheap, \store, \senv  \satisfies P \sep Q$ & $\Leftrightarrow$ & $\exists \iheap_1, \iheap_2.  \, \iheap = \iheap_1 \dunion \iheap_2$ \\[2pt]
+           & & $\wedge \ \iheap_1,  \store, \senv  \satisfies P \, \wedge \, \iheap_2,  \store, \senv \satisfies Q$ \\[2pt]
            %
            $\iheap, \store, \senv  \satisfies  \emptyfields{\lexpr_1}{\lexpr_2}$  &
                 $\Leftrightarrow$ & $\iheap = \biguplus_{s \not\in \{ \symbeval{\lexpr_2}{\store, \senv} \}} ((\symbeval{\lexpr_1}{\store, \senv}, s) \pointsto \none)$
-\end{tabular}}
+\end{tabular}
 \end{display}
 %
 For convenience, we define: 

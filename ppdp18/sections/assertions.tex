@@ -453,14 +453,7 @@ return their conjunction.
 
 
 \begin{display}{Unification of General Assertions}
-\inferrule[\textsc{Success}]
- { 
-    \exists \subst . \, \symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs')
-    \\\\ \unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{}
- }{\unificationfullP{\sheap, \sstore, \pc}{P}{}}
-%
- \qquad
- %
+%\centering
  \inferrule[\textsc{Failure}]
  { 
      P \equiv (\existentials, -, -, -) 
@@ -473,6 +466,15 @@ return their conjunction.
            \, \wedge \,  \unificationfullfail{\sheap, \pc}{\cells, \efs, \pfs'}{}{\pc_k}  \big)
      %
  }{\unificationfullfailP{\sheap, \sstore, \pc}{P}{\wedge_{0 \leq k \leq n} \pc_k}}
+ 
+ \\
+ 
+ \inferrule[\textsc{Success}]
+ { 
+    \exists \subst . \, \symbeval{\subst(P)}{\sstore} \equiv (\emptyset, \cells, \efs, \pfs')
+    \\\\ \unificationfull{\sheap, \pc}{\cells, \efs, \pfs'}{}
+ }{\unificationfullP{\sheap, \sstore, \pc}{P}{}}
+
  \end{display}
 
 We can now give the \emph{implemented} symbolic semantics for the command $\sepassert(P)$ 

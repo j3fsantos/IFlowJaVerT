@@ -82,7 +82,8 @@ Map (m, kvs) :=
  \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
 KVPairs (o, kvs) := 
   (kvs = \{ \}),
-  (kvs = (k, v) -u- kvs') * ValidKey(k) * DataProp(o, k, v) * KVPairs(o, kvs')
+  (kvs = (k, v) -u- kvs') * ValidKey(k) *
+  DataProp(o, k, v) * KVPairs(o, kvs')
 \end{Verbatim}
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
 ValidKey (k) := types(k : Str) * \textcolor{red}{(k <> "hasOwnProperty")}
