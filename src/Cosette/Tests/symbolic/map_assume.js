@@ -6,7 +6,7 @@ function Map () {
 }
 
 function isValidKey (key) {
-    return (typeof (key) === 'string') && (key !== "") && (key[0] !== "@"); 
+    return (typeof (key) === 'string') && (key !== '') && (key[0] !== "@"); 
 }
 
 
@@ -38,8 +38,10 @@ var s1 = symb_string (s1);
 var n1 = symb_number (n1);
 var m = new Map(); 
 
-assume((not (s1 = "")) and (not (s-nth(s1, 0) = "@")));
+Assume(not (s1 = ""));
+Assume(not (s-nth(s1, 0) = "@"));
 
 m.put(s1, n1); 
 var key_val = m.get(s1); 
+
 Assert(key_val = n1)

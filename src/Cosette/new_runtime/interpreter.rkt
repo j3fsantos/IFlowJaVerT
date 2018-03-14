@@ -391,9 +391,11 @@
               (kill expr-val)]
              
              [(eq? expr-val #t)
+                (print-info proc-name (format "THEN BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx then-label cur-index)]
              
              [(eq? expr-val #f)
+                (print-info proc-name (format "ELSE BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else
