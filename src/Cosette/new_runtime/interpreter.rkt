@@ -11,7 +11,9 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 3)
+(define max-depth 7)
+
+(current-bitwidth #f)
 
 (define (generate-tabs n)
   (let ((tab "    "))
@@ -391,9 +393,11 @@
               (kill expr-val)]
              
              [(eq? expr-val #t)
+                (print-info proc-name (format "THEN BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx then-label cur-index)]
              
              [(eq? expr-val #f)
+                (print-info proc-name (format "ELSE BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else
@@ -564,25 +568,27 @@
 
 (define (run-program prog heap)
   (jsil-discharge)
-  (let* ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-         (outcome-success (solve (assert (or (and (get-assumptions) (not success)) (and (get-assumptions) success (not (get-assertions))))))))
-         ;;(outcome-failure (solve (assert failure)))
-         ;;(outcome-success-assume (solve (assert (and (get-assumptions) success))))
-         ;;(outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
-    ;;(print "Assumptions: ")
-    ;;(println (get-assumptions))
-    ;;(print "Assertions: ")
-    ;;(println (get-assertions))
-    ;;(print "Success: ")
-    ;;(println success)
-    ;;(print "Failure: ")
-    ;;(println success)
-    ;;(println (format "Outcome Success: ~v" outcome-success))
-    ;;(println (format "Outcome Failure: ~v" outcome-failure))
-    ;;(println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
-    ;;(println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
+  (let* (
+    (outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
+    (outcome-assumptions-and-failure (solve (assert (and (get-assumptions) (not success)))))
+    (outcome-assumptions-success-and-not-assertions (solve (assert (and (get-assumptions) success (not (get-assertions))))))
+    (outcome-failure (solve (assert failure)))
+    (outcome-success-assume (solve (assert (and (get-assumptions) success))))
+    (outcome-failure-assume (solve (assert (and (get-assumptions) failure)))))
+    (print "Assumptions: ")
+    (println (get-assumptions))
+    (print "Assertions: ")
+    (println (get-assertions))
+    (print "Success: ")
+    (println success)
+    (print "Failure: ")
+    (println failure)
+    (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
+    (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
+    (println (format "Outcome Failure: ~v" outcome-failure))
+    (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
+    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (set! global-outcome outcome)
-    (println outcome-success)
     (terminate outcome)))
 
   
