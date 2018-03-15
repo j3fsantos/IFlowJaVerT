@@ -72,7 +72,7 @@
               (rhs-val   (run-expr rhs-expr store))
               (heap      (mutate-heap heap loc-val prop-val rhs-val)))
         ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
-         (print-info proc-name (format "[~v, ~v] := ~v" loc-expr prop-expr rhs-expr))
+         (print-info proc-name (format "[~v:~v, ~v:~v] := ~v:~v" loc-expr loc-val prop-expr prop-val rhs-expr rhs-val))
          (cons heap store))]
       ;;
       ;; ('v-assign lhs-var e)
@@ -133,7 +133,7 @@
               (result (heap-get heap loc-val prop-val))
               ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
               (store (mutate-store store lhs-var result)))
-         (print-info proc-name (format "~v := [~v, ~v]" lhs-var loc-val prop-val))
+         (print-info proc-name (format "~v := [~v:~v, ~v:~v] : ~v" lhs-var loc-expr loc-val prop-expr prop-val result))
          (cons heap store))]
       ;;
       ;; ('arguments lhs-var)
