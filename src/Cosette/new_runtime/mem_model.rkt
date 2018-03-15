@@ -617,8 +617,8 @@
              (result '()))
     (cond
       [(null? object) result]
-      [(and (pair? (car object)) (is-llist? (cdr (car object))))
-        (loop (cdr object) (cons (car (car object)) result))]
+      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) #\@)))
+        (loop (cdr object) (cons (caar object) result))]
       [else (loop (cdr object) result)])))  
 
 ;;
