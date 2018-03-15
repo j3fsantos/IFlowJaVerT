@@ -377,9 +377,11 @@
   (list
     (cons '= 
     	(lambda (x y)
-    		(cond 
-    		[(and (eq? x +nan.0) (eq? y +nan.0)) #f]
-    		[else (eq? x y)])))
+        (if (and (integer? x) (integer? y))
+    		  (eq? x y)
+          (cond 
+    		    [(and (eq? x +nan.0) (eq? y +nan.0)) #f]
+    		    [else (eq? x y)]))))
 
     (cons '<
           (lambda (x y)
