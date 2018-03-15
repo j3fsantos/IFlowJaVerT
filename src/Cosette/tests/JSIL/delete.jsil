@@ -1,0 +1,28 @@
+proc main () {
+			(* Setup properties *)
+			s := make-symbol-string(s);
+
+			(* Setup values *)
+			n := make-symbol-number(n);
+
+			(* Setup heap *)
+			o := new ();
+			[o, s] := n;
+
+			(* RULE: Assignment - Not Found *)
+			delete(o, s);
+
+			(* Assert *)
+			ret1 := [o, s];
+
+			assert (
+				(ret1 = undefined)
+			);
+
+			success;
+	rlab:	xret := $$t
+}
+with
+{
+	ret:	xret, rlab;
+};
