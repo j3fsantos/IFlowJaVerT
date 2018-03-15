@@ -133,7 +133,7 @@
               (result (heap-get heap loc-val prop-val))
               ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
               (store (mutate-store store lhs-var result)))
-         (print-info proc-name (format "~v := [~v, ~v]" lhs-var loc-val prop-val))
+         (print-info proc-name (format "~v := [~v, ~v] (~v)" lhs-var loc-val prop-val result))
          (cons heap store))]
       ;;
       ;; ('arguments lhs-var)
@@ -570,6 +570,7 @@
   (jsil-discharge)
   (let* (
     (outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
+    (outcome-jose  (solve (assert (or (and (get-assumptions) (not success))  (and (get-assumptions) success (not (get-assertions)))))))
     (outcome-assumptions-and-failure (solve (assert (and (get-assumptions) (not success)))))
     (outcome-assumptions-success-and-not-assertions (solve (assert (and (get-assumptions) success (not (get-assertions))))))
     (outcome-failure (solve (assert failure)))
@@ -583,6 +584,7 @@
     (println success)
     (print "Failure: ")
     (println failure)
+    (println (format "Outcome JOSE: ~v" outcome-jose))
     (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
     (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
     (println (format "Outcome Failure: ~v" outcome-failure))
