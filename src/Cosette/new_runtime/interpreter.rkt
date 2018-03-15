@@ -120,7 +120,7 @@
               (prop-list (petar-get-fields heap loc-val))
               (result (cons 'jsil-list prop-list))
               (store (mutate-store store lhs-var result)))
-         (print-info proc-name (format "~v := get-fields(~v)" lhs-var loc-val))
+         (print-info proc-name (format "~v := get-fields(~v) : ~v" lhs-var loc-val result))
          (cons heap store))] 
       ;;
       ;; ('h-read lhs-var e1 e2)
