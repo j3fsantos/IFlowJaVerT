@@ -1,0 +1,25 @@
+proc main () {
+			(* Setup properties *)
+			s1 := make-symbol-string(s1);
+
+			(* Setup values *)
+			n1 := make-symbol-number(n1);
+
+			(* Setup heap *)
+			o := new ();
+			[o, s1] := n1;
+
+			(* RULE: Has-Field *)
+			ret1 := [o, s1];
+
+			assert (
+				(ret1 = n1)
+			);
+
+			success;
+	rlab:	xret := $$t
+}
+with
+{
+	ret:	xret, rlab;
+};
