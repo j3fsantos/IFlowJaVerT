@@ -89,8 +89,8 @@
       [(eq? cmd-type 'new)
        (let* ((lhs-var (second bcmd))
               (loc-val (get-new-loc))
-              (store (mutate-store store lhs-var loc-val))
-              (heap  (mutate-heap  heap  loc-val protop jnull)))
+              (store (mutate-store store lhs-var loc-val)))
+              ;;(heap  (mutate-heap  heap  loc-val protop jnull)))
          (print-info proc-name (format "~v := new()" lhs-var))
          (cons heap store))]
       ;;
