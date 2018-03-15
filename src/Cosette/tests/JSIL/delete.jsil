@@ -1,22 +1,29 @@
 proc main () {
 			(* Setup properties *)
-			s := make-symbol-string(s);
+			s1 := make-symbol-string(s1);
+			s2 := make-symbol-string(s2);
 
 			(* Setup values *)
-			n := make-symbol-number(n);
+			n1 := make-symbol-number(n1);
+			n2 := make-symbol-number(n2);
+
+			(* Initial assumption *)
+			assume(not (s1 = s2));
 
 			(* Setup heap *)
 			o := new ();
-			[o, s] := n;
+			[o, s1] := n1;
+      [o, s2] := n2;
 
 			(* RULE: Assignment - Not Found *)
-			delete(o, s);
+			delete(o, s1);
 
 			(* Assert *)
-			ret1 := [o, s];
+			ret1 := [o, s1];
+      ret2 := [o, s2];
 
 			assert (
-				(ret1 = undefined)
+				(ret1 = undefined) and (ret2 = n2)
 			);
 
 			success;
