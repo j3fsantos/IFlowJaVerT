@@ -1,4 +1,4 @@
-import javert_js_predicates.jsil;
+import javert_js_predicates.jsil; 
 
 spec TypeError_call(xsc, vthis, v)
 [[ types() * (xsc == _lvar_xsc) * (v == undefined) * (vthis == _lvar_vthis) ]]
@@ -179,7 +179,6 @@ normal
 proc canPut (l, prop) {
 			[* unfold Pi(#l, #prop, #d, #ls, #lcls, #lpv) *]
 			xret := "getOwnProperty"(l, prop) with elab;
-			[* fold Pi(#l, #prop, #d, #ls, #lcls, #lpv) *]
 	op:		goto [(xret = undefined)] nop odesc;
 	odesc:		d := l-nth(xret, 0.);
 			goto [(d = "d")] odd nop;
@@ -776,9 +775,7 @@ proc put (l, prop, value, throw) {
 			goto [dd] dd gp;
 	dd:		desc := {{ "g", empty, empty, value, empty, empty, empty }};
 			xret := "defineOwnProperty"(l, prop, desc, throw) with elab;
-			[* fold Pi(#l, #prop, {{ "d", #value, true, #denum, #dconf }}, {{ #l }}, #lvar_19, #lvar_20) *]
 			goto remp;
-			[* fold Pi(#l, #prop, #d, #ls, #lcls, #lpv) *]
 	gp:		xret := "getProperty"(l, prop) with elab;
 			ad := "i__isAccessorDescriptor"(xret);
 			goto [ad] ad def;
@@ -790,7 +787,6 @@ proc put (l, prop, value, throw) {
 	def:		desc := {{ "d", value, true, true, true }};
 			[* unfold Pi(#l, #prop, #d, #ls, #lcls, #lpv) *]
 			xret := "defineOwnProperty"(l, prop, desc, throw) with elab;
-			[* fold Pi(#l, #prop, {{ "d", #value, true, true, true }}, {{ #l }}, #lvar_21, #lvar_22) *]
 			skip;
 	remp:		xret := empty;
 	rlab:		skip;
@@ -829,7 +825,7 @@ error;
 [[ types() * (w == _lvar_w) * (xret == _$l_xret) * (v == _lvar_v) * Extensible (_$l__lvar_195, true) * MetaData (_$l__lvar_195, null) * empty_fields(_$l__lvar_195 : -{ "@class", "@extensible", "@proto" }-) * ((_$l__lvar_195, "@proto") ->@d $lrferr_proto) * ((_$l__lvar_195, "@extensible") ->@d true) * ((_$l__lvar_195, "@class") ->@d "Error") * Extensible (_$l_xret, true) * MetaData (_$l_xret, _$l__lvar_195) * empty_fields(_$l_xret : -{  }-) ]]
 error;
 
- [[ types() * (! (#w == empty)) * (w == #w) * (v == {{ "v", _$l_#obj, #field }}) * ((_$l_#obj, #field) ->@d #lvar_23) ]]
+ [[ types() * (! (#w == empty)) * (! (_$l_#obj == $lg)) * (w == #w) * (v == {{ "v", _$l_#obj, #field }}) * ((_$l_#obj, #field) ->@d #lvar_19) ]]
 [[ types() * (w == _lvar_w) * (xret == empty) * (v == _lvar_v) * ((_$l_#obj, #field) ->@d #w) ]]
 normal;
 
@@ -1206,7 +1202,6 @@ proc getProperty (l, prop) {
 			proto := [m, "@proto"];
 			goto [(proto = null)] rlab call;
 	call:		xret := "getProperty"(proto, prop) with elab;
-			[* fold Pi(#l, #prop, #d, #ls, #cls, #pv) *]
 	rlab:		skip;
 	elab:		skip
 } with {
@@ -1364,7 +1359,7 @@ normal;
 [[ Pi($lg, #field, #d, #ls, #lcls, #lpv) * types(#lpv : List, #ls : List, #d : List, #field : Str, #lcls : List) * (xret == l-nth(#d, 1.)) * (v == _lvar_v) ]]
 normal;
 
- [[ types() * (v == {{ "v", _$l_#obj, #field }}) * ((_$l_#obj, #field) ->@d #value) ]]
+ [[ types() * (! (_$l_#obj == $lg)) * (v == {{ "v", _$l_#obj, #field }}) * ((_$l_#obj, #field) ->@d #value) ]]
 [[ types() * (xret == #value) * (v == _lvar_v) * ((_$l_#obj, #field) ->@d #value) ]]
 normal;
 
@@ -1402,9 +1397,8 @@ proc i__getValue (v) {
 	prim:		prim := "i__isPrimitive"(rbase);
 			goto [prim] is_pr ref;
 	is_pr:		xobj := "i__toObject"(rbase) with pelab;
-			[* fold Pi(xobj, #field, #d, #ls, #lcls, #lpv) *]
 			xret := "getProperty"(xobj, rfield) with pelab;
-			[* unfold Pi(xobj, #field, #d, #ls, #lcls, #lpv) *]
+			[* unfold* Pi *]
 			goto [(xret = undefined)] rlab def;
 	def:		d := l-nth(xret, 0.);
 			xret := l-nth(xret, 1.);
@@ -1466,3 +1460,6 @@ proc SyntaxError (v) {
 	ret: xret, rlab;
 	err: xret, elab;
 };
+
+
+

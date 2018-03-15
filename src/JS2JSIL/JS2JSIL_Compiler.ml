@@ -570,7 +570,7 @@ let annotate_cmd_top_level metadata lcmd =
 			| Some args ->  args
 			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
 		(match new_args with
-	  (* JOSE: I do not understand this case *)
+	    (* JOSE: I do not understand this case *)
 		| [ Literal n ] -> [], []
 		(* PUTVALUE and GETVALUE cases *)
 		| [ arg ]
@@ -604,17 +604,12 @@ let annotate_cmd_top_level metadata lcmd =
 		(* Printf.printf "I found a call to GetValue/PutValue.\n"; *)
 		let fold_lcmds, unfold_lcmds = fold_unfold_pi_macro_for_put_and_get_value (get_args cmd) in
 		let new_metadata =
-			{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
+			{ metadata with post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_hasProperty_call cmd) then (
 			let fold_lcmds, unfold_lcmds = fold_unfold_pi_for_hasProperty (get_args cmd) in
-			(* Printf.printf "I found a call to hasProperty.\n\t%n Folds: %s.\n\tUnfolds: %n!\n"
-				(List.length fold_lcmds)
-				(String.concat ","
-					(List.map JSIL_Print.string_of_lcmd fold_lcmds))
-				(List.length unfold_lcmds); *)
 			let new_metadata =
-				{ metadata with pre_logic_cmds = fold_lcmds; post_logic_cmds = unfold_lcmds } in
+				{ metadata with post_logic_cmds = unfold_lcmds } in
 			(new_metadata, lab, cmd)
 	) else (metadata, lab, cmd)
 

@@ -189,9 +189,9 @@ let rec reduce_assertion ?(no_timing: unit option) ?(gamma : TypEnv.t option) ?(
 			| LNone, e
 			| e, LNone -> LFalse
 
-			(* Abstract and concrete locations, bye bye *)
+			(* Abstract and concrete locations, bye bye 
 			| ALoc _, LLit (Loc _) 
-			| LLit (Loc _), ALoc _ -> LFalse
+			| LLit (Loc _), ALoc _ -> LFalse *)
 			
 			| LLit (String str), LVar x 
 			| LVar x, LLit (String str) ->

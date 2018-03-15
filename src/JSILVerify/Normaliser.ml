@@ -1950,6 +1950,7 @@ let alternative_new_unification_plan
 
 	(* Concrete locations also exist in the store and in the predicates *)
 	let concrete_locs = SS.union concrete_locs (SStore.clocs store) in 
+	let concrete_locs = SS.union concrete_locs (pfs_clocs pf) in 
 	let concrete_locs = SS.union concrete_locs (preds_clocs preds) in
 
 	print_debug "ALTERNATIVE NEW UNIFICATION PLAN.";

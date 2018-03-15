@@ -164,7 +164,9 @@ let pfs_lvars (pfs : PFS.t) : SS.t  =
 let pfs_alocs (pfs : PFS.t) : SS.t =
 	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_alocs a)) SS.empty pfs
 
-
+(** Returns the set containing all the alocs occurring in --pfs-- *)
+let pfs_clocs (pfs : PFS.t) : SS.t =
+	DynArray.fold_left (fun ac a -> SS.union ac (get_asrt_clocs a)) SS.empty pfs
 
 (*************************************)
 (** Predicate Set functions         **)

@@ -294,7 +294,8 @@ let rec js2jsil_assertion
 				LPointsTo (LLit (Loc JS2JSIL_Constants.locGlobName), LLit (String x), (Deletable, desc))
 			| Some i ->
 				let le_er = LLstNth (fe le_sc, LLit (Num (float_of_int i))) in
-				LPointsTo (le_er, LLit (String x), (Deletable, fe le_x))) in
+				let not_lg = LNot (LEq (le_er, LLit (Loc locGlobName))) in 
+				LStar (not_lg, LPointsTo (le_er, LLit (String x), (Deletable, fe le_x)))) in
 		(* add_extra_scope_chain_info fid le_sc a'*)
 		a'
 
