@@ -1,0 +1,26 @@
+proc main () {
+      (* Setup values *)
+      n1 := make-symbol-number(n1);
+      n2 := make-symbol-number(n2);
+
+      (* Setup heap *)
+      o := new ();
+      [o, "foo"] := n1;
+      [o, "bar"] := n2;
+
+      (* RULE: Property Collection *)
+      ofields := getFields(o);
+
+      (* Assert *)
+      ret1 := l-nth(ofields, 0);
+      ret2 := l-nth(ofields, 1);
+
+      assert((ret1 = n1) and (ret2 = n2));
+
+      success;
+  rlab: xret := $$t
+}
+with
+{
+  ret: xret, rlab;
+};
