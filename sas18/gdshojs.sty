@@ -1,0 +1,475 @@
+\newcommand{\jsc}{Java\-Script\xspace}
+
+% Colours
+\newcommand{\red}[1]{{\color{red} #1}}
+\newcommand{\blue}[1]{{\color{blue} #1}}
+
+% Definition style
+%\theoremstyle{plain}
+%\newtheorem{thm}{Theorem}%[section]
+%\newtheorem{lemma}[thm]{Lemma}
+%\newtheorem{corollary}[thm]{Corollary}
+%\theoremstyle{definition}
+%\newtheorem{defn}[thm]{Definition}
+
+
+\newcommand{\semup}[1]{{[#1]}}
+
+%\newcommand{\append}{\ensuremath{{{:}{:}}}}
+\newcommand{\append}{\ensuremath{\mathbin{+\mkern-10mu+}}}
+%\newcommand{\append}{\ensuremath{{\doubleplus}}}
+
+%\newcommand{\command}[1]{\texttt{#1}\xspace}
+%\newcommand{\command}[1]{\ensuremath{\mathsf{#1}}\xspace}
+
+\newcommand{\cmd}{\command{C}}
+\newcommand{\pointsto}{\mapsto}
+\newcommand{\str}[1]{\text{``#1''}}
+\newcommand{\sep}{\mathbin{*}}
+\newcommand{\timplus}{\mathbin{t\mkern-3mu+}}
+\newcommand{\defined}{\downarrow}
+\newcommand{\compose}{\circ}
+%\newcommand{\sepish}{\mathbin{\astrosun}}
+\newcommand{\sepish}{\mathbin{\sqcup\mkern-10mu*}}
+%\newcommand{\bigsep}{\prod}
+%\newcommand{\bigsep}{\mathop{\Large \mathlarger{\mathlarger{*}}}}
+\newcommand{\bigsep}{\circledast}
+\newcommand{\bigsepish}{
+  \begin{tikzpicture}
+    \node [circle,draw,inner sep=0pt,minimum size=10pt]{$\sepish$};
+  \end{tikzpicture}}
+\newcommand{\bigland}[1]{\ensuremath{\bigwedge\limits_{#1}}}
+% \ocircle and \bigcirc both draw circles
+\newcommand{\wand}{\mathbin{-\mkern-6mu *}}
+\newcommand{\wandish}{\mathbin{-\mkern-4mu\sepish}}
+%\newcommand{\st}{\mathrel{.}}
+\newcommand{\strcat}{.}
+\newcommand{\binds}{\mathbin{.}}
+
+\renewcommand{\doteqdot}{\ensuremath{=}}
+
+\newcommand{\undefnd}{\texttt{\&undefined}}
+\newcommand{\nan}{\texttt{\&NaN}}
+\newcommand{\infinity}{\texttt{\&Infinity}}
+\newcommand{\nil}{\js{null}\xspace}
+%\newcommand{\emp}{\texttt{emp}}
+\newcommand{\ls}{\textbf{l}}
+\newcommand{\dotin}{\mbox{$\,\dot{\in}\,$}}
+\newcommand{\notdotin}{\not\!\!\mbox{$\,\dot{\in}\,$}}
+\newcommand{\elem}{\in}
+\newcommand{\notelem}{\not\in}
+\newcommand{\dotelem}{\dotin}
+\newcommand{\notdotelem}{\notdotin}
+
+
+
+%\newcommand{\land}{\wedge}
+%\newcommand{\lor}{\cup}
+\newcommand{\satand}{\ \ \land \ \ }
+\newcommand{\sator}{\ \ \lor \ \ }
+\newcommand{\pipe}{\mathrel{|}}
+\newcommand{\eval}[1]{\llbracket #1 \rrbracket}
+\newcommand{\heval}[1]{\lfloor#1\rfloor}
+\newcommand{\hevalwork}[1]{\text{discardNones}(#1)}
+\newcommand{\satisfies}{\models}
+\newcommand{\takes}{\shortleftarrow}
+
+
+
+
+%\newcommand{\domain}{\command{dom}}
+%\newcommand{\fv}{\command{fv}}
+\newcommand{\env}{\epsilon}%{\command{env}}
+
+
+\newcommand{\Expr}{\E{E}}
+
+
+
+
+
+\newcommand{\evalsto}[1]{\overset{#1}{\longrightarrow}}
+\newcommand{\levalsto}{{\,\longrightarrow\,}}
+\newcommand{\nevalsto}{{\,\not\longrightarrow\,}}
+%\newcommand{\gevalsto}{{\,\leadsto\,}}
+%\newcommand{\gevalsto}{{\,\dot{\longrightarrow}\,}}
+\newcommand{\gevalsto}{{\,{\evalsto{\gamma}}\,}}
+
+
+\newcommand{\fault}{{\command{fault}}}
+
+\newcommand{\funassum}{\vdash}
+\newcommand{\funbag}{\Sigma}
+%% Auxiliary predicates/functions
+%
+% Verbose
+
+%\newcommand{\scope}{\command{scope}}
+%\newcommand{\scopepr}{\command{xscope}}
+%\newcommand{\notscope}{\command{notscope}}
+%\newcommand{\notscopeg}{\command{notscopeglobal}}
+%\newcommand{\proto}{\command{proto}}
+%\newcommand{\protog}{\command{protoglobal}}
+%\newcommand{\getValue}{\command{getValue}}
+\newcommand{\thischain}{\command{thischain}}
+
+
+%% Auxiliary predicates/functions
+%
+% Concise
+
+%\newcommand{\scope}{\ensuremath{\sigma}\xspace}
+\newcommand{\scopepr}{\ensuremath{\overline{\scope}}\xspace}
+\newcommand{\notscope}{\ensuremath{{\not\!\scope}}\xspace}
+\newcommand{\notscopeg}{\ensuremath{\notscope^{\lgo}}\xspace}
+%\newcommand{\proto}{\ensuremath{\pi}\xspace}
+\newcommand{\protog}{\ensuremath{\pi^{\lgo}}\xspace}
+%\newcommand{\getValue}{\ensuremath{\gamma}\xspace}
+
+
+
+
+\newcommand{\get}{\command{get}}
+
+\newcommand{\newobj}{\command{newobj}}
+%\newcommand{\store}{\command{store}}
+\newcommand{\recstore}{\command{recstore}}
+\newcommand{\nones}{\command{nones}}
+\newcommand{\tlist}{\command{list}}
+\newcommand{\tlistseg}{\command{listseg}}
+\newcommand{\storelet}{\textrm{storelet}}
+\newcommand{\plist}{\textrm{plist}}
+\newcommand{\pp}{+\mkern-8mu+}
+
+
+
+\newcommand{\E}[1]{{\ensuremath{\mathit{#1}}}}
+\newcommand{\T}[1]{{\mbox{\textsc{#1}}}}
+
+\newcommand{\lemp}{\texttt{emp}}%{\E{emp}}
+\newcommand{\rv}{\V{\textbf{r}}}
+
+
+\newcommand{\logconst}[1]{\V{#1}}
+\newcommand{\absval}[1]{\V{#1}}
+
+
+\newcommand{\false}{\js{false}}
+\newcommand{\true}{\js{true}}
+\newcommand{\truep}{\textrm{true}}
+\newcommand{\falsep}{\textrm{false}}
+\newcommand{\none}{\emptyset}
+
+
+\newcommand{\I}[1]{{\mbox{\textrm{#1}}}}
+
+
+\newcommand{\List}{\E{Ls}}
+\newcommand{\Lista}{\List_1}
+\newcommand{\Listb}{\List_2}
+%
+
+
+
+
+\newcommand{\LVAL}{{{\V{V}}}}
+\newcommand{\LVAR}{{{\V{X}}}}
+
+
+\newcommand{\rloc}{\loc_{\T r}}
+\newcommand{\bloc}{\loc_{\T b}}
+\newcommand{\refs}{\sortstyle{R}}
+\newcommand{\locb}{\ensuremath{\loc_{\nil}}}
+\newcommand{\strs}{{{\T{STR}}}}
+%\newcommand{\vars}{\sortstyle{X}}
+\newcommand{\primvals}{\ensuremath{\sortstyle{V}_p}}
+%\newcommand{\vals}{\sortstyle{V}}
+\newcommand{\uvals}{\vals^{\T u}}
+\newcommand{\avals}{\ensuremath{\vals^{\T a}}}
+\newcommand{\synval}{\ensuremath{\js{Vals}_{\js{syn}}}}
+\newcommand{\synexp}{\ensuremath{\js{Exps}_{\js{syn}}}}
+\newcommand{\synstmt}{\ensuremath{\js{Stmts}_{\js{syn}}}}
+\newcommand{\synsmallexp}{\ensuremath{\js{SmExps}_{\js{syn}}}}
+\newcommand{\lvals}{\ensuremath{\vals^{\T l}}}
+\newcommand{\valsr}{\ensuremath{\vals^{\T r}}}
+\newcommand{\lhvals}{\ensuremath{\vals^{\T h}}}
+\newcommand{\ivars}{\vars^{\T i}}
+\newcommand{\uvars}{\vars^{\T u}}
+%\newcommand{\lvars}{\vars^{\T l}}
+\newcommand{\sortundef}{\sortstyle{U}}
+\newcommand{\pexps}{\sortstyle{EXPS}}
+\newcommand{\sortnum}{\sortstyle{N}}
+\newcommand{\nats}{\mathbb{N}}
+\newcommand{\jsfuncs}{\sortstyle{JS}}
+\newcommand{\pfuncs}{\sortstyle{FN}}
+\newcommand{\psets}{\sortstyle{ST}}
+\newcommand{\assertions}{\sortstyle{AS}}
+\newcommand{\jslists}{\ensuremath{\sortstyle{LST}_{JS}}}
+\newcommand{\llists}{\ensuremath{\sortstyle{LST}_{L}}}
+\newcommand{\tval}{\textrm{val}}
+\newcommand{\tassertion}{\textrm{assertion}}
+\newcommand{\tarrow}{\ensuremath{\shortrightarrow}}
+
+\newcommand{\types}{\vdash}
+\newcommand{\setoftypes}{\sortstyle{TYP}}
+\newcommand{\tset}{\T{set}}
+
+
+\newcommand{\specschema}{\sortstyle{SPECSCH}}
+\newcommand{\interfaces}{\sortstyle{INTS}}
+\newcommand{\judgements}{\sortstyle{JUD}}
+\newcommand{\req}{REQ}
+\newcommand{\reqs}{REQS}
+\newcommand{\bagospecs}{\sortstyle{ASM}}
+\newcommand{\bagin}{\in}
+
+\newcommand{\scopechains}{\sortstyle{S}}
+
+
+% \T{v} (User Values)\\
+% \T{n} (Integers)\\
+% \T{m} (Strings)\\
+% \T{u} (Undefined)\\
+% \T{r} (References)\\
+% \T{f} (Functions Closures)\\
+% \T{e} (Expressions)
+
+
+\newcommand{\js}[1]{\mbox{\texttt{{\upshape #1}}}}
+
+
+\newcommand{\emptylist}{[\,]}
+
+\newcommand{\ty}{\mathrel{::}}
+\newcommand{\welltyped}{\text{wt}}
+\newcommand{\typesane}{\text{sane}}
+
+\newcommand{\cons}{{:}}
+\newcommand\disj{\mathbin{\#}}
+
+%\newcommand{\internalVar}[1]{\ensuremath{\mathit{#1}}}
+
+\newcommand{\falsity}{\{0,-0,\emptystr,\nil,\undefnd,\nan,\false\}}
+\newcommand{\unds}{\mbox{$\bot$}}
+\newcommand{\undl}{\js{undefined}}
+\newcommand{\und}{\undl}
+\newcommand\this{\js{this}}
+%\newcommand\thisp{\internalVar{@this}}
+%\newcommand\protop{\internalVar{@proto}}
+\newcommand\constructp{\internalVar{@construct}}
+%\newcommand\bodyp{\internalVar{@body}}
+%\newcommand\fscopep{\internalVar{@scope}}
+%\newcommand\scopep{\internalVar{@scope}}
+\newcommand\emptystr{\text{``\,"}}
+
+\newcommand\chain{\command{chain}}
+\newcommand\schain{\command{schain}}
+\newcommand\schaings{\command{schain}_{gs}}
+%\newcommand\defs{\command{defs}}
+%\newcommand\activ{\command{act}}
+%\newcommand\func{\command{fun}}
+%\newcommand\pickThis{\command{This}}
+%\newcommand\istrue{\command{True}}
+%\newcommand\isfalse{\command{False}}
+%\newcommand\objOrGlob{\command{SelectProto}}
+\newcommand\getBase{\command{getBase}}
+%\newcommand\parse{\command{parse}}
+%\newcommand\obj{\command{obj}}
+\newcommand\fresh{\command{fresh}}
+\newcommand{\vardecls}{\command{decls}}
+%\newcommand{\ReadWrite}{\command{RW}}
+%\newcommand{\ReadOnly}{\command{RO}}
+
+\newcommand{\rsep}{\qquad}
+\newcommand{\gap}{8pt}
+\newcommand{\midgap}{10pt}
+\newcommand{\biggap}{20pt}
+\newcommand{\biggergap}{30pt}
+\newcommand{\Gap}{\vspace{5pt}}
+\newcommand\lgs{l_{gs}}
+%\newcommand\lgo{l_g}
+%\newcommand\lop{l_{op}}
+%\newcommand\lfp{l_{fp}}
+\newcommand\lep{l_{ep}}
+\newcommand\lge{l_{e}}
+\newcommand\Hinit{H^{\emptyset}}
+\newcommand\Linit{L^{\emptyset}}
+%\newcommand\jsfun[3][]{\js{function\,#1(#2)\{#3\}}}
+\newcommand\primop{\,{\overline{\oplus}}\,}
+\newcommand\primuop{\,{\overline{\otimes}}\,}
+\newcommand\iswf{\vdash\ocircle}
+\newcommand\isok{\vdash\diamond}%{\vdash (\lgo,\lop)}
+\newcommand\isokgs{\vdash\diamond_{gs}}%{\vdash (\lgo,\lop)}
+\newcommand\D{\mathcal{D}}
+\newcommand{\njs}[1]{#1}
+\newcommand{\sv}{\makebox[3pt]{$\cdot$}}
+\newcommand\stitle[1]{\vspace{3pt} \noindent{\bf #1.}\ }
+\newcommand{\alphaplus}{\ensuremath{\alpha\hspace{-2pt}{+}\xspace}}
+
+\newcommand{\cond}[1]{\left\{\begin{array}{l}#1\end{array}\right\}}
+\newcommand{\spec}[3]{\cond{#1}#2\cond{#3}}
+\newcommand{\vspec}[3]{
+  \begin{array}{c}
+    \cond{#1}\\#2\\\cond{#3}
+  \end{array}
+}
+\newcommand{\tr}[3]{\left\{#1\right\}#2\left\{#3\right\}}
+
+\newcommand{\gives}{\vdash}
+\newcommand{\holds}[3][]{\ifthenelse{\equal{#1}{}}{\textrm{holds}_{#3}(#2)}{\textrm{holds}_{#3}(#2)(#1)}}
+%\newcommand{\closed}{\textrm{closed}}
+\newcommand{\local}[2]{\ensuremath{\text{local}_{#2}(#1)}}
+
+% --------------------------------------------------------------------- %
+% Horizontal brackets.                                                  %
+% --------------------------------------------------------------------- %
+
+  \let\smallish\small
+
+
+% --------------------------------------------------------------------- %
+% Proof rule.                                                           %
+% --------------------------------------------------------------------- %
+
+\makeatletter
+\newcommand{\addToLabel}[1]{%
+  \protected@edef\@currentlabel{\@currentlabel#1}%
+}
+\makeatother
+
+\newcounter{rule}
+\renewcommand{\therule}{}
+
+
+\newcommand{\stateaxiom}[3][]{%
+  \refstepcounter{rule}%
+  \addToLabel{#2}%
+  $\begin{array}[b]{@{}l}%
+    \mbox{#2#1}\\%
+    \begin{array}{c}
+      #3
+    \end{array}
+  \end{array}$}
+
+\newcommand{\staterule}[4][]{%
+  \refstepcounter{rule}%
+  \addToLabel{#2}%
+  $\begin{array}[b]{@{}l}%
+    \mbox{#2#1}\\%
+    \begin{array}{l}
+      #3\\
+      \hline
+      \raisebox{0ex}[2.5ex]{\strut}#4%
+    \end{array}
+  \end{array}$}
+
+
+\newcommand{\nohrule}[2]{%
+  $\begin{array}[b]{@{}l}%
+    \begin{array}{l}
+      #1\\
+      \hline
+      \raisebox{0ex}[2.5ex]{\strut}#2%
+    \end{array}
+  \end{array}$}
+
+
+
+\newcommand{\jrule}[3]{%
+  $\begin{array}[b]{@{}l}%
+    \begin{array}{l}
+      #3\\
+      \hline
+      \raisebox{0ex}[2.5ex]{\strut}#1{\;\triangleq\;}#2%
+    \end{array}
+  \end{array}$}
+\newcommand{\jrulegds}[3]{%
+  \begin{array}[b]{@{}l}%
+    \begin{array}{l}
+      #3\\
+      \hline
+      \raisebox{0ex}[2.5ex]{\strut}#1{\;\triangleq\;}#2%
+    \end{array}
+  \end{array}}
+
+\newcommand{\jaxiom}[2]{$#1{\;\triangleq\;}#2$}
+
+% \newcommand{\staterule}[3]{%
+%   $\begin{array}{@{}l}%
+%    \mbox{#1}\\%
+%    \begin{array}{c}
+%    #2\\
+%    \hline
+%    \raisebox{0ex}[2.5ex]{\strut}#3%
+%    \end{array}
+%   \end{array}$}
+\newcommand{\GAP}{\ifproceedings 0.8ex\else1ex\fi}
+
+\newcommand{\recall}[2]{%
+  \mbox{}\begin{quote}\mbox{}\\$\begin{array}{c}
+      #1\\
+      \hline
+      \raisebox{0ex}[2.5ex]{\strut}#2%
+    \end{array}$\\\end{quote}}
+
+
+\newcommand{\hbra}{
+  %\hbox to \textwidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+  \hbox to \linewidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+    \leaders\hrule height1.8mm depth-1.5mm\hfill
+    \vrule width0.3mm height 1.8mm depth-0.3mm}}
+\newcommand{\hket}{
+  %\hbox to \textwidth{\vrule width0.3mm height1.5mm
+  \hbox to \linewidth{\vrule width0.3mm height1.5mm
+    \leaders\hrule height0.3mm\hfill
+    \vrule width0.3mm height1.5mm}}
+
+% --------------------------------------------------------------------- %
+% Typesetting definitions:              Sample output:                  %
+%                                                                       %
+% \begin{defn}                                                          %
+% \Category{M,N}{terms}\\               M, N ::=        terms           %
+% \entry{x}{variable}\\                   x               variable      %
+% \entry{M\ N}{application}\\             M N             application   %
+% \entry{\lambda x.\ M}{abstraction}      \x.M            abstraction   %
+% \end{defn}                                                            %
+%                                                                       %
+% This is a tabbing environment; the last entry should have no \\.      %
+% --------------------------------------------------------------------- %
+
+\newcommand{\ratio}{.375}
+
+\newenvironment{display}[1]{\vspace{-0.5ex}\smallish
+\begin{tabbing}
+    \hspace{1.5em} \= \hspace{\ratio\linewidth-1.5em} \= \hspace{1.5em} \= \kill
+    \textbf{#1}\\[-.2ex] % was -.8
+    \hbra\\[-.8ex]
+  }{\\[-.8ex]\hket
+  \end{tabbing}\vspace{-1ex}}
+
+
+\newcommand{\qrule}[3]{$#1\,\triangleq\,#2$\>\>$#3$}
+\newcommand{\qrulegds}[2]{#1\,\triangleq\,#2 }
+
+
+\newcommand{\entry}[2]{\>$#1$\>\>#2}
+\newcommand{\jentry}[2]{$#1$\>\>$#2$}
+\newcommand{\clause}[2]{$#1$\>\>#2}
+\newcommand{\Category}[2]{\clause{#1::=}{#2}}
+\newcommand{\subclause}[1]{\>\>\>#1}
+\newcommand{\redrule}[3]{$#1$\>\>$#2$\>\>\>#3}
+\newcommand{\labelledClause}[2]{%
+  $#1$%
+  \>\>#2%
+  \refstepcounter{rule}%
+  \addToLabel{#2}%
+}
+\newcommand{\labelledItem}[1]{#1\refstepcounter{rule}%
+  \addToLabel{#1}}
+
+
+%% For substitution.
+\newcommand{\ssubs}[2]{\ensuremath{[#1\backslash#2]}}
+
+% Editing helpers
+\newcommand{\editlabel}[3]{\colorbox{#2}{\textbf{#1:}}\textrm{ #3}\\}
