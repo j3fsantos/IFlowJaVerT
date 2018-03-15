@@ -13,17 +13,17 @@ proc main () {
 			(* Setup heap *)
 			o := new ();
 			[o, s1] := n1;
-      [o, s2] := n2;
+			[o, s2] := n2;
 
 			(* RULE: Assignment - Not Found *)
 			delete(o, s1);
 
 			(* Assert *)
-			ret1 := [o, s1];
-      ret2 := [o, s2];
+			ret1 := hasField(o, s1);
+			ret2 := hasField(o, s2);
 
 			assert (
-				(ret1 = undefined) and (ret2 = n2)
+				(ret1 = $$f) and (ret2 = $$t)
 			);
 
 			success;
