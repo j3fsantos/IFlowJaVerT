@@ -22,7 +22,8 @@ proc main () {
 			ret1 := [o, s3];
 
 			assert (
-				(ret1 = n1) or (ret1 = n2)
+				((s3 = s1) and (ret1 = n1)) or 
+				((s3 = s2) and (ret1 = n2))
 			);
 
 			success;
