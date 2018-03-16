@@ -23,14 +23,22 @@ JS specific features, such as: prototype-based inheritance,
 the for-in statement, and JS arrays.
 
 
-\jiette is the first symbolic execution tools that models the JS semantics precisely. 
+\jilette is the first symbolic execution tools that models the JS semantics precisely. 
 It is trustworthy: 
 
 
 
 \polish{We need a paragraph saying what is new... 
 \begin{enumerate}
-  \item \jilette follows the 
+  \item \jilette models the JS semantics precisely. And why is that good? because it will 
+           be able to detect subtle bugs related to the complicated semantics of JS. Can we 
+           extend the map library with something involving descriptors, arrays, for-in that is 
+           difficult? 
+           
+  \item \jilette is trustworthy. All its components have been extensively validated. 
+           \JSComp is thoroughly tested against test262. The \jsil symbolic interpreter 
+           is 
+  
 \end{enumerate}
 }
 
