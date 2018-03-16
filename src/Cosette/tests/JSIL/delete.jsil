@@ -1,0 +1,35 @@
+proc main () {
+			(* Setup properties *)
+			s1 := make-symbol-string(s1);
+			s2 := make-symbol-string(s2);
+
+			(* Setup values *)
+			n1 := make-symbol-number(n1);
+			n2 := make-symbol-number(n2);
+
+			(* Initial assumption *)
+			assume(not (s1 = s2));
+
+			(* Setup heap *)
+			o := new ();
+			[o, s1] := n1;
+			[o, s2] := n2;
+
+			(* RULE: Assignment - Not Found *)
+			delete(o, s1);
+
+			(* Assert *)
+			ret1 := hasField(o, s1);
+			ret2 := hasField(o, s2);
+
+			assert (
+				(ret1 = $$f) and (ret2 = $$t)
+			);
+
+			success;
+	rlab:	xret := $$t
+}
+with
+{
+	ret:	xret, rlab;
+};

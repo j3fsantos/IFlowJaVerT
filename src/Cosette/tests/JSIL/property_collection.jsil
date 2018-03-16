@@ -1,0 +1,44 @@
+proc main () {
+      (* Setup values *)
+      s1 := make-symbol-string(s1);
+      s2 := make-symbol-string(s2);
+      s3 := make-symbol-string(s3);
+
+      n1 := make-symbol-number(n1);
+      n2 := make-symbol-number(n2);
+      n3 := make-symbol-number(n3);
+
+      (* Assumptions *)
+      assume ((not (s1 = s2)) and (not (s2 = s3)) and (not (s1 = s3)));
+      assume ((not (s-nth(s1, 0) = "@")) and (not (s-nth(s2, 0) = "@")) and (not (s-nth(s3, 0) = "@")));
+
+      (* Setup heap *)
+      o := new ();
+      [o, s1] := n1;
+      [o, s2] := n2;
+      [o, s3] := n3;
+
+      (* RULE: Property Collection *)
+      ofields := getFields(o);
+
+      (* Assert *)
+      ret1 := l-nth(ofields, 0);
+      ret2 := l-nth(ofields, 1);
+      ret3 := l-nth(ofields, 2);
+
+      assert(
+        ((ret1 = s1) and (ret2 = s2) and (ret3 = s3)) or
+        ((ret1 = s1) and (ret2 = s3) and (ret3 = s2)) or
+        ((ret1 = s2) and (ret2 = s1) and (ret3 = s3)) or
+        ((ret1 = s2) and (ret2 = s3) and (ret3 = s1)) or
+        ((ret1 = s3) and (ret2 = s1) and (ret3 = s2)) or
+        ((ret1 = s3) and (ret2 = s2) and (ret3 = s1))
+      );
+
+      success;
+  rlab: xret := $$t
+}
+with
+{
+  ret: xret, rlab;
+};

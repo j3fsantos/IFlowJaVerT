@@ -1,0 +1,35 @@
+proc main () {
+			(* Setup properties *)
+			s1 := make-symbol-string(s1);
+			s2 := make-symbol-string(s2);
+			s3 := make-symbol-string(s3);
+
+			(* Setup values *)
+			n1 := make-symbol-number(n1);
+			n2 := make-symbol-number(n2);
+
+			(* Initial assumption *)
+			assume(not (s1 = s2));
+			assume((s3 = s1) or (s3 = s2));
+
+			(* Setup heap *)
+			o := new ();
+			[o, s1] := n1;
+			[o, s2] := n2;
+
+
+			(* RULE: Property Access *)
+			ret1 := [o, s3];
+
+			assert (
+				((s3 = s1) and (ret1 = n1)) or 
+				((s3 = s2) and (ret1 = n2))
+			);
+
+			success;
+	rlab:	xret := $$t
+}
+with
+{
+	ret:	xret, rlab;
+};

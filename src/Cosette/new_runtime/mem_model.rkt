@@ -377,9 +377,11 @@
   (list
     (cons '= 
     	(lambda (x y)
-    		(cond 
-    		[(and (eq? x +nan.0) (eq? y +nan.0)) #f]
-    		[else (eq? x y)])))
+        (if (and (integer? x) (integer? y))
+    		  (eq? x y)
+          (cond 
+    		    [(and (eq? x +nan.0) (eq? y +nan.0)) #f]
+    		    [else (eq? x y)]))))
 
     (cons '<
           (lambda (x y)
@@ -615,8 +617,8 @@
              (result '()))
     (cond
       [(null? object) result]
-      [(and (pair? (car object)) (is-llist? (cdr (car object))))
-        (loop (cdr object) (cons (car (car object)) result))]
+      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) #\@)))
+        (loop (cdr object) (cons (caar object) result))]
       [else (loop (cdr object) result)])))  
 
 ;;
