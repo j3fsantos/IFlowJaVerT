@@ -25,33 +25,6 @@ buckets.defaultCompare = function (a, b) {
 };
 
 /**
- * Default function to test equality.
- * @function
- * @private
- */
-buckets.defaultEquals = function (a, b) {
-    return a === b;
-};
-
-/**
- * Default function to convert an object to a string.
- * @function
- * @private
- */
-buckets.defaultToString = function (item) {
-    if (item === null) {
-        return 'BUCKETS_NULL';
-    }
-    if (buckets.isUndefined(item)) {
-        return 'BUCKETS_UNDEFINED';
-    }
-    if (buckets.isString(item)) {
-        return item;
-    }
-    return item.toString();
-};
-
-/**
  * Checks if the given argument is a function.
  * @function
  * @private
@@ -67,15 +40,6 @@ buckets.isFunction = function (func) {
  */
 buckets.isUndefined = function (obj) {
     return obj === undefined;
-};
-
-/**
- * Checks if the given argument is a string.
- * @function
- * @private
- */
-buckets.isString = function (obj) {
-    return Object.prototype.toString.call(obj) === '[object String]';
 };
 
 /**
@@ -101,155 +65,12 @@ buckets.reverseCompareFunction = function (compareFunction) {
 
 };
 
-/**
- * Returns an equal function given a compare function.
- * @function
- * @private
- */
-buckets.compareToEquals = function (compareFunction) {
-    return function (a, b) {
-        return compareFunction(a, b) === 0;
-    };
-};
-
 // ----------------------------------- arrays.js -----------------------------
 
 /**
  * @namespace Contains various functions for manipulating arrays.
  */
 buckets.arrays = {};
-
-/**
- * Returns the index of the first occurrence of the specified item
- * within the specified array.
- * @param {*} array The array.
- * @param {*} item The element to search for.
- * @param {function(Object,Object):boolean=} equalsFunction Optional function to
- * check equality between two elements. Receives two arguments and returns true if they are equal.
- * @return {number} The index of the first occurrence of the specified element
- * or -1 if not found.
- */
-buckets.arrays.indexOf = function (array, item, equalsFunction) {
-    var equals = equalsFunction || buckets.defaultEquals,
-        length = array.length,
-        i;
-    for (i = 0; i < length; i += 1) {
-        if (equals(array[i], item)) {
-            return i;
-        }
-    }
-    return -1;
-};
-
-/**
- * Returns the index of the last occurrence of the specified element
- * within the specified array.
- * @param {*} array The array.
- * @param {Object} item The element to search for.
- * @param {function(Object,Object):boolean=} equalsFunction Optional function to
- * check equality between two elements. Receives two arguments and returns true if they are equal.
- * @return {number} The index of the last occurrence of the specified element
- * within the specified array or -1 if not found.
- */
-buckets.arrays.lastIndexOf = function (array, item, equalsFunction) {
-    var equals = equalsFunction || buckets.defaultEquals,
-        length = array.length,
-        i;
-    for (i = length - 1; i >= 0; i -= 1) {
-        if (equals(array[i], item)) {
-            return i;
-        }
-    }
-    return -1;
-};
-
-/**
- * Returns true if the array contains the specified element.
- * @param {*} array The array.
- * @param {Object} item The element to search for.
- * @param {function(Object,Object):boolean=} equalsFunction Optional function to
- * check equality between two elements. Receives two arguments and returns true if they are equal.
- * @return {boolean} True if the specified array contains the specified element.
- */
-buckets.arrays.contains = function (array, item, equalsFunction) {
-    return buckets.arrays.indexOf(array, item, equalsFunction) >= 0;
-};
-
-/**
- * Removes the first ocurrence of the specified element from the specified array.
- * @param {*} array The array.
- * @param {*} item The element to remove.
- * @param {function(Object,Object):boolean=} equalsFunction Optional function to
- * check equality between two elements. Receives two arguments and returns true if they are equal.
- * @return {boolean} True If the array changed after this call.
- */
-buckets.arrays.remove = function (array, item, equalsFunction) {
-    var index = buckets.arrays.indexOf(array, item, equalsFunction);
-    if (index < 0) {
-        return false;
-    }
-    array.splice(index, 1);
-    return true;
-};
-
-/**
- * Returns the number of elements in the array equal
- * to the specified element.
- * @param {Array} array The array.
- * @param {Object} item The element.
- * @param {function(Object,Object):boolean=} equalsFunction Optional function to
- * check equality between two elements. Receives two arguments and returns true if they are equal.
- * @return {number} The number of elements in the specified array.
- * equal to the specified item.
- */
-buckets.arrays.frequency = function (array, item, equalsFunction) {
-    var equals = equalsFunction || buckets.defaultEquals,
-        length = array.length,
-        freq = 0,
-        i;
-    for (i = 0; i < length; i += 1) {
-        if (equals(array[i], item)) {
-            freq += 1;
-        }
-    }
-    return freq;
-};
-
-/**
- * Returns true if the provided arrays are equal.
- * Two arrays are considered equal if both contain the same number
- * of elements and all corresponding pairs of elements
- * are equal and are in the same order.
- * @param {Array} array1
- * @param {Array} array2
- * @param {function(Object,Object):boolean=} equalsFunction Optional function to
- * check equality between two elements. Receives two arguments and returns true if they are equal.
- * @return {boolean} True if the two arrays are equal.
- */
-buckets.arrays.equals = function (array1, array2, equalsFunction) {
-    var equals = equalsFunction || buckets.defaultEquals,
-        length = array1.length,
-        i;
-
-    if (array1.length !== array2.length) {
-        return false;
-    }
-    for (i = 0; i < length; i += 1) {
-        if (!equals(array1[i], array2[i])) {
-            return false;
-        }
-    }
-    return true;
-};
-
-/**
- * Returns a shallow copy of the specified array.
- * @param {*} array The array to copy.
- * @return {Array} A copy of the specified array.
- */
-buckets.arrays.copy = function (array) {
-    return array.concat();
-};
 
 /**
  * Swaps the elements at the specified positions in the specified array.
@@ -268,23 +89,6 @@ buckets.arrays.swap = function (array, i, j) {
     array[i] = array[j];
     array[j] = temp;
     return true;
-};
-
-/**
- * Executes the provided function once per element present in the array.
- * @param {Array} array The array.
- * @param {function(Object):*} callback Function to execute,
- * invoked with an element as argument. To break the iteration you can
- * optionally return false in the callback.
- */
-buckets.arrays.forEach = function (array, callback) {
-    var lenght = array.length,
-        i;
-    for (i = 0; i < lenght; i += 1) {
-        if (callback(array[i]) === false) {
-            return;
-        }
-    }
 };
 
 
@@ -445,84 +249,11 @@ buckets.Heap = function (compareFunction) {
     };
 
     /**
-     * Returns true if the heap contains the specified element.
-     * @param {Object} element Element to search for.
-     * @return {boolean} True if the Heap contains the specified element, false
-     * otherwise.
-     */
-    heap.contains = function (element) {
-        var equF = buckets.compareToEquals(compare);
-        return buckets.arrays.contains(data, element, equF);
-    };
-
-    /**
      * Returns the number of elements in the heap.
      * @return {number} The number of elements in the heap.
      */
     heap.size = function () {
         return data.length;
-    };
-
-    /**
-     * Checks if the heap is empty.
-     * @return {boolean} True if the heap contains no elements; false
-     * otherwise.
-     */
-    heap.isEmpty = function () {
-        return data.length <= 0;
-    };
-
-    /**
-     * Removes all the elements from the heap.
-     */
-    heap.clear = function () {
-        data.length = 0;
-    };
-
-    /**
-     * Executes the provided function once per element present in the heap in
-     * no particular order.
-     * @param {function(Object):*} callback Function to execute,
-     * invoked with an element as argument. To break the iteration you can
-     * optionally return false.
-     */
-    heap.forEach = function (callback) {
-        buckets.arrays.forEach(data, callback);
-    };
-
-    /**
-     * Returns an array containing all the elements in the heap in no
-     * particular order.
-     * @return {Array.<*>} An array containing all the elements in the heap
-     * in no particular order.
-     */
-    heap.toArray = function () {
-        return buckets.arrays.copy(data);
-    };
-
-    /**
-     * Returns true if the binary heap is equal to another heap.
-     * Two heaps are equal if they have the same elements.
-     * @param {buckets.Heap} other The other heap.
-     * @return {boolean} True if the heap is equal to the given heap.
-     */
-    heap.equals = function (other) {
-        var thisArray, otherArray, eqF;
-
-        if (buckets.isUndefined(other) || typeof other.removeRoot !== 'function') {
-            return false;
-        }
-        if (heap.size() !== other.size()) {
-            return false;
-        }
-
-        thisArray = heap.toArray();
-        otherArray = other.toArray();
-        eqF = buckets.compareToEquals(compare);
-        thisArray.sort(compare);
-        otherArray.sort(compare);
-
-        return buckets.arrays.equals(thisArray, otherArray, eqF);
     };
 
     return heap;
@@ -580,15 +311,6 @@ buckets.PriorityQueue = function (compareFunction) {
     };
 
     /**
-     * Inserts the specified element into the priority queue. It's equivalent to enqueue.
-     * @param {Object} element The element to insert.
-     * @return {boolean} True if the element was inserted, or false if it's undefined.
-     */
-    pQueue.add = function (element) {
-        return heap.add(element);
-    };
-
-    /**
      * Retrieves and removes the highest priority element of the queue.
      * @return {*} The highest priority element of the queue,
      * or undefined if the queue is empty.
@@ -601,94 +323,6 @@ buckets.PriorityQueue = function (compareFunction) {
             return elem;
         }
         return undefined;
-    };
-
-    /**
-     * Retrieves, but does not remove, the highest priority element of the queue.
-     * @return {*} The highest priority element of the queue, or undefined if the queue is empty.
-     */
-    pQueue.peek = function () {
-        return heap.peek();
-    };
-
-    /**
-     * Returns true if the priority queue contains the specified element.
-     * @param {Object} element Element to search for.
-     * @return {boolean} True if the priority queue contains the specified element,
-     * false otherwise.
-     */
-    pQueue.contains = function (element) {
-        return heap.contains(element);
-    };
-
-    /**
-     * Checks if the priority queue is empty.
-     * @return {boolean} True if and only if the priority queue contains no items, false
-     * otherwise.
-     */
-    pQueue.isEmpty = function () {
-        return heap.isEmpty();
-    };
-
-    /**
-     * Returns the number of elements in the priority queue.
-     * @return {number} The number of elements in the priority queue.
-     */
-    pQueue.size = function () {
-        return heap.size();
-    };
-
-    /**
-     * Removes all elements from the priority queue.
-     */
-    pQueue.clear = function () {
-        heap.clear();
-    };
-
-    /**
-     * Executes the provided function once per element present in the queue in
-     * no particular order.
-     * @param {function(Object):*} callback Function to execute, it's
-     * invoked one element as argument. To break the iteration you can
-     * optionally return false inside the callback.
-     */
-    pQueue.forEach = function (callback) {
-        heap.forEach(callback);
-    };
-
-    /**
-     * Returns an array containing all the elements in the queue in no
-     * particular order.
-     * @return {Array.<*>} An array containing all the elements in the queue
-     * in no particular order.
-     */
-    pQueue.toArray = function () {
-        return heap.toArray();
-    };
-
-    /**
-     * Returns true if the queue is equal to another queue.
-     * Two priority queues are equal if they have the same elements.
-     * @param {buckets.PriorityQueue} other The other queue.
-     * @return {boolean} True if the queue is equal to the given queue.
-     */
-    pQueue.equals = function (other) {
-        var thisArray, otherArray, eqF;
-
-        if (buckets.isUndefined(other) || typeof other.dequeue !== 'function') {
-            return false;
-        }
-        if (pQueue.size() !== other.size()) {
-            return false;
-        }
-
-        thisArray = pQueue.toArray();
-        otherArray = other.toArray();
-        eqF = buckets.compareToEquals(compare);
-        thisArray.sort(compare);
-        otherArray.sort(compare);
-
-        return buckets.arrays.equals(thisArray, otherArray, eqF);
     };
 
     return pQueue;
