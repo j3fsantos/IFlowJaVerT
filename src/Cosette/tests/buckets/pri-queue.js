@@ -700,23 +700,23 @@ var queue = new buckets.PriorityQueue();
 
 var x1 = symb_number(x1); // 2
 var x2 = symb_number(x2); // 1
-var x3 = symb_number(x3); // 3
+// var x3 = symb_number(x3); // 3
 // var x1 = 2;
 // var x2 = 1;
 // var x3 = 3;
 
-Assume ((x3 < x1) and (x1 < x2)); // x1 = 2, x2 = 3, x3 = 1
+Assume (x2 < x1); // x1 = 2, x2 = 3, x3 = 1
 
 queue.enqueue(x1);
 queue.enqueue(x2);
-queue.enqueue(x3);
+// queue.enqueue(x3);
 
 var y1 = queue.dequeue(); // y1 = 3 = x2
 var y2 = queue.dequeue(); // y2 = 2 = x1
-var y3 = queue.dequeue(); // y3 = 1 = x3
+// var y3 = queue.dequeue(); // y3 = 1 = x3
 
 // console.log(y1);
 // console.log(y2);
 // console.log(y3);
 
-Assert((y1 = x2) and (y2 = x1) and (y3 = x3));
+Assert((y1 = x2) and (y2 = x1));
