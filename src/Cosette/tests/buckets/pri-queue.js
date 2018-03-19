@@ -325,6 +325,14 @@ buckets.PriorityQueue = function (compareFunction) {
         return undefined;
     };
 
+    /**
+     * Returns the number of elements in the priority queue.
+     * @return {number} The number of elements in the priority queue.
+     */
+    pQueue.size = function () {
+        return heap.size();
+    };
+
     return pQueue;
 };
 
@@ -345,12 +353,15 @@ queue.enqueue(x1);
 queue.enqueue(x2);
 // queue.enqueue(x3);
 
+var l0 = queue.size();
 var y1 = queue.dequeue(); // y1 = 3 = x2
+var l1 = queue.size();
 var y2 = queue.dequeue(); // y2 = 2 = x1
+var l2 = queue.size();
 // var y3 = queue.dequeue(); // y3 = 1 = x3
 
 // console.log(y1);
 // console.log(y2);
 // console.log(y3);
 
-Assert((y1 = x2) and (y2 = x1));
+Assert((l0 = 2) and (l1 = 1) and (l2 = 0) and (y1 = x2) and (y2 = x1));
