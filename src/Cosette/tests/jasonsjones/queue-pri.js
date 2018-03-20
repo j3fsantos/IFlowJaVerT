@@ -801,29 +801,31 @@ var queue = new PriorityQueue();
 
 // concrete test
 
-// var x1 = 2;
-// var x2 = 1;
-// 
-// queue.enqueue("foo", x1);
-// queue.enqueue("bar", x2);
-// 
-// var y1 = queue.dequeue().data; // y1 = 3 = x2
-// var y2 = queue.dequeue().data; // y2 = 2 = x1
-// 
-// console.log(y1); // "bar"
-// console.log(y2); // "foo"
-
-// symbolic test 
-// 
-var x1 = symb_number(x1); // 2
-var x2 = symb_number(x2); // 1
-var s1 = symb_string(s1); // "foo"
-var s2 = symb_string(s2); // "bar"
+var x1 = 1;
+var x2 = 0;
+var s1 = "foo";
+var s2 = "bar";
 
 queue.enqueue(s1, x1);
 queue.enqueue(s2, x2);
 
-var y1 = queue.dequeue().data;
-var y2 = queue.dequeue().data;
+var y1 = queue.dequeue();
+var y2 = queue.dequeue();
 
-Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) or ((x1 = x2) and (y1 = s1) and (y2 = s2)) or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
+console.log(y1); // "bar"
+console.log(y2); // "foo"
+
+// symbolic test 
+// 
+// var x1 = symb_number(x1); // 2
+// var x2 = symb_number(x2); // 1
+// var s1 = symb_string(s1); // "foo"
+// var s2 = symb_string(s2); // "bar"
+// 
+// queue.enqueue(s1, x1);
+// queue.enqueue(s2, x2);
+// 
+// var y1 = queue.dequeue().data;
+// var y2 = queue.dequeue().data;
+// 
+// Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) or ((x1 = x2) and (y1 = s1) and (y2 = s2)) or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
