@@ -19,7 +19,7 @@ let arguments () =
 			(* file to compile *)
 			"-file", Arg.String(fun f -> file := f), "file to run";
 			(* harnessing *)
-			"-harness", Arg.Unit(fun _ -> harnessing := true; JS2JSIL_Compiler.test262 := true), "ES6 harness";
+			"-harness", Arg.Unit(fun _ -> harnessing := true; test262 := true), "ES6 harness";
 			(* show line numbers *)
 			"-line_numbers", Arg.Unit(fun () -> line_numbers := true), "show line numbers";
 			(* one procedure per file *)

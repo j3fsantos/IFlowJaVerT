@@ -25,6 +25,7 @@ let sexpr_of_float x =
 			then "-inf.0"
 			else if (x == infinity)
 				then "+inf.0"
+				else if (!JSIL_Syntax.test262) then (string_of_float x)
 				else if (is_int x)
 				  then string_of_int (int_of_float x)
 					else string_of_float x

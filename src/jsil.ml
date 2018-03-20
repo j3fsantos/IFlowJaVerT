@@ -33,7 +33,7 @@ let arguments () =
 			"-js2jsil", Arg.Unit(fun () -> js := true; compile := true), "compile and run";
 
 			(* use test262 harness *)
-			"-test262",  Arg.Unit(fun () -> js := true; compile := true; JS2JSIL_Compiler.test262 := true), "use test262 harness";
+			"-test262",  Arg.Unit(fun () -> js := true; compile := true; test262 := true), "use test262 harness";
 		]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -73,7 +73,7 @@ let main () =
 		try
   		Parser_main.verbose := false;
     	let main = load_file (!file) in
-			let all = if (!JS2JSIL_Compiler.test262) then (load_file "harness.js") ^ "\n" ^ main else main in
+			let all = if (!test262) then (load_file "harness.js") ^ "\n" ^ main else main in
 			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
 			let e = Parser_main.exp_from_string ~force_strict:true all in
 			let (ext_prog, cc_tbl, vis_tbl) = JS2JSIL_Compiler.js2jsil e offset_converter false in

@@ -15,8 +15,6 @@ let include_heap = ref true
 let if_verification a b = 
 	let cond = !for_verification in
 	 	if cond then a else b
-
-let test262 = ref false
 						
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in

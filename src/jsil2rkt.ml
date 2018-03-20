@@ -23,7 +23,7 @@ let arguments () =
 			(* js *)
 			"-js", Arg.Unit(fun () -> js := true), "for js";
 			(* test262 *)
-			"-test262", Arg.Unit(fun () -> js := true; JS2JSIL_Compiler.test262 := true), "test262";
+			"-test262", Arg.Unit(fun () -> js := true; test262 := true), "test262";
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -41,15 +41,15 @@ let return_to_exit rettype =
 
 let generate_js_heap_and_internal_functions () = 				
 
-  let template_internal_procs_racket = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_internal_procs_racket else SExpr_Templates.template_internal_procs_racket in
-  let template_hp_racket             = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_hp_racket             else SExpr_Templates.template_hp_racket in
-  let ibps                           = if !JS2JSIL_Compiler.test262 then "internals_builtins_procs_concrete.jsil"              else "internals_builtins_procs.jsil" in
+  let template_internal_procs_racket = if !test262 then SExpr_Templates_Racket.template_internal_procs_racket else SExpr_Templates.template_internal_procs_racket in
+  let template_hp_racket             = if !test262 then SExpr_Templates_Racket.template_hp_racket             else SExpr_Templates.template_hp_racket in
+  let ibps                           = if !test262 then "internals_builtins_procs_concrete.jsil"              else "internals_builtins_procs.jsil" in
 
 	let int_ext_prog = JSIL_Syntax_Utils.ext_program_of_path ibps in
 	let int_prog, _ = JSIL_Syntax_Utils.prog_of_ext_prog ibps int_ext_prog in
 	let sint_prog = SExpr_Print.sexpr_of_program int_prog false in
 	let str_int_prog = Printf.sprintf template_internal_procs_racket sint_prog in
-  let filename = if !JS2JSIL_Compiler.test262 then "internals_builtins_procs_racket.rkt" else "internals_builtins_procs.rkt" in
+  let filename = if !test262 then "internals_builtins_procs_racket.rkt" else "internals_builtins_procs.rkt" in
 	burn_to_disk filename str_int_prog;
 	
 	let ih_ext_prog = JSIL_Syntax_Utils.ext_program_of_path "initial_heap.jsil" in
@@ -58,7 +58,7 @@ let generate_js_heap_and_internal_functions () =
   	let _ = evaluate_prog ih_prog ih_which_pred ih_heap None None in
 	let str_ih_heap = SExpr_Print.sexpr_of_heap ih_heap in
 	let str_ih_heap = Printf.sprintf template_hp_racket str_ih_heap in
-  let filename = if !JS2JSIL_Compiler.test262 then "hp_racket.rkt" else "hp.rkt" in
+  let filename = if !test262 then "hp_racket.rkt" else "hp.rkt" in
 	burn_to_disk filename str_ih_heap; 
 	int_prog
 	
@@ -68,15 +68,15 @@ let main () =
 	arguments ();
   Parser_main.init ();
 
-  let template_wp_racket             = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_wp_racket             else SExpr_Templates.template_wp_racket in
-  let template_procs_jsil_racket     = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_procs_jsil_racket     else SExpr_Templates.template_procs_jsil_racket in
-  let template_procs_racket          = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_procs_racket          else SExpr_Templates.template_procs_racket in 
+  let template_wp_racket             = if !test262 then SExpr_Templates_Racket.template_wp_racket             else SExpr_Templates.template_wp_racket in
+  let template_procs_jsil_racket     = if !test262 then SExpr_Templates_Racket.template_procs_jsil_racket     else SExpr_Templates.template_procs_jsil_racket in
+  let template_procs_racket          = if !test262 then SExpr_Templates_Racket.template_procs_racket          else SExpr_Templates.template_procs_racket in 
 
 	try (
 	
   	if (!file <> "") then (
   	
-  	let prog, which_pred = (match !JS2JSIL_Compiler.test262 with
+  	let prog, which_pred = (match !test262 with
   	| false -> 
   			let ext_prog = JSIL_Syntax_Utils.ext_program_of_path !file in
   			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog
@@ -99,7 +99,7 @@ let main () =
   	(* serializing the which_pred table *)
   	let wp_array_str = SExpr_Print.print_which_pred which_pred in
   	let str_wp = Printf.sprintf template_wp_racket wp_array_str in 
-    let filename = if !JS2JSIL_Compiler.test262 then "wp_racket.rkt" else "wp.rkt" in
+    let filename = if !test262 then "wp_racket.rkt" else "wp.rkt" in
   	burn_to_disk filename str_wp;
   	
   	(* I have to understand what this is doing *)
@@ -115,7 +115,7 @@ let main () =
   	print_endline just_the_filename;
     burn_to_disk (filename ^ ".rkt") sprog_in_template;
   	
-  	(match !JS2JSIL_Compiler.test262 with
+  	(match !test262 with
   	| false -> ()
   	| true -> 
   			let exit_code = Sys.command ("cp " ^ filename ^ ".rkt .") in

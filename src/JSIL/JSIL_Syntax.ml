@@ -3,6 +3,8 @@
 open Set
 open Queue
 
+let test262 = ref false
+
 (**/**)
 (* Exceptions *)
 exception Syntax_error of string
