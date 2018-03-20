@@ -173,10 +173,15 @@
 (define (shr n m) (arithmetic-shift n (- m)))
 
 (define (jsil_string_to_number str)
-  (let ((str_num (string->number str)))
-    (if (equal? str_num #f)
+  (cond
+  [(equal? str "") 0]
+  [#t
+    (let ((str_num (string->number str)))
+      (if (equal? str_num #f)
         +nan.0
-        str_num)))
+        str_num))]
+  ))
+
 
 (define (jsil_num_to_int num)
   (if (nan? num) 0
@@ -252,6 +257,7 @@
     [(equal? n +nan.0) "NaN"]
     [(equal? n +inf.0) "Infinity"]
     [(equal? n -inf.0) "-Infinity"]
+    [(integer? n) (number->string (inexact->exact n))]
     [#t (number->string n)]))
 
 
@@ -448,22 +454,22 @@
 
     (cons '& (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (exact->inexact (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y))))
+                    (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                     jundefined)))
 
     (cons '^ (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (exact->inexact (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y))))
+                    (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                     jundefined)))
     
     (cons '<< (lambda (x y)
                  (if (and (number? x) (number? y))
-                     (exact->inexact (shl (inexact->exact (truncate x)) (inexact->exact (truncate y))))
+                     (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                      jundefined)))
 
     (cons '>> (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (exact->inexact (shr (inexact->exact (truncate x)) (inexact->exact (truncate y))))
+                    (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                     jundefined)))
 
     (cons ':: (lambda (x y)
@@ -478,12 +484,12 @@
 
     (cons 'bor (lambda (x y)
                  (if (and (number? x) (number? y))
-                      (exact->inexact (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y))))
+                      (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))
                       jundefined)))
     
     (cons 'bnot (lambda (x)
                  (if (and (number? x))
-                      (exact->inexact (bitwise-not (inexact->exact (truncate x))))
+                      (bitwise-not (inexact->exact (truncate x)))
                       jundefined)))              
 
     (cons '>>> (lambda (x y) (if (number? x) (unsigned_right_shift x y) jundefined)))
@@ -494,7 +500,7 @@
 
     (cons 'string_to_num (lambda (x) (if (string? x) (jsil_string_to_number x) jundefined)))
 
-    (cons '! (lambda (x) (if (number? x) (exact->inexact (bitwise-not (inexact->exact x))) jundefined)))  
+    (cons '! (lambda (x) (if (number? x) (bitwise-not (inexact->exact x)) jundefined)))
 
     (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (equal? x jnull) (equal? x jundefined))))
 

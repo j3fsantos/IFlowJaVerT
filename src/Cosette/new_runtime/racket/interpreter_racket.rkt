@@ -425,7 +425,7 @@
 
 
 
-(define (run-expr expr store)
+(define (run-expr-thingy expr store)
   ;;(println (format "run-expr: ~v" expr))
   (cond
     ;;
@@ -445,7 +445,7 @@
        ;; ('typeof e)
        [(equal? (first expr) 'typeof) 
         (let* ((arg (second expr))
-               (val (run-expr arg store)))
+               (val (run-expr-thingy arg store)))
            ;; for*/all ([val val])
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
@@ -458,7 +458,7 @@
         (let* (
                (elist (cdr expr))
                (lexpr (foldl (lambda (x ac)
-                        (append ac (list (run-expr x store))))
+                        (append ac (list (run-expr-thingy x store))))
                         (list ) elist))
                )
           (cons 'jsil-list lexpr)
@@ -468,8 +468,8 @@
        [(equal? (first expr) 'l-nth)
         (let* ((elist (second expr))
                (eidx (third expr))
-               (vlist (run-expr elist store))
-               (vidx (run-expr eidx store)))
+               (vlist (run-expr-thingy elist store))
+               (vidx (run-expr-thingy eidx store)))
            ;; for*/all ([vlist vlist])
               (if (list? vlist)
                   (list-ref vlist (inexact->exact (+ vidx 1)))
@@ -480,9 +480,9 @@
        ;; ('s-nth s e)
        [(equal? (first expr) 's-nth)
         (let* ((estr (second expr))
-               (vstr (run-expr estr store))
+               (vstr (run-expr-thingy estr store))
                (eidx  (third expr))
-               (vidx  (run-expr eidx store)))
+               (vidx  (run-expr-thingy eidx store)))
           (if (string? vstr)
               (string-ref vstr (inexact->exact vidx))
               (error "Illegal string given to s-nth")))]
@@ -509,32 +509,37 @@
        (let ((binop (first expr)))
          (cond
            [(equal? binop 'and)
-            (let ((larg (run-expr (second expr) store)))
+            (let ((larg (run-expr-thingy (second expr) store)))
               (if (not (equal? larg #t))
                   #f
-                  (let ((rarg (run-expr (third expr) store)))
+                  (let ((rarg (run-expr-thingy (third expr) store)))
                     (equal? rarg #t))))]
 
            [(equal? binop 'or)
-            (let ((larg (run-expr (second expr) store)))
+            (let ((larg (run-expr-thingy (second expr) store)))
               (if (equal? larg #t)
                   #t
-                  (let ((rarg (run-expr (third expr) store)))
+                  (let ((rarg (run-expr-thingy (third expr) store)))
                     (equal? rarg #t))))]
            [else
             (let ((binop (to-interp-op binop))
-                  (larg (run-expr (second expr) store))
-                  (rarg (run-expr (third expr) store)))
+                  (larg (run-expr-thingy (second expr) store))
+                  (rarg (run-expr-thingy (third expr) store)))
               (apply-binop binop larg rarg))]))]
        ;;
        ;; (unop e)
        [(= (length expr) 2) 
         (let* ((unop (to-interp-op (first expr)))
-               (arg (run-expr (second expr) store)))
+               (arg (run-expr-thingy (second expr) store)))
           (apply-unop unop arg))]
-     
-
        )]))
+
+(define (run-expr expr store)
+  (let ((expr-val (run-expr-thingy expr store)))
+    (cond
+      [(number? expr-val) (exact->inexact expr-val)]
+      [#t expr-val]
+    )))
 
 (define (terminate outcome)
   (cond 
