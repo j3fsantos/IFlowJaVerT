@@ -19,11 +19,11 @@
           new-tabs
           (loop (- i 1) (string-append tab new-tabs))))))
 
-(define (print-info proc-name str) 42)
-	;;(when (and print-cmds (<= call-stack-depth max-depth))
-	;;(let* ((tabs (generate-tabs call-stack-depth))
-		;;(new-str (string-append tabs proc-name ": " str)))
-	;;(println new-str))))
+(define (print-info proc-name str) ;;42)
+	(when (and print-cmds (<= call-stack-depth max-depth))
+	(let* ((tabs (generate-tabs call-stack-depth))
+		(new-str (string-append tabs proc-name ": " str)))
+	(println new-str))))
 
 ;;
 ;; SSkip      ()                  'skip       DONE
