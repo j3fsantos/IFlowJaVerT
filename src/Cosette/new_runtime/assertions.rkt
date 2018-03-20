@@ -457,49 +457,7 @@
                   (loop (append new-frames (cdr cur-frames)) failing-constraints))))))))
 
 
-(define (expr-lvars expr)
-  (cond
-    ;; pvar
-    [(symbol? expr)
-     (begin 
-       (println (format "found the pvar ~v" expr))
-       (set))]
-    ;; binop 
-    [(and (list? expr) (eq? (length expr) 3) (is-operator? (car expr)))
-     (begin 
-       (println (format "found the binop expr ~v" expr))
-       (set-union (expr-lvars (second expr)) (expr-lvars (third expr))))]
-    ;; unop
-    [(and (list? expr) (eq? (length expr) 2) (is-operator? (car expr)))
-     (expr-lvars (second expr))]
-    ;; type-of
-    [(and (list? expr) (eq? (first expr) 'typeof))
-     (expr-lvars (second expr))]
-    ;; lst-nth
-    [(and (list? expr) (eq? (first expr) 'l-nth))
-     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
-    ;; s-nth
-    [(and (list? expr) (eq? (first expr) 's-nth))
-     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
-    ;; {{ le_1, ..., le_n }}
-    [(and (list? expr) (eq? (first expr) 'jsil-list))
-     (let ((le-sets (map expr-lvars (cdr expr))))
-       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
-    ;; -{ le_1, ..., le_n }-
-    [(and (list? expr) (eq? (first expr) 'jsil-set))
-     (let ((le-sets (map expr-lvars (cdr expr))))
-       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
-    ;; set-union 
-    [(and (list? expr) (eq? (first expr) 'set-union))
-     (let ((le-sets (map expr-lvars (cdr expr))))
-       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
-    ;; set-inter 
-    [(and (list? expr) (eq? (first expr) 'set-inter))
-     (let ((le-sets (map expr-lvars (cdr expr))))
-       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
-    ;;
-    [else (set)]))
-                   
+   
 (define (sep-assert ass heap store)
   (let ((n-ass (normalise-assertion ass)))
     (println (format "sep-assert(~v)" (nass-to-list n-ass)))
