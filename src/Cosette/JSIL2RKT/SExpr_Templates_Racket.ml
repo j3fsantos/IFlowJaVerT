@@ -35,7 +35,7 @@ let (template_procs_racket: ('a -> 'b, unit, string) format) = "
 (require (file \"interpreter_racket.rkt\"))
 
 (require (file \"hp.rkt\"))
-(require (file \"internals_builtins_procs.rkt\"))
+(require (file \"internals_builtins_procs_concrete.rkt\"))
 
 (require (file \"internals_racket_racket.rkt\"))
 
@@ -104,7 +104,7 @@ let (template_procs_racket_for_tests: ('a -> 'b, unit, string) format) = "
 (require (file \"interpreter_racket.rkt\"))
 
 (require (file \"hp.rkt\"))
-(require (file \"internals_builtins_procs.rkt\"))
+(require (file \"internals_builtins_procs_concrete.rkt\"))
 
 (require (file \"internals_racket_racket.rkt\"))
 

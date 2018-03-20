@@ -43,9 +43,10 @@ let generate_js_heap_and_internal_functions () =
 
   let template_internal_procs_racket = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_internal_procs_racket else SExpr_Templates.template_internal_procs_racket in
   let template_hp_racket             = if !JS2JSIL_Compiler.test262 then SExpr_Templates_Racket.template_hp_racket             else SExpr_Templates.template_hp_racket in
-  
-	let int_ext_prog = JSIL_Syntax_Utils.ext_program_of_path "internals_builtins_procs.jsil" in
-	let int_prog, _ = JSIL_Syntax_Utils.prog_of_ext_prog "internals_builtins_procs.jsil" int_ext_prog in
+  let ibps                           = if !JS2JSIL_Compiler.test262 then "internals_builtins_procs_concrete.jsil"              else "internals_builtins_procs.jsil" in
+
+	let int_ext_prog = JSIL_Syntax_Utils.ext_program_of_path ibps in
+	let int_prog, _ = JSIL_Syntax_Utils.prog_of_ext_prog ibps int_ext_prog in
 	let sint_prog = SExpr_Print.sexpr_of_program int_prog false in
 	let str_int_prog = Printf.sprintf template_internal_procs_racket sint_prog in
   let filename = if !JS2JSIL_Compiler.test262 then "internals_builtins_procs_racket.rkt" else "internals_builtins_procs.rkt" in

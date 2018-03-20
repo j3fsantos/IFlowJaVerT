@@ -1,0 +1,7 @@
+import Array.jsil, Boolean.jsil, Date.jsil, Function.jsil, Global.jsil, Init.jsil, Internals_concrete.jsil, Math.jsil, Number.jsil, Object.jsil, RegExp.jsil, String.jsil, Errors.jsil;
+
+proc banana_where_it_belongs_by_pm () {
+	rlab: skip
+} with {
+	ret: xret, rlab;
+};

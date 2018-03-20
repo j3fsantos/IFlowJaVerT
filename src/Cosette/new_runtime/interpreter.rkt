@@ -11,7 +11,7 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 7)
+(define max-depth 10)
 
 (current-bitwidth #f)
 
@@ -82,7 +82,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v" lhs-var rhs-val))
+         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -279,7 +279,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v)" (cdr outcome)))
+       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
