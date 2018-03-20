@@ -277,52 +277,53 @@
     (member arg operator-list)))
 
 
-(define (expr-lvars expr)
+(define (expr-lvars catch-pvars expr)
+  ;;(println (format "computing the vars of ~v" expr))
   (cond
     ;; literal
     [(literal? expr) (set)]
     ;; lvar
     [(check-logic-variable expr)
      (begin 
-       (println (format "found the lvar ~v" expr))
+       ;(println (format "found the lvar ~v" expr))
        (set expr))]
     ;; pvar
     [(symbol? expr)
      (begin 
-       (println (format "found the pvar ~v" expr))
-       (set))]
+       ;(println (format "found the pvar ~v" expr))
+       (if catch-pvars (set expr) (set)))]
     ;; binop 
     [(and (list? expr) (eq? (length expr) 3) (is-operator? (car expr)))
      (begin 
-       (println (format "found the binop expr ~v" expr))
-       (set-union (expr-lvars (second expr)) (expr-lvars (third expr))))]
+       ;(println (format "found the binop expr ~v" expr))
+       (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr))))]
     ;; unop
     [(and (list? expr) (eq? (length expr) 2) (is-operator? (car expr)))
-     (expr-lvars (second expr))]
+     (expr-lvars catch-pvars (second expr))]
     ;; type-of
     [(and (list? expr) (eq? (first expr) 'typeof))
-     (expr-lvars (second expr))]
+     (expr-lvars catch-pvars (second expr))]
     ;; lst-nth
     [(and (list? expr) (eq? (first expr) 'l-nth))
-     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
+     (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr)))]
     ;; s-nth
     [(and (list? expr) (eq? (first expr) 's-nth))
-     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
+     (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr)))]
     ;; {{ le_1, ..., le_n }}
     [(and (list? expr) (eq? (first expr) 'jsil-list))
-     (let ((le-sets (map expr-lvars (cdr expr))))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;; -{ le_1, ..., le_n }-
     [(and (list? expr) (eq? (first expr) 'jsil-set))
-     (let ((le-sets (map expr-lvars (cdr expr))))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;; set-union 
     [(and (list? expr) (eq? (first expr) 'set-union))
-     (let ((le-sets (map expr-lvars (cdr expr))))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;; set-inter 
     [(and (list? expr) (eq? (first expr) 'set-inter))
-     (let ((le-sets (map expr-lvars (cdr expr))))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;;
     [else (set)]))
@@ -816,7 +817,32 @@
              (expr-str-len (string-length expr-str)))
          (and (> expr-str-len 0) (not (eq? (substring expr-str 0 1) "$"))))))
 
-(provide make-store mutate-store store-get var? store)
+(define (store-projection store pvars)
+  ;;(println "inside store-projection")
+  (cond
+    ((null? store) '())
+    (#t
+     (let ((cur-var (car (car store)))
+           (cur-val (cdr (car store)))
+           (rest-store (cdr store)))
+       ;;(println (format "cur-var ~v. cur-val: ~v" cur-var cur-val))
+       (if (set-member? pvars cur-var)
+           (cons (cons cur-var cur-val) (store-projection rest-store pvars))
+           (store-projection rest-store pvars))))))
+
+(define (store->string store)
+  (let ((store-strs
+         (map
+          (lambda (x)
+            (let ((var-name (car x))
+                  (var-val (cdr x)))
+              (when (union? var-val)
+                (println "I found a guarded union in the store -- ai a minha vida!"))
+              (format "(~v: ~v)" var-name var-val)))
+          store)))
+    (foldl (lambda (elem v) (string-append elem v)) "" store-strs)))
+
+(provide make-store mutate-store store-get var? store store-projection store->string)
 
 ;;
 ;; Contexts

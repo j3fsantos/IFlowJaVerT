@@ -168,8 +168,11 @@
       ;; ('assert e)
       [(eq? cmd-type 'assert)
        (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assert(~v)" expr-val))
+              (expr-val (run-expr expr-arg store))
+              (arg-vars (expr-lvars #t expr-arg)))
+         (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
+         (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
+         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
          (op-assert expr-val)
          (cons heap store))]
 
@@ -211,7 +214,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 100)
+(define goto-limit 10000)
 
 (define goto-stack (make-parameter '()))
 
@@ -576,6 +579,8 @@
     (outcome-failure (solve (assert failure)))
     (outcome-success-assume (solve (assert (and (get-assumptions) success))))
     (outcome-failure-assume (solve (assert (and (get-assumptions) failure)))))
+    (print "PC: ")
+    (println (pc))
     (print "Assumptions: ")
     (println (get-assumptions))
     (print "Assertions: ")
