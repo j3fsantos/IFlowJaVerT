@@ -2,8 +2,6 @@
 
 (require (file "mem_model_racket.rkt"))
 (require (file "wp_racket.rkt"))
-(require (file "util_racket.rkt"))
-(require (file "assertions_racket.rkt"))
 
 (define depth 0)
 (define success #f)
@@ -11,13 +9,13 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 3)
+(define max-depth 10)
 
 (define (generate-tabs n)
   (let ((tab "    "))
     (let loop ((i n)
                (new-tabs ""))
-      (if (eq? i 0)
+      (if (equal? i 0)
           new-tabs
           (loop (- i 1) (string-append tab new-tabs))))))
 
@@ -50,18 +48,18 @@
     (cond
       ;;
       ;; ('skip)
-      [(eq? cmd-type 'skip)
+      [(equal? cmd-type 'skip)
        (print-info proc-name "skip")
        (cons heap store)]
       ;;
       ;; ('discharge)
-      [(eq? cmd-type 'discharge)
-       (print-info proc-name "discharge")
-       (jsil-discharge)
-       (cons heap store)]
+      ;;[(equal? cmd-type 'discharge)
+       ;;(print-info proc-name "discharge")
+       ;;(jsil-discharge)
+       ;;(cons heap store)]
       ;;
       ;; ('h-assign e1 e2 e3)
-      [(eq? cmd-type 'h-assign)
+      [(equal? cmd-type 'h-assign)
        (let* ((loc-expr  (second bcmd))
               (prop-expr (third bcmd))
               (rhs-expr  (fourth bcmd))
@@ -74,7 +72,7 @@
          (cons heap store))]
       ;;
       ;; ('v-assign lhs-var e)
-      [(eq? cmd-type 'v-assign)
+      [(equal? cmd-type 'v-assign)
        (let* ((lhs-var  (second bcmd))
               (rhs-expr (third bcmd))
               (rhs-val  (run-expr rhs-expr store))
@@ -84,7 +82,7 @@
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
-      [(eq? cmd-type 'new)
+      [(equal? cmd-type 'new)
        (let* ((lhs-var (second bcmd))
               (loc-val (get-new-loc))
               (store (mutate-store store lhs-var loc-val))
@@ -93,7 +91,7 @@
          (cons heap store))]
       ;;
       ;; ('has-field lhs-var e1 e2)
-      [(eq? cmd-type 'has-field)
+      [(equal? cmd-type 'has-field)
        (let* ((lhs-var (second bcmd))
               (loc-expr (third bcmd))
               (prop-expr (fourth bcmd))
@@ -101,7 +99,7 @@
               (prop-val (run-expr prop-expr store))
               (prop-list (get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
-              (result (not (eq? is-js-field #f)))
+              (result (not (equal? is-js-field #f)))
               ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
               ;; (println (format "object: ~v" (heap-get-obj heap loc-val)))
               ;; (println (format "proplist: ~v" prop-list))
@@ -110,7 +108,7 @@
          (cons heap store))] 
       ;;
       ;; ('get-fields lhs-var e)
-      [(eq? cmd-type 'get-fields)
+      [(equal? cmd-type 'get-fields)
        (let* ((lhs-var (second bcmd))
               (loc-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
@@ -122,7 +120,7 @@
          (cons heap store))] 
       ;;
       ;; ('h-read lhs-var e1 e2)
-      [(eq? cmd-type 'h-read)
+      [(equal? cmd-type 'h-read)
        (let* ((lhs-var (second bcmd))
               (loc-expr (third bcmd))
               (prop-expr (fourth bcmd))
@@ -135,7 +133,7 @@
          (cons heap store))]
       ;;
       ;; ('arguments lhs-var)
-      [(eq? cmd-type 'arguments)
+      [(equal? cmd-type 'arguments)
        (let* ((lhs-var (second bcmd))
               (result (heap-get heap larguments parguments))
               ;;(displayln "you called arguments")
@@ -144,7 +142,7 @@
          (cons heap store))] 
       ;;
       ;; ('h-delete e1 e2)
-      [(eq? cmd-type 'h-delete)
+      [(equal? cmd-type 'h-delete)
        (let* ((loc-expr (second bcmd))
               (prop-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
@@ -155,7 +153,7 @@
          (cons heap store))]
       ;;
       ;; ('delete-object e)
-      [(eq? cmd-type 'delete-object)
+      [(equal? cmd-type 'delete-object)
        (let* ((loc-expr (second bcmd))
               (loc-val (run-expr loc-expr store))
               (heap (heap-delete-object heap loc-val)))
@@ -164,25 +162,25 @@
 
       ;;
       ;; ('assert e)
-      [(eq? cmd-type 'assert)
-       (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assert(~v)" expr-val))
-         (op-assert expr-val)
-         (cons heap store))]
+      ;;[(equal? cmd-type 'assert)
+       ;;(let* ((expr-arg (second bcmd))
+              ;;(expr-val (run-expr expr-arg store)))
+         ;;(print-info proc-name (format "assert(~v)" expr-val))
+         ;;(op-assert expr-val)
+         ;;(cons heap store))]
 
       ;;
       ;; ('assume e)
-      [(eq? cmd-type 'assume)
-       (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assume(~v)" expr-val))
-         (op-assume expr-val)
-         (cons heap store))]
+      ;;[(equal? cmd-type 'assume)
+       ;;(let* ((expr-arg (second bcmd))
+              ;;(expr-val (run-expr expr-arg store)))
+         ;;(print-info proc-name (format "assume(~v)" expr-val))
+         ;;(op-assume expr-val)
+         ;;(cons heap store))]
       
       ;;
       ;; ('success)
-      [(eq? cmd-type 'success)
+      [(equal? cmd-type 'success)
         (println (format "Terminated: success"))
         ;(println (format "Success was: ~v" success))
         (set! success #t)
@@ -192,7 +190,7 @@
 
       ;;
       ;; ('failure)
-      [(eq? cmd-type 'failure)
+      [(equal? cmd-type 'failure)
         (println (format "Terminated: failure"))
         ;(println (format "Failure was: ~v" failure))
         (set! failure #t)
@@ -201,10 +199,10 @@
 
       ;;
       ;; ('assert-* a)
-      [(eq? cmd-type 'assert-*)
-        (println (format "assert-*(~v)" (second bcmd)))
-        (sep-assert (second bcmd) heap store)
-        (cons heap store)] 
+      ;;[(equal? cmd-type 'assert-*)
+        ;;(println (format "assert-*(~v)" (second bcmd)))
+        ;;(sep-assert (second bcmd) heap store)
+        ;;(cons heap store)] 
       
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
@@ -218,45 +216,27 @@
     ;; (print (goto-stack))
     (count (lambda (x) (equal? x key)) (goto-stack))))
 
-(define (kill x)
-  (letrec ((iter (lambda (l)
-       (assert (not (car l)))
-       (cond ((not (null? (cdr l)))
-        (iter (cdr l)))))))
-    (iter (union-guards x))))
+;;(define (kill x)
+  ;;(letrec ((iter (lambda (l)
+       ;;(assert (not (car l)))
+       ;;(cond ((not (null? (cdr l)))
+       ;;(iter (cdr l)))))))
+    ;;(iter (union-guards x))))
 
 
 (define (find-prev-phi-cmd proc cur-index)
   (cond
     ((< cur-index 0) (error "Misplaced PSI node - every PSI node must have a PHI predecessor"))
-    ((eq? (first (get-cmd proc cur-index)) 'v-phi-assign) cur-index)
-    ((eq? (first (get-cmd proc cur-index)) 'v-psi-assign)
+    ((equal? (first (get-cmd proc cur-index)) 'v-phi-assign) cur-index)
+    ((equal? (first (get-cmd proc cur-index)) 'v-psi-assign)
      (find-prev-phi-cmd proc (- cur-index 1)))
     (#t (error "A Psi node must have always have a PHI node between itself and the other commands"))))
 
 (define (compute-next-prev proc cur-index prev-index)
   (cond
     ((>= (+ cur-index 1) (get-number-of-cmds proc)) '())
-    ((eq? (first (get-cmd proc (+ cur-index 1))) 'v-psi-assign) prev-index)
+    ((equal? (first (get-cmd proc (+ cur-index 1))) 'v-psi-assign) prev-index)
     (#t cur-index)))
-
-(define (print-cmd cmd)
-  (if (union? cmd)
-      (let*
-          (
-           (uc (union-contents cmd))
-           (values (lht-values uc))
-          )
-        (println "Union command, yippie woo hoo hoo")
-        (letrec ((iter (lambda (l)
-       (println (format "  ~v" l))
-       (cond ((not (null? (cdr l)))
-        (iter (cdr l)))))))
-          (iter values)))
-      (println cmd))
-)
-
-
 
 (define (process-proc-outcome outcome ctx)
   (let* ((ctx-entry (get-top-ctx-entry ctx))
@@ -267,16 +247,16 @@
          (err-label (fifth ctx-entry)))
     ;;(displayln (format "process-proc-outcome ~v" outcome))
     (cond
-      [(and (eq? (car outcome) 'err) (not (null? err-label)))
+      [(and (equal? (car outcome) 'err) (not (null? err-label)))
        (print-info proc-name (format "ret: (error, ~v)" (cdr outcome)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store err-label (- cur-index 1)))]
     
-      [(eq? (car outcome) 'err)
+      [(equal? (car outcome) 'err)
        (print-info proc-name (format "ret: (error, ~v)" (cdr outcome)))
        (error "Procedures that throw errors must be called with error labels")]
              
-      [(eq? (car outcome) 'normal)
+      [(equal? (car outcome) 'normal)
        (print-info proc-name (format "ret: (normal, ~v)" (cdr outcome)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
@@ -317,7 +297,7 @@
     ;;(displayln (format "cur_index: ~v, err_index: ~v" cur-index (get-err-index proc)))
     ;;(println (format "So, proc: ~v, cur: ~v, ret: ~v, err: ~v" proc-name cur-index (get-ret-index proc) (get-err-index proc)))
     (cond
-      [(eq? cur-index (get-ret-index proc))
+      [(equal? cur-index (get-ret-index proc))
        (let ((outcome (cons 'normal (store-get store ret-var))))
          ;(displayln (format "about to finish executing proc ~v with store: ~v. ctx: ~v" proc-name store ctx))
          (if (is-top-ctx? ctx)
@@ -330,7 +310,7 @@
                (set! call-stack-depth (- call-stack-depth 1))
                (run-cmds-iter prog heap new-store new-ctx cur-index prev-index))))]
                       
-      [(eq? cur-index (get-err-index proc))
+      [(equal? cur-index (get-err-index proc))
         (let ((outcome (cons 'err (store-get store err-var))))
          (if (is-top-ctx? ctx)
              outcome 
@@ -351,24 +331,23 @@
          (cmd (get-cmd proc cur-index))
          (cmd-type (first cmd)))
     ;;(println (pc))
-    ;;(print-cmd cmd)
     ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, ctx: ~v" proc-name cur-index cmd  ctx))
     (cond
       ;;
       ;; ('print e) 
-      [(eq? cmd-type 'print)
+      [(equal? cmd-type 'print)
        (let* ((expr (second cmd))
               (expr-val (run-expr expr store)))
          ;; (println (format "Program Print:: ~v" expr-val))
          (run-cmds-iter prog heap store ctx (+ cur-index 1) cur-index))]
       ;;
       ;; ('goto i)
-      [(and (eq? cmd-type 'goto) (= (length cmd) 2))
+      [(and (equal? cmd-type 'goto) (= (length cmd) 2))
        (print-info proc-name (format "goto ~v" (second cmd)))
        (run-cmds-iter prog heap store ctx (second cmd) cur-index)]
       ;;
       ;; ('goto e i j)
-      [(and (eq? cmd-type 'goto) (= (length cmd) 4))
+      [(and (equal? cmd-type 'goto) (= (length cmd) 4))
        (let* ((expr (second cmd))
               (then-label (third cmd))
               (else-label (fourth cmd))
@@ -379,28 +358,28 @@
 
            ; (println (format "branching on ~v" expr-val))
            (cond
-             ;[(and (symbolic? expr-val) (equivalent-to-true? expr-val))
-             ; (run-cmds-iter prog proc-name heap store then-label cur-index)]
+             ;;[(and (symbolic? expr-val) (equivalent-to-true? expr-val))
+             ;; (run-cmds-iter prog proc-name heap store then-label cur-index)]
 
-             ;[(and (symbolic? expr-val) (equivalent-to-false? expr-val))
-             ; (run-cmds-iter prog proc-name heap store else-label cur-index)]
+             ;;[(and (symbolic? expr-val) (equivalent-to-false? expr-val))
+             ;; (run-cmds-iter prog proc-name heap store else-label cur-index)]
              
-             [(and (symbolic? expr-val)
-                   (> (count-goto proc-name cur-index) goto-limit))
-              (println "I am killing an execution because I reached the goto limit")
-              (kill expr-val)]
+             ;;[(and (symbolic? expr-val)
+                   ;;(> (count-goto proc-name cur-index) goto-limit))
+              ;;(println "I am killing an execution because I reached the goto limit")
+              ;;(kill expr-val)]
              
-             [(eq? expr-val #t)
+             [(equal? expr-val #t)
                 (run-cmds-iter prog heap store ctx then-label cur-index)]
              
-             [(eq? expr-val #f)
+             [(equal? expr-val #f)
                 (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else
               (error "Illegal Conditional Goto Guard")])))]
       ;;
       ;; ('v-phi-assign x v1 v2 ... vn)
-         [(eq? cmd-type 'v-phi-assign)
+         [(equal? cmd-type 'v-phi-assign)
          (let* ((lhs-var (second cmd))
                 (var-list (cddr cmd))
                 (var-index (hash-ref wp (list proc-name prev-index cur-index)))
@@ -411,7 +390,7 @@
           (run-cmds-iter-next prog heap store ctx cur-index next-prev))]
       ;;
       ;;  ('v-psi-assign var var_1 var_2 ... var_n)
-         [(eq? cmd-type 'v-psi-assign)
+         [(equal? cmd-type 'v-psi-assign)
           (let* ((lhs-var (second cmd))
                  (var-list (cddr cmd))
                  (ac-cur-index (find-prev-phi-cmd proc (- cur-index 1)))
@@ -423,7 +402,7 @@
             (run-cmds-iter-next prog heap store ctx cur-index next-prev))]
                               
       ;; ('call lhs-var e (e1 ... en) i)
-      [(eq? cmd-type 'call)
+      [(equal? cmd-type 'call)
        (let* ((lhs-var (second cmd))
               (proc-name-expr (third cmd))
               (arg-exprs (fourth cmd))
@@ -446,7 +425,7 @@
 
 
 
-(define (run-expr expr store)
+(define (run-expr-thingy expr store)
   ;;(println (format "run-expr: ~v" expr))
   (cond
     ;;
@@ -457,16 +436,16 @@
     [(var? expr) (store-get store expr)]
     ;;
     ;; symbolic value
-    [(symbolic? expr) expr]
+    ;;[(symbolic? expr) expr]
     ;;
     ;; 
     [(list? expr)
      (cond
        ;;
        ;; ('typeof e)
-       [(eq? (first expr) 'typeof) 
+       [(equal? (first expr) 'typeof) 
         (let* ((arg (second expr))
-               (val (run-expr arg store)))
+               (val (run-expr-thingy arg store)))
            ;; for*/all ([val val])
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
@@ -475,22 +454,22 @@
                 type-of))]
        ;;
        ;; ('jsil-list l)
-       [(eq? (first expr) 'jsil-list)
+       [(equal? (first expr) 'jsil-list)
         (let* (
                (elist (cdr expr))
                (lexpr (foldl (lambda (x ac)
-                        (append ac (list (run-expr x store))))
+                        (append ac (list (run-expr-thingy x store))))
                         (list ) elist))
                )
           (cons 'jsil-list lexpr)
         )]
        ;;
        ;; ('l-nth l e)
-       [(eq? (first expr) 'l-nth)
+       [(equal? (first expr) 'l-nth)
         (let* ((elist (second expr))
                (eidx (third expr))
-               (vlist (run-expr elist store))
-               (vidx (run-expr eidx store)))
+               (vlist (run-expr-thingy elist store))
+               (vidx (run-expr-thingy eidx store)))
            ;; for*/all ([vlist vlist])
               (if (list? vlist)
                   (list-ref vlist (inexact->exact (+ vidx 1)))
@@ -499,73 +478,78 @@
                     (error "Illegal list given to l-nth"))))]
        ;;
        ;; ('s-nth s e)
-       [(eq? (first expr) 's-nth)
+       [(equal? (first expr) 's-nth)
         (let* ((estr (second expr))
-               (vstr (run-expr estr store))
+               (vstr (run-expr-thingy estr store))
                (eidx  (third expr))
-               (vidx  (run-expr eidx store)))
+               (vidx  (run-expr-thingy eidx store)))
           (if (string? vstr)
-              (string-at vstr (inexact->exact vidx))
+              (string-ref vstr (inexact->exact vidx))
               (error "Illegal string given to s-nth")))]
 
 
        ;;
        ;; (make-symbol-number symb-name)
-       [(eq? (first expr) 'make-symbol-number)
-        (constant (second expr) integer?)]
+       ;;[(equal? (first expr) 'make-symbol-number)
+        ;;(constant (second expr) integer?)]
 
        ;;
        ;; (make-symbol-string symb-name)
-       [(eq? (first expr) 'make-symbol-string)
-        (constant (second expr) string?)]
+       ;;[(equal? (first expr) 'make-symbol-string)
+        ;;(constant (second expr) string?)]
 
        ;;
        ;; (make-untyped-symbol symb-name)
-       [(eq? (first expr) 'make-untyped-symbol)
-        (second expr)]
+       ;;[(equal? (first expr) 'make-untyped-symbol)
+        ;;(second expr)]
 
       ;;
       ;; (binop e e)
       [(= (length expr) 3) 
        (let ((binop (first expr)))
          (cond
-           [(eq? binop 'and)
-            (let ((larg (run-expr (second expr) store)))
-              (if (not (eq? larg #t))
+           [(equal? binop 'and)
+            (let ((larg (run-expr-thingy (second expr) store)))
+              (if (not (equal? larg #t))
                   #f
-                  (let ((rarg (run-expr (third expr) store)))
-                    (eq? rarg #t))))]
+                  (let ((rarg (run-expr-thingy (third expr) store)))
+                    (equal? rarg #t))))]
 
-           [(eq? binop 'or)
-            (let ((larg (run-expr (second expr) store)))
-              (if (eq? larg #t)
+           [(equal? binop 'or)
+            (let ((larg (run-expr-thingy (second expr) store)))
+              (if (equal? larg #t)
                   #t
-                  (let ((rarg (run-expr (third expr) store)))
-                    (eq? rarg #t))))]
+                  (let ((rarg (run-expr-thingy (third expr) store)))
+                    (equal? rarg #t))))]
            [else
             (let ((binop (to-interp-op binop))
-                  (larg (run-expr (second expr) store))
-                  (rarg (run-expr (third expr) store)))
+                  (larg (run-expr-thingy (second expr) store))
+                  (rarg (run-expr-thingy (third expr) store)))
               (apply-binop binop larg rarg))]))]
        ;;
        ;; (unop e)
        [(= (length expr) 2) 
         (let* ((unop (to-interp-op (first expr)))
-               (arg (run-expr (second expr) store)))
+               (arg (run-expr-thingy (second expr) store)))
           (apply-unop unop arg))]
-     
-
        )]))
+
+(define (run-expr expr store)
+  (let ((expr-val (run-expr-thingy expr store)))
+    (cond
+      [(number? expr-val) (exact->inexact expr-val)]
+      [#t expr-val]
+    )))
 
 (define (terminate outcome)
   (cond 
-  	[(eq? (car outcome) 'err) (exit 1)]
+  	[(equal? (car outcome) 'err) (exit 1)]
   	[else (exit 0)]))
 
 (define (run-program prog heap)
-  (jsil-discharge)
-  (let* ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-         (outcome-success (solve (assert (or (and (get-assumptions) (not success)) (and (get-assumptions) success (not (get-assertions))))))))
+  ;;(jsil-discharge)
+  (let* ((outcome (run-proc prog "main" heap '() '() '() '() -1 -1)))
+         ;;(outcome-success (solve (assert (or (and (get-assumptions) (not success)) (and (get-assumptions) success (not (get-assertions))))))))
          ;;(outcome-failure (solve (assert failure)))
          ;;(outcome-success-assume (solve (assert (and (get-assumptions) success))))
          ;;(outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
@@ -582,10 +566,12 @@
     ;;(println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
     ;;(println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (set! global-outcome outcome)
-    (println outcome-success)
+    ;;(println outcome-success)
     (terminate outcome)))
 
   
-(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop get-assertions get-assumptions success failure global-outcome) ;; jtrue jfalse protop)
+(provide run-program run-proc program procedure heap cell store args body ret-ctx err-ctx jempty jnull jundefined protop 
+  ;;get-assertions get-assumptions 
+  success failure global-outcome) ;; jtrue jfalse protop)
 
 ;; (assertions-outcome (verify #:assume (assert (get-assumptions)) #:guarantee (assert success))))

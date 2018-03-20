@@ -1368,8 +1368,13 @@ proc i__abstractEquality (v1, v2) {
 			goto [(tv1 = tv2)] same diff;
 
 	same:	goto [(tv1 = $$undefined_type) or (tv1 = $$null_type) or
-	              (tv1 = $$boolean_type)   or (tv1 = $$number_type) or
-	              (tv1 = $$string_type)    or (tv1 = $$object_type)] ieq oops;
+	              (tv1 = $$boolean_type)   or (tv1 = $$string_type) or 
+	              (tv1 = $$object_type)] ieq cnum;
+	cnum:   goto [(tv1 = $$number_type)] num oops;
+	num:	goto [((v1 = 0) and (v2 = -0)) or ((v1 = -0) and (v2 = 0))] zeros ieq;
+	zeros:	xret := $$t;
+			goto rlab;
+
 	ieq:	xret := (v1 = v2);
 			goto rlab;
 
@@ -1436,17 +1441,8 @@ proc i__sameValue (v1, v2) {
 
 			goto [(typeOf(v1) = $$number_type) and (typeOf(v2) = $$number_type)] inan rlab;
 
-	inan:	goto [(not (v1 = v1)) and (not (v2 = v2))] rt zero;
-	zero:	goto [(v1 = 0) and (v2 = 0)] fix rlab;
-
-	fix:	sv1 := m_sgn (v1);
-			sv2 := m_sgn (v2);
-
-			xret := (sv1 = sv2);
-			goto rlab;
-
+	inan:	goto [(not (v1 = v1)) and (not (v2 = v2))] rt rlab;
 	rt:		xret := $$t;
-
 	rlab:	skip
 }
 with

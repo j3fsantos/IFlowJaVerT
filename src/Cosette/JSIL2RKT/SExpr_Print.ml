@@ -25,9 +25,7 @@ let sexpr_of_float x =
 			then "-inf.0"
 			else if (x == infinity)
 				then "+inf.0"
-				else if (is_int x)
-				  then string_of_int (int_of_float x)
-					else string_of_float x
+				else string_of_float x
 
 let rec sexpr_of_literal lit =
   match lit with
