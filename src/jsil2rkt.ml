@@ -83,7 +83,7 @@ let main () =
   	| true -> 
   			let harness = load_file "harness.js" in
   			let main = load_file !file in
-  			let main = JSIL_PreParser.stringify_assume_and_assert main in
+  			(* let main = JSIL_PreParser.stringify_assume_and_assert main in *)
   			let all = harness ^ "\n\n" ^ main in
   			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
   			let e = Parser_main.exp_from_string ~force_strict:true all in

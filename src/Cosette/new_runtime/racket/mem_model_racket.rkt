@@ -448,22 +448,22 @@
 
     (cons '& (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    (exact->inexact (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y))))
                     jundefined)))
 
     (cons '^ (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    (exact->inexact (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y))))
                     jundefined)))
     
     (cons '<< (lambda (x y)
                  (if (and (number? x) (number? y))
-                     (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                     (exact->inexact (shl (inexact->exact (truncate x)) (inexact->exact (truncate y))))
                      jundefined)))
 
     (cons '>> (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    (exact->inexact (shr (inexact->exact (truncate x)) (inexact->exact (truncate y))))
                     jundefined)))
 
     (cons ':: (lambda (x y)
@@ -478,12 +478,12 @@
 
     (cons 'bor (lambda (x y)
                  (if (and (number? x) (number? y))
-                      (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                      (exact->inexact (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y))))
                       jundefined)))
     
     (cons 'bnot (lambda (x)
                  (if (and (number? x))
-                      (bitwise-not (inexact->exact (truncate x)))
+                      (exact->inexact (bitwise-not (inexact->exact (truncate x))))
                       jundefined)))              
 
     (cons '>>> (lambda (x y) (if (number? x) (unsigned_right_shift x y) jundefined)))
@@ -494,7 +494,7 @@
 
     (cons 'string_to_num (lambda (x) (if (string? x) (jsil_string_to_number x) jundefined)))
 
-    (cons '! (lambda (x) (if (number? x) (bitwise-not (inexact->exact x)) jundefined)))  
+    (cons '! (lambda (x) (if (number? x) (exact->inexact (bitwise-not (inexact->exact x))) jundefined)))  
 
     (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (equal? x jnull) (equal? x jundefined))))
 
