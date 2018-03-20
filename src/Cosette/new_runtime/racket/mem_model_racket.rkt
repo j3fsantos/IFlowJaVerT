@@ -119,6 +119,7 @@
       		(let* ((tail (cdr lit))
       		       (mtail (map eval_literal tail)))
       		  (cons 'jsil-list mtail))]
+        [(number? lit) (exact->inexact lit)]
       	[#t lit]
       )
   )
@@ -253,12 +254,14 @@
 )
 
 (define (jsil-number-to-string n)
-  (cond
+  (let ((result (cond
     [(equal? n +nan.0) "NaN"]
     [(equal? n +inf.0) "Infinity"]
     [(equal? n -inf.0) "-Infinity"]
     [(integer? n) (number->string (inexact->exact n))]
-    [#t (number->string n)]))
+    [#t (number->string n)])))
+    result
+  ))
 
 
 (define (check-logic-variable var )
