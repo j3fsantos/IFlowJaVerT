@@ -1,10 +1,10 @@
-var f1 = symb_number (n1); 
-var f2 = symb_number (n2); 
+var f1 = symb_number (f1); 
+var f2 = symb_number (f2); 
 
 var a = [ 1, 2, 3 ];
 var v1 = a[ (f1 == 0)? 0: (f1 == 1)?1: 2];
 var v2 = a[ (f2 == 0)? 0: (f2 == 1)?1: 2];
 
-Assert ((v1 == v2));
+Assert (v1 = v2);
 
 v2

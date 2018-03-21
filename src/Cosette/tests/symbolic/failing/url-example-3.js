@@ -22,7 +22,6 @@ if (useAcct) {
 var useId = (id.length == 8 && id.startsWith("id"));
 if (useId) { url += ("?id"+id); }
  
-Assert( (!useAcct && !useId) && (url.includes("?id") || url.includes("?acct")));
-
-
-
+var res1 = url.includes("?id");
+var res2 = url.includes("?acct");
+Assert( ((not useAcct) and (not useId)) and (res1 or res2));
