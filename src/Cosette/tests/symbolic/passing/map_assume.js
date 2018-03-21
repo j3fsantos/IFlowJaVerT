@@ -6,7 +6,8 @@ function Map () {
 }
 
 function isValidKey (key) {
-    return (typeof (key) === 'string') && (key !== '') && (key[0] !== "@"); 
+    return (typeof (key) === 'string') && (key !== '')
+    && (key[0] !== "@") && (key !== 'hasOwnProperty');
 }
 
 
@@ -39,6 +40,7 @@ var n1 = symb_number (n1);
 var m = new Map(); 
 
 Assume(not (s1 = ""));
+Assume(not (s1 = "hasOwnProperty"));
 Assume(not (s-nth(s1, 0) = "@"));
 
 m.put(s1, n1); 
