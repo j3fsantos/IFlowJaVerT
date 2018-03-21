@@ -1425,6 +1425,10 @@ with
 proc i__strictEquality (v1, v2) {
 			xret := (v1 = v2);
 
+			goto [(typeOf(v1) = $$number_type) and (typeOf(v2) = $$number_type)] izero rlab;
+
+	izero:	goto [((v1 = 0) and (v2 = -0)) or ((v1 = -0) and (v2 = 0))] rt rlab;
+	rt:		xret := $$t;
 	rlab:	skip
 }
 with
