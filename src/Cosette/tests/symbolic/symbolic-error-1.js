@@ -1,4 +1,4 @@
-var x = jsil_make_symbolic_number (n1); 
+var x = symb_number (n1); 
 
 var o; 
 if (x > 10) {

@@ -1,5 +1,5 @@
 var v = 0;
-var s1 = jsil_make_symbolic_string();
+var s1 = symb_string();
 
 if ("a" == s1.charAt(0)) {
     v++;

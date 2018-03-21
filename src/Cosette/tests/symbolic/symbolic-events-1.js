@@ -39,8 +39,8 @@ var o = {
 };
 
 
-total += o.doit( ___ev1_number , ___n1_number );
-total += o.doit( ___ev2_number , ___n2_number );
-total += o.doit( ___ev3_number , ___n3_number );
+total += o.doit( ev1_number , n1_number );
+total += o.doit( ev2_number , n2_number );
+total += o.doit( ev3_number , n3_number );
 
 total;

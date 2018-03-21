@@ -1,5 +1,5 @@
-var ___p1_string = jsil_make_symbolic_string (s1); 
-var ___v1_number = jsil_make_symbolic_number (n1); 
+var p1_string = symb_string (s1); 
+var v1_number = symb_number (n1); 
 
 function top(o) {
 	var n = 0; 
@@ -9,13 +9,13 @@ function top(o) {
     return n;
 }
 
-//jsil_assume (___v1_number == 0); 
+//Assume (v1_number == 0); 
 var o = { a: 4, b: 5, c: 6 };
 
-o[___p1_string] = ___v1_number;
+o[p1_string] = v1_number;
 
 var t = top(o);
 
-jsil_Assert ((t > 15) && (___p1_string !== "")); 
-//jsil_Assert (___p1_string == "a"); 
+Assert ((t > 15) && (p1_string !== "")); 
+//Assert (p1_string == "a"); 
 t

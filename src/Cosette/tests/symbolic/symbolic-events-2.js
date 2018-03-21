@@ -18,9 +18,9 @@ o[0]("x");
 o[1]("x");
 o[2]("x");
 
-var n = ___ev1_number;
+var n = ev1_number;
 if (n == 0 || n == 1 || n == 2) {
-    total = o[ n ]( ___s_string );
+    total = o[ n ]( s_string );
 }
 
 total;

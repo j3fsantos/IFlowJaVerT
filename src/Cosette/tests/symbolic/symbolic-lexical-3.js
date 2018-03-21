@@ -1,8 +1,8 @@
-var n_number = jsil_make_symbolic_number (); 
+var n_number = symb_number (); 
 
 function top() {
 
-    var y = jsil_make_symbolic_string ();
+    var y = symb_string ();
 
     return function inner(x) {
 	var str = "";

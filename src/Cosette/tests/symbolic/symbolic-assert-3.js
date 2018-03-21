@@ -10,8 +10,8 @@ function top(o) {
 
 var o = { };
 
-o[ ___p1_string ] = ___v1_string;
+o[ p1_string ] = v1_string;
 o[ "ok" ] = "safe";
-o[ ___p2_string ] = ___v2_string;
+o[ p2_string ] = v2_string;
 
 top(o);

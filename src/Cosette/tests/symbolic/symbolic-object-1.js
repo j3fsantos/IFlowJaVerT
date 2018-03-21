@@ -14,6 +14,6 @@ function top(base) {
     return this;
 }
 
-var x = new top(___base_number);
-x.silly(___n_number);
+var x = new top(base_number);
+x.silly(n_number);
 

@@ -1,5 +1,5 @@
 var o = [1, 10];
-o[ ___p1_string ] = ___v1_string;
+o[ p1_string ] = v1_string;
 
 function f1(ary) {
     var sum = 0;
