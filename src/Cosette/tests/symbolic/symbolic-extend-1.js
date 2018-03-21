@@ -1,23 +1,24 @@
-var s1_string = symb_string(); 
-var n1_number = symb_number(); 
+var s1 = symb_string(s1); 
+var n1 = symb_number(n1); 
 
-Assume (n1_number < 9);
+Assume (n1 < 9);
 
 function extend(o) {
-    for(var p in o) {
-	this[p] = o[p];
-    }
+  for(var p in o) {
+    this[p] = o[p];
+  }
 }
 
 var Q = {
-    extend: extend
+  extend: extend
 };
 
 var input = {
-    s: s1_string,
-    n: n1_number
+  s: s1,
+  n: n1
 };
 
 Q.extend(input);
 
-Assert(Q.n > 10);
+var res = Q.n;
+Assert(res > 10);
