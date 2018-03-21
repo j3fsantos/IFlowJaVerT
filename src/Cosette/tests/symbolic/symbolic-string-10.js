@@ -19,4 +19,4 @@ f_one();
 f_two();
 f_three();
 
-top(___prop_string, ___nm_number);
+top(prop_string, nm_number);

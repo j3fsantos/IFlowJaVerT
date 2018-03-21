@@ -1,6 +1,6 @@
 var v = 0;
-var s1 = jsil_make_symbolic_string();
-var s2 = jsil_make_symbolic_string();
+var s1 = symb_string();
+var s2 = symb_string();
 
 if ("ab" == s1.concat(s2)) {
     v++;

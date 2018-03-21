@@ -1,5 +1,5 @@
 var v = 0;
-var s1 = jsil_make_symbolic_string();
+var s1 = symb_string();
 var s2 = "abcdef";
 
 for(var i = 0; i < s1.length; i++) {

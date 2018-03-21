@@ -1,7 +1,7 @@
 var v = 0;
-var s = jsil_make_symbolic_string();
-var s1 = jsil_make_symbolic_string();
-var s2 = jsil_make_symbolic_string();
+var s = symb_string();
+var s1 = symb_string();
+var s2 = symb_string();
 
 if (s != s1) {
     if (s != s2) {
@@ -11,7 +11,7 @@ if (s != s1) {
     }
 }
 
-jsil_Assert(v === 5)
+Assert(v === 5)
 
 
 

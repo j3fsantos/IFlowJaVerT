@@ -9,6 +9,6 @@ function top(o) {
 
 var o = { a: 1, b: 2, c: 3 };
 
-o[ ___prop_string ] = ___v_number;
+o[ prop_string ] = v_number;
 
 top(o);
