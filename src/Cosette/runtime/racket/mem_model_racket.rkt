@@ -170,8 +170,25 @@
 ;;
 
 ;; Shift left and right
-(define (shl n m) (arithmetic-shift n    m))
-(define (shr n m) (arithmetic-shift n (- m)))
+(define (shl n m) 
+  (let ((result (arithmetic-shift n m)))
+    (cond
+    [(< result -2147483648) 0]
+    [(> result  2147483647) 0]
+    [#t result]
+    )
+  )
+)
+
+(define (shr n m) 
+  (let ((result (arithmetic-shift n (- m))))
+    (cond
+    [(< result -2147483648) 0]
+    [(> result  2147483647) 0]
+    [#t result]
+    )
+  )
+)
 
 (define (jsil_string_to_number str)
   (cond
@@ -469,12 +486,12 @@
     
     (cons '<< (lambda (x y)
                  (if (and (number? x) (number? y))
-                     (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                     (shl (inexact->exact (truncate x)) (inexact->exact (remainder (truncate y) 32)))
                      jundefined)))
 
     (cons '>> (lambda (x y)
                 (if (and (number? x) (number? y))
-                    (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    (shr (inexact->exact (truncate x)) (inexact->exact (remainder (truncate y) 32)))
                     jundefined)))
 
     (cons ':: (lambda (x y)
