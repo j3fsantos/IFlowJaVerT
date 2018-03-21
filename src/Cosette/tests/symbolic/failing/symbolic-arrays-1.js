@@ -1,8 +1,8 @@
-var ___n_number = jsil_make_symbolic_number (n1); 
-var ___s_string_1 = jsil_make_symbolic_string (s1); 
-var ___s_string_2 = jsil_make_symbolic_string (s2); 
+var n_number = symb_number (n1); 
+var s_string_1 = symb_string (s1); 
+var s_string_2 = symb_string (s2); 
 
-jsil_assume ((___n_number >= 0) && (___n_number < 3)); 
+Assume ((n_number >= 0) and (n_number < 3)); 
 
 function f_three() { return "ten"; }
 
@@ -25,7 +25,7 @@ f_one();
 f_two();
 f_three();
 
-var n = ___n_number;
-var x = top(___s_string_1, ___s_string_2);
+var n = n_number;
+var x = top(s_string_1, s_string_2);
 
-jsil_Assert (x !== 0); 
+Assert (not (x = 0)); 
