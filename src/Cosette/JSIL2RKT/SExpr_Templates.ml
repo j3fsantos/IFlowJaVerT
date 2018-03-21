@@ -1,3 +1,5 @@
+let (template_eval:  ('a -> 'b, unit, string) format) = "(program %s)"
+
 let (template_hp_racket:  ('a -> 'b, unit, string) format) = "
 #lang rosette
 
