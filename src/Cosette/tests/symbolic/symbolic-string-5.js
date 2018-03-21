@@ -19,4 +19,4 @@ var o = { one: f_one, two: f_two, three: f_three };
 top("one", 0, o);
 top("two", 1, o);
 top("three", 10, o);
-top(___prop_string, ___n_number, o);
+top(prop_string, n_number, o);

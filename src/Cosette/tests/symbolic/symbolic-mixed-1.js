@@ -20,8 +20,8 @@ function top(f1, f2) {
     }
 }
 
-var p1 = jsil_make_symbolic_string();
-//var p2 = jsil_make_symbolic_string();
+var p1 = symb_string();
+//var p2 = symb_string();
 var p2 = "three";
 top(p1, p2);
 

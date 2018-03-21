@@ -6,11 +6,9 @@ function top(n) {
     return total;
 }
 
-var n_number = jsil_make_symbolic_number (n1); 
-jsil_assume ((n_number > 2) && (n_number < 6)); 
+var n1 = symb_number (n1); 
+Assume ((n1 > 2) and (n1 < 6)); 
 
-var t = top(n_number);
-jsil_Assert((t != 1) && (t != 0)); 
+var t = top(n1);
+Assert((not (t = 1)) and (not (t = 0))); 
 t
-
-

@@ -7,7 +7,7 @@ function top(x) {
     }
 }
 
-var x = jsil_make_symbolic_number();
+var x = symb_number();
 var y = top(x);
 
-jsil_Assert(y == 34)
+Assert(y == 34)

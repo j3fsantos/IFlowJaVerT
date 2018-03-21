@@ -19,4 +19,4 @@ f_one();
 f_two();
 f_three();
 
-top(___pp_string, ___num_number);
+top(pp_string, num_number);

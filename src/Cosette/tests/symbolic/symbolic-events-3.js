@@ -30,8 +30,8 @@ o.fib(1);
 o.sum(1);
 o.fact(1);
 
-total += o[ ___ev1_string ]( ___n1_number );
-total += o[ ___ev2_string ]( ___n2_number );
-total += o[ ___ev3_string ]( ___n3_number );
+total += o[ ev1_string ]( n1_number );
+total += o[ ev2_string ]( n2_number );
+total += o[ ev3_string ]( n3_number );
 
 total;

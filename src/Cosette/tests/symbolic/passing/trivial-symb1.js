@@ -4,7 +4,8 @@ var n = symb_number(n)
 var o = {}; 
 o["foo"] = n; 
 
-if (n > 0) { 
-	var z = o[s]; 
-	Assert(not (z <= 0))
-}
+Assume(n > 0);
+Assume(s = "foo");
+
+var z = o[s];
+Assert(z > 0)

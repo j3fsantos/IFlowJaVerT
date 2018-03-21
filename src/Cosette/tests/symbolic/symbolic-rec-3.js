@@ -11,5 +11,5 @@ var o = {
 };
 
 o.double(7);
-o.top(___p_string, ___n_number);
+o.top(p_string, n_number);
 

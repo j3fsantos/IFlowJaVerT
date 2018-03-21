@@ -1,4 +1,4 @@
-var n = symb_number (n1);
+var n = symb_number (n);
 Assume ((n > 0) and (n < 2000)); 
 var f = function () {
 }

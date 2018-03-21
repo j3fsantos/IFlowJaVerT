@@ -11,11 +11,11 @@ var Q = {
 
 
 var input = { };
-input[ ___s1_string ] = ___s2_string;
-input[ ___s3_string ] = ___n1_number;
+input[ s1_string ] = s2_string;
+input[ s3_string ] = n1_number;
 
 Q.extend(input);
 
 function inc(x) { return x + 1; }
 
-Assert(inc(Q[ ___s4_string ]) != "11" || inc(Q[ ___s5_string ]) != 11);
+Assert(inc(Q[ s4_string ]) != "11" || inc(Q[ s5_string ]) != 11);

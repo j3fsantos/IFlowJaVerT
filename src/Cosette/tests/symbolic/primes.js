@@ -14,6 +14,9 @@ function isPrime(value) {
     return primes[value];
 }
 
-var n = ___n_number;
+var n = symb_number(n);
+Assume(n >= 2);
+Assume(n <= 10);
 
-isPrime(n);
+var res = isPrime(n);
+Assert(res = true);

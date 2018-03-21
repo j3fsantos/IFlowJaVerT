@@ -20,4 +20,4 @@ function top(f, n) {
 top("one", 0);
 top("two", 1);
 top("three", 10);
-top(___prop_string, ___n_number);
+top(prop_string, n_number);

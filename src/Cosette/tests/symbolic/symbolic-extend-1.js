@@ -1,23 +1,24 @@
-var ___s1_string = jsil_make_symbolic_string(); 
-var ___n1_number = jsil_make_symbolic_number(); 
+var s1 = symb_string(s1); 
+var n1 = symb_number(n1); 
 
-jsil_assume (___n1_number < 9);
+Assume (n1 < 9);
 
 function extend(o) {
-    for(var p in o) {
-	this[p] = o[p];
-    }
+  for(var p in o) {
+    this[p] = o[p];
+  }
 }
 
 var Q = {
-    extend: extend
+  extend: extend
 };
 
 var input = {
-    s: ___s1_string,
-    n: ___n1_number
+  s: s1,
+  n: n1
 };
 
 Q.extend(input);
 
-jsil_Assert(Q.n > 10);
+var res = Q.n;
+Assert(res > 10);

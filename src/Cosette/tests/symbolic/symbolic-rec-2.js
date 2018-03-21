@@ -9,5 +9,5 @@ var o = {
     }
 };
 
-o.top(___n_number);
+o.top(n_number);
 
