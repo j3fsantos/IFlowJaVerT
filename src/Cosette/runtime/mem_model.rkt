@@ -1058,9 +1058,30 @@
           ;;                 method-name method-obj-loc fresh-function-name))
           heap))))
 
-(provide racket-js-implementations has-racket-implementation? get-racket-implementation register-js-builtin-method)
-    
 
+(define (register-js-global-function fun-name racket-method heap)
+  (let ((func-desc (heap-get heap jsglobal fun-name))
+        (fresh-function-name (symbol->string (gensym "internal-function-"))))
+    ;; put the racket method in the hashtable
+    (hash-set! racket-js-implementations fresh-function-name racket-method)
+    ;;
+    (if (eq? func-desc empty)
+
+        ;; the function does not exist - we need to create it - returning the heap
+        (let* ((result (create-new-function-obj heap fresh-function-name))
+               (heap (car result))
+               (func-obj-loc (cdr result))
+               (func-obj-desc (list 'jsil-list "d" func-obj-loc #t #f #t)))
+          (mutate-heap heap jsglobal fun-name func-obj-desc))
+
+        ;; the function already exists and we are just going to override it with a racket implementation
+        (let* ((func-obj-loc (third func-desc))
+               (heap (mutate-heap heap func-obj-loc "@call" fresh-function-name)))
+          heap))))
+         
+
+(provide racket-js-implementations has-racket-implementation? get-racket-implementation register-js-builtin-method register-js-global-function)
+    
 
 
 
