@@ -163,27 +163,6 @@
               (heap (heap-delete-object heap loc-val)))
          (print-info proc-name (format "delete-object(~v)" loc-val))
          (cons heap store))]
-
-      ;;
-      ;; ('assert e)
-      [(eq? cmd-type 'assert)
-       (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store))
-              (arg-vars (expr-lvars #t expr-arg)))
-         (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
-         (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
-         (op-assert expr-val)
-         (cons heap store))]
-
-      ;;
-      ;; ('assume e)
-      [(eq? cmd-type 'assume)
-       (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assume(~v)" expr-val))
-         (op-assume expr-val)
-         (cons heap store))]
       
       ;;
       ;; ('success)
@@ -203,13 +182,6 @@
         (set! failure #t)
         ;(println (format "And now it is: ~v" failure))
         (cons heap store)]
-
-      ;;
-      ;; ('assert-* a)
-      [(eq? cmd-type 'assert-*)
-        (println (format "assert-*(~v)" (second bcmd)))
-        (sep-assert (second bcmd) heap store)
-        (cons heap store)] 
       
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
@@ -366,11 +338,13 @@
               (expr-val (run-expr expr store)))
          ;; (println (format "Program Print:: ~v" expr-val))
          (run-cmds-iter prog heap store ctx (+ cur-index 1) cur-index))]
+
       ;;
       ;; ('goto i)
       [(and (eq? cmd-type 'goto) (= (length cmd) 2))
        (print-info proc-name (format "goto ~v" (second cmd)))
        (run-cmds-iter prog heap store ctx (second cmd) cur-index)]
+      
       ;;
       ;; ('goto e i j)
       [(and (eq? cmd-type 'goto) (= (length cmd) 4))
@@ -442,7 +416,37 @@
          (set! depth (+ depth 1))
          (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
          (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label))]
-             
+
+      ;;
+      ;; ('assert e)
+      [(eq? cmd-type 'assert)
+       (let* ((expr-arg (second bcmd))
+              (expr-val (run-expr expr-arg store))
+              (arg-vars (expr-lvars #t expr-arg)))
+         (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
+         (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
+         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
+         (op-assert expr-val)
+        (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
+
+      ;;
+      ;; ('assume e)
+      [(eq? cmd-type 'assume)
+       (let* ((expr-arg (second bcmd))
+              (expr-val (run-expr expr-arg store)))
+         (print-info proc-name (format "assume(~v)" expr-val))
+         (op-assume expr-val)
+         (if expr-val 
+             (run-cmds-iter-next prog heap store ctx cur-index cur-index)
+             (set! success #t)))]
+
+      ;;
+      ;; ('assert-* a)
+      [(eq? cmd-type 'assert-*)
+        (println (format "assert-*(~v)" (second bcmd)))
+        (sep-assert (second bcmd) heap store)
+        (run-cmds-iter-next prog heap store ctx cur-index cur-index)] 
+      
       ;;
       ;; basic command
       [else
