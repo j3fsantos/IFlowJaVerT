@@ -1,4 +1,4 @@
-#lang rosette
+#lang racket
 
 ;;
 ;; Support for list "hash-tables"
@@ -6,7 +6,7 @@
 
 ;; Sane list membership
 (define (list-mem? lst mem)
-  (if (eq? (member mem lst) #f) #f #t))
+  (if (equal? (member mem lst) #f) #f #t))
 
 ;; Does the key exist in an lht?
 (define (lht-has-key? lht key)
@@ -102,23 +102,24 @@
 (define (eval_literal lit)
   (if (list-mem? jsil-math-constants lit)
       (cond
-        [(eq? lit mc-minval) 5e-324]
-        [(eq? lit mc-maxval) 1.7976931348623158e+308]
-        [(eq? lit mc-random) (random)]
-        [(eq? lit mc-pi)     pi]
-        [(eq? lit mc-e)      (exp 1.)]
-        [(eq? lit mc-ln10)   (log 10.)]
-        [(eq? lit mc-ln2)    (log 2.)]
-        [(eq? lit mc-log2e)  (/ 1 (log 2.))]
-        [(eq? lit mc-log10e) (/ 1 (log 10.))]
-        [(eq? lit mc-sqrt12) (sqrt 0.5)]
-        [(eq? lit mc-sqrt2)  (sqrt 2.)]
+        [(equal? lit mc-minval) 5e-324]
+        [(equal? lit mc-maxval) 1.7976931348623158e+308]
+        [(equal? lit mc-random) (random)]
+        [(equal? lit mc-pi)     pi]
+        [(equal? lit mc-e)      (exp 1.)]
+        [(equal? lit mc-ln10)   (log 10.)]
+        [(equal? lit mc-ln2)    (log 2.)]
+        [(equal? lit mc-log2e)  (/ 1 (log 2.))]
+        [(equal? lit mc-log10e) (/ 1 (log 10.))]
+        [(equal? lit mc-sqrt12) (sqrt 0.5)]
+        [(equal? lit mc-sqrt2)  (sqrt 2.)]
       )
       (cond
       	[(is-llist? lit)
       		(let* ((tail (cdr lit))
       		       (mtail (map eval_literal tail)))
       		  (cons 'jsil-list mtail))]
+        [(number? lit) (exact->inexact lit)]
       	[#t lit]
       )
   )
@@ -131,31 +132,31 @@
     ((string? val) string-type)
     ((boolean? val) boolean-type)
     ((is-loc? val) obj-type)
-    ((eq? val jnull) null-type)
-    ((eq? val jundefined) undefined-type)
-    ((eq? val jempty) empty-type)
-    ((eq? val mc-minval) number-type)
-    ((eq? val mc-maxval) number-type)
-    ((eq? val mc-random) number-type)
-    ((eq? val mc-pi)     number-type)
-    ((eq? val mc-e)      number-type)
-    ((eq? val mc-ln10)   number-type)
-    ((eq? val mc-ln2)    number-type)
-    ((eq? val mc-log2e)  number-type)
-    ((eq? val mc-log10e) number-type)
-    ((eq? val mc-sqrt12) number-type)
-    ((eq? val mc-sqrt2)  number-type)
+    ((equal? val jnull) null-type)
+    ((equal? val jundefined) undefined-type)
+    ((equal? val jempty) empty-type)
+    ((equal? val mc-minval) number-type)
+    ((equal? val mc-maxval) number-type)
+    ((equal? val mc-random) number-type)
+    ((equal? val mc-pi)     number-type)
+    ((equal? val mc-e)      number-type)
+    ((equal? val mc-ln10)   number-type)
+    ((equal? val mc-ln2)    number-type)
+    ((equal? val mc-log2e)  number-type)
+    ((equal? val mc-log10e) number-type)
+    ((equal? val mc-sqrt12) number-type)
+    ((equal? val mc-sqrt2)  number-type)
     ((is-llist? val) list-type)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
 ;; Subtyping
 (define (jsil-subtype type1 type2)
   (or 
-   (eq? type1 type2) 
+   (equal? type1 type2) 
    (and
-    (eq? ref-a-type type2)
-    (or (eq? ref-v-type type1)
-        (eq? ref-o-type type1)))))
+    (equal? ref-a-type type2)
+    (or (equal? ref-v-type type1)
+        (equal? ref-o-type type1)))))
 
 ;; Special properties
 (define protop "@proto")
@@ -173,15 +174,20 @@
 (define (shr n m) (arithmetic-shift n (- m)))
 
 (define (jsil_string_to_number str)
-  (let ((str_num (string->number str)))
-    (if (eq? str_num #f)
+  (cond
+  [(equal? str "") 0]
+  [#t
+    (let ((str_num (string->number str)))
+      (if (equal? str_num #f)
         +nan.0
-        str_num)))
+        str_num))]
+  ))
+
 
 (define (jsil_num_to_int num)
   (if (nan? num) 0
       (if (infinite? num) num
-          (if (eq? num 0) num
+          (if (equal? num 0) num
               (* (sgn num) (floor (abs num)))
           )
       )
@@ -191,11 +197,11 @@
 (define (jsil_num_to_int_32 num)
   (if (nan? num) 0
       (if (infinite? num) 0
-          (if (eq? num 0) 0
+          (if (equal? num 0) 0
               (let* ((two-32 (expt 2 32))
                      (two-31 (expt 2 31))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (modulo pos-int two-32)))
+                     (smod (remainder pos-int two-32)))
                 (if (>= smod two-31)
                    (- smod two-32)
                    smod
@@ -209,10 +215,10 @@
 (define (jsil_num_to_uint_16 num)
   (if (nan? num) 0
       (if (infinite? num) 0
-          (if (eq? num 0) 0
+          (if (equal? num 0) 0
               (let* ((two-16 (expt 2 16))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (modulo pos-int two-16)))
+                     (smod (remainder pos-int two-16)))
                 (if (< smod 0)
                    (+ smod two-16)
                    smod
@@ -226,10 +232,10 @@
 (define (jsil_num_to_uint_32 num)
   (if (nan? num) 0
       (if (infinite? num) 0
-          (if (eq? num 0) 0
+          (if (equal? num 0) 0
               (let* ((two-32 (expt 2 32))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (modulo pos-int two-32)))
+                     (smod (remainder pos-int two-32)))
                 (if (< smod 0)
                    (+ smod two-32)
                    smod
@@ -247,11 +253,15 @@
   )
 )
 
-;; TODO: make sure that n is not symbolic here?!
 (define (jsil-number-to-string n)
-  (cond
-    [(eq? n +nan.0) "NaN"]
-    [#t (integer->string (inexact->exact n))]))
+  (let ((result (cond
+    [(equal? n +nan.0) "NaN"]
+    [(equal? n +inf.0) "Infinity"]
+    [(equal? n -inf.0) "-Infinity"]
+    [(integer? n) (number->string (inexact->exact n))]
+    [#t (number->string n)])))
+    result
+  ))
 
 
 (define (check-logic-variable var )
@@ -278,53 +288,52 @@
     (member arg operator-list)))
 
 
-(define (expr-lvars catch-pvars expr)
-  ;;(println (format "computing the vars of ~v" expr))
+(define (expr-lvars expr)
   (cond
     ;; literal
     [(literal? expr) (set)]
     ;; lvar
     [(check-logic-variable expr)
      (begin 
-       ;(println (format "found the lvar ~v" expr))
+       (println (format "found the lvar ~v" expr))
        (set expr))]
     ;; pvar
     [(symbol? expr)
      (begin 
-       ;(println (format "found the pvar ~v" expr))
-       (if catch-pvars (set expr) (set)))]
+       (println (format "found the pvar ~v" expr))
+       (set))]
     ;; binop 
-    [(and (list? expr) (eq? (length expr) 3) (is-operator? (car expr)))
+    [(and (list? expr) (equal? (length expr) 3) (is-operator? (car expr)))
      (begin 
-       ;(println (format "found the binop expr ~v" expr))
-       (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr))))]
+       (println (format "found the binop expr ~v" expr))
+       (set-union (expr-lvars (second expr)) (expr-lvars (third expr))))]
     ;; unop
-    [(and (list? expr) (eq? (length expr) 2) (is-operator? (car expr)))
-     (expr-lvars catch-pvars (second expr))]
+    [(and (list? expr) (equal? (length expr) 2) (is-operator? (car expr)))
+     (expr-lvars (second expr))]
     ;; type-of
-    [(and (list? expr) (eq? (first expr) 'typeof))
-     (expr-lvars catch-pvars (second expr))]
+    [(and (list? expr) (equal? (first expr) 'typeof))
+     (expr-lvars (second expr))]
     ;; lst-nth
-    [(and (list? expr) (eq? (first expr) 'l-nth))
-     (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr)))]
+    [(and (list? expr) (equal? (first expr) 'l-nth))
+     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
     ;; s-nth
-    [(and (list? expr) (eq? (first expr) 's-nth))
-     (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr)))]
+    [(and (list? expr) (equal? (first expr) 's-nth))
+     (set-union (expr-lvars (second expr)) (expr-lvars (third expr)))]
     ;; {{ le_1, ..., le_n }}
-    [(and (list? expr) (eq? (first expr) 'jsil-list))
-     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+    [(and (list? expr) (equal? (first expr) 'jsil-list))
+     (let ((le-sets (map expr-lvars (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;; -{ le_1, ..., le_n }-
-    [(and (list? expr) (eq? (first expr) 'jsil-set))
-     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+    [(and (list? expr) (equal? (first expr) 'jsil-set))
+     (let ((le-sets (map expr-lvars (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;; set-union 
-    [(and (list? expr) (eq? (first expr) 'set-union))
-     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+    [(and (list? expr) (equal? (first expr) 'set-union))
+     (let ((le-sets (map expr-lvars (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;; set-inter 
-    [(and (list? expr) (eq? (first expr) 'set-inter))
-     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+    [(and (list? expr) (equal? (first expr) 'set-inter))
+     (let ((le-sets (map expr-lvars (cdr expr))))
        (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
     ;;
     [else (set)]))
@@ -343,33 +352,33 @@
     ;; pvar var
     [(symbol? lexpr) lexpr]
     ;; binop 
-    [(and (list? lexpr) (eq? (length lexpr) 3) (is-operator? (car lexpr)))
+    [(and (list? lexpr) (equal? (length lexpr) 3) (is-operator? (car lexpr)))
      (list (first lexpr) (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
     ;; unop 
-    [(and (list? lexpr) (eq? (length lexpr) 2) (is-operator? (car lexpr)))
+    [(and (list? lexpr) (equal? (length lexpr) 2) (is-operator? (car lexpr)))
      (list (first lexpr) (lexpr-substitution (second lexpr) subst))]
     ;; type-of
-    [(and (list? lexpr) (eq? (first lexpr) 'typeof))
+    [(and (list? lexpr) (equal? (first lexpr) 'typeof))
      (list 'typeof (lexpr-substitution (second lexpr) subst))]
     ;; lst-nth
-    [(and (list? lexpr) (eq? (first lexpr) 'l-nth))
+    [(and (list? lexpr) (equal? (first lexpr) 'l-nth))
      (list 'l-nth (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
     ;; s-nth
-    [(and (list? lexpr) (eq? (first lexpr) 's-nth))
+    [(and (list? lexpr) (equal? (first lexpr) 's-nth))
       (list 's-nth (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
     ;; {{ le_1, ..., le_n }}
-    [(and (list? lexpr) (eq? (first lexpr) 'jsil-list))
+    [(and (list? lexpr) (equal? (first lexpr) 'jsil-list))
      (let ((sles (map (lambda (le) (lexpr-substitution le subst)) (cdr lexpr))))
        (cons 'jsil-list sles))]
     ;; -{ le_1, ..., le_n }-
-    [(and (list? lexpr) (eq? (first lexpr) 'jsil-set))
+    [(and (list? lexpr) (equal? (first lexpr) 'jsil-set))
      (let ((sles (map (lambda (le) (lexpr-substitution le subst)) (cdr lexpr))))
        (cons 'jsil-set sles))]
     ;; set-union
-    [(and (list? lexpr) (eq? (first lexpr) 'set-union))
+    [(and (list? lexpr) (equal? (first lexpr) 'set-union))
      (list 'set-union (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
     ;; set-inter 
-    [(and (list? lexpr) (eq? (first lexpr) 'set-inter))
+    [(and (list? lexpr) (equal? (first lexpr) 'set-inter))
      (list 'set-inter (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
      ;;
     [else (error "DEATH. lexpr-substitution")]))
@@ -379,11 +388,9 @@
   (list
     (cons '= 
     	(lambda (x y)
-        (if (and (integer? x) (integer? y))
-    		  (eq? x y)
-          (cond 
-    		    [(and (eq? x +nan.0) (eq? y +nan.0)) #f]
-    		    [else (eq? x y)]))))
+    		(cond 
+    		[(and (equal? x +nan.0) (equal? y +nan.0)) #f]
+    		[else (equal? x y)])))
 
     (cons '<
           (lambda (x y)
@@ -403,7 +410,7 @@
 
     (cons '-
           (lambda (x . rest)
-            (if (eq? (length rest) 0)
+            (if (equal? (length rest) 0)
                 (if (number? x) (- x) jundefined)
                 (let ((y (first rest)))
                   (if (and (number? x) (number? y)) (- x y) jundefined)))))
@@ -419,9 +426,9 @@
             	(let* ((ix (exact->inexact x))
             	       (iy (exact->inexact y)))
             		(cond
-            		[(and (eq? y 0) (< ix 0)) -inf.0]
-            		[(and (eq? y 0) (> ix 0)) +inf.0]
-            		[(and (eq? y 0) (eq? ix 0)) +nan.0]
+            		[(and (equal? y 0) (< ix 0)) -inf.0]
+            		[(and (equal? y 0) (> ix 0)) +inf.0]
+            		[(and (equal? y 0) (equal? ix 0)) +nan.0]
             		[#t (/ ix iy)] 
             		))]
             [else jundefined])))
@@ -431,7 +438,9 @@
             (if (and (number? x) (number? y)) 
             (cond
             [(or (eq? x +nan.0) (eq? y +nan.0)) +nan.0]
-            [#t (modulo x y)]) 
+            [(or (eq? x +inf.0) (eq? y -inf.0) (eq? y 0.0) (eq? y -0.0)) +nan.0]
+            [(or (eq? y +inf.0) (eq? y -inf.0)) x]
+            [#t (remainder x y)]) 
             jundefined)))
           
     (cons '<: jsil-subtype)
@@ -496,9 +505,9 @@
 
     (cons 'string_to_num (lambda (x) (if (string? x) (jsil_string_to_number x) jundefined)))
 
-    (cons '! (lambda (x) (if (number? x) (bitwise-not (inexact->exact x)) jundefined)))  
+    (cons '! (lambda (x) (if (number? x) (bitwise-not (inexact->exact x)) jundefined)))
 
-    (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
+    (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (equal? x jnull) (equal? x jundefined))))
 
     (cons 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
 
@@ -600,7 +609,7 @@
 (define (heap-get-obj heap object)
   (let*
       ((obj (lht-value heap object)))
-    (if (eq? obj empty) (error (format "Error: ~v is not in the heap." object)) obj)))
+    (if (equal? obj empty) (error (format "Error: ~v is not in the heap." object)) obj)))
 
 ;;
 ;; Get property value from heap
@@ -609,7 +618,7 @@
   (let*
       ((obj (heap-get-obj heap object))
        (val (lht-value obj prop)))
-    (if (eq? val empty) (error (format "Error: (~v, ~v) is not in the heap." object prop)) val)))
+    (if (equal? val empty) (error (format "Error: (~v, ~v) is not in the heap." object prop)) val)))
 
 ;;
 ;; Get obj fields
@@ -619,8 +628,8 @@
              (result '()))
     (cond
       [(null? object) result]
-      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) #\@)))
-        (loop (cdr object) (cons (caar object) result))]
+      [(and (pair? (car object)) (is-llist? (cdr (car object))))
+        (loop (cdr object) (cons (car (car object)) result))]
       [else (loop (cdr object) result)])))  
 
 ;;
@@ -746,8 +755,8 @@
 ;(define (is-a-list? l)
 ;  (and
 ;   (list? l)
-;   (not (eq? l '()))
-;   (eq? (first l) 'jsil-list)
+;   (not (equal? l '()))
+;   (equal? (first l) 'jsil-list)
 ;  )
 ;)
 
@@ -761,13 +770,13 @@
             (is-literal-list? (cdr l)))]))
   (and
    (list? l)
-   (eq? (first l) 'jsil-list)
+   (equal? (first l) 'jsil-list)
    (is-literal-list? (cdr l))))
 
 (define (is-a-list? l)
   (and
    (list? l)
-   (eq? (first l) 'jsil-list)
+   (equal? (first l) 'jsil-list)
   )
 )
 
@@ -816,34 +825,9 @@
       #f
       (let* ((expr-str (symbol->string expr))
              (expr-str-len (string-length expr-str)))
-         (and (> expr-str-len 0) (not (eq? (substring expr-str 0 1) "$"))))))
+         (and (> expr-str-len 0) (not (equal? (substring expr-str 0 1) "$"))))))
 
-(define (store-projection store pvars)
-  ;;(println "inside store-projection")
-  (cond
-    ((null? store) '())
-    (#t
-     (let ((cur-var (car (car store)))
-           (cur-val (cdr (car store)))
-           (rest-store (cdr store)))
-       ;;(println (format "cur-var ~v. cur-val: ~v" cur-var cur-val))
-       (if (set-member? pvars cur-var)
-           (cons (cons cur-var cur-val) (store-projection rest-store pvars))
-           (store-projection rest-store pvars))))))
-
-(define (store->string store)
-  (let ((store-strs
-         (map
-          (lambda (x)
-            (let ((var-name (car x))
-                  (var-val (cdr x)))
-              (when (union? var-val)
-                (println "I found a guarded union in the store -- ai a minha vida!"))
-              (format "(~v: ~v)" var-name var-val)))
-          store)))
-    (foldl (lambda (elem v) (string-append elem v)) "" store-strs)))
-
-(provide make-store mutate-store store-get var? store store-projection store->string)
+(provide make-store mutate-store store-get var? store)
 
 ;;
 ;; Contexts
@@ -852,7 +836,7 @@
   (list proc-name ret-var normal-index err-index))
 
 (define (is-ctx-entry? ctx-entry)
-  (and (list ctx-entry) (eq? (length ctx-entry) 5)))
+  (and (list ctx-entry) (equal? (length ctx-entry) 5)))
 
 (define (get-proc-name-from-ctx ctx)
   (cond
@@ -861,7 +845,7 @@
     [ else (error (format "Invalid context: ~v." ctx))] ))
 
 (define (is-top-ctx? ctx)
-  (eq? (length ctx) 1))
+  (equal? (length ctx) 1))
 
 (define (get-top-ctx-entry ctx)
   (if (> (length ctx) 0)
@@ -902,7 +886,7 @@
   (let*
       ((program-pulp (unbox program))
        (proc (lht-value program-pulp proc-name)))
-    (if (eq? proc empty) (error (format "Error: procedure ~v is not in the program." proc-name)) proc)))
+    (if (equal? proc empty) (error (format "Error: procedure ~v is not in the program." proc-name)) proc)))
 
 (define (has-proc? program proc-name)
   (lht-has-key? (unbox program) proc-name))
@@ -1041,7 +1025,7 @@
     ;; put the racket method in the hashtable
     (hash-set! racket-js-implementations fresh-function-name racket-method)
     ;;
-    (if (eq? method-obj-desc empty)
+    (if (equal? method-obj-desc empty)
 
         ;; the method does not exist - we need to create it - returning the heap
         (let* ((result (create-new-function-obj heap fresh-function-name))

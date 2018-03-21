@@ -8,13 +8,6 @@
 (define (list-mem? lst mem)
   (if (eq? (member mem lst) #f) #f #t))
 
-;; Creating an empty lht
-(define (box-lht lht)
-  (box lht))
-
-(define (new-lht)
-  '())
-
 ;; Does the key exist in an lht?
 (define (lht-has-key? lht key)
   (letrec ((iter
@@ -25,7 +18,7 @@
     (iter lht)))
 
 ;; The value associated with a key in an lht
-(define (lht-ref lht key)
+(define (lht-value lht key)
   (letrec ((iter
             (lambda (lst)
               (cond [(null? lst) empty]
@@ -33,11 +26,11 @@
                     [#t (iter (cdr lst))]))))
     (iter lht)))
 
-;; Keys of an lht
+;; Keys of an lht - this will have duplicates
 (define (lht-keys lht)
   (map (lambda (x) (car x)) lht))
 
-;; Values of an lht
+;; Values of an lht - this will have duplicates
 (define (lht-values lht)
   (map (lambda (x) (cdr x)) lht))
 
@@ -100,10 +93,9 @@
            (string? val)
            (is-loc? val)
            (is-llist? val)
-           (is-ref? val)
            (list-mem? jsil-constants val)
            (list-mem? jsil-math-constants val))))
-    ;; (println (format "literal? with ~v produced ~v" val ret))
+    ;;(println (format "literal? with ~v produced ~v" val ret))
     ret))
 
 ;; Evaluating a literal
@@ -122,7 +114,13 @@
         [(eq? lit mc-sqrt12) (sqrt 0.5)]
         [(eq? lit mc-sqrt2)  (sqrt 2.)]
       )
-      lit
+      (cond
+      	[(is-llist? lit)
+      		(let* ((tail (cdr lit))
+      		       (mtail (map eval_literal tail)))
+      		  (cons 'jsil-list mtail))]
+      	[#t lit]
+      )
   )
 )
 
@@ -133,10 +131,20 @@
     ((string? val) string-type)
     ((boolean? val) boolean-type)
     ((is-loc? val) obj-type)
-    ((is-ref? val) (ref-type val))
     ((eq? val jnull) null-type)
     ((eq? val jundefined) undefined-type)
     ((eq? val jempty) empty-type)
+    ((eq? val mc-minval) number-type)
+    ((eq? val mc-maxval) number-type)
+    ((eq? val mc-random) number-type)
+    ((eq? val mc-pi)     number-type)
+    ((eq? val mc-e)      number-type)
+    ((eq? val mc-ln10)   number-type)
+    ((eq? val mc-ln2)    number-type)
+    ((eq? val mc-log2e)  number-type)
+    ((eq? val mc-log10e) number-type)
+    ((eq? val mc-sqrt12) number-type)
+    ((eq? val mc-sqrt2)  number-type)
     ((is-llist? val) list-type)
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
@@ -239,74 +247,309 @@
   )
 )
 
+;; TODO: make sure that n is not symbolic here?!
 (define (jsil-number-to-string n)
-  (integer->string n))
-	
-;  (cond
-;    ((integer? n) (integer->string n))
-;    (#t (number->string n))))
+  (cond
+    [(eq? n +nan.0) "NaN"]
+    [#t (integer->string (inexact->exact n))]))
+
+
+(define (check-logic-variable var )
+  (if (not (symbol? var))
+      #f
+      (let ((var-string (symbol->string var)))
+        (or (and (> (string-length var-string) 5) (string=? (substring var-string 0 5) "_lvar"))
+            (and (> (string-length var-string) 1) (string=? (substring var-string 0 1) "#"))
+            (and (> (string-length var-string) 4) (string=? (substring var-string 0 4) "_$l_"))))))
+
+
+;;'= '< '<= '<s '+ '- '* '/ '% '<:  '++  '@ 'and 'or '& '^  '<< '>> ':: '** 'm_atan2 'bor 'bnot '>>> 'not 'num_to_string 'string_to_num '!
+;;'is_primitive 'length 'car 'cdr 'm_abs 'm_acos 'm_asin 'm_atan 'm_cos 'm_sin 'm_tan 'm_sgn 'm_sqrt 'm_exp 'm_log 'm_ceil 'm_floor 'm_round
+;;'num_to_int 'num_to_int32 'num_to_unint16 'num_to_unint32 's-len 'l-len
+
+
+(define (is-operator? arg)
+  (let ((operator-list
+         (list '= '< '<= '<s '+ '- '* '/ '% '<:  '++  '@ 'and 'or '& '^  '<< '>> ':: '**
+               'm_atan2 'bor 'bnot '>>> 'not 'num_to_string 'string_to_num '!'is_primitive
+               'length 'car 'cdr 'm_abs 'm_acos 'm_asin 'm_atan 'm_cos 'm_sin 'm_tan 'm_sgn
+               'm_sqrt 'm_exp 'm_log 'm_ceil 'm_floor 'm_round 'num_to_int 'num_to_int32
+               'num_to_unint16 'num_to_unint32 's-len 'l-len)))
+    (member arg operator-list)))
+
+
+(define (expr-lvars catch-pvars expr)
+  ;;(println (format "computing the vars of ~v" expr))
+  (cond
+    ;; literal
+    [(literal? expr) (set)]
+    ;; lvar
+    [(check-logic-variable expr)
+     (begin 
+       ;(println (format "found the lvar ~v" expr))
+       (set expr))]
+    ;; pvar
+    [(symbol? expr)
+     (begin 
+       ;(println (format "found the pvar ~v" expr))
+       (if catch-pvars (set expr) (set)))]
+    ;; binop 
+    [(and (list? expr) (eq? (length expr) 3) (is-operator? (car expr)))
+     (begin 
+       ;(println (format "found the binop expr ~v" expr))
+       (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr))))]
+    ;; unop
+    [(and (list? expr) (eq? (length expr) 2) (is-operator? (car expr)))
+     (expr-lvars catch-pvars (second expr))]
+    ;; type-of
+    [(and (list? expr) (eq? (first expr) 'typeof))
+     (expr-lvars catch-pvars (second expr))]
+    ;; lst-nth
+    [(and (list? expr) (eq? (first expr) 'l-nth))
+     (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr)))]
+    ;; s-nth
+    [(and (list? expr) (eq? (first expr) 's-nth))
+     (set-union (expr-lvars catch-pvars (second expr)) (expr-lvars catch-pvars (third expr)))]
+    ;; {{ le_1, ..., le_n }}
+    [(and (list? expr) (eq? (first expr) 'jsil-list))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;; -{ le_1, ..., le_n }-
+    [(and (list? expr) (eq? (first expr) 'jsil-set))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;; set-union 
+    [(and (list? expr) (eq? (first expr) 'set-union))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;; set-inter 
+    [(and (list? expr) (eq? (first expr) 'set-inter))
+     (let ((le-sets (map (lambda (x) (expr-lvars catch-pvars x)) (cdr expr))))
+       (foldl (lambda (elem v) (set-union elem v)) (set) le-sets))]
+    ;;
+    [else (set)]))
+
+
+
+(define (lexpr-substitution lexpr subst)
+  (cond
+    ;; literal
+    [(literal? lexpr) lexpr]
+    ;; lvar
+    [(check-logic-variable lexpr)
+     (if (hash-has-key? subst lexpr)
+         (hash-ref subst lexpr)
+         (error "Incomplete substitution"))]
+    ;; pvar var
+    [(symbol? lexpr) lexpr]
+    ;; binop 
+    [(and (list? lexpr) (eq? (length lexpr) 3) (is-operator? (car lexpr)))
+     (list (first lexpr) (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; unop 
+    [(and (list? lexpr) (eq? (length lexpr) 2) (is-operator? (car lexpr)))
+     (list (first lexpr) (lexpr-substitution (second lexpr) subst))]
+    ;; type-of
+    [(and (list? lexpr) (eq? (first lexpr) 'typeof))
+     (list 'typeof (lexpr-substitution (second lexpr) subst))]
+    ;; lst-nth
+    [(and (list? lexpr) (eq? (first lexpr) 'l-nth))
+     (list 'l-nth (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; s-nth
+    [(and (list? lexpr) (eq? (first lexpr) 's-nth))
+      (list 's-nth (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; {{ le_1, ..., le_n }}
+    [(and (list? lexpr) (eq? (first lexpr) 'jsil-list))
+     (let ((sles (map (lambda (le) (lexpr-substitution le subst)) (cdr lexpr))))
+       (cons 'jsil-list sles))]
+    ;; -{ le_1, ..., le_n }-
+    [(and (list? lexpr) (eq? (first lexpr) 'jsil-set))
+     (let ((sles (map (lambda (le) (lexpr-substitution le subst)) (cdr lexpr))))
+       (cons 'jsil-set sles))]
+    ;; set-union
+    [(and (list? lexpr) (eq? (first lexpr) 'set-union))
+     (list 'set-union (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+    ;; set-inter 
+    [(and (list? lexpr) (eq? (first lexpr) 'set-inter))
+     (list 'set-inter (lexpr-substitution (second lexpr) subst) (lexpr-substitution (third lexpr) subst))]
+     ;;
+    [else (error "DEATH. lexpr-substitution")]))
+
 
 (define operators-list
   (list
-    (cons '= eq?)
-    (cons '< <)
-    (cons '<= <=)
-    (cons '<s string<?)
-    (cons '+ +)
-    (cons '- -)
-    (cons '* *)
-    (cons '/ /)
-    (cons '% modulo)
+    (cons '= 
+    	(lambda (x y)
+        (if (and (integer? x) (integer? y))
+    		  (eq? x y)
+          (cond 
+    		    [(and (eq? x +nan.0) (eq? y +nan.0)) #f]
+    		    [else (eq? x y)]))))
+
+    (cons '<
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (< x y) jundefined)))
+
+    (cons '<=
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (<= x y) jundefined)))
+
+    (cons '<s
+          (lambda (x y)
+            (if (and (string? x) (string? y)) (string<? x y) jundefined)))
+
+    (cons '+
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (+ x y) jundefined)))
+
+    (cons '-
+          (lambda (x . rest)
+            (if (eq? (length rest) 0)
+                (if (number? x) (- x) jundefined)
+                (let ((y (first rest)))
+                  (if (and (number? x) (number? y)) (- x y) jundefined)))))
+    
+    (cons '*
+          (lambda (x y)
+            (if (and (number? x) (number? y)) (* x y) jundefined)))
+
+    (cons '/
+          (lambda (x y)
+            (cond 
+            [(and (number? x) (number? y)) 
+            	(let* ((ix (exact->inexact x))
+            	       (iy (exact->inexact y)))
+            		(cond
+            		[(and (eq? y 0) (< ix 0)) -inf.0]
+            		[(and (eq? y 0) (> ix 0)) +inf.0]
+            		[(and (eq? y 0) (eq? ix 0)) +nan.0]
+            		[#t (/ ix iy)] 
+            		))]
+            [else jundefined])))
+
+    (cons '%
+          (lambda (x y)
+            (if (and (number? x) (number? y)) 
+            (cond
+            [(or (eq? x +nan.0) (eq? y +nan.0)) +nan.0]
+            [#t (modulo x y)]) 
+            jundefined)))
+          
     (cons '<: jsil-subtype)
-    (cons '++ string-append)
-    (cons '@ (lambda (x y) (append x (cdr y))))
+
+    (cons '++
+          (lambda (x y)
+            (if (and (string? x) (string? y)) (string-append x y) jundefined)))
+          
+    (cons '@
+          (lambda (x y)
+            (if (and (is-llist? x) (is-llist? y)) (append x (cdr y)) jundefined)))
+    
     (cons 'and (lambda (x y) (error "and operator called illegally")))
-    (cons 'or  (lambda (x y) (error "or operator called illegally")))
-    (cons '& (lambda (x y) (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '^ (lambda (x y) (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '<< (lambda (x y) (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '>> (lambda (x y) (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
+    
+    (cons 'or (lambda (x y) (error "or operator called illegally")))
+
+    (cons '& (lambda (x y)
+                (if (and (number? x) (number? y))
+                    (bitwise-and (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    jundefined)))
+
+    (cons '^ (lambda (x y)
+                (if (and (number? x) (number? y))
+                    (bitwise-xor (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    jundefined)))
+    
+    (cons '<< (lambda (x y)
+                 (if (and (number? x) (number? y))
+                     (shl (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                     jundefined)))
+
+    (cons '>> (lambda (x y)
+                (if (and (number? x) (number? y))
+                    (shr (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                    jundefined)))
+
     (cons ':: (lambda (x y)
-               (if (eq? x '(jsil-list))
-                y
-                (append (list 'jsil-list x) (cdr y)))))
-    (cons '** expt)
-    (cons 'm_atan2 (lambda (x y) (atan y x)))
-    (cons 'bor (lambda (x y) (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))))
-    (cons '>>> unsigned_right_shift)
-    (cons 'not not)
-    (cons 'num_to_string jsil-number-to-string)
-    (cons 'string_to_num jsil_string_to_number)
-    (cons '! (lambda (x) (bitwise-not (inexact->exact x))))
+               (if (is-llist? y)
+                   (append (list 'jsil-list x) (cdr y))
+                   jundefined)))
+
+    (cons '** (lambda (x y) (if (and (number? x) (number? y)) (expt x y) jundefined)))
+
+    (cons 'm_atan2 (lambda (x y)
+                     (if (and (number? x) (number? y)) (atan y x) jundefined)))
+
+    (cons 'bor (lambda (x y)
+                 (if (and (number? x) (number? y))
+                      (bitwise-ior (inexact->exact (truncate x)) (inexact->exact (truncate y)))
+                      jundefined)))
+    
+    (cons 'bnot (lambda (x)
+                 (if (and (number? x))
+                      (bitwise-not (inexact->exact (truncate x)))
+                      jundefined)))              
+
+    (cons '>>> (lambda (x y) (if (number? x) (unsigned_right_shift x y) jundefined)))
+
+    (cons 'not (lambda (x) (if (boolean? x) (not x) #f)))
+
+    (cons 'num_to_string (lambda (x) (if (number? x) (jsil-number-to-string x) jundefined)))
+
+    (cons 'string_to_num (lambda (x) (if (string? x) (jsil_string_to_number x) jundefined)))
+
+    (cons '! (lambda (x) (if (number? x) (bitwise-not (inexact->exact x)) jundefined)))  
+
     (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
+
     (cons 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
-    (cons 'car (lambda (x) (car (cdr x))))
-    (cons 'cdr (lambda (x) (cons 'jsil-list (cdr (cdr x)))))
-    (cons 'm_abs abs)
-    (cons 'm_acos acos)
-    (cons 'm_asin asin)
-    (cons 'm_atan atan)
-    (cons 'm_cos cos)
-    (cons 'm_sin sin)
-    (cons 'm_tan tan)
-    (cons 'm_sgn sgn)
-    (cons 'm_sqrt sqrt)
-    (cons 'm_exp exp)
-    (cons 'm_log log)
-    (cons 'm_ceil ceiling)
-    (cons 'm_floor floor)
-    (cons 'm_round round)
-    (cons 'num_to_int jsil_num_to_int)
-    (cons 'num_to_int32 jsil_num_to_int_32)
-    (cons 'num_to_uint16 jsil_num_to_uint_16)
-    (cons 'num_to_uint32 jsil_num_to_uint_32)
-    (cons 's-len string-length)
-    (cons 'l-len (lambda (x) (- (length x) 1)))))
+
+    (cons 'car (lambda (x) (if (is-llist? x) (car (cdr x)) jundefined)))
+
+    (cons 'cdr (lambda (x) (if (is-llist? x) (cons 'jsil-list (cdr (cdr x))) jundefined)))
+
+    (cons 'm_abs (lambda (x) (if (number? x) (abs x) jundefined)))
+    
+    (cons 'm_acos (lambda (x) (if (number? x) (acos x) jundefined)))
+
+    (cons 'm_asin (lambda (x) (if (number? x) (asin x) jundefined)))
+
+    (cons 'm_atan (lambda (x) (if (number? x) (atan x) jundefined)))
+
+    (cons 'm_cos (lambda (x) (if (number? x) (cos x) jundefined)))
+
+    (cons 'm_sin (lambda (x) (if (number? x) (sin x) jundefined)))
+
+    (cons 'm_tan (lambda (x) (if (number? x) (tan x) jundefined)))
+
+    (cons 'm_sgn (lambda (x) (if (number? x) (sgn x) jundefined)))
+
+    (cons 'm_sqrt (lambda (x) (if (number? x) (sqrt x) jundefined)))
+    
+    (cons 'm_exp (lambda (x) (if (number? x) (exp x) jundefined)))
+
+    (cons 'm_log (lambda (x) (if (number? x) (log x) jundefined)))
+
+    (cons 'm_ceil (lambda (x) (if (number? x) (ceiling x) jundefined)))
+
+    (cons 'm_floor (lambda (x) (if (number? x) (floor x) jundefined)))
+
+    (cons 'm_round (lambda (x) (if (number? x) (round x) jundefined)))
+
+    (cons 'num_to_int (lambda (x) (if (number? x) (jsil_num_to_int x) jundefined)))
+
+    (cons 'num_to_int32 (lambda (x) (if (number? x) (jsil_num_to_int_32 x) jundefined)))
+
+    (cons 'num_to_uint16 (lambda (x) (if (number? x) (jsil_num_to_uint_16 x) jundefined)))
+    
+    (cons 'num_to_uint32 (lambda (x) (if (number? x) (jsil_num_to_uint_32 x) jundefined)))
+
+    (cons 's-len (lambda (x) (if (string? x) (string-length x) jundefined)))
+    
+    (cons 'l-len (lambda (x) (if (is-llist? x) (- (length x) 1) jundefined)))))
 
 ;; Obtaining the operator
 (define (to-interp-op op)
   (cond
-    [(lht-has-key? operators-list op) (lht-ref operators-list op)]
+    [(lht-has-key? operators-list op) (lht-value operators-list op)]
     [else (error "Operator not supported" op)]))
 
 ;; Applying binary operators
@@ -317,130 +560,153 @@
 (define (apply-unop op arg)
   (apply op (list arg)))
 
-(provide to-interp-op apply-binop apply-unop)
+(provide to-interp-op apply-binop apply-unop expr-lvars lexpr-substitution check-logic-variable)
 
 ;; heaps that can be handled by rosette - God help us all
 
-(define (make-heap)
-  (box '()))
-
-(define (new-prop-val-list)
+(define (new-heap)
   '())
 
-(define (mutate-prop-val-list prop-val-list prop new-val)
+(define (new-object)
+  '())
+
+;;
+;; Mutate the object at location 'loc' with property 'prop' and value 'val'
+;;
+(define (mutate-object object prop val)
   (cond
-    [(null? prop-val-list)
-     (list (cons prop new-val))]
-    [(equal? (car (car prop-val-list)) prop)
-     (cons (cons prop new-val) (cdr prop-val-list))]
+    [(null? object)
+     (list (cons prop val))]
+    [(equal? (car (car object)) prop)
+     (cons (cons prop val) (cdr object))]
     [ else
-     (cons (car prop-val-list) (mutate-prop-val-list (cdr prop-val-list) prop new-val))]))
+     (cons (car object) (mutate-object (cdr object) prop val))]))
 
 ;; 
 ;; Mutate the heap 'heap' at location 'loc' with property 'prop' and value 'val'
 ;;
-(define (mutate-heap heap loc prop val)
-  (define (mutate-heap-pulp h-pulp loc prop val)
-    (cond
-      [(null? h-pulp)
-       (list (cons loc (list (cons prop val))))]
-      [(equal? (car (car h-pulp)) loc)
-       (cons (cons loc (mutate-prop-val-list (cdr (car h-pulp)) prop val)) (cdr h-pulp))]
-      [ else
-       (cons (car h-pulp) (mutate-heap-pulp (cdr h-pulp) loc prop val))]))
-  (let ((new-heap-pulp (mutate-heap-pulp (unbox heap) loc prop val)))
-    (set-box! heap new-heap-pulp)))
+(define (mutate-heap heap object prop val)
+  (cond
+    [(null? heap)
+     (list (cons object (list (cons prop val))))]
+    [(equal? (car (car heap)) object)
+     (cons (cons object (mutate-object (cdr (car heap)) prop val)) (cdr heap))]
+    [ else
+      (cons (car heap) (mutate-heap (cdr heap) object prop val))]))
 
+;;
 ;; Get object from heap
-(define (heap-get-obj heap loc)
+;;
+(define (heap-get-obj heap object)
   (let*
-      ((heap-pulp (unbox heap))
-       (obj (lht-ref heap-pulp loc)))
-    (if (eq? obj empty) (error (format "Error: ~v is not in the heap." loc)) obj)))
+      ((obj (lht-value heap object)))
+    (if (eq? obj empty) (error (format "Error: ~v is not in the heap." object)) obj)))
 
+;;
 ;; Get property value from heap
-(define (heap-get heap loc prop)
+;;
+(define (heap-get heap object prop)
   (let*
-      ((obj (heap-get-obj heap loc))
-       (val (lht-ref obj prop)))
-    (if (eq? val empty) (error (format "Error: (~v, ~v) is not in the heap." loc prop)) val)))
+      ((obj (heap-get-obj heap object))
+       (val (lht-value obj prop)))
+    (if (eq? val empty) (error (format "Error: (~v, ~v) is not in the heap." object prop)) val)))
 
-;; get obj fields
-(define (petar-get-obj-fields fv-list)
-  (let loop ((fv-list fv-list)
-             (f-list '()))
+;;
+;; Get obj fields
+;;
+(define (petar-get-obj-fields object)
+  (let loop ((object object)
+             (result '()))
     (cond
-      [(null? fv-list) f-list]
-      [(and (pair? (car fv-list)) (is-llist? (cdr (car fv-list))))
-        (loop (cdr fv-list) (cons (car (car fv-list)) f-list))]
-      [else (loop (cdr fv-list) f-list)])))  
+      [(null? object) result]
+      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) #\@)))
+        (loop (cdr object) (cons (caar object) result))]
+      [else (loop (cdr object) result)])))  
 
-(define (get-obj-fields fv-list)
-  (let loop ((fv-list fv-list)
-             (f-list '()))
-    (if (null? fv-list)
-        f-list
-        (loop (cdr fv-list) (cons (car (car fv-list)) f-list)))))
+;;
+;; I don't know what this is
+;;
+(define (get-obj-fields object)
+  (let loop ((object object)
+             (result '()))
+    (if (null? object)
+        result
+        (loop (cdr object) (cons (car (car object)) result)))))
 
-
-;; Get all fields of an object in the heap
-(define (petar-get-fields heap loc)
-  (let loop ((heap-pulp (unbox heap)))
+;;
+;; Get all named fields of an object in the heap
+;;
+(define (petar-get-fields heap object)
+  (let loop ((heap heap))
     (cond
-      [(null? heap-pulp) jempty]
-      [(and (pair? (car heap-pulp)) (equal? (car (car heap-pulp)) loc))
-       (let* ((obj (cdr (car heap-pulp)))
+      [(null? heap) jempty]
+      [(and (pair? (car heap)) (equal? (car (car heap)) object))
+       (let* ((obj (cdr (car heap)))
               (props (petar-get-obj-fields obj)))
          ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
          props)]
-      [ else (loop (cdr heap-pulp))])))
+      [ else (loop (cdr heap))])))
 
-
-(define (get-fields heap loc)
-  (let loop ((heap-pulp (unbox heap)))
+;;
+;; Get all fields of an object in the heap
+;;
+(define (get-fields heap object)
+  (let loop ((heap heap))
     (cond
-      [(null? heap-pulp) jempty]
-      [(and (pair? (car heap-pulp)) (equal? (car (car heap-pulp)) loc))
-       (let* ((obj (cdr (car heap-pulp)))
+      [(null? heap) jempty]
+      [(and (pair? (car heap)) (equal? (car (car heap)) object))
+       (let* ((obj (cdr (car heap)))
               (props (get-obj-fields obj)))
          ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
          props)]
-      [ else (loop (cdr heap-pulp))])))
+      [ else (loop (cdr heap))])))
 
+;;
+;; Delete cell from an object
+;;
+(define (object-delete-prop object prop)
+  (cond [(null? object) '()]
+        [(equal? (car (car object)) prop) (cdr object)]
+        [ else (cons (car object) (object-delete-prop (cdr object) prop))]))
 
+;;
 ;; Delete cell from the heap
-(define (heap-delete-cell heap loc prop)
-  (define (delete-cell-pulp h-pulp loc prop)
-    (cond
-      [(null? h-pulp) '()]
-      [(equal? (car (car h-pulp)) loc)
-       (cons (cons loc (delete-prop-val (cdr (car h-pulp)) prop)) (cdr h-pulp))]
-      [ else
-        (cons (car h-pulp) (delete-cell-pulp (cdr h-pulp) loc prop))]))
-  ;; (println (format "inside heap-delete-cell - before doing all the work with ~v ~v to delete" loc prop))
-  (let ((new-heap-pulp (delete-cell-pulp (unbox heap) loc prop)))
-    (set-box! heap new-heap-pulp)))
-
-(define (delete-prop-val prop-val-list prop)
-  (cond [(null? prop-val-list) '()]
-        [(equal? (car (car prop-val-list)) prop) (cdr prop-val-list)]
-        [ else (cons (car prop-val-list) (delete-prop-val (cdr prop-val-list) prop))]))
+;;
+(define (heap-delete-prop heap object prop)
+  (cond
+    [(null? heap) '()]
+    [(equal? (car (car heap)) object)
+     (cons (cons object (object-delete-prop (cdr (car heap)) prop)) (cdr heap))]
+    [ else
+      (cons (car heap) (heap-delete-prop (cdr heap) object prop))]))
 
 
 ;; Delete object
-(define (heap-delete-object heap loc)
-  (define (delete-object-pulp h-pulp loc)
-    (cond
-      [(null? h-pulp) '()]
-      [(equal? (car (car h-pulp)) loc)
-       ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
-       (cdr h-pulp)]
-      [ else
-        (cons (car h-pulp) (delete-object-pulp (cdr h-pulp) loc))]))
-   (let ((new-heap-pulp (delete-object-pulp (unbox heap) loc)))
-     (set-box! heap new-heap-pulp)))
+(define (heap-delete-object heap object)
+  (cond
+    [(null? heap) '()]
+    [(equal? (car (car heap)) object)
+     ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
+     (cdr heap)]
+    [ else
+      (cons (car heap) (heap-delete-object (cdr heap) object))]))
 
 
+;; Replace object at loc with new-obj
+(define (heap-replace-object heap loc new-obj)
+  (cond
+    [(null? heap) (list (cons loc new-obj))]
+    [(equal? (car (car heap)) loc)
+     ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
+     (cons (cons loc new-obj) (cdr heap))]
+    [ else
+      (cons (car heap) (heap-replace-object (cdr heap) loc new-obj))]))
+
+
+;;
+;;
+;;
+(define (make-heap) '())
 
 ;;
 ;; Heap cell
@@ -452,13 +718,14 @@
 ;; Construct a heap from given cells
 ;;
 (define (heap . cells)
-  (let ((new-heap (make-heap)))
-    (let loop ((cells cells))
-      (when (not (null? cells))
-        (let ((cur-cell (first cells)))
-          (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))
-          (loop (cdr cells)))))
-    new-heap))
+  (let loop ((new-heap (make-heap))
+             (cells cells))
+    (if (not (null? cells))
+        (let* ((cur-cell (first cells))
+               (new-heap (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))))
+          (loop new-heap (cdr cells)))
+        new-heap)))
+  
 
 ;;
 ;; Fresh location generator
@@ -507,7 +774,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap-delete-cell heap cell get-new-loc make-jsil-list heap-delete-object) ;; heap-contains?
+(provide is-a-list? make-heap mutate-heap heap-get heap cell get-new-loc make-jsil-list heap-delete-prop heap-delete-object is-loc? is-operator? heap-replace-object) ;; heap-contains?
 
 
 ;; stores - my stuff
@@ -522,21 +789,17 @@
   
 
 ;; stores - Julian Dolby
-(define (make-store)
-  (box '()))
+(define (make-store)'())
 
 (define (store-get store var)
-  (lht-ref (unbox store) var))
+  (lht-value store var))
 
 (define (mutate-store store var val)
-  (define (mutate-store-aux store var val)
-    (cond ((null? store) (list (cons var val)))
-          ((equal? (car (car store)) var)
-           (cons (cons (car (car store)) val) (cdr store)))
-          (#t
-           (cons (car store) (mutate-store-aux (cdr store) var val)))))
-  (let ((new-store-pulp (mutate-store-aux (unbox store) var val)))
-    (set-box! store new-store-pulp)))
+  (cond ((null? store) (list (cons var val)))
+        ((equal? (car (car store)) var)
+         (cons (cons (car (car store)) val) (cdr store)))
+        (#t
+         (cons (car store) (mutate-store (cdr store) var val)))))
 
 (define (store . mappings)
   (let ((new-store (make-store)))
@@ -555,25 +818,71 @@
              (expr-str-len (string-length expr-str)))
          (and (> expr-str-len 0) (not (eq? (substring expr-str 0 1) "$"))))))
 
-(provide make-store mutate-store store-get var? store)
+(define (store-projection store pvars)
+  ;;(println "inside store-projection")
+  (cond
+    ((null? store) '())
+    (#t
+     (let ((cur-var (car (car store)))
+           (cur-val (cdr (car store)))
+           (rest-store (cdr store)))
+       ;;(println (format "cur-var ~v. cur-val: ~v" cur-var cur-val))
+       (if (set-member? pvars cur-var)
+           (cons (cons cur-var cur-val) (store-projection rest-store pvars))
+           (store-projection rest-store pvars))))))
 
-;; refs
-(define (make-ref base field reftype)
-  (list 'ref base field reftype))
+(define (store->string store)
+  (let ((store-strs
+         (map
+          (lambda (x)
+            (let ((var-name (car x))
+                  (var-val (cdr x)))
+              (when (union? var-val)
+                (println "I found a guarded union in the store -- ai a minha vida!"))
+              (format "(~v: ~v)" var-name var-val)))
+          store)))
+    (foldl (lambda (elem v) (string-append elem v)) "" store-strs)))
 
-(define (ref-base ref) (second ref))
+(provide make-store mutate-store store-get var? store store-projection store->string)
 
-(define (ref-field ref) (third ref))
+;;
+;; Contexts
+;;
+(define (create-context proc-name ret-var normal-index err-index)
+  (list proc-name ret-var normal-index err-index))
 
-(define (ref-type ref) (fourth ref))
+(define (is-ctx-entry? ctx-entry)
+  (and (list ctx-entry) (eq? (length ctx-entry) 5)))
 
-(define (is-ref? arg)
-  (and
-   (list? arg)
-   (not (null? arg))
-   (equal? (first arg) 'ref)))
+(define (get-proc-name-from-ctx ctx)
+  (cond
+    [ (null? ctx) (error (format "Empty context: ~v." ctx))]
+    [ (is-ctx-entry? (car ctx)) (caar ctx) ]
+    [ else (error (format "Invalid context: ~v." ctx))] ))
 
-(provide make-ref ref-base ref-field ref-type)
+(define (is-top-ctx? ctx)
+  (eq? (length ctx) 1))
+
+(define (get-top-ctx-entry ctx)
+  (if (> (length ctx) 0)
+      (first ctx)
+      (error (format "Invalid context: ~v." ctx))))
+
+
+(define (pop-ctx-entry ctx)
+  (if (> (length ctx) 1)
+      (cdr ctx)
+      (error (format "Invalid context: ~v." ctx))))
+
+
+(define (push-ctx-entry ctx store proc-name ret-var n-index e-index)
+  (let ((new-entry (list store proc-name ret-var n-index e-index)))
+    ;(displayln (format "new-entry: ~v" new-entry))
+    (cons new-entry ctx)))
+
+(provide create-context is-ctx-entry? get-proc-name-from-ctx is-top-ctx? get-top-ctx-entry pop-ctx-entry push-ctx-entry)
+  
+
 
 ;;
 ;; Programs supported by Rosette
@@ -592,7 +901,7 @@
 (define (get-proc program proc-name)
   (let*
       ((program-pulp (unbox program))
-       (proc (lht-ref program-pulp proc-name)))
+       (proc (lht-value program-pulp proc-name)))
     (if (eq? proc empty) (error (format "Error: procedure ~v is not in the program." proc-name)) proc)))
 
 (define (has-proc? program proc-name)
@@ -672,17 +981,15 @@
   (vector-length (fourth proc)))
 
 (define (proc-init-store proc args)
-  (define (proc-init-store-iter params args cur-store)
-    (if (not (null? params))
-        (cond
-          [(null? args)
-           (mutate-store cur-store (first params) jundefined)
-           (proc-init-store-iter (rest params) args cur-store)]
-          [else
-           (mutate-store cur-store (first params) (first args))
-           (proc-init-store-iter (rest params) (rest args) cur-store)])
-        cur-store))
-  (proc-init-store-iter (get-params proc) args (make-store)))
+  (let loop ((params (get-params proc))
+             (args args)
+             (store (make-store)))
+    (if (null? params)
+        store
+        (if (null? args)
+            (loop (cdr params) args (cons (cons (car params) jundefined) store))
+            (loop (cdr params) (cdr args) (cons (cons (car params) (car args)) store))))))
+
 
 (define (args . lst)
   lst)
@@ -698,26 +1005,6 @@
 
 (provide procedure which-pred eval_literal petar-get-fields get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
 
-;;(define (heap-contains? heap loc prop)
-;;  (not (equal? jempty (heap-get heap loc prop))))
-
-
-;; heaps
-;;(define (make-heap)
-;;  (make-hash))
-
-;;(define (mutate-heap heap loc prop val)
-;;  (hash-set! heap (cons loc prop) val))
-
-;;(define (heap-get heap loc prop)
-;;  (hash-ref heap (cons loc prop)))
-
-;;(define (heap-delete-cell heap loc prop)
-;;  (when (heap-contains? heap loc prop)
-;;      (hash-remove! heap (cons loc prop))))
-      
-;;(define (heap-contains? heap loc prop)
-;;  (hash-has-key? heap (cons loc prop)))
 
 
 ;;
@@ -732,42 +1019,46 @@
 (define (get-racket-implementation proc-name)
   (hash-ref racket-js-implementations proc-name))
 
-(define (create-new-function-obj hp function-name)
-  (let ((fun-loc (get-new-loc)))
-    (mutate-heap hp fun-loc "@call" function-name)
-    (mutate-heap hp fun-loc "@construct" function-name)
-    (mutate-heap hp fun-loc "@scope" '(jsil-list))
-    (mutate-heap hp fun-loc "@proto" '$lfun_proto)
-    (mutate-heap hp fun-loc "@class" "Function")
-    (mutate-heap hp fun-loc "@extensible" #t)
-    fun-loc))
+(define (create-new-function-obj heap function-name)
+  (let* ((fun-loc (get-new-loc))
+         (heap (mutate-heap heap fun-loc "@call" function-name))        
+         (heap (mutate-heap heap fun-loc "@construct" function-name))
+         (heap (mutate-heap heap fun-loc "@scope" '(jsil-list)))
+         (heap (mutate-heap heap fun-loc "@proto" '$lfun_proto))
+         (heap (mutate-heap heap fun-loc "@class" "Function"))
+         (heap (mutate-heap heap fun-loc "@extensible" #t)))
+    (cons heap fun-loc)))
 
-(define (register-js-builtin-method builtin-obj-name method-name racket-method hp)
+(define (register-js-builtin-method builtin-obj-name method-name racket-method heap)
   ;;(println "inside register-js-builtin-method")
   ;(println (format "checking the object at ~v" jsglobal))
-  (let* ((builtin-obj-desc (heap-get hp jsglobal builtin-obj-name))
+  (let* ((builtin-obj-desc (heap-get heap jsglobal builtin-obj-name))
          (builtin-obj-loc (third builtin-obj-desc))
-         (builtin-obj-proto-loc (third (heap-get hp builtin-obj-loc "prototype")))
-         (builtin-obj-proto (heap-get-obj hp builtin-obj-proto-loc))
-         (method-obj-desc (lht-ref builtin-obj-proto method-name))
+         (builtin-obj-proto-loc (third (heap-get heap builtin-obj-loc "prototype")))
+         (builtin-obj-proto (heap-get-obj heap builtin-obj-proto-loc))
+         (method-obj-desc (lht-value builtin-obj-proto method-name))
          (fresh-function-name (symbol->string (gensym "internal-function-"))))
     ;; put the racket method in the hashtable
     (hash-set! racket-js-implementations fresh-function-name racket-method)
     ;;
     (if (eq? method-obj-desc empty)
-        ;; the method does not exist - we need to create it
-        (let* ((method-obj-loc (create-new-function-obj hp fresh-function-name))
-               (method-obj-desc (list 'jsil-list "d" method-obj-loc #t #f #t)))
-          (mutate-heap hp builtin-obj-proto-loc method-name method-obj-desc))
-        ;; the method already exists and we are just going to override it with a racket implementation
-        (let ((method-obj-loc (third method-obj-desc)))
-          ;(println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
-                          ;; method-name method-obj-loc fresh-function-name))
-          (mutate-heap hp method-obj-loc "@call" fresh-function-name)
-          (mutate-heap hp method-obj-loc "@construct" fresh-function-name)))))
-    ;(println (format "just updated the heap:~v" hp))))
 
-(provide has-racket-implementation? get-racket-implementation register-js-builtin-method)
+        ;; the method does not exist - we need to create it - returning the heap
+        (let* ((result (create-new-function-obj heap fresh-function-name))
+               (heap (car result))
+               (method-obj-loc (cdr result))
+               (method-obj-desc (list 'jsil-list "d" method-obj-loc #t #f #t)))
+          (mutate-heap heap builtin-obj-proto-loc method-name method-obj-desc))
+
+        ;; the method already exists and we are just going to override it with a racket implementation
+        (let* ((method-obj-loc (third method-obj-desc))
+               (heap (mutate-heap heap method-obj-loc "@call" fresh-function-name))
+               (heap (mutate-heap heap method-obj-loc "@construct" fresh-function-name)))
+          ;;(println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
+          ;;                 method-name method-obj-loc fresh-function-name))
+          heap))))
+
+(provide racket-js-implementations has-racket-implementation? get-racket-implementation register-js-builtin-method)
     
 
 
