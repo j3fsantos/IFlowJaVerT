@@ -10,11 +10,12 @@ proc Number_call (xsc, vthis, v) {
 			la := args;
 			len := l-len (la);
 
-			goto [len < 3] zero rlab;
+			goto [len < 3] zero conv;
 
 	zero:	v := 0;
 
-	rlab:	xret := "i__toNumber" (v) with elab;
+	conv:	xret := "i__toNumber" (v) with elab;
+	rlab:	skip;
 	elab:	skip
 }
 with

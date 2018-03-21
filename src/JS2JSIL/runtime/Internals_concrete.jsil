@@ -943,7 +943,7 @@ proc i__toBoolean (v) {
 			goto rlab;
 
 	inum:	goto [typeOf(v) = $$number_type] num is;
-	num:	goto [(v = 0) or (not (v = v))] is_f is_t;
+	num:	goto [(v = 0) or (v = -0) or (not (v = v))] is_f is_t;
 
 	is:		goto [typeOf(v) = $$string_type] str io;
 	str:	goto [v = ""] is_f is_t;

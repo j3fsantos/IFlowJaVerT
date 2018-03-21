@@ -147,7 +147,7 @@
     ((equal? val mc-sqrt12) number-type)
     ((equal? val mc-sqrt2)  number-type)
     ((is-llist? val) list-type)
-    (#t (error (format "Wrong argument to typeof: ~a" val)))))
+    (#t (error (format "Wrong argument to typeof: ~v" val)))))
 
 ;; Subtyping
 (define (jsil-subtype type1 type2)
@@ -201,7 +201,7 @@
               (let* ((two-32 (expt 2 32))
                      (two-31 (expt 2 31))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (remainder pos-int two-32)))
+                     (smod (modulo pos-int two-32)))
                 (if (>= smod two-31)
                    (- smod two-32)
                    smod
@@ -218,7 +218,7 @@
           (if (equal? num 0) 0
               (let* ((two-16 (expt 2 16))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (remainder pos-int two-16)))
+                     (smod (modulo pos-int two-16)))
                 (if (< smod 0)
                    (+ smod two-16)
                    smod
@@ -235,7 +235,7 @@
           (if (equal? num 0) 0
               (let* ((two-32 (expt 2 32))
                      (pos-int (* (sgn num) (floor (abs num))))
-                     (smod (remainder pos-int two-32)))
+                     (smod (modulo pos-int two-32)))
                 (if (< smod 0)
                    (+ smod two-32)
                    smod
