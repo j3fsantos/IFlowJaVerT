@@ -44,5 +44,5 @@
 
 (define jsil-discharge (lambda () #t))
 
-(provide jsil-assume jsil-assert jsil-discharge equivalent-to-true? equivalent-to-false? get-logic-state)
+(provide jsil-assume jsil-assert jsil-discharge get-logic-state)
 
