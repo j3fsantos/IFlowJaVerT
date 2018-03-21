@@ -36,7 +36,9 @@ proc FP_call () {
 
 			x__se := "SyntaxError" ();
 
-			xret := apply (body, {{ xscope }}, xthis, pars) with elab;
+			single_param_to_apply := (body :: (xscope :: (xthis :: {{ pars }})));
+
+			xret := apply (single_param_to_apply) with elab;
 
 			goto [xret = $$empty] undef rlab;
 
@@ -58,11 +60,6 @@ with
 (* *** APPLY *** *)
 
 proc FP_apply (xsc, vthis, this_arg, arg_array) {
-
-			xsc := xsc;
-			vthis := vthis;
-			this_arg := this_arg;
-			arg_array := arg_array;
 
 			params := {{ }};
 
@@ -90,9 +87,9 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			body   := [vthis, "@call"];
 			xscope := [vthis, "@scope"];
 
-			new_args := xscope :: (xthis :: params);
+			single_param_to_apply := (body :: (xscope :: (xthis :: {{ params }})));
 
-			xret := apply (body, new_args) with elab;
+			xret := apply (single_param_to_apply) with elab;
 			goto rlab;
 
 	te:		xret := "TypeError" ();
