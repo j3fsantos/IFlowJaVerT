@@ -2,9 +2,10 @@ open Lexing
 open JSIL_Syntax
 open JSIL_Interpreter
 
-let file = ref ""
-let js = ref false
+let file    = ref ""
+let js      = ref false
 let verbose = ref false
+let eval    = ref false 
 
 let load_file f =
   let ic = open_in f in
@@ -24,6 +25,9 @@ let arguments () =
 			"-js", Arg.Unit(fun () -> js := true), "for js";
 			(* test262 *)
 			"-test262", Arg.Unit(fun () -> js := true; test262 := true), "test262";
+      (* eval *)
+      "-eval", Arg.Unit(fun () -> js := true; eval := true), "eval";
+
     ]
     (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
     usage_msg
@@ -90,6 +94,8 @@ let main () =
   			let (ext_prog, _, _) = JS2JSIL_Compiler.js2jsil e offset_converter false in
   			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog) in
   	
+
+
   	(* serializing JS internal functions + JS initial heap *)
   	if (!js) then (
   		let int_prog = generate_js_heap_and_internal_functions () in 
@@ -107,10 +113,12 @@ let main () =
   	
   	let sprog = SExpr_Print.sexpr_of_program prog false in
   	let sprog_in_template =
-      (match !js with
-      | false -> Printf.sprintf template_procs_jsil_racket sprog
-      | true  -> Printf.sprintf template_procs_racket sprog) in
-  	let filename = Filename.chop_extension !file in
+      (match !eval, !js with
+      | true, _      -> Printf.sprintf SExpr_Templates.template_eval sprog
+      | false, false -> Printf.sprintf template_procs_jsil_racket sprog
+      | false, true  -> Printf.sprintf template_procs_racket sprog) in
+  	
+    let filename = Filename.chop_extension !file in
   	let just_the_filename = Filename.basename filename in
   	print_endline just_the_filename;
     burn_to_disk (filename ^ ".rkt") sprog_in_template;

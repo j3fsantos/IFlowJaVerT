@@ -76,7 +76,7 @@ q.enqueue (p2, s2);
 q.enqueue (p3, s3); 
 r = (q.dequeue()).val;
 len = q.length(); 
-assert (len = 2); 
+Assert (len = 2); 
 r
 
 
