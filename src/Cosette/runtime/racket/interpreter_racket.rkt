@@ -68,7 +68,7 @@
               (rhs-val   (run-expr rhs-expr store))
               (heap      (mutate-heap heap loc-val prop-val rhs-val)))
         ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
-         (print-info proc-name (format "[~v, ~v] := ~v" loc-expr prop-expr rhs-expr))
+         (print-info proc-name (format "[~v, ~v] := ~v : ~v" loc-expr prop-expr rhs-expr rhs-val))
          (cons heap store))]
       ;;
       ;; ('v-assign lhs-var e)
@@ -129,16 +129,15 @@
               (result (heap-get heap loc-val prop-val))
               ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
               (store (mutate-store store lhs-var result)))
-         (print-info proc-name (format "~v := [~v, ~v]" lhs-var loc-val prop-val))
+         (print-info proc-name (format "~v := [~v, ~v] : ~v" lhs-var loc-val prop-val result))
          (cons heap store))]
       ;;
       ;; ('arguments lhs-var)
       [(equal? cmd-type 'arguments)
        (let* ((lhs-var (second bcmd))
               (result (heap-get heap larguments parguments))
-              ;;(displayln "you called arguments")
-              ;;(displayln result) 
               (store (mutate-store store lhs-var result)))
+         (print-info proc-name (format "arguments -> ~v : ~v" lhs-var result))
          (cons heap store))] 
       ;;
       ;; ('h-delete e1 e2)
@@ -414,7 +413,34 @@
          (set! depth (+ depth 1))
          (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
          (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label))]
-             
+
+
+      ;; ('apply lhs-var (e_fun e1 e2 (jsil-list e3... en)) i)
+      [(equal? cmd-type 'apply)
+       ;;(print-info proc-name (format "~v := [pre-apply] ~v -> ?" (second cmd) (third cmd)))
+       (let* (
+              ;; Return variable
+              (lhs-var (second cmd))
+              ;; Arguments  
+              (args (car (third cmd)))
+              (arg-vals (cdr (run-expr args store)))
+              ;; evaluating the function
+              (call-proc-name (car arg-vals))
+              (arg-vals (cdr arg-vals))
+              ;; Optional error label
+              (err-label (if (>= (length cmd) 4) (fourth cmd) null))
+            )
+            (println (format "arg-vals: ~v" arg-vals))
+            (let* (
+              (scope (first arg-vals))
+              (this (second arg-vals))
+              (params (cdr (third arg-vals)))
+              (arg-vals (cons scope (cons this params)))
+             )
+         (set! depth (+ depth 1))
+         (print-info proc-name (format "~v := [apply] ~v~v -> ?" lhs-var call-proc-name arg-vals))
+         (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
+
       ;;
       ;; basic command
       [else

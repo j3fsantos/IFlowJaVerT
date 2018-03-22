@@ -1213,7 +1213,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in
 
 		let x_params = fresh_var () in
-		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis]) in
+		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis; Literal (LList []) ]) in
 		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
 
 		let x_bconstruct = fresh_var () in
@@ -1497,7 +1497,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in
 
 		let x_params = fresh_var () in
-		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt]) in
+		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt; Literal (LList []) ]) in
 		let cmd_append = SLBasic (SAssignment (x_params, (BinOp (BinOp (jsil_list_params, LstCat, Var x_ba), LstCat, (EList x_args_gv))))) in
 
 		let x_rbind = fresh_var () in

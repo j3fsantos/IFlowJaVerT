@@ -169,28 +169,9 @@
 ;; binary operators 
 ;;
 
-;; Shift left and right
-(define (shl n m) 
-  (let ((result (arithmetic-shift n m)))
-    (cond
-    [(< result -2147483648) 0]
-    [(> result  2147483647) 0]
-    [#t result]
-    )
-  )
-)
-
-(define (shr n m) 
-  (let ((result (arithmetic-shift n (- m))))
-    (cond
-    [(< result -2147483648) 0]
-    [(> result  2147483647) 0]
-    [#t result]
-    )
-  )
-)
-
 (define (jsil_string_to_number str)
+  (let* ((str (if (and (> (string-length str) 1) (or (equal? (substring str 0 2) "0x") (equal? (substring str 0 2) "0X"))) 
+    (string-append "#x" (substring str 2)) str)))
   (cond
   [(equal? str "") 0]
   [#t
@@ -198,6 +179,7 @@
       (if (equal? str_num #f)
         +nan.0
         str_num))]
+  )
   ))
 
 
@@ -263,10 +245,43 @@
   )
 )
 
+;; Shift left and right
+(define (shl n m) 
+  (let* 
+    (
+      (m (remainder m 32))
+      (result (arithmetic-shift n m))
+      (result (jsil_num_to_int_32 result))
+    )
+    result
+  )
+)
+
+(define (shr n m) 
+  (let* 
+    (
+      (m (remainder m 32))
+      (result (arithmetic-shift n (- m)))
+      (result (jsil_num_to_int_32 result))
+    )
+    result
+  )
+)
+
 (define (unsigned_right_shift lhs rhs)
   (let* ((lhs-32 (jsil_num_to_uint_32 lhs))
-         (rhs-32 (jsil_num_to_uint_32 rhs)))
-    (shr (inexact->exact (truncate lhs-32)) (inexact->exact (truncate rhs-32)))
+         (rhs-32 (jsil_num_to_uint_32 rhs))
+         (tlhs-32 (inexact->exact (truncate lhs-32)))
+         (trhs-32 (inexact->exact (truncate rhs-32)))
+         (trhs-32 (remainder trhs-32 32))
+         (result (arithmetic-shift tlhs-32 (- trhs-32)))
+         (result (jsil_num_to_uint_32 result))
+    )
+    (cond
+    [(< result 0) 0]
+    [(> result 4294967295) 0]
+    [#t result]
+    )
   )
 )
 
@@ -454,10 +469,17 @@
           (lambda (x y)
             (if (and (number? x) (number? y)) 
             (cond
-            [(or (eq? x +nan.0) (eq? y +nan.0)) +nan.0]
-            [(or (eq? x +inf.0) (eq? y -inf.0) (eq? y 0.0) (eq? y -0.0)) +nan.0]
-            [(or (eq? y +inf.0) (eq? y -inf.0)) x]
-            [#t (remainder x y)]) 
+            [(or (equal? x +nan.0) (equal? y +nan.0)) +nan.0]
+            [(or (equal? x +inf.0) (equal? x -inf.0)) +nan.0] 
+            [(or (equal? y 0.0)    (equal? y -0.0))   +nan.0]
+            [(or (equal? y +inf.0) (equal? y -inf.0)) x]
+            [(or (equal? x 0.0) (equal? x -0.0)) x]
+            [#t (let* ((result (remainder x y)))
+              (cond 
+                [(and (< x 0.0) (equal? (exact->inexact result) 0.0)) -0.0]
+                [#t result]
+              ))
+            ]) 
             jundefined)))
           
     (cons '<: jsil-subtype)
@@ -530,7 +552,11 @@
 
     (cons 'car (lambda (x) (if (is-llist? x) (car (cdr x)) jundefined)))
 
-    (cons 'cdr (lambda (x) (if (is-llist? x) (cons 'jsil-list (cdr (cdr x))) jundefined)))
+    (cons 'cdr 
+      (lambda (x) 
+        (if (is-llist? x) 
+          (cons 'jsil-list (cdr (cdr x)))
+          jundefined)))
 
     (cons 'm_abs (lambda (x) (if (number? x) (abs x) jundefined)))
     
@@ -778,7 +804,9 @@
 ;)
 
 (define (is-llist? l)
+  ;;(println (format "is-llist: ~v" l))
   (define (is-literal-list? l)
+    ;;(println (format "is-literal-list: ~v" l))
     (cond
        [(null? l) #t]
        [else
@@ -818,7 +846,10 @@
 (define (make-store)'())
 
 (define (store-get store var)
-  (lht-value store var))
+  (let* ((result (lht-value store var)))
+    println (format "Result: ~v" result)
+    result
+    ))
 
 (define (mutate-store store var val)
   (cond ((null? store) (list (cons var val)))
@@ -1060,8 +1091,3 @@
           heap))))
 
 (provide racket-js-implementations has-racket-implementation? get-racket-implementation register-js-builtin-method)
-    
-
-
-
-
