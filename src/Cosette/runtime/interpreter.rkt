@@ -13,6 +13,8 @@
 (define call-stack-depth 0)
 (define max-depth 10)
 
+(error-print-width 100000)
+
 (current-bitwidth #f)
 
 (define (generate-tabs n)
@@ -163,27 +165,6 @@
               (heap (heap-delete-object heap loc-val)))
          (print-info proc-name (format "delete-object(~v)" loc-val))
          (cons heap store))]
-
-      ;;
-      ;; ('assert e)
-      [(eq? cmd-type 'assert)
-       (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store))
-              (arg-vars (expr-lvars #t expr-arg)))
-         (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
-         (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
-         (op-assert expr-val)
-         (cons heap store))]
-
-      ;;
-      ;; ('assume e)
-      [(eq? cmd-type 'assume)
-       (let* ((expr-arg (second bcmd))
-              (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assume(~v)" expr-val))
-         (op-assume expr-val)
-         (cons heap store))]
       
       ;;
       ;; ('success)
@@ -203,13 +184,6 @@
         (set! failure #t)
         ;(println (format "And now it is: ~v" failure))
         (cons heap store)]
-
-      ;;
-      ;; ('assert-* a)
-      [(eq? cmd-type 'assert-*)
-        (println (format "assert-*(~v)" (second bcmd)))
-        (sep-assert (second bcmd) heap store)
-        (cons heap store)] 
       
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
@@ -225,9 +199,9 @@
 
 (define (kill x)
   (letrec ((iter (lambda (l)
-       (assert (not (car l)))
-       (cond ((not (null? (cdr l)))
-        (iter (cdr l)))))))
+                   (assert (not (car l)))
+                   (cond ((not (null? (cdr l)))
+                          (iter (cdr l)))))))
     (iter (union-guards x))))
 
 
@@ -366,11 +340,13 @@
               (expr-val (run-expr expr store)))
          ;; (println (format "Program Print:: ~v" expr-val))
          (run-cmds-iter prog heap store ctx (+ cur-index 1) cur-index))]
+
       ;;
       ;; ('goto i)
       [(and (eq? cmd-type 'goto) (= (length cmd) 2))
        (print-info proc-name (format "goto ~v" (second cmd)))
        (run-cmds-iter prog heap store ctx (second cmd) cur-index)]
+      
       ;;
       ;; ('goto e i j)
       [(and (eq? cmd-type 'goto) (= (length cmd) 4))
@@ -394,7 +370,29 @@
                    (> (count-goto proc-name cur-index) goto-limit))
               (println "I am killing an execution because I reached the goto limit")
               (kill expr-val)]
-             
+
+             [(symbolic? expr-val)
+              (let ((cur-pc (pc)))
+                (println (format "CUR PC ~v" cur-pc))
+                (let ((new-solver (solve+)))
+                  (if (unsat? (new-solver cur-pc))
+                      (begin
+                        (println "the current pc is UNSAT")
+                        (set! success #t))
+                      (begin
+                        (println "the current pc is SAT")
+                        (cond
+                          ((eq? expr-val #t)
+                           (begin
+                             (print-info proc-name (format "THEN BRANCH: ~v" expr))
+                             (run-cmds-iter prog heap store ctx then-label cur-index)))
+                        
+                          ((eq? expr-val #f)
+                           (begin
+                             (print-info proc-name (format "ELSE BRANCH: ~v" expr))
+                             (run-cmds-iter prog heap store ctx else-label cur-index)))
+                          (#t (set! success #t)))))))]
+                        
              [(eq? expr-val #t)
                 (print-info proc-name (format "THEN BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx then-label cur-index)]
@@ -442,7 +440,66 @@
          (set! depth (+ depth 1))
          (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
          (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label))]
-             
+
+      ;; ('apply lhs-var (e_fun e1 e2 (jsil-list e3... en)) i)
+      [(eq? cmd-type 'apply)
+       ;;(print-info proc-name (format "~v := [pre-apply] ~v -> ?" (second cmd) (third cmd)))
+       (let* (
+              ;; Return variable
+              (lhs-var (second cmd))
+              ;; Arguments  
+              (args (car (third cmd)))
+              (arg-vals (cdr (run-expr args store)))
+              ;; evaluating the function
+              (call-proc-name (car arg-vals))
+              (arg-vals (cdr arg-vals))
+              ;; Optional error label
+              (err-label (if (>= (length cmd) 4) (fourth cmd) null))
+            )
+            (println (format "arg-vals: ~v" arg-vals))
+            (let* (
+              (scope (first arg-vals))
+              (this (second arg-vals))
+              (params (cdr (third arg-vals)))
+              (arg-vals (cons scope (cons this params)))
+             )
+         (set! depth (+ depth 1))
+         (print-info proc-name (format "~v := [apply] ~v~v -> ?" lhs-var call-proc-name arg-vals))
+         (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
+
+      ;;
+      ;; ('assert e)
+      [(eq? cmd-type 'assert)
+       (let* ((expr-arg (second cmd))
+              (expr-val (run-expr expr-arg store))
+              (arg-vars (expr-lvars #t expr-arg)))
+         (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
+         (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
+         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
+         (op-assert expr-val)
+        (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
+
+      ;;
+      ;; ('assume e)
+      [(eq? cmd-type 'assume)
+       (let* ((expr-arg (second cmd))
+              (expr-val (run-expr expr-arg store)))
+         (print-info proc-name (format "assume(~v)" expr-val))
+         (op-assume expr-val)
+         (if expr-val 
+             (begin
+               (assert expr-val)
+               ;(kill (not expr-val))
+               (run-cmds-iter-next prog heap store ctx cur-index cur-index))
+             (set! success 1)))]
+
+      ;;
+      ;; ('assert-* a)
+      [(eq? cmd-type 'assert-*)
+        (println (format "assert-*(~v)" (second cmd)))
+        (sep-assert (second cmd) heap store)
+        (run-cmds-iter-next prog heap store ctx cur-index cur-index)] 
+      
       ;;
       ;; basic command
       [else
@@ -565,9 +622,10 @@
        )]))
 
 (define (terminate outcome)
-  (cond 
-  	[(eq? (car outcome) 'err) (exit 1)]
-  	[else (exit 0)]))
+  (cond
+    [(void? outcome) (exit 0)]
+    [(eq? (car outcome) 'err) (exit 1)]
+    [else (exit 0)]))
 
 (define (run-program prog heap)
   (jsil-discharge)

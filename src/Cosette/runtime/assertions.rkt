@@ -22,6 +22,14 @@
   #t)
 
 
+(define (equivalent-to-true? expr)
+  (let ((mdl (solve (assert (eq? expr #f)))))
+    (equal? mdl (unsat))))
+
+(define (equivalent-to-false? expr)
+  (let ((mdl (solve (assert (eq? expr #t)))))
+    (equal? mdl (unsat))))
+
 
 (define (run-expr expr store)
   ;;(println (format "run-expr: ~v" expr))
@@ -468,4 +476,4 @@
           (begin
             (println "one symbolic execution terminated successfully"))))))
   
-(provide clear-assertions! get-assertions get-assumptions op-assert op-assume sep-assert)
+(provide clear-assertions! get-assertions get-assumptions op-assert op-assume sep-assert equivalent-to-true? equivalent-to-false?)
