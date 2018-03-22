@@ -13,10 +13,6 @@ rname=$name'.rkt'
 #echo $rname
 ./js2jsil.native -file "$filename" -cosette &> /dev/null
 ./jsil2rkt.native -file "$jname" -js 
-res=$(racket $rname | tail -n1)
-echo $res
-if [[ $res == "(unsat)"* ]]; then
-	echo "Pass: $filename" 
-else
-	echo "Fail: $filename" 
-fi
+logname=res_$name.txt
+racket $rname > $logname
+tail -n 11 $logname

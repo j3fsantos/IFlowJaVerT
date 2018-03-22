@@ -114,6 +114,7 @@
               (loc-val (run-expr loc-expr store))
               (obj (heap-get-obj heap loc-val))
               (prop-list (petar-get-fields heap loc-val))
+              (prop-list (sort prop-list string<?))
               (result (cons 'jsil-list prop-list))
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := get-fields(~v)" lhs-var loc-val))
@@ -430,7 +431,7 @@
               ;; Optional error label
               (err-label (if (>= (length cmd) 4) (fourth cmd) null))
             )
-            (println (format "arg-vals: ~v" arg-vals))
+            ;;(println (format "arg-vals: ~v" arg-vals))
             (let* (
               (scope (first arg-vals))
               (this (second arg-vals))

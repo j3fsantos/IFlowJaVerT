@@ -19,16 +19,33 @@ let fresh_symbol = fresh_sth "symb_"
 *)
 
 let sexpr_of_float x =
-	if (x == nan)
+	(* Printf.printf "SOF: %20.20f " x; *)
+	let result = if (x == nan)
 		then "+nan.0"
 		else if (x == neg_infinity)
 			then "-inf.0"
 			else if (x == infinity)
 				then "+inf.0"
-				else if (!JSIL_Syntax.test262) then (string_of_float x)
+				else if (!JSIL_Syntax.test262) then (
+					(* 
+					 * Determine the width of the whatsit on the left
+					 * Determine the width of the whatsit on the right
+					 * Sum shit up to 20
+					 *)
+					let (fract, intgr) = modf x in 
+					let lwidth = int_of_float (log10 (abs_float intgr) +. 1.0) in
+					if (lwidth <= 20) then (
+						let rwidth = if (lwidth > 20) then 0 else (20 - lwidth) in 
+						(* Printf.printf "-> %d " lwidth; *)
+						Printf.sprintf "%*.*f" lwidth rwidth x
+					) else
+						string_of_float x
+				)
 				else if (is_int x)
 				  then string_of_int (int_of_float x)
-					else string_of_float x
+					else string_of_float x in 
+	(* Printf.printf "-> %s\n" result; *)
+	result
 
 let rec sexpr_of_literal lit =
   match lit with
@@ -41,7 +58,10 @@ let rec sexpr_of_literal lit =
       		| true -> "#t"
       		| false -> "#f")
     | Num n -> sexpr_of_float n
-    | String x -> Printf.sprintf "\"%s\"" x
+    | String x -> 
+    	let x = Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" x in 
+    	let x = Str.global_replace (Str.regexp "\n") "\\n" x in 
+    	Printf.sprintf "\"%s\"" x
     | Loc loc -> loc
     | Type t -> string_of_type t
 	| LList ll ->
