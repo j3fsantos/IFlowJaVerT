@@ -419,6 +419,32 @@
          (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
          (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label))]
 
+      ;; ('apply lhs-var (e_fun e1 e2 (jsil-list e3... en)) i)
+      [(eq? cmd-type 'apply)
+       ;;(print-info proc-name (format "~v := [pre-apply] ~v -> ?" (second cmd) (third cmd)))
+       (let* (
+              ;; Return variable
+              (lhs-var (second cmd))
+              ;; Arguments  
+              (args (car (third cmd)))
+              (arg-vals (cdr (run-expr args store)))
+              ;; evaluating the function
+              (call-proc-name (car arg-vals))
+              (arg-vals (cdr arg-vals))
+              ;; Optional error label
+              (err-label (if (>= (length cmd) 4) (fourth cmd) null))
+            )
+            (println (format "arg-vals: ~v" arg-vals))
+            (let* (
+              (scope (first arg-vals))
+              (this (second arg-vals))
+              (params (cdr (third arg-vals)))
+              (arg-vals (cons scope (cons this params)))
+             )
+         (set! depth (+ depth 1))
+         (print-info proc-name (format "~v := [apply] ~v~v -> ?" lhs-var call-proc-name arg-vals))
+         (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
+
       ;;
       ;; ('assert e)
       [(eq? cmd-type 'assert)
