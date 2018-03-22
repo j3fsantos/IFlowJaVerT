@@ -370,7 +370,29 @@
                    (> (count-goto proc-name cur-index) goto-limit))
               (println "I am killing an execution because I reached the goto limit")
               (kill expr-val)]
-             
+
+             [(symbolic? expr-val)
+              (let ((cur-pc (pc)))
+                (println (format "CUR PC ~v" cur-pc))
+                (let ((new-solver (solve+)))
+                  (if (unsat? (new-solver cur-pc))
+                      (begin
+                        (println "the current pc is UNSAT")
+                        (set! success #t))
+                      (begin
+                        (println "the current pc is SAT")
+                        (cond
+                          ((eq? expr-val #t)
+                           (begin
+                             (print-info proc-name (format "THEN BRANCH: ~v" expr))
+                             (run-cmds-iter prog heap store ctx then-label cur-index)))
+                        
+                          ((eq? expr-val #f)
+                           (begin
+                             (print-info proc-name (format "ELSE BRANCH: ~v" expr))
+                             (run-cmds-iter prog heap store ctx else-label cur-index)))
+                          (#t (set! success #t)))))))]
+                        
              [(eq? expr-val #t)
                 (print-info proc-name (format "THEN BRANCH: ~v" expr))
                 (run-cmds-iter prog heap store ctx then-label cur-index)]
