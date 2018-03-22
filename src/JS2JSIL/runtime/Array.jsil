@@ -153,7 +153,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	slb:	xret := "i__toUint32" (dv) with elab;
 			newLen := xret;
 			xret := "i__toNumber" (dv) with elab;
-			goto [not (newLen = xret)] rgerr sle;
+			goto [(not (newLen = xret)) and (not (xret = -0.0))] rgerr sle;
 
 	sle:	dv := newLen;
 			goto [not (newLen < oldLenNum)] slfi slg;

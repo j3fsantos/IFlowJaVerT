@@ -23,7 +23,7 @@ let string_of_float (x : float) : string =
 (** JSIL types *)
 let string_of_type (t : jsil_type) : string =
   match t with
-  | UndefinedType -> "$$undefined_type"
+  	| UndefinedType -> "$$undefined_type"
 	| NullType      -> "$$null_type"
 	| EmptyType     -> "$$empty_type"
 	| NoneType      -> "$$none_type"
