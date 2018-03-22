@@ -420,7 +420,7 @@
       ;;
       ;; ('assert e)
       [(eq? cmd-type 'assert)
-       (let* ((expr-arg (second bcmd))
+       (let* ((expr-arg (second cmd))
               (expr-val (run-expr expr-arg store))
               (arg-vars (expr-lvars #t expr-arg)))
          (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
@@ -432,19 +432,21 @@
       ;;
       ;; ('assume e)
       [(eq? cmd-type 'assume)
-       (let* ((expr-arg (second bcmd))
+       (let* ((expr-arg (second cmd))
               (expr-val (run-expr expr-arg store)))
          (print-info proc-name (format "assume(~v)" expr-val))
          (op-assume expr-val)
          (if expr-val 
-             (run-cmds-iter-next prog heap store ctx cur-index cur-index)
-             (set! success #t)))]
+             (begin
+               (kill (not expr-val))
+               (run-cmds-iter-next prog heap store ctx cur-index cur-index))
+             (set! success 1)))]
 
       ;;
       ;; ('assert-* a)
       [(eq? cmd-type 'assert-*)
-        (println (format "assert-*(~v)" (second bcmd)))
-        (sep-assert (second bcmd) heap store)
+        (println (format "assert-*(~v)" (second cmd)))
+        (sep-assert (second cmd) heap store)
         (run-cmds-iter-next prog heap store ctx cur-index cur-index)] 
       
       ;;
