@@ -13,6 +13,8 @@
 (define call-stack-depth 0)
 (define max-depth 10)
 
+(error-print-width 100000)
+
 (current-bitwidth #f)
 
 (define (generate-tabs n)
