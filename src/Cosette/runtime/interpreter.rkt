@@ -197,9 +197,9 @@
 
 (define (kill x)
   (letrec ((iter (lambda (l)
-       (assert (not (car l)))
-       (cond ((not (null? (cdr l)))
-        (iter (cdr l)))))))
+                   (assert (not (car l)))
+                   (cond ((not (null? (cdr l)))
+                          (iter (cdr l)))))))
     (iter (union-guards x))))
 
 
@@ -438,7 +438,8 @@
          (op-assume expr-val)
          (if expr-val 
              (begin
-               (kill (not expr-val))
+               (assert expr-val)
+               ;(kill (not expr-val))
                (run-cmds-iter-next prog heap store ctx cur-index cur-index))
              (set! success 1)))]
 
@@ -571,9 +572,10 @@
        )]))
 
 (define (terminate outcome)
-  (cond 
-  	[(eq? (car outcome) 'err) (exit 1)]
-  	[else (exit 0)]))
+  (cond
+    [(void? outcome) (exit 0)]
+    [(eq? (car outcome) 'err) (exit 1)]
+    [else (exit 0)]))
 
 (define (run-program prog heap)
   (jsil-discharge)
