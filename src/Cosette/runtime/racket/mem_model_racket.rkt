@@ -300,13 +300,14 @@
     [(equal? n +nan.0) "NaN"]
     [(equal? n +inf.0) "Infinity"]
     [(equal? n -inf.0) "-Infinity"]
+    [(equal? n  0.0) "0"]
+    [(equal? n -0.0) "0"]
     [(rational? n)
       (let* (
-        [pick-notation (lambda (x)
-          (if (or (< (abs x) 1e-06) (>= (abs x) 1e+21))
-            'exponential
-            'positional))]
-        (result (~r n #:notation (pick-notation n)))
+        (result 
+          (if (or (< (abs n) 1e-06) (>= (abs n) 1e+21))
+            (~r n #:notation 'exponential)
+            (~r n #:notation 'positional #:precision 10)))
         (result (string-replace result "e+0" "e+"))
         (result (string-replace result "e-0" "e-"))
       )
@@ -572,6 +573,14 @@
             [(>      (abs x) 1) 0.0]
           )
         ]
+        [(equal? x -inf.0)
+          (println "HERE!")
+          (cond
+            [(and (integer? y) (equal? (remainder (inexact->exact y) 2) 1)) (realify (expt x y))]
+            [(> y 0) +inf.0]
+            [(< y 0) 0.0]
+          )
+        ]
         [#t (realify (expt x y))]
       ) 
       jundefined)))
@@ -637,7 +646,15 @@
 
     (cons 'm_floor (lambda (x) (if (number? x) (floor x) jundefined)))
 
-    (cons 'm_round (lambda (x) (if (number? x) (round x) jundefined)))
+    (cons 'm_round (lambda (x) (if (number? x) 
+      (let* (
+          (initial (round x))
+          (diff (- x initial))
+          (result (if (and (equal? diff 0.5) (equal? (remainder (inexact->exact initial) 2) 0)) (+ initial 1.0) initial))
+        )
+        result
+      )
+      jundefined)))
 
     (cons 'num_to_int (lambda (x) (if (number? x) (jsil_num_to_int x) jundefined)))
 
