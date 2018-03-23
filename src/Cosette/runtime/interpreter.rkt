@@ -653,6 +653,22 @@
       (jsexpr->string hashtbl)]
     "\"unsat\""))
 
+(define (write-json keyvalues out)
+  (define (loop keyvalues)
+    (cond
+      [(empty? keyvalues) ""]
+      [(= (length keyvalues) 1)
+        (let ([kv (car keyvalues)])
+          (format "\t~v: ~a" (car kv) (cdr kv)))]
+      [else
+        (let ([kv (car keyvalues)])
+          (string-append
+            (format "\t~v: ~a,\n" (car kv) (cdr kv))
+            (loop (cdr keyvalues))))]))
+  (displayln "{" out)
+  (displayln (loop keyvalues) out)
+  (displayln "}" out))
+
 (define (run-program prog heap)
   (jsil-discharge)
   (let* (
@@ -663,15 +679,14 @@
     (outcome-failure (solve (assert failure)))
     (outcome-success-assume (solve (assert (and (get-assumptions) success))))
     (outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
-    (results-hashtbl
-      (make-hash '(
-        ("jose" . (outcome-string outcome-jose))
-        ("assumptions-and-failure" . (outcome-string outcome-assumptions-and-failure))
-        ("assumptions-success-and-not-assertions" . (outcome-string outcome-assumptions-and-failure))
-        ("failure" . (outcome-string outcome-failure))
-        ("success-assume" . (outcome-string outcome-success-assume))
-        ("failure-assume" . (outcome-string outcome-failure-assume))))))
-    (print (format "thing:\n~a\nJsexpr:~v" results-hashtbl (jsexpr? results-hashtbl)))
+    (results-list
+      (list
+        (cons "jose" (outcome-string outcome-jose))
+        (cons "assumptions-and-failure" (outcome-string outcome-assumptions-and-failure))
+        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-and-failure))
+        (cons "failure" (outcome-string outcome-failure))
+        (cons "success-assume" (outcome-string outcome-success-assume))
+        (cons "failure-assume" (outcome-string outcome-failure-assume)))))
     (print "PC: ")
     (println (pc))
     (print "Assumptions: ")
@@ -682,9 +697,17 @@
     (println success)
     (print "Failure: ")
     (println failure)
+    (println (format "Outcome JOSE: ~v" outcome-jose))
+    (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
+    (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
+    (println (format "Outcome Failure: ~v" outcome-failure))
+    (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
+    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     ;; JSON export
     (define out (open-output-file "models.json" #:exists 'replace))
-    ;;(write-json results-hashtbl out)
+;;    (define output-string (format "~a" (jsexpr->string results-hashtbl)))
+;;    (display output-string)
+    (write-json results-list out)
     (close-output-port out)
     (set! global-outcome outcome)
     (terminate outcome)))
