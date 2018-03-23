@@ -627,6 +627,29 @@
     [(eq? (car outcome) 'err) (exit 1)]
     [else (exit 0)]))
 
+
+
+(require json)
+
+(define (constant->id x)
+  (match x [(constant identifier type) identifier]))
+
+(define (model->sol-hash rosette-model)
+  (match rosette-model [(model hash) hash]))
+
+(define (model->hashtbl rosette-model)
+  (let* (
+    (our-solution (model->sol-hash rosette-model))
+    (model-list (hash->list our-solution))
+    (hash-list (map (lambda (ctv) (cons (constant->id (car ctv)) (cdr ctv))) model-list)))
+    (make-hash hash-list)))
+
+(define (outcome-string outcome)
+  (if (sat? outcome)
+    [let* ((hashtbl (model->hashtbl outcome)))
+      (jsexpr->string hashtbl)]
+    "\"unsat\""))
+
 (define (run-program prog heap)
   (jsil-discharge)
   (let* (
@@ -636,7 +659,16 @@
     (outcome-assumptions-success-and-not-assertions (solve (assert (and (get-assumptions) success (not (get-assertions))))))
     (outcome-failure (solve (assert failure)))
     (outcome-success-assume (solve (assert (and (get-assumptions) success))))
-    (outcome-failure-assume (solve (assert (and (get-assumptions) failure)))))
+    (outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
+    (results-hashtbl
+      (make-hash '(
+        ("jose" . (outcome-string outcome-jose))
+        ("assumptions-and-failure" . (outcome-string outcome-assumptions-and-failure))
+        ("assumptions-success-and-not-assertions" . (outcome-string outcome-assumptions-and-failure))
+        ("failure" . (outcome-string outcome-failure))
+        ("success-assume" . (outcome-string outcome-success-assume))
+        ("failure-assume" . (outcome-string outcome-failure-assume))))))
+    (print (format "thing:\n~a\nJsexpr:~v" results-hashtbl (jsexpr? results-hashtbl)))
     (print "PC: ")
     (println (pc))
     (print "Assumptions: ")
@@ -647,12 +679,10 @@
     (println success)
     (print "Failure: ")
     (println failure)
-    (println (format "Outcome JOSE: ~v" outcome-jose))
-    (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
-    (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
-    (println (format "Outcome Failure: ~v" outcome-failure))
-    (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
-    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
+    ;; JSON export
+    (define out (open-output-file "models.json" #:exists 'replace))
+    ;;(write-json results-hashtbl out)
+    (close-output-port out)
     (set! global-outcome outcome)
     (terminate outcome)))
 
