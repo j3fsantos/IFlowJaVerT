@@ -1,17 +1,17 @@
-var n_number = symb_number (); 
+var n = symb_number (n); 
 
 function top() {
 
-    var y = symb_string ();
+  var y = symb_string (y);
 
-    return function inner(x) {
-	var str = "";
-	for(var z = 0; z != x; z++) {
-	    str = y + str;
-	}
-	return str;
+  return function inner(x) {
+    var str = "";
+    for(var z = 0; z != x; z++) {
+        str = y + str;
     }
+    return str;
+  }
 }
 
-(top())( n_number );
+(top())( n );
 
