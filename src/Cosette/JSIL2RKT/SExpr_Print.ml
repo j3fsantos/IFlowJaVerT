@@ -34,7 +34,7 @@ let sexpr_of_float x =
 					 *)
 					let (fract, intgr) = modf x in 
 					let lwidth = int_of_float (log10 (abs_float intgr) +. 1.0) in
-					if (lwidth <= 20) then (
+					if (lwidth <= 20 && fract > 1e-20) then (
 						let rwidth = if (lwidth > 20) then 0 else if (fract = 0.0) then 1 else (20 - lwidth) in 
 						Printf.sprintf "%*.*f" lwidth rwidth x
 					) else
