@@ -66,6 +66,8 @@
 (define mc-log10e '$$log10e)
 (define mc-sqrt12 '$$sqrt1_2)
 (define mc-sqrt2  '$$sqrt2)
+(define utc-time  '$$utctime)
+(define loc-time  '$$localtime)
 
 ;; List of non-math constants
 (define jsil-constants
@@ -82,7 +84,7 @@
       mc-minval mc-maxval mc-random
       mc-pi     mc-e      mc-ln10
       mc-ln2    mc-log2e  mc-log10e
-      mc-sqrt12 mc-sqrt2))
+      mc-sqrt12 mc-sqrt2 utc-time loc-time))
 
 ;; Is something a literal?
 (define (literal? val)
@@ -113,6 +115,8 @@
         [(equal? lit mc-log10e) (/ 1 (log 10.))]
         [(equal? lit mc-sqrt12) (sqrt 0.5)]
         [(equal? lit mc-sqrt2)  (sqrt 2.)]
+        [(equal? lit utc-time) (floor (current-inexact-milliseconds))]
+        [(equal? lit loc-time) (floor (current-inexact-milliseconds))]
       )
       (cond
       	[(is-llist? lit)
@@ -174,6 +178,11 @@
     (string-append "#x" (substring str 2)) str)))
   (cond
   [(equal? str "") 0]
+  [(equal? str "-0") -0.0]
+  [(equal? str "-0.0") -0.0]
+  [(equal? str "Infinity") +inf.0]
+  [(equal? str "+Infinity") +inf.0]
+  [(equal? str "-Infinity") -inf.0]
   [#t
     (let ((str_num (string->number str)))
       (if (equal? str_num #f)
@@ -285,16 +294,38 @@
   )
 )
 
+;; OH MY GOD, LIKE SERIOUSLY, GOD
 (define (jsil-number-to-string n)
   (let ((result (cond
     [(equal? n +nan.0) "NaN"]
     [(equal? n +inf.0) "Infinity"]
     [(equal? n -inf.0) "-Infinity"]
-    [(integer? n) (number->string (inexact->exact n))]
-    [#t (number->string n)])))
+    [(rational? n)
+      (let* (
+        [pick-notation (lambda (x)
+          (if (or (< (abs x) 1e-06) (>= (abs x) 1e+21))
+            'exponential
+            'positional))]
+        (result (~r n #:notation (pick-notation n)))
+        (result (string-replace result "e+0" "e+"))
+        (result (string-replace result "e-0" "e-"))
+      )
+      result
+      )]
+
+    [#t (let* (
+          (result (number->string n))
+          (result (string-replace result "e+0" "e+"))
+          (result (string-replace result "e-0" "e-"))
+        )
+        result
+      )])))
     result
   ))
 
+(define (realify x)
+  (if (real? x) x +nan.0)
+)
 
 (define (check-logic-variable var )
   (if (not (symbol? var))
@@ -521,10 +552,32 @@
                    (append (list 'jsil-list x) (cdr y))
                    jundefined)))
 
-    (cons '** (lambda (x y) (if (and (number? x) (number? y)) (expt x y) jundefined)))
+    (cons '** (lambda (x y) (if (and (number? x) (number? y)) 
+      (cond 
+        [(equal? y +nan.0) +nan.0]
+        [(equal? y  0.0) 1.0] 
+        [(equal? y -0.0) 1.0] 
+        [(equal? x +nan.0) +nan.0]
+        [(equal? y +inf.0)
+          (cond
+            [(<      (abs x) 1) 0.0]
+            [(equal? (abs x) 1) +nan.0]
+            [(>      (abs x) 1) +inf.0]
+          )
+        ]
+        [(equal? y -inf.0)
+          (cond
+            [(<      (abs x) 1) +inf.0]
+            [(equal? (abs x) 1) +nan.0]
+            [(>      (abs x) 1) 0.0]
+          )
+        ]
+        [#t (realify (expt x y))]
+      ) 
+      jundefined)))
 
     (cons 'm_atan2 (lambda (x y)
-                     (if (and (number? x) (number? y)) (atan y x) jundefined)))
+                     (if (and (number? x) (number? y)) (realify (atan x y)) jundefined)))
 
     (cons 'bor (lambda (x y)
                  (if (and (number? x) (number? y))
@@ -560,25 +613,25 @@
 
     (cons 'm_abs (lambda (x) (if (number? x) (abs x) jundefined)))
     
-    (cons 'm_acos (lambda (x) (if (number? x) (acos x) jundefined)))
+    (cons 'm_acos (lambda (x) (if (number? x) (realify (acos x)) jundefined)))
 
-    (cons 'm_asin (lambda (x) (if (number? x) (asin x) jundefined)))
+    (cons 'm_asin (lambda (x) (if (number? x) (realify (asin x)) jundefined)))
 
-    (cons 'm_atan (lambda (x) (if (number? x) (atan x) jundefined)))
+    (cons 'm_atan (lambda (x) (if (number? x) (realify (atan x)) jundefined)))
 
     (cons 'm_cos (lambda (x) (if (number? x) (cos x) jundefined)))
 
     (cons 'm_sin (lambda (x) (if (number? x) (sin x) jundefined)))
 
-    (cons 'm_tan (lambda (x) (if (number? x) (tan x) jundefined)))
+    (cons 'm_tan (lambda (x) (if (number? x) (realify (tan x)) jundefined)))
 
     (cons 'm_sgn (lambda (x) (if (number? x) (sgn x) jundefined)))
 
-    (cons 'm_sqrt (lambda (x) (if (number? x) (sqrt x) jundefined)))
+    (cons 'm_sqrt (lambda (x) (if (number? x) (realify (sqrt x)) jundefined)))
     
-    (cons 'm_exp (lambda (x) (if (number? x) (exp x) jundefined)))
+    (cons 'm_exp (lambda (x) (if (number? x) (realify (exp x)) jundefined)))
 
-    (cons 'm_log (lambda (x) (if (number? x) (log x) jundefined)))
+    (cons 'm_log (lambda (x) (if (number? x) (realify (log x)) jundefined)))
 
     (cons 'm_ceil (lambda (x) (if (number? x) (ceiling x) jundefined)))
 

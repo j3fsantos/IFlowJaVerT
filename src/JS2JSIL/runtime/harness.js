@@ -225,7 +225,6 @@ function verifyNotConfigurable(obj, name) {
     }
 }
 
-/*
 function getPrecision(num) {
 	//TODO: Create a table of prec's,
 	//      because using Math for testing Math isn't that correct.
@@ -312,4 +311,4 @@ var date_1970_start = 0;
 var date_1999_end = 946684799999;
 var date_2000_start = 946684800000;
 var date_2099_end = 4102444799999;
-var date_2100_start = 4102444800000; */
+var date_2100_start = 4102444800000; 

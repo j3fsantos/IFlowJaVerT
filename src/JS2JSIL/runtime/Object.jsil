@@ -60,11 +60,11 @@ proc i__getOwnFieldsIter (prop_list) {
 	no:		fh := $$nil;
 			goto rcall;
 
-	yes:	fh := xh;
+	yes:	fh := {{ xh }};
 
 	rcall:	ft := "i__getOwnFieldsIter" (xt);
 
-			xret := fh :: ft;
+			xret := fh @ ft;
 	rlab:	skip
 }
 with
@@ -102,11 +102,11 @@ proc i__getEnumerableFieldsIter (l, prop_list) {
 	no:		fh := $$nil;
 			goto rcall;
 
-	yes:	fh := xh;
+	yes:	fh := {{ xh }};
 
 	rcall:	ft := "i__getEnumerableFieldsIter" (l, xt);
 
-			xret := fh :: ft;
+			xret := fh @ ft;
 	rlab:	skip
 }
 with

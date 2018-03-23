@@ -859,7 +859,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	| Parser_syntax.String s ->
 		let escaped_s = Str.global_replace (Str.regexp "\"") "\\\"" s in
 		(annotate_first_cmd []), Literal (String escaped_s), []
-	| Parser_syntax.Num n ->  (annotate_first_cmd []), Literal (Num n), []
+	| Parser_syntax.Num n -> (* Printf.printf "Parsed number: %20.20f\n" n; *) (annotate_first_cmd []), Literal (Num n), []
 
 
 	(**

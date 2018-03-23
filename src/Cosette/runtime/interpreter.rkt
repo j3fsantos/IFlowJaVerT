@@ -374,8 +374,11 @@
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
                 (println (format "CUR PC ~v" cur-pc))
-                (let ((new-solver (solve+)))
-                  (if (unsat? (new-solver cur-pc))
+                (let* ((old-solver (current-solver))
+                       (new-solver (solve+))
+                       (res (new-solver cur-pc)))
+                  (solver-shutdown old-solver)
+                  (if (unsat? res)
                       (begin
                         (println "the current pc is UNSAT")
                         (set! success #t))
