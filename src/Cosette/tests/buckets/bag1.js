@@ -568,4 +568,4 @@ Assume ((not (s1 = "")) and (not (s2 = "")));
 bag.add(s1);
 bag.add(s2);
 var res = bag.size();
-Assert (((s1 = s2) and (res = 1)) or ((not (s1 = s2)) and (res = 2)));
+Assert (res = 2);
