@@ -1,0 +1,892 @@
+%!TEX root = main.tex
+
+\ExplSyntaxOn
+\DeclareExpandableDocumentCommand{\IfNoValueOrEmptyTF}{mmm}
+ {
+  \IfNoValueTF{#1}{#2}
+   {
+    \tl_if_empty:nTF {#1} {#2} {#3}
+   }
+ }
+\ExplSyntaxOff
+
+%frame inference
+\newcommand{\pass}[0]{\Pi}
+\newcommand{\gfrinference}[3]{#1 \vdash #2 * [ #3 ]}
+\newcommand{\frinference}[4]{#1 \mid #2 \vdash #3 * [ #4 ]}
+\newcommand{\lframe}[0]{?F}
+
+%fids 
+%\newcommand{\fid}[0]{f\hspace{-1pt}id}
+\newcommand{\fid}[0]{\ensuremath{\mathit{fid}}\xspace}
+\newcommand{\fids}[0]{\sortstyle{F}\hspace{-2pt}id}
+
+% recent ones
+\newcommand{\javert}[0]{JaVerT\xspace}
+\newcommand{\pred}[1]{{\sf #1}}
+\newcommand{\predef}[3]{#1(#2) \triangleq #3}
+\newcommand{\lstar}[0]{\, * \,}
+\newcommand{\litstring}[1]{\text{{\it ``#1''}}}
+\newcommand{\hopshort}{\V{hOP}}
+\newcommand{\None}[0]{{\sf None}}
+\newcommand{\scopechainlexpr}[0]{\mathtt{sc}}
+% Auxiliary
+\newcommand{\sortstyle}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\command}[1]{\ensuremath{\mathsf{#1}}\xspace}
+\newcommand\defeq{{{::}=}}
+\newcommand\jvec[1]{\overline{#1}}
+
+\newcommand{\notcare}{-}
+\definecolor{light-gray}{gray}{0.6}
+\newcommand{\lightmath}[1]{{\color{light-gray}#1 \, }}
+\definecolor{dark-gray}{gray}{0.4}
+\newcommand{\darkmath}[1]{{\color{dark-gray}#1 \, }}
+\newcommand{\dtag}[1]{{\small \bf (#1)}}
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+\newcommand{\internal}{{\sf Reserved}}
+
+\newcommand{\jlist}[1]{#1_{\mathtt{lst}}}
+\newcommand{\set}[1]{#1_{\mathtt{set}}}
+
+\newcommand{\todo}{\textbf{TODO~\ }}
+
+
+\newcommand\scpchain[0]{L}
+\newcommand\scpchains[0]{\sortstyle{S}ch_\jssuffix}
+
+%Syntax of ES5 Strict Expressions
+\newcommand{\jsnull}[0]{{\sf null}}
+\newcommand{\jsthis}[0]{{\sf this}}
+\newcommand{\jsnew}[0]{{\sf new}}
+\newcommand{\ident}[1]{#1}
+\newcommand{\objlit}[0]{\left\{ \, \right\}}
+\newcommand{\objlitf}[1]{\left\{ #1  \right\}}
+\newcommand{\group}[1]{(#1)}
+\newcommand{\memaccess}[2]{#1[#2]}
+\newcommand{\dmemaccess}[2]{#1.#2}
+\newcommand{\plusplus}[0]{\texttt{++}}
+\newcommand{\minusminus}[0]{\texttt{-}\texttt{-}}
+\newcommand{\condexpr}[3]{ #1 ~?~  #2 : #3 }
+\newcommand{\fproj}[2]{#1[#2]}
+\newcommand{\newstmt}[2]{\jsnew ~#1(#2)}
+\newcommand{\newPBS}[3]{\jsnew_{#3} ~#1(#2)} 
+\newcommand{\funcall}[2]{#1(#2)}
+\newcommand{\funcallPBS}[3]{#1(#2)_{#3}}
+\newcommand\jsnamedfun[3]{{\sf function} \,#1(#2)\{#3\}}
+\newcommand\jsfun[2]{{\sf function} \, (#1)\{#2\}}
+\newcommand\jsdelete[1]{{\sf delete} \, #1}
+\newcommand\jsdeletePBS[2]{{\sf del}_{#2} \, #1}
+\newcommand\binop[1]{\, \oplus_{#1} \,}
+\newcommand\uop[1]{\otimes_{#1} \,}
+\newcommand\seqPBS[2]{{\sf seq}_{#1}(#2)}
+\newcommand\jsundefined[0]{{\sf undefined}}
+\newcommand\jslambda[2]{\lambda #1.#2}
+\newcommand\jsfalsepred[0]{{\sf False}}
+\newcommand\whilePBS[3]{{\sf while}_{#3}(#1) \{ #2 \}}
+
+
+%Syntax operators
+\newcommand\jsand[0]{\&\&}
+\newcommand\jsor[0]{\|\|}
+
+%Syntax of ES5 Strict Statements
+\newcommand{\jsif}[3]{{\sf if} (#1) \, \{ #2 \} \,  {\sf else} \, \{ #3 \}}
+\newcommand{\jsifPBS}[4]{{\sf if}_{#4} (#1) \, \{ #2 \} \,  {\sf else} \, \{ #3 \}}
+\newcommand{\jswhile}[2]{{\sf while} (#1) \, \{ #2 \}}
+\newcommand{\jsdowhile}[2]{{\sf do} \, \{ #1 \} \, {\sf while} (#2)}
+\newcommand{\jswhilert}[3]{{\sf while_1} (#1, #2) \, \{ #3 \}}
+\newcommand{\jsseq}[2]{#1; \, #2}
+\newcommand{\jsreturn}[1]{{\sf return} \, #1}
+\newcommand{\returnPBS}[2]{{\sf return}_{#2} \, #1}
+\newcommand{\vardecl}[1]{{\sf var} \, #1}
+
+
+%abstract syntax and semantic sets
+
+
+% programs
+\newcommand{\jsprog}[0]{p}
+\newcommand{\jsprogs}[0]{\sortstyle{P}}
+% statements
+\newcommand{\jstmt}[0]{s}
+
+% expressions
+\newcommand{\jexpr}[0]{e}
+
+% Identifiers
+\newcommand{\xvar}[0]{x}
+\newcommand{\yvar}[0]{y}
+\newcommand{\vars}[0]{\sortstyle{X}_\jssuffix}
+% Values
+\newcommand{\jsval}[0]{v}
+\newcommand{\jsvals}[0]{\sortstyle{V_{\jssuffix}}}
+
+\newcommand{\jshval}[0]{\omega}
+\newcommand{\jshvals}[0]{\sortstyle{\vals}^{h}_{\jssuffix}}
+
+% literals
+
+% property names
+\newcommand{\pn}[0]{pn}
+\newcommand{\pns}[0]{\sortstyle{P}}
+
+\newcommand{\jspns}[0]{\sortstyle{\pns}_{\jssuffix}}
+\newcommand{\jsilpns}[0]{\sortstyle{\pns}_{\jsilsuffix}}
+
+% Memory Model
+% Object heaps
+\newcommand\oheaps[0]{{\mathcal H}}
+\newcommand\aheaps[0]{{\mathcal H}^{\emptyset}}
+\newcommand\oheap[0]{h}
+
+\newcommand\jsheaps[0]{{\mathcal H_\jssuffix}}
+%\newcommand\ajsilheaps[0]{{\mathcal H_\jsilsuffix^{\diameter}}}
+\newcommand\jsilheap[0]{\mathtt{h}}
+
+% References
+\newcommand{\refrs}{{\mathcal R}}
+\newcommand{\refr}{r}
+\newcommand{\refrcons}[2]{#1.#2}
+\newcommand{\refrconstype}[3]{#1{\sv_{#3}}#2}
+% Locations 
+\newcommand{\erlocs}{{\mathcal L}_{var}}
+\newcommand{\objlocs}{{\mathcal L}ocs_{obj}}
+\newcommand\locsnull{\locs_{\jsnull}}
+\newcommand\locsundef{\locs_{\sf undef}}
+\newcommand{\locglobal}{\loc_g}
+\newcommand{\loceval}{\loc_e}
+\newcommand{\lochop}{\loc_{hop}}
+% Heap Cell
+% Read operation
+% Update operation
+% Disjoint union
+% Disjoint union
+\newcommand{\jobj}[2]{#1 \mapsto \{ #2 \}}
+% Empty heap
+
+% Cell deallocation
+\newcommand{\celldealloc}[2]{#1\backslash#2}
+
+%IVL types
+\newcommand{\ivltype}[0]{\tau}
+\newcommand{\ivltypes}[0]{\mathtt{Types}}
+\newcommand{\ivltypetype}[0]{\mathtt{Type}}
+\newcommand{\ivlbooleans}[0]{\mathtt{Bool}}
+\newcommand{\ivlnumbers}[0]{\mathtt{Num}}
+\newcommand{\ivlstrings}[0]{\mathtt{Str}}
+\newcommand{\ivlundefs}[0]{\mathtt{Undef}}
+\newcommand{\ivlemptys}[0]{\mathtt{Empty}}
+\newcommand{\ivlnulls}[0]{\mathtt{Null}}
+\newcommand{\ivlvrefrs}[0]{\mathtt{Ref}_{\ermarker}}
+\newcommand{\ivlorefrs}[0]{\mathtt{Ref}_{\objmarker}} 
+\newcommand{\ivlobjs}[0]{\mathtt{Obj}}
+
+
+% Reference markers
+%\newcommand{\ermarker}{\diamond}
+%\newcommand{\objmarker}{\circ}
+\newcommand{\ermarker}{{\sf v}}
+\newcommand{\objmarker}{{\sf o}}
+\newcommand{\refrmarker}{{\sf a}}
+\newcommand{\envrec}{\command{ER}}
+\newcommand{\arefrcons}[3]{#1._{#3}#2}
+\newcommand{\evalident}[0]{{\sf eval}}
+
+% Internal Identifiers
+\newcommand{\internalVar}[1]{\ensuremath{\mathit{#1}}}
+\newcommand\protop{\internalVar{@proto}}
+\newcommand\thisp{\internalVar{@this}}
+\newcommand\bodyp{\internalVar{@code}}
+\newcommand\fscopep{\internalVar{@scope}}
+\newcommand\scopep{\internalVar{@scope}}
+\newcommand\retp{\internalVar{@ret}}
+
+% Special Locations
+\newcommand\lop{l_{op}}
+\newcommand\lglobal{l_g}
+\newcommand\lfp{l_{fp}}
+\newcommand\leglobal{\mathbf{l_g}}
+
+% Semantics Functions
+\newcommand{\proto}{\ensuremath{\pi}\xspace}
+\newcommand{\protoo}{\ensuremath{\pi_o}\xspace}
+\newcommand{\getvalue}{\ensuremath{\gamma}\xspace}
+\newcommand{\scope}{\ensuremath{\mathtt{scope}}\xspace}
+\newcommand\pickThis{\command{This}}
+\newcommand\obj{\command{obj}}
+\newcommand{\ReadWrite}{\command{RW}}
+\newcommand{\ReadOnly}{\command{RO}}
+\newcommand\defs{\command{defs}}
+\newcommand\activ{\command{act}}
+\newcommand\markeractiv{\command{act}^{\refrmarker}}
+\newcommand\eractiv{\command{act}^{\ermarker}}
+\newcommand\objactiv{\command{act}^{\objmarker}}
+\newcommand\objOrGlob{\command{SelectProto}}
+\newcommand\SelectThis{\command{SelectThis}}
+\newcommand\parse{\command{parse}}
+\newcommand{\refctxt}{\command{Ref}}
+\newcommand\heaplocs{\command{locs}}
+
+
+% internal commands - small step semantics
+\newcommand\newexestmt{{\sf @NewExe}}
+\newcommand\funexestmt{{\sf @FunExe}}
+\newcommand\evalexestmt{{\sf @EvalExe}}
+
+% contextos
+\newcommand\exprctxt{E_{e}}
+\newcommand\stmtctxt{E_{s}}
+\newcommand\emptyctxt{\square}
+
+
+
+% Outcomes
+\newcommand\refrerror{{\sf error}}
+\newcommand\retval[1]{{\sf ret} \, #1}
+\newcommand\errexpr{e_{\text{\lightning}}}
+\newcommand\errexprs{{\mathcal E}xpr_{\text{\lightning}}}
+\newcommand\errstmt{s_{\text{\lightning}}}
+\newcommand\errstmts{{\mathcal S}tmt_{\text{\lightning}}}
+\newcommand\funret{\command{FunRet}}
+\newcommand\newret{\command{ConsRet}}
+\newcommand\jsiloflag[2]{{#1 \langle #2 \rangle}}
+\newcommand\jsilonormal[1]{{\fnormal\langle #1 \rangle}}
+\newcommand\jsiloerror[1]{{\ferror\langle #1 \rangle}}
+
+
+
+% Semantic Rules
+\newcommand\outcome{o}
+\newcommand\outcomes{{\mathcal O}}
+\newcommand\outcomejsil{\mathtt{o}}
+\newcommand\outcomesjsil{{\mathcal O}_{\jsilsuffix}}
+\newcommand{\conf}[1]{\langle #1 \rangle}
+\newcommand{\semtransstmt}[7]{#1 \vdash \conf{#2, #3 \mid #4} \, \Downarrow_{s} \conf{#5, #6 \mid #7}}
+\newcommand{\semtransval}[3]{#1 \vdash \conf{#2} \, \Downarrow^{\getvalue}_{e} \conf{#3}}
+\newcommand{\semtransv}[4]{#1 \vdash \conf{#2} \, \Downarrow^{\getvalue}_{#4} \conf{#3}}
+\newcommand{\sembinop}[0]{\overline{\oplus}}
+\newcommand{\tempobj}[2]{\{#1 \, \mid \, #2 \}}
+\newcommand{\smallsteps}[2]{\conf{#1} \, \rightarrow \, \conf{#2}}
+\newcommand{\smallstepe}[2]{\conf{#1} \, \rightarrow \, \conf{#2}}
+
+% Outcomes 
+\newcommand\normalexe[1]{#1}
+\newcommand\ret[1]{{\sf ret} \, #1}
+\newcommand\extract[1]{\lceil #1 \rceil}
+\newcommand\pbsargs[2]{{\sf iterate}_{#2}\{ #1 \}}
+
+
+%IVL Syntax
+%
+\newcommand\ivlvars{{\mathcal X}_{\jsilsuffix}}
+% literals
+\newcommand\ivllab{\ell}
+\newcommand\ivllabs{\mathtt{Lab}}
+\newcommand\labhoist{{\sf Hoist}}
+% commands
+\newcommand\ivlcmd{\mathtt{c}}
+\newcommand\cl{\mathtt{cl}}
+\newcommand\ivlcalls{\mathtt{Calls}}
+% expressions
+
+% literals
+\newcommand\ivllit{\mathtt{v}}
+\newcommand\ivllits{{\mathcal V}_{\jsilsuffix}}
+% 
+\newcommand\procs{\mathcal{P}_{names}}
+\newcommand\procset{\mathtt{Proc}}
+\newcommand\procedure[3]{\darkmath{\sf proc} \ #1(#2) \{ #3 \}}
+\newcommand\nprocedure[4]{\darkmath{\sf proc} \ #1(#2) \{ #3 \} \, \darkmath{\sf with} \, (#4)}
+% operators
+\newcommand\ivlundefined{\darkmath{\textsf {undefined}}}
+\newcommand\ivlnull{\darkmath{\textsf {null}}}
+\newcommand\ivlempty{\darkmath{\textsf {empty}}}
+\newcommand\ivllabel{\darkmath{\textsf {label}}}
+\newcommand\getfields{\darkmath{\textsf {getFields}}}
+\newcommand\ivltypeof{\darkmath{\textsf {typeOf}}}
+\newcommand\ivltostring{\darkmath{\textsf {toString}}}
+\newcommand\ivltonumber{\darkmath{\textsf{toNumber}}}
+\newcommand\ivlcall[4]{#1 := #2(#3) \, \darkmath{\textsf {with}} #4}
+\newcommand\ivlproto{\darkmath{\textsf {protoField}}}
+\newcommand\ivlprotoobj{\darkmath{\textsf {protoObj}}}
+\newcommand\ivlbase{\darkmath{\textsf {base}}}
+\newcommand\ivlrefa{\darkmath{\textsf {ref}}_{\hspace*{-0.05cm}\textsf {a}}}
+%\newcommand\ivlrefo{\darkmath{\textsf {ref}}_{\hspace*{-0.05cm}\textsf {o}}}
+%\newcommand\ivlrefv{\darkmath{\textsf {ref}}_{\hspace*{-0.05cm}\textsf {v}}}
+\newcommand\ivlrefv[1]{ \{\{ \textsf {"v"}, #1 \}\} }
+\newcommand\ivlrefo[1]{ \{\{ \textsf {"o"}, #1 \}\} }
+\newcommand\ivlref{\darkmath{\textsf {ref}}}
+\newcommand\ivlfield{\darkmath{\textsf {field}}}
+\newcommand\ivlhead{\darkmath{\textsf {head}}}
+\newcommand\ivltail{\darkmath{\textsf {tail}}}
+\newcommand\ivllength{\darkmath{\textsf {length}}}
+\newcommand\ivlconcat{\darkmath{\textsf {@}}}
+\newcommand\ivlnth{\darkmath{\textsf {nth}}}
+\newcommand\ivland{\darkmath{\textsf {and}}}
+\newcommand\ivlor{\darkmath{\textsf {or}}}
+\newcommand\ivlnot{\darkmath{\textsf {not}}}
+\newcommand\instr[2]{#1: \, #2}
+\newcommand\xivar{\mathtt{x}}
+\newcommand\yivar{\mathtt{y}}
+\newcommand\xilvars{\sortstyle{X}_\jsilsuffix^L}
+\newcommand\ivlprogs{\mathtt{P}}
+
+\newcommand\procpretlab[0]{\mathtt{pret}}
+\newcommand\procpexlab[0]{\mathtt{perr}}
+\newcommand\thenlab{t}
+\newcommand\elselab{e}
+\newcommand\nextlab{n}
+\newcommand\loophead{h}
+\newcommand\loopend{b}
+\newcommand\breaklab{b_r}
+
+\newcommand\ivlstate[0]{{\mathcal S}tate_{IVL}}
+
+
+\newcommand\procdesc[0]{\delta}
+
+\newcommand\errormarker[0]{\text{\lightning}}
+\newcommand\returnmarker[0]{\hookleftarrow}
+\newcommand\ivlmarker[0]{\ddag}
+
+% Semantics
+\newcommand\ivlstore[0]{\rho}
+\newcommand\lsemexpr[3]{\llbracket #1 \rrbracket_{#2}^{#3}}
+%\newcommand\ivltype{\tau}
+\newcommand\ivltypefun{{\sf TypeOf}}
+\newcommand\ivlstep[3]{\conf{#1} \leadsto_{#3} \conf{#2}}
+\newcommand\ivlbigstep[3]{\conf{#1} \Downarrow_{#3} \conf{#2}}
+
+\newcommand\retpc{{\sf PC}_{\hookleftarrow}}
+\newcommand\expc{{\sf PC}_{{\text{\lightning}}}}
+\newcommand\nextpc{{\sf next}}
+
+\newcommand{\unop}[0]{\ominus}
+
+% translation
+\newcommand\auxcompile[0]{\hat{\mathcal C}}
+\newcommand\finalcompile[0]{\overline{\mathcal C}}
+\newcommand\icompile[0]{{\mathcal W}}
+
+
+\newcommand\dspc[0]{\phantom{xx}}
+
+\newcommand\typejudge[4]{#1 \vdash_e #2 \, \{ #3 \} \, #4}
+\newcommand\stypejudge[4]{#1 \vdash_s #2 \, \{ #3 \} \, #4}
+\newcommand\sscope{\psi}
+\newcommand\scopeenv{\Psi}
+\newcommand\jsnamedfunid[4]{{\sf function} \, [#4] \,#1(#2)\{#3\}}
+\newcommand\jsfunid[3]{{\sf function} \, [#3] \, (#1)\{#2\}}
+
+
+\newcommand\translate[5]{#1 \vdash #2 \,^{#3}\searrow_{#4} #5}
+\newcommand\translatenew[3]{#1 \vdash #2\searrow #3}
+%
+\newcommand\translategamma[5]{#1 \vdash_{\gamma} #2 \,^{#3}\searrow_{#4} #5}
+\newcommand\translategammanew[3]{#1 \vdash_{\gamma} #2 \searrow #3}
+%
+\newcommand\translateenvrec[5]{#1 \vdash_{{\sf ER}} #2 \,^{#3}\searrow_{#4} #5}
+\newcommand\translateenvrecnew[3]{#1 \vdash_{{\sf ER}} #2 \searrow #3}
+%
+\newcommand\translatereadonly[5]{#1 \vdash_{{\sf RO}} #2 \,^{#3}\searrow_{#4} #5}
+\newcommand\translatereadonlynew[3]{#1 \vdash_{{\sf RO}} #2 \searrow #3}
+%
+\newcommand\translateselproto[3]{#1 \vdash_{{\sf SelProto}} #2 \searrow #3}
+
+\newcommand{\compactmath}[2]{\vspace{-4pt}\begin{equation}\label{#2}\vspace{-2pt}#1\end{equation}}
+% LOGIC
+\newcommand\deabstract[1]{\lfloor #1 \rfloor}
+\newcommand\suffix{\preceq}
+\newcommand\lenvs[0]{{\mathcal E}nv}
+%\newcommand\lvars[0]{{\mathcal X}}
+\newcommand\lgvar[0]{X}
+\newcommand\lgvars[0]{{\mathcal X}^L}
+\newcommand{\V}[1]{{\ensuremath{\mathrm{#1}}}}
+\newcommand\ival[0]{\mathtt{v}}
+\newcommand\lgval[0]{V}
+\newcommand\lgvallist[0]{Ls}
+\newcommand\lgvals[0]{{\mathcal V}^{L}}
+\newcommand\ivals[0]{{\mathcal V}^{IVL}}
+\newcommand\lexprs[0]{{\mathcal E}^{L}}
+\newcommand\ispec[0]{spec}
+\newcommand\ispecs[0]{\mathtt{SE}}
+\newcommand{\specs}{\sortstyle{S}pec}
+\newcommand{\post}{{\sf post}}
+\newcommand{\lconf}[1]{\{ #1 \}}
+\newcommand{\typeof}[0]{\command{Type}}
+\newcommand{\emptyfields}[2]{\command{emptyFields}(#1 \mid #2)}
+
+
+\newcommand{\upredname}[0]{pred}
+\newcommand{\upred}[2]{{#1}(#2)}
+
+\newcommand{\lproto}[0]{\Pi}
+\newcommand{\labs}[0]{{\sf labs}}
+\newcommand{\funlits}{\command{funlits}}
+\newcommand{\stores}{\sortstyle{S}to}
+\newcommand{\init}{\command{init}}
+\newcommand{\flatten}{\command{flatten}}
+\newcommand{\sproofrule}[2]{{\langle \, #1 \, \rangle} \leadsto { \langle \, #2 \, \rangle}}
+\newcommand{\proofrule}[3]{#1 \vdash {\langle \, #2 \, \rangle} \leadsto { \langle \, #3 \, \rangle}}
+\newcommand{\derivation}{\mathtt{pd}}
+\newcommand{\derivations}{{\mathcal D}}
+\newcommand{\procnames}{{\sf names}}
+\newcommand{\fl}{@fl}
+\newcommand{\pcv}{pc}
+
+\newcommand{\typetoann}{{\sf Ann}}
+
+\newcommand{\objass}[2]{{\sf obj}_{#1}(#2)}
+\newcommand{\specline}[2][blue]{{\color{#1} \left\{\begin{array}{l} #2 \end{array}\right\}}}
+\newcommand{\triple}[4][blue]{{ \left\{ \begin{array}{@{}c@{}} #2 \end{array} \middle\} \ {\color{black} #3} \ \middle\{ \begin{array}{@{}c@{}}#4 \end{array} \right\}}}
+\newcommand{\vtriple}[4][black]{{\color{#1} \begin{array}{@{}l@{}} \{ #2 \} \\ {\color{black} \pht{\{}#3} \\ \{ #4 \}\end{array}}}
+
+\newcommand{\pby}[0]{{By}\xspace}
+\newcommand{\hyp}[1]{{\bf H#1}}
+%\newcommand{\case}[1]{{\bf C#1}}
+\newcommand{\sgoal}[1]{{\emph{goal #1}}}
+\newcommand{\goal}[1]{{\bf G#1}}
+\newcommand{\ieq}[1]{{\bf I#1}}
+\newcommand{\indhyp}[0]{{\bf IH}}
+\newcommand{\prooflab}[1]{{\small {\scshape [#1]}}}
+\newcommand{\fact}[1]{{\bf [F#1]}}
+
+\newcommand{\ilvars}{{\sf vars}}
+\newcommand{\betaequal}[1]{\sim_{#1}}
+\newcommand{\wbetaequal}[1]{\simeq_{#1}}
+
+\newcommand{\sch}[2]{\mathtt{SC}_{#1}(#2)}
+\newcommand{\initsch}[0]{\mathtt{SC}_0}
+
+
+%PETAR
+%\newcommand{\fids}{{\sf fids}}
+\newcommand{\firstfid}{{\sf firstFID}}
+
+\newcommand{\pht}[1]{{\color{white}#1}}
+\newcommand{\since}{{\bf since~}}
+\newcommand{\simb}{\sim_\beta}
+\newcommand{\by}{\hfill \pby}  
+\newcommand{\ie}{meaning~}
+\newcommand{\with}{{\bf with~}}
+\newcommand{\scopeclarcons}{\Phi}
+\newcommand{\scc}[3]{\scopeclarcons_{#1}(#2, #3)}
+\newcommand{\jsassertions}{\assertions_\jssuffix}
+\newcommand{\jsilassertions}{\assertions_\jsilsuffix}
+
+
+
+\newcommand\jslgval{V}
+\newcommand\jsillgval{V}
+\newcommand\jslgvals{\lgvals_\jssuffix}
+\newcommand\jsillgvals{\lgvals_\jsilsuffix}
+
+\newcommand\jslexpr{E}
+\newcommand\jsillexpr{E}
+\newcommand\jslexprs{\lexprs_\jssuffix}
+
+
+\newcommand{\jslenvs}{\lenvs_\jssuffix}
+\newcommand{\jsillenvs}{\lenvs_\jsilsuffix}
+
+\newcommand{\jsaheap}{\aheap}
+\newcommand{\jsilaheap}{\aheap}
+
+\newcommand{\jsabsheaps}{\oheaps^\emptyset_\jssuffix}
+
+\newcommand\trdefault{}
+\newcommand\ltr{\mathcal{C}_A}
+\newcommand\ltrv[1][\trdefault]{\ltr_{#1 v}}
+\newcommand\ltre[1][\trdefault]{\ltr_{#1 e}}
+\newcommand\ltra[1][\trdefault]{\ltr_{#1 a}}
+\newcommand\ltrenv[1][\trdefault]{\ltr_{#1 \epsilon}}
+\newcommand{\pairof}[2]{{(#1, #2)}}
+
+
+\newcommand{\llistof}[1]{\overline{#1}}
+
+
+%last minute macros
+\newcommand{\jsspecs}[0]{{\sf specs}}
+\newcommand{\closure}[0]{{\sf closure}}
+\newcommand{\schains}[0]{{\sf o\text{-}chains}}
+ 
+\newcommand{\bigoast}{\mathop{\mbox{\Large $\varoast$}}}
+\newcommand{\jsheaptr}[1]{\langle #1 \rangle_{JSIL}}
+\newcommand{\jsilheaptr}[2]{\langle #1 \rangle_{JS}^{#2}}
+
+\newcommand{\lctx}[0]{C}
+\newcommand{\flagset}[0]{\mathcal{F}lag}
+
+\newcommand{\bigord}{{\mathcal O}rd}
+\newcommand{\smallord}{\darkmath{\textsf {ord}}}
+
+\newcommand{\funass}[0]{{\sf funObj}}
+%
+%\newcommand{\fieldnames}{\ensuremath{\strings^{\dagger}}}
+
+
+
+%% JILETTE PAPER FROM HERE!!!!!
+
+%%
+%% Auxiliary
+\newcommand{\sspc}[0]{\phantom{a}}
+\newcommand\cfresh[0]{{\sf fresh}}
+\newcommand\semeq{\,\triangleq\,}
+\newcommand{\domain}{\command{dom}}
+\newcommand{\range}{\command{rng}}
+\newcommand{\fv}{\command{fv}}
+\newcommand{\optionsome}[1]{\mathtt{Some} \, #1}
+\newcommand{\optionnone}[0]{\mathtt{None}}
+\newcommand{\jssuffix}{\mathtt{JS}}
+\newcommand{\jsilsuffix}{\mathtt{JSIL}}
+\newcommand{\functionset}[2]{[ #1 \rightarrow #2 ]}
+% Lists
+\newcommand{\lstcons}[0]{::}
+\newcommand{\lstconcat}[0]{\cdot}
+\newcommand{\lstemp}[0]{[ \ ]}
+\newcommand\lst[0]{L}
+\newcommand\lstindex[2]{#1_{#2}}
+\newcommand\lstsize[1]{\vert #1 \vert}
+\newcommand{\lists}[0]{\mathtt{List}}
+%%%%%%%%%%%%%%%%
+% syntax
+%%%%%%%%%%%%%%%%
+\newcommand\jsilexpr{e}
+\newcommand{\lit}[0]{\lambda}
+\newcommand\jvar{x}
+\newcommand\jtrue[0]{{\sf true}}
+\newcommand\jfalse[0]{{\sf false}}
+\newcommand\bcmd{bc}
+\newcommand\jcmd{c}
+\newcommand\prog{\mathtt{p}}
+\newcommand\progs{\mathcal{P}}
+\newcommand\pid{f}
+\newcommand\unoper{\ominus}
+\newcommand\binoper{\oplus}
+\newcommand{\jsilset}[1]{ \{ \, #1 \, \} }
+\newcommand\proc{proc}
+% indexes
+\newcommand\procretlab[0]{i_{\fnormal}}
+\newcommand\procerrlab[0]{i_{\ferror}}
+\newcommand\fnormal{{\sf nm}}
+\newcommand\ferror{{\sf er}}
+\newcommand\procretvar[0]{\mathtt{ret}}
+\newcommand\procerrvar[0]{\mathtt{err}}
+% syntactic sets
+\newcommand\exprs{\sortstyle{E}_{\jsilsuffix}}
+\newcommand\cmds{\sortstyle{C}md}
+\newcommand\bcmds{\sortstyle{B}cmd}
+\newcommand\args{\mathtt{args}}
+\newcommand\jvars{\sortstyle{X}}
+%basic commands
+\newcommand{\jsillist}[1]{ [ #1 ]}
+\newcommand\jsilskip[0]{\darkmath{\textsf {skip}}}
+\newcommand\jsilnew{\darkmath{\textsf {new}}}
+\newcommand\jsildelete{\darkmath{\textsf {delete}}}
+\newcommand\hasfield{\darkmath{\textsf {hasField}}}
+\newcommand\assert{\darkmath{\textsf {assert}}}
+\newcommand\assume{\darkmath{\textsf {assume}}}
+% flags and return modes
+\newcommand\jsilmain{\darkmath{\textsf{main}\xspace}}
+\newcommand{\flag}[0]{\ensuremath{\mathit{fl}}\xspace}
+%control flow commands
+\newcommand\goto{\darkmath{\textsf {goto}}}
+\newcommand\ifgoto[3]{\darkmath{\textsf {goto}} \ [#1] \ #2, \ #3}
+\newcommand\jsilcall[4]{#1 := #2(#3) \, \darkmath{\textsf {with}} #4}
+%%%%%%%%%%%%%%%
+% Semantics
+%%%%%%%%%%%%%%%
+\newcommand\jstate{\sigma}
+\newcommand\ctx{C}
+\newcommand\semop[1]{\overline{#1}}
+\newcommand\mode{\mu}
+
+\newcommand{\sembtransbasic}[2]{\tuple{#1} \rightarrow #2} 
+\newcommand{\symbtransbasic}[2]{\tuple{#1} \leadsto #2} 
+
+\DeclareDocumentCommand{\semtrans}{ o o o m m o o }
+{ 
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4} \rightarrow \tuple{#5} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6} \rightarrow \tuple{#5}_{#6}}
+			{\tuple{#4}_{#6} \rightarrow \tuple{#5}_{#7}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#5}^{#2} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#6}^{#2}}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#7}^{#2}} } }
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#5}^{#3} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#6}^{#3}}
+			{\tuple{#4}_{#6}^{#2} \rightarrow \tuple{#5}_{#7}^{#3}} } }
+	}
+}
+
+\DeclareDocumentCommand{\semtranstrans}{ o o o m o m o o }
+{ 
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4} \rightarrow \tuple{#6} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}}
+			{\tuple{#4}_{#7} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#6}^{#2} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#2}}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#2}} } }
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \rightarrow \tuple{#6}^{#3} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#3}}
+			{\tuple{#4}_{#7}^{#2} \rightarrow^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#3}} } }
+	}
+}
+
+
+\DeclareDocumentCommand{\semtranserr}{ o m o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#3}
+	{\tuple{#2} \rightarrow \bot}
+	{\tuple{#2}_#3 \rightarrow \bot} }
+
+\DeclareDocumentCommand{\semtranstranserr}{ o m o }
+{ 
+  \IfNoValueTF{#1}{}{#1: }
+  \IfNoValueTF{#3}
+	{\tuple{#2} \rightarrow^* \bot}
+	{\tuple{#2}_#3 \rightarrow^* \bot} }
+
+
+\DeclareDocumentCommand{\ccmd}{ o o m }
+{
+  \IfNoValueTF{#1}
+  	{\textsf{cmd}(#3)}
+	{\textsf{cmd}(#1, #2, #3)} }
+	
+\newcommand{\hpsel}[0]{\darkmath{\sf hp}}
+\newcommand{\stosel}[0]{\darkmath{\sf sto}}
+\newcommand{\pcsel}[0]{\darkmath{\sf pc}}
+\newcommand{\domsel}[0]{\darkmath{\sf dom}}
+
+%%%%%%%%%%%%%%%
+% Symbolic Execution
+%%%%%%%%%%%%%%%
+\newcommand\getcell{\mathcal{GC}}
+\newcommand\getcellrule[2]{\getcell(#1) = #2}
+\newcommand\getdomain{\mathcal{GD}}
+\newcommand\getdomainrule[2]{\getdomain(#1) = #2}
+\newcommand\sstate{\hat{\sigma}}
+\newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
+
+\DeclareDocumentCommand{\symbtrans}{ o o o m m o o }
+{ 
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4} \leadsto \tuple{#5} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6} \leadsto \tuple{#5}_{#6}}
+			{\tuple{#4}_{#6} \leadsto \tuple{#5}_{#7}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \leadsto \tuple{#5}^{#2} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#6}^{#2}}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#7}^{#2}} } }
+	  {\IfNoValueTF{#6}
+		{\tuple{#4}^{#2} \leadsto \tuple{#5}^{#3} }
+		{ \IfNoValueTF{#7}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#6}^{#3}}
+			{\tuple{#4}_{#6}^{#2} \leadsto \tuple{#5}_{#7}^{#3}} } }
+	}
+}
+
+
+\DeclareDocumentCommand{\symbtranstrans}{ o o o m o m o o }
+{ 
+  \IfNoValueOrEmptyTF{#1}{}{#1: }
+  \IfNoValueOrEmptyTF{#2}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4} \leadsto \tuple{#6} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}}
+			{\tuple{#4}_{#7} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}} } }
+    {\IfNoValueOrEmptyTF{#3}
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \leadsto \tuple{#6}^{#2} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#2}}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#2}} } }
+	  {\IfNoValueTF{#7}
+		{\tuple{#4}^{#2} \leadsto \tuple{#6}^{#3} }
+		{ \IfNoValueTF{#8}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#7}^{#3}}
+			{\tuple{#4}_{#7}^{#2} \leadsto^{\IfNoValueTF{#5}{*}{#5}} \tuple{#6}_{#8}^{#3}} } }
+	}
+}
+
+
+\newcommand{\symbtranserr}[3]{ \tuple{#1}_{#2} \leadsto \tuple{\bot, #3}}
+
+\newcommand{\symbtranstranserr}[3]{ \tuple{#1}_{#2} \leadsto^* \tuple{\bot, #3}}
+
+\newcommand\ext{+}
+
+\newcommand\pc{\pi}
+\newcommand\sexpr{\hat{e}}
+\newcommand\pvsexpr{\hat{\sf e}}
+\newcommand\sexprp{\hat{p}}
+\newcommand\sexprv{\hat{v}}
+\newcommand\func{\mathtt{fun}}
+\newcommand\sctx{\hat{C}}
+\newcommand\sctxmain{\hat{C}_{\sf main}^0}
+\newcommand\sstring{\hat{s}}
+\newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
+\newcommand\snumber{\hat{n}}
+\newcommand{\snumbers}[0]{\hat{\mathcal{N}}}
+\newcommand\sheaps[0]{\hat{\mathcal H}}
+\newcommand\semexpr[2]{\llbracket #1 \rrbracket_{#2}}
+\newcommand\senv[0]{\varepsilon}
+\newcommand\svar[0]{\hat{x}} 
+\newcommand\svars[0]{\hat{\sortstyle{X}}} 
+\newcommand\svarsreallyqueen[0]{\command{svars}} 
+\newcommand\smodels[2]{\sortstyle{M}_{#2}(#1)}
+\newcommand\smodelsext[2]{\sortstyle{M}_{#2}^\ext(#1)}
+\newcommand\symbop[1]{\hat{#1}}
+%%%%%%%%%%%
+% memory model
+%%%%%%%%%%%
+\newcommand\heap[0]{h}
+\newcommand\heaps[0]{{\mathcal H}}
+\newcommand\hlocs[1]{{\sf locs}(#1)}
+\newcommand\store[0]{\rho}
+\newcommand{\emptystore}[0]{\emptyset}
+\newcommand\sheap[0]{\hat{h}}
+\newcommand\sstore[0]{\hat\rho}
+\newcommand\sstores[0]{\hat{{\mathcal S}to}}
+\newcommand{\jsilempty}{{\sf empty}}
+\newcommand{\hcell}[3]{(#1, #2) \mapsto #3}
+\newcommand{\hmulticell}[2]{#1 \mapsto \{ #2 \}}
+\newcommand{\lits}[0]{\sortstyle{L}it}
+\newcommand{\storeemp}[0]{\emptyset}
+%Heap operations
+\newcommand{\hread}[3]{#1(#2, #3)}
+\newcommand{\hupdate}[3]{#1[#2 \mapsto #3]}
+\newcommand{\dunion}[0]{\, \uplus \,}
+\newcommand{\hemp}{\emptyset}
+% booleans
+\newcommand{\jbool}[0]{b}
+\newcommand{\bools}[0]{\sortstyle{B}}
+% strings
+\newcommand{\jstring}[0]{s}
+\newcommand{\strings}[0]{{\mathcal S}}
+% numbers
+\newcommand{\jnumber}[0]{n}
+\newcommand{\numbers}[0]{\sortstyle{N}}
+% Values
+\newcommand{\val}[0]{v}
+\newcommand{\vals}[0]{\sortstyle{V}_\jsilsuffix}
+% Locations
+\newcommand{\loc}{l}
+\newcommand{\locs}{{\mathcal L}}
+%%
+%% Logic
+%%
+\newcommand\ltrue{\command{True}}
+\newcommand\lfalse{\command{False}}
+% %
+%% Rosette
+%% 
+\newcommand\roscomp[1]{{\mathcal R}(#1)}
+\newcommand\racketlist[0]{\text{\bf list}}
+\newcommand\racketcons[0]{\text{\bf cons} \ }
+\newcommand\racketquote[0]{\text{\bf quote} \ }
+%%
+%% Sep Logic 
+%%
+\newcommand\aslocs[0]{{\sf slocs}}
+\newcommand\pvars[0]{{\sf pvars}}
+\newcommand\sloc[0]{\hat{\loc}}
+\newcommand\slocs[0]{\hat{\locs}}
+\newcommand{\emptyfieldsp}[1]{\textsf{emptyFields}(#1)}
+\newcommand{\typesp}[1]{\textsf{typeOf}(#1)}
+\newcommand\lvar[0]{\mathrm{X}}
+\newcommand\lexpr[0]{\ensuremath{E}}
+\newcommand\sepmodels[1]{\sortstyle{M}_{*}(#1)}
+\newcommand\sepmodelsext[1]{\sortstyle{M}_{*}^\ext(#1)}
+\newcommand\sepassert{\darkmath{\textsf {assert}_*}\xspace}
+\newcommand\sfs[0]{\sigma}
+\newcommand\pfs[0]{\pi}
+\newcommand\existentials[0]{\mathtt{L}}
+\newcommand{\cell}[0]{\mathtt{c}}
+\newcommand{\efa}[0]{\mathtt{\text{ef}}}
+\newcommand{\cells}[0]{\mathtt{C}}
+\newcommand{\efs}[0]{\mathtt{EF}}
+\newcommand\iheap[0]{\underline{h}}
+\newcommand{\iheaps}{{\mathcal H}_\emptyset}
+\newcommand{\isheap}[0]{\underline{\sheap}}
+\newcommand{\isheaps}[0]{\hat{{\mathcal H}}_\emptyset}
+\newcommand{\disjoint}[0]{\#}
+
+%%
+%% Sep Logic - Unification
+%%
+
+\newcommand{\subst}[0]{\theta}
+\newcommand{\unification}[3]{{\mathcal CU}_{#3}((#1), #2)} %\checkmark
+\newcommand{\unificationef}[2]{{\mathcal U}_{NR}(#1, #2)} 
+\newcommand{\unificationefl}[2]{{\mathcal U}_{NR}(#1, #2)} 
+\newcommand{\unificationfail}[4]{{\mathcal U}_{#4}^{\times}((#1), #2, #3)}
+\newcommand{\unificationfull}[3]{\tuple{(#1), (#2)} \in {\mathcal U}_{\mathtt{S}}^{#3}}
+\newcommand{\unificationfullP}[2]{\tuple{(#1), #2} \in {\mathcal U}_{\mathtt{S}}}
+\newcommand{\unificationfullfail}[4]{\tuple{(#1), (#2)} \in {\mathcal U}_{\mathtt{F}}^{#3}(#4)}
+\newcommand{\unificationfullfailP}[3]{\tuple{(#1), #2} \in {\mathcal U}_{\mathtt{F}}(#3)}
+\newcommand{\cellunification}[3]{#3 \vdash \tuple{#1} \rightarrow_{\mathcal CU} \tuple{#2}}
+\newcommand{\cellunificationx}[3]{#3 \vdash \tuple{#1} \rightarrow_{\mathcal CU} #2}
+\newcommand{\cellunificationiter}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\mathcal CU} \tuple{#2}}
+\newcommand{\cellunificationiterx}[3]{#3 \vdash \tuple{#1} \rightarrow^{*}_{\mathcal CU} #2}
+\newcommand{\uyes}[1]{{\mathtt{S}}(#1)}
+\newcommand{\uno}[1]{{\mathtt{F}}(#1)}
+\newcommand{\substs}[0]{{\sf substs}}
+\newcommand{\efproj}[2]{#1\!\mid_{#2}}
+\newcommand{\sanity}[1]{{\mathcal S}(#1)}
+\newcommand{\sanityl}[2]{{\mathcal S}_{#2}(#1)}
+\newcommand{\eflocs}[0]{{\sf locs}}
+
+%%
+%% Specs - test generation
+%%
+\newcommand{\specsig}[4]{\lconf{#1} \, #2 \,  \lconf{#3}^{#4}}
+\newcommand{\concretise}[2]{\llfloor #1 \rrfloor_{#2}}
+\newcommand{\testify}[1]{{\mathcal T}_{#1}}
+\newcommand{\testifyfun}[1]{{\mathcal T}_{#1}}
+%%
+%% Jilette - JS extended syntax
+%%
+\newcommand\sexprs{\hat{\sortstyle{E}}_{\jsilsuffix}}
+\newcommand\pvsexprs{\underline{\hat{\sortstyle{E}}}_{\jsilsuffix}}
+\newcommand{\jsassert}[0]{\mathtt{assert}}
+\newcommand{\jsassume}[0]{\mathtt{assume}}
+\newcommand{\jssymbstring}[0]{\_\_{\mathtt{s}}}
+\newcommand{\jssymbnumber}[0]{\_\_{\mathtt{n}}}
+\newcommand{\jsexpr}[0]{\mathtt{E}}
+\newcommand{\jslit}[0]{\mathtt{l}}
+\newcommand{\jsvar}[0]{\mathtt{x}}
+\newcommand\compile[0]{{\mathcal C}}
+\newcommand\compilel[0]{{\mathcal C}_l}
+\newcommand{\jstmts}[0]{\sortstyle{S}_{\jssuffix}}
+\newcommand{\jexprs}[0]{\sortstyle{E}_{\jssuffix}}
+\newcommand{\jlexprs}[0]{\sortstyle{E}_{\jssuffix}^L}
+
+

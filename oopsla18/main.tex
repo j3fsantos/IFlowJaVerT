@@ -1,0 +1,525 @@
+\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{CONF} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+\setcopyright{none}
+
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}  
+
+
+
+\usepackage{xcolor}
+%\usepackage{amsmath}
+\usepackage{listingsutf8}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{xspace}
+\usepackage{textcomp}
+\usepackage{wasysym,stmaryrd}
+\usepackage{mathpartir}
+\usepackage{url}
+%\usepackage{upgreek}
+\usepackage{xparse}
+\usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+%\usepackage{stix}
+
+%\usepackage{algorithm}
+%\usepackage{algpseudocode}
+
+\usepackage{wrapfig}
+\usepackage{fancyvrb}
+
+\makeatletter
+\newif\ifFV@bgcolor
+\newbox\FV@bgbox
+\define@key{FV}{bgcolor}{\FV@bgcolortrue\def\FV@bgcolor{#1}}
+
+\def\FV@BeginVBox{%
+  \leavevmode\ifFV@bgcolor\setbox\FV@bgbox=\fi
+  \hbox\ifx\FV@boxwidth\relax\else to\FV@boxwidth\fi\bgroup
+  \ifcase\FV@baseline\vbox\or\vtop\or$\vcenter\fi\bgroup}
+\def\FV@EndVBox{\egroup\ifmmode$\fi\hfil\egroup
+  \ifFV@bgcolor\colorbox{\FV@bgcolor}{\box\FV@bgbox}\fi}
+\makeatother
+
+\newcommand{\shat}{\^{s}}
+
+%JavaScript 
+\definecolor{SkyBlue}{rgb}{0.20,0.39,0.64}
+\definecolor{Plum}{rgb}{0.46,0.31,0.48}
+\definecolor{Chocolate}{rgb}{0.75,0.49,0.07}
+\definecolor{Aluminium5}{rgb}{0.33,0.34,0.32}
+\definecolor{DarkGreen}{rgb}{0.2,0.5,0.2}
+\definecolor{ltblue}{rgb}{0,0.4,0.4}
+\definecolor{dkblue}{rgb}{0,0.2,0.7}
+\definecolor{dkgreen}{rgb}{0,0.4,0}
+\definecolor{dkviolet}{rgb}{0.3,0,0.5}
+\definecolor{dkred}{rgb}{0.6,0,0}
+\definecolor{talkred}{rgb}{0.69,.20,0.22}
+\definecolor{talkblue}{rgb}{0.04,0.40,0.80}
+\definecolor{talkgreen}{rgb}{0.34,.81,0.10}
+\definecolor{oldtalkblue}{rgb}{0.22,.20,0.69}
+\definecolor{greenish}{rgb}{.0,.65,.0}
+\definecolor{mygray}{gray}{0.9}
+
+\lstset{
+	showstringspaces=false
+}
+
+\lstdefinelanguage{JavaScript}{
+  morekeywords=[1]{typeof, new, true, false, catch,
+    function, return, null, catch, switch, var,
+    if, in, while, do, else, case, break, continue},
+  morekeywords=[2]{class, export, boolean, throw, implements, import, this},
+  numbers=left,
+  numbersep=4pt,
+  numberstyle=\tiny\color{dkblue},
+  columns=fullflexible,
+  sensitive=false,
+  comment=[l]{//},
+  captionpos=b,   
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  basicstyle=\scriptsize\texttt,
+  identifierstyle=\ttfamily\color{Aluminium5},
+  keywordstyle=[1]\ttfamily\color{Plum},
+  keywordstyle=[2]\ttfamily\color{SkyBlue},
+  stringstyle=\ttfamily\color{DarkGreen},
+  commentstyle=\ttfamily, 
+%  commandchars=\$\{\}
+}[keywords,comments,strings]
+
+\lstdefinelanguage{Scheme}{
+  morekeywords=[1]{define, define-syntax, define-macro, lambda, define-stream, stream-lambda},
+  morekeywords=[2]{begin, call-with-current-continuation, call/cc,
+    call-with-input-file, call-with-output-file, case, cond,
+    do, else, for-each, if,
+    let*, let, let-syntax, letrec, letrec-syntax,
+    let-values, let*-values,
+    and, or, not, delay, force,
+    quasiquote, quote, unquote, unquote-splicing,
+    map, fold, syntax, syntax-rules, eval, environment, query },
+  morekeywords=[3]{import, export},
+  alsodigit=!\$\%&*+-./:<=>?@^_~,
+  sensitive=true,
+  morecomment=[l]{;},
+  morecomment=[s]{\#|}{|\#},
+  morestring=[b]",
+  basicstyle=\scriptsize\ttfamily,
+  keywordstyle=\bf\ttfamily\color[rgb]{0,.3,.7},
+  commentstyle=\color[rgb]{0.133,0.545,0.133},
+  stringstyle={\color[rgb]{0.75,0.49,0.07}},
+  upquote=true,
+  breaklines=true,
+  breakatwhitespace=true,
+  literate=*{`}{{`}}{1}
+}
+
+\def\schemeinline{\lstinline[language=Scheme, basicstyle=\small\ttfamily]}
+
+\lstnewenvironment{lstjs}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}}}{}
+\def\jsinline{\lstinline[language=JavaScript, basicstyle=\small]}
+
+
+% The Acronyms of the project and some other stuff
+\newcommand{\jsil}{JSIL\xspace}
+\newcommand{\jsverify}{JSVerify\xspace}
+\newcommand{\JSComp}{JS-2-JSIL\xspace}
+\newcommand{\jsilverify}{JSILVerify\xspace}
+
+
+% Tikz 
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning,arrows,shapes,decorations.pathmorphing}
+\usetikzlibrary{arrows,positioning} 
+\tikzset{
+    %Define standard arrow tip
+    >=stealth',
+    % Define arrow style
+    pil/.style={
+           ->,
+           shorten <=2pt,
+           shorten >=2pt,}
+}
+
+\newcommand{\runpic}{\includegraphics[width=0.06\picwidth]{running.pdf}}
+\newcommand{\tickpic}{\resizebox{0.06\picwidth}{!}{\(\color{greenish} \checkmark \)}}
+\tikzset{
+  box/.style = {rectangle, draw=black,align=center,font=\scriptsize},
+  sbox/.style = {rectangle,draw=black,align=left,font=\scriptsize,text width=1.7cm},
+  p/.style = {-latex},
+  dp/.style = {latex-latex},
+  sz/.style n args={2}{minimum width=#2, minimum height=#1},
+  m/.style = {midway,inner sep=0pt,fill=white},
+  ll/.style = {font=\scriptsize,anchor=south west}
+}
+
+
+
+% Polishing...
+\newcommand{\polish}[1]{{\color{red}#1}}
+
+% macros_js as for Jose Santos
+\usepackage{macros_js}
+%\usepackage{gdshojs}
+
+\newcommand{\jilette}{Cosette\xspace}
+\newcommand{\rosette}{Rosette\xspace}
+
+\newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
+\newcommand{\myparagraphq}[1]{\smallskip\noindent {\bf #1?}\hspace{1pt}}
+
+% COMMENTS
+
+\newcommand{\pginline}[1]{ {\color{red} *** PG : #1 ***} }
+\newcommand{\pmaxinline}[1]{ {\color{blue} *** PM : #1 ***} }
+\newcommand{\jfsinline}[1]{ {\color{green} *** JFS : #1 ***} }
+\newcommand{\jdinline}[1]{ {\color{purple} *** JD : #1 ***} }
+
+\newif\ifComments
+\Commentstrue
+
+\newcommand{\pg}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{red}
+{\rm PG: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\pmax}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{blue}
+{\rm PM: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\jfs}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{green}
+{\rm JFS: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+\newcommand{\jd}[1]{%
+\ifComments
+\begin{center}
+\fbox{\begin{minipage}{0.95\textwidth} \color{purple}
+{\rm JD: \small #1}
+\end{minipage}}
+\end{center}
+\fi}
+
+%% Title information
+\title[Short Title]{Full Title}         
+\titlenote{with title note}           
+\subtitle{Subtitle}                     
+\subtitlenote{with subtitle note}   
+
+%% Author with single affiliation.
+\author{First1 Last1}
+\authornote{with author1 note}          %% \authornote is optional;
+                                        %% can be repeated if necessary
+\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{
+  \position{Position1}
+  \department{Department1}              %% \department is recommended
+  \institution{Institution1}            %% \institution is required
+  \streetaddress{Street1 Address1}
+  \city{City1}
+  \state{State1}
+  \postcode{Post-Code1}
+  \country{Country1}                    %% \country is recommended
+}
+\email{first1.last1@inst1.edu}          %% \email is recommended
+
+%% Author with two affiliations and emails.
+\author{First2 Last2}
+\authornote{with author2 note}          %% \authornote is optional;
+                                        %% can be repeated if necessary
+\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{
+  \position{Position2a}
+  \department{Department2a}             %% \department is recommended
+  \institution{Institution2a}           %% \institution is required
+  \streetaddress{Street2a Address2a}
+  \city{City2a}
+  \state{State2a}
+  \postcode{Post-Code2a}
+  \country{Country2a}                   %% \country is recommended
+}
+\email{first2.last2@inst2a.com}         %% \email is recommended
+\affiliation{
+  \position{Position2b}
+  \department{Department2b}             %% \department is recommended
+  \institution{Institution2b}           %% \institution is required
+  \streetaddress{Street3b Address2b}
+  \city{City2b}
+  \state{State2b}
+  \postcode{Post-Code2b}
+  \country{Country2b}                   %% \country is recommended
+}
+\email{first2.last2@inst2b.org}         %% \email is recommended
+
+%% Abstract
+%% Note: \begin{abstract}...\end{abstract} environment must come
+%% before \maketitle command
+\begin{abstract}
+We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
+a symbolic virtual machine that enables the design of new solver-aided languages. 
+\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
+a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+We study two complementary uses of \jilette. 
+First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
+We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
+witnesses for bugs in both specification and code.
+\end{abstract}
+
+
+%% 2012 ACM Computing Classification System (CSS) concepts
+%% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10011007.10011006.10011008</concept_id>
+<concept_desc>Software and its engineering~General programming languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003456.10003457.10003521.10003525</concept_id>
+<concept_desc>Social and professional topics~History of programming languages</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~General programming languages}
+\ccsdesc[300]{Social and professional topics~History of programming languages}
+%% End of generated code
+
+
+%% Keywords
+%% comma separated list
+\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
+
+
+\usepackage{macros_js}
+\usepackage{gdshojs}
+
+%\usepackage{amsmath, amssymb, amscd,mathrsfs}
+%\DeclareMathAlphabet{\mathbbm}{U}{bbm}{m}{n}
+
+
+\begin{document}
+%
+
+\maketitle 
+
+
+\section{Introduction}
+
+\vspace*{-0.2cm}
+JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications (used by 94.8\% of websites \cite{JS948percent});
+it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
+memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
+The dynamic nature of JavaScript and its complex semantics make it a difficult target for
+symbolic analysis and logic-based verification. 
+This paper presents \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5~\cite{ecma}).
+%
+We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+
+\myparagraph{Architecture}
+The core of \jilette consists of a symbolic interpreter for
+\jsil~\cite{javert}, a simple intermediate goto language. 
+We obtain this symbolic interpreter \emph{for free}, 
+by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1},~a 
+symbolic virtual machine that facilitates generation of solver-aided languages.
+We design the concrete interpreter so that all of Rosette's natively supported solver-aided
+features, such as advanced string and regular-expression reasoning, 
+are lifted to the \jsil symbolic interpreter. 
+In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide insights on how to correctly design the concrete \jsil interpreter in Rosette.
+
+The second component that \jilette uses is \JSComp~\cite{javert}, 
+a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
+\JSComp with support for the non-strict mode of ES5, as well as
+regular expressions and the entire \jsinline|String| built-in library.
+\JSComp allows us to lift the \jsil symbolic execution to JavaScript by first compiling JavaScript code to \jsil code, and
+then symbolically executing the compiled code in the 
+\jsil symbolic interpreter. This process, described in \S\ref{symb:exec:comp},
+involves extending JavaScript syntax and the \JSComp compiler to support symbolic values and 
+constructs for reasoning about them. These constructs are intuitive
+and allow the general developer to easily write assertions about the behaviour
+of their program. 
+Moreover, we adjust the \jsil symbolic interpreter so that the abstraction level 
+of the generated \jsil code precisely matches the abstraction level of Rosette, 
+ maximising the use of Rosette's native reasoning capabilities.
+
+
+
+
+
+\myparagraph{Application: Symbolic Testing} A commonly used 
+approach to obtaining trust in JavaScript code is running it against 
+adhoc test batteries---verifying that given concrete inputs, the code produces the expected
+output. The main drawback of this approach is that tests, in general,
+cannot guarantee exhaustiveness. % we also cant guarantee exhaustiveness 
+In \S\ref{symbolic:testing}, we show how to use \jilette
+for symbolic testing of JavaScript code: instead of 
+tests with concrete 
+inputs, the developer uses symbolic inputs and states the 
+constraints that the output needs to satisfy as simple, intuitive 
+first-order assertions over these inputs. 
+Furthermore, if a test fails, \jilette provides the concrete inputs that cause it 
+to fail, exposing bugs in the tested code. 
+We highlight the capabilities of \jilette through examples that showcase
+challenging reasoning on strings, regular expressions, and the \jsinline|eval|
+statement.
+
+\myparagraph{Application: Debugging Separation Logic Specifications}
+Due to the complexity of JavaScript semantics, functional correctness 
+specifications of JS programs are highly intricate. 
+There are only a few tools (for example, \javert \cite{javert} and KJS \cite{Park:2015,stefanescu-park-yuwen-li-rosu-2016-oopsla}) that support such expressivity. They target the specialist developer wanting rich, 
+mechanically verified specifications of critical JavaScript code.
+However, when these 
+tools cannot prove that a given function satisfies a specification, to discover the error, 
+the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback~(KJS). 
+
+In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
+separation logic specifications of JavaScript programs in \javert. 
+Our approach consists of: translating the separation logic specifications 
+into symbolic tests 
+and running these tests using \jilette. 
+Then, if a symbolic test generated from a given specification fails, we can 
+be sure that the code to be verified does not satisfy its specification. 
+More importantly, \jilette then generates a concrete witness that 
+invalidates the specification. This information greatly simplifies the debugging of 
+both specifications and code. 
+
+%Jilette has the following benefits: 
+%
+%\dtag{1} it is \emph{useful}, in that it has tangible applications:
+%	it can report bugs in JavaScript programs, producing concrete witnesses that trigger these  bugs; 
+%	%
+%	it can be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code; 
+%	%
+%	and it has support for advanced string reasoning, critical for reasoning about commonly used JavaScript code;
+%
+%\dtag{2} it is \emph{accessible}, in that it can easily be used by a general JavaScript developer: 
+%	the annotation burden of \jilette is minimal; 
+%	%
+%	and the assertion language is simple and intuitive;
+%\dtag{3} it is \emph{trustworthy}, in that its components come with correctness guarantees: 
+%	the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript;
+%	%
+%	the soundness result for the symbolic execution used in \jilette guarantees absence of false positives;
+%	and \polish{sentence about unification;}
+%and \dtag{4} it is \emph{extensible}, in that its coverage can easily be extended in a modular way, allowing support for: 
+%	built-in libraries not covered by \JSComp; 
+%	%
+%	and widely used runtime libraries that are not part of the standard, such as the DOM.
+
+
+
+%
+\myparagraphq{Why \jilette} 
+\jilette is \emph{useful}: it has tangible applications. 
+It can report bugs in JavaScript programs, producing concrete witnesses triggering the bugs. It can also be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code.
+\jilette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \jilette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
+\jilette is \emph{trustworthy}: its components come with correctness guarantees. 
+The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \jilette symbolic execution engine is based on a sound symbolic
+analysis for \jsil, guaranteeing the absence of false positives. \polish{Sentence about unification.}
+Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
+
+%\newpage
+%
+%\myparagraph{What's in the paper}
+%
+%\bigskip
+%\polish{TO GO IN SOMEWHERE \\
+%
+%Clarify ES5 Strict
+%
+%JaVerT targets the specialist
+%developer wanting rich, mechanically verified specifications of critical JavaScript code.
+%Functional correctness, yes, and it works, but paid for by a heavy annotation burden.
+%}
+
+
+
+%We show how  to use Jilette for writing symbolic tests for client side 
+%JavaScript code calling Web APIs. In particular, we demonstrate how to 
+%checking the conformance of Web API requests with their specified signatures. 
+%The existing solutions for this problem are still imprecise due to the 
+%dynamicity of JavaScript combined with the difficulty of reasoning about
+%operations on symbolic strings \cite{Idontknow}. Jilette is an excellent fit for
+%this task as it leverages on Rosette's back-end
+%constraint solver, Z3, which supports reasoning on symbolic strings
+%and regular expressions, whereas JS-2-JSIL successfully
+%contains the complexity of JavaScript itself.
+
+\section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
+\input{sections/jilette}
+
+\section{Debugging Separation Logic Specifications}\label{sec:specs}
+\input{sections/specs}
+
+\newpage
+\section{Evaluation}\label{sec:evaluation}
+\input{sections/evaluation}
+
+\newpage
+\section{Related Work} 
+
+The existing literature covers a wide range of analysis techniques for JavaScript programs, including: 
+type systems~\cite{thiemann:esop:2005,anderson:ecoop:2005,jensen:sas:2009,typescript:toot:2014,feldthaus:oopsla:2014,bierman:ecoop:2014,rastogi:popl:2015},
+control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang2009points,sridharan:ecoop:12} and abstract
+interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
+Here, we focus on the existing work on logic-based analysis and symbolic execution for JavaScript. 
+
+\myparagraph{Symbolic Execution} Ooga. Booga. Boo.
+
+
+
+
+\myparagraph{Logic-based Analysis} 
+%
+\cite{gardner:popl:2012} have developed a separation logic for a small fragment of ECMAScript 3, to reason about the variable store emulated in the JavaScript heap.
+%
+\cite{rosu-serbanuta-2010-jlap} have developed $\mathbb{K}$, a term-rewriting framework  for  formalising the operational
+semantics of programming languages.
+ In particular, they have developed KJS~\cite{Park:2015} which provides a $\mathbb{K}$-interpretation of the core language and part of the built-in libraries of the ES5 standard. KJS has been tested against the official ECMAScript Test262 test suite and passed all 2782 tests for the core language; the testing results for the built-in libraries are not reported. 
+\cite{stefanescu-park-yuwen-li-rosu-2016-oopsla} introduce a language-independent verification infrastructure 
+that can be instantiated with a $\mathbb{K}$-interpretation of a  language to automatically generate a symbolic verification tool for that language based on the $\mathbb{K}$ reachability logic. They apply this infrastructure to KJS to generate a verification tool for JavaScript, which they use to verify functional correctness properties of operations for manipulating data structures such as binary search trees, AVL trees, and lists.
+
+
+\section{Conclusions}\label{conclusions}
+
+\pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL, or even some version of PL. Also, we need to say at some point why we care about specifications written in separation logic.}
+
+\newpage
+\bibliography{oopsla18}
+
+\newpage
+\appendix
+
+\input{sections/appendix}
+
+\end{document}
