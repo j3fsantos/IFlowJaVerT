@@ -1404,7 +1404,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_symb_number)) ->
 			let e = 
 				(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
-				| [ ] -> RNumSymb None 
 				| [ Parser_syntax.Var x ] -> RNumSymb (Some x)
 				| _ -> raise (Failure "Invalid symb_number")) in 
 			let x_v = (fresh_var ()) ^ "_v" in 
@@ -1416,7 +1415,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		when (e_f.Parser_syntax.exp_stx = (Parser_syntax.Var js_symbolic_constructs.js_symb_string)) ->
 				let e = 
 				(match (List.map (fun xe -> xe.Parser_syntax.exp_stx) xes) with
-				| [ ] -> RStrSymb None 
 				| [ Parser_syntax.Var x ] -> RStrSymb (Some x)
 				| _ -> raise (Failure "Invalid symb_number")) in 
 			let x_v = (fresh_var ()) ^ "_v" in 
