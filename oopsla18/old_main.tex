@@ -1,33 +1,62 @@
-\documentclass[acmsmall,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[a4paper,UKenglish]{lipics-v2016}
+%This is a template for producing LIPIcs articles. 
+%See lipics-manual.pdf for further information.
+%for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
+%for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
+% for section-numbered lemmas etc., use "numberwithinsect"
+ 
+\usepackage{microtype}%if unwanted, comment out or use option "draft"
 
-\acmJournal{PACMPL}
-\acmVolume{1}
-\acmNumber{CONF} % CONF = POPL or ICFP or OOPSLA
-\acmArticle{1}
-\acmYear{2018}
-\acmMonth{1}
-\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
-\startPage{1}
+%\graphicspath{{./graphics/}}%helpful if your graphic files are in another directory
 
-\setcopyright{none}
+\bibliographystyle{plainurl}% the recommended bibstyle
 
-\bibliographystyle{ACM-Reference-Format}
-\citestyle{acmauthoryear}  
+% Author macros::begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\jilette: Symbolic Execution for JavaScript}
+\titlerunning{\jilette: Symbolic Execution for JavaScript} %optional, in case that the title is too long; the running title should fit into the top page column
 
+%% Please provide for each author the \author and \affil macro, even when authors have the same affiliation, i.e. for each author there needs to be the  \author and \affil macros
+\author[1]{Anonymous Authors}
+%\affil[1]{Anonymous Affiliation}
 
+%\affil[1]{ University Computing Laboratory, Address/City, Country\\
+%  \texttt{open@dummyuniversity.org}}
+%\authorrunning{Anonymous authors} %mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et. al.'
 
-\usepackage{xcolor}
-%\usepackage{amsmath}
+\Copyright{Anonymous Authors}%mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
+
+%\subjclass{Classification}% mandatory: Please choose ACM 1998 classifications from http://www.acm.org/about/class/ccs98-html . E.g., cite as "F.1.1 Models of Computation". 
+%\\usepackage[english]{babel} bkeywords{}% mandatory: Please provide 1-5 keywords
+% Author macros::end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\EventEditors{Editor E. Editor}
+\EventNoEds{1}
+\EventLongTitle{32nd European Conference on Object-Oriented Programming (ECOOP)}
+\EventShortTitle{ECOOP 2018}
+\EventAcronym{ECOOP}
+\EventYear{2018}
+\EventDate{July 16--22, 2018}
+\EventLocation{Amsterdam, The Netherlands}
+\EventLogo{}
+%\SeriesVolume{42}
+%\ArticleNo{23}
+% Editor-only macros::end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%External Packages
+%\usepackage{amsthm}
+\usepackage[table,svgnames]{xcolor}
+\usepackage{amsmath}
 \usepackage{listingsutf8}
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{tabularx}
 \usepackage{xspace}
 \usepackage{textcomp}
-\usepackage{wasysym,stmaryrd}
+\usepackage{amssymb,amsfonts,latexsym,wasysym,mathrsfs,textcomp,stmaryrd}
 \usepackage{mathpartir}
 \usepackage{url}
-%\usepackage{upgreek}
+\usepackage{upgreek}
 \usepackage{xparse}
 \usepackage{booktabs}
 \usepackage[utf8]{inputenc}
@@ -173,7 +202,7 @@
 
 % macros_js as for Jose Santos
 \usepackage{macros_js}
-%\usepackage{gdshojs}
+\usepackage{gdshojs}
 
 \newcommand{\jilette}{Cosette\xspace}
 \newcommand{\rosette}{Rosette\xspace}
@@ -227,129 +256,8 @@
 \end{center}
 \fi}
 
-%% Title information
-\title[Short Title]{\jilette:~Compositional Symbolic Execution for JavaScript}         
-%\titlenote{with title note}           
-%\subtitle{Subtitle}                     
-%\subtitlenote{with subtitle note}   
-
-%% Author with single affiliation.
-\author{First1 Last1}
-\authornote{with author1 note}          %% \authornote is optional;
-                                        %% can be repeated if necessary
-\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
-\affiliation{
-  \position{Position1}
-  \department{Department1}              %% \department is recommended
-  \institution{Institution1}            %% \institution is required
-  \streetaddress{Street1 Address1}
-  \city{City1}
-  \state{State1}
-  \postcode{Post-Code1}
-  \country{Country1}                    %% \country is recommended
-}
-\email{first1.last1@inst1.edu}          %% \email is recommended
-
-%% Author with two affiliations and emails.
-\author{First2 Last2}
-\authornote{with author2 note}          %% \authornote is optional;
-                                        %% can be repeated if necessary
-\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
-\affiliation{
-  \position{Position2a}
-  \department{Department2a}             %% \department is recommended
-  \institution{Institution2a}           %% \institution is required
-  \streetaddress{Street2a Address2a}
-  \city{City2a}
-  \state{State2a}
-  \postcode{Post-Code2a}
-  \country{Country2a}                   %% \country is recommended
-}
-\email{first2.last2@inst2a.com}         %% \email is recommended
-\affiliation{
-  \position{Position2b}
-  \department{Department2b}             %% \department is recommended
-  \institution{Institution2b}           %% \institution is required
-  \streetaddress{Street3b Address2b}
-  \city{City2b}
-  \state{State2b}
-  \postcode{Post-Code2b}
-  \country{Country2b}                   %% \country is recommended
-}
-\email{first2.last2@inst2b.org}         %% \email is recommended
-
-%% Abstract
-%% Note: \begin{abstract}...\end{abstract} environment must come
-%% before \maketitle command
-\begin{abstract}
-We present \jilette, a framework for trusted, compositional symbolic execution of JavaScript programs. \jilette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language and is, more generally, the first tool that targets dynamic languages whose symbolic execution is compositional. It is aimed at the general programmer, allowing them to debug their code by writing symbolic tests for which \jilette then produces concrete counter-models. The symbolic execution of \jilette is proven to be sound and not to generate false positives. 
 %
-%\pmaxinline{Now compositionality.}
-%
-We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by showing how it can be used to produce counter-models for separation logic specifications of JavaScript programs.
-%
-%It works by compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not generate false positives.
-%
-%\bigskip
-%We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
-%a symbolic virtual machine that enables the design of new solver-aided languages. 
-%\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
-%a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
-%We study two complementary uses of \jilette. 
-%First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
-%We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
-%Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
-%witnesses for bugs in both specification and code.
-%
-%\bigskip
-%We present \jilette, a framework for bounded symbolic execution of JavaScript (JS) code (ECMAScript 5, ES5). 
-%\jilette is the first symbolic execution tool for JS that models the language semantics precisely.  
-%It works by first compiling JS programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from 
-%JS to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. 
-%We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not to generate false positives. 
-%%every time the tool reports a bug, it provides a concrete model that triggers that bug. 
-%
-%We demonstrate how \jilette can be used for the symbolic testing of JS programs by 
-%finding concrete executions that trigger assertion and test failures. We highlight the range of \jilette 
-%by giving examples involving JS-specific features, such as: prototype-based inheritance, 
-%the for-in statement, and JS arrays. Finally, we thoroughly evaluate \jilette against a 
-%representative fragment of test262 adapted to include symbolic~values.
-%
-\end{abstract}
 
-
-%% 2012 ACM Computing Classification System (CSS) concepts
-%% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
-\begin{CCSXML}
-<ccs2012>
-<concept>
-<concept_id>10011007.10011006.10011008</concept_id>
-<concept_desc>Software and its engineering~General programming languages</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-<concept>
-<concept_id>10003456.10003457.10003521.10003525</concept_id>
-<concept_desc>Social and professional topics~History of programming languages</concept_desc>
-<concept_significance>300</concept_significance>
-</concept>
-</ccs2012>
-\end{CCSXML}
-
-\ccsdesc[500]{Software and its engineering~General programming languages}
-\ccsdesc[300]{Social and professional topics~History of programming languages}
-%% End of generated code
-
-
-%% Keywords
-%% comma separated list
-%\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
-
-
-\usepackage{macros_js}
-\usepackage{gdshojs}
-
-%\usepackage{amsmath, amssymb, amscd,mathrsfs}
-%\DeclareMathAlphabet{\mathbbm}{U}{bbm}{m}{n}
 
 
 \begin{document}
@@ -357,34 +265,21 @@ We evaluate \jilette on an array of examples, including tests from the official 
 
 \maketitle 
 
-\pmax{What's the story?
-\begin{enumerate}
-\setlength{\itemsep}{0.5em}
-\item 
-	{\bfseries Slogan}: Symbolic execution for JavaScript that precisely follows the language standard. \\ 
-	{\bfseries Goal}: Symbolic testing, bug-finding, concrete counter-models. \\
-	{\bfseries Novelty}: The precision wrt semantics, formal correctness guarantees. \\ 
-	{\bfseries Benefits}: Trustworthy, sound analysis. \\
-	{\bfseries Limitations}: No loop invariants, bounded. No eval.
-
-\item 
-	{\bfseries Slogan}: Compositional execution for dynamic languages in general, and JavaScript in particular. \\ 
-	{\bfseries Novelty}: Compositionality. \\ 
-	{\bfseries Benefits}: summaries, frame-related bugs.   
-	
-\item 
-	{\bfseries Application}: Symbolic testing of JavaScript programs. \\
-	{\bfseries Novelty}: .  
-	{\bfseries Evaluation}: Tests for the symbolic execution rules; JS programs using prototype inheritance, arrays, function closures, for-in, dynamic dispatch, etc.; test262 tests; node.js libraries for data structures
-	
-\item 
-	{\bfseries Application}: Debugging of separation logic specifications. \\ 
-	{\bfseries Novelty}: Counter-models for separation logic assertions. \\
-	{\bfseries Evaluation}: JaVerT specifications of this and that.
-\end{enumerate}}
+\begin{abstract}
+We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
+a symbolic virtual machine that enables the design of new solver-aided languages. 
+\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
+a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+We study two complementary uses of \jilette. 
+First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
+We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
+witnesses for bugs in both specification and code.
+\end{abstract}
 
 \section{Introduction}
 
+\vspace*{-0.2cm}
 JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications (used by 94.8\% of websites \cite{JS948percent});
 it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
@@ -563,11 +458,14 @@ that can be instantiated with a $\mathbb{K}$-interpretation of a  language to au
 \pmaxinline{Can we be more general, and say something like 'logic-based specifications'? It's all about translating to FOL, or even some version of PL. Also, we need to say at some point why we care about specifications written in separation logic.}
 
 \newpage
-\bibliography{oopsla18}
+\bibliography{ecoop18}
 
 \newpage
 \appendix
 
 \input{sections/appendix}
+
+
+ 
 
 \end{document}
