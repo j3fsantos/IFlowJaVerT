@@ -29,21 +29,10 @@ make_number_generator = make_number_gen()
 def make_number():
     return next(make_number_generator)
 
-# - if the line contains the declaration of a symbolic value, replace it with
-#   the concrete value in the valuation if there is one
-# - if the line contains an Assume, remove the line
-# - if the line contains an Assert, replace it with a JS assert
-
-def replace_line(line, line_number, valuation):
-    
-    # don't care about comments
-    if line.lstrip().startswith('//'):
-        return line
-
-    # get rid of Assume/Assert
-    elif ("Assume" in line) or ("Assert" in line):
-        return ""
-
+# if the line contains the declaration of a symbolic value:
+# - replace it with with the concrete value in the valuation if there is one
+# - otherwise, make up a fresh concrete value
+def replace_symb(line, valuation):
     # look for "symb_number" and "symb_string"
     found_symb = regex.search(line)
     if found_symb:
@@ -69,19 +58,56 @@ def replace_line(line, line_number, valuation):
             concrete_string = str(concrete_value)
         else:
             raise ValueError('unknown symbolic value type')
-        
+
         # actually replace the call
         line = regex.sub(concrete_string, line)
-        
+
         # remember if we had to make up the value
         if not found_symb:
             line += " // NOTE: made up missing symbolic {} in the valuation".format(symb_type)
-
     return line
 
+# if the line contains an Assert, replace it with a JS-style assert
+def replace_assert(line):
+    line = re.sub("Assert\s*", "assert.ok", line)
+    line = re.sub("and", "&&", line)
+    line = re.sub("or", "||", line)
+    line = re.sub("=", "===", line)
+    return line
+
+
 def replace_file(filename, lines, model_name, valuation):
+
     new_filename = "{}_{}.js".format(filename, model_name)
-    new_lines = [replace_line(line, i+1, valuation) for (line, i) in zip(lines, range(len(lines)))]
+    new_lines = []
+    
+    added_assert = False
+
+    for line in lines:
+
+        new_line = line
+
+        # don't care about comments
+        if line.lstrip().startswith('//'):
+            pass 
+
+        # get rid of Assume
+        elif "Assume" in line:
+            new_line = ""
+
+        # turn Assert into a valid JS assertion
+        elif "Assert" in line:
+            if not added_assert:
+                new_lines.append("const assert = require('assert'); //NOTE: generated")
+                added_assert = True
+            new_line = replace_assert(line)
+        
+        else:
+            new_line = replace_symb(line, valuation)
+
+        new_lines.append(new_line)
+
+    # add 'assert'
     with open(new_filename, "w") as new_file:
         for line in new_lines:
             new_file.write(line + "\n")
@@ -110,14 +136,15 @@ def make_concrete(js_filename):
         valuation = models[model]
         if valuation == "unsat":
             print("\tModel unsatisfiable.")
-        elif len(valuation) == 0:
-            print("\tEmpty model (error?).")
         else:
-            print("\tValuation:")
-            for val in valuation:
-                print("\t\t{} -> {}".format(val, valuation[val]))
+            if len(valuation) == 0:
+                print("\tEmpty model (error?).")
+            else:
+                print("\tValuation:")
+                for val in valuation:
+                    print("\t\t{} -> {}".format(val, valuation[val]))
             replace_file(file_short, js_lines, model, valuation)
-        
+
 
 def main():
     make_concrete(sys.argv[1])
