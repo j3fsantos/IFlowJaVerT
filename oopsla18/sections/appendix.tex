@@ -363,47 +363,47 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
 \begin{mathpar} 
 \inferrule[\textsc{Basic Command}]
    { 
-     \ccmd[\prog][\cs]{i} = \bcmd 
+     \ccmd[\prog][\abscs]{i} = \bcmd 
      \\\\
-     \sembtransbasic{\jstate, \bcmd}{\jstate'} 
-   }{\semrule{\jstate, \cs, i}{\jstate', \cs, i{+}1}{\top}{\top}}
+     \sembtransbasic{\absstate, \bcmd}{\absstate'} 
+   }{\semrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}}
   %
   \and
   %
   \inferrule[\textsc{Cond. Goto - True}]
-   { \ccmd[\prog][\cs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
+   { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
      \\\\
-     \evalexpr(\jsilexpr, \jstate.\stosel) =  \jtrue
+     \evalexpr(\jsilexpr, \absstate.\stosel) =  \jtrue
    }
-   {\semrule{\jstate, \cs, i}{\jstate, \cs, j}{\top}{\top}}
+   {\semrule{\jstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}}
   %
   \and 
   % 
   \inferrule[\textsc{Cond. Goto - False}]
-   { \ccmd[\prog][\cs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
+   { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
       \\\\ 
-     \symbeval{\jsilexpr}{\jstate.\stosel} =  \jfalse
+     \symbeval{\jsilexpr}{\absstate.\stosel} =  \jfalse
    }
-   {\semrule{\jstate, \cs, i}{\jstate, \cs, k}{\top}{\top}}
+   {\semrule{\absstate, \abscs, i}{\absstate, \abscs, k}{\top}{\top}}
   %
   \\
   %
   \inferrule[\textsc{Goto}]
    { 
    \ccmd[\prog][\cs]{i} = \goto \, j \quad}
-   {\semrule{\jstate, \cs, i}{\jstate, \cs, j}{\top}{\top}}
+   {\semrule{\absstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}}
    %
    \qquad 
    %
    \inferrule[\textsc{Normal Return}]
    {
-       \cs = (-, \store, \jvar, i, -) :: \cs'  
+       \abscs = (-, \absstore, \jvar, i, -) :: \abscs'  
        \quad 
-       \store = \jstate.\stosel
+       \absstore = \jstate.\stosel
        \\\\
-       \jstate' = \jstate[\stosel \mapsto \store[\jvar \mapsto \val]]
+       \absstate' = \absstate[\stosel \mapsto \absstore[\jvar \mapsto \val]]
    }  
-   {\semrule{\jstate, \cs, \procretlab}{\jstate', \cs', i}{\top}{\top}}
+   {\semrule{\absstate, \abscs, \procretlab}{\absstate', \abscs', i}{\top}{\top}}
      %
    \qquad 
    %

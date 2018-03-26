@@ -491,7 +491,7 @@
          (op-assume expr-val)
          (if expr-val 
              (begin
-               (assert expr-val)
+               ;(assert expr-val)
                ;(kill (not expr-val))
                (run-cmds-iter-next prog heap store ctx cur-index cur-index))
              (set! success 1)))]
