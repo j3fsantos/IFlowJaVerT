@@ -602,6 +602,10 @@
 \newcommand\ctx{C}
 \newcommand\semop[1]{\overline{#1}}
 \newcommand\mode{\mu}
+\newcommand\cs{cs}
+\newcommand{\semrule}[4]{\tuple{#1}^{#3} \rightarrow \tuple{#2}^{#4}}
+\newcommand{\evalexpr}{\mathcal{E}v}
+\newcommand{\sdomain}{d}
 
 \newcommand{\sembtransbasic}[2]{\tuple{#1} \rightarrow #2} 
 \newcommand{\symbtransbasic}[2]{\tuple{#1} \leadsto #2} 
@@ -683,11 +687,35 @@
 % Symbolic Execution
 %%%%%%%%%%%%%%%
 \newcommand\getcell{\mathcal{GC}}
+\newcommand\absassume{\mathcal{A}sm}
+\newcommand\absassert{\mathcal{A}st}
 \newcommand\getcellrule[2]{\getcell(#1) = #2}
+\newcommand\absgetcellrule[2]{\getcell(#1) \leadsto #2}
+
 \newcommand\getdomain{\mathcal{GD}}
+\newcommand\hpupdt{\mathcal{H\!U}}
 \newcommand\getdomainrule[2]{\getdomain(#1) = #2}
+\newcommand\absgetdomainrule[2]{\getdomain(#1) \leadsto #2}
 \newcommand\sstate{\hat{\sigma}}
+\newcommand\domobjs{d}
 \newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
+
+
+
+
+%abstract things
+\newcommand\absstate{\Sigma}
+\newcommand\absstore{{\sf P}}
+\newcommand\absheap{\mathtt{h}}
+\newcommand\absdomain{\mathtt{d}}
+\newcommand\absval{\mathtt{v}}
+\newcommand\absprop{\mathtt{p}}
+\newcommand\absloc{\mathtt{l}}
+\newcommand{\absbsemrule}[2]{\tuple{#1} \leadsto #2}
+\newcommand\absdomobjs{\mathtt{d}}
+
+
+
 
 \DeclareDocumentCommand{\symbtrans}{ o o o m m o o }
 { 

@@ -312,32 +312,9 @@ var bag = new buckets.Bag();
 var s1 = symb_string(s1);
 var s2 = symb_string(s2);
 
+Assume ((not (s1 = "")) and (not (s2 = "")));
+
 bag.add(s1);
 bag.add(s2);
 var res = bag.size();
-Assert (((s1 = s2) and (res = 1)) or ((not (s1 = s2)) and (res = 2)));
-
-// Check that the size is ok when removing duplicated (or not) elements;
-var s3 = symb_string(s3);
-var s4 = symb_string(s4);
-var s5 = symb_string(s5);
-
-bag = new buckets.Bag();
-
-Assume ((not (s3 = s4)) and (not (s3 = s5)));
-bag.add(s3);
-bag.add(s4);
-bag.add(s5);
-var n = bag.count(s4);
-Assert (((s4 = s5) and (n = 2)) or ((not (s4 = s5)) and (n = 1)));
-bag.remove(s4);
-res = bag.size();
-Assert (((s4 = s5) and (res = 1)) or ((not (s4 = s5)) and (res = 2)));
-
-// var bag = new buckets.Bag();
-// 
-// var s1 = "foo";
-// var s2 = "bar";
-// bag.add(s1);
-// bag.add(s2);
-// console.log("bag.size() = " + bag.size());
+Assert (res = 2);
