@@ -84,7 +84,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
+         (print-info proc-name (format "~v := ~v : (no pc)" lhs-var rhs-val))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -256,7 +256,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
+       (print-info proc-name (format "ret: (normal, ~v) : (no pc)" (cdr outcome)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
@@ -373,7 +373,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-                (println (format "CUR PC ~v" cur-pc))
+;                (println (format "CUR PC ~v" cur-pc))
                 (let* ((old-solver (current-solver))
                        (new-solver (solve+))
                        (res (new-solver cur-pc)))
@@ -478,7 +478,7 @@
               (arg-vars (expr-lvars #t expr-arg)))
          (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
          (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
+         (print-info proc-name (format "current store projections under ~v with pc (not printing it)" (store->string (store-projection store arg-vars))))
          (op-assert expr-val)
         (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
 
