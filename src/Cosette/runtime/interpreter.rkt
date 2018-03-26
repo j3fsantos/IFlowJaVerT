@@ -84,7 +84,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v : (no pc)" lhs-var rhs-val))
+         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -256,7 +256,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v) : (no pc)" (cdr outcome)))
+       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
@@ -373,7 +373,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-;                (println (format "CUR PC ~v" cur-pc))
+                (println (format "CUR PC ~v" cur-pc))
                 (let* ((old-solver (current-solver))
                        (new-solver (solve+))
                        (res (new-solver cur-pc)))
@@ -478,7 +478,7 @@
               (arg-vars (expr-lvars #t expr-arg)))
          (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
          (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc (not printing it)" (store->string (store-projection store arg-vars))))
+         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
          (op-assert expr-val)
         (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
 
@@ -487,14 +487,48 @@
       [(eq? cmd-type 'assume)
        (let* ((expr-arg (second cmd))
               (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assume(~v)" expr-val))
-         (op-assume expr-val)
-         (if expr-val 
-             (begin
-               ;(assert expr-val)
-               ;(kill (not expr-val))
-               (run-cmds-iter-next prog heap store ctx cur-index cur-index))
-             (set! success 1)))]
+         ;; 
+         (cond
+           [(and (symbolic? expr-val)
+                 (> (count-goto proc-name cur-index) goto-limit))
+            (println "I am killing an execution because I reached the goto limit")
+            (kill expr-val)]
+
+           [(symbolic? expr-val)
+            (let ((cur-pc (pc)))
+              (println (format "CUR PC ~v" cur-pc))
+              (let* ((old-solver (current-solver))
+                     (new-solver (solve+))
+                     (res (new-solver cur-pc)))
+                (solver-shutdown old-solver)
+                (if (unsat? res)
+                    (begin
+                      (println "the current pc is UNSAT")
+                      (set! success #t))
+                    (begin
+                      (println "the current pc is SAT")
+                      (cond
+                        ((eq? expr-val #t)
+                         (begin
+                           (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
+                           (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
+                        
+                        ((eq? expr-val #f)
+                         (begin
+                           (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
+                           (set! success #t)))
+                        (#t (set! success #t)))))))]
+                        
+             [(eq? expr-val #t)
+                (print-info proc-name (format "Assuming sth concrete that holds... continuing symbolic execution: ~v" expr-val))
+                 (run-cmds-iter-next prog heap store ctx cur-index cur-index)]
+             
+             [(eq? expr-val #f)
+                (print-info proc-name (format "Assuming sth concrete that does NOT hold... continuing symbolic execution: ~v" expr-val))
+                (set! success #t)]
+             
+             [else
+              (error "Illegal ASSUME")]))]
 
       ;;
       ;; ('assert-* a)
