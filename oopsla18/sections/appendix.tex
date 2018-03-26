@@ -325,10 +325,10 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
         \quad
   	\absheap = \absstate'.\hpsel
 	\\\\ 
-	 \absstate'' = \absassume(\absstate', \absval \neq \none)
+	\absval \neq \none
 	\quad 
         \absheap' = \hpupdt(\absheap, (\absloc, \absprop), \none)
-  }{\absbsemrule{\absstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\absstate''[\hpsel \mapsto \absheap']}}
+  }{\absbsemrule{\absstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\absstate'[\hpsel \mapsto \absheap']}}
 \\
 \inferrule[\textsc{Member Check - True}]
   { 
@@ -365,109 +365,165 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
    { 
      \ccmd[\prog][\abscs]{i} = \bcmd 
      \\\\
-     \sembtransbasic{\absstate, \bcmd}{\absstate'} 
-   }{\semrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}}
+     \absbsemrule{\absstate, \bcmd}{\absstate'} 
+   }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}}
   %
   \and
   %
   \inferrule[\textsc{Cond. Goto - True}]
    { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
      \\\\
-     \evalexpr(\jsilexpr, \absstate.\stosel) =  \jtrue
+     \absassume(\absstate, \jsilexpr = \jtrue) = \absstate' 
    }
-   {\semrule{\jstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}}
+   {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, j}{\top}{\top}}
   %
   \and 
   % 
   \inferrule[\textsc{Cond. Goto - False}]
    { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
       \\\\ 
-     \symbeval{\jsilexpr}{\absstate.\stosel} =  \jfalse
+      \absassume(\absstate, \jsilexpr = \jfalse) = \absstate' 
    }
-   {\semrule{\absstate, \abscs, i}{\absstate, \abscs, k}{\top}{\top}}
+   {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, k}{\top}{\top}}
   %
   \\
   %
   \inferrule[\textsc{Goto}]
    { 
    \ccmd[\prog][\cs]{i} = \goto \, j \quad}
-   {\semrule{\absstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}}
+   {\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}}
    %
    \qquad 
    %
    \inferrule[\textsc{Normal Return}]
    {
-       \abscs = (-, \absstore, \jvar, i, -) :: \abscs'  
+       \abscs = (-, \absstore', \jvar, i, -) :: \abscs'  
        \quad 
        \absstore = \jstate.\stosel
        \\\\
-       \absstate' = \absstate[\stosel \mapsto \absstore[\jvar \mapsto \val]]
+       \absstate' = \absstate[\stosel \mapsto \absstore'[\jvar \mapsto \absstore(\procretvar)]]
    }  
-   {\semrule{\absstate, \abscs, \procretlab}{\absstate', \abscs', i}{\top}{\top}}
+   {\abssemrule{\absstate, \abscs, \procretlab}{\absstate', \abscs', i}{\top}{\top}}
      %
    \qquad 
    %
       \inferrule[\textsc{Error Return}]
    {
-       \abscs = (-, \absstore, \jvar, -, j) :: \abscs'
+       \abscs = (-, \absstore', \jvar, -, j) :: \abscs'
        \quad 
        \absstore = \absstate.\stosel
        \\\\
-       \absstate' = \absstate[\stosel \mapsto \absstore[\jvar \mapsto \absval]]
+       \absstate' = \absstate[\stosel \mapsto \absstore'[\jvar \mapsto \absstore(\procerrvar)]]
    }  
-   {\semrule{\absstate, \abscs, \procerrlab}{\absstate', \abscs', j}{\top}{\top}}
+   {\abssemrule{\absstate, \abscs, \procerrlab}{\absstate', \abscs', j}{\top}{\top}}
       \\
     \inferrule[\textsc{Procedure Call}]
    { 
-    \ccmd[\prog][\cs]{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+    \ccmd[\prog][\abscs]{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
      \and
-     \store = \jstate.\stosel 
+     \absstore = \absstate.\stosel 
      \and 
-    \evalexpr(\jsilexpr, \store) =  \pid' 
+    \evalexpr(\jsilexpr, \absstore) =  \pid' 
         \and
      \args(\pid', \prog) = \jsillist{\jvar_1, ..., \jvar_{m}} 
       \\\\
-      \val_i = \evalexpr(\jsilexpr_i, \store) \mid_{i = 0}^{n} 
+      \absval_i = \evalexpr(\jsilexpr_i, \absstore) \mid_{i = 0}^{n} 
      \and
-      \val_i = \jsundefined \mid_{i = n+1}^{m}  
+      \absval_i = \jsundefined \mid_{i = n+1}^{m}  
       \and 
-      \store' = [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}]
+      \absstore' = [ \jvar_i \mapsto \val_i \mid_{i = 0}^{m}]
       \and 
-      \cs' = (\pid', \store, \jvar, i{+}1, j) :: \cs 
+      \abscs' = (\pid', \absstore, \jvar, i{+}1, j) :: \abscs 
    }
-   {\semrule{\jstate, \cs, i}{\jstate[\stosel \mapsto \store'], \cs', 0}{\top}{\top}}
+   {\abssemrule{\absstate, \abscs, i}{\absstate[\stosel \mapsto \absstore'], \abscs', 0}{\top}{\top}}
     \\ 
 %
 \inferrule[\textsc{Assume}]
   { 
-      \ccmd[\prog][\cs]{i}  = \assume(\jsilexpr)
+      \ccmd[\prog][\abscs]{i}  = \assume(\jsilexpr)
       \\\\
-      \evalexpr(\jsilexpr, \jstate.\stosel) =  \jtrue
-  }{\semrule{\jstate, \cs, i}{\jstate, \cs, i{+}1}{\top}{\top}} 
+     \absassume(\absstate, \jsilexpr = \jtrue) = \absstate' 
+  }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}} 
 \and
 \inferrule[\textsc{Assert - True}]
   { 
-      \ccmd[\prog][\cs]{i}  = \assert(\jsilexpr)
+      \ccmd[\prog][\abscs]{i}  = \assert(\jsilexpr)
       \\\\
-      \evalexpr(\jsilexpr, \jstate.\stosel) =  \jtrue
-  }{\semrule{\jstate, \cs, i}{\jstate, \cs, i{+}1}{\top}{\top}} 
+      \neg \abssat(\absstate, \jsilexpr \neq \jtrue)
+  }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i{+}1}{\top}{\top}} 
 \and 
 \inferrule[\textsc{Assert - False}]
   { 
-      \ccmd[\prog][\cs]{i}  = \assert(\jsilexpr)
+      \ccmd[\prog][\abscs]{i}  = \assert(\jsilexpr)
       \\\\
-      \evalexpr(\jsilexpr, \jstate.\stosel) =  \jfalse
-  }{\semrule{\jstate, \cs, i}{\jstate, \cs, i}{\top}{\bot}} 
+      \abssat(\absstate, \jsilexpr \neq \jtrue)
+  }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i}{\top}{\bot}} 
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.6cm}
-\caption{Abstract Execution for Control Flow Commands: $\semrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}$}
+\caption{Abstract Execution for Control Flow Commands: $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}$}
 \end{figure}
 %
 
 
 
-
+%\vspace*{-0.3cm}
+\begin{figure}[ht!]
+\hspace{0.5cm}\textbf{Symbolic State Rules:\hfill}
+{\scriptsize
+\begin{mathpar} 
+  \inferrule[\textsc{GetDomain}]
+   { 
+        \symbeval{\jsilexpr}{\sstore} = \sloc
+      \quad
+       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
+        \\\\
+        %
+          (\sloc,-) \notin \domain (\sheap)  
+        \quad
+         \pc \vdash \jsilset{\sexprp_1, ..., \sexprp_m} = \sdom(\sloc)
+         \\\\
+        \forall_{0 \leq i \leq n} \, \sexprv_i \neq \none 
+         \quad 
+           \forall_{n < i \leq m} \, \sexprv_i \neq \none 
+   }{  \absgetdomainrule{(\sheap, \sdom, \sstore, \pc), \jsilexpr}{\jsilset{\sexprp_1, ..., \sexprp_n}}}
+  %
+  \and 
+  %
+    \inferrule[\textsc{GetCell - Explicit Cell}]
+   { 
+         \symbeval{\jsilexpr_1}{\sstore} = \sloc
+        \quad 
+         \symbeval{\jsilexpr_2}{\sstore} = \sexprp
+      \quad
+       \sheap = - \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv
+        \\\\
+        %
+       \pc \not\vdash \sexprp' \neq \sexprp 
+       \quad 
+       \sstate' = (\sheap, \sdom, \sstore, \pc \wedge (\sexprp = \sexprp'))
+   }{  \absgetdomainrule{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{\sstate', (\sloc, \sexprp, \sexprv)}}
+ %
+ \\
+ % 
+     \inferrule[\textsc{GetCell - Domainl}]
+   { 
+         \symbeval{\jsilexpr_1}{\sstore} = \sloc
+        \quad 
+         \symbeval{\jsilexpr_2}{\sstore} = \sexprp
+      \quad
+      \sdom(\sloc) = \sexprv
+        \\\\
+        %
+       \pc \not\vdash \sexprp \in \sexprv 
+       \quad 
+       \sstate' = (\sheap, \sdom, \sstore, \pc \wedge \neg(\sexprp \in \sexprv))
+   }{  \absgetdomainrule{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{\sstate', (\sloc, \sexprp, \sexprv)}}
+ \end{mathpar}}
+% \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
+ \vspace*{-0.6cm}
+%\caption{Abstract Execution for Control Flow Commands: $\semrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}$}
+\end{figure}
 
 
 

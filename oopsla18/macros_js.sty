@@ -687,8 +687,9 @@
 % Symbolic Execution
 %%%%%%%%%%%%%%%
 \newcommand\getcell{\mathcal{GC}}
-\newcommand\absassume{\mathcal{A}sm}
-\newcommand\absassert{\mathcal{A}st}
+\newcommand\absassume{\mathcal{A}{sm}}
+\newcommand\absassert{\mathcal{A}srt}
+\newcommand\abssat{\mathcal{S}at}
 \newcommand\getcellrule[2]{\getcell(#1) = #2}
 \newcommand\absgetcellrule[2]{\getcell(#1) \leadsto #2}
 
@@ -699,6 +700,7 @@
 \newcommand\sstate{\hat{\sigma}}
 \newcommand\domobjs{d}
 \newcommand{\symbeval}[2]{\llbracket #1 \rrbracket_{#2}}
+\newcommand\sdom{\hat{d}}
 
 
 
@@ -714,6 +716,7 @@
 \newcommand{\absbsemrule}[2]{\tuple{#1} \leadsto #2}
 \newcommand\absdomobjs{\mathtt{d}}
 \newcommand\abscs{\mathtt{cs}}
+\newcommand{\abssemrule}[4]{\tuple{#1}^{#3} \leadsto \tuple{#2}^{#4}}
 
 
 
