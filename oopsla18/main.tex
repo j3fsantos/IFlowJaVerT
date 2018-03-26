@@ -228,10 +228,10 @@
 \fi}
 
 %% Title information
-\title[Short Title]{Full Title}         
-\titlenote{with title note}           
-\subtitle{Subtitle}                     
-\subtitlenote{with subtitle note}   
+\title[Short Title]{\jilette:~Compositional Symbolic Execution for JavaScript}         
+%\titlenote{with title note}           
+%\subtitle{Subtitle}                     
+%\subtitlenote{with subtitle note}   
 
 %% Author with single affiliation.
 \author{First1 Last1}
@@ -282,15 +282,39 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
-a symbolic virtual machine that enables the design of new solver-aided languages. 
-\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
-a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
-We study two complementary uses of \jilette. 
-First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
-We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
-Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
-witnesses for bugs in both specification and code.
+We present \jilette, a framework for trusted, compositional symbolic execution of JavaScript programs. \jilette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language and is, more generally, the first tool that targets dynamic languages whose symbolic execution is compositional. It is aimed at the general programmer, allowing them to debug their code by writing symbolic tests for which \jilette then produces concrete counter-models. The symbolic execution of \jilette is proven to be sound and not to generate false positives. 
+%
+%\pmaxinline{Now compositionality.}
+%
+We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by showing how it can be used to produce counter-models for separation logic specifications of JavaScript programs.
+%
+%It works by compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not generate false positives.
+%
+%\bigskip
+%We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
+%a symbolic virtual machine that enables the design of new solver-aided languages. 
+%\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
+%a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+%We study two complementary uses of \jilette. 
+%First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
+%We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+%Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
+%witnesses for bugs in both specification and code.
+%
+%\bigskip
+%We present \jilette, a framework for bounded symbolic execution of JavaScript (JS) code (ECMAScript 5, ES5). 
+%\jilette is the first symbolic execution tool for JS that models the language semantics precisely.  
+%It works by first compiling JS programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from 
+%JS to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. 
+%We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not to generate false positives. 
+%%every time the tool reports a bug, it provides a concrete model that triggers that bug. 
+%
+%We demonstrate how \jilette can be used for the symbolic testing of JS programs by 
+%finding concrete executions that trigger assertion and test failures. We highlight the range of \jilette 
+%by giving examples involving JS-specific features, such as: prototype-based inheritance, 
+%the for-in statement, and JS arrays. Finally, we thoroughly evaluate \jilette against a 
+%representative fragment of test262 adapted to include symbolic~values.
+%
 \end{abstract}
 
 
@@ -318,7 +342,7 @@ witnesses for bugs in both specification and code.
 
 %% Keywords
 %% comma separated list
-\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
+%\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
 
 
 \usepackage{macros_js}
@@ -333,10 +357,34 @@ witnesses for bugs in both specification and code.
 
 \maketitle 
 
+\pmax{What's the story?
+\begin{enumerate}
+\setlength{\itemsep}{0.5em}
+\item 
+	{\bfseries Slogan}: Symbolic execution for JavaScript that precisely follows the language standard. \\ 
+	{\bfseries Goal}: Symbolic testing, bug-finding, concrete counter-models. \\
+	{\bfseries Novelty}: The precision. \\ 
+	{\bfseries Benefits}: Trustworthy, sound analysis. \\
+	{\bfseries Limitations}: No loop invariants, bounded. No eval.
+
+\item 
+	{\bfseries Slogan}: Compositional execution for dynamic languages in general, and JavaScript in particular. \\ 
+	{\bfseries Novelty}: Compositionality. \\ 
+	{\bfseries Benefits}: ?.
+	
+\item 
+	{\bfseries Application}: Symbolic testing of JavaScript programs. \\
+	{\bfseries Novelty}: Unclear. \\ 
+	{\bfseries Evaluation}: Tests for the symbolic execution rules; JS programs using prototype inheritance, function closures, for-in, dynamic dispatch, etc.; test262 tests; node.js libraries for data structures
+	
+\item 
+	{\bfseries Application}: Debugging of separation logic specifications. \\ 
+	{\bfseries Novelty}: Counter-models for separation logic assertions. \\
+	{\bfseries Evaluation}: JaVerT specifications of this and that.
+\end{enumerate}}
 
 \section{Introduction}
 
-\vspace*{-0.2cm}
 JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications (used by 94.8\% of websites \cite{JS948percent});
 it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
