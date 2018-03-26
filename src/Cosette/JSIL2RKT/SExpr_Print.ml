@@ -19,7 +19,7 @@ let fresh_symbol = fresh_sth "symb_"
 *)
 
 let sexpr_of_float x =
-	(* Printf.printf "SOF: %20.20f " x; *)
+	(* Printf.printf "SOF: %20.20f " x;  *)
 	let result = if (x == nan)
 		then "+nan.0"
 		else if (x == neg_infinity)
@@ -34,17 +34,17 @@ let sexpr_of_float x =
 					 *)
 					let (fract, intgr) = modf x in 
 					let lwidth = int_of_float (log10 (abs_float intgr) +. 1.0) in
-					if (lwidth <= 20) then (
-						let rwidth = if (lwidth > 20) then 0 else (20 - lwidth) in 
-						(* Printf.printf "-> %d " lwidth; *)
+					if (lwidth <= 20 && fract > 1e-20) then (
+						let rwidth = if (lwidth > 20) then 0 else if (fract = 0.0) then 1 else (20 - lwidth) in 
 						Printf.sprintf "%*.*f" lwidth rwidth x
 					) else
-						string_of_float x
+						(* Here, width is greater than 20, this means scientific notation with 15 digits *)
+						Printf.sprintf "%1.19e" x
 				)
 				else if (is_int x)
 				  then string_of_int (int_of_float x)
 					else string_of_float x in 
-	(* Printf.printf "-> %s\n" result; *)
+	(* Printf.printf "-> %s\n" result;  *)
 	result
 
 let rec sexpr_of_literal lit =
@@ -61,6 +61,7 @@ let rec sexpr_of_literal lit =
     | String x -> 
     	let x = Str.global_replace (Str.regexp "\\\\") "\\\\\\\\" x in 
     	let x = Str.global_replace (Str.regexp "\n") "\\n" x in 
+    	let x = Str.global_replace (Str.regexp "\\\\\\\\\"") "\\\\\"" x in
     	Printf.sprintf "\"%s\"" x
     | Loc loc -> loc
     | Type t -> string_of_type t

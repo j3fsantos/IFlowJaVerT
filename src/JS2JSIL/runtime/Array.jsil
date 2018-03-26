@@ -7,9 +7,44 @@ import Internals.jsil;
 (* *** CONSTRUCT *** *)
 
 proc Array_call () {
-			xret := "Array_construct" ("args") with elab;
 
+			la := args;
+			len := l-len (la);
+
+			xret := new ();
+			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
+
+			[xret, "length"] := {{ "d", 0, $$t, $$f, $$t }};
+			array := xret;
+
+			goto [len < 3] rtrn ltest;
+
+	ltest:	goto [len = 3] len3 other;
+
+	len3:	len := l-nth (la, 2);
+			goto [typeOf(len) = $$number_type] len0 setl;
+	len0:	xret := "i__toUint32" (len) with elab;
+			goto [len = xret] dop re;
+	dop:	prop := "length";
+			conf := $$f;
+			goto set;
+
+	setl:	prop := "0";
+			conf := $$t;
+	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, $$t, conf, $$t }}, $$t) with elab;
+			goto rtrn;
+
+	other:	n := 2;
+	loop:	goto [n < len] head rtrn;
+	head:	prop := "i__toString" (n - 2) with elab;
+			xret := "a__defineOwnProperty" (array, prop, {{ "d", l-nth (la, n), $$t, $$t, $$t }}, $$t) with elab;
+			n := n + 1;
+			goto loop;
+
+	rtrn:	xret := array;
 	rlab:	skip;
+
+	re:		xret := "RangeError" ();
 	elab:	skip
 }
 with
