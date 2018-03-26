@@ -171,11 +171,11 @@
    %
    \inferrule[\textsc{Normal Return}]
    {
-       \cs = (-, \store, \jvar, i, -) :: \cs'  
+       \cs = (-, \store', \jvar, i, -) :: \cs'  
        \quad 
        \store = \jstate.\stosel
        \\\\
-       \jstate' = \jstate[\stosel \mapsto \store[\jvar \mapsto \val]]
+       \jstate' = \jstate[\stosel \mapsto \store'[\jvar \mapsto \store(\procretvar)]]
    }  
    {\semrule{\jstate, \cs, \procretlab}{\jstate', \cs', i}{\top}{\top}}
      %
@@ -187,7 +187,7 @@
        \quad 
        \store = \jstate.\stosel
        \\\\
-       \jstate' = \jstate[\stosel \mapsto \store[\jvar \mapsto \val]]
+       \jstate' = \jstate[\stosel \mapsto \store'[\jvar \mapsto \store(\procerrvar)]]
    }  
    {\semrule{\jstate, \cs, \procerrlab}{\jstate', \cs', j}{\top}{\top}}
       \\
@@ -409,13 +409,13 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
    %
       \inferrule[\textsc{Error Return}]
    {
-       \cs = (-, \store', \jvar, -, j) :: \cs'
+       \abscs = (-, \absstore, \jvar, -, j) :: \abscs'
        \quad 
-       \store = \jstate.\stosel
+       \absstore = \absstate.\stosel
        \\\\
-       \jstate' = \jstate[\stosel \mapsto \store[\jvar \mapsto \val]]
+       \absstate' = \absstate[\stosel \mapsto \absstore[\jvar \mapsto \absval]]
    }  
-   {\semrule{\jstate, \cs, \procerrlab}{\jstate', \cs', j}{\top}{\top}}
+   {\semrule{\absstate, \abscs, \procerrlab}{\absstate', \abscs', j}{\top}{\top}}
       \\
     \inferrule[\textsc{Procedure Call}]
    { 
