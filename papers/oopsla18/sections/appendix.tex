@@ -496,18 +496,18 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
         \quad 
          \symbeval{\jsilexpr_2}{\sstore} = \sexprp
       \quad
-       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
+       \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
       \\\\
-       (\sloc,-) \notin \domain (\sheap')
+       (\sloc,-) \notin \domain (\sheap'')
         \quad
         \sdom(\sloc) = \sexprv_d
         \quad 
-        \sheap'' = \sheap[(\sloc, \sexprp) \mapsto \none]
+        \sheap' = \sheap[(\sloc, \sexprp) \mapsto \none]
        \\\\ 
        \sdom' = \sdom[\sloc \mapsto \sexprv_d \cup \jsilset{\sexprp}] 
        \quad 
-       \pc' = \pc \wedge \sexprp \not\in \sexprv \cup \jsilset{\sexprp_i \mid_{i=0}^n}
-   }{  \absgetcellrule{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap'', \sdom', \sstore, \pc'), (\sloc, \sexprp, \sexprv)}}
+       \pc' = \pc \wedge \sexprp \not\in (\sexprv_d \cup \jsilset{\sexprp_i \mid_{i=0}^m})
+   }{  \absgetcellrule{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore, \pc'), (\sloc, \sexprp, \none)}}
   %
   \\
   %
@@ -528,47 +528,47 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
  \and 
        \inferrule[\textsc{Heap Update}]
    { 
-         \absstate = (\sheap, \sdom, \sstore, \pc) 
+         \sstate = (\sheap, \sdom, \sstore, \pc) 
          \quad 
          \sheap' = \sheap[(\sloc, \sexprp) \mapsto \sexprv]
-   }{  \hpupdt(\sheap, (\sloc, \sexprp), \sexprv) =  (\sheap', \sdom, \sstore, \pc) }
+   }{  \hpupdt(\sstate, (\sloc, \sexprp), \sexprv) =  (\sheap', \sdom, \sstore, \pc) }
 \\
   %
       \inferrule[\textsc{Assume}]
    { 
-         \absstate = (\sheap, \sdom, \sstore, \pc) 
-   }{  \absassume(\absstate, \pc') =  (\sheap, \sdom, \sstore, \pc \wedge \pc') }
+         \sstate = (\sheap, \sdom, \sstore, \pc) 
+   }{  \absassume(\sstate, \sexprv) =  (\sheap, \sdom, \sstore, \pc \wedge (\sexprv = \jtrue)) }
   \qquad 
     \inferrule[\textsc{Satisfiable - True}]
    { 
-         \pc = \absstate.\pcsel 
+         \pc = \sstate.\pcsel 
          \quad 
-         (\pc \wedge \pc') \text{ SAT}
-   }{  \abssat(\absstate, \pc') = \jtrue}
+         (\pc \wedge (\sexprv = \jtrue)) \text{ SAT}
+   }{  \abssat(\sstate, \sexprv) = \jtrue}
  \qquad 
     \inferrule[\textsc{Satisfiable - False}]
    { 
-         \pc = \absstate.\pcsel 
+         \pc = \sstate.\pcsel 
          \quad 
-         (\pc \wedge \pc') \text{ UNSAT}
-   }{  \abssat(\absstate, \pc') = \jfalse}
+         (\pc \wedge (\sexprv = \jtrue)) \text{ UNSAT}
+   }{  \abssat(\sstate, \sexprv) = \jfalse}
  \end{mathpar}}
 %
 %
 {\hspace{0.5cm}\textbf{Instrumented Semantics Rules:\hfill}
 {\scriptsize
 \begin{mathpar} 
-  \inferrule[\textsc{GetDomain}]
+ \inferrule[\textsc{GetDomain}]
    { 
         \symbeval{\jsilexpr}{\store} = \loc
       \quad
-       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  
+       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
         \\\\
         %
           (\loc,-) \notin \domain (\iheap')  
         \quad
-          \jsilset{p_1, ..., p_m} = \idom(\sloc)
-         \\\\
+          \jsilset{p_1, ..., p_m} = \idom(\loc)
+          \\\\
         \forall_{0 \leq i \leq n} \, \val_i \neq \none 
          \quad 
            \forall_{n < i \leq m} \, \val_i = \none 
@@ -581,18 +581,18 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
         \quad 
          \symbeval{\jsilexpr_2}{\store} = p
       \quad
-       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m
+       \iheap = \iheap'' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m
       \\\\
-       (\loc,-) \notin \domain (\iheap')
+       (\loc,-) \notin \domain (\iheap'')
         \quad
         \idom(\loc) = \val_d
         \quad 
-       p \not\in \val_d \cup \jsilset{p_i \mid_{i=0}^n})
+       p \not\in \val_d \cup \jsilset{p_i \mid_{i=0}^m})
        \\\\
-        \iheap'' = \iheap[(\loc, p) \mapsto \none]
+        \iheap' = \iheap[(\loc, p) \mapsto \none]
        \quad 
        \idom' = \idom[\loc \mapsto \val_d \cup \jsilset{p}]
-     }{  \absgetcellrule{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap'', \idom', \store), (\loc, p, \none)}}
+     }{  \absgetcellrule{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap', \idom', \store), (\loc, p, \none)}}
   %
   \\
   %
@@ -608,30 +608,66 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
  \and 
        \inferrule[\textsc{Heap Update}]
    { 
-         \absstate = (\sheap, \sdom, \sstore, \pc) 
+         \istate = (\iheap, \idom, \store) 
          \quad 
-         \sheap' = \sheap[(\sloc, \sexprp) \mapsto \sexprv]
-   }{  \hpupdt(\absheap, (\sloc, \sexprp), \sexprv) =  (\sheap', \sdom, \sstore, \pc \wedge \pc') }
+         \iheap' = \iheap[(\loc, p) \mapsto \val]
+   }{  \hpupdt(\istate, (\loc, p), \val) =  (\iheap, \idom, \store) }
 \\
   %
       \inferrule[\textsc{Assume}]
+   {}{  \absassume(\istate, \jtrue) =  \istate }
+  \and
+    \inferrule[\textsc{Satisfiable}]
+   {}{  \abssat(\istate, \jbool) = \jbool}
+ \end{mathpar}}}
+ %
+%
+{\hspace{0.5cm}\textbf{Concrete Semantics Rules:\hfill}
+{\scriptsize
+\begin{mathpar} 
+  \inferrule[\textsc{GetDomain}]
    { 
-         \absstate = (\sheap, \sdom, \sstore, \pc) 
-   }{  \absassume(\absstate, \pc') =  (\sheap, \sdom, \sstore, \pc \wedge \pc') }
-  \qquad 
-    \inferrule[\textsc{Satisfiable - True}]
+        \symbeval{\jsilexpr}{\store} = \loc
+      \quad
+       \heap = \heap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  
+      \quad
+          (\loc,-) \notin \domain (\heap')  
+       }{  \absgetdomainrule{(\heap, \store), \jsilexpr}{\jsilset{p_1, ..., p_n}}}
+  %
+  \and
+  %
+    \inferrule[\textsc{GetCell - Explicit Cell}]
    { 
-         \pc = \absstate.\pcsel 
+         \symbeval{\jsilexpr_1}{\store} = \loc
+        \quad 
+         \symbeval{\jsilexpr_2}{\store} = p
+        \quad
+       \heap = - \, \uplus \, (\loc, p) \mapsto \val
+        }{  \absgetcellrule{(\heap, \store), (\jsilexpr_1, \jsilexpr_2)}{(\heap, \store), (\loc, p, \val)}}
+ %
+ \\
+       \inferrule[\textsc{Heap Update - Non-$\none$}]
+   { 
+         \jstate = (\heap, \store) 
          \quad 
-         (\pc \wedge \pc') \text{ SAT}
-   }{  \abssat(\absstate, \pc') = \jtrue}
- \qquad 
-    \inferrule[\textsc{Satisfiable - False}]
-   { 
-         \pc = \absstate.\pcsel 
+         \heap' = \heap[(\loc, p) \mapsto \val]
          \quad 
-         (\pc \wedge \pc') \text{ UNSAT}
-   }{  \abssat(\absstate, \pc') = \jfalse}
+         \val \neq \none
+   }{  \hpupdt(\jstate, (\loc, p), \val) =  (\heap', \store) }
+ \and
+       \inferrule[\textsc{Heap Update - $\none$}]
+   { 
+         \jstate = (\heap, \store) 
+         \quad 
+         \heap = \heap' \dunion (\loc, p) \mapsto -
+   }{  \hpupdt(\jstate, (\loc, p), \none) =  (\heap', \store) }
+\\
+  %
+      \inferrule[\textsc{Assume}]
+   {}{  \absassume(\jstate, \jtrue) =  (\jstate, \jtrue) }
+\and 
+    \inferrule[\textsc{Satisfiable }]
+   {}{  \abssat(\jstate, \jbool) = \jbool}
  \end{mathpar}}}
 \end{figure}
 
