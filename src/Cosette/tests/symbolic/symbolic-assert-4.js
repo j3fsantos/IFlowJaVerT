@@ -1,4 +1,6 @@
 var o = [1, 10];
+var p1_string = symb_string(p1);
+var v1_string = symb_string(v1);
 o[ p1_string ] = v1_string;
 
 function f1(ary) {
@@ -9,4 +11,6 @@ function f1(ary) {
     return sum;
 }
 
-f1(o);
+var res = typeof(f1(o));
+console.log(res);
+//Assert(res = "string");
