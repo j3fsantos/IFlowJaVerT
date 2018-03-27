@@ -12,5 +12,5 @@ function f1(ary) {
 }
 
 var res = typeof(f1(o));
-console.log(res);
-//Assert(res = "string");
+//console.log(res);
+Assert(res = "string");
