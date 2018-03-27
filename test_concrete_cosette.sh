@@ -16,7 +16,7 @@ for filename in ./$1/*.js; do
 	#echo $rname
 	res=$(racket $rname | tail -n1)
 	#echo $res
-	if [[ $res == "(unsat)"* ]]; then
+	if [[ $res == "#t"* ]]; then
 		echo "Pass: $filename" 
 	else
 		echo "Fail: $filename" 

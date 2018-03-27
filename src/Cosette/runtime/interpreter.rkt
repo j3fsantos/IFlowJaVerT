@@ -731,12 +731,12 @@
     (println success)
     (print "Failure: ")
     (println failure)
-    (println (format "Outcome JOSE: ~v" outcome-jose))
     (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
     (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
     (println (format "Outcome Failure: ~v" outcome-failure))
     (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
     (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
+    (println (format "~v" (and (not (unsat? outcome-success-assume)) (unsat? outcome-failure) (unsat? outcome-assumptions-and-failure) (unsat? outcome-assumptions-success-and-not-assertions))))
     ;; JSON export
     (define out (open-output-file "models.json" #:exists 'replace))
 ;;    (define output-string (format "~a" (jsexpr->string results-hashtbl)))
