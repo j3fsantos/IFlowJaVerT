@@ -16,6 +16,6 @@ o[p1_string] = v1_number;
 
 var t = top(o);
 
-Assert ((t > 15) && (p1_string !== "")); 
+Assert (not (t = "")); 
 //Assert (p1_string == "a"); 
 t
