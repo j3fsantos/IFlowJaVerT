@@ -282,11 +282,15 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We present \jilette, a framework for trusted, compositional symbolic execution of JavaScript programs. \jilette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language and is, more generally, the first tool that targets dynamic languages whose symbolic execution is compositional. It is aimed at the general programmer, allowing them to debug their code by writing symbolic tests for which \jilette then produces concrete counter-models. The symbolic execution of \jilette is proven to be sound and not to generate false positives. 
-%
+We present \jilette, a framework for trusted, compositional symbolic execution of JavaScript programs.
+\jilette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
+Its aim is to assist the general programmer in debugging their code; the programmer writes symbolic tests for which \jilette provides concrete counter-models.
+We prove that the symbolic execution underpinning \jilette is sound and that it does not generate false positives. Moreover, this symbolic execution is compositional, which allows us to use \jilette to find bugs in separation logic specifications of JavaScript programs that are not detectable by standard symbolic execution techniques.
 %\pmaxinline{Now compositionality.}
 %
-We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by showing how it can be used to produce counter-models for separation logic specifications of JavaScript programs.
+We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
+
+
 %
 %It works by compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not generate false positives.
 %
