@@ -11,7 +11,7 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 10)
+(define max-depth 100)
 
 (error-print-width 100000)
 
