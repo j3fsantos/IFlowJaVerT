@@ -2,7 +2,17 @@
 
 # Bash array format: ("one" "two" "three")
 # JS Files to test
-declare -a jsfiles=("bst" "IdGenerator" "kv-map" "priority_queue" "sort" "test262/switch-01" "test262/switch-02" "test262/try-catch-01" "test262/try-catch-02" "test262/try-catch-03")
+declare -a jsfiles=("bst" \
+										"IdGenerator" \
+										"kv-map" \
+										"priority_queue" \
+										"sort" \
+										"test262/switch-01" \
+										"test262/switch-02" \
+										"test262/try-catch-01" \
+										"test262/try-catch-02" \
+										"test262/try-catch-03")
+
 # JSIL Files to test
 declare -a jsilfiles=("javert_internal_functions")
 
