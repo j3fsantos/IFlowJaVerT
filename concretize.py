@@ -7,25 +7,11 @@ regex_str = "symb_(number|string)\s*\((.*)\)"
 regex = re.compile(regex_str)
 
 # we need to make up values if they're missing in the valuation
-counter = 0
-
-def make_string_gen():
-    counter = 0
-    while counter < 1000000:
-        counter += 1
-        yield "_str__{}".format(counter)
-
-make_string_generator = make_string_gen()
+make_string_generator = map("_str__{}".format, range(100000))
 def make_string():
     return next(make_string_generator)
 
-def make_number_gen():
-    counter = 0
-    while counter < 1000000:
-        counter += 1
-        yield counter
-
-make_number_generator = make_number_gen()
+make_number_generator = range(100000)
 def make_number():
     return next(make_number_generator)
 
@@ -141,10 +127,13 @@ def make_concrete(js_filename):
                 print("\tEmpty model (error?).")
             else:
                 print("\tValuation:")
-                for val in valuation:
-                    print("\t\t{} -> {}".format(val, valuation[val]))
+                for var in valuation:
+                    val = valuation[var]
+                    if isinstance(val, str):
+                        print('\t\t{} -> "{}"'.format(var, val))
+                    else:
+                        print('\t\t{} -> {}'.format(var, val))
             replace_file(file_short, js_lines, model, valuation)
-
 
 def main():
     make_concrete(sys.argv[1])
