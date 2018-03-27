@@ -1,4 +1,4 @@
 cd ..
 make
-./setup_environment.sh
+./scripts/setup_environment.sh
 cd environment
