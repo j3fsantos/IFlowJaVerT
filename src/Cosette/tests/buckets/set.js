@@ -522,7 +522,7 @@ var set2 = new buckets.Set();
 var s1 = symb_string(s1);
 var s2 = symb_string(s2);
 
-Assume (not (s1 = s2));
+//Assume (not (s1 = s2));
 
 set1.add(s1);
 set1.add(s2);
