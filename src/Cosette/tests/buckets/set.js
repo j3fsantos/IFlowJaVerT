@@ -521,17 +521,13 @@ var set2 = new buckets.Set();
 
 var s1 = symb_string(s1);
 var s2 = symb_string(s2);
-var s3 = symb_string(s3);
-var s4 = symb_string(s4);
 
-Assume ((not (s1 = s2)) and (not (s1 = s3)) and (not (s1 = s4)) and (not (s2 = s3)) and (not (s2 = s4)) and (not (s3 = s4)));
+Assume (not (s1 = s2));
 
 set1.add(s1);
 set1.add(s2);
 
 set2.add(s2);
-set2.add(s3);
-set2.add(s4);
 
 // console.log("s1 union s2:");
 // s1.union(s2);
