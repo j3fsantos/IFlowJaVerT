@@ -91,14 +91,13 @@
       [(eq? cmd-type 'new)
        (let* ((lhs-var (second bcmd))
               (loc-val (get-new-loc))
-              (store (mutate-store store lhs-var loc-val))
-              (heap  (mutate-heap  heap  loc-val protop jnull)))
+              (store (mutate-store store lhs-var loc-val)))
+              ;;(heap  (mutate-heap  heap  loc-val protop jnull)))
          (print-info proc-name (format "~v := new()" lhs-var))
          (cons heap store))]
       ;;
       ;; ('has-field lhs-var e1 e2)
       [(eq? cmd-type 'has-field)
-       (print-info proc-name (format "Inside ~v := has-field (~v, ~v) with get-fields ~v" (second bcmd) (run-expr (third bcmd) store) (run-expr (fourth bcmd) store) (get-fields heap (run-expr (third bcmd) store))))
        (let* ((lhs-var (second bcmd))
               (loc-expr (third bcmd))
               (prop-expr (fourth bcmd))
@@ -107,6 +106,9 @@
               (prop-list (get-fields heap loc-val))
               (is-js-field (member prop-val prop-list))
               (result (not (eq? is-js-field #f)))
+              ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
+              ;; (println (format "object: ~v" (heap-get-obj heap loc-val)))
+              ;; (println (format "proplist: ~v" prop-list))
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := has-field(~v, ~v)" lhs-var loc-val prop-val))
          (cons heap store))] 
@@ -117,7 +119,7 @@
               (loc-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
               (obj (heap-get-obj heap loc-val))
-              (prop-list (petar-get-obj-fields obj))
+              (prop-list (petar-get-fields heap loc-val))
               (result (cons 'jsil-list prop-list))
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := get-fields(~v) : ~v" lhs-var loc-val result))
@@ -369,30 +371,32 @@
               (println "I am killing an execution because I reached the goto limit")
               (kill expr-val)]
 
-             [(symbolic? expr-val)
+
+            [(symbolic? expr-val)
               (let ((cur-pc (pc)))
                 (println (format "CUR PC ~v" cur-pc))
-                (let* ((old-solver (current-solver))
-                       (new-solver (solve+))
-                       (res (new-solver cur-pc)))
-                  (solver-shutdown old-solver)
-                  (if (unsat? res)
-                      (begin
-                        (println "the current pc is UNSAT")
-                        (set! success #t))
-                      (begin
-                        (println "the current pc is SAT")
-                        (cond
-                          ((eq? expr-val #t)
-                           (begin
-                             (print-info proc-name (format "THEN BRANCH: ~v" expr))
-                             (run-cmds-iter prog heap store ctx then-label cur-index)))
+                (let* ((new-solver (z3)))
+                  (solver-clear new-solver)
+                  (solver-assert new-solver (list cur-pc))
+                  (let ((res (solver-check new-solver)))
+                    (solver-shutdown new-solver)
+                    (if (unsat? res)
+                        (begin
+                          (println "the current pc is UNSAT")
+                          (set! success #t))
+                        (begin
+                          (println "the current pc is SAT")
+                          (cond
+                            ((eq? expr-val #t)
+                             (begin
+                               (print-info proc-name (format "THEN BRANCH: ~v" expr))
+                               (run-cmds-iter prog heap store ctx then-label cur-index)))
                         
-                          ((eq? expr-val #f)
-                           (begin
-                             (print-info proc-name (format "ELSE BRANCH: ~v" expr))
-                             (run-cmds-iter prog heap store ctx else-label cur-index)))
-                          (#t (set! success #t)))))))]
+                            ((eq? expr-val #f)
+                             (begin
+                               (print-info proc-name (format "ELSE BRANCH: ~v" expr))
+                               (run-cmds-iter prog heap store ctx else-label cur-index)))
+                            (#t (set! success #t))))))))]
                         
              [(eq? expr-val #t)
                 (print-info proc-name (format "THEN BRANCH: ~v" expr))
@@ -715,7 +719,7 @@
       (list
         (cons "jose" (outcome-string outcome-jose))
         (cons "assumptions-and-failure" (outcome-string outcome-assumptions-and-failure))
-        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-success-and-not-assertions))
+        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-and-failure))
         (cons "failure" (outcome-string outcome-failure))
         (cons "success-assume" (outcome-string outcome-success-assume))
         (cons "failure-assume" (outcome-string outcome-failure-assume)))))
