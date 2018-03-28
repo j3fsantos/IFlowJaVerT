@@ -326,6 +326,8 @@ buckets.Dictionary = function (toStrFunction) {
     return dictionary;
 };
 
+// --------------------------------- tests -----------------------------------
+
 var dict = new buckets.Dictionary();
 
 var x1 = symb_number(x1); //1
