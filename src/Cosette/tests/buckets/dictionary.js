@@ -342,6 +342,6 @@ var z = dict.get(s1);
 
 var size = dict.size();
 var x2toStr = x2.toString();
-console.log(x2toStr);
+//console.log(x2toStr);
 
 Assert(((x2toStr = s1) and (size = 1) and (z = s2)) or ((not (x2toStr = s1)) and (size = 2) and (z = x1)));
