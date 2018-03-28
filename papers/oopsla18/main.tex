@@ -389,14 +389,24 @@ We evaluate \jilette on an array of examples, including tests from the official 
 
 \section{Introduction}
 
-JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications (used by 94.8\% of websites \cite{JS948percent});
-it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited 
-memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
-The dynamic nature of JavaScript and its complex semantics make it a difficult target for
-symbolic analysis and logic-based verification. 
-This paper presents \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5~\cite{ecma}).
-%
-We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications, used by 94.8\% of websites;\footnote{\url{https://w3techs.com/technologies/details/cp-javascript/all/all}} it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited memory. 
+It is the most active language in both GitHub and StackOverflow.\footnote{\url{http://githut.info}; \url{https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628}}
+However, due to its dynamic nature and complex semantics, JavaScript remains a difficult target for symbolic analysis and logic-based verification.
+To address this issue, we present \jilette, a framework for symbolic execution of JavaScript (ECMAScript 5 Strict~\cite{ecma}) programs, which advances the state-of-the-art in the two following ways. 
+
+First, the symbolic execution of \jilette is \emph{trustworthy}, in that it is formalised, proven sound, and precisely follows the ES5 English standard. 
+
+Second, the symbolic execution of \jilette is \emph{compositional}. 
+
+\myparagraph{Trustworthiness} This
+
+\myparagraph{Compositionality} That
+
+\myparagraph{Application: Symbolic Testing} This
+
+\myparagraph{Application: Specification-directed bug-finding} That
+
+%We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs.
 
 \myparagraph{Architecture}
 The core of \jilette consists of a symbolic interpreter for
@@ -404,8 +414,7 @@ The core of \jilette consists of a symbolic interpreter for
 We obtain this symbolic interpreter \emph{for free}, 
 by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1},~a 
 symbolic virtual machine that facilitates generation of solver-aided languages.
-We design the concrete interpreter so that all of Rosette's natively supported solver-aided
-features, such as advanced string and regular-expression reasoning, 
+We design the concrete interpreter so that all of Rosette's natively supported solver-aided features, such as advanced string and regular-expression reasoning, 
 are lifted to the \jsil symbolic interpreter. 
 In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide insights on how to correctly design the concrete \jsil interpreter in Rosette.
 
