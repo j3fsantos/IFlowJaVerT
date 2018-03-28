@@ -30,6 +30,8 @@ o.fib(1);
 o.sum(1);
 o.fact(1);
 
+// figure out which functions to call
+
 total += o[ ev1_string ]( n1_number );
 total += o[ ev2_string ]( n2_number );
 total += o[ ev3_string ]( n3_number );

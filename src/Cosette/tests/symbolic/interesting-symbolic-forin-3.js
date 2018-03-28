@@ -1,4 +1,8 @@
 
+// this one is interesting (use hasOwnProperty)
+// make one fail (outcome = 60) and 
+
+
 function top(o) {
     var count = 0;
     for(var p in o) {
