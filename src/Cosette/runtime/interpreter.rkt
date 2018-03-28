@@ -717,7 +717,7 @@
       (list
         (cons "jose" (outcome-string outcome-jose))
         (cons "assumptions-and-failure" (outcome-string outcome-assumptions-and-failure))
-        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-and-failure))
+        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-success-and-not-assertions))
         (cons "failure" (outcome-string outcome-failure))
         (cons "success-assume" (outcome-string outcome-success-assume))
         (cons "failure-assume" (outcome-string outcome-failure-assume)))))
