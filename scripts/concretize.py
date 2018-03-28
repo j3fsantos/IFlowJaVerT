@@ -11,7 +11,7 @@ make_string_generator = map("_str__{}".format, range(100000))
 def make_string():
     return next(make_string_generator)
 
-make_number_generator = range(100000)
+make_number_generator = iter(range(100000))
 def make_number():
     return next(make_number_generator)
 
@@ -59,6 +59,7 @@ def replace_assert(line):
     line = re.sub("and", "&&", line)
     line = re.sub("or", "||", line)
     line = re.sub("=", "===", line)
+    line = re.sub("not", "!", line)
     return line
 
 
