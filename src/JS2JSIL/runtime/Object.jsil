@@ -180,7 +180,8 @@ proc i__getAllEnumerableFieldsIter (l, props, b) {
 			n := 0;
 	loop:	goto [n < len] head next;
 
-	head:	hf := hasField (props, l-nth (enums, n));
+	head:	curprop := l-nth (enums, n);
+			hf := hasField (props, curprop);
 			goto [hf] inc test;
 	test:	goto [l = b] add bf;
 	bf:		hf := hasField (b, l-nth (enums, n));

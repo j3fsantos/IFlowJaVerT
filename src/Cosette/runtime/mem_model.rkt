@@ -615,11 +615,12 @@
 ;; Get obj fields
 ;;
 (define (petar-get-obj-fields object)
+  ;;(println (format "First char of next prop: ~v" (string-at (caar object) 0)))
   (let loop ((object object)
              (result '()))
     (cond
       [(null? object) result]
-      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) #\@)))
+      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) "@")))
         (loop (cdr object) (cons (caar object) result))]
       [else (loop (cdr object) result)])))  
 
@@ -651,10 +652,11 @@
 ;; Get all fields of an object in the heap
 ;;
 (define (get-fields heap object)
+  ;; (println (format "Heap: ~v" heap))
   (let loop ((heap heap))
     (cond
       [(null? heap) jempty]
-      [(and (pair? (car heap)) (equal? (car (car heap)) object))
+      [(and (pair? (car heap)) (equal? (caar heap) object))
        (let* ((obj (cdr (car heap)))
               (props (get-obj-fields obj)))
          ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
@@ -1003,7 +1005,7 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal petar-get-fields get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal petar-get-fields petar-get-obj-fields get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
 
 
 
