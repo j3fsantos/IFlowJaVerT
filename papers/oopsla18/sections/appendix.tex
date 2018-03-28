@@ -440,23 +440,35 @@ $\val \mid \jvar \mid \sstring \mid \snumber \mid \unoper\ \pvsexpr \mid \pvsexp
 %
 \inferrule[\textsc{Assume}]
   { 
-      \ccmd[\prog][\abscs]{i}  = \assume(\jsilexpr)
+      \ccmd[\prog][\abscs]{i}  = \assume(\jsilexpr) 
+      \\\\ 
+      \absstore = \jstate.\stosel
+      \quad
+      \evalexpr(\jsilexpr, \absstore) =  \absval
       \\\\
-     \absassume(\absstate, \jsilexpr = \jtrue) = \absstate' 
+     \absassume(\absstate, \absval) = \absstate' 
   }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}} 
 \and
 \inferrule[\textsc{Assert - True}]
   { 
       \ccmd[\prog][\abscs]{i}  = \assert(\jsilexpr)
-      \\\\
-       \abssat(\absstate, \jsilexpr \neq \jtrue) = \jfalse
+       \\\\ 
+      \absstore = \jstate.\stosel
+      \quad
+       \evalexpr(\jsilexpr, \absstore) =  \absval
+       \\\\
+       \abssat(\absstate, \neg \absval) = \jfalse
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i{+}1}{\top}{\top}} 
 \and 
 \inferrule[\textsc{Assert - False}]
   { 
       \ccmd[\prog][\abscs]{i}  = \assert(\jsilexpr)
-      \\\\
-      \abssat(\absstate, \jsilexpr \neq \jtrue) = \jtrue
+      \\\\ 
+      \absstore = \jstate.\stosel
+      \quad
+         \evalexpr(\jsilexpr, \absstore) =  \absval
+     \\\\
+      \abssat(\absstate, \neg \absval) = \jtrue
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i}{\top}{\bot}} 
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
