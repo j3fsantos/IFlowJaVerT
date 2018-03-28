@@ -58,7 +58,7 @@ def replace_assert(line):
     line = re.sub("Assert\s*", "assert.ok", line)
     line = re.sub("and", "&&", line)
     line = re.sub("or", "||", line)
-    line = re.sub("=", "===", line)
+    line = re.sub("[^<>]=", "===", line)
     line = re.sub("not", "!", line)
     return line
 
@@ -137,6 +137,9 @@ def make_concrete(js_filename):
             replace_file(file_short, js_lines, model, valuation)
 
 def main():
-    make_concrete(sys.argv[1])
-
+    if (len(sys.argv) < 2):
+        print("No input file provided. Aborting.")
+    else:
+        make_concrete(sys.argv[1])
+        
 main()
