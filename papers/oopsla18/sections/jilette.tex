@@ -1,14 +1,22 @@
 %!TEX root = ../main.tex
 
-We introduce our symbolic execution engine for \jsil~\cite{javert}. In~\S\ref{subsec:jsil:analysis:formalism}, we present 
-the theoretical underpinnings of the symbolic analysis, including
-a soundness result and a guarantee of absence of false 
-positives for bug-finding.
-In \S\ref{subsec:jsil:analysis:implementation}, 
-we describe the implementation of the \jsil symbolic analysis 
-in \rosette~\cite{Rosette1,Rosette2}.
+We present our symbolic execution engine for \jsil~\cite{javert}. 
 
-\vspace*{-0.2cm}
+\jfs{
+\begin{itemize}
+   \item The concrete and symbolic semantics of \jsil are defined by means of an 
+            abstract semantics that can be parameterised with the appropriate state for 
+            obtaining both the concrete semantics and the symbolic semantics.
+            This approach has a great many number of benefits: \dtag{1} it avoids redundancy, 
+            \dtag{2} it makes the choices in the design of the symbolic semantics more explicit, 
+            and \dtag{3} it leads to more modular implementations, avoiding code duplication.  
+            
+  \item We present the theoretical underpinnings of our symbolic analysis, including a soundness
+           result and a guarantee of absence of false positives for bug-finding.
+\end{itemize}
+}
+
+
 \subsection{Formalisation}\label{subsec:jsil:analysis:formalism}
 
 \vspace*{-0.2cm}
