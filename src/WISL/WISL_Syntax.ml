@@ -59,8 +59,3 @@ type wisl_fun = function_name * (variable list) * statement * expr
 type function_context = wisl_fun list
 
 type program = { context: function_context; entry_point: statement option}
-
-
-let expr_of_int i = Val (Num (Int i))
-let expr_of_float f = Val(Num (Float f))
-let expr_of_str s = Val (Str s)
