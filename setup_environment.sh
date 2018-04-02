@@ -10,3 +10,4 @@ cp src/JS2JSIL/runtime/*.jsil environment
 cp src/JS2JSIL/runtime/harness.js environment
 cp src/JaVerT/examples/*.js environment
 cp src/JaVerT/examples/test262/*.js environment/test262
+cp src/WISL/examples/*.wisl environment
