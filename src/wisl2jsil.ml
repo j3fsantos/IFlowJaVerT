@@ -1,7 +1,9 @@
 open WISL_Lexer
 open Lexing
 open WISL_Printer
+open WISL_Syntax
 open Format
+open WISL2JSIL_Compiler
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -18,16 +20,26 @@ let parse_with_error lexbuf =
     exit (-1)
 
 (* part 1 *)
-let rec parse_and_print lexbuf =
+let rec parse_and_compile lexbuf =
   match parse_with_error lexbuf with
-  | Some value -> pp_prog std_formatter value
+  | Some value -> begin
+                    match value.entry_point with
+                      | None -> ()
+                      | Some stmt -> (
+                    let cstmt = compile_statement stmt in
+                    let cstmt_cleaned = clean_unused_labs cstmt in 
+                    let lbody = Array.of_list cstmt_cleaned in
+                    let str = JSIL_Print.string_of_lbody lbody in
+                    fprintf std_formatter "%s" str
+                    )
+                  end
   | None -> Printf.fprintf stdout "No program"
 
 let loop filename =
   let inx = open_in filename in
   let lexbuf = Lexing.from_channel inx in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  parse_and_print lexbuf;
+  parse_and_compile lexbuf;
   close_in inx
 
 (* part 2: this needs to parse *)
