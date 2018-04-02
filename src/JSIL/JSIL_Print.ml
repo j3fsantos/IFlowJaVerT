@@ -48,7 +48,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
   	| Mutation (e1, e2, e3, e4) -> 
       (match e4 with 
       | None   -> Printf.sprintf "%s[%s, %s] := %s" str_i (se e1) (se e2) (se e3)
-      | Some p -> Printf.sprintf "%s[%s, %s] := <%s> %s" str_i (se e1) (se e2) (se e3) (sp p))
+      | Some p -> Printf.sprintf "%s[%s, %s] := <%s> %s" str_i (se e1) (se e2) (sp p) (se e3))
   	(* delete(e1, e2) *)
   	| Delete (e1, e2) ->  Printf.sprintf "%sdelete (%s,%s)" str_i (se e1) (se e2)
   	(* x := deleteObj(e1) *)

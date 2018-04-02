@@ -79,6 +79,7 @@
       "hasField",     JSIL_Parser.HASFIELD;
       "getFields",    JSIL_Parser.GETFIELDS;
       "metadata",     JSIL_Parser.METADATA; 
+			"seal",					JSIL_Parser.SEAL;
       "args",         JSIL_Parser.ARGUMENTS;
       "goto",         JSIL_Parser.GOTO;
       "with",         JSIL_Parser.WITH;
