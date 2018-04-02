@@ -78,10 +78,6 @@ let rec compile_expression expr =
 (* Then we compile statements *)
 let rec compile_statement stmt =
   (* To get labels when we know there is one *)
-  let some_or_fail labopt = match labopt with
-    | Some lab -> lab
-    | None -> failwith "This label should not be None, exiting !"
-  in
   let jsil_expr_of_str s = JSIL.Literal (Literal.String s) in
   let assign_of_rec_field obj_expr recfield =
     let (pn, wisl_expr) = recfield in
@@ -157,7 +153,7 @@ let rec compile_statement stmt =
         let guard = compile_expression e in
         let comp_body = compile_statement body in
         let (_, bodlabopt, _) = List.hd comp_body in
-        let bodlab = some_or_fail bodlabopt in
+        let bodlab = Option.get bodlabopt in
         let loopheadcmd = JSIL.LGuardedGoto (guard, bodlab, endlab) in
         let gotoloopcmd = JSIL.LGoto cmdlab in
         let endcmd = JSIL.LBasic (JSIL.Skip) in
@@ -169,15 +165,16 @@ let rec compile_statement stmt =
         let endlab = LabelGenerator.get_lab ~pre:"end" () in
         let endlabopt = Some endlab in
         let guard = compile_expression e in
-        let comp_s1, comp_s2 = compile_statement s1, compile_statement s2 in
+        let comp_s1 = compile_statement s1 in
+        let comp_s2 = compile_statement s2 in
         let (_, thenlabopt, _) = List.hd comp_s1 in
         let (_, elselabopt, _) =  List.hd comp_s2 in
-        let thenlab, elselab = some_or_fail thenlabopt, some_or_fail elselabopt in
+        let thenlab, elselab = Option.get thenlabopt, Option.get elselabopt in
         let ifelsecmd = JSIL.LGuardedGoto (guard, thenlab, elselab) in
         let gotoendcmd = JSIL.LGoto endlab in
         let endcmd = JSIL.LBasic JSIL.Skip in
-          ((no_metadata, thenlabopt, ifelsecmd)::comp_s1)@
-          ((no_metadata, None, gotoendcmd)::comp_s1)@
+          ((no_metadata, cmdlabopt, ifelsecmd)::comp_s1)@
+          ((no_metadata, None, gotoendcmd)::comp_s2)@
           [ (no_metadata, endlabopt, endcmd) ]
       end
 
@@ -196,5 +193,66 @@ let clean_unused_labs lcmdlist =
     | _ -> labset
   in let used_labs = List.fold_left fold_used_labs LabSet.empty lcmdlist
   in List.map (remove_if_unused used_labs) lcmdlist
+  
+
+
+let compile_function func =
+  let no_metadata =
+  { JSIL.line_offset = None;
+    JSIL.invariant = None;
+    JSIL.pre_logic_cmds = [];
+    JSIL.post_logic_cmds = []
+   } in
+  let (fn, params, body, ret_expr) = func in
+  let lbodylist = compile_statement body in
+  let comp_ret_expr = compile_expression ret_expr in
+  let clean_lbodylist = clean_unused_labs lbodylist in
+  let retassigncmd = JSIL.LBasic (JSIL.Assignment ("x__ret", comp_ret_expr)) in
+  let lretassigncmd = (no_metadata, Some "rlab", retassigncmd) in
+  let lbody_withret = clean_lbodylist@[lretassigncmd] in
+  let lbody_withret_array = Array.of_list lbody_withret
+  in {
+    JSIL.lproc_name = fn;
+    JSIL.lproc_body = lbody_withret_array;
+    JSIL.lproc_params = params;
+    JSIL.lret_label = Some "rlab";
+    JSIL.lret_var = Some "x__ret";
+    JSIL.lerror_label = None;
+    JSIL.lerror_var = None;
+    JSIL.lspec = None
+  }
+
+let compile_program prog =
+  let get_proc_names proclist =
+    List.map (fun proc -> proc.JSIL.lproc_name) proclist
+  in
+  let hashtbl_of_procs proclist =
+    let proc_hash = Hashtbl.create (List.length proclist) in
+    List.iter
+      (fun proc -> Hashtbl.add proc_hash proc.JSIL.lproc_name proc)
+      proclist;
+    proc_hash
+  in
+  let main_of_stmt stmt = compile_function ("main", [], stmt, Val (Num (Int 0))) in
+  let stmtopt = prog.entry_point in
+  let context = prog.context in
+  let comp_context = List.map compile_function context in
+  let comp_mainfun = Option.map main_of_stmt stmtopt in
+  let all_procs = if Option.is_none comp_mainfun
+                 then comp_context
+                 else (Option.get comp_mainfun)::comp_context
+  in let proc_names = get_proc_names all_procs in
+  let procs = hashtbl_of_procs all_procs in
+  {
+    JSIL.imports = [];
+  	JSIL.lemmas = Hashtbl.create 1;
+  	JSIL.predicates = Hashtbl.create 1;
+  	JSIL.onlyspecs = Hashtbl.create 1;
+  	JSIL.procedures = procs;
+  	JSIL.procedure_names = proc_names;
+  }
+  
+  
+  
   
   
