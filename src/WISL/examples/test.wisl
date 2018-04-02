@@ -1,0 +1,83 @@
+function lrev(x) {
+  y := null;
+  while (x != null) {
+    z := x.tail;
+    x.tail := y;
+    y := x;
+    x := z
+  };
+  return y
+}
+
+function llen(x) {
+  y := x;
+  n := 0;
+  while (y != null) {
+    y := y.tail;
+    n := n + 1
+  };
+  return n
+}
+
+function lcopy(x) {
+  t := x;
+  y := null;
+  p := y;
+  while (t != null) {
+    c := new(head: null, tail: null);
+    c.head := v;
+    c.tail := null;
+    if (p != null) {
+      p.tail := c
+    } else {
+      y := c
+    };
+    p := c;
+    t := t.tail
+  };
+  return y
+}
+
+function lconcat(x, y) {
+  if (x = null) {
+    x := y
+  }
+  else {
+    t := x;
+    n := x.tail;
+    while (n != null) {
+      t := n;
+      n := t.tail
+    };
+    t.tail := y
+  };
+  return x
+}
+
+function lappend(x, v) {
+  n := new();
+  n.head := v;
+  n.tail := null;
+  if (x = null) {
+    z := n
+  } else {
+    t := x;
+    while (t != null) {
+      y := t;
+      t := t.tail
+    };
+    y.tail := n;
+    z := x
+  };
+  return z
+}
+
+a := null;
+a := lappend(a, 0);
+a := lappend(a, 1);
+b := null;
+b := lappend(b, 2);
+b := lappend(b, 3);
+c := lconcat(a, b);
+d := lcopy(c);
+n := llen(d)
