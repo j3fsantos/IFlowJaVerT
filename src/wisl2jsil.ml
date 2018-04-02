@@ -5,6 +5,12 @@ open WISL_Syntax
 open Format
 open WISL2JSIL_Compiler
 
+
+let burn_to_disk path data =
+	let oc = open_out path in
+		output_string oc data;
+		close_out oc
+
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   Printf.fprintf outx "%s:%d:%d" pos.pos_fname
@@ -23,15 +29,9 @@ let parse_with_error lexbuf =
 let rec parse_and_compile lexbuf =
   match parse_with_error lexbuf with
   | Some value -> begin
-                    match value.entry_point with
-                      | None -> ()
-                      | Some stmt -> (
-                    let cstmt = compile_statement stmt in
-                    let cstmt_cleaned = clean_unused_labs cstmt in 
-                    let lbody = Array.of_list cstmt_cleaned in
-                    let str = JSIL_Print.string_of_lbody lbody in
-                    fprintf std_formatter "%s" str
-                    )
+                   let cprog = compile_program value in
+                    let str = JSIL_Print.string_of_ext_program cprog in
+                    burn_to_disk "test.jsil" str
                   end
   | None -> Printf.fprintf stdout "No program"
 
