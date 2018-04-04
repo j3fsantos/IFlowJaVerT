@@ -188,7 +188,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10)
+(define goto-limit 1000)
 
 (define goto-stack (make-parameter '()))
 
