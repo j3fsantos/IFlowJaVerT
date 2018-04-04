@@ -14,7 +14,7 @@
 \bibliographystyle{ACM-Reference-Format}
 \citestyle{acmauthoryear}  
 
-
+%\usepackage{enumitem}
 
 \usepackage{xcolor}
 %\usepackage{amsmath}
@@ -171,8 +171,12 @@
 % Polishing...
 \newcommand{\polish}[1]{{\color{red}#1}}
 
+
+\usepackage{cosette_macros}
+
+
 % macros_js as for Jose Santos
-\usepackage{macros_js}
+%\usepackage{macros_js}
 %\usepackage{gdshojs}
 
 \newcommand{\jilette}{Cosette\xspace}
@@ -347,10 +351,6 @@ We evaluate \jilette on an array of examples, including tests from the official 
 %% Keywords
 %% comma separated list
 %\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
-
-
-\usepackage{macros_js}
-\usepackage{gdshojs}
 
 %\usepackage{amsmath, amssymb, amscd,mathrsfs}
 %\DeclareMathAlphabet{\mathbbm}{U}{bbm}{m}{n}
@@ -536,15 +536,16 @@ Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a
 %and regular expressions, whereas JS-2-JSIL successfully
 %contains the complexity of JavaScript itself.
 
+\newpage
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
-\input{sections/jilette}
+\input{sections/jsil_symb_exec}
 
 \section{Debugging Separation Logic Specifications}\label{sec:specs}
-\input{sections/specs}
+%\input{sections/specs}
 
 \newpage
 \section{Evaluation}\label{sec:evaluation}
-\input{sections/evaluation}
+%\input{sections/evaluation}
 
 \newpage
 \section{Related Work} 
@@ -581,6 +582,6 @@ that can be instantiated with a $\mathbb{K}$-interpretation of a  language to au
 \newpage
 \appendix
 
-\input{sections/appendix}
+%\input{sections/appendix}
 
 \end{document}
