@@ -84,7 +84,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val "no pc"))
+         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -188,7 +188,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 1000)
+(define goto-limit 10)
 
 (define goto-stack (make-parameter '()))
 
@@ -256,7 +256,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) "no pc"))
+       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
@@ -374,7 +374,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-                (println (format "CUR PC ~v" "no pc"))
+                (println (format "CUR PC ~v" cur-pc))
                 (let* ((new-solver (z3)))
                   (solver-clear new-solver)
                   (solver-assert new-solver (list cur-pc))
@@ -434,18 +434,20 @@
             (run-cmds-iter-next prog heap store ctx cur-index next-prev))]
                               
       ;; ('call lhs-var e (e1 ... en) i)
-      [(eq? cmd-type 'call)
-       (let* ((lhs-var (second cmd))
-              (proc-name-expr (third cmd))
-              (arg-exprs (fourth cmd))
-              (err-label (if (>= (length cmd) 5) (fifth cmd) null))
-              (call-proc-name (run-expr proc-name-expr store))
-              (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         ;; (newline (current-output-port))
-         ;; (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
-         (set! depth (+ depth 1))
-         (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
-         (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label))]
+         [(eq? cmd-type 'call)
+          (let* ((lhs-var (second cmd))
+                 (proc-name-expr (third cmd))
+                 (arg-exprs (fourth cmd)))
+            (println (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
+            (let* (
+                   (err-label (if (>= (length cmd) 5) (fifth cmd) null))
+                   (call-proc-name (run-expr proc-name-expr store))
+                   (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
+              ;; (newline (current-output-port))
+              (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+              (set! depth (+ depth 1))
+              (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
+              (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
 
       ;; ('apply lhs-var (e_fun e1 e2 (jsil-list e3... en)) i)
       [(eq? cmd-type 'apply)
@@ -481,7 +483,7 @@
               (arg-vars (expr-lvars #t expr-arg)))
          (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
          (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) "no pc"))
+         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
          (op-assert expr-val)
         (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
 
@@ -490,8 +492,7 @@
       [(eq? cmd-type 'assume)
        (let* ((expr-arg (second cmd))
               (expr-val (run-expr expr-arg store)))
-         (print-info proc-name (format "assume(~v)" expr-val))
-         (op-assume expr-val)
+         ;; 
          (cond
            [(and (symbolic? expr-val)
                  (> (count-goto proc-name cur-index) goto-limit))
@@ -500,7 +501,7 @@
 
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
-              (println (format "CUR PC ~v" "no pc"))
+              (println (format "CUR PC ~v" cur-pc))
               (let* ((old-solver (current-solver))
                      (new-solver (solve+))
                      (res (new-solver cur-pc)))
@@ -714,7 +715,6 @@
     (outcome-jose  (solve (assert (or (and (get-assumptions) (not success))  (and (get-assumptions) success (not (get-assertions)))))))
     (outcome-assumptions-and-failure (solve (assert (and (get-assumptions) (not success)))))
     (outcome-assumptions-success-and-not-assertions (solve (assert (and (get-assumptions) success (not (get-assertions))))))
-    (outcome-assumptions-success-and-assertions (solve (assert (and (get-assumptions) success (get-assertions)))))
     (outcome-failure (solve (assert failure)))
     (outcome-success-assume (solve (assert (and (get-assumptions) success))))
     (outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
@@ -722,8 +722,7 @@
       (list
         (cons "jose" (outcome-string outcome-jose))
         (cons "assumptions-and-failure" (outcome-string outcome-assumptions-and-failure))
-        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-success-and-not-assertions))
-        (cons "assumptions-success-and-assertions" (outcome-string outcome-assumptions-success-and-assertions))
+        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-and-failure))
         (cons "failure" (outcome-string outcome-failure))
         (cons "success-assume" (outcome-string outcome-success-assume))
         (cons "failure-assume" (outcome-string outcome-failure-assume)))))
@@ -740,9 +739,8 @@
     (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
     (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
     (println (format "Outcome Failure: ~v" outcome-failure))
-    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
-    (println (format "Outcome Success with assumptions and assertions: ~v" outcome-assumptions-success-and-assertions))
+    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (println (format "~v" (and (not (unsat? outcome-success-assume)) (unsat? outcome-failure) (unsat? outcome-assumptions-and-failure) (unsat? outcome-assumptions-success-and-not-assertions))))
     ;; JSON export
     (define out (open-output-file "models.json" #:exists 'replace))
