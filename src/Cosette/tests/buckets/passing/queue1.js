@@ -652,161 +652,37 @@ buckets.Queue = function () {
 
 // modeling the tests from test/queue-test.js
 
-var queue = null;
+var queue = new buckets.Queue();
 
-var s1 = symb_string(s1); // 'a'
-var s2 = symb_string(s2); // 'b'
-var s3 = symb_string(s3); // 'c'
-Assume((s1 < s2) and (s2 < s3));
+var x1 = symb_number(x1); // 1
+var x2 = symb_number(x2); // 2
+var x3 = symb_number(x3); // 3
+Assume((x1 < x2) and (x2 < x3));
 
 function createQueue() {
-  queue.enqueue(s1);
-  queue.enqueue(s2);
-  queue.enqueue(s3);
+  queue.enqueue(x1);
+  queue.enqueue(x2);
+  queue.enqueue(x3);
 }
 
-// /// this one OK
-// //it('size gives the right value', function () {
-// var queue = new buckets.Queue();
-// var size = queue.size();
-// Assert(size = 0);
-// createQueue();
-// var size = queue.size();
-// Assert(size = 3);
-// var s4 = symb_string(s4);
-// queue.enqueue(s4);
-// var size = queue.size();
-// Assert(size = 4);
-// queue.dequeue();
-// var size = queue.size();
-// Assert(size = 3);
-// queue.clear();
-// var size = queue.size();
-// Assert(size = 0);
-// queue.clear();
 
-// /// this one OK
-// // it('enqueue inserts elements to the queue', function () {
-// var head;
-// createQueue();
-// head = queue.dequeue();
-// Assert(head = s1);
-// queue.dequeue();
-// head = queue.dequeue();
-// Assert(head = s3);
-// var isEmpty = queue.isEmpty();
-// Assert(isEmpty = $$t);
-// head = queue.dequeue();
-// Assert(head = $$undefined);
-// queue.clear();
+// TEST 1
 
-
-// /// this one OK
-// // it('peek returns the frst element or undefined', function () {
-// var head, head2;
-// createQueue();
-// head = queue.peek();
-// Assert(head = s1);
-// head2 = queue.dequeue();
-// Assert(head = head2);
-// head = queue.peek();
-// Assert(head = s2);
-// queue.clear();
-// head = queue.peek();
-// Assert(head = $$undefined);
-// queue.clear();
-
-
-// /// this one OK (not symbolic)
-// // it('forEeach gives the elements in order', function () {
-// var i;
-// queue.forEach(function (e) {
-//     Assert($$f); // should not enter here
-// });
-// 
-// for (i = 0; i < 10; i += 1) {
-//     queue.add(i);
-// }
-// 
-// i = 0;
-// queue.forEach(function (e) {
-//     Assert(e = i);
-//     i += 1;
-// });
-// queue.clear();
-// 
-
-//it('forEeach can be interrupted', function () {
-var array = [0, 1, 2, 3, 4],
-    b = [],
-    i;
-for (i = 0; i < 5; i += 1) {
-    queue.add(i);
-}
-queue.forEach(function (e) {
-    b.push(e);
-    if (e === 3) {
-        return false;
-    }
-});
-
-var array2 = [0, 1, 2, 3];
-
-//Assert(array2 = b);
-Assert($$f);
+//it('size gives the right value', function () {
+var queue = new buckets.Queue();
+var size = queue.size();
+Assert(size = 0);
+createQueue();
+var size = queue.size();
+Assert(size = 3);
+var x4 = symb_number(x4);
+queue.enqueue(x4);
+var size = queue.size();
+Assert(size = 4);
+queue.dequeue();
+var size = queue.size();
+Assert(size = 3);
 queue.clear();
-
-
-// it('contains returns true for inserted items', function () {
-//     createQueue();
-//     expect(queue.contains('a')).toBeTruthy();
-// queue.clear();
-
-// });
-
-
-// it('contains returns false for non-inserted items', function () {
-//     createQueue();
-//     expect(queue.contains('z')).toBeFalsy();
-//     expect(queue.contains(undefined)).toBeFalsy();
-// queue.clear();
-
-// });
-
-
-// it('toArray gives the elements in order', function () {
-//     var arr;
-//     expect(queue.toArray().length).toEqual(0);
-// 
-//     queue.add(5);
-//     arr = queue.toArray();
-//     expect(arr[0]).toEqual(5);
-//     expect(arr.length).toEqual(1);
-// 
-//     queue.add(8);
-//     arr = queue.toArray();
-//     expect(arr[0]).toEqual(5);
-//     expect(arr[1]).toEqual(8);
-//     expect(arr.length).toEqual(2);
-// queue.clear();
-
-// });
-
-
-// it('equals returns true only if queues have the same elements in order', function () {
-//     var queue2 = new buckets.Queue();
-//     queue.add(1);
-//     queue.add(2);
-// 
-//     queue2.add(1);
-//     queue2.add(2);
-// 
-//     expect(queue.equals(queue2)).toBeTruthy();
-//     queue2.clear();
-//     queue2.add(2);
-//     queue2.add(1);
-//     expect(queue.equals(queue2)).toBeFalsy();
-//     expect(queue.equals([1, 2])).toBeFalsy();
-// queue.clear();
-
-// });
+var size = queue.size();
+Assert(size = 0);
+queue.clear();
