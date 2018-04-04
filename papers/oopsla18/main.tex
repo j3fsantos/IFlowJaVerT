@@ -367,6 +367,12 @@ We evaluate \jilette on an array of examples, including tests from the official 
 JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications, used by 94.8\% of websites\footnote{\url{https://w3techs.com/technologies/details/cp-javascript/all/all}}; it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited memory. 
 It is the most active language in both GitHub and StackOverflow.\footnote{\url{http://githut.info}; \url{https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628}}
 However, due to its dynamic nature and complex semantics, JavaScript remains a difficult target for symbolic analysis and logic-based verification.
+
+\pmax{Now, sth about the state-of-the-art}
+
+There exist symbolic execution tools for JavaScript, such as \pmaxinline{list them, cite them}. \pmaxinline{Say also something positive, don't know what}. They are not formalised and they do not come with guarantees wrt semantics \pmaxinline{check}. They are not compositional \pmaxinline{We don't know what this means yet}. Each of them targets a specific type of bugs \pmaxinline{give evidence}. 
+
+\pmax{How do we fill the gap?}
 To address this issue, we present \jilette, a framework for symbolic execution of JavaScript (ECMAScript 5 Strict~\cite{ecma}) programs, which advances the state-of-the-art in the two following ways. 
 
 \myparagraph{Novelty: Trustworthiness} The symbolic execution of \jilette is \emph{trustworthy}, in that it is formalised, proven sound, and precisely follows the ES5 English standard. 

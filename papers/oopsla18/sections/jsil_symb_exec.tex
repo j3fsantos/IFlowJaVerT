@@ -1,17 +1,18 @@
 %!TEX root = ../main.tex
 
-We describe our symbolic execution engine for \jsil~\cite{javert}. 
-In \S\ref{subsec:jsil:analysis:formalism}, we define the concrete 
-and symbolic semantics of \jsil by means of an 
-abstract semantics that can be parameterised with the appropriate state signature for
-obtaining both the concrete semantics and the symbolic semantics.
+\pmax{Think story!}
+
+We describe our novel symbolic execution engine for \jsil, an intermediate
+representation for JavaScript analysis previously introduced by \citet{javert}. 
+In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
+\jsil, which we then instantiate to obtain its concrete and symbolic semantics.
 In \S\ref{sex:formal:guarantees}, we present the formal guarantees of 
 our symbolic analysis, including: \dtag{i} a soundness result for the symbolic 
 execution, \dtag{ii} a guarantee of absence of false positives for bug-finding, 
-and \dtag{iii}  \polish{a verification result that precisely states the conditions 
+and \dtag{iii} \polish{a verification result that precisely states the conditions 
 under which symbolic execution gives us verification guarantees.}
 Finally, in \S\ref{subsec:jsil:analysis:implementation}, we give a brief overview
-of the implementation of the \jsil symbolic analysis. %in \rosette~\cite{Rosette1,Rosette2}.
+of the implementation. %in \rosette~\cite{Rosette1,Rosette2}.
 
 
 \subsection{Syntax and Semantics}\label{subsec:jsil:analysis:formalism}
