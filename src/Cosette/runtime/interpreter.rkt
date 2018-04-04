@@ -266,25 +266,31 @@
 
 
 (define (run-proc prog proc-name heap store ctx lhs-var arg-vals cur-index err-label)
-  (if (has-racket-implementation? proc-name)
-      ;; Procedure Implemented in Racket
-      (begin
-        (displayln "encontrei um rosette model!!!")
-        (let* ((racket-proc (get-racket-implementation proc-name))
-               (outcome (apply racket-proc (cdr arg-vals)))
-               (new-store (mutate-store store lhs-var (cdr outcome))))
-          (run-cmds-iter prog heap new-store ctx (+ cur-index 1) cur-index)))
-      ;; 
-      ;; Procedure Implemented in JSIL
-      (let* ((proc (get-proc prog proc-name))
-             (new-store (proc-init-store proc arg-vals))
-             (new-heap  (mutate-heap heap larguments parguments (make-jsil-list arg-vals)))
-             (new-ctx
-              (begin ;(displayln "I am going to create a context!!!")
-                     (push-ctx-entry ctx proc-name store lhs-var (+ cur-index 1) err-label))))
-        (set! call-stack-depth (+ call-stack-depth 1))
-        ;(displayln (format "New ctx: ~v. New store: ~v. arg-vals: ~v" new-ctx new-store arg-vals))
-        (run-cmds-iter prog new-heap new-store new-ctx 0 -1))))
+  (for*/all [(proc-name proc-name #:exhaustive)]
+    (if (not (symbolic? proc-name)) 
+        (if (has-racket-implementation? proc-name)
+            ;; Procedure Implemented in Racket
+            (begin
+              (displayln "encontrei um rosette model!!!")
+              (let* ((racket-proc (get-racket-implementation proc-name))
+                     (outcome (apply racket-proc (cdr arg-vals)))
+                     (new-store (mutate-store store lhs-var (cdr outcome))))
+                (run-cmds-iter prog heap new-store ctx (+ cur-index 1) cur-index)))
+            ;; 
+            ;; Procedure Implemented in JSIL
+            (let* ((proc (get-proc prog proc-name))
+                   (new-store (proc-init-store proc arg-vals))
+                   (new-heap  (mutate-heap heap larguments parguments (make-jsil-list arg-vals)))
+                   (new-ctx
+                    (begin ;(displayln "I am going to create a context!!!")
+                      (push-ctx-entry ctx proc-name store lhs-var (+ cur-index 1) err-label))))
+              (set! call-stack-depth (+ call-stack-depth 1))
+              ;(displayln (format "New ctx: ~v. New store: ~v. arg-vals: ~v" new-ctx new-store arg-vals))
+              (run-cmds-iter prog new-heap new-store new-ctx 0 -1)))
+
+        (begin
+          (println (format "I am killing an execution because I want to execute a procedure with a symbolic name: ~v" proc-name))
+          (kill proc-name)))))
 
 
 (define (run-cmds-iter-next prog heap store ctx cur-index next-prev-index)
@@ -302,14 +308,14 @@
          (if (is-top-ctx? ctx)
              outcome 
              (let* ((next-state (process-proc-outcome outcome ctx)))
-               (for*/all ([next-state next-state]) 
+               ;; (for*/all ([next-state next-state]) 
                  (let* ((new-ctx (pop-ctx-entry ctx))
                         (new-store (first next-state))
                         (cur-index (second next-state))
                         (prev-index (third next-state)))
                    (set! call-stack-depth (- call-stack-depth 1))
-                   (print-info proc-name (format "RETURNED WITH STORE ~a" new-store))
-                   (run-cmds-iter prog heap new-store new-ctx cur-index prev-index))))))]
+                   (println (format "RETURNED WITH STORE ~a" new-store))
+                   (run-cmds-iter prog heap new-store new-ctx cur-index prev-index)))))]
                       
       [(eq? cur-index (get-err-index proc))
         (let ((outcome (cons 'err (store-get store err-var))))
@@ -333,7 +339,7 @@
          (cmd-type (first cmd)))
     ;;(println (pc))
     ;;(print-cmd cmd)
-    (print-info proc-name (format "Run-cmds-iter: index ~v, command ~v, store: ~v" cur-index cmd  store))
+    (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd  store))
     (cond
       ;;
       ;; ('print e) 
@@ -440,13 +446,13 @@
           (let* ((lhs-var (second cmd))
                  (proc-name-expr (third cmd))
                  (arg-exprs (fourth cmd)))
-            (print-info proc-name (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
+            (println (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
             (let* (
                    (err-label (if (>= (length cmd) 5) (fifth cmd) null))
                    (call-proc-name (run-expr proc-name-expr store))
                    (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
               ;; (newline (current-output-port))
-              (print-info proc-name (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+              (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
               (set! depth (+ depth 1))
               (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
               (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
@@ -485,7 +491,7 @@
               (arg-vars (expr-lvars #t expr-arg)))
          (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
          (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
+         ;;(print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
          (op-assert expr-val)
         (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
 
@@ -718,7 +724,6 @@
     (outcome-jose  (solve (assert (or (and (get-assumptions) (not success))  (and (get-assumptions) success (not (get-assertions)))))))
     (outcome-assumptions-and-failure (solve (assert (and (get-assumptions) (not success)))))
     (outcome-assumptions-success-and-not-assertions (solve (assert (and (get-assumptions) success (not (get-assertions))))))
-    (outcome-assumptions-success-and-assertions (solve (assert (and (get-assumptions) success (get-assertions)))))
     (outcome-failure (solve (assert failure)))
     (outcome-success-assume (solve (assert (and (get-assumptions) success))))
     (outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
@@ -726,8 +731,7 @@
       (list
         (cons "jose" (outcome-string outcome-jose))
         (cons "assumptions-and-failure" (outcome-string outcome-assumptions-and-failure))
-        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-success-and-not-assertions))
-        (cons "assumptions-success-and-assertions" (outcome-string outcome-assumptions-success-and-assertions))
+        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-and-failure))
         (cons "failure" (outcome-string outcome-failure))
         (cons "success-assume" (outcome-string outcome-success-assume))
         (cons "failure-assume" (outcome-string outcome-failure-assume)))))
@@ -744,9 +748,8 @@
     (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
     (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
     (println (format "Outcome Failure: ~v" outcome-failure))
-    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
-    (println (format "Outcome Success with assumptions and assertions: ~v" outcome-assumptions-success-and-assertions))
+    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
     (println (format "~v" (and (not (unsat? outcome-success-assume)) (unsat? outcome-failure) (unsat? outcome-assumptions-and-failure) (unsat? outcome-assumptions-success-and-not-assertions))))
     ;; JSON export
     (define out (open-output-file "models.json" #:exists 'replace))

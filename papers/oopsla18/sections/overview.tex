@@ -37,6 +37,12 @@ The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be 
 objects. Therefore, they are defined in \jsinline|Map.prototype|, which is the prototype 
 of all objects created using \jsinline|Map| as a constructor (i.e.~using~\jsinline|new Map()|).
 
+Observe that a naive implementation of the function \jsinline|validKey| may result in potential 
+bugs. In particular, one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
+By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
+\jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
+
+
  \begin{figure}[t!]
  \begin{minipage}{0.5\textwidth}
  \begin{lstjs}[firstnumber=1]
@@ -73,11 +79,14 @@ Map.prototype.validKey = function (k) { ... }
 
 \subsection{Symbolic Testing}
 
-A simple way of testing the behaviour of the key-value map is to write a 
+A simple way of testing the behaviour of the key-value map is to write a test 
+that checks that if we were to put a key/value pair \jsinline|(k, v)| into the map, then 
+we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. 
+Without \jilette we  would have to pick a concrete key and a concrete value. 
+Instead, we can simply use a symbolic string for the key and a symbolic number 
+for the value, as illustrated below. 
  
 %
-Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
-By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
 \jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
 Consider the following symbolic test:
 \begin{lstjsex}
@@ -86,7 +95,19 @@ var m = new Map();  m.put(s1, n1); var r = m.get(s1);
 assert(n1 = r)
 \end{lstjsex}
 %
-The symbolic test above checks for a desired property of the library---if we were to put a key/value pair \jsinline|(k, v)| into the map, then we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. We can run \jilette on this test to reveal the bug discusses above. Indeed, \jilette generates
+
+ 
+When running \jilette on the above test with a naive implementation  
+we obtain the counter-model  \jsinline|s1 = "hasOwnProperty"|. This is due to the 
+fact Note that one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
+By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
+
+
+
+
+
+
+ We can run \jilette on this test to reveal the bug discusses above. Indeed, \jilette generates
 the failing model: \jsinline|s1 = "hasOwnProperty"|. 
 
 This example also highlights how \jilette does not require 

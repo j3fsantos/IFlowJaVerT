@@ -146,6 +146,9 @@
     ((eq? val mc-sqrt12) number-type)
     ((eq? val mc-sqrt2)  number-type)
     ((is-llist? val) list-type)
+    ((union? val)
+      (for/all ([v val #:exhaustive])
+        (jsil-type-of v)))
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
 ;; Subtyping
