@@ -308,7 +308,7 @@
                         (cur-index (second next-state))
                         (prev-index (third next-state)))
                    (set! call-stack-depth (- call-stack-depth 1))
-                   (println (format "RETURNED WITH STORE ~a" new-store))
+                   (print-info proc-name (format "RETURNED WITH STORE ~a" new-store))
                    (run-cmds-iter prog heap new-store new-ctx cur-index prev-index))))))]
                       
       [(eq? cur-index (get-err-index proc))
@@ -333,7 +333,7 @@
          (cmd-type (first cmd)))
     ;;(println (pc))
     ;;(print-cmd cmd)
-    (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd  store))
+    (print-info proc-name (format "Run-cmds-iter: index ~v, command ~v, store: ~v" cur-index cmd  store))
     (cond
       ;;
       ;; ('print e) 
@@ -440,13 +440,13 @@
           (let* ((lhs-var (second cmd))
                  (proc-name-expr (third cmd))
                  (arg-exprs (fourth cmd)))
-            (println (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
+            (print-info proc-name (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
             (let* (
                    (err-label (if (>= (length cmd) 5) (fifth cmd) null))
                    (call-proc-name (run-expr proc-name-expr store))
                    (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
               ;; (newline (current-output-port))
-              (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+              (print-info proc-name (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
               (set! depth (+ depth 1))
               (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
               (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
