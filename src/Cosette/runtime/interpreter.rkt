@@ -188,7 +188,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10)
+(define goto-limit 1000)
 
 (define goto-stack (make-parameter '()))
 
@@ -301,13 +301,15 @@
          ;(displayln (format "about to finish executing proc ~v with store: ~v. ctx: ~v" proc-name store ctx))
          (if (is-top-ctx? ctx)
              outcome 
-             (let* ((next-state (process-proc-outcome outcome ctx))
-                    (new-ctx (pop-ctx-entry ctx))
-                    (new-store (first next-state))
-                    (cur-index (second next-state))
-                    (prev-index (third next-state)))
-               (set! call-stack-depth (- call-stack-depth 1))
-               (run-cmds-iter prog heap new-store new-ctx cur-index prev-index))))]
+             (let* ((next-state (process-proc-outcome outcome ctx)))
+               (for*/all ([next-state next-state]) 
+                 (let* ((new-ctx (pop-ctx-entry ctx))
+                        (new-store (first next-state))
+                        (cur-index (second next-state))
+                        (prev-index (third next-state)))
+                   (set! call-stack-depth (- call-stack-depth 1))
+                   (println (format "RETURNED WITH STORE ~a" new-store))
+                   (run-cmds-iter prog heap new-store new-ctx cur-index prev-index))))))]
                       
       [(eq? cur-index (get-err-index proc))
         (let ((outcome (cons 'err (store-get store err-var))))
@@ -331,7 +333,7 @@
          (cmd-type (first cmd)))
     ;;(println (pc))
     ;;(print-cmd cmd)
-    ;;(println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, ctx: ~v" proc-name cur-index cmd  ctx))
+    (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd  store))
     (cond
       ;;
       ;; ('print e) 
@@ -577,7 +579,8 @@
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
                      (new-str (string-append tabs ": " (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))))
-                ;; (println new-str)
+                (println (format "STORE: ~v" store))
+                (println new-str)
                 type-of))]
        ;;
        ;; ('jsil-list l)
