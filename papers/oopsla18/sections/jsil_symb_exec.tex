@@ -311,6 +311,13 @@ of the call stack~$\abscs'$, in execution mode $\mode'$.
 For clarity, we keep the executing program implicit and make use of a function $\ccmd{\prog, \cs, i}$, which 
 returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
+\jfs{
+\begin{enumerate}
+   \item Should we explain the rules?
+   \item We shou
+\end{enumerate}
+}
+
 
 \newpage
 \subsubsection{Concrete Semantics}
@@ -446,7 +453,7 @@ for control flow commands.
    }{  \absgetdomainrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr}{\jsilset{\sexprp_1, ..., \sexprp_n}}}
   \and
  % 
-     \inferrule[\textsc{GetCell - Domain}]
+     \inferrule[\textsc{GetCell - Not Found}]
    { 
          \evalexpr{}(\sstore, \jsilexpr_1) = \sloc
         \quad 
@@ -467,7 +474,7 @@ for control flow commands.
   %
   \\
   %
-    \inferrule[\textsc{GetCell - Explicit Cell}]
+    \inferrule[\textsc{GetCell - Found}]
    { 
          \evalexpr{}(\sstore, \jsilexpr_1) = \sloc
         \quad 
@@ -523,14 +530,7 @@ for control flow commands.
  \end{mathpar}}}
  \end{display}
 
-\myparagraph{Example:}
- To get a better intuition of how these rules work, let us take a look at the snippet of code shown on the right. 
-This code: 
-	0)~creates a new object $\mathtt{o}$;
-	1)~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
-	2)~collects all the properties of $\mathtt{o}$ into a set and assigns this set to $\mathtt{x}$; and
-	3)~asserts that the cardinality of the set in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. This last assertion will produce a failing symbolic execution. Let us understand why.
-%
+\vspace{5pt}
 \begin{wrapfigure}{R}{0.4\textwidth}
 \vspace*{-0.25cm}
 {\small
@@ -541,11 +541,30 @@ This code:
 }
 \vspace*{-0.3cm}
 \end{wrapfigure}
+\myparagraph{Example:}
+To get a better intuition of how symbolic execution works, let us take a look at the snippet of code shown on the right. 
+This code: 
+	\dtag{0}~creates a new object $\mathtt{o}$;
+	\dtag{1}~assigns 42 to a symbolic property $\mathtt{\hat{s}}$ of $\mathtt{o}$; 
+	\dtag{2}~collects all the properties of $\mathtt{o}$ into a set and assigns this set to $\mathtt{x}$; and
+	\dtag{3}~asserts that the cardinality of the set in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. 
+	     This last assertion will produce a failing symbolic execution. Let us understand why.
 %
-We start from an empty heap, empty store, and an empty path condition: $\tuple{\hemp, \emptyset, 0, \jtrue}^\top$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state {\small $\tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \{ \mathtt{o : l_o} \} , 1, \jtrue}^\top$}, illustrated at the top of Figure~\ref{fig:sexecexample}.
-The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. In the symbolic semantics, there are two potential \textsc{Property Assignment} rules (\textsc{Found}, \textsc{Not Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and $\hat{s}$, with value 42.
+We start from an empty heap, empty domain, empty store, and path condition $\jtrue$: 
+$\sstate_0 = \tuple{\hemp, \demp, \storeemp, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state {\small $\sstate_1 = \tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \mathtt{l_o : \{ ``@proto"} \} \}, \{ \mathtt{o : l_o} \} , \jtrue}$}, illustrated at the top of Figure~\ref{fig:sexecexample}.
+The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. The semantic rule for \textsc{Property Assignment} makes use 
+of the abstract function \textsc{GetCell}. There are two potential \textsc{Get Cell} rules (\textsc{Not Found} and \textsc{Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and/or inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and $\hat{s}$, with value 42.
 The execution then continues in both branches with the property collection command $\mathtt{x := getFields(o)}$, which assigns the set of properties of the object $\mathtt{o}$ to the variable~$\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (card \ x = 2)}$, asserting that $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left.
 Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbolic execution trace, from which a concrete counter-model can be derived ($\hat{s} = \mathtt{``@proto"}$).
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.83\textwidth]{symbSemEx.png}
+\vspace*{-0.1cm}
+\caption{Example of a \jilette symbolic execution}
+\label{fig:sexecexample}
+\vspace*{-0.3cm}
+\end{figure}
 
 
 
