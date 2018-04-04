@@ -27,9 +27,9 @@ var o = {
     return x + 1;
   },
   
-  // minusOne: function(x) {
-  //   return x - 1;
-  // },
+  minusOne: function(x) {
+     return x - 1;
+   },
   // 
   // timesTwo: function(x) {
   //   return x * 2;
