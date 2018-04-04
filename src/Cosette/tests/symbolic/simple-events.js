@@ -39,11 +39,10 @@ var o = {
 var s1 = symb_string(s1);
 // Assume((s1 = "fib") or (s1 = "fact") or (s1 = "sum"));
 //Assume((s1 = "plusOne"));
-if (s1[0] !== "@") {
-  var n1 = symb_number(n1);
+Assume(not ((s-nth s1) = "@"));
+var n1 = symb_number(n1);
 
-  // figure out which function to call
-  var total = o[s1](n1);
+// figure out which function to call
+var total = o[s1](n1);
 
-  Assert(total = 10);
-}
+Assert(total = 10);
