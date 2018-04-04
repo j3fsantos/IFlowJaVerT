@@ -58,8 +58,11 @@ def replace_assert(line):
     line = re.sub("Assert\s*", "assert.ok", line)
     line = re.sub("and", "&&", line)
     line = re.sub("or", "||", line)
-    line = re.sub("[^<>]=", "===", line)
+    line = re.sub("[^<>]=", " ===", line)
     line = re.sub("not", "!", line)
+    line = re.sub("\$\$undefined", "undefined", line)
+    line = re.sub("\$\$f", "false", line)
+    line = re.sub("\$\$t", "true", line)
     return line
 
 
@@ -114,7 +117,7 @@ def make_concrete(js_filename):
         js_lines = [line.rstrip() for line in js_lines] # remove final \n
 
     # read the JSON file containing the concrete model for each outcome
-    models_filename = "models_{}.json".format(file_short)
+    models_filename = "{}_models.json".format(file_short)
     with open(models_filename, "r") as models_file:
         models = json.load(models_file)
 
@@ -125,7 +128,7 @@ def make_concrete(js_filename):
             print("\tModel unsatisfiable.")
         else:
             if len(valuation) == 0:
-                print("\tEmpty model (error?).")
+                print("\tEmpty model.")
             else:
                 print("\tValuation:")
                 for var in valuation:

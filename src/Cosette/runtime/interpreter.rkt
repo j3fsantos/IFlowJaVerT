@@ -84,7 +84,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val "no pc"))
+         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -256,7 +256,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) "no pc"))
+       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
@@ -374,7 +374,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-                (println (format "CUR PC ~v" "no pc"))
+                (println (format "CUR PC ~v" cur-pc))
                 (let* ((new-solver (z3)))
                   (solver-clear new-solver)
                   (solver-assert new-solver (list cur-pc))
@@ -434,18 +434,20 @@
             (run-cmds-iter-next prog heap store ctx cur-index next-prev))]
                               
       ;; ('call lhs-var e (e1 ... en) i)
-      [(eq? cmd-type 'call)
-       (let* ((lhs-var (second cmd))
-              (proc-name-expr (third cmd))
-              (arg-exprs (fourth cmd))
-              (err-label (if (>= (length cmd) 5) (fifth cmd) null))
-              (call-proc-name (run-expr proc-name-expr store))
-              (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
-         ;; (newline (current-output-port))
-         ;; (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
-         (set! depth (+ depth 1))
-         (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
-         (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label))]
+         [(eq? cmd-type 'call)
+          (let* ((lhs-var (second cmd))
+                 (proc-name-expr (third cmd))
+                 (arg-exprs (fourth cmd)))
+            (println (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
+            (let* (
+                   (err-label (if (>= (length cmd) 5) (fifth cmd) null))
+                   (call-proc-name (run-expr proc-name-expr store))
+                   (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
+              ;; (newline (current-output-port))
+              (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+              (set! depth (+ depth 1))
+              (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
+              (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
 
       ;; ('apply lhs-var (e_fun e1 e2 (jsil-list e3... en)) i)
       [(eq? cmd-type 'apply)
@@ -481,7 +483,7 @@
               (arg-vars (expr-lvars #t expr-arg)))
          (print-info proc-name (format "assert(~v), original arg: ~v. expr-vars: ~v." expr-val expr-arg (set->list arg-vars)))
          (print-info proc-name (format "cur relevant store: ~v" (store-projection store arg-vars)))
-         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) "no pc"))
+         (print-info proc-name (format "current store projections under ~v with pc ~v" (store->string (store-projection store arg-vars)) (pc)))
          (op-assert expr-val)
         (run-cmds-iter-next prog heap store ctx cur-index cur-index))]
 
@@ -499,7 +501,7 @@
 
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
-              (println (format "CUR PC ~v" "no pc"))
+              (println (format "CUR PC ~v" cur-pc))
               (let* ((old-solver (current-solver))
                      (new-solver (solve+))
                      (res (new-solver cur-pc)))
@@ -720,7 +722,7 @@
       (list
         (cons "jose" (outcome-string outcome-jose))
         (cons "assumptions-and-failure" (outcome-string outcome-assumptions-and-failure))
-        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-success-and-not-assertions))
+        (cons "assumptions-success-and-not-assertions" (outcome-string outcome-assumptions-and-failure))
         (cons "failure" (outcome-string outcome-failure))
         (cons "success-assume" (outcome-string outcome-success-assume))
         (cons "failure-assume" (outcome-string outcome-failure-assume)))))
