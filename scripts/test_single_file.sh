@@ -16,4 +16,4 @@ rname=$name'.rkt'
 logname=res_$name.txt
 racket $rname > $logname
 mv models.json $name"_models.json"
-tail -n 11 $logname
+tail -n 12 $logname
