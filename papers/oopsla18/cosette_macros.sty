@@ -1,0 +1,250 @@
+%!TEX root = main.tex
+
+% Auxiliary - Text 
+\newcommand{\dtag}[1]{{\small \bf (#1)}}
+\newcommand{\prooflab}[1]{{\small {\scshape [#1]}}}
+
+
+% --------------------------------------------------------------------- %
+% Proof rule.                                                           %
+% --------------------------------------------------------------------- %
+
+  \let\smallish\small
+
+\makeatletter
+\newcommand{\addToLabel}[1]{%
+  \protected@edef\@currentlabel{\@currentlabel#1}%
+}
+\makeatother
+
+\newcounter{rule}
+\renewcommand{\therule}{}
+
+
+\newcommand{\stateaxiom}[3][]{%
+  \refstepcounter{rule}%
+  \addToLabel{#2}%
+  $\begin{array}[b]{@{}l}%
+    \mbox{#2#1}\\%
+    \begin{array}{c}
+      #3
+    \end{array}
+  \end{array}$}
+
+\newcommand{\staterule}[4][]{%
+  \refstepcounter{rule}%
+  \addToLabel{#2}%
+  $\begin{array}[b]{@{}l}%
+    \mbox{#2#1}\\%
+    \begin{array}{l}
+      #3\\
+      \hline
+      \raisebox{0ex}[2.5ex]{\strut}#4%
+    \end{array}
+  \end{array}$}
+
+
+
+% Beautiful framed environment
+ \let\smallish\small
+\newcommand{\ratio}{.375}
+
+\newcommand{\hbra}{
+  %\hbox to \textwidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+  \hbox to \linewidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+    \leaders\hrule height1.8mm depth-1.5mm\hfill
+    \vrule width0.3mm height 1.8mm depth-0.3mm}}
+\newcommand{\hket}{
+  %\hbox to \textwidth{\vrule width0.3mm height1.5mm
+  \hbox to \linewidth{\vrule width0.3mm height1.5mm
+    \leaders\hrule height0.3mm\hfill
+    \vrule width0.3mm height1.5mm}}
+
+\newenvironment{display}[1]{\vspace{-0.5ex}\smallish
+\begin{tabbing}
+    \hspace{1.5em} \= \hspace{\ratio\linewidth-1.5em} \= \hspace{1.5em} \= \kill
+    \textbf{#1}\\[-.2ex] % was -.8
+    \hbra\\[-.8ex]
+  }{\\[-.8ex]\hket
+  \end{tabbing}\vspace{-1ex}}
+  
+
+
+% Auxiliary - General Math 
+\newcommand{\command}[1]{\texttt{#1}\xspace}
+\newcommand{\sortstyle}[1]{\mathcal{#1}}
+\definecolor{light-gray}{gray}{0.6}
+\newcommand{\lightmath}[1]{{\color{light-gray}#1 \, }}
+\definecolor{dark-gray}{gray}{0.4}
+\newcommand{\darkmath}[1]{{\color{dark-gray}#1 \, }}
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+\newcommand\defeq{{{::}=}}
+\newcommand\jvec[1]{\overline{#1}}
+\newcommand{\dunion}[0]{\, \uplus \,}
+\newcommand{\domain}{\command{dom}}
+\newcommand{\partialmap}{\rightharpoonup}
+
+% Well known Names 
+\newcommand{\javert}[0]{JaVerT\xspace}
+\newcommand{\jssubscript}{\mathtt{JS}}
+\newcommand{\jsilsubscript}{\mathtt{JSIL}}
+
+
+% JSIL Syntax
+%
+% variables
+\newcommand\jvar{x}
+\newcommand\jvars{\sortstyle{X}}
+% types
+\newcommand{\jtype}[0]{\tau}
+\newcommand{\jtypes}[0]{\mathcal{T}}
+% booleans
+\newcommand{\jbool}[0]{b}
+\newcommand{\bools}[0]{\sortstyle{B}}
+\newcommand\jtrue[0]{{\sf true}}
+\newcommand\jfalse[0]{{\sf false}}
+% strings
+\newcommand{\jstring}[0]{s}
+\newcommand{\strings}[0]{{\mathcal S}}
+% properties 
+\newcommand{\internalProp}[1]{\ensuremath{\mathit{#1}}}
+\newcommand\protop{\internalProp{@proto}}
+% numbers
+\newcommand{\jnumber}[0]{n}
+\newcommand{\numbers}[0]{\sortstyle{N}}
+% Values
+\newcommand{\val}[0]{v}
+\newcommand{\vals}[0]{\sortstyle{V}}
+% Locations
+\newcommand{\loc}{l}
+\newcommand{\locs}{{\mathcal L}}
+% Special Values
+\newcommand\jundefined[0]{{\sf undefined}}
+\newcommand{\jnull}[0]{{\sf null}}
+\newcommand{\jempty}{{\sf empty}}
+% function ids
+\newcommand{\pid}[0]{\ensuremath{\mathit{f}}\xspace}
+% expressions
+\newcommand\jsilexpr{e}
+\newcommand\exprs{\sortstyle{E}xp}
+% literals
+\newcommand{\lit}[0]{\lambda}
+% operators
+\newcommand\binop[1]{\, \oplus_{#1} \,}
+\newcommand\uop[1]{\otimes_{#1} \,}
+% lists and sets 
+\newcommand{\jsilset}[1]{ \{ \, #1 \, \} }
+\newcommand{\jsillist}[1]{ [ #1 ]}
+% commands 
+\newcommand\bcmd{bc}
+\newcommand\bcmds{\sortstyle{B}cmd}
+\newcommand\jcmd{c}
+\newcommand\cmds{\sortstyle{C}md}
+% basic commands
+\newcommand\jsilskip[0]{\darkmath{\textsf {skip}}}
+\newcommand\jsilnew{\darkmath{\textsf {new}}}
+\newcommand\jsildelete{\darkmath{\textsf {delete}}}
+\newcommand\hasfield{\darkmath{\textsf {hasField}}}
+\newcommand\assert{\darkmath{\textsf {assert}}}
+\newcommand\assume{\darkmath{\textsf {assume}}}
+\newcommand\getfields{\darkmath{\textsf {getFields}}}
+\newcommand\ifgoto[3]{\darkmath{\textsf {goto}} \ [#1] \ #2, \ #3}
+\newcommand\goto{\darkmath{\textsf {goto}}}
+\newcommand\jsilcall[4]{#1 := #2(#3) \, \darkmath{\textsf {with}} #4}
+% procedures and programs
+\newcommand\proc{proc}
+\newcommand\procs{\mathtt{Proc}}
+\newcommand\jsilmain{\darkmath{\textsf {main}}}
+\newcommand\procedure[3]{\darkmath{\sf proc} #1(#2) \{ #3 \}}
+\newcommand\nprocedure[4]{\darkmath{\sf proc} #1(#2) \{ #3 \} \, \darkmath{\sf with} \, (#4)}
+% programs
+\newcommand{\prog}[0]{p}
+\newcommand{\progs}[0]{\sortstyle{P}}
+\newcommand\normalsubscript{{\sf nm}}
+\newcommand\errorsubscript{{\sf er}}
+\newcommand\retlab[0]{i_{\normalsubscript}}
+\newcommand\errlab[0]{i_{\errorsubscript}}
+\newcommand\retvar[0]{\mathtt{ret}}
+\newcommand\errvar[0]{\mathtt{err}}
+\newcommand\args{\mathtt{args}}
+
+% 
+% Abstract Semantics 
+\newcommand\absstate{\Sigma}
+\newcommand\absstates{\mathbb{S}}
+\newcommand\absstore{{\sf P}}
+%\newcommand\absstores{\mathbb{S}to}
+\newcommand\abscs{\mathtt{cs}}
+\newcommand\absval{\mathtt{v}}
+\newcommand\absvals{\mathbb{V}}
+\newcommand{\none}{\diameter}
+\newcommand\absloc{\mathtt{l}}
+\newcommand\abslocs{\hat{\mathcal{L}}}
+\newcommand\absprop{\mathtt{p}}
+% selector for the abstract state
+\newcommand{\hpsel}[0]{\darkmath{\sf hp}}
+\newcommand{\stosel}[0]{\darkmath{\sf sto}}
+\newcommand{\pcsel}[0]{\darkmath{\sf pc}}
+\newcommand{\domsel}[0]{\darkmath{\sf dom}}
+\newcommand\hlocs[1]{{\sf locs}(#1)}
+% abstract functions 
+\newcommand\getdomain{\mathcal{G\!D}}
+\newcommand\getcell{\mathcal{GC}}
+\newcommand\absgetcellrule[3]{\getcell(#2) \leadsto_{#1} #3}
+\newcommand\absgetdomainrule[3]{\getdomain(#2) \leadsto_{#1} #3}
+\newcommand\hpupdt[1]{\mathcal{H\!U}_{#1}}
+\newcommand\stupdt[1]{\mathcal{S\!U}_{#1}}
+\newcommand\absassume[1]{\mathcal{A}{sm}_{#1}}
+\newcommand\abssat[1]{\mathcal{S}at_{#1}}
+\newcommand{\evalexpr}[1]{\mathcal{E}v_{#1}}
+% rules 
+\newcommand{\absbsemrule}[3]{\tuple{#1} \leadsto_{#3} #2}
+\newcommand{\abssemrule}[5]{\tuple{#1}^{#3} \leadsto_{#5} \tuple{#2}^{#4}}
+\newcommand\mode{\mu}
+\DeclareDocumentCommand{\ccmd}{ o o m }
+{
+  \IfNoValueTF{#1}
+  	{\textsf{cmd}(#3)}
+	{\textsf{cmd}(#1, #2, #3)}}
+	
+	
+% 
+% Concrete Semantics 
+\newcommand\concrete[0]{\darkmath{\textsf{c}}}
+\newcommand\jstate[0]{\sigma}
+\newcommand\heap[0]{h}
+\newcommand\heaps[0]{{\mathcal H}}
+\newcommand\store[0]{\rho}
+\newcommand{\stores}{\sortstyle{S}to}
+\newcommand{\hcell}[3]{(#1, #2) \mapsto #3}
+\newcommand{\hemp}{\emptyset}
+\newcommand\cs{cs}
+\newcommand\unoper{\ominus}
+\newcommand\binoper{\oplus}
+
+
+% 
+% Symbolic Semantics 
+\newcommand\sstring{\hat{s}}
+\newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
+\newcommand\snumber{\hat{n}}
+\newcommand{\snumbers}[0]{\hat{\mathcal{N}}}
+\newcommand{\svar}[0]{\hat{x}}
+\newcommand\svars[0]{\hat{\sortstyle{X}}} 
+\newcommand\symbolic[0]{\darkmath{\textsf{s}}}
+\newcommand\sstate{\hat{\sigma}}
+\newcommand\sheap[0]{\hat{h}}
+\newcommand\sheaps[0]{\hat{\mathcal H}}
+\newcommand\sstore[0]{\hat\rho}
+\newcommand\sstores[0]{\hat{{\mathcal S}to}}
+\newcommand\sdom{\hat{d}}
+\newcommand\pc{\pi}
+\newcommand\sexpr{\hat{e}}
+\newcommand\sexprp{\hat{p}}
+\newcommand\sexprv{\hat{v}}
+\newcommand\sexprs{\hat{\sortstyle{E}}_{\jsilsubscript}}
+\newcommand\pvsexpr{\underline{e}}
+\newcommand\pvsexprs{\underline{{\sortstyle{E}}}_{\jsilsubscript}}
+\newcommand\sloc[0]{\hat{\loc}}
+\newcommand\scs{\hat{cs}}
+

@@ -188,7 +188,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10000)
+(define goto-limit 10)
 
 (define goto-stack (make-parameter '()))
 
@@ -372,7 +372,7 @@
               (kill expr-val)]
 
 
-            [(symbolic? expr-val)
+             [(symbolic? expr-val)
               (let ((cur-pc (pc)))
                 (println (format "CUR PC ~v" "no pc"))
                 (let* ((new-solver (z3)))
@@ -397,6 +397,7 @@
                                (print-info proc-name (format "ELSE BRANCH: ~v" expr))
                                (run-cmds-iter prog heap store ctx else-label cur-index)))
                             (#t (set! success #t))))))))]
+
                         
              [(eq? expr-val #t)
                 (print-info proc-name (format "THEN BRANCH: ~v" expr))
