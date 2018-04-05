@@ -122,6 +122,7 @@ In order to reason about a key-value map, we define several predicates, whose de
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
 Map (m, kvs) := 
   DataProp(m, "_contents", c) * JSObject(c) * 
+    
     KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys)
 \end{Verbatim}
  \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
@@ -149,16 +150,8 @@ In the definition of \jsinline|ValidKey|, we highlight in red a potential bug in
 % source of errors on which we will focus shortly.
 
 To give a better intuition of how the \jsinline|Map| predicate works, we show the full unfolding of {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$} in Figure \ref{fig:symb:state:versus:assertion}.
-%a \emph{map object predicate}, \jsinline|Map|, 
-%which uses the auxiliary predicate \jsinline|KVPairs|, capturing the resource of the key-value pairs in the map, 
-%and the \jsinline|validKey(k)| predicate, which captures the validity of a key and holds if and only if the corresponding JavaScript function \jsinline|ValidKey(k)| returns \jsinline|true|\footnote{For the moment, we treat the $\mathtt{ValidKey}$ predicate as a black box.}.
-%
-%Intuitively, the \jsinline|Map(m, kvs)| predicate captures the resource, 
-%of a map object \jsinline|m| with key-value pairs \jsinline|kvs| (a set of string-number pairs, modelled as two-element lists).
-%%\footnote{We model pairs as lists with two elements and, for clarity, use the pair notation.}). 
-%For instance, the assertion $\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$ can be unfolded as illustrated in Figure~\ref{fig:symb:state:versus:assertion}. 
-%Observe that the definition of \jsinline|Map| does not include the resource of a map prototype, as it is shared between all map objects, and therefore needs to be factored out.  
-%
+
+
 There, we can also see how the negative resource captured by the SL-assertion {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}, namely the resource captured by {\small$\mathtt{emptyFields(c, first(kvs))}$}, disappears from the symbolic heap and is transformed into the negative resource constraint $\{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}$, which states that all properties of the object \jsinline|c| in the symbolic heap (in our case, $\hat{s}_1$ and $\hat{s}_2$) must be in the set of properties of the corresponding \jsinline|emptyFields| assertion (in our case, {\small$\mathtt{first(\{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \}) = \{ \hat{s}_1, \hat{s}_2 \}}$}).
 Such constraints are generated in item ${\bf e.}$ of the test generation algorithm presented in Figure \ref{fig:test:generation}. 
 
