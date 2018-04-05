@@ -389,23 +389,24 @@ To contain the complexity of JavaScript, we move the analysis to \jsil, an inter
 \jsil comes with a trusted compiler, \JSComp, which has been extensively tested against the official test suite, Test262,\footnote{\url{https://github.com/tc39/test262}} and produces \jsil code that corresponds line-by-line to the standard. 
 In \S\ref{???}, we give a novel abstract semantics of \jsil, which we instantiate to obtain the concrete %, instrumented (discussed shortly), 
 and symbolic semantics, connected via a {\em soundness result}. Moreover, we prove that, when used for symbolic testing (discussed shortly), \jilette never produces false counter-models. 
-These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, allow us to  provably lift the results of analyses done on compiled \jsil code back up to JavaScript. To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution for JavaScript that precisely follows the semantics of the language.
-
+These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, allow us to  provably lift the results of analyses done on compiled \jsil code back up to JavaScript. To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution for JavaScript that precisely follows the semantics of the language. 
 
 \myparagraph{Novelty: Compositionality} 
-Unlike C, C++, or Java, JavaScript and \jsil do not observe the frame property~\cite{???}. This means that the behaviour of a JS/\jsil program may change if the state in which it is run is extended; such extensions may introduce bugs, to which we refer as \emph{frame bugs}. 
+Static languages, such as C, C++, or Java, observe the so-called \emph{frame property}, first introduced formally for separation logic~\cite{???}, but intuitively known to language designers and programmers. 
+What the frame property means, in a nutshell, that if a program produces a given output when run from a given state, then we can extend this state arbitrarily, run the program from this extended state, and the program will produce the same output. This also means that we can analyse parts of the program separately and then compose the obtained results to obtain the analysis of the entire program. For static languages, this \emph{compositionality} is a property of the language semantics and symbolic analysis tools for such languages leverage on it for free.
 %
-Current symbolic execution tools for JavaScript~\cite{???} employ \emph{whole-program analyses}, that is, they assume access to the entire program. This means that the results they obtain when analysing functions in isolation cannot be reused, as they would not account for the interaction between the function and all of its possible frames.
+On the other hand, dynamic languages, such as JavaScript and \jsil, do not observe the frame property. 
+This means that the behaviour of a JavaScript/\jsil program may change if the state in which it is run is extended; such extensions may introduce bugs, to which we refer as \emph{frame bugs}. 
 %
-In contrast, the symbolic execution of \jilette is \emph{compositional}. \jilette can analyse a fragment of a program at a time, and the obtained results can be re-used in the analysis of the entire program.
+Current symbolic execution tools for JavaScript~\cite{???} are not compositional. They employ \emph{whole-program analyses}, that is, they assume access to the entire program, meaning that the results they obtain when analysing functions in isolation cannot be reused, as they would not account for the interaction between the function and all of its possible frames.
 %
-Having a compositional symbolic execution has two important benefits.
+In contrast, the symbolic execution of \jilette is compositional. \jilette can analyse a fragment of a program at a time, and the obtained results can be re-used in the analysis of the entire program. This has two important benefits.
 %
 First, it allows us to apply function summaries~\cite{???} instead of symbolically executing function bodies at each call site, speeding up execution time. This benefit is independent of the analysed language.
 %
 Second, it allows us to catch frame bugs, which are not reachable by non-compositional symbolic execution tools. This benefit is specific to dynamic languages.
 %
-We achieve compositionality by instrumenting the concrete and symbolic semantics to keep track of properties that we know are {\em not present} in a given object. This we describe in detail in \S\ref{???}. To our knowledge, \jilette is the first compositional symbolic execution tool for dynamic languages.
+We achieve compositionality by instrumenting the concrete semantics to keep track of properties that we know are {\em not present} in a given object. This we describe in detail in \S\ref{???}. To our knowledge, \jilette is the first compositional symbolic execution tool for dynamic languages.
 
 
 
@@ -428,7 +429,7 @@ to fail, exposing bugs in the tested code.
 Moreover, the compositionality of \jilette allows us to catch bugs that are not reachable by standard symbolic execution tools.
 We illustrate the capabilities of \jilette on an array of examples, which include tests from the Test262 test suite and real-world Node.js libraries, and which make use of JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. \pmaxinline{Revisit after evaluation.}
 
-\myparagraph{Application: Specification-directed Bug-finding} Due to the complexity of JavaScript semantics, functional correctness 
+\myparagraph{Application: Specification-directed Bug-finding} \pmaxinline{Very stuck here.} Due to the complexity of JavaScript semantics, functional correctness 
 specifications of JavaScript programs are highly intricate. 
 There are only a few tools (for example, \javert \cite{javert} and KJS \cite{Park:2015,stefanescu-park-yuwen-li-rosu-2016-oopsla}) that support such expressivity. They target the specialist developer wanting rich, 
 mechanically verified specifications of critical JavaScript code.
@@ -445,7 +446,7 @@ More importantly, \jilette then generates a concrete witness that
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code.
 
-\pmax{Say more clearly what the novelty is. Say in a very pretty way the connection between seplogic and non-seplogic, verification and symbolic execution, etc.}
+%\pmax{Say more clearly what the novelty is. Say in a very pretty way the connection between seplogic and non-seplogic, verification and symbolic execution, etc.}
 
 %We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs.
 
@@ -534,31 +535,31 @@ both specifications and code.
 %	%
 %	and widely used runtime libraries that are not part of the standard, such as the DOM.
 
-\pmax{What's the story?
-\begin{enumerate}
-\setlength{\itemsep}{0.5em}
-\item 
-	{\bfseries Slogan}: Symbolic execution for JavaScript that precisely follows the language standard. \\ 
-	{\bfseries Goal}: Symbolic testing, bug-finding, concrete counter-models. \\
-	{\bfseries Novelty}: The precision wrt semantics, formal correctness guarantees. \\ 
-	{\bfseries Benefits}: Trustworthy, sound analysis. \\
-	{\bfseries Limitations}: No loop invariants, bounded. No eval.
-
-\item 
-	{\bfseries Slogan}: Compositional execution for dynamic languages in general, and JavaScript in particular. \\ 
-	{\bfseries Novelty}: Compositionality. \\ 
-	{\bfseries Benefits}: summaries, frame-related bugs.   
-	
-\item 
-	{\bfseries Application}: Symbolic testing of JavaScript programs. \\
-	{\bfseries Novelty}: None? \\ 
-	{\bfseries Evaluation}: Tests for the symbolic execution rules; JS programs using prototype inheritance, arrays, function closures, for-in, dynamic dispatch, etc.; test262 tests; node.js libraries for data structures
-	
-\item 
-	{\bfseries Application}: Debugging of separation logic specifications. \\ 
-	{\bfseries Novelty}: Counter-models for separation logic assertions. \\
-	{\bfseries Evaluation}: JaVerT specifications of this and that.
-\end{enumerate}}
+%\pmax{What's the story?
+%\begin{enumerate}
+%\setlength{\itemsep}{0.5em}
+%\item 
+%	{\bfseries Slogan}: Symbolic execution for JavaScript that precisely follows the language standard. \\ 
+%	{\bfseries Goal}: Symbolic testing, bug-finding, concrete counter-models. \\
+%	{\bfseries Novelty}: The precision wrt semantics, formal correctness guarantees. \\ 
+%	{\bfseries Benefits}: Trustworthy, sound analysis. \\
+%	{\bfseries Limitations}: No loop invariants, bounded. No eval.
+%
+%\item 
+%	{\bfseries Slogan}: Compositional execution for dynamic languages in general, and JavaScript in particular. \\ 
+%	{\bfseries Novelty}: Compositionality. \\ 
+%	{\bfseries Benefits}: summaries, frame-related bugs.   
+%	
+%\item 
+%	{\bfseries Application}: Symbolic testing of JavaScript programs. \\
+%	{\bfseries Novelty}: None? \\ 
+%	{\bfseries Evaluation}: Tests for the symbolic execution rules; JS programs using prototype inheritance, arrays, function closures, for-in, dynamic dispatch, etc.; test262 tests; node.js libraries for data structures
+%	
+%\item 
+%	{\bfseries Application}: Debugging of separation logic specifications. \\ 
+%	{\bfseries Novelty}: Counter-models for separation logic assertions. \\
+%	{\bfseries Evaluation}: JaVerT specifications of this and that.
+%\end{enumerate}}
 
 
 
