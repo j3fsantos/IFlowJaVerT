@@ -84,7 +84,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
+         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val "no pc"))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -256,7 +256,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
+       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) "no pc"))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
@@ -314,7 +314,6 @@
                         (cur-index (second next-state))
                         (prev-index (third next-state)))
                    (set! call-stack-depth (- call-stack-depth 1))
-                   (println (format "RETURNED WITH STORE ~a" new-store))
                    (run-cmds-iter prog heap new-store new-ctx cur-index prev-index)))))]
                       
       [(eq? cur-index (get-err-index proc))
@@ -339,7 +338,7 @@
          (cmd-type (first cmd)))
     ;;(println (pc))
     ;;(print-cmd cmd)
-    (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd  store))
+    (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd "store"))
     (cond
       ;;
       ;; ('print e) 
@@ -382,7 +381,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-                (println (format "CUR PC ~v" cur-pc))
+                (println (format "CUR PC ~v" "no pc"))
                 (let* ((new-solver (z3)))
                   (solver-clear new-solver)
                   (solver-assert new-solver (list cur-pc))
@@ -510,7 +509,7 @@
 
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
-              (println (format "CUR PC ~v" cur-pc))
+              (println (format "CUR PC ~v" "no pc"))
               (let* ((old-solver (current-solver))
                      (new-solver (solve+))
                      (res (new-solver cur-pc)))
@@ -586,7 +585,6 @@
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
                      (new-str (string-append tabs ": " (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))))
-                (println (format "STORE: ~v" store))
                 (println new-str)
                 type-of))]
        ;;
@@ -607,12 +605,14 @@
                (eidx (third expr))
                (vlist (run-expr elist store))
                (vidx (run-expr eidx store)))
-           ;; for*/all ([vlist vlist])
+              (for*/all ([vlist vlist])
               (if (list? vlist)
-                  (list-ref vlist (inexact->exact (+ vidx 1)))
+                  (begin
+                    (println (format "Legal l-nth. l:~v; e:~v" vlist vidx))
+                    (list-ref vlist (inexact->exact (+ vidx 1))))
                   (begin
                     (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
-                    (error "Illegal list given to l-nth"))))]
+                    (set! success #t)))))]
        ;;
        ;; ('s-nth s e)
        [(eq? (first expr) 's-nth)
