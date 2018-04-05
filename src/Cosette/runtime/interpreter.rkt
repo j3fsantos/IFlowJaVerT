@@ -84,7 +84,7 @@
               (rhs-val  (run-expr rhs-expr store))
               (store    (mutate-store store lhs-var rhs-val)))
          ;; (println (format "Assignment: ~v = ~v" lhs-var rhs-val))
-         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val "no pc"))
+         (print-info proc-name (format "~v := ~v : ~v" lhs-var rhs-val (pc)))
          (cons heap store))]
       ;;
       ;; ('new lhs-var)
@@ -256,7 +256,7 @@
        (error "Procedures that throw errors must be called with error labels")]
              
       [(eq? (car outcome) 'normal)
-       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) "no pc"))
+       (print-info proc-name (format "ret: (normal, ~v) : ~v" (cdr outcome) (pc)))
        (let ((store (mutate-store store lhs-var (cdr outcome))))
          (list store cur-index (- cur-index 1)))]
        
@@ -381,7 +381,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-                (println (format "CUR PC ~v" "no pc"))
+                (println (format "CUR PC ~v" cur-pc))
                 (let* ((new-solver (z3)))
                   (solver-clear new-solver)
                   (solver-assert new-solver (list cur-pc))
@@ -509,7 +509,7 @@
 
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
-              (println (format "CUR PC ~v" "no pc"))
+              (println (format "CUR PC ~v" cur-pc))
               (let* ((old-solver (current-solver))
                      (new-solver (solve+))
                      (res (new-solver cur-pc)))
