@@ -366,21 +366,20 @@ We evaluate \jilette on an array of examples, including tests from the official 
 
 JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications, used by 94.8\% of websites\footnote{\url{https://w3techs.com/technologies/details/cp-javascript/all/all}}; it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited memory. 
 It is the most active language in both GitHub and StackOverflow.\footnote{\url{http://githut.info}; \url{https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628}}
-However, due to its dynamic nature and complex semantics, JavaScript remains a difficult target for symbolic analysis and logic-based verification.
+Due to its dynamic nature and complex semantics, JavaScript remains a difficult target for symbolic analysis and logic-based verification.
 
 \pmax{Now, sth about the state-of-the-art}
 
-There exist symbolic execution tools for JavaScript, such as \pmaxinline{list them, cite them}. \pmaxinline{Say also something positive, don't know what}. They are not formalised and they do not come with guarantees wrt semantics \pmaxinline{check}. They are not compositional \pmaxinline{We don't know what this means yet}. Each of them targets a specific type of bugs \pmaxinline{give evidence}. 
+Currently, several symbolic analysis tools for JavaScript are available, such as \pmaxinline{list them, cite them - are we doing static or dynamic also?}. \pmaxinline{Say something positive, don't know what, mention bug-finding}. However, there exists a gap that needs to be addressed. The symbolic analysis engines of these tools are not formalised and do not come with correctness guarantees \pmaxinline{check, especially Jalangi}. Their analyses are also not compositional \pmaxinline{We don't know what this means yet, also check, but possibly omit}. Moreover, each of these tools is tailored for catching a specific category of bugs, rather than targeting bug-finding in general \pmaxinline{give evidence - also, why do we care?}.
 
 \pmax{How do we fill the gap?}
-To address this issue, we present \jilette, a framework for symbolic execution of JavaScript (ECMAScript 5 Strict~\cite{ecma}) programs, which advances the state-of-the-art in the two following ways. 
+We present \jilette, a framework for symbolic execution of JavaScript (ECMAScript 5 Strict~\cite{ecma}) programs, which advances the state-of-the-art in the two following ways. First, the symbolic execution of \jilette is \emph{trustworthy}, in that it is formalised, proven sound, and precisely follows the ES5 English standard. This symbolic execution is not done directly on JavaScript, but instead on \jsil, an intermediate representation previously introduced for JavaScript verification~\cite{javert}. \jsil comes with a trusted infrastructure that allows us to provably lift the results of our symbolic analyses on compiled \jsil code back up to JavaScript. Second, the symbolic execution of \jilette is \emph{compositional}, allowing \jilette to be used for the debugging of specifications of JavaScript programs and to catch a broader class of bugs than the current symbolic execution tools.
 
-\myparagraph{Novelty: Trustworthiness} The symbolic execution of \jilette is \emph{trustworthy}, in that it is formalised, proven sound, and precisely follows the ES5 English standard. 
-This symbolic execution is not done directly on JavaScript, but instead on \jsil, an intermediate representation previously introduced for JavaScript verification~\cite{javert}. 
-\jsil comes with a trusted compiler, \JSComp, which has been extensively tested against the official test suite, Test262,\footnote{\url{https://github.com/tc39/test262}} and produces \jsil code that corresponds line-by-line to the standard. 
-In \S\ref{???}, we give an abstract semantics of \jsil, which we instantiate to obtain the concrete %, instrumented (discussed shortly), 
-and symbolic semantics, connected via a {\em soundness result}. Moreover, we prove that, when used for symbolic testing (discussed shortly), \jilette never produces false counter-models. 
-These theoretical results, combined with the correctness of \JSComp, allows us to lift the results of analyses done on compiled \jsil code back up to JavaScript. To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution that precisely follows the semantics of the language.
+%In \S\ref{???}, we give an abstract semantics of \jsil, which we instantiate to obtain the concrete %, instrumented (discussed shortly), 
+%and symbolic semantics, connected via a {\em soundness result}. Moreover, we prove that, when used for symbolic testing (discussed shortly), \jilette never produces false counter-models. 
+%These theoretical results, combined with the correctness of \JSComp, allows us to lift the results of analyses done on compiled \jsil code back up to JavaScript. 
+
+%To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution that precisely follows the semantics of the language.
 
 \myparagraph{Novelty: Compositionality} 
 Unlike C, C++, or Java, JavaScript and \jsil do not observe the frame property~\cite{???}. This means that the behaviour of a JS/\jsil program may change if the state in which it is run is extended; such extensions may introduce bugs, to which we refer as \emph{frame bugs}. 

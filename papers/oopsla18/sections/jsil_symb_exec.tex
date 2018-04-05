@@ -333,9 +333,7 @@ for the required abstract functions/relations below, noting that abstract values
 \jsil values extended with the property absence indicator $\none$.
 We write $\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ for the concrete semantic 
 judgement for basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
-for control flow commands. Note that, since this semantics in concrete, we do not define the $\absassume{}$, $\abssat{}$, 
-and $\absmakesymbolic{}$ functions, effectively disallowing the use of the $\assume\!$, $\assert\!$, and $\makesymbolic\!$ commands,
-which carry little meaning in the concrete setting.
+for control flow commands. 
 
 \begin{display}{Concrete Semantics Rules}
 \text{
@@ -387,17 +385,17 @@ which carry little meaning in the concrete setting.
    { 
          \heap = \heap' \dunion (\loc, p) \mapsto -
    }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) =  (\heap', \store)}
-%  %
-%
-%   \and
-%      \inferrule[\textsc{Assumption}]
-%   {}{  \absassume{\concrete}(\jstate, \jtrue) =  (\jstate, \jtrue) }
-%\and 
-%    \inferrule[\textsc{Satisfiability}]
-%   {}{  \abssat{\concrete}(\jstate, \jbool) = \jbool}
-%  \and
-%      \inferrule[\textsc{Symbolic Value Creation }]
-%   {}{  \absmakesymbolicrule{\concrete}{\jtype} \text{ is not defined}}
+  %
+
+   \\
+      \inferrule[\textsc{Assumption}]
+   {}{  \absassume{\concrete}(\jstate, \jtrue) =  (\jstate, \jtrue) }
+\and 
+    \inferrule[\textsc{Satisfiability}]
+   {}{  \abssat{\concrete}(\jstate, \jbool) = \jbool}
+  \and
+      \inferrule[\textsc{Symbolic Value Creation }]
+   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
  \end{mathpar}
   }}
  \end{display}
