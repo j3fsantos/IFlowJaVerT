@@ -505,7 +505,6 @@ var index = list.indexOf(x4)
 var res1 = list.removeElementAtIndex(1)
 var res2 = list.elementAtIndex(1)
 
-Assert(((x4 = x1) and (index = 0)) or ((not (x4 = x1)) and (x4 = x2) and (index = 1)) or ((not (x4 = x1)) and ((not (x4 = x2)) and (x4 = x3) and (index = 2)) or 
-(not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)) and (index = -1)));
+Assert(((x4 = x1) and (index = 0)) or ((not (x4 = x1)) and (x4 = x2) and (index = 1)) or ((not (x4 = x1)) and ((not (x4 = x2)) and (x4 = x3) and (index = 2)) or (not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)) and (index = -1)));
 Assert(res1 = x2);
 Assert(res2 = x3);
