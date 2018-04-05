@@ -62,7 +62,7 @@ and \dtag{3} it leads to modular implementations, avoiding code duplication.
 
 
 The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
-Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to denote absence of a property in an object. Abstract states expose the following functions and relations: 
+Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. Abstract states expose the following functions and relations: 
 \begin{description}
 \setlength{\itemsep}{0.2em}
   \item[\jsil Expression Evaluation,] $\evalexpr{} :  (\jvars \partialmap \absvals)  \partialmap \exprs \partialmap \absvals$. 
@@ -91,7 +91,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
   \item[GetDomain,] $\getdomain \subseteq \absstates \rightarrow \exprs \partialmap \absvals$. 
            We pretty-print $(\absstate, \jsilexpr, \absval) \in \getdomain$ as $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$. 
            If $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$ holds, then $\absval$ denotes the 
-           set of abstract property names associated with the object at the abstract location resulting from the evaluation of $\jsilexpr$ 
+           set of abstract property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
            in $\absstate$. 
    
    \item[Assumption,] $\absassume{} : \absstates \rightarrow \exprs \partialmap \absvals$. 
@@ -103,7 +103,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
             state $\absstate$, and $\jfalse$ otherwise.
              
    \item[Symbolic Value Creation,] $\absmakesymbolic : \jtypes \rightarrow \absvals$. 
-            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a symbolic value of type $\jtype$.
+            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh symbolic value of type $\jtype$.
 \end{description}
 
 \begin{figure}[ht!]
@@ -320,28 +320,36 @@ returns the $i$-th command of the procedure that is first in $\cs$. %We write $\
 \end{enumerate}
 }
 
-
-\newpage
 \subsubsection{Concrete Semantics}
 A \jsil concrete state $\jstate$ is a pair $(\heap, \store)$ consisting of a heap and a store. 
-A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations  and strings to heap values, 
-and a store, $\store \in \stores$, is a mapping from JSIL program variables $\jvar \in \jvars$ to JSIL values. 
-Given a heap~$\heap$, we denote: a heap cell by $\hcell{\loc}{\jstring}{\val}$, 
-meaning that  $\heap(\loc,\jstring) = \val$; the union of two disjoint heaps by $\heap_1 \dunion \heap_2$; 
-heap lookup by $\heap(\loc, \jstring)$; and the empty heap by $\hemp$.
+A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to \polish{\jsil values},
+whereas a store, $\store \in \stores$, maps \jsil program variables to \jsil values. 
+Given a heap~$\heap$, we denote: the empty heap by $\hemp$; heap lookup by $\heap(\loc, \jstring)$; 
+a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $\heap(\loc,\jstring) = \val$; 
+heap update by $\heap[(\loc, p) \mapsto \val]$, denoting the heap $\heap$ extended with $\heap(\loc,\jstring) = \val$;
+and the union of two disjoint heaps by $\heap_1 \dunion \heap_2$.
 We instantiate the abstract semantics for the concrete case by providing the appropriate definitions 
-for the required abstract functions/relations. 
+for the required abstract functions/relations below, noting that abstract values are instantiated to
+\jsil values extended with the property absence indicator $\none$.
 We write $\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ for the concrete semantic 
 judgement for basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
-for control flow commands. 
+for control flow commands. Note that, since this semantics in concrete, we do not define the $\absassume{}$, $\abssat{}$, 
+and $\absmakesymbolic{}$ functions, effectively disallowing the use of the $\assume\!$, $\assert\!$, and $\makesymbolic\!$ commands,
+which carry little meaning in the concrete setting.
 
 \begin{display}{Concrete Semantics Rules}
 \text{
 {\scriptsize
 \begin{mathpar} 
+  \inferrule[\textsc{Expression Evaluation}]
+  {}{\evalexpr{c}(\store, \val) = \val \qquad 
+  	\evalexpr{c}(\store, \jvar) = \store(\jvar) \qquad 
+	\evalexpr{c}(\store, \ominus \jsilexpr) = \underline{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \qquad
+	\evalexpr{c}(\store, \jsilexpr_1 \oplus \jsilexpr_2) = \evalexpr{c}(\store, \jsilexpr_1) \ \underline{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)}
+  \\
   \inferrule[\textsc{GetDomain}]
    { 
-        \evalexpr{}(\store, \jsilexpr) = \loc
+        \evalexpr{c}(\store, \jsilexpr) = \loc
       \quad
        \heap = \heap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  
       \quad
@@ -352,7 +360,7 @@ for control flow commands.
   %
     \inferrule[\textsc{GetCell - Explicit Cell}]
    { 
-         \evalexpr{}(\store, \jsilexpr_1) = \loc
+         \evalexpr{c}(\store, \jsilexpr_1) = \loc
         \quad 
          \evalexpr{}(\store, \jsilexpr_2) = p
         \quad
@@ -360,40 +368,41 @@ for control flow commands.
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), (\loc, p, \val)}}
  %
  \\
+   \inferrule[\textsc{Store Selector}]
+   {}{  \stosel((\heap, \store)) =  \store}
+  	\qquad
    \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
-   }{  \stupdt{\concrete}((\heap, \store), \jvar, \val) =  (\heap, \store') }
-   \and
+   }{  \stupdt{\concrete}((\heap, \store), \jvar, \val) =  (\heap, \store')}
+   \qquad
        \inferrule[\textsc{Heap Update - Non-$\none$}]
    { 
-         \jstate = (\heap, \store) 
-         \quad 
          \heap' = \heap[(\loc, p) \mapsto \val]
          \quad 
          \val \neq \none
-   }{  \hpupdt{\concrete}(\jstate, \loc, p, \val) =  (\heap', \store) }
- \and
+   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \val) =  (\heap', \store)}
+ \qquad
        \inferrule[\textsc{Heap Update - $\none$}]
    { 
-         \jstate = (\heap, \store) 
-         \quad 
          \heap = \heap' \dunion (\loc, p) \mapsto -
-   }{  \hpupdt{\concrete}(\jstate, \loc, p, \none) =  (\heap', \store) }
-\\
-  %
-      \inferrule[\textsc{Store Selector}]
-   {}{  \stosel\!((\heap, \store)) =  \store }
-   \and
-      \inferrule[\textsc{Assume}]
-   {}{  \absassume{\concrete}(\jstate, \jtrue) =  (\jstate, \jtrue) }
-\and 
-    \inferrule[\textsc{Satisfiability }]
-   {}{  \abssat{\concrete}(\jstate, \jbool) = \jbool}
+   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) =  (\heap', \store)}
+%  %
+%
+%   \and
+%      \inferrule[\textsc{Assumption}]
+%   {}{  \absassume{\concrete}(\jstate, \jtrue) =  (\jstate, \jtrue) }
+%\and 
+%    \inferrule[\textsc{Satisfiability}]
+%   {}{  \abssat{\concrete}(\jstate, \jbool) = \jbool}
+%  \and
+%      \inferrule[\textsc{Symbolic Value Creation }]
+%   {}{  \absmakesymbolicrule{\concrete}{\jtype} \text{ is not defined}}
  \end{mathpar}
   }}
  \end{display}
   
+\pmax{Perhaps a comment on the semantics - eval of expressions and something?}
 
 \subsubsection{Symbolic Semantics}
 In order to symbolically execute \jsil programs, we extend the syntax of \jsil expressions with 
