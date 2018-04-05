@@ -7,12 +7,13 @@ representation for JavaScript analysis previously introduced by \citet{javert}.
 In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
 \jsil, which we then instantiate to obtain its concrete and symbolic semantics.
 In \S\ref{sex:formal:guarantees}, we present the formal guarantees of 
-our symbolic analysis, including: \dtag{i} a soundness result for the symbolic 
-execution, \dtag{ii} a guarantee of absence of false positives for bug-finding, 
-and \dtag{iii} \polish{a verification result that precisely states the conditions 
+our symbolic analysis, including: \dtag{i} a soundness result for the \jsil symbolic 
+execution, \dtag{ii} a guarantee of absence of false positives for bug-finding, \pmaxinline{Do we know what bug-finding is here?}
+\dtag{iii} a justification result for the lifting of analyses on compiled \jsil code back to JavaScript;
+and \dtag{iv} \polish{a verification result that precisely states the conditions 
 under which symbolic execution gives us verification guarantees.}
 Finally, in \S\ref{subsec:jsil:analysis:implementation}, we give a brief overview
-of the implementation. %in \rosette~\cite{Rosette1,Rosette2}.
+of our implementation. %in \rosette~\cite{Rosette1,Rosette2} NO NO NO! Burn the witch!
 
 
 \subsection{Syntax and Semantics}\label{subsec:jsil:analysis:formalism}
@@ -22,16 +23,15 @@ of the implementation. %in \rosette~\cite{Rosette1,Rosette2}.
 
 \vspace{5pt}
 \begin{display}{Syntax of the \jsil Language}{
-\begin{tabular}{lllll}
-	 Numbers: $\jnumber \in \numbers$ &  Booleans: $\jbool \in \bools$ & \  \ Strings: $\jstring \in \strings$ & \  \ Locs: $\loc \in \locs$ & \  Vars: $\jvar \in \jvars$ \\[0.1cm]
-	Types: $\jtype \in \jtypes$ & \multicolumn{4}{l}{Values: $\val \in \vals$ \defeq \ $\jnumber \mid \jbool \mid \jstring \mid  \jundefined \mid \jnull \mid \loc \mid \jtype \mid \pid \mid \jempty$} \\[0.1cm]
-\multicolumn{5}{l}{Expressions: $\jsilexpr \in \exprs$ \defeq \ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
-	\multicolumn{5}{l}{Basic Commands: $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
-	\multicolumn{5}{l}{\hspace{2.8cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr)$} \\[0.1cm]
+\begin{tabular}{llllll}
+	 Numbers: $\jnumber \in \numbers$ &  Booleans: $\jbool \in \bools$ & \  \ Strings: $\jstring \in \strings$ & \  \ Locations: $\loc \in \locs$ & \  Vars: $\jvar \in \jvars$ & \ Types: $\jtype \in \jtypes$ \\[0.1cm]
+\multicolumn{6}{l}{Values: $\val \in \vals$ \defeq \ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! \jundefined \! \mid \! \jnull \! \mid \! \jempty \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$ \qquad Expressions: $\jsilexpr \in \exprs$ \defeq \ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
+	\multicolumn{6}{l}{Basic Commands: $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
+	\multicolumn{6}{l}{\hspace{3.29cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$} \\[0.1cm]
 	% Commands
-	\multicolumn{5}{l}{Commands: $\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j} 
+	\multicolumn{6}{l}{Commands: $\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j} 
 	         \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
-	\multicolumn{5}{l}{Procedures : $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$}
+	\multicolumn{6}{l}{Procedures : $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$}
  \end{tabular}}
 \end{display}
 
@@ -40,7 +40,7 @@ of the implementation. %in \rosette~\cite{Rosette1,Rosette2}.
 \jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, and various unary and binary operators, which, for instance, provide support for sets and lists. 
 
 \jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
-They include the $\jsilskip$ command, variable assignment, object creation, property access, property assignment, property deletion, membership check, and property collection. 
+They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and symbolic variable creation. 
 
 \jsil \emph{commands} include \jsil basic commands and commands related to control flow: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment, which allows \JSComp to produce code directly in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit the $\phi$-node assignment from the formal presentation as it does not impact the reasoning. Details can be found in \cite{javert}.} 
 The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
@@ -81,11 +81,11 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
   
   \item[GetCell,] $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \absvals$. 
           We pretty-print $(\absstate, \jsilexpr_1, \jsilexpr_2, \absstate', \absloc, \absprop, \absval) \in \getcell$ as $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$. 
-          If $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
+          Informally, GetCell retrieves the value associated with a given property of a given object. More formally, if $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
           then \dtag{1} $\absloc$ denotes the abstract location resulting from the evaluation of $\jsilexpr_1$, 
           \dtag{2} $\absprop$ denotes the abstract property name resulting from the evaluation of $\jsilexpr_2$, 
           \dtag{3} $\absval$ denotes the abstract value of the property $\absprop$ of the object at location $\absloc$, 
-          and \dtag{4} $\absstate'$ denotes the re-arrangement of $\absstate$ to allow for the property inspection (discussed shortly). 
+          and \dtag{4} $\absstate'$ denotes a (potential) modification of $\absstate$ that allows for the property inspection (discussed shortly). 
           Note that $\getcell$ is non-deterministic and is, therefore, a relation.
              
   \item[GetDomain,] $\getdomain \subseteq \absstates \rightarrow \exprs \partialmap \absvals$. 
@@ -100,8 +100,10 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
   
    \item[Satisfiability,] $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$. 
             The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is \polish{satisfiable} in the abstract 
-            state $\absstate$, and $\jfalse$ otherwise. 
-   
+            state $\absstate$, and $\jfalse$ otherwise.
+             
+   \item[Symbolic Value Creation,] $\absmakesymbolic : \jtypes \rightarrow \absvals$. 
+            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a symbolic value of type $\jtype$.
 \end{description}
 
 \begin{figure}[ht!]
@@ -124,7 +126,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
 \\
 \inferrule[\textsc{Object Creation}]
   { 
-   \loc \notin \hlocs {\absstate}
+   \loc \text{ fresh}
   }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\hpupdt{}(\absstate, \loc, \protop, \jnull)}{}}
 \and 
 \inferrule[\textsc{Property Access}]
@@ -135,8 +137,8 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
 \\
 \inferrule[\textsc{Property Assignment}]
   {    
-      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, -)} 
-  }{\absbsemrule{\absstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\hpupdt{}(\absstate', \absloc, \absprop, \jsilexpr_3)}{}} 
+      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, -)} \quad \absstore = \absstate.\stosel \quad \absval = \evalexpr{}(\absstore, \jsilexpr_3)
+  }{\absbsemrule{\absstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\hpupdt{}(\absstate', \absloc, \absprop, \absval)}{}} 
 \and
  \inferrule[\textsc{Property Deletion}]
   { 
@@ -150,12 +152,16 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \absval)} 
      \quad 
     \absval \neq \none
-  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jtrue)}{}}
+  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{	{}(\absstate', \jvar, \jtrue)}{}}
  \and 
 \inferrule[\textsc{Member Check - False}]
   { 
      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \none)} 
-  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jfalse)}{}}
+  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jfalse)}{}} \\
+  \inferrule[\textsc{Make Symbolic}]
+  { 
+     \absval = \absmakesymbolicrule{}{\jtype}
+  }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
 \end{mathpar}}
  \vspace*{-0.6cm}
 \caption{Abstract Semantics for Basic Commands: {\scriptsize$\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}\label{abs:sem:bcmds:fig}}
