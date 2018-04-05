@@ -197,7 +197,9 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	(* ('var_assign var e)       *)
 	| SAssignment (var, e) -> Printf.sprintf "'(%sv-assign %s %s)" str_i var (se e)
 	(* ('new var)                *)
-	| SNew var -> Printf.sprintf "'(%snew %s)" str_i var
+	| SNew (var, e) -> 
+		let se = match e with | None -> "$$null" | Some e -> se e in 
+		Printf.sprintf "'(%snew %s %s)" str_i var se
  	(* ('h-read var e1 e2)	     *)
 	| SLookup (var, e1, e2) -> Printf.sprintf "'(%sh-read %s %s %s)" str_i var (se e1) (se e2)
 	(* ('h-assign var e e)       *)
@@ -212,6 +214,8 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SGetFields (var, e) -> Printf.sprintf "'(%sget-fields %s %s)" str_i var (se e)
 	(* ('arguments var)          *)
 	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
+	(* ('metadata var e) *)
+	| MetaData (var, e) -> Printf.sprintf "'(%smetadata %s %s)" str_i var (se e)
 	(* ('terminate-successfully) *)
     | STermSucc -> Printf.sprintf "'(%ssuccess)" str_i
 	(* ('terminate-successfully) *)
@@ -334,9 +338,9 @@ let serialize_internals_racket specs builtins line_numbers =
 	Printf.sprintf SExpr_Templates.template_internal_procs_racket serialized_internals
 
 
-let sexpr_of_heap (h : jsil_lit SHeap.t SHeap.t) =
+let sexpr_of_heap h =
 	SHeap.fold
-		(fun loc obj printed_heap ->
+		(fun loc (obj, metadata) printed_heap ->
 			  let printed_object =
 					(SHeap.fold
 						(fun prop hval print_obj ->
@@ -344,7 +348,9 @@ let sexpr_of_heap (h : jsil_lit SHeap.t SHeap.t) =
 							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
 							print_obj ^ printed_cell)
 						obj "") in
-			printed_heap ^ (printed_object))
+				let printed_meta = sexpr_of_literal metadata in 
+				let printed_meta = Printf.sprintf "\n\t(meta '%s '%s)" loc printed_meta in
+			printed_heap ^ printed_object ^ printed_meta)
 		h
 		""
 

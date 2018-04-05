@@ -238,6 +238,7 @@ type jsil_logic_assertion =
 	| LEmp                                                                         (** Empty heap *)
 	| LStar			    of jsil_logic_assertion * jsil_logic_assertion             (** Separating conjunction *)
 	| LPointsTo	        of jsil_logic_expr * jsil_logic_expr * jsil_logic_expr     (** Heap cell assertion *)
+	| LMetaData         of jsil_logic_expr * jsil_logic_expr 
 	| LPred			    of string * (jsil_logic_expr list)                         (** Predicates *)
 	| LForAll           of (jsil_var * jsil_type) list * jsil_logic_assertion      (** Forall *)
 	| LTypes		    of (jsil_logic_expr * jsil_type) list                      (** Typing assertion *)
@@ -255,7 +256,7 @@ type jsil_logic_assertion =
 type jsil_basic_cmd =
 	| SSkip                                            (** Empty command *)
 	| SAssignment of jsil_var * jsil_expr              (** Assignment *)
-	| SNew        of jsil_var                          (** Object creation *)
+	| SNew        of jsil_var * (jsil_expr option)     (** Object creation *)
 	| SLookup     of jsil_var * jsil_expr * jsil_expr  (** Field lookup *)
 	| SMutation   of jsil_expr * jsil_expr * jsil_expr (** Field mutation *)
 	| SDelete     of jsil_expr * jsil_expr             (** Field deletion *)
@@ -263,6 +264,7 @@ type jsil_basic_cmd =
 	| SHasField   of jsil_var * jsil_expr * jsil_expr  (** Field check *)
 	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
 	| SArguments  of jsil_var                          (** Arguments of the current function *)
+	| MetaData    of jsil_var * jsil_expr
 	| RAssume     of jsil_expr                          
 	| RAssert     of jsil_expr
 	| STermSucc

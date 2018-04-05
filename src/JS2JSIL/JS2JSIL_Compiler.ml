@@ -866,9 +866,14 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	 Section 11.1.4 - Array Initialiser
 	*)
 	| Parser_syntax.Array eos -> (* raise (Failure "not implemented yet - array literal") *)
+
+		(* xfvm := metadata (x_f_val) *)
+		let xarrm = fresh_var () in
+		let cmd_xarrm = annotate_cmd (SLBasic (SNew (xarrm, Some (Literal Null)))) None in
+
 		(* x_arr := new () *)
 		let x_arr = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew x_arr)) None in
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_arr, Some (Var xarrm)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *)
 		let x_cdo = fresh_var () in
@@ -910,7 +915,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				(cmds @ new_cmds, errs @ new_errs, num + 1))
 				([], [], 0)
 				eos in
-		let cmds = annotate_first_cmd (cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: cmds)) in
+		let cmds = annotate_first_cmd (cmd_xarrm :: cmd_new_obj :: (cmd_cdo_call :: (cmd_set_len 0) :: cmds)) in
 		cmds, (Var x_arr), errs
 
 
@@ -952,9 +957,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 							x_dop := o__defineOwnProperty(x_obj, C_pn(pn), x_desc, true) with err
 		*)
 
+		(* xfvm := metadata (x_f_val) *)
+		let x_obj_m = fresh_var () in
+		let cmd_xobjm = annotate_cmd (SLBasic (SNew (x_obj_m, Some (Literal Null)))) None in
+
 		(* x_obj := new () *)
 		let x_obj = fresh_obj_var () in
-		let cmd_new_obj = annotate_cmd (SLBasic (SNew x_obj)) None in
+		let cmd_new_obj = annotate_cmd (SLBasic (SNew (x_obj, Some (Var x_obj_m)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $lobj_proto) *)
 		let x_cdo = fresh_var () in
@@ -1027,7 +1036,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 				cmds @ new_cmds, errs @ new_errs)
 				([], [])
 				xs in
-		let cmds = annotate_first_cmd (cmd_new_obj :: (cmd_cdo_call :: cmds)) in
+		let cmds = annotate_first_cmd (cmd_xobjm :: cmd_new_obj :: (cmd_cdo_call :: cmds)) in
 		cmds, (Var x_obj), errs
 
 
@@ -1155,9 +1164,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let goto_guard_expr = UnOp (Not, (BinOp (TypeOf (Var x_f_val), Equal, Literal (Type ObjectType)))) in
 		let cmd_goto_is_obj = SLGuardedGoto (goto_guard_expr, tr_ctx.tr_err, next1) in
 
+		(* xfvm := metadata (x_f_val) *)
+		let xfvm = fresh_var () in
+		let cmd_xfvm = SLBasic (MetaData (xfvm, Var x_f_val)) in
+
 		(* x_hp := [x_f_val, "@construct"]; *)
 		let x_hp = fresh_var () in
-		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var x_f_val, Literal (String constructPropName))) in
+		let cmd_hf_construct = SLBasic (SHasField (x_hp, Var xfvm, Literal (String constructPropName))) in
 
 		(* goto [ x_hp = $$empty ] err next2; *)
 		let call = fresh_then_label () in
@@ -1166,7 +1179,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let cmd_goto_xhp = SLGuardedGoto (Var x_hp, jump, tr_ctx.tr_err) in
 
 		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SHasField (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
+		let cmd_get_bt = SLBasic (SHasField (x_bt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_bt) in
@@ -1175,14 +1188,18 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* BIND *)
 
 		let x_ba = fresh_var () in
-		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
+		let cmd_get_ba = SLBasic (SLookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
 
 		let x_tf = fresh_var () in
-		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
+		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
+
+		(* xfvm := metadata (x_f_val) *)
+		let xbthism = fresh_var () in
+		let cmd_xbthism = SLBasic (SNew (xbthism, Some (Literal Null))) in
 
 		(* x_bthis := new (); *)
 		let x_bthis = fresh_this_var () in
-		let cmd_bcreate_xobj = SLBasic (SNew x_bthis) in
+		let cmd_bcreate_xobj = SLBasic (SNew (x_bthis, Some (Var xbthism))) in
 
 		(* x_bref_fprototype := ref-o(x_tf, "prototype");  *)
 		let x_bref_fprototype = fresh_var () in
@@ -1206,11 +1223,15 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let x_bcdo = fresh_var () in
 		let cmd_bcdo_call = SLCall (x_bcdo, Literal (String createDefaultObjectName), [ Var x_bthis; Var x_bprototype ], None) in
 
+		(* xtfm := metadata (x_tf) *)
+		let xtfm = fresh_var () in
+		let cmd_xtfm = SLBasic (MetaData (xtfm, Var x_tf)) in
+
 		let x_bbody = fresh_body_var () in
-		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String constructPropName))) in
+		let cmd_bbody = SLBasic (SLookup (x_bbody, Var xtfm, Literal (String constructPropName))) in
 
 		let x_bfscope = fresh_fscope_var () in
-		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in
+		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var xtfm, Literal (String scopePropName))) in
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bthis ]) in
@@ -1239,9 +1260,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let join = fresh_label () in
 		let cmd_sync = SLGoto join in 
 
+		(* xfvm := metadata (x_f_val) *)
+		let xthism = fresh_var () in
+		let cmd_xobjm = SLBasic (SNew (xthism, Some (Literal Null))) in
+
 		(* x_this := new (); *)
 		let x_this = fresh_this_var () in
-		let cmd_create_xobj = SLBasic (SNew x_this) in
+		let cmd_create_xobj = SLBasic (SNew (x_this, Some (Var xthism))) in
 
 		(* x_ref_fprototype := ref-o(x_f_val, "prototype");  *)
 		let x_ref_fprototype = fresh_var () in
@@ -1300,7 +1325,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		] @ annotate_first_call_cmd (
 			cmds_args @ (annotate_cmds [            (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                *)
 			(None,         cmd_goto_is_obj);        (*        goto [ typeOf(x_f_val) != Object] err next1                              *)
-			(Some next1,   cmd_hf_construct);       (* next1: x_hp := [x_f_val, "@construct"];                                         *)
+			(Some next1,   cmd_xfvm);
+			(None,         cmd_hf_construct);       (* next1: x_hp := [x_f_val, "@construct"];                                         *)
 			(None,         cmd_goto_xhp);           (*        goto [ x_hp = $$empty ] err next2                                        *) ]
 
 		@ (if_verification [] (annotate_cmds [
@@ -1314,6 +1340,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 			(Some bind,    cmd_get_ba);              (*         x_ba := [x_f_val, "@boundArgs"];                                       *)
 			(None,         cmd_get_tf);              (*         x_tf := [x_f_val, "@targetFunction"];                                  *)
+			(None,         cmd_xbthism);
 			(None,         cmd_bcreate_xobj);        (*         x_bthis := new ()                                                      *)
 			(None,         cmd_bass_xreffprototype); (*         x_bref_fprototype := ref-o(x_tf, "prototype")                          *)
 			(None,         cmd_bgv_xreffprototype);  (*         x_bf_prototype := i__getValue(x_bref_prototype) with err               *)
@@ -1321,6 +1348,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some bthen1,  cmd_bset_proto);          (* bthen1:	x_bwhyGodwhy := $lobj_proto                                            *)
 			(Some belse1,  cmd_bproto_phi);          (* belse1: x_bprototype := PHI (x_bf_prototype, x_bwhyGodwhy)		               *)
 			(None,         cmd_bcdo_call);           (*         x_bcdo := create_default_object (x_bthis, x_bprototype)                *)
+			(None,         cmd_xtfm);
 			(None,         cmd_bbody);               (*         x_bbody := [x_tf, "@construct"];                                       *)
 			(None,         cmd_bscope);              (*         x_fscope := [x_tf, "@scope"]                                           *) 
 			(None,         cmd_append);              (*        SOMETHING ABOUT PARAMETERS                                               *)
@@ -1331,7 +1359,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(None,         cmd_sync);                (*        goto join                                                                *) ]))
 
 		@ (annotate_cmds [ 
-			(Some call,    cmd_create_xobj);         (* next2: x_this := new ()                                                         *)
+			(Some call,    cmd_xobjm);
+		    (None,         cmd_create_xobj);         (* next2: x_this := new ()                                                         *)
 			(None,         cmd_ass_xreffprototype);  (*        x_ref_fprototype := ref-o(x_f_val, "prototype")                          *)
 			(None,         cmd_gv_xreffprototype);   (*        x_f_prototype := i__getValue(x_ref_prototype) with err                   *)
 			(None,         cmd_is_object);           (*        goto [typeof (x_f_prototype) = $$object_type] else1 then1;               *)
@@ -1472,8 +1501,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let jump = if_verification call get_bt in
 		let cmd_goto_is_callable = SLGuardedGoto (Var x_ic, jump, tr_ctx.tr_err) in
 
+		let xfvm = fresh_var () in
+		let cmd_xfvm = SLBasic (MetaData (xfvm, Var x_f_val)) in
+
 		let x_ibt = fresh_var () in
-		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var x_f_val, Literal (String "@boundThis"))) in
+		let cmd_get_ibt = SLBasic (SHasField (x_ibt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let bind = fresh_else_label () in
 		let goto_guard_expr = (Var x_ibt) in
@@ -1482,19 +1514,23 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		(* BIND *)
 
 		let x_bt = fresh_var () in
-		let cmd_get_bt = SLBasic (SLookup (x_bt, Var x_f_val, Literal (String "@boundThis"))) in
+		let cmd_get_bt = SLBasic (SLookup (x_bt, Var xfvm, Literal (String "@boundThis"))) in
 
 		let x_ba = fresh_var () in
-		let cmd_get_ba = SLBasic (SLookup (x_ba, Var x_f_val, Literal (String "@boundArguments"))) in
+		let cmd_get_ba = SLBasic (SLookup (x_ba, Var xfvm, Literal (String "@boundArguments"))) in
 
 		let x_tf = fresh_var () in
-		let cmd_get_tf = SLBasic (SLookup (x_tf, Var x_f_val, Literal (String "@targetFunction"))) in
+		let cmd_get_tf = SLBasic (SLookup (x_tf, Var xfvm, Literal (String "@targetFunction"))) in
+
+		(* xtfm := metadata (x_tf) *)
+		let xtfm = fresh_var () in
+		let cmd_xtfm = SLBasic (MetaData (xtfm, Var x_tf)) in
 
 		let x_bbody = fresh_body_var () in
-		let cmd_bbody = SLBasic (SLookup (x_bbody, Var x_tf, Literal (String callPropName))) in
+		let cmd_bbody = SLBasic (SLookup (x_bbody, Var xtfm, Literal (String callPropName))) in
 
 		let x_bfscope = fresh_fscope_var () in
-		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var x_tf, Literal (String scopePropName))) in
+		let cmd_bscope = SLBasic (SLookup (x_bfscope, Var xtfm, Literal (String scopePropName))) in
 
 		let x_params = fresh_var () in
 		let jsil_list_params = EList ([Var x_bbody; Var x_bfscope; Var x_bt ]) in
@@ -1569,7 +1605,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		] @ annotate_first_call_cmd (
 			cmds_args @ (annotate_cmds [            (*        cmds_arg_i; x_arg_i_val := i__getValue (x_arg_i) with err                 *)
 			(None,           cmd_goto_is_obj);      (*        goto [ typeOf(x_f_val) != Object] err next1                               *)
-			(Some next1,     cmd_ic);               (* next1: x_ic := isCallable(x_f_val)                                               *)
+			(Some next1,     cmd_xfvm);
+			(None,           cmd_ic);               (* next1: x_ic := isCallable(x_f_val)                                               *)
 			(None,           cmd_goto_is_callable); (*        goto [ x_ic ] getbt err; -> typeerror                                     *) ]
 
 		@ (if_verification [] (annotate_cmds [
@@ -1584,6 +1621,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 			(Some bind,      cmd_get_bt);           (*        x_bt := [x_f_val, "@boundThis"];                                          *)
 			(None,           cmd_get_ba);           (*        x_ba := [x_f_val, "@boundArgs"];                                          *)
 			(None,           cmd_get_tf);           (*        x_tf := [x_f_val, "@targetFunction"];                                     *)
+			(None,           cmd_xtfm);
 			(None,           cmd_bbody);            (*        x_bbody := [x_tf, "@call"];                                               *)
 			(None,           cmd_bscope);           (*        x_fscope := [x_tf, "@scope"]                                              *)
 
@@ -2248,9 +2286,13 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		let next1 = fresh_label () in
 		let cmd_goto_ot = SLGuardedGoto (BinOp (TypeOf (Var x2_v), Equal, Literal (Type ObjectType)), next1, tr_ctx.tr_err) in
 
+		(* get the metadata *)
+		let x2vm = fresh_var () in
+		let cmd_x2vm = SLBasic (MetaData (x2vm, Var x2_v)) in
+
 		(* next1: x_cond := hasField (x2_v, "@hasInstance")  *)
 		let x_cond = fresh_var () in
-		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2_v, Literal (String "@class"))) in
+		let cmd_hasfield = SLBasic (SLookup (x_cond, Var x2vm, Literal (String "@class"))) in
 
 		(* goto [ x_cond = $$empty ] err next2 *)
 		let next2 = fresh_label () in
@@ -2266,7 +2308,8 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		] @ cmds2 @ (annotate_cmds [            (*         cmds2                                              *)
 			(None,         cmd_gv_x2);          (*         x2_v := i__getValue (x2) with err                  *)
 			(None,         cmd_goto_ot);        (*         goto [ (typeOf x2_v) = $$object_type ] next1 err   *)
-			(Some next1,   cmd_hasfield);       (* next1:  x_cond := hasField (x2_v, "@hasInstance")          *)
+			(Some next1,   cmd_x2vm);           (* next1: x2vm := metadata(x2_v)                    *)
+			(None,         cmd_hasfield);       (*         x_cond := hasField (x2_v, "@hasInstance")          *)
 			(None,         cmd_goto_xcond);     (*         goto [ x_cond = $$empty ] err next2                *)
 			(Some next2,         cmd_ass_xr)    (*         x_r := x_hi (x2_v, x1_v) with err                  *)
 		])) in
@@ -2657,7 +2700,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_f_outer_er := new ();  *)
 		let x_f_outer_er = fresh_er_var () in
-		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er)) in
+		let cmd_ass_xfouter = SLBasic (SNew (x_f_outer_er, None)) in
 
 		(* x_sc_f := x_sc @ {{ x_f_outer_er }}  *)
 		let x_sc_f = fresh_scope_chain_var () in
@@ -2904,7 +2947,7 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = SLBasic (SNew x_er) in
+		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
@@ -3008,7 +3051,7 @@ and translate_statement tr_ctx e  =
 
 		(* x_er := new () *)
 		let x_er = fresh_er_var () in
-		let cmd_ass_xer = SLBasic (SNew x_er) in
+		let cmd_ass_xer = SLBasic (SNew (x_er, None)) in
 
 		(* x_cae := i__checkAssignmentErrors (ref-v(x_er, "x")) with err2 *)
 		let x_cae = fresh_var () in
@@ -4482,7 +4525,7 @@ let generate_proc_eval new_fid e vis_fid =
 
 	(* x_er := new () *)
 	let x_er = JS2JSIL_Constants.var_er in
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew x_er)) None in
+	let cmd_er_creation = annotate_cmd (SLBasic (SNew (x_er, None))) None in
 
 	(* [x_er, "@er"] := $$t *)
   let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var x_er, Literal (String erFlagPropName), Literal (Bool true)))) None in
@@ -4561,7 +4604,7 @@ let generate_proc offset_converter e fid params vis_fid spec =
 	let cmds_hoist_fdecls = annotate_cmds_top_level empty_metadata cmds_hoist_fdecls in
 
 	(* x_er := new () *)
-	let cmd_er_creation = annotate_cmd (SLBasic (SNew var_er)) None in
+	let cmd_er_creation = annotate_cmd (SLBasic (SNew (var_er, None))) None in
 
 	(* [x_er, "@er"] := $$t *)
   let cmd_er_flag = annotate_cmd (SLBasic (SMutation (Var var_er, Literal (String JS2JSIL_Constants.erFlagPropName), Literal (Bool true)))) None in

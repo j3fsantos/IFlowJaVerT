@@ -3,7 +3,7 @@ import Internals.jsil, Object.jsil;
 (* *** DEFAULT *** *)
 
 proc FP_default () {
-			xret := $$undefined;
+			xret := undefined;
 
 	rlab:	skip
 }
@@ -23,7 +23,7 @@ proc FP_call () {
 			xret := "i__isCallable" (vthis);
 			goto [xret] gthis te;
 
-	gthis:	xthis := $$undefined;
+	gthis:	xthis := undefined;
 			goto [len < 3] params sthis;
 	sthis:	xthis := l-nth (arguments, 2);
 
@@ -31,18 +31,17 @@ proc FP_call () {
 			goto [3 < len] spar body;
 	spar:	pars := cdr (cdr (cdr arguments));
 
-	body:	body   := [vthis, "@call"];
-			xscope := [vthis, "@scope"];
+	body:	m := metadata(vthis);
+			body   := [m, "@call"];
+			xscope := [m, "@scope"];
 
 			x__se := "SyntaxError" ();
 
-			single_param_to_apply := (body :: (xscope :: (xthis :: {{ pars }})));
+			xret := apply (body, {{ xscope }}, xthis, pars) with elab;
 
-			xret := apply (single_param_to_apply) with elab;
+			goto [xret = empty] undef rlab;
 
-			goto [xret = $$empty] undef rlab;
-
-	undef:	xret := $$undefined;
+	undef:	xret := undefined;
 			goto rlab;
 
 	te:		xret := "TypeError" ();
@@ -61,14 +60,19 @@ with
 
 proc FP_apply (xsc, vthis, this_arg, arg_array) {
 
+			xsc := xsc;
+			vthis := vthis;
+			this_arg := this_arg;
+			arg_array := arg_array;
+
 			params := {{ }};
 
 			xret := "i__isCallable" (vthis);
 			goto [xret] array te;
 
-	array:	goto [(arg_array = $$null) or (arg_array = $$undefined)] call isobj;
+	array:	goto [(arg_array = null) or (arg_array = undefined)] call isobj;
 
-	isobj:	goto [typeOf (arg_array) = $$object_type] obj te;
+	isobj:	goto [typeOf (arg_array) = Obj] obj te;
 
 	obj:	xret := "get" (arg_array, "length") with elab;
 			xret := "i__toUint32" (xret) with elab;
@@ -84,12 +88,13 @@ proc FP_apply (xsc, vthis, this_arg, arg_array) {
 			goto loop;
 
 	call:	xthis := this_arg;
-			body   := [vthis, "@call"];
-			xscope := [vthis, "@scope"];
+			m := metadata(vthis);
+			body   := [m, "@call"];
+			xscope := [m, "@scope"];
 
-			single_param_to_apply := (body :: (xscope :: (xthis :: {{ params }})));
+			new_args := xscope :: (xthis :: params);
 
-			xret := apply (single_param_to_apply) with elab;
+			xret := apply (body, new_args) with elab;
 			goto rlab;
 
 	te:		xret := "TypeError" ();
@@ -109,8 +114,9 @@ with
 (* *** TOSTRING *** *)
 
 proc FP_toString (xsc, vthis) {
-			goto [typeOf (vthis) = $$object_type] ofun throw;
-	ofun:	xret := [vthis, "@class"];
+			goto [typeOf (vthis) = Obj] ofun throw;
+	ofun:	m := metadata(vthis);
+			xret := [m, "@class"];
 			goto [xret = "Function"] retfun throw;
 	retfun:	xret := "function () {}";
 
@@ -129,9 +135,11 @@ with
 
 proc FP_hasInstanceAfterBind (v1, v2) {
 
-			target := [v1, "@targetFunction"];
+			m := metadata(v1);
+			target := [m, "@targetFunction"];
 
-			tclass := [target, "@class"];
+			m := metadata(target);
+			tclass := [m, "@class"];
 			goto [tclass = "Function"] cont throw;
 
 	cont:	xret := "hasInstance" (target, v2);
@@ -162,37 +170,40 @@ proc FP_bind (xsc, vthis, thisArg) {
 			goto [(l-len arguments) < 4] cont2 setarg;
 	setarg:	A := cdr (cdr (cdr arguments));
 
-	cont2:	xret := new ();
-			xret := "create_default_object" (xret, $lfun_proto, "Function", $$t);
+	cont2:	xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lfun_proto, "Function", true);
 			F := xret;
 
 			(* Set up properties *)
-			[F, "@targetFunction"] := Target;
-			[F, "@boundThis"] := thisArg;
-			[F, "@boundArguments"] := A;
+			m := metadata(F);
+			[m, "@targetFunction"] := Target;
+			[m, "@boundThis"] := thisArg;
+			[m, "@boundArguments"] := A;
 
 			(* Adapting for our call *)
-			field_call := [Target, "@call"];
-			[F, "@call"] := field_call;
+			mt := metadata(Target);
+			field_call := [mt, "@call"];
+			[m, "@call"] := field_call;
 
 			(* Adapting for our construct *)
-			field_constr := [Target, "@construct"];
-			[F, "@construct"] := field_constr;
+			field_constr := [mt, "@construct"];
+			[m, "@construct"] := field_constr;
 
 			(* Step 15 onward *)
-			targetClass := [Target, "@class"];
+			targetClass := [mt, "@class"];
 			goto [targetClass = "Function"] fun nofun;
 
 	fun:	xret := "get" (Target, "length") with elab;
 			L := xret - (l-len A);
-			xret := "M_max" ($$empty, $$empty, L, 0);
-			[F, "length"] := {{ "d", xret, $$f, $$f, $$f }};
+			xret := "M_max" (empty, empty, L, 0);
+			[F, "length"] := {{ "d", xret, false, false, false }};
 			goto tterr;
 
-	nofun:	[F, "length"] := {{ "d", 0, $$f, $$f, $$f }};
+	nofun:	[F, "length"] := {{ "d", 0, false, false, false }};
 
-	tterr:	[F, "caller"]    := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
-			[F, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, $$f, $$f }};
+	tterr:	[F, "caller"]    := {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }};
+			[F, "arguments"] := {{ "a", $lthrow_type_error, $lthrow_type_error, false, false }};
 
 	rlab:	xret := F;
 

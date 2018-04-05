@@ -376,7 +376,7 @@ let update_tr_ctx ?err ?loop_list ?previous ?lab ?vis_list ?ret_lab ?er_fid ?sc_
 let string_of_js_error heap err_val =
 	match err_val with
 	| Loc loc ->
-		let obj =
+		let (obj, _) =
 			(try SHeap.find heap loc with
 				| _ -> (raise (Failure "Error object without a prototype."))) in
 		let lproto =
@@ -384,7 +384,7 @@ let string_of_js_error heap err_val =
 				| _ -> (raise (Failure "Error object without a prototype."))) in
 		(match lproto with
 		| Loc loc ->
-				let objproto =
+				let (objproto, _) =
 					(try SHeap.find heap loc with
 						| _ -> (raise (Failure "Error object without a prototype."))) in
 				let eType =

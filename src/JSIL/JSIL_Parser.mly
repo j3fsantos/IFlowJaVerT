@@ -151,6 +151,7 @@ let copy_and_clear_globals () =
 %token HASFIELD
 %token GETFIELDS
 %token ARGUMENTS
+%token METADATA
 %token GOTO
 %token WITH
 %token APPLY
@@ -171,6 +172,7 @@ let copy_and_clear_globals () =
 %token LNOT
 %token LTRUE
 %token LFALSE
+%token LMETADATA
 %token LEQUAL
 %token LLESSTHAN
 %token LLESSTHANEQUAL
@@ -456,7 +458,7 @@ expr_target:
 	| MINUS; e=expr_target
 		{ UnOp (UnaryMinus, e) } %prec unary_minus
 (* typeOf *)
-	| TYPEOF; LBRACE; e=expr_target; RBRACE
+	| TYPEOF; e=expr_target; 
 		{ TypeOf (e) }
 (* {{ e, ..., e }} *)
 	| LSTOPEN; exprlist = separated_nonempty_list(COMMA, expr_target); LSTCLOSE
@@ -809,6 +811,11 @@ assertion_target:
 (* (E, E) -> E *)
 	| LBRACE; obj_expr=lexpr_target; COMMA; prop_expr=lexpr_target; RBRACE; LARROW; val_expr=lexpr_target
 		{ LPointsTo (obj_expr, prop_expr, val_expr) }
+(* Metadata (eo, em) *)
+	| LMETADATA; LBRACE; eo = lexpr_target; COMMA; em = lexpr_target; RBRACE
+	  { (* validate_pred_assertion (name, params); *)
+			LMetaData (eo, em)
+		}
 (* emp *)
 	| LEMP;
 		{ LEmp }
@@ -850,9 +857,9 @@ cmd_target:
 (* x := e *)
 	| v=VAR; DEFEQ; e=expr_target
 		{ SLBasic (SAssignment (v, e)) }
-(* x := new() *)
-	| v=VAR; DEFEQ; NEW; LBRACE; RBRACE
-		{ SLBasic (SNew v) }
+(* x := new(metadata) *)
+	| v=VAR; DEFEQ; NEW; LBRACE; metadata=option(expr_target); RBRACE
+		{ SLBasic (SNew (v, metadata)) }
 (* x := [e1, e2] *)
 	| v=VAR; DEFEQ; LBRACKET; e1=expr_target; COMMA; e2=expr_target; RBRACKET
 		{ SLBasic (SLookup (v, e1, e2)) }
@@ -874,6 +881,9 @@ cmd_target:
 (* x := args *)
 	| v = VAR; DEFEQ; ARGUMENTS
 	  { SLBasic (SArguments v) }
+(* x := metadata (e) *)
+	| v = VAR; DEFEQ; METADATA; LBRACE; e=expr_target; RBRACE
+	  { SLBasic (MetaData (v, e)) }
 (*** Other commands ***)
 (* goto i *)
 	| GOTO; i=VAR
@@ -1200,6 +1210,11 @@ js_assertion_target:
 (* empty_fields (le : le_domain) *)
 	| EMPTYFIELDS; LBRACE; le=js_lexpr_target; COLON; domain=js_lexpr_target; RBRACE
 		{ JSEmptyFields (le, domain) }
+(* Metadata (eo, em) *)
+	| LMETADATA; LBRACE; eo = js_lexpr_target; em = js_lexpr_target; RBRACE
+	  { (* validate_pred_assertion (name, params); *)
+			JSLMetaData (eo, em)
+		}
 (* (P) *)
   | LBRACE; ass=js_assertion_target; RBRACE
 	  { ass }

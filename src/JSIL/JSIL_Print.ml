@@ -23,18 +23,18 @@ let string_of_float (x : float) : string =
 (** JSIL types *)
 let string_of_type (t : jsil_type) : string =
   match t with
-  	| UndefinedType -> "$$undefined_type"
-	| NullType      -> "$$null_type"
-	| EmptyType     -> "$$empty_type"
-	| NoneType      -> "$$none_type"
-  	| BooleanType   -> "$$boolean_type"
-  	| NumberType    -> "$$number_type"
-	| StringType    -> "$$string_type"
-	| CharType      -> "$$char_type"
-  	| ObjectType    -> "$$object_type"
-	| ListType      -> "$$list_type"
-	| TypeType      -> "$$type_type"
-	| SetType       -> "$$set_type"
+  	| UndefinedType -> "Undefined"
+	| NullType      -> "Null"
+	| EmptyType     -> "Empty"
+	| NoneType      -> "None"
+  	| BooleanType   -> "Bool"
+  	| NumberType    -> "Num"
+	| StringType    -> "Str"
+	| CharType      -> "Char"
+  	| ObjectType    -> "Obj"
+	| ListType      -> "List"
+	| TypeType      -> "Type"
+	| SetType       -> "Set"
 
 
 (** JSIL constants *)
@@ -59,14 +59,14 @@ let string_of_constant (c : jsil_constant) : string =
 let rec string_of_literal (lit : jsil_lit) : string =
 	let sl = fun l -> string_of_literal l in
  	match lit with
-	| Undefined -> "$$undefined"
-	| Null -> "$$null"
-	| Empty -> "$$empty"
+	| Undefined  -> "undefined"
+	| Null       -> "null"
+	| Empty      -> "empty"
 	| Constant c -> string_of_constant c
 	| Bool b ->
 		(match b with
-    | true -> "$$t"
-    | false -> "$$f")
+    | true -> "true"
+    | false -> "false")
   	| Num n -> string_of_float n
   	| String x ->
 		(if !escape_string
@@ -162,7 +162,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
 	(* (uop e) *)
     | UnOp (op, e) -> Printf.sprintf "(%s %s)" (string_of_unop op) (se e)
 	(* typeof(e) *)
-    | TypeOf e -> Printf.sprintf "typeOf(%s)" (se e)
+    | TypeOf e -> Printf.sprintf "typeOf %s" (se e)
 	(* {{ e1, e2, ... }} *)
 	| EList ll ->
 		(match ll with
@@ -249,6 +249,7 @@ let rec string_of_logic_assertion (a : jsil_logic_assertion) : string =
 		| LStar (a1, a2) -> Printf.sprintf "%s * %s" (sla a1) (sla a2)
 		(* (e1, e2) -> e3 *)
 		| LPointsTo (e1, e2, e3) -> Printf.sprintf "((%s, %s) -> %s)" (sle e1) (sle e2) (sle e3)
+		| LMetaData (e1, e2) -> Printf.sprintf "MetaData (%s, %s)" (sle e1) (sle e2)
 		(* emp *)
 		| LEmp -> "emp"
 		(* exists vars . a
@@ -283,7 +284,10 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 	(* var := e *)
 	| SAssignment (var, e) -> Printf.sprintf "%s%s := %s" str_i var (se e)
 	(* x := new() *)
-	| SNew var -> Printf.sprintf "%s%s := new()" str_i var
+	| SNew (var, metadata) -> 
+      (match metadata with 
+      | None          -> Printf.sprintf "%s%s := new()" str_i var  
+      | Some metadata -> Printf.sprintf "%s%s := new(%s)" str_i var (se metadata))
  	(* x := [e1, e2]	*)
 	| SLookup (var, e1, e2) -> Printf.sprintf "%s%s := [%s, %s]" str_i var (se e1) (se e2)
 	(* [e1, e2] := e3 *)
@@ -298,6 +302,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 	| SGetFields (var, e) -> Printf.sprintf "%s%s := getFields (%s)" str_i var (se e)
 	(* x := args *)
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
+	| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
     (* assume(e) *)
 	| RAssume e -> Printf.sprintf "assume(%s)" (se e)
 	(* assert(e) *)
@@ -763,21 +768,6 @@ let rec full_string_of_logic_expression e  =
 	| LLstNth (e1, e2) -> Printf.sprintf "(LLstNth (%s, %s))" (sle e1) (sle e2)
 	(* s-nth(e1, e2) *)
 	| LStrNth (e1, e2) -> Printf.sprintf "(LStrNth (%s, %s))" (sle e1) (sle e2)
-
-
-let string_of_heap (h : jsil_lit SHeap.t SHeap.t) : string =
-	SHeap.fold
-		(fun loc obj printed_heap ->
-			  let printed_object =
-					(SHeap.fold
-						(fun prop hval print_obj ->
-							let printed_hval = string_of_literal hval in
-							let printed_cell = Printf.sprintf "\n\t(cell '%s \"%s\" '%s)" loc prop printed_hval in
-							print_obj ^ printed_cell)
-						obj "") in
-			printed_heap ^ (printed_object))
-		h
-		""
 
 
 let string_of_substitution (substitution : substitution) : string =

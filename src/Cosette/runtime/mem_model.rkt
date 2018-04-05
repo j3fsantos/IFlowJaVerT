@@ -720,6 +720,12 @@
   (list loc prop val))
 
 ;;
+;; Metadata
+;;
+(define (meta loc val)
+  (list loc val))
+
+;;
 ;; Construct a heap from given cells
 ;;
 (define (heap . cells)
@@ -727,7 +733,10 @@
              (cells cells))
     (if (not (null? cells))
         (let* ((cur-cell (first cells))
-               (new-heap (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))))
+               (new-heap 
+                  (if (eq? (length cur-cell) 2)
+                    (add-metadata new-heap (first cur-cell) (second cur-cell))
+                    (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell)))))
           (loop new-heap (cdr cells)))
         new-heap)))
   

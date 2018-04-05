@@ -140,45 +140,52 @@ let copy_object heap loc fields =
 		fields;
 	new_obj
 
-(* Default objects *)
+(* Default objects - create two objects - the "real" one and the metadata one *)
 let create_default_object proto cls ext =
 	let obj = SHeap.create 1021 in
-		SHeap.add obj "@proto" (Loc proto);
-		SHeap.add obj "@class" (String cls);
-		SHeap.add obj "@extensible" (Bool ext);
-		obj
+	let mtd = SHeap.create 1021 in
+		SHeap.add mtd "@proto"      (Loc proto);
+		SHeap.add mtd "@class"      (String cls);
+		SHeap.add mtd "@extensible" (Bool ext);
+		obj, mtd
 
 (* Call-construct objects *)
 let create_object_with_call_construct call construct len =
-	let obj = create_default_object "$lfun_proto" "Function" true in
-		SHeap.add obj "length" (LList [String "d"; Num len; Bool false; Bool false; Bool false]);
-		SHeap.replace obj "@call" (String call);
-		SHeap.replace obj "@construct" (String construct);
-		SHeap.replace obj "@scope" Empty;
-		obj
+	let obj, mtd = create_default_object "$lfun_proto" "Function" true in
+		SHeap.add     obj "length"     (LList [String "d"; Num len; Bool false; Bool false; Bool false]);
+		SHeap.replace mtd "@call"      (String call);
+		SHeap.replace mtd "@construct" (String construct);
+		SHeap.replace mtd "@scope"     (Empty);
+		obj, mtd
 
 (* Function objects - with heap addition *)
 let create_anonymous_function_object heap call construct params =
-	let loc = fresh_loc () in
 	let len = float_of_int (List.length params) in
-	let obj = create_object_with_call_construct call construct len in
 
-		SHeap.replace obj "@scope" (LList [ Loc "$lg" ]);
+	let lobj = fresh_loc () in
+	let lmtd = fresh_loc () in
 
-		SHeap.replace obj "@formalParameters" (LList (List.map (fun x -> String x) params));
-		SHeap.add obj "caller"    (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
-		SHeap.add obj "arguments" (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+	let obj, mtd = create_object_with_call_construct call construct len in
 
-		let loc_proto = fresh_loc () in
-		let proto_obj = create_default_object "$lobj_proto" "Object" true in
-			SHeap.add proto_obj "constructor" (LList [String "d"; Loc loc; Bool true; Bool false; Bool true]);
-			SHeap.add obj "prototype" (LList [String "d"; Loc loc_proto; Bool true; Bool false; Bool false]);
+		SHeap.replace mtd "@scope" (LList [ Loc "$lg" ]);
+
+		SHeap.replace mtd "@formalParameters" (LList (List.map (fun x -> String x) params));
+		SHeap.add     obj "caller"            (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+		SHeap.add     obj "arguments"         (LList [(String "a"); Loc "$lthrow_type_error"; Loc "$lthrow_type_error"; Bool false; Bool false]);
+
+		let lproto    : string = fresh_loc () in
+		let lprotomtd : string = fresh_loc () in
+		let proto_obj, proto_mtd = create_default_object "$lobj_proto" "Object" true in
+			SHeap.add proto_obj "constructor" (LList [String "d"; Loc lobj; Bool true; Bool false; Bool true]);
+			SHeap.add obj       "prototype"   (LList [String "d"; Loc lproto; Bool true; Bool false; Bool false]);
 
 			(* Add to the heap *)
-			SHeap.add heap loc_proto proto_obj;
-			SHeap.add heap loc obj;
+			SHeap.add heap lproto    (proto_obj, Loc lprotomtd);
+			SHeap.add heap lprotomtd (proto_mtd, Null);
+			SHeap.add heap lobj      (obj, Loc lmtd);
+			SHeap.add heap lmtd      (mtd, Null);
 
-			loc
+			lobj
 
 (* END SPECIAL STUFF *)
 
@@ -455,7 +462,7 @@ let rec proto_obj heap l1 l2 =
 		| Null -> Bool (false)
 		| _ -> raise (Failure "Illegal value for proto: this should not happen")
 
-let rec evaluate_bcmd bcmd heap store =
+let rec evaluate_bcmd bcmd (heap : (jsil_lit SHeap.t * jsil_lit) SHeap.t) store =
 	match bcmd with
 	| SSkip -> Empty
 
@@ -465,11 +472,11 @@ let rec evaluate_bcmd bcmd heap store =
 		Hashtbl.replace store x v_e;
 		v_e
 
-	| SNew x ->
-		let new_loc = fresh_loc () in
+	| SNew (x, metadata) ->
+		let new_loc      = fresh_loc () in
+		let metadata_val = (match metadata with | None -> Null | Some metadata -> evaluate_expr metadata store) in		
 		let obj = SHeap.create 1021 in
-		SHeap.add obj proto_f Null;
-		SHeap.add heap new_loc obj;
+		SHeap.add heap new_loc (obj, metadata_val);
 		Hashtbl.replace store x (Loc new_loc);
 		Loc new_loc
 
@@ -478,7 +485,7 @@ let rec evaluate_bcmd bcmd heap store =
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj = (try SHeap.find heap l with
+			let obj, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
 			let v = (try SHeap.find obj f with
 				| _ ->
@@ -499,14 +506,13 @@ let rec evaluate_bcmd bcmd heap store =
 		| Loc l, String f ->
 			if (SHeap.mem heap l)
 			then
-				let obj = SHeap.find heap l in ();
+				let obj, _ = SHeap.find heap l in ();
 				SHeap.replace obj f v_e3;
 				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2) (JSIL_Print.string_of_literal v_e3);
 				v_e3
 			else
 				let obj = SHeap.create 1021 in
-				SHeap.add obj proto_f Null;
-				SHeap.add heap l obj;
+				SHeap.add heap l (obj, Null);
 				SHeap.replace obj f v_e3;
 				if (!verbose) then Printf.printf "Mutation: [%s, %s] = %s \n" (JSIL_Print.string_of_literal v_e1) (JSIL_Print.string_of_literal v_e2) (JSIL_Print.string_of_literal v_e3);
 				v_e3
@@ -517,7 +523,7 @@ let rec evaluate_bcmd bcmd heap store =
 		let v_e2 = evaluate_expr e2 store in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj = (try SHeap.find heap l with
+			let obj, metadata = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e1)))) in
 			if (SHeap.mem obj f)
 			then
@@ -543,7 +549,7 @@ let rec evaluate_bcmd bcmd heap store =
 		let pv_e2 = JSIL_Print.string_of_literal v_e2 in
 		(match v_e1, v_e2 with
 		| Loc l, String f ->
-			let obj = (try SHeap.find heap l with
+			let obj, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" pv_e1))) in
 			let v = Bool (SHeap.mem obj f) in
 			Hashtbl.replace store x v;
@@ -555,17 +561,10 @@ let rec evaluate_bcmd bcmd heap store =
 		let v_e = evaluate_expr e store in
 		(match v_e with
 		| Loc l ->
-			let obj = (try SHeap.find heap l with
+			let obj, _ = (try SHeap.find heap l with
 			| _ -> raise (Failure (Printf.sprintf "Looking up inexistent object: %s" (JSIL_Print.string_of_literal v_e)))) in
 			let fields =
-				SHeap.fold
-				(fun field value acc ->
-					let t = evaluate_type_of value in
-					if (t = ListType) then
-						(String field) :: acc
-					else
-						acc
-					) obj [] in
+				SHeap.fold (fun field value acc -> (String field) :: acc) obj [] in
 			let v = LList (List.sort compare fields) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "hasField: %s := gf (%s) = %s \n" x (JSIL_Print.string_of_literal v_e) (JSIL_Print.string_of_literal v);
@@ -573,14 +572,37 @@ let rec evaluate_bcmd bcmd heap store =
 		| _ -> raise (Failure "Passing non-object value to getFields"))
 
   | SArguments x ->
-		let arg_obj = (try SHeap.find heap larguments with
+		let arg_obj, _ = (try SHeap.find heap larguments with
 		| _ -> raise (Failure "The arguments object doesn't exist.")) in
 		let v = (try SHeap.find arg_obj "args" with
 		| _ -> raise (Failure "The arguments are not available.")) in
 			Hashtbl.replace store x v;
 			if (!verbose) then Printf.printf "Arguments: %s := %s \n" x (JSIL_Print.string_of_literal v);
 			v
-			
+
+	| MetaData (x, e) ->
+		let v_e = evaluate_expr e store in
+		(match v_e with
+		| Loc l ->
+				(match (SHeap.mem heap l) with
+				| false -> (* !!!!! TOFIX !!!!! *)
+						(* Generate empty object with metadata null as metadata *) 
+						let m = SHeap.create 1021 in
+						let lm = fresh_loc () in
+						SHeap.replace heap lm (m, Null);
+						
+						(* Generate new object in the heap *)
+						let o = SHeap.create 1021 in
+						SHeap.replace heap l (o, Loc lm);
+						Hashtbl.replace store x (Loc lm);
+						Loc lm
+						
+				| true -> 
+						let _, metadata = SHeap.find heap l in
+							Hashtbl.replace store x metadata;
+							metadata) 
+		| _ -> raise (Failure (Printf.sprintf "Looking up metadata of non-object: %s" (JSIL_Print.string_of_literal v_e))))	
+
 	| STermSucc  
 	| STermFail -> Bool true 
 
@@ -616,7 +638,7 @@ let init_store params args =
 	if (!verbose) then Printf.printf "I have just initialized the following store\n %s \n" str_store;
 	new_store
 
-let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd cc_tbl vis_tbl =
+let rec evaluate_cmd prog cur_proc_name which_pred (heap : (jsil_lit SHeap.t * jsil_lit) SHeap.t) store cur_cmd prev_cmd cc_tbl vis_tbl =
 
 	let execute_function_constructor proc x e_args j = (
 			(* Printf.printf "\nFunction call or constructor encountered.\n"; *)
@@ -791,7 +813,7 @@ let rec evaluate_cmd prog cur_proc_name which_pred heap store cur_cmd prev_cmd c
 		begin
 			let args_obj = SHeap.create 1 in
 				SHeap.replace args_obj largvals (LList arg_vals);
-				SHeap.replace heap larguments args_obj;
+				SHeap.replace heap larguments (args_obj, Null);
 		end;
 		(match evaluate_cmd prog call_proc_name which_pred heap new_store 0 0 cc_tbl vis_tbl with
 		| Normal, v ->

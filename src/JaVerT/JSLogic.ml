@@ -95,6 +95,7 @@ type js_logic_assertion =
 	| JSLStrLess    		of js_logic_expr * js_logic_expr
 	| JSLStar				of js_logic_assertion * js_logic_assertion
 	| JSLPointsTo			of js_logic_expr * js_logic_expr * js_logic_expr
+	| JSLMetaData           of js_logic_expr * js_logic_expr
 	| JSLEmp
 	| JSLPred				of string  * (js_logic_expr list)
 	| JSLForAll             of (jsil_var * jsil_type) list * js_logic_assertion
@@ -252,6 +253,7 @@ let rec js2jsil_assertion
 	| JSLLessEq (le1, le2)                -> LLessEq ((fe le1), (fe le2))
 	| JSLStrLess (le1, le2)               -> LStrLess ((fe le1), (fe le2))
 	| JSLStar (a1, a2)                    -> LStar ((f a1), (f a2))
+	| JSLMetaData (le1, le2)              -> LMetaData (fe le1, fe le2)
 	| JSLPointsTo	(le1, le2, le3)       -> LPointsTo ((fe le1), (fe le2), (fe le3))
 	| JSLEmp                              -> LEmp
 	| JSLForAll (s, a)                    -> LForAll (s, f a)

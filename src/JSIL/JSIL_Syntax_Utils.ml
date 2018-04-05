@@ -350,7 +350,7 @@ let get_proc_variables
         *)
        | SBasic (SAssignment (var, _))
        | SBasic (SLookup (var, _, _))
-       | SBasic (SNew var)
+       | SBasic (SNew (var, _))
        | SBasic (SHasField (var, _, _))
        | SBasic (SGetFields (var, _))
        | SBasic (SArguments var)

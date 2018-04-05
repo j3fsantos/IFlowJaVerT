@@ -4,12 +4,12 @@ import Global.jsil;
 
 proc d__makeDay (year, month, date) {
 			
-			xret := "Object_isFinite" ($$empty, $$empty, year) with elab;
-			goto [xret = $$f] rnan ifnm;
-	ifnm:	xret := "Object_isFinite" ($$empty, $$empty, month) with elab;
-			goto [xret = $$f] rnan ifnd;
-	ifnd:	xret := "Object_isFinite" ($$empty, $$empty, date) with elab;
-			goto [xret = $$f] rnan main;
+			xret := "Object_isFinite" (empty, empty, year) with elab;
+			goto [xret = false] rnan ifnm;
+	ifnm:	xret := "Object_isFinite" (empty, empty, month) with elab;
+			goto [xret = false] rnan ifnd;
+	ifnd:	xret := "Object_isFinite" (empty, empty, date) with elab;
+			goto [xret = false] rnan main;
 
 	main:	xret := "i__toInteger" (year) with elab;
 			y := xret;
@@ -49,14 +49,14 @@ with
 
 proc d__makeTime (hour, min, sec, ms) {
 
-			xret := "Object_isFinite" ($$empty, $$empty, hour) with elab;
-			goto [xret = $$f] rnan ifnm;
-	ifnm:	xret := "Object_isFinite" ($$empty, $$empty, min) with elab;
-			goto [xret = $$f] rnan ifns;
-	ifns:	xret := "Object_isFinite" ($$empty, $$empty, sec) with elab;
-			goto [xret = $$f] rnan ifnms;
-	ifnms:	xret := "Object_isFinite" ($$empty, $$empty, ms) with elab;
-			goto [xret = $$f] rnan main;
+			xret := "Object_isFinite" (empty, empty, hour) with elab;
+			goto [xret = false] rnan ifnm;
+	ifnm:	xret := "Object_isFinite" (empty, empty, min) with elab;
+			goto [xret = false] rnan ifns;
+	ifns:	xret := "Object_isFinite" (empty, empty, sec) with elab;
+			goto [xret = false] rnan ifnms;
+	ifnms:	xret := "Object_isFinite" (empty, empty, ms) with elab;
+			goto [xret = false] rnan main;
 
 	main:	xret := "i__toInteger" (hour) with elab;
 			h := xret;
@@ -85,10 +85,10 @@ with
 
 proc d__makeDate (day, time) {
 
-			xret := "Object_isFinite" ($$empty, $$empty, day) with elab;
-			goto [xret = $$f] rnan ifnt;
-	ifnt:	xret := "Object_isFinite" ($$empty, $$empty, time) with elab;
-			goto [xret = $$f] rnan main;
+			xret := "Object_isFinite" (empty, empty, day) with elab;
+			goto [xret = false] rnan ifnt;
+	ifnt:	xret := "Object_isFinite" (empty, empty, time) with elab;
+			goto [xret = false] rnan main;
 
 	main:	xret := (day * 86400000) + time;
 			goto rlab;
@@ -120,8 +120,8 @@ with
 
 proc d__TimeClip (time) {
 
-			xret := "Object_isFinite" ($$empty, $$empty, time) with elab;
-			goto [xret = $$f] rnan range;
+			xret := "Object_isFinite" (empty, empty, time) with elab;
+			goto [xret = false] rnan range;
 	range:	goto [8640000000000000 <= m_abs (time)] rnan main;
 
 	main:	xret := "i__toInteger" (time) with elab;
@@ -154,13 +154,15 @@ proc Date_construct (xsc, vthis) {
 			len := l-len (arguments);
 			argc := len - 2;
 
-			xret := new ();
-			date := "create_default_object" (xret, $ldt_proto, "Date", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			date := "create_default_object" (xret, $ldt_proto, "Date", true);
 
 			goto [argc = 0] arg0 test1;
 
 			(* No arguments, return now *)
-	arg0:	[date, "@primitiveValue"] := $$UTCTime;
+	arg0:	m := metadata(date);
+			[m, "@primitiveValue"] := $$UTCTime;
 			goto rlab;
 
 
@@ -171,11 +173,12 @@ proc Date_construct (xsc, vthis) {
 			(* One argument, convert *)
 	arg1:	v := l-nth (arguments, 2);
 			xret := "i__toPrimitive" (v) with elab;
-			goto [typeOf(xret) = $$string_type] nimpl tonum;
+			goto [typeOf xret = Str] nimpl tonum;
 
 	tonum:  xret := "i__toNumber" (xret) with elab;
 			xret := "d__TimeClip" (xret);
-			[date, "@primitiveValue"] := xret;
+			m := metadata(date);
+			[m, "@primitiveValue"] := xret;
 			goto rlab;
 
 	nimpl:	xret := magic;
@@ -237,7 +240,8 @@ proc Date_construct (xsc, vthis) {
 			utc := "d__UTC" (fd);
 			res := "d__TimeClip" (utc);
 
-			[date, "@primitiveValue"] := res;
+			m := metadata(date);
+			[m, "@primitiveValue"] := res;
 
 	rlab:	xret := date;
 
@@ -253,11 +257,12 @@ with
 
 proc DP_valueOf (xsc, vthis) {
 
-			goto [typeOf(vthis) = $$object_type] class tt;
-	class:	class := [vthis, "@class"];
+			goto [typeOf vthis = Obj] class tt;
+	class:	m := metadata(vthis);
+			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
 
-	rlab:	xret := [vthis, "@primitiveValue"];
+	rlab:	xret := [m, "@primitiveValue"];
 
 	tt:		xret := "TypeError" ();
 
@@ -274,11 +279,12 @@ with
 
 proc DP_getTime (xsc, vthis) {
 
-			goto [typeOf(vthis) = $$object_type] class tt;
-	class:	class := [vthis, "@class"];
+			goto [typeOf vthis = Obj] class tt;
+	class:	m := metadata(vthis);
+			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
 
-	rlab:	xret := [vthis, "@primitiveValue"];
+	rlab:	xret := [m, "@primitiveValue"];
 
 	tt:		xret := "TypeError" ();
 
@@ -295,8 +301,9 @@ with
 
 proc DP_getTimezoneOffset (xsc, vthis) {
 
-			goto [typeOf(vthis) = $$object_type] class tt;
-	class:	class := [vthis, "@class"];
+			goto [typeOf vthis = Obj] class tt;
+	class:	m := metadata(vthis);
+			class := [m, "@class"];
 			goto [class = "Date"] rlab tt;
 
 	rlab:	xret := m_round (($$UTCTime - $$LocalTime) / 60000);

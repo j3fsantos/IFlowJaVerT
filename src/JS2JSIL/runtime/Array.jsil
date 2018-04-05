@@ -7,44 +7,9 @@ import Internals.jsil;
 (* *** CONSTRUCT *** *)
 
 proc Array_call () {
+			xret := "Array_construct" ("args") with elab;
 
-			la := args;
-			len := l-len (la);
-
-			xret := new ();
-			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
-
-			[xret, "length"] := {{ "d", 0, $$t, $$f, $$t }};
-			array := xret;
-
-			goto [len < 3] rtrn ltest;
-
-	ltest:	goto [len = 3] len3 other;
-
-	len3:	len := l-nth (la, 2);
-			goto [typeOf(len) = $$number_type] len0 setl;
-	len0:	xret := "i__toUint32" (len) with elab;
-			goto [len = xret] dop re;
-	dop:	prop := "length";
-			conf := $$f;
-			goto set;
-
-	setl:	prop := "0";
-			conf := $$t;
-	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, $$t, conf, $$t }}, $$t) with elab;
-			goto rtrn;
-
-	other:	n := 2;
-	loop:	goto [n < len] head rtrn;
-	head:	prop := "i__toString" (n - 2) with elab;
-			xret := "a__defineOwnProperty" (array, prop, {{ "d", l-nth (la, n), $$t, $$t, $$t }}, $$t) with elab;
-			n := n + 1;
-			goto loop;
-
-	rtrn:	xret := array;
 	rlab:	skip;
-
-	re:		xret := "RangeError" ();
 	elab:	skip
 }
 with
@@ -58,10 +23,11 @@ proc Array_construct () {
 			la := args;
 			len := l-len (la);
 
-			xret := new ();
-			xret := "create_default_object" (xret, $larr_proto, "Array", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $larr_proto, "Array", true);
 
-			[xret, "length"] := {{ "d", 0, $$t, $$f, $$t }};
+			[xret, "length"] := {{ "d", 0, true, false, true }};
 			array := xret;
 
 			goto [len < 3] rtrn ltest;
@@ -69,22 +35,22 @@ proc Array_construct () {
 	ltest:	goto [len = 3] len3 other;
 
 	len3:	len := l-nth (la, 2);
-			goto [typeOf(len) = $$number_type] len0 setl;
+			goto [typeOf len = Num] len0 setl;
 	len0:	xret := "i__toUint32" (len) with elab;
 			goto [len = xret] dop re;
 	dop:	prop := "length";
-			conf := $$f;
+			conf := false;
 			goto set;
 
 	setl:	prop := "0";
-			conf := $$t;
-	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, $$t, conf, $$t }}, $$t) with elab;
+			conf := true;
+	set:	xret := "a__defineOwnProperty" (array, prop, {{ "d", len, true, conf, true }}, true) with elab;
 			goto rtrn;
 
 	other:	n := 2;
 	loop:	goto [n < len] head rtrn;
 	head:	prop := "i__toString" (n - 2) with elab;
-			xret := "a__defineOwnProperty" (array, prop, {{ "d", l-nth (la, n), $$t, $$t, $$t }}, $$t) with elab;
+			xret := "a__defineOwnProperty" (array, prop, {{ "d", l-nth (la, n), true, true, true }}, true) with elab;
 			n := n + 1;
 			goto loop;
 
@@ -111,7 +77,7 @@ proc a__isIdx (s) {
 	check:	xret := not (xret = "4294967295");
 			goto rlab;
 
-	ret_f:	xret := $$f;
+	ret_f:	xret := false;
 
 	rlab:	skip;
 	elab:	skip
@@ -141,10 +107,10 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			oldLen := oldLen;
 			xret := l-nth (oldLenDesc, 2);
 			goto [(not (index < oldLenNum)) and (not (l-nth (oldLenDesc, 2)))] reject idop;
-	idop:	xret := "o__defineOwnProperty" (l, prop, desc, $$f) with elab;
-			goto [xret = $$f] reject ilen;
+	idop:	xret := "o__defineOwnProperty" (l, prop, desc, false) with elab;
+			goto [xret = false] reject ilen;
 	ilen:	goto [not (index < oldLenNum)] setl rlab;
-	setl:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), l-nth (oldLenDesc, 2), l-nth (oldLenDesc, 3), l-nth (oldLenDesc, 4) }}, $$f);
+	setl:	xret := "o__defineOwnProperty" (l, "length", {{ "d", (index + 1), l-nth (oldLenDesc, 2), l-nth (oldLenDesc, 3), l-nth (oldLenDesc, 4) }}, false);
 			goto rlab;
 
 	norm:	xret := "o__defineOwnProperty" (l, prop, desc, throw) with elab;
@@ -157,8 +123,8 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			dc := l-nth (desc, 4);
 			dv := l-nth (desc, 1);
 			dw := l-nth (desc, 2);
-			dg := $$empty;
-			ds := $$empty;
+			dg := empty;
+			ds := empty;
 			goto sla;
 
 	odd:	goto [l-nth (desc, 0) = "a"] add gdd;
@@ -166,8 +132,8 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			(* Accessor *)
 	add:	de := l-nth (desc, 3);
 			dc := l-nth (desc, 4);
-			dv := $$empty;
-			dw := $$empty;
+			dv := empty;
+			dw := empty;
 			dg := l-nth (desc, 1);
 			ds := l-nth (desc, 2);
 			goto sla;
@@ -180,7 +146,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 			dg := l-nth (desc, 5);
 			ds := l-nth (desc, 6);
 
-	sla:	goto [dv = $$empty] slai slb;
+	sla:	goto [dv = empty] slai slb;
 
 	slai:	xret := "o__defineOwnProperty" (l, "length", desc, throw) with elab;
 			goto rlab;
@@ -188,7 +154,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	slb:	xret := "i__toUint32" (dv) with elab;
 			newLen := xret;
 			xret := "i__toNumber" (dv) with elab;
-			goto [(not (newLen = xret)) and (not (xret = -0.0))] rgerr sle;
+			goto [not (newLen = xret)] rgerr sle;
 
 	sle:	dv := newLen;
 			goto [not (newLen < oldLenNum)] slfi slg;
@@ -196,38 +162,38 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	slfi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
 			goto rlab;
 
-	slg:	goto [l-nth (oldLenDesc, 2) = $$f] reject slh;
+	slg:	goto [l-nth (oldLenDesc, 2) = false] reject slh;
 
-	slh:	goto [dw = $$f] sli slh1;
+	slh:	goto [dw = false] sli slh1;
 
-	slh1:	newWritable := $$t;
+	slh1:	newWritable := true;
 			goto slj;
 
-	sli:	newWritable := $$f;
-			dw := $$t;
+	sli:	newWritable := false;
+			dw := true;
 
 	slj:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
-			goto [xret = $$f] tf loop;
+			goto [xret = false] tf loop;
 
 	loop:	goto [newLen < oldLen] head slm;
 	head:	oldLen := oldLen - 1;
 			xret := "i__toString" (oldLen) with elab;
-			xret := "deleteProperty" (l, xret, $$f) with elab;
-			goto [xret = $$f] fix next;
+			xret := "deleteProperty" (l, xret, false) with elab;
+			goto [xret = false] fix next;
 
 	fix:	dv := oldLen + 1;
-			goto [newWritable = $$f] setwr defl;
-	setwr:	dw := $$f;
+			goto [newWritable = false] setwr defl;
+	setwr:	dw := false;
 	defl:	xret := "o__defineOwnProperty" (l, "length", {{ "g", de, dc, dv, dw, dg, ds }}, throw) with elab;
 			goto reject;
 
 	next:	goto loop;
 
-	slm:	goto [newWritable = $$f] slmi sln;
+	slm:	goto [newWritable = false] slmi sln;
 
-	slmi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", $$empty, $$empty, $$empty, $$f, $$empty, $$empty }}, $$f) with elab;
+	slmi:	xret := "o__defineOwnProperty" (l, "length", {{ "g", empty, empty, empty, false, empty, empty }}, false) with elab;
 
-	sln:	xret := $$t;
+	sln:	xret := true;
 	rlab:	skip;
 
 	rgerr:	xret := "RangeError" ();
@@ -238,7 +204,7 @@ proc a__defineOwnProperty (l, prop, desc, throw) {
 	tt:		xret := "TypeError" ();
 	elab:	skip;
 
-	tf:		xret := $$f;
+	tf:		xret := false;
 			goto rlab
 }
 with
@@ -250,13 +216,15 @@ with
 (* *** ISARRAY *** *)
 
 proc Array_isArray (xsc, vthis, array) {
-			xret := $$f;
+			xret := false;
 
-			goto [typeOf (array) = $$object_type] cls rlab;
-	cls:	class := [array, "@class"];
+			goto [typeOf (array) = Obj] cls rlab;
+			
+	cls:	m := metadata(array);
+			class := [m, "@class"];
 			goto [class = "Array"] rt rlab;
 
-	rt:		xret := $$t;
+	rt:		xret := true;
 
 	rlab:	skip;
 	elab:	skip
@@ -281,11 +249,12 @@ proc AP_toString (xsc, vthis) {
 
 	setfun:	func := $lop_toString;
 
-	norm:	xsc := [func, "@scope"];
-			fun := [func, "@call"];
+	norm:	m := metadata(func);
+			xsc := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (xsc, vthis) with elab;
-			goto [xret = $$empty] undef rlab;
-	undef:	xret := $$undefined;
+			goto [xret = empty] undef rlab;
+	undef:	xret := undefined;
 
 	rlab:	skip;
 
@@ -308,7 +277,7 @@ proc AP_join (xsc, vthis, sep) {
 			xret := "i__toUint32" (xret) with elab;
 			len := xret;
 
-			goto [sep = $$undefined] ssep sssep;
+			goto [sep = undefined] ssep sssep;
 	ssep:	sep := ",";
 			goto len0;
 
@@ -318,7 +287,7 @@ proc AP_join (xsc, vthis, sep) {
 	len0:	goto [len = 0] xemp non0;
 
 	non0:	xret := "get" ( vthis, "0") with elab;
-			goto [(xret = $$null) or (xret = $$undefined)] r0 rs;
+			goto [(xret = null) or (xret = undefined)] r0 rs;
 
 	r0:		R := "";
 			goto prep;
@@ -335,7 +304,7 @@ proc AP_join (xsc, vthis, sep) {
 			xret := "i__toString" (k) with elab;
 			xret := "get" ( vthis, xret) with elab;
 
-			goto [(xret = $$undefined) or (xret = $$null)] cc def;
+			goto [(xret = undefined) or (xret = null)] cc def;
 	def:	xret := "i__toString" (xret) with elab;
 			next := xret;
 
@@ -369,14 +338,14 @@ proc AP_pop (xsc, vthis) {
 
 			goto [len = 0] zero nz;
 
-	zero:	xret := "put" (vthis, "length", 0, $$t) with elab;
-			xret := $$undefined;
+	zero:	xret := "put" (vthis, "length", 0, true) with elab;
+			xret := undefined;
 			goto rlab;
 
 	nz:		indx := "i__toString" (len - 1);
 			elem := "get" ( vthis, indx) with elab;
-			xret := "deleteProperty" (vthis, indx, $$t) with elab;
-			xret := "put" (vthis, "length", (len - 1), $$t) with elab;
+			xret := "deleteProperty" (vthis, indx, true) with elab;
+			xret := "put" (vthis, "length", (len - 1), true) with elab;
 			xret := elem;
 
 	rlab:	skip;
@@ -407,12 +376,12 @@ proc AP_push() {
 
 	add:	elem := l-nth (arguments, n);
 			strn := "i__toString" (len);
-			xret := "put" (vthis, strn, elem, $$t) with elab;
+			xret := "put" (vthis, strn, elem, true) with elab;
 			n := n + 1;
 			len := len + 1;
 			goto loop;
 
-	stop:	xret := "put" (vthis, "length", len, $$t) with elab;
+	stop:	xret := "put" (vthis, "length", len, true) with elab;
 			xret := len;
 
 	rlab:	skip;
@@ -436,14 +405,14 @@ proc AP_toLocaleString(xsc, vthis) {
 
 			sep := ",";
 			k := 0;
-			goto [len = 0] empty fill;
+			goto [len = 0] empt fill;
 
-	empty:	xret := "";
+	empt:	xret := "";
 			goto rlab;
 
 	fill:	xret := "i__toString" (k) with elab;
 			xret := "get" ( vthis, xret) with elab;
-			goto [ (xret = $$undefined) or (xret = $$null) ] un def;
+			goto [ (xret = undefined) or (xret = null) ] un def;
 
 	un:		R := "";
 			goto next;
@@ -456,14 +425,15 @@ proc AP_toLocaleString(xsc, vthis) {
 			xret := "i__isCallable" (func);
 			goto [xret] call throw;
 
-	call:	xsc := [func, "@scope"];
-			fun := [func, "@call"];
+	call:	m := metadata(func);
+			xsc := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (xsc, eothis) with elab;
-			goto [xret = $$empty] undef setR;
-	undef:	xret := $$undefined;
-	setR:	goto [ (xret = $$undefined) or (xret = $$null) ] un deff;
+			goto [xret = empty] undef setR;
+	undef:	xret := undefined;
+	setR:	goto [ (xret = undefined) or (xret = null) ] un deff;
 
-			(* This is not specified, but how do you concatenate non-strings? *)
+			(* This is NOT specified, but how do you concatenate non-strings? *)
 	deff:	xret := "i__toString" (xret) with elab;
 			R := xret;
 
@@ -524,8 +494,9 @@ proc AP_concat() {
 	add:	elem := l-nth (arguments, idx);
 			f := 1;
 
-	cont:	goto [typeOf (elem) = $$object_type] cls narr;
-	cls:	c := [elem, "@class"];
+	cont:	goto [typeOf (elem) = Obj] cls narr;
+	cls:	m := metadata(elem);
+			c := [m, "@class"];
 			goto [c = "Array"] arr narr;
 
 	arr:	k := 0;
@@ -543,7 +514,7 @@ proc AP_concat() {
 	tt:		xret := "get" ( elem, p) with elab;
 			se := xret;
 			xret := "i__toString" (n) with elab;
-			xret := "a__defineOwnProperty" (A, xret, {{ "d", se, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, xret, {{ "d", se, true, true, true }}, false) with elab;
 
 	next:	n := n + 1;
 			k := k + 1;
@@ -554,7 +525,7 @@ proc AP_concat() {
 			goto loop;
 
 	narr:	xret := "i__toString" (n) with elab;
-			xret := "a__defineOwnProperty" (A, xret, {{ "d", elem, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, xret, {{ "d", elem, true, true, true }}, false) with elab;
 			n := n + 1;
 			goto [f = 0] loop iinc;
 	iinc:	idx := idx + 1;
@@ -602,20 +573,20 @@ proc AP_reverse(xsc, vthis) {
 
 			goto [lowerE and upperE] tt el1;
 
-	tt:		xret := "put" (vthis, lowerP, upperV, $$t) with elab;
-			xret := "put" (vthis, upperP, lowerV, $$t) with elab;
+	tt:		xret := "put" (vthis, lowerP, upperV, true) with elab;
+			xret := "put" (vthis, upperP, lowerV, true) with elab;
 			goto inc;
 
 	el1:	goto [upperE] ft el2;
 
-	ft:		xret := "put" (vthis, lowerP, upperV, $$t) with elab;
-			xret := "deleteProperty" (vthis, upperP, $$t) with elab;
+	ft:		xret := "put" (vthis, lowerP, upperV, true) with elab;
+			xret := "deleteProperty" (vthis, upperP, true) with elab;
 			goto inc;
 
 	el2:	goto [lowerE] tf inc;
 
-	tf:		xret := "deleteProperty" (vthis, lowerP, $$t) with elab;
-			xret := "put" (vthis, upperP, lowerV, $$t) with elab;
+	tf:		xret := "deleteProperty" (vthis, lowerP, true) with elab;
+			xret := "put" (vthis, upperP, lowerV, true) with elab;
 
 	inc:	lower := lower + 1;
 			goto loop;
@@ -642,8 +613,8 @@ proc AP_shift(xsc, vthis) {
 
 			goto [len = 0] zero nz;
 
-	zero:	xret := "put" (vthis, "length", 0, $$t) with elab;
-			xret := $$undefined;
+	zero:	xret := "put" (vthis, "length", 0, true) with elab;
+			xret := undefined;
 			goto rlab;
 
 	nz:		xret := "get" ( vthis, "0") with elab;
@@ -660,17 +631,17 @@ proc AP_shift(xsc, vthis) {
 			goto [xret] t f;
 
 	t:		xret := "get" ( vthis, from) with elab;
-			xret := "put" (vthis, to, xret, $$t) with elab;
+			xret := "put" (vthis, to, xret, true) with elab;
 			goto inc;
 
-	f:		xret := "deleteProperty" (vthis, to, $$t) with elab;
+	f:		xret := "deleteProperty" (vthis, to, true) with elab;
 	inc:	k := k + 1;
 			goto loop;
 
 	end:	len := len - 1;
 			xret := "i__toString" (len) with elab;
-			xret := "deleteProperty" (vthis, xret, $$t) with elab;
-			xret := "put" (vthis, "length", len, $$t) with elab;
+			xret := "deleteProperty" (vthis, xret, true) with elab;
+			xret := "put" (vthis, "length", len, true) with elab;
 			xret := first;
 
 	rlab:	skip;
@@ -710,7 +681,7 @@ proc AP_slice(xsc, vthis, start, end) {
 			goto if2;
 	ls1:	k := rs;
 
-	if2:	goto [end = $$undefined] if2t if2f;
+	if2:	goto [end = undefined] if2t if2f;
 	if2t:	re := len;
 			goto if3;
 	if2f:	xret := "i__toInteger" (end) with elab;
@@ -744,7 +715,7 @@ proc AP_slice(xsc, vthis, start, end) {
 			kval := xret;
 			xret := "i__toString" (n) with elab;
 			strn := xret;
-			xret := "a__defineOwnProperty" (A, strn, {{ "d", kval, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, strn, {{ "d", kval, true, true, true }}, false) with elab;
 
 	ff:		k := k + 1;
 			n := n + 1;
@@ -794,10 +765,10 @@ proc AP_unshift() {
 
 	fpt:	xret := "get" ( vthis, from) with elab;
 			fromv := xret;
-			xret := "put" (vthis, to, fromv, $$t) with elab;
+			xret := "put" (vthis, to, fromv, true) with elab;
 			goto dec;
 
-	fpf:	xret := "deleteProperty" (vthis, to, $$t) with elab;
+	fpf:	xret := "deleteProperty" (vthis, to, true) with elab;
 
 	dec:	k := k - 1;
 			goto loop1;
@@ -809,13 +780,13 @@ proc AP_unshift() {
 	next:	elem := l-nth(arguments, nm);
 			xret := "i__toString" (j) with elab;
 			strj := xret;
-			xret := "put" (vthis, strj, elem, $$t) with elab;
+			xret := "put" (vthis, strj, elem, true) with elab;
 			j := j + 1;
 			nm := nm + 1;
 			goto loop;
 
 	end:	lac := len + argc;
-			xret := "put" (vthis, "length", lac, $$t) with elab;
+			xret := "put" (vthis, "length", lac, true) with elab;
 			xret := lac;
 
 	rlab:	skip;
@@ -834,12 +805,12 @@ proc AP_splice() {
 			num := l-len (arguments);
 
 			goto [num < 3] nstrt ystrt;
-	nstrt:	start := $$undefined;
+	nstrt:	start := undefined;
 			goto dc;
 	ystrt:	start := l-nth (arguments, 2);
 
 	dc:		goto [num < 4] ndc ydc;
-	ndc:	deleteCount := $$undefined;
+	ndc:	deleteCount := undefined;
 			goto tobj;
 	ydc:	deleteCount := l-nth (arguments, 3);
 
@@ -857,14 +828,14 @@ proc AP_splice() {
 			rs := xret;
 
 			goto [rs < 0] ift iff;
-	ift:	xret := "M_max" ($$empty, $$empty, len + rs, 0) with elab;
+	ift:	xret := "M_max" (empty, empty, len + rs, 0) with elab;
 			goto sync;
-    iff:	xret := "M_min" ($$empty, $$empty, rs, len) with elab;
+    iff:	xret := "M_min" (empty, empty, rs, len) with elab;
 	sync:	acs := xret;
 
 			xret := "i__toInteger" (deleteCount) with elab;
-			xret := "M_max" ($$empty, $$empty, xret, 0) with elab;
-			xret := "M_min" ($$empty, $$empty, xret, len - acs) with elab;
+			xret := "M_max" (empty, empty, xret, 0) with elab;
+			xret := "M_min" (empty, empty, xret, len - acs) with elab;
 			adc := xret;
 
 			k := 0;
@@ -880,13 +851,13 @@ proc AP_splice() {
 			fromv := xret;
 			xret := "i__toString" (k) with elab;
 			strk := xret;
-			xret := "a__defineOwnProperty" (A, strk, {{ "d", fromv, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, strk, {{ "d", fromv, true, true, true }}, false) with elab;
 
 	fpf:	k := k + 1;
 			goto loop1;
 
 	end1:	num := l-len (arguments);
-			xret := "M_max" ($$empty, $$empty, num - 4, 0) with elab;
+			xret := "M_max" (empty, empty, num - 4, 0) with elab;
 			itemc := xret;
 			ladcic := len - adc;
 			ladcic := ladcic + itemc;
@@ -908,9 +879,9 @@ proc AP_splice() {
 
 	fptt:	xret := "get" ( vthis, from) with elab;
 			fromv := xret;
-			xret := "put" (vthis, to, fromv, $$t) with elab;
+			xret := "put" (vthis, to, fromv, true) with elab;
 			goto cont1;
-	fpff:	xret := "deleteProperty" (vthis, to, $$t) with elab;
+	fpff:	xret := "deleteProperty" (vthis, to, true) with elab;
 	cont1:	k := k + 1;
 			goto loop2;
 
@@ -920,7 +891,7 @@ proc AP_splice() {
 	next3:	k1 := k - 1;
 			xret := "i__toString" (k1) with elab;
 			k1 := xret;
-			xret := "deleteProperty" (vthis, k1, $$t) with elab;
+			xret := "deleteProperty" (vthis, k1, true) with elab;
 			k := k - 1;
 			goto loop3;
 
@@ -941,10 +912,10 @@ proc AP_splice() {
 			goto [fromp] fpttt fpfff;
 	fpttt:	xret := "get" ( vthis, from) with elab;
 			fromv := xret;
-			xret := "put" (vthis, to, fromv, $$t) with elab;
+			xret := "put" (vthis, to, fromv, true) with elab;
 			goto dec;
 
-	fpfff:	xret := "deleteProperty" (vthis, to, $$t) with elab;
+	fpfff:	xret := "deleteProperty" (vthis, to, true) with elab;
 
 	dec:	k := k - 1;
 			goto loop4;
@@ -956,12 +927,12 @@ proc AP_splice() {
 	next5:	elem := l-nth (arguments, nm);
 			xret := "i__toString" (k) with elab;
 			strk := xret;
-			xret := "put" (vthis, strk, elem, $$t) with elab;
+			xret := "put" (vthis, strk, elem, true) with elab;
 			k := k + 1;
 			nm := nm + 1;
 			goto loop5;
 
-	end5:	xret := "put" (vthis, "length", ladcic, $$t) with elab;
+	end5:	xret := "put" (vthis, "length", ladcic, true) with elab;
 			xret := A;
 
 	rlab:	skip;
@@ -979,7 +950,7 @@ proc AP_indexOf() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			selem := $$undefined;
+			selem := undefined;
 	        goto [num <= 2] tobj selem;
 	selem:	selem := l-nth (arguments, 2);
 
@@ -1051,7 +1022,7 @@ proc AP_lastIndexOf() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			selem := $$undefined;
+			selem := undefined;
 	        goto [num <= 2] tobj selem;
 	selem:	selem := l-nth (arguments, 2);
 
@@ -1118,7 +1089,7 @@ proc AP_every() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1136,7 +1107,7 @@ proc AP_every() {
 
 	def:	t := l-nth (arguments, 3);
 			goto setk;
-	undef:	t := $$undefined;
+	undef:	t := undefined;
 
 	setk:	k := 0;
 	loop:	goto [k < len] next end;
@@ -1149,20 +1120,21 @@ proc AP_every() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			tr := xret;
 			xret := "i__toBoolean" (tr) with elab;
 			goto [xret] ff retf;
 
-	retf:	xret := $$f;
+	retf:	xret := false;
 			goto rlab;
 
 	ff:		k := k + 1;
 			goto loop;
 
-	end:	xret := $$t;
+	end:	xret := true;
 
 	rlab:	skip;
 
@@ -1181,7 +1153,7 @@ proc AP_some() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1200,7 +1172,7 @@ proc AP_some() {
 
 	def:	t := l-nth (arguments, 3);
 			goto setk;
-	undef:	t := $$undefined;
+	undef:	t := undefined;
 
 	setk:	k := 0;
 	loop:	goto [k < len] next end;
@@ -1213,20 +1185,21 @@ proc AP_some() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			tr := xret;
 			xret := "i__toBoolean" (tr) with elab;
 			goto [xret] rett ff;
 
-	rett:	xret := $$t;
+	rett:	xret := true;
 			goto rlab;
 
 	ff:		k := k + 1;
 			goto loop;
 
-	end:	xret := $$f;
+	end:	xret := false;
 
 	rlab:	skip;
 
@@ -1245,7 +1218,7 @@ proc AP_forEach() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1263,7 +1236,7 @@ proc AP_forEach() {
 
 	def:	t := l-nth (arguments, 3);
 			goto setk;
-	undef:	t := $$undefined;
+	undef:	t := undefined;
 
 	setk:	k := 0;
 	loop:	goto [k < len] next end;
@@ -1276,14 +1249,15 @@ proc AP_forEach() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 
 	ff:		k := k + 1;
 			goto loop;
 
-	end:	xret := $$undefined;
+	end:	xret := undefined;
 
 	rlab:	skip;
 
@@ -1302,7 +1276,7 @@ proc AP_map() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1320,9 +1294,9 @@ proc AP_map() {
 
 	def:	t := l-nth (arguments, 3);
 			goto seta;
-	undef:	t := $$undefined;
+	undef:	t := undefined;
 
-	seta:	xret := "Array_construct" ($$empty, $$empty, len) with elab;
+	seta:	xret := "Array_construct" (empty, empty, len) with elab;
 			A := xret;
 			k := 0;
 	loop:	goto [k < len] next end;
@@ -1335,11 +1309,12 @@ proc AP_map() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
 			mapv := xret;
-			xret := "a__defineOwnProperty" (A, pk, {{ "d", mapv, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, pk, {{ "d", mapv, true, true, true }}, false) with elab;
 
 	ff:		k := k + 1;
 			goto loop;
@@ -1362,7 +1337,7 @@ proc AP_filter() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1380,7 +1355,7 @@ proc AP_filter() {
 
 	def:	t := l-nth (arguments, 3);
 			goto seta;
-	undef:	t := $$undefined;
+	undef:	t := undefined;
 
 	seta:	xret := "Array_construct" () with elab;
 			A := xret;
@@ -1396,11 +1371,12 @@ proc AP_filter() {
 
 	tt:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
 			xret := fun (scp, t, kval, k, vthis) with elab;
-			goto [xret = $$empty] udef sel;
-	udef:	xret := $$undefined;
+			goto [xret = empty] udef sel;
+	udef:	xret := undefined;
 
 	sel:	sel := xret;
 			xret := "i__toBoolean" (sel) with elab;
@@ -1408,7 +1384,7 @@ proc AP_filter() {
 
 	rett:	xret := "i__toString" (to) with elab;
 			strt := xret;
-			xret := "a__defineOwnProperty" (A, strt, {{ "d", kval, $$t, $$t, $$t }}, $$f) with elab;
+			xret := "a__defineOwnProperty" (A, strt, {{ "d", kval, true, true, true }}, false) with elab;
 			to := to + 1;
 
 	ff:		k := k + 1;
@@ -1432,7 +1408,7 @@ proc AP_reduce() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1454,7 +1430,7 @@ proc AP_reduce() {
 			goto loop2;
 
 	lelse:	goto [len = 0] throw cont;
-	cont:	kpres := $$f;
+	cont:	kpres := false;
 	loop:	goto [kpres] end1 kf;
 	kf:		goto [k < len] next1 end1;
 
@@ -1481,9 +1457,10 @@ proc AP_reduce() {
 
 	t:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
-			xret := fun (scp, $$undefined, acc, kval, k, vthis) with elab;
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
+			xret := fun (scp, undefined, acc, kval, k, vthis) with elab;
 			acc := xret;
 
 	f:		k := k + 1;
@@ -1507,7 +1484,7 @@ proc AP_reduceRight() {
 			vthis  := l-nth (arguments, 1);
 			num := l-len (arguments);
 
-			cbf := $$undefined;
+			cbf := undefined;
 	        goto [num <= 2] tobj cbf;
 	cbf:	cbf := l-nth (arguments, 2);
 
@@ -1528,7 +1505,7 @@ proc AP_reduceRight() {
 			goto loop2;
 
 	lelse:	goto [len = 0] throw cont;
-	cont:	kpres := $$f;
+	cont:	kpres := false;
 	loop:	goto [kpres] end1 kf;
 	kf:		goto [not (k < 0)] next1 end1;
 
@@ -1555,9 +1532,10 @@ proc AP_reduceRight() {
 
 	t:		xret := "get" ( vthis, pk) with elab;
 			kval := xret;
-			scp := [cbf, "@scope"];
-			fun := [cbf, "@call"];
-			xret := fun (scp, $$undefined, acc, kval, k, vthis) with elab;
+			m := metadata(cbf);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
+			xret := fun (scp, undefined, acc, kval, k, vthis) with elab;
 			acc := xret;
 
 	f:		k := k - 1;
@@ -1593,14 +1571,14 @@ proc AP_sort(xsc, vthis, compfn) {
 			stri := xret;
 			xret := "getOwnProperty" (vthis, stri) with elab;
 			elem := xret;
-			goto [elem = $$undefined] spt spf;
-	spt:	spar := $$t;
+			goto [elem = undefined] spt spf;
+	spt:	spar := true;
 			goto otw;
 
 	spf:	i := i + 1;
 			goto cslp;
 
-	done:	spar := $$f;
+	done:	spar := false;
 	(* end of sparse check *)
 
 	otw:	goto [len < 2] fin cont;
@@ -1608,19 +1586,19 @@ proc AP_sort(xsc, vthis, compfn) {
 	cont:	xret := "Array_construct" () with elab;
 			stack := xret;
 
-			xret := "AP_push" ($$empty, stack, 0);
+			xret := "AP_push" (empty, stack, 0);
 			len1 := len - 1;
-			xret := "AP_push" ($$empty, stack, len1);
+			xret := "AP_push" (empty, stack, len1);
 
 			size := 1;
 
 	while1:	goto [not (size <= 0)] ltz fin;
 
-	ltz:	xret := "AP_pop" ($$empty, stack);
+	ltz:	xret := "AP_pop" (empty, stack);
 			end := xret;
 			xret := "i__toString" (end) with elab;
 			strend := xret;
-			xret := "AP_pop" ($$empty, stack);
+			xret := "AP_pop" (empty, stack);
 			start := xret;
 
 			size := size - 1;
@@ -1643,12 +1621,12 @@ proc AP_sort(xsc, vthis, compfn) {
 
 	iina:	(* swap l and current *)
 			xret := "get" ( vthis, strl) with elab;
-			xret := "put" (vthis, strcurr, xret, $$t) with elab;
-			xret := "put" (vthis, strl, tmp, $$t) with elab;
+			xret := "put" (vthis, strcurr, xret, true) with elab;
+			xret := "put" (vthis, strl, tmp, true) with elab;
 			goto incl;
 
-	niina:	xret := "put" (vthis, strl, tmp, $$t) with elab;
-			xret := "deleteProperty" (vthis, strcurr, $$t) with elab;
+	niina:	xret := "put" (vthis, strl, tmp, true) with elab;
+			xret := "deleteProperty" (vthis, strcurr, true) with elab;
 
 	incl:	l := l + 1;
 
@@ -1665,28 +1643,28 @@ proc AP_sort(xsc, vthis, compfn) {
 			goto [xret] ina nina;
 
 	ina:	xret := "get" ( vthis, strl) with elab;
-			xret := "put" (vthis, strend, xret, $$t) with elab;
-			xret := "put" (vthis, strl, el, $$t) with elab;
+			xret := "put" (vthis, strend, xret, true) with elab;
+			xret := "put" (vthis, strl, el, true) with elab;
 			goto nsw;
 
 	nina:	xret := "hasProperty" (vthis, strend) with elab;
 			goto [xret] del nsw;
 
-	del:	xret := "put" (vthis, strl, el, $$t) with elab;
-			xret := "deleteProperty" (vthis, strend, $$t) with elab;
+	del:	xret := "put" (vthis, strl, el, true) with elab;
+			xret := "deleteProperty" (vthis, strend, true) with elab;
 
 	nsw:	ll := l + 1;
 			goto [not (end <= ll)] more nmore;
 
-	more:	xret := "AP_push" ($$empty, stack, ll);
-			xret := "AP_push" ($$empty, stack, end);
+	more:	xret := "AP_push" (empty, stack, ll);
+			xret := "AP_push" (empty, stack, end);
 			size := size + 1;
 
 	nmore:	l := l - 1;
 			goto [not (l <= start)] ifs while1;
 
-	ifs:	xret := "AP_push" ($$empty, stack, start);
-			xret := "AP_push" ($$empty, stack, l);
+	ifs:	xret := "AP_push" (empty, stack, start);
+			xret := "AP_push" (empty, stack, l);
 			size := size + 1;
 			goto while1;
 
@@ -1733,16 +1711,17 @@ proc a__sortCompare(j, k, compfn, vthis) {
 			x := xret;
 			xret := "get" ( vthis, strk) with elab;
 			y := xret;
-			goto [(x = $$undefined) and (y = $$undefined)] nojk xx;
-	xx:		goto [x = $$undefined] yesk yy;
-	yy:		goto [y = $$undefined] nok cont;
-	cont:	goto [compfn = $$undefined] cont1 lif;
+			goto [(x = undefined) and (y = undefined)] nojk xx;
+	xx:		goto [x = undefined] yesk yy;
+	yy:		goto [y = undefined] nok cont;
+	cont:	goto [compfn = undefined] cont1 lif;
 
 	lif:	xret := "i__isCallable" (compfn);
 			goto [xret] call throw;
-	call:	scp := [compfn, "@scope"];
-			fun := [compfn, "@call"];
-			xret := fun (scp, $$undefined, x, y) with elab;
+	call:	m := metadata(compfn);
+			scp := [m, "@scope"];
+			fun := [m, "@call"];
+			xret := fun (scp, undefined, x, y) with elab;
 			goto rlab;
 
 	cont1:	xret := "i__toString" (x) with elab;
