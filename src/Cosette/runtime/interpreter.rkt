@@ -500,7 +500,8 @@
       [(eq? cmd-type 'assume)
        (let* ((expr-arg (second cmd))
               (expr-val (run-expr expr-arg store)))
-         ;; 
+         (print-info proc-name (format "assume(~v)" expr-val))
+         (op-assume expr-val)
          (cond
            [(and (symbolic? expr-val)
                  (> (count-goto proc-name cur-index) goto-limit))
