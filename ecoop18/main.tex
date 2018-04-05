@@ -390,6 +390,8 @@ It can report bugs in JavaScript programs, producing concrete witnesses triggeri
 The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \jilette symbolic execution engine is based on a sound symbolic
 analysis for \jsil, guaranteeing the absence of false positives. \polish{Sentence about unification.}
 Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
+In \S\ref{subsec:jsil:analysis:implementation}, we describe the implementation of the \jsil symbolic analysis 
+in \rosette~\cite{Rosette1,Rosette2}.
 
 %\newpage
 %

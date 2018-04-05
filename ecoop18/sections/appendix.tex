@@ -2310,14 +2310,14 @@ $$
 
 \begin{enumerate}
 
-\item We start by proving that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cell \, \wedge \, \pc}$. 
+\item We start by proving that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \, \wedge \, \pc}$. 
 Applying the Iterated-Cell-Unification Lemma (Lemma~\ref{lemma:iter:cell:unification}) to \ieq{1}, 
 we conclude that: 
 $$
   \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells} \text{ (\ieq{2})}
 $$  
 From \ieq{2}, noting that $\smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\pc}$, 
-we conclude that: 
+we conclude that: \polish{this needs to be changed because now we use the star}
 $$
 \smodels{\sheap, \sstore}{\pc} \subseteq \sepmodels{\cells \wedge \pc} \text{ (\ieq{3})}
 $$  
@@ -2329,7 +2329,7 @@ $\heap = \symbeval{\sheap}{\senv}$ (\ieq{6}), and $\store = \symbeval{\sstore}{\
 We will now prove that there is an instrumented heap $\iheap$  and $\senv'$ such 
 that: $\iheap, \store, \senv' \satisfies \cells \sep \efs$ and $\deabstract{\iheap} = \heap$. 
 From \ieq{3} and \ieq{4}, we conclude that there is a symbolic environment $\senv'$ and 
-an instrumented heap $\iheap$ such that: $\iheap, \store, \senv' \satisfies \subst(\cells) \sep \pc$ (\ieq{7}). 
+an instrumented heap $\iheap$ such that: $\iheap, \store, \senv' \satisfies \cells \sep \pc$ (\ieq{7}). 
 From \ieq{7}, it follows that: $\iheap, \store, \senv' \satisfies \cells$ (\ieq{8}) and $\senv' \satisfies \pc$ (\ieq{9}).
 Applying Lemma~\ref{lemma:negative:resource} to \ieq{2}, \ieq{4}, and \ieq{9}, we conclude that 
 there is an instrumented heap $\iheap'$ such that: $\iheap', -, \senv' \satisfies \efs$ (\ieq{10}) 
