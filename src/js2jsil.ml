@@ -81,7 +81,8 @@ let process_file path =
 	
 	if (!line_numbers)
 		then (
-			let e_line_numbers_str = JSIL_Print.string_of_ext_prog_metadata ext_prog.procedures in
+			let ids = JS_Utils.get_fun_ids e in 
+			let e_line_numbers_str = JSIL_Print.string_of_ext_prog_metadata ext_prog.procedures ids in
 			let file_numbers_name = file_name ^ JS2JSIL_Constants.line_numbers_extension in
 			burn_to_disk file_numbers_name e_line_numbers_str
 		) else ()

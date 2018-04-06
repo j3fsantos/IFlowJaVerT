@@ -643,9 +643,10 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
  %
 \inferrule[Symbolic Heaps]{}{
 \interpret{\symbolic}(\senv, \hemp) \semeq \hemp, \emptyset
-\qquad
+\quad
 \frac{
-   l = \semexpr{\sexprl}{\senv} \quad p = \semexpr{\sexprp}{\senv} \quad v = \semexpr{\sexprp}{\senv}
+   l = \semexpr{\sexprl}{\senv} \quad
+    p = \semexpr{\sexprp}{\senv} \quad v = \semexpr{\sexprp}{\senv}
 }{
 \interpret{\symbolic}(\senv, \hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \hcell{l}{p}{v}, \emptyset
 }
@@ -657,20 +658,18 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
 }
 \qquad
 \frac{
-   \semexpr{\sheap_1}{\senv} = h_1, \hdom_1
-   \quad 
-   \semexpr{\sheap_2}{\senv} = h_2, \hdom_2
+   \interpret{\symbolic}(\senv, \sheap_i) = h_i, \hdom_i, i =1,2
 }{
 \interpret{\symbolic}(\senv, \sheap_1 \dunion \sheap_2) \semeq  h_1 \dunion h_2, \hdom_1 \dunion \hdom_2
 }}
 \\
 \inferrule[Symbolic Domains]
 {}{
-\interpret{\symbolic}(\sdom, \senv) 
+\interpret{\symbolic}(\senv, \sdom) 
     \semeq \{ (l, p) \mid \sexprl \in \domain(\sdom) \, \wedge \, l = \semexpr{\sexprl}{\senv} \, \wedge \, p \not\in \semexpr{\sdom(\sexprl)}{\senv} \}
 }
 \and
-\inferrule[Symbolic States]{
+\inferrule[Symbolic CF-States]{
     \sstate = (\sheap, \sdom, \sstore, \pc) 
     \quad 
     \interpret{\symbolic}(\senv, \sheap) = h, \hdom_1
@@ -679,11 +678,13 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
     \quad
     \semexpr{\sstore}{\senv} = \store 
     \\\\
+    \semexpr{\scs}{\senv} = \cs 
+    \quad 
     \semexpr{\pc}{\senv} = \jtrue 
     \quad 
-    \domain(h') \cap (\domain(h) \cup \hdom_1 \cup \hdom_2) = \emptyset
+    \hdom = \domain(h) \cup \hdom_1 \cup \hdom_2 
 }{
-\jmodels{\symbolic}(\sstate, \scs) \semeq (h \dunion h', \store) 
+\jmodels{\symbolic}(\sstate, \scs) \semeq \{ ((h \dunion h', \store), \cs) \mid \domain(h') \cap \hdom = \emptyset \} 
 }
 \end{mathpar}}
 \end{display}
@@ -695,15 +696,15 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
 \item Explain how the nones + domains restrict all the possible frames. 
 \end{enumerate}
 }
-
+ 
 
 
 \subsubsection{Main Results}
 The \emph{soundness theorem} (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace given by 
-$\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ and a concrete CF-state $(\jstate, \cs)$
+$\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ and a concrete CF-state $(\jstate, \cs)$
 in the models of the initial symbolic CF-state filtered by the final path condition $\sstate'.\pcsel$,  
 then there exists a concrete CF-state $(\jstate', \cs')$ in the models of the final symbolic CF-state, such that: 
-$\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$. 
+$\transabssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$. 
 We use the final path condition $\sstate'.\pcsel$ for both the models of the initial and final 
 symbolic states because we only care about the initial concrete CF-states for which 
 the concrete execution follows the same path as the symbolic~execution. 
@@ -711,9 +712,9 @@ the concrete execution follows the same path as the symbolic~execution.
 \begin{theorem}[Bounded-Soundness]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
-\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\jstate, \cs) \in \jmodels{\symbolic}(\sstate[\pcsel \mapsto \sstate'.\pcsel], \scs) \\ \quad \quad 
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\jstate, \cs) \in \jmodels{\symbolic}(\sstate[\pcsel \mapsto \sstate'.\pcsel], \scs) \\ \quad \quad 
     \ \implies \ \exists \jstate', \cs' \, . \, 
-        \abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete} \ \wedge \ (\jstate', \cs') \in \jmodels{\symbolic}(\sstate', \scs')
+        \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete} \ \wedge \ (\jstate', \cs') \in \jmodels{\symbolic}(\sstate', \scs')
 \end{array}
 $$
 \end{theorem}
@@ -729,8 +730,8 @@ failing assertion. This is essential, as \jilette is primarily a \emph{bug-findi
 
 \begin{corollary}[Bug-finding]\label{bug:finding}
 $$
-\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\bot}{\symbolic}  
-      \ \implies \  \exists \jstate, \cs \, . \, \abssemrule{\jstate, \cs, i}{-, -, j}{\mode}{\bot}{\concrete} 
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\bot}{\symbolic}  
+      \ \implies \  \exists \jstate, \cs \, . \, \transabssemrule{\jstate, \cs, i}{-, -, j}{\mode}{\bot}{\concrete} 
 $$
 \end{corollary}
 
@@ -746,13 +747,13 @@ unrolled statically, we will never be in the case of the verification corollary.
 \begin{corollary}[Verfication]\label{corollary:verification}
 $$
 \begin{array}{l}
-\wedge_{k=1}^n \, \big( \abssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
+\wedge_{k=1}^n \, \big( \transabssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
     \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big) 
     \, \wedge \, (\jstate, \cs) \in \jmodels{\symbolic}(\sstate, \scs)
     \\ \quad \quad
 %
       \ \implies \ \exists 1 \leq l \leq n, \jstate', \cs' \, . \, 
-           \abssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete}
+           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete}
            \, \wedge \, 
            (\jstate', \cs') \in \jmodels{\symbolic}(\sstate_l, \scs_l)
 \end{array}
@@ -762,7 +763,7 @@ $$
 %
 The {\bf proofs} of the above results are given in the Appendix. \polish{What do these results mean with respect to related work? How is this maintainable?} 
 
-\subsubsection{Proof Strategy}
+\subsubsection{Proof Outline}
 
 \vspace{5pt}
 \begin{display}{Instrumented Semantics Rules}
@@ -786,7 +787,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
    }{  \absgetdomainrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr}{\jsilset{p_1, ..., p_n}}}
   \and
  % 
-     \inferrule[\textsc{GetCell - Domain}]
+     \inferrule[\textsc{GetCell - Not Found}]
    { 
          \semexpr{\jsilexpr_1}{\store} = \loc
         \quad 
@@ -807,7 +808,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
   %
   \\
   %
-    \inferrule[\textsc{GetCell - Explicit Cell}]
+    \inferrule[\textsc{GetCell - Found}]
    { 
          \semexpr{\jsilexpr_1}{\store} = \loc
         \quad 
@@ -821,7 +822,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
     \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
-   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \store')}
+   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \idom, \store')}
  %
  \and
  % 
@@ -838,8 +839,126 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
   \and
     \inferrule[\textsc{Satisfiable}]
    {}{  \abssat{\instrumented}(\istate, \jbool) = \jbool}
+     \and
+      \inferrule[\textsc{Symbolic Value Creation }]
+   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
  \end{mathpar}}}
  \end{display}
+
+\newpage
+
+\begin{display}{Symbolic State Instrumented Interpretation}
+{\scriptsize 
+\begin{mathpar}
+\inferrule[Symbolic Heaps]{}{
+\interpret{\symbinst}(\senv, \hemp) \semeq \hemp
+\qquad
+\frac{
+      l = \semexpr{\sexprl}{\senv} \quad p = \semexpr{\sexprp}{\senv} \quad 
+      v = \left\{ {\begin{array}{ll} 
+          \semexpr{\sexprp}{\senv} & \text{if } \sexprv_{\none} \neq \none \\ 
+          \none                                & \text{otherwise} 
+      \end{array}}\right.
+}{
+\interpret{\symbinst}(\senv, \hcell{\sexprl}{\sexprp}{\sexprv_{\none}}) \semeq  \hcell{l}{p}{v}
+}
+\qquad 
+\frac{
+   \interpret{\symbinst}(\senv, \sheap_i) = \iheap_i, i=1,2
+}{
+\interpret{\symbinst}(\senv, \sheap_1 \dunion \sheap_2) \semeq  \iheap_1 \dunion \iheap_2
+}}
+\\
+\inferrule[Symbolic Domains]
+{
+   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \semexpr{\sexprl}{\senv} \, \wedge \, \val = \semexpr{\sdom(\sexprl)}{\senv}
+}{
+\interpret{\symbinst}(\senv, \sdom) \semeq \idom
+}
+\and
+\inferrule[Symbolic States]{
+    \sstate = (\sheap, \sdom, \sstore, \pc) 
+    \quad 
+    \interpret{\symbinst}(\senv, \sheap) = \iheap
+   \quad
+    \interpret{\symbinst}(\senv, \sdom) = \idom
+    \\\\
+    \semexpr{\scs}{\senv} = \cs  
+    \quad
+    \semexpr{\sstore}{\senv} = \store 
+    \quad
+    \semexpr{\pc}{\senv} = \jtrue 
+}{
+\jmodels{\symbinst}(\sstate, \scs) \semeq ((h, \idom, \store), \cs)
+}
+\end{mathpar}}
+\end{display}
+
+\begin{lemma}[Bounded-Soundness]\label{teo:soundness:jsil:symb:exe:instrumented:instrumented}
+$$
+\begin{array}{l}
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \jmodels{\symbinst}(\sstate[\pcsel \mapsto \sstate'.\pcsel], \scs) \\ \quad \quad 
+    \ \implies \ \exists \istate', \cs' \, . \, 
+        \transabssemrule{\istate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\instrumented} \ \wedge \ (\istate', \cs') = \jmodels{\symbinst}(\sstate', \scs')
+\end{array}
+$$
+\end{lemma}
+
+
+\begin{display}{Instrumented State Interpretation}
+{\scriptsize 
+\begin{mathpar}
+\inferrule[Symbolic Heaps]{}{
+\interpret{\symbolic}(\senv, \hemp) \semeq \hemp, \emptyset
+\quad
+\frac{
+   l = \semexpr{\sexprl}{\senv} \quad
+    p = \semexpr{\sexprp}{\senv} \quad v = \semexpr{\sexprp}{\senv}
+}{
+\interpret{\symbolic}(\senv, \hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \hcell{l}{p}{v}, \emptyset
+}
+\qquad
+\frac{
+   l = \semexpr{\sexprl}{\senv} \quad p = \semexpr{\sexprp}{\senv}
+}{
+  \interpret{\symbolic}(\senv, \hcell{\sexprl}{\sexprp}{\none}) \semeq \hemp, \jsilset{ (l, p) }
+}
+\qquad
+\frac{
+   \interpret{\symbolic}(\senv, \sheap_i) = h_i, \hdom_i, i =1,2
+}{
+\interpret{\symbolic}(\senv, \sheap_1 \dunion \sheap_2) \semeq  h_1 \dunion h_2, \hdom_1 \dunion \hdom_2
+}}
+\\
+\inferrule[Symbolic Domains]
+{
+   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \semexpr{\sexprl}{\senv} \, \wedge \, \val = \semexpr{\sdom(\sexprl)}{\senv}
+}{
+\interpret{\symbinst}(\senv, \sdom) \semeq \idom
+}
+\and
+\inferrule[Symbolic States]{
+    \sstate = (\sheap, \sdom, \sstore, \pc) 
+    \quad 
+    \interpret{\symbinst}(\senv, \sheap) = \iheap
+   \quad
+    \interpret{\symbinst}(\senv, \sdom) = \idom
+    \\\\
+    \semexpr{\scs}{\senv} = \cs  
+    \quad
+    \semexpr{\sstore}{\senv} = \store 
+    \quad
+    \semexpr{\pc}{\senv} = \jtrue 
+}{
+\jmodels{\symbinst}(\sstate, \scs) \semeq ((h, \idom, \store), \cs)
+}
+\end{mathpar}}
+\end{display}
+
+
+
+
+
 
 \subsection{Implementation}\label{subsec:jsil:analysis:implementation}
 

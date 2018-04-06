@@ -215,6 +215,7 @@
 % rules 
 \newcommand{\absbsemrule}[3]{\tuple{#1} \leadsto_{#3} #2}
 \newcommand{\abssemrule}[5]{\tuple{#1}^{#3} \leadsto_{#5} \tuple{#2}^{#4}}
+\newcommand{\transabssemrule}[5]{\tuple{#1}^{#3} \leadsto_{#5}^* \tuple{#2}^{#4}}
 \newcommand\mode{\mu}
 \DeclareDocumentCommand{\ccmd}{ o o m }
 {
@@ -285,4 +286,5 @@
 \newcommand{\iheaps}{{\mathcal H}_\emptyset}
 \newcommand\idom{d}
 \newcommand\instrumented[0]{\darkmath{\textsf{i}}}
+\newcommand\symbinst[0]{\darkmath{\textsf{s}\rightarrow\textsf{i}}}
 
