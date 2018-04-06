@@ -497,6 +497,8 @@ buckets.LinkedList = function () {
  * implementation uses a linked list as the underlying storage.
  * @constructor
  */
+
+/* @id buckets_Queue */
 buckets.Queue = function () {
 
     /** 
@@ -512,6 +514,7 @@ buckets.Queue = function () {
      * @param {Object} elem The element to insert.
      * @return {boolean} True if the element was inserted, or false if it's undefined.
      */
+    /* @id queue_enqueue */
     queue.enqueue = function (elem) {
         return list.add(elem);
     };
@@ -521,6 +524,7 @@ buckets.Queue = function () {
      * @param {Object} elem The element to insert.
      * @return {boolean} True if the element was inserted, or false if it's undefined.
      */
+    /* @id queue_add */
     queue.add = function (elem) {
         return list.add(elem);
     };
@@ -529,6 +533,7 @@ buckets.Queue = function () {
      * Retrieves and removes the head of the queue.
      * @return {*} The head of the queue, or undefined if the queue is empty.
      */
+    /* @id queue_dequeue */
     queue.dequeue = function () {
         var elem;
         if (list.size() !== 0) {
@@ -543,6 +548,7 @@ buckets.Queue = function () {
      * Retrieves, but does not remove, the head of the queue.
      * @return {*} The head of the queue, or undefined if the queue is empty.
      */
+    /* @id queue_peek */
     queue.peek = function () {
         if (list.size() !== 0) {
             return list.first();
@@ -554,6 +560,7 @@ buckets.Queue = function () {
      * Returns the number of elements in the queue.
      * @return {number} The number of elements in the queue.
      */
+    /* @id queue_size */
     queue.size = function () {
         return list.size();
     };
@@ -576,6 +583,7 @@ buckets.Queue = function () {
      * @return {boolean} True if the queue contains the specified element,
      * false otherwise.
      */
+    /* @id queue_contains */
     queue.contains = function (elem, equalsFunction) {
         return list.contains(elem, equalsFunction);
     };
@@ -584,6 +592,7 @@ buckets.Queue = function () {
      * Checks if the queue is empty.
      * @return {boolean} True if and only if the queue contains no items.
      */
+    /* @id queue_isEmpty */
     queue.isEmpty = function () {
         return list.size() <= 0;
     };
@@ -591,6 +600,7 @@ buckets.Queue = function () {
     /**
      * Removes all the elements from the queue.
      */
+    /* @id queue_clear */
     queue.clear = function () {
         list.clear();
     };
@@ -602,6 +612,7 @@ buckets.Queue = function () {
      * invoked an element as argument, to break the iteration you can
      * optionally return false inside the callback.
      */
+    /* @id queue_forEach */
     queue.forEach = function (callback) {
         list.forEach(callback);
     };
@@ -612,6 +623,7 @@ buckets.Queue = function () {
      * @return {Array.<*>} An array containing all the elements in the queue
      * in FIFO order.
      */
+    /* @id queue_toArray */
     queue.toArray = function () {
         return list.toArray();
     };
@@ -626,6 +638,7 @@ buckets.Queue = function () {
      * the === operator is used to check equality between elements.
      * @return {boolean} True if the queue is equal to the given queue.
      */
+    /* @id queue_equals */
     queue.equals = function (other, equalsFunction) {
         var eqf, isEqual, thisElement;
         if (buckets.isUndefined(other) || typeof other.dequeue !== 'function') {
@@ -636,6 +649,7 @@ buckets.Queue = function () {
         }
         eqf = equalsFunction || buckets.defaultEquals;
         isEqual = true;
+        /* @id queue_equals_forEach */
         other.forEach(function (element) {
             thisElement = queue.dequeue();
             queue.enqueue(thisElement);

@@ -11,7 +11,7 @@ jname=$name'.jsil'
 #echo $jname
 rname=$name'.rkt'
 #echo $rname
-./js2jsil.native -file "$filename" -cosette &> /dev/null
+./js2jsil.native -file "$filename" -cosette -line_numbers &> /dev/null
 ./jsil2rkt.native -file "$jname" -js 
 logname=res_$name.txt
 racket $rname > $logname
