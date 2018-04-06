@@ -239,9 +239,7 @@
 
 ;; TODO: make sure that n is not symbolic here?!
 (define (jsil-number-to-string n)
-  (cond
-    [(eq? n +nan.0) "NaN"]
-    [#t (integer->string (inexact->exact n))]))
+  (integer->string (inexact->exact n)))
 
 
 (define (check-logic-variable var )
