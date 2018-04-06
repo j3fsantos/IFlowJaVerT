@@ -19,4 +19,4 @@ Assume(n >= 2);
 Assume(n <= 10);
 
 var res = isPrime(n);
-Assert(res = $$t);
+Assert(res);

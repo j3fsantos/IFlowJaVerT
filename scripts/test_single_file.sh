@@ -17,3 +17,4 @@ logname=res_$name.txt
 racket $rname > $logname
 tail -n 12 $logname
 mv models.json $name"_models.json"
+mv coverage.txt $name"_coverage.txt"
