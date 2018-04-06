@@ -728,6 +728,14 @@
   (displayln (loop keyvalues) out)
   (displayln "}" out))
 
+(define (write-coverage out)
+  (define (print-cov instr-line seen)
+    (let* (
+      (instr (car instr-line))
+      (line (cdr instr-line)))
+      (displayln (format "~v ~v ~v" instr line seen) out)))
+  (hash-for-each seen-instr print-cov))
+
 (define (run-program prog heap)
   (jsil-discharge)
   (let* (
@@ -766,12 +774,14 @@
     (println (format "Outcome Success with assumptions and assertions: ~v" outcome-assumptions-success-and-assertions))
     (println (format "~v" (and (not (unsat? outcome-success-assume)) (unsat? outcome-failure) (unsat? outcome-assumptions-and-failure) (unsat? outcome-assumptions-success-and-not-assertions))))
     ;; JSON export
-    (println (format "~v" (jsexpr? seen-instr)))
-    (define out (open-output-file "models.json" #:exists 'replace))
+    (define models-out (open-output-file "models.json" #:exists 'replace))
+    (define coverage-out (open-output-file "coverage.txt" #:exists 'replace))
 ;;    (define output-string (format "~a" (jsexpr->string results-hashtbl)))
 ;;    (display output-string)
-    (write-json results-list out)
-    (close-output-port out)
+    (write-json results-list models-out)
+    (write-coverage coverage-out)
+    (close-output-port models-out)
+    (close-output-port coverage-out)
     (set! global-outcome outcome)
     (terminate outcome)))
 
