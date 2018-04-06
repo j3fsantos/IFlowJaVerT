@@ -84,6 +84,16 @@
 \newcommand{\domain}{\command{dom}}
 \newcommand{\partialmap}{\rightharpoonup}
 \newcommand{\fextends}{\geq}
+\newcommand\semeq{\,\triangleq\,}
+
+% Lists
+\newcommand{\lstcons}[0]{::}
+\newcommand{\lstconcat}[0]{\cdot}
+\newcommand{\lstemp}[0]{[ \ ]}
+\newcommand\lst[0]{L}
+\newcommand\lstindex[2]{#1_{#2}}
+\newcommand\lstsize[1]{\vert #1 \vert}
+\newcommand{\lists}[0]{\mathtt{List}}
 
 
 % Well known Names 
@@ -247,6 +257,7 @@
 \newcommand\demp{\emptyset}
 \newcommand\pc{\pi}
 \newcommand\sexpr{\hat{e}}
+\newcommand\sexprl{\hat{l}}
 \newcommand\sexprp{\hat{p}}
 \newcommand\sexprv{\hat{v}}
 \newcommand\sexprs{\hat{\sortstyle{E}}_{\jsilsubscript}}
@@ -258,6 +269,20 @@
 
 %
 % Soundness of symbolic execution
-\newcommand\smodels[0]{\sortstyle{M}}
+\newcommand\interpret[1]{\sortstyle{I}_{#1}}
+\newcommand\jmodels[1]{\sortstyle{I}_{#1}}
 \newcommand\senv[0]{\varepsilon}
+\newcommand\semexpr[2]{\llbracket #1 \rrbracket_{#2}}
+\newcommand\semop[1]{\overline{#1}}
+\newcommand\hdom[0]{\delta}
+
+
+
+%
+% Instrumented Semantics
+\newcommand\istate{\underline{\sigma}}
+\newcommand\iheap[0]{\underline{h}}
+\newcommand{\iheaps}{{\mathcal H}_\emptyset}
+\newcommand\idom{d}
+\newcommand\instrumented[0]{\darkmath{\textsf{i}}}
 
