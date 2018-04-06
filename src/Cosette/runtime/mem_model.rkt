@@ -13,7 +13,7 @@
   (letrec ((iter
             (lambda (lst)
               (cond [(null? lst) #f]
-                    [(equal? (car (car lst)) key) #t]
+                    [(eq? (caar lst) key) #t]
                     [#t (iter (cdr lst))]))))
     (iter lht)))
 
@@ -22,7 +22,7 @@
   (letrec ((iter
             (lambda (lst)
               (cond [(null? lst) empty]
-                    [(equal? (car (car lst)) key) (cdr (car lst))]
+                    [(eq? (caar lst) key) (cdar lst)]
                     [#t (iter (cdr lst))]))))
     (iter lht)))
 
@@ -37,22 +37,19 @@
 ;; 
 ;; Literals - constants and types
 ;;
-(define jempty     '$$empty)
-(define jnull      '$$null)
-(define jundefined '$$undefined)
+(define jempty     'empty)
+(define jnull      'null)
+(define jundefined 'undefined)
 (define jsglobal   '$lg)
 
-(define undefined-type '$$undefined_type)
-(define null-type      '$$null_type)
-(define empty-type     '$$empty_type)
-(define boolean-type   '$$boolean_type)
-(define number-type    '$$number_type)
-(define string-type    '$$string_type)
-(define obj-type       '$$object_type)
-(define ref-a-type     '$$reference_type)
-(define ref-v-type     '$$v-reference_type)
-(define ref-o-type     '$$o-reference_type)
-(define list-type      '$$list_type)
+(define undefined-type 'Undefined)
+(define null-type      'Null)
+(define empty-type     'Empty)
+(define boolean-type   'Bool)
+(define number-type    'Num)
+(define string-type    'Str)
+(define obj-type       'Obj)
+(define list-type      'List)
 
 ;; Math constants
 (define mc-minval '$$min_value)
@@ -73,8 +70,7 @@
       jempty          jnull        jundefined
       undefined-type  null-type    empty-type
       boolean-type    number-type  string-type
-      obj-type        ref-a-type   ref-v-type
-      ref-o-type      list-type))
+      obj-type        list-type))
 
 ;; List of math constants
 (define jsil-math-constants
@@ -151,21 +147,12 @@
         (jsil-type-of v)))
     (#t (error (format "Wrong argument to typeof: ~a" val)))))
 
-;; Subtyping
-(define (jsil-subtype type1 type2)
-  (or 
-   (eq? type1 type2) 
-   (and
-    (eq? ref-a-type type2)
-    (or (eq? ref-v-type type1)
-        (eq? ref-o-type type1)))))
-
 ;; Special properties
 (define protop "@proto")
 (define larguments '$larguments)
 (define parguments "args")
 
-(provide jempty jnull jundefined literal? protop larguments parguments jsil-type-of ref-v-type ref-o-type lht-values)
+(provide jempty jnull jundefined literal? protop larguments parguments jsil-type-of lht-values)
 
 ;;
 ;; binary operators 
@@ -436,8 +423,6 @@
             [(or (eq? x +nan.0) (eq? y +nan.0)) +nan.0]
             [#t (modulo x y)]) 
             jundefined)))
-          
-    (cons '<: jsil-subtype)
 
     (cons '++
           (lambda (x y)
@@ -565,159 +550,210 @@
 
 (provide to-interp-op apply-binop apply-unop expr-lvars lexpr-substitution check-logic-variable)
 
-;; heaps that can be handled by rosette - God help us all
-
-(define (new-heap)
-  '())
-
-(define (new-object)
-  '())
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ;;
+;;                               ;;
+;; HEAPS HEAPS HEAPS HEAPS HEAPS ;;
+;;                               ;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ;;
 
 ;;
-;; Mutate the object at location 'loc' with property 'prop' and value 'val'
+;; Empty Heap
 ;;
-(define (mutate-object object prop val)
+(define (make-heap)
+  '())
+
+;; Create a new object in the heap
+(define (heap-create-object heap loc metadata)
+  (cons (list loc metadata '()) heap)
+)
+
+;; Get object
+(define (heap-get-object heap loc)
   (cond
-    [(null? object)
-     (list (cons prop val))]
-    [(equal? (car (car object)) prop)
-     (cons (cons prop val) (cdr object))]
-    [ else
-     (cons (car object) (mutate-object (cdr object) prop val))]))
+    [(null? heap) (error (format "Error: getObject ~v is not in the heap." loc))]
+    [(eq? (caar heap) loc) (car heap)]
+    [#t (heap-get-object (cdr heap) loc)]
+  )
+)
 
-;; 
-;; Mutate the heap 'heap' at location 'loc' with property 'prop' and value 'val'
-;;
-(define (mutate-heap heap object prop val)
+;; Set object
+(define (heap-set-object heap loc object)
+  (cond
+    [(null? heap) (list object)]
+    [(eq? (caar heap) loc) (cons object (cdr heap))]
+    [#t (heap-set-object (cdr heap) loc object)]
+  )
+)
+
+
+;; Get metadata of an object
+(define (get-metadata object)
+  (second object)
+)
+
+(define (heap-get-metadata heap loc)
+  (cond
+    [(null? heap) (error (format "Error: getMetaData: ~v is not in the heap." loc))]
+    [(eq? (caar heap) loc) (get-metadata (car heap))]
+    [#t (heap-get-metadata (cdr heap) loc)]
+  )  
+ )
+
+;; Set metadata of an object
+(define (set-metadata object metadata)
+  (list (first object) metadata (third object))
+)
+
+(define (heap-set-metadata heap loc metadata)
+  (cond
+    [(null? heap) (list (list loc metadata '()))]
+    [(eq? (caar heap) loc)
+     (cons (set-metadata (car heap) metadata) (cdr heap))]
+    [#t (cons (car heap) (heap-set-metadata (cdr heap) loc metadata))]
+  )
+ )
+
+(define (default-metadata) jnull)
+
+;; Get fvl of an object
+(define (get-fvl object)
+  (third object)
+)
+
+;; Set fvl of an object
+(define (set-fvl object fvl)
+  (list (first object) (second object) fvl)
+)
+
+;; Get value of a property in a fvl
+(define (fvl-get-prop-val fvl prop)
+  (cond
+    [(null? fvl) (error (format "Error: getProperty: ~v is not in the object." prop))]
+    [(eq? (caar fvl) prop) (cdar fvl)]
+    [#t (fvl-get-prop-val (cdr fvl) prop)]
+  )
+)
+
+;; Get value of a property of an object in the heap
+(define (heap-get-prop-val heap loc prop)
+  (cond
+    [(null? heap) (error (format "Error: getProperty: ~v is not in the heap." loc))]
+    [(eq? (caar heap) loc) (fvl-get-prop-val (get-fvl (car heap)) prop)]
+    [#t (heap-get-prop-val (cdr heap) loc prop)]
+  )
+)
+
+;; Set value of a property in a fvl
+(define (fvl-set-prop-val fvl prop val)
+  (cond
+    [(null? fvl)
+      (list (cons prop val))]
+    [(eq? (caar fvl) prop)
+      (cons (cons prop val) (cdr fvl))]
+    [#t
+      (cons (car fvl) (fvl-set-prop-val (cdr fvl) prop val))]
+  )
+)
+
+;; Set value of a property of an object in the heap
+(define (heap-set-prop-val heap loc prop val)
   (cond
     [(null? heap)
-     (list (cons object (list (cons prop val))))]
-    [(equal? (car (car heap)) object)
-     (cons (cons object (mutate-object (cdr (car heap)) prop val)) (cdr heap))]
-    [ else
-      (cons (car heap) (mutate-heap (cdr heap) object prop val))]))
+      (list (list loc (default-metadata) (fvl-set-prop-val '() prop val)))
+    ]
+    [(eq? (caar heap) loc)
+      (let* (
+          (object (car heap))
+          (fvl (get-fvl object))
+          (new-fvl (fvl-set-prop-val fvl prop val))
+        )
+      (cons (set-fvl object new-fvl) (cdr heap)))]
+    [#t (cons (car heap) (heap-set-prop-val (cdr heap) loc prop val))]
+     
+  )
+)
 
-;;
-;; Get object from heap
-;;
-(define (heap-get-obj heap object)
-  (let*
-      ((obj (lht-value heap object)))
-    (if (eq? obj empty) (error (format "Error: ~v is not in the heap." object)) obj)))
-
-;;
-;; Get property value from heap
-;;
-(define (heap-get heap object prop)
-  (let*
-      ((obj (heap-get-obj heap object))
-       (val (lht-value obj prop)))
-    (if (eq? val empty) (error (format "Error: (~v, ~v) is not in the heap." object prop)) val)))
-
-;;
-;; Get obj fields
-;;
-(define (petar-get-obj-fields object)
-  ;;(println (format "First char of next prop: ~v" (string-at (caar object) 0)))
-  (let loop ((object object)
-             (result '()))
-    (cond
-      [(null? object) result]
-      [(and (pair? (car object)) (not (equal? (string-at (caar object) 0) "@")))
-        (loop (cdr object) (cons (caar object) result))]
-      [else (loop (cdr object) result)])))  
-
-;;
-;; I don't know what this is
-;;
-(define (get-obj-fields object)
-  (let loop ((object object)
-             (result '()))
-    (if (null? object)
-        result
-        (loop (cdr object) (cons (car (car object)) result)))))
-
-;;
-;; Get all named fields of an object in the heap
-;;
-(define (petar-get-fields heap object)
-  (let loop ((heap heap))
-    (cond
-      [(null? heap) jempty]
-      [(and (pair? (car heap)) (equal? (car (car heap)) object))
-       (let* ((obj (cdr (car heap)))
-              (props (petar-get-obj-fields obj)))
-         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
-         props)]
-      [ else (loop (cdr heap))])))
-
-;;
-;; Get all fields of an object in the heap
-;;
-(define (get-fields heap object)
-  ;; (println (format "Heap: ~v" heap))
-  (let loop ((heap heap))
-    (cond
-      [(null? heap) jempty]
-      [(and (pair? (car heap)) (equal? (caar heap) object))
-       (let* ((obj (cdr (car heap)))
-              (props (get-obj-fields obj)))
-         ;; (println (format "Internal get-fields: igf (~a) = ~a" loc props))
-         props)]
-      [ else (loop (cdr heap))])))
-
-;;
-;; Delete cell from an object
-;;
-(define (object-delete-prop object prop)
-  (cond [(null? object) '()]
-        [(equal? (car (car object)) prop) (cdr object)]
-        [ else (cons (car object) (object-delete-prop (cdr object) prop))]))
-
-;;
-;; Delete cell from the heap
-;;
-(define (heap-delete-prop heap object prop)
+;; Delete property in a fvl
+(define (fvl-delete-prop fvl prop)
   (cond
-    [(null? heap) '()]
-    [(equal? (car (car heap)) object)
-     (cons (cons object (object-delete-prop (cdr (car heap)) prop)) (cdr heap))]
-    [ else
-      (cons (car heap) (heap-delete-prop (cdr heap) object prop))]))
+    [(null? fvl) '()]
+    [(eq? (caar fvl) prop) (cdr fvl)]
+    [#t (cons (car fvl) (fvl-delete-prop (cdr fvl) prop))]
+  )
+)
 
-
-;; Delete object
-(define (heap-delete-object heap object)
+;; Delete property of an object in the heap
+(define (heap-delete-prop heap loc prop)
   (cond
-    [(null? heap) '()]
-    [(equal? (car (car heap)) object)
-     ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
-     (cdr heap)]
-    [ else
-      (cons (car heap) (heap-delete-object (cdr heap) object))]))
+    [(null? heap) (error (format "Error: deleteProp: ~v is not in the heap." loc))]
+    [(eq? (caar heap) loc)
+      (let* (
+          (object (car heap))
+          (fvl (get-fvl object))
+          (new-fvl (fvl-delete-prop fvl prop))
+        )
+      (cons (set-fvl object new-fvl) (cdr heap)))]
+    [#t (cons (car heap) (heap-delete-prop (cdr heap) loc prop))]
+  )
+)
 
-
-;; Replace object at loc with new-obj
-(define (heap-replace-object heap loc new-obj)
+;; Property inspection in a fvl
+(define (fvl-has-field fvl prop)
   (cond
-    [(null? heap) (list (cons loc new-obj))]
-    [(equal? (car (car heap)) loc)
-     ;; (println (format "Deleting the object ~v" (cdr (car h-pulp))))
-     (cons (cons loc new-obj) (cdr heap))]
-    [ else
-      (cons (car heap) (heap-replace-object (cdr heap) loc new-obj))]))
+    [(null? fvl) #f]
+    [(eq? (caar fvl) prop) #t]
+    [#t (fvl-has-field (cdr fvl) prop)]
+  )
+)
 
+;; Property inspection in a heap 
+(define (heap-object-has-field heap loc prop)
+  (cond
+    [(null? heap) #f]
+    [(eq? (caar heap) loc) (fvl-has-field (get-fvl (car heap)) prop)]
+    [#t (heap-object-has-field (cdr heap) loc prop)]
+  )
+)
 
-;;
-;;
-;;
-(define (make-heap) '())
+;; Get fields of an fvl
+(define (fvl-get-fields fvl)
+  (cond
+    [(null? fvl) '()]
+    [#t (cons (caar fvl) (fvl-get-fields (cdr fvl)))]
+  )
+)
+
+;; Get fields of an object in the heap
+(define (heap-get-fields heap loc)
+  (cond
+    [(null? heap) (error (format "Error: getFields: ~v is not in the heap." loc))]
+    [(eq? (caar heap) loc) (fvl-get-fields (get-fvl (car heap)))]
+    [#t (heap-get-fields (cdr heap) loc)]
+  )
+)
+
+;; Delete object in the heap
+(define (heap-delete-object heap loc)
+  (cond
+    [(null? heap) (error (format "Error: deleteProp: ~v is not in the heap." loc))]
+    [(eq? (caar heap) loc) (cdr heap)]
+    [#t (cons (car heap) (heap-delete-object (cdr heap) loc))]
+  )
+)
+
+(provide make-heap heap-create-object heap-get-object heap-set-object heap-get-metadata heap-set-metadata heap-get-prop-val heap-set-prop-val heap-object-has-field heap-get-fields heap-delete-prop heap-delete-object)
 
 ;;
 ;; Heap cell
 ;;
 (define (cell loc prop val)
   (list loc prop val))
+
+;;
+;; Metadata
+;;
+(define (meta loc val)
+  (list loc val))
 
 ;;
 ;; Construct a heap from given cells
@@ -727,7 +763,10 @@
              (cells cells))
     (if (not (null? cells))
         (let* ((cur-cell (first cells))
-               (new-heap (mutate-heap new-heap (first cur-cell) (second cur-cell) (third cur-cell))))
+               (new-heap 
+                  (if (eq? (length cur-cell) 2)
+                    (heap-set-metadata new-heap (first cur-cell) (second cur-cell))
+                    (heap-set-prop-val new-heap (first cur-cell) (second cur-cell) (third cur-cell)))))
           (loop new-heap (cdr cells)))
         new-heap)))
   
@@ -745,7 +784,7 @@
              (expr-str-len (string-length expr-str)))
         (and
          (> expr-str-len 1)
-         (equal? (substring (symbol->string loc) 0 2) "$l")))))
+         (eq? (substring (symbol->string loc) 0 2) "$l")))))
 
 
 ;(define (is-a-list? l)
@@ -779,7 +818,7 @@
 (define (make-jsil-list l)
   (cons 'jsil-list l))
 
-(provide is-a-list? make-heap mutate-heap heap-get heap cell get-new-loc make-jsil-list heap-delete-prop heap-delete-object is-loc? is-operator? heap-replace-object) ;; heap-contains?
+(provide is-a-list? heap cell meta get-new-loc make-jsil-list is-loc? is-operator?) ;; heap-contains?
 
 
 ;; stores - my stuff
@@ -794,14 +833,14 @@
   
 
 ;; stores - Julian Dolby
-(define (make-store)'())
+(define (make-store) '())
 
 (define (store-get store var)
   (lht-value store var))
 
 (define (mutate-store store var val)
   (cond ((null? store) (list (cons var val)))
-        ((equal? (car (car store)) var)
+        ((eq? (car (car store)) var)
          (cons (cons (car (car store)) val) (cdr store)))
         (#t
          (cons (car store) (mutate-store (cdr store) var val)))))
@@ -1008,7 +1047,7 @@
 (define (err-ctx . lst)
   (cons 'error lst))
 
-(provide procedure which-pred eval_literal petar-get-fields petar-get-obj-fields get-fields heap-get-obj get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
+(provide procedure which-pred eval_literal get-ret-var get-err-var get-ret-index get-err-index get-proc-name get-params get-cmd get-number-of-cmds proc-init-store args body ret-ctx err-ctx)
 
 
 
@@ -1026,62 +1065,68 @@
 
 (define (create-new-function-obj heap function-name)
   (let* ((fun-loc (get-new-loc))
-         (heap (mutate-heap heap fun-loc "@call" function-name))        
-         (heap (mutate-heap heap fun-loc "@construct" function-name))
-         (heap (mutate-heap heap fun-loc "@scope" '(jsil-list)))
-         (heap (mutate-heap heap fun-loc "@proto" '$lfun_proto))
-         (heap (mutate-heap heap fun-loc "@class" "Function"))
-         (heap (mutate-heap heap fun-loc "@extensible" #t)))
+         (meta-loc (get-new-loc))
+         (heap (heap-create-object heap fun-loc meta-loc))
+         (heap (heap-create-object heap meta-loc default-metadata))
+         (heap (heap-set-prop-val heap meta-loc "@call" function-name))        
+         (heap (heap-set-prop-val heap meta-loc "@construct" function-name))
+         (heap (heap-set-prop-val heap meta-loc "@scope" '(jsil-list)))
+         (heap (heap-set-prop-val heap meta-loc "@proto" '$lfun_proto))
+         (heap (heap-set-prop-val heap meta-loc "@class" "Function"))
+         (heap (heap-set-prop-val heap meta-loc "@extensible" #t)))
     (cons heap fun-loc)))
 
 (define (register-js-builtin-method builtin-obj-name method-name racket-method heap)
   ;;(println "inside register-js-builtin-method")
   ;(println (format "checking the object at ~v" jsglobal))
-  (let* ((builtin-obj-desc (heap-get heap jsglobal builtin-obj-name))
-         (builtin-obj-loc (third builtin-obj-desc))
-         (builtin-obj-proto-loc (third (heap-get heap builtin-obj-loc "prototype")))
-         (builtin-obj-proto (heap-get-obj heap builtin-obj-proto-loc))
-         (method-obj-desc (lht-value builtin-obj-proto method-name))
+  (let* ((builtin-obj-loc (third (heap-get-prop-val heap jsglobal builtin-obj-name)))
+         (builtin-obj-proto-loc (third (heap-get-prop-val heap builtin-obj-loc "prototype")))
+         (method-obj-defined (heap-object-has-field heap builtin-obj-proto-loc method-name))
          (fresh-function-name (symbol->string (gensym "internal-function-"))))
     ;; put the racket method in the hashtable
     (hash-set! racket-js-implementations fresh-function-name racket-method)
     ;;
-    (if (eq? method-obj-desc empty)
+    (if (not method-obj-defined)
 
         ;; the method does not exist - we need to create it - returning the heap
         (let* ((result (create-new-function-obj heap fresh-function-name))
                (heap (car result))
                (method-obj-loc (cdr result))
                (method-obj-desc (list 'jsil-list "d" method-obj-loc #t #f #t)))
-          (mutate-heap heap builtin-obj-proto-loc method-name method-obj-desc))
+          (heap-set-prop-val heap builtin-obj-proto-loc method-name method-obj-desc))
 
         ;; the method already exists and we are just going to override it with a racket implementation
-        (let* ((method-obj-loc (third method-obj-desc))
-               (heap (mutate-heap heap method-obj-loc "@call" fresh-function-name))
-               (heap (mutate-heap heap method-obj-loc "@construct" fresh-function-name)))
+        (let* ((method-obj-desc (heap-get-prop-val heap builtin-obj-proto-loc method-name))
+               (method-obj-loc (third method-obj-desc))
+               (meta-obj-loc (heap-get-metadata heap method-obj-loc))
+               (heap (heap-set-prop-val heap meta-obj-loc "@call" fresh-function-name))
+               (heap (heap-set-prop-val heap meta-obj-loc "@construct" fresh-function-name)))
           ;;(println (format "I am registering a method that already exists with name: ~v at location ~v. fresh-function-name: ~v!!!"
           ;;                 method-name method-obj-loc fresh-function-name))
           heap))))
 
 
 (define (register-js-global-function fun-name racket-method heap)
-  (let ((func-desc (heap-get heap jsglobal fun-name))
+  (let ((func-exists (heap-object-has-field heap jsglobal fun-name))
         (fresh-function-name (symbol->string (gensym "internal-function-"))))
     ;; put the racket method in the hashtable
     (hash-set! racket-js-implementations fresh-function-name racket-method)
     ;;
-    (if (eq? func-desc empty)
+    (if (not func-exists)
 
         ;; the function does not exist - we need to create it - returning the heap
         (let* ((result (create-new-function-obj heap fresh-function-name))
                (heap (car result))
                (func-obj-loc (cdr result))
                (func-obj-desc (list 'jsil-list "d" func-obj-loc #t #f #t)))
-          (mutate-heap heap jsglobal fun-name func-obj-desc))
+          (heap-set-prop-val heap jsglobal fun-name func-obj-desc))
 
         ;; the function already exists and we are just going to override it with a racket implementation
-        (let* ((func-obj-loc (third func-desc))
-               (heap (mutate-heap heap func-obj-loc "@call" fresh-function-name)))
+        (let* ((func-desc (heap-get-prop-val heap jsglobal fun-name))
+               (func-obj-loc (third func-desc))
+               (meta-loc (heap-get-metadata func-obj-loc))
+               (heap (heap-set-prop-val heap meta-loc "@call" fresh-function-name))
+               (heap (heap-set-prop-val heap meta-loc "@construct" fresh-function-name)))
           heap))))
          
 

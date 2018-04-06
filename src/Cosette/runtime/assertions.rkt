@@ -361,9 +361,10 @@
                     (hash-ref subst pat-loc)
                     (error "DEATH. unify-cell"))))
 
-           (obj (heap-get-obj heap s-pat-loc)))
+           (obj (heap-get-object heap s-pat-loc))
+           (metadata (second obj)))
 
-      (let loop ((fv-pairs obj)
+      (let loop ((fv-pairs (third obj))
                  (visited-fv-pairs '())
                  (viable-unifications '()))
 
@@ -377,7 +378,7 @@
               (if (and (car u-fields) (car u-vals))
                   (let ((unification
                          (let* ((new-obj (append visited-fv-pairs (cdr fv-pairs)))
-                                (new-heap (heap-replace-object heap s-pat-loc new-obj)))                     
+                                (new-heap (heap-set-object heap s-pat-loc (list s-pat-loc metadata new-obj))))                     
                            (list
                             new-heap
                             (append (second u-fields) (second u-vals))

@@ -164,7 +164,8 @@ let filter_symb_state_with_domain_info (ss : symbolic_state) : bool =
 	let heap_list = heap_to_list heap in 
 	
 	let asrts_per_object = 
-		List.map (fun (_, (fv_list, _)) ->  
+		(* TODO: METADATA *)
+		List.map (fun (_, ((fv_list, _), _)) ->  
 			let fields = List.map (fun (f_name, f_val) -> f_name) fv_list in 
 			Normaliser.make_all_different_assertion_from_fvlist fields 
 		) heap_list in 
@@ -184,7 +185,8 @@ let implicit_heap_constraints (heap : symbolic_heap) : jsil_logic_assertion list
 	let heap_list = heap_to_list heap in 
 	
 	let asrts_per_object = 
-		List.map (fun (_, (fv_list, domain)) ->  
+		(* TODO: METADATA *)
+		List.map (fun (_, ((fv_list, domain), _)) ->  
 			let fields            = List.map (fun (f_name, f_val) -> f_name) fv_list in 
 			let constraints       = Normaliser.make_all_different_assertion_from_fvlist fields in 
 			(match domain with 
@@ -209,8 +211,9 @@ let filter_pre_post_with_domain_info (pre : symbolic_state) (post : symbolic_sta
 	if (not has_sets) then true else (
 
 		let heap_list = (heap_to_list heap_pre) @ (heap_to_list heap_post) in
-		let asrts_per_object = 
-			List.map (fun (_, (fv_list, _)) ->  
+		let asrts_per_object =
+			(* TODO: METADATA *) 
+			List.map (fun (_, ((fv_list, _), _)) ->  
 				let fields = List.map (fun (f_name, f_val) -> f_name) fv_list in 
 				Normaliser.make_all_different_assertion_from_fvlist fields 
 			) heap_list in 
@@ -682,7 +685,8 @@ let single_spec_to_test
 
 	let heap_list     = heap_to_list pre_heap in 
 	let heap_commands = 
-		List.concat (List.map (fun (loc, (fv_list, o_domain)) -> 
+		(* TODO: METADATA *)
+		List.concat (List.map (fun (loc, ((fv_list, o_domain), _)) -> 
 			let o_cmds = 
 				List.map (fun (f_name, f_val) -> 
 					let loc = 

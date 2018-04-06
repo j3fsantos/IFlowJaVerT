@@ -1,7 +1,6 @@
 #!/bin/bash
 
 for filename in ./$1/*.js; do
-	time {
 	echo "Next file: $filename"
 	name=$(echo $filename | cut -f 2 -d '.')
 	#echo $name
@@ -14,12 +13,14 @@ for filename in ./$1/*.js; do
 	mv "$rname" . 
 	rname=$(basename $rname)
 	#echo $rname
+	time {
 	res=$(racket $rname | tail -n1)
 	#echo $res
-	if [[ $res == "#t"* ]]; then
+	if [[ $res == "\"#t\"" ]]
+	then
 		echo "Pass: $filename" 
 	else
 		echo "Fail: $filename" 
 	fi }
-	echo "----------------" }
+	echo "----------------" 
 done

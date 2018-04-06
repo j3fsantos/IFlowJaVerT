@@ -37,16 +37,16 @@ let sheap_put
 			(pfs : pure_formulae) (gamma : typing_environment)
 			(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) (value : jsil_logic_expr) : unit =
 	
-	let fv_list, domain = heap_get_unsafe heap loc in
+	let (fv_list, domain), metadata = heap_get_unsafe heap loc in
 	(match (find_field pfs gamma fv_list loc field), domain with 
-	| Some (framed_fv_list, _), _ -> heap_put heap loc ((field, value) :: framed_fv_list) domain 
+	| Some (framed_fv_list, _), _ -> heap_put heap loc ((field, value) :: framed_fv_list) domain metadata
 	| None, Some domain -> 
 		let a_set_inclusion = LNot (LSetMem (field, domain)) in 
 		if (Pure_Entailment.check_entailment SS.empty (pfs_to_list pfs) [ a_set_inclusion ] gamma) then (
 			let new_domain = LSetUnion [ domain; LESet [ field ]] in 
 			(* let new_domain = Normaliser.normalise_lexpr gamma new_domain in *)
 			let new_domain = reduce_expression_no_store gamma pfs new_domain in
-			heap_put heap loc ((field, value) :: fv_list) (Some new_domain) 
+			heap_put heap loc ((field, value) :: fv_list) (Some new_domain) metadata
 		) else (
 			let msg = Printf.sprintf "sheap_put. loc: %s. field: %s. value: %s. fv_list:\n%s\n"  
 				loc (JSIL_Print.string_of_logic_expression field) (JSIL_Print.string_of_logic_expression value)
@@ -64,7 +64,7 @@ let sheap_get
 		(pfs : pure_formulae) (gamma : typing_environment)
 		(heap : symbolic_heap) (loc : string) (field : jsil_logic_expr) : jsil_logic_expr = 
 
-	let fv_list, domain = heap_get_unsafe heap loc in
+	let (fv_list, domain), _ = heap_get_unsafe heap loc in
 	(match (find_field pfs gamma fv_list loc field), domain with 
 	| Some (_, (_, value)), _ -> value 
 	| None, Some domain -> 
@@ -99,18 +99,19 @@ let merge_heaps
 	);
 	
 	heap_iterator new_heap 
-		(fun loc (n_fv_list, n_domain) ->
+		(fun loc ((n_fv_list, n_domain), n_metadata) ->
 			match heap_get heap loc with 
-			| Some (fv_list, domain) -> 
-				heap_put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain)
+			| Some ((fv_list, domain), metadata) -> 
+				(* TODO: THIS IS WRONG, LOOK AT METADATA *)
+				heap_put heap loc (n_fv_list @ fv_list) (merge_domains pfs gamma domain n_domain) n_metadata
 			| None -> 
-				heap_put heap loc n_fv_list n_domain); 
+				heap_put heap loc n_fv_list n_domain n_metadata); 
 
 	(* Garbage collection *)
-	heap_iterator heap (fun loc (fv_list, domain) ->
-		(match fv_list, domain with
-		| [], None -> heap_remove heap loc
-		| _, _ -> ()));
+	heap_iterator heap (fun loc ((fv_list, domain), metadata) ->
+		(match fv_list, domain, metadata with
+		| [], None, None -> heap_remove heap loc
+		| _, _, _ -> ()));
 
 	print_debug "Finished merging heaps."
 
@@ -329,10 +330,10 @@ let get_locs_symb_state symb_state =
 let collect_garbage (symb_state : symbolic_state) = 
 	let heap, store, pfs, gamma, preds = symb_state in
 	let dangling_locations = 	LHeap.fold
-		(fun loc (fv_list, default) locs ->
-			match (is_abs_loc_name loc), default, fv_list with
-			| true, None, [] 
-			| true, Some (LESet []), [] -> SS.add loc locs
+		(fun loc ((fv_list, default), metadata) locs ->
+			match (is_abs_loc_name loc), default, fv_list, metadata with
+			| true, None, [], None 
+			| true, Some (LESet []), [], None -> SS.add loc locs
 			| _ -> locs
   	)
 		heap
@@ -366,7 +367,7 @@ let collect_none_properties fv_list =
 
 let collect_negative_resource_constraints heap =
 	(* print_debug_petar "Collecting negative resource constraints."; *)
-	LHeap.fold (fun l (fv_list, empty_fields) ac -> 
+	LHeap.fold (fun l ((fv_list, empty_fields), _) ac -> 
 		print_debug_petar (Printf.sprintf "\tObject: %s" l);
 		let sprops = SLExpr.of_list (collect_properties fv_list) in
 		let props = SLExpr.elements sprops in
@@ -387,7 +388,7 @@ let collect_negative_resource_constraints heap =
 
 let collect_separation_constraints heap = 
 	(* print_debug_petar "Collecting separation constraints."; *)
-	LHeap.fold (fun l (fv_list, empty_fields) ac -> 
+	LHeap.fold (fun l ((fv_list, empty_fields), _) ac -> 
 		(* print_debug_petar (Printf.sprintf "\tObject: %s" l); *)
 		let nones = collect_none_properties fv_list in
 		(* print_debug_petar (Printf.sprintf "\tFound %d none-properties." (Array.length nones)); *)

@@ -22,6 +22,8 @@ cp scripts/remake.sh environment
 cp scripts/run.sh environment
 cp scripts/test_concrete_cosette.sh environment
 cp scripts/test_single_file.sh environment
+cp scripts/test_passing_cosette.sh environment
+cp scripts/test_failing_cosette.sh environment
 
 # test262 tests
 rm -rf test262/environment

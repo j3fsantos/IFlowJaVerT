@@ -1371,11 +1371,12 @@ let simplify_symb_state
 	
 	(* Convert Store, Heap and Preds back, which should only change new additions *)
 	Hashtbl.filter_map_inplace (fun var lexpr -> Some (logic_expression_map le_list_to_string None lexpr)) store;
-	LHeap.filter_map_inplace (fun loc (fv_list, default) -> 
+	LHeap.filter_map_inplace (fun loc ((fv_list, default), metadata) -> 
 		let fn, fv = List.split fv_list in
 		let fn = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fn in
 		let fv = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) fv in
-		Some (List.combine fn fv, default)
+		let metadata = Option.map (logic_expression_map le_list_to_string None) metadata in
+		Some ((List.combine fn fv, default), metadata)
 		) heap; 
 	DynArray.iteri (fun i (pname, pparams) ->
 		let pparams = List.map (fun lexpr -> logic_expression_map le_list_to_string None lexpr) pparams in

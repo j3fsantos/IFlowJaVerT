@@ -1040,8 +1040,8 @@ let rec normalise_cell_assertions
 	let fe = normalise_logic_expression store gamma subst in
 
 	let normalise_cell_assertion (loc : string) (le_f : jsil_logic_expr) (le_v : jsil_logic_expr) : unit = 
-		let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
-		LHeap.replace heap loc (((fe le_f, fe le_v) :: field_val_pairs), default_val) in 
+		let (field_val_pairs, default_val), metadata = (try LHeap.find heap loc with _ -> ([], None), None) in
+		LHeap.replace heap loc ((((fe le_f, fe le_v) :: field_val_pairs), default_val), metadata) in 
 
 	match a with
 	| LStar (a1, a2) -> f a1; f a2
@@ -1227,8 +1227,8 @@ let normalise_ef_assertions
 				| _ -> print_debug_petar "Variable strange after subst."; raise (Failure "Illegal Emptyfields!!!"))
 			| _ -> raise (Failure "Illegal Emptyfields!!!") in
 
-		let fv_list, _ = try LHeap.find heap le_loc_name with Not_found -> [], None in
-		LHeap.replace heap le_loc_name (fv_list, Some domain) in
+		let (fv_list, _), metadata = try LHeap.find heap le_loc_name with Not_found -> ([], None), None in
+		LHeap.replace heap le_loc_name ((fv_list, Some domain), metadata) in
 
 	List.iter add_domain (get_all_empty_fields a)
 
@@ -1322,7 +1322,7 @@ let get_heap_well_formedness_constraints heap =
 		(Symbolic_State_Print.string_of_shallow_symb_heap heap false));*)
 
 	LHeap.fold
-		(fun field (fv_list, _) constraints ->
+		(fun field ((fv_list, _), _) constraints ->
 			(match constraints with
 			| [ LFalse ] -> [ LFalse ]
 			| _ ->
@@ -1431,13 +1431,13 @@ let normalise_normalised_assertion
 		| LPointsTo (ALoc loc, le2, le3)
     | LPointsTo (LLit (Loc loc), le2, le3) ->
       (* TODO: prefix locations with _ ? *)
-      let field_val_pairs, default_val = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc (((le2, le3) :: field_val_pairs), default_val);
+      let (field_val_pairs, default_val), metadata = (try LHeap.find heap loc with _ -> ([], None), None) in
+      LHeap.replace heap loc ((((le2, le3) :: field_val_pairs), default_val), metadata);
       (a, false)
 		| LEmptyFields (obj, domain) ->
       let loc = JSIL_Print.string_of_logic_expression obj in
-      let field_val_pairs, _ = (try LHeap.find heap loc with _ -> ([], None)) in
-      LHeap.replace heap loc ((field_val_pairs), (Some domain));
+      let (field_val_pairs, _), metadata = (try LHeap.find heap loc with _ -> ([], None), None) in
+      LHeap.replace heap loc (((field_val_pairs), (Some domain)), metadata);
 			(a, false)
 			
     | LEq ((PVar v), le)
@@ -1504,7 +1504,8 @@ let create_unification_plan
 			| None                      -> 
 				(* The aloc does not correspond to any cell - it is an argument for a predicate *)
 				true
-			| Some (fv_list, le_domain) ->
+			(* TODO: METADATA *)
+			| Some ((fv_list, le_domain), metadata) ->
 				let fv_list_c, fv_list_nc = 
 					List.partition (fun (le, _) -> 
 						match le with 

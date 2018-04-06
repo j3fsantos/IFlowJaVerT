@@ -89,6 +89,7 @@ let rec assertion_map
   			| LStrLess (e1, e2)      -> LStrLess (map_e e1, map_e e2)
   			| LStar (a1, a2)         -> LStar (map_a a1, map_a a2)
   			| LPointsTo (e1, e2, e3) -> LPointsTo (map_e e1, map_e e2, map_e e3)
+  			| LMetaData (e1, e2)     -> LMetaData (map_e e1, map_e e2)
   			| LEmp                   -> LEmp
   			| LPred (s, le)          -> LPred (s, List.map map_e le)
   			| LTypes lt              -> LTypes (List.map (fun (exp, typ) -> (map_e exp, typ)) lt)
@@ -142,6 +143,7 @@ let rec assertion_fold
 		| LSetSub (le1, le2)  | LEmptyFields (le1, le2) -> f_ac (fes [ le1; le2 ])
 
 	| LPointsTo (le1, le2, le3) -> f_ac (fes [ le1; le2; le3 ])
+	| LMetaData (le1, le2)      -> f_ac (fes [ le1; le2 ])
 
 	| LPred (_, les)            -> f_ac (fes les)
 
@@ -343,7 +345,7 @@ let rec get_asrt_sets (a : jsil_logic_assertion) : jsil_logic_expr list  =
 let is_pure_asrt (a : jsil_logic_assertion) : bool =
 	let f_ac a _ _ ac =
 		match a with
-		| LPred _ | LPointsTo _ | LEmp | LEmptyFields _ -> false
+		| LPred _ | LPointsTo _ | LEmp | LEmptyFields _ | LMetaData _ -> false
 		| _  -> not (List.exists (fun b -> not b) ac) in
 	assertion_fold None f_ac None None a
 

@@ -7,9 +7,11 @@ let escape_string = ref false
 (***
  Generate strings from JSIL memory types
 *)
-let string_of_heap (h : jsil_lit SHeap.t SHeap.t) =
+
+(* TODO: Print metadata properly *)
+let string_of_heap h =
 	SHeap.fold
-		(fun loc obj printed_heap ->
+		(fun loc (obj, metadata) printed_heap ->
 			  let printed_props =
 					(SHeap.fold
 						(fun prop hval printed_obj ->
@@ -40,10 +42,11 @@ let string_of_fv_list (fv_list : symbolic_field_value_list) : string =
 
 let string_of_symb_heap (heap : symbolic_heap) : string=
 	LHeap.fold
-		(fun loc (fv_pairs, domain) ac ->
+		(fun loc ((fv_pairs, domain), metadata) ac ->
 			let str_fv_pairs = string_of_fv_list fv_pairs in
 			let domain_str = Option.map_default string_of_logic_expression "" domain in
-			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "]" in
+			let meta_str = Option.map_default string_of_logic_expression "unknown" metadata in
+  			let symb_obj_str = loc ^ " |-> [" ^  str_fv_pairs ^ " | " ^ domain_str ^ "] " ^ " with metadata " ^ meta_str in
 			if (ac = "\n\t") then (ac ^ symb_obj_str) else ac ^ "\n\t" ^ symb_obj_str)
 		heap
 		"\n\t"

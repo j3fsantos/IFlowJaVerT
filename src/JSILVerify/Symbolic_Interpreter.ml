@@ -241,10 +241,14 @@ let symb_evaluate_bcmd
 			e) Add the fact that the new location is not $lg to the pure formulae
 			f) Return the new location
 	*)
-	| SNew x ->
+	| SNew (x, metadata) ->
 		let new_loc = fresh_aloc () in
-		heap_put heap new_loc []  (domain_from_single_lit JS2JSIL_Constants.internalProtoFieldName);
-		heap_put_fv_pair heap new_loc (LLit (String (JS2JSIL_Constants.internalProtoFieldName))) (LLit Null); 
+		let md_val : jsil_logic_expr = 
+			(match metadata with 
+			| None          -> LLit Null 
+			| Some metadata -> let md_val, _, _ = ssee metadata in md_val) in
+		
+		heap_put heap new_loc [] (Some (LESet [])) (Some md_val);
 		store_put store x (ALoc new_loc);
 		(* THIS NEEDS TO CHANGE ASAP ASAP ASAP!!! *)
 		DynArray.add pure_formulae (LNot (LEq (ALoc new_loc, LLit (Loc JS2JSIL_Constants.locGlobName))));

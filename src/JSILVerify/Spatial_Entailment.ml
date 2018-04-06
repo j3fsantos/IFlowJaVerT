@@ -216,7 +216,7 @@ let unify_cell_assertion
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom = 
 		match heap_get heap loc with 
-		| Some (fv_list, dom) -> fv_list, dom 
+		| Some ((fv_list, dom), _) -> fv_list, dom 
 		| None                -> raise (Failure "DEATH. unify_cell_assertion. loc not in the heap") in 
 
 	(* 4. Try to unify the cell assertion against a cell in fv_list *)
@@ -416,7 +416,7 @@ let unify_domains
 	(* 3. Get the fv_list and domain *)
 	let fv_list, dom = 
 		match heap_get heap loc with 
-		| Some (fv_list, dom) -> fv_list, dom 
+		| Some ((fv_list, dom), _) -> fv_list, dom 
 		| None                -> print_debug "DEATH 3"; raise (Failure "DEATH") in 
 
 	(* 4. Unifying the domains if they exist *)

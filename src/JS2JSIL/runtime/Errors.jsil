@@ -5,10 +5,11 @@ import Internals.jsil, Init.jsil;
 (* ***************** *)
 
 proc Error_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lerr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lerr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -22,13 +23,14 @@ with
 proc Error_construct (xsc, vthis, v) {
 			xret := vthis;
 
-			[vthis, "@class"] := "Error";
-			[vthis, "@extensible"] := $$t;
+			m := metadata(vthis);
+			[m, "@class"] := "Error";
+			[m, "@extensible"] := true;
 
-			goto [v = $$undefined] rlab mess;
+			goto [v = undefined] rlab mess;
 
 	mess:	xerr := "i__toString" (v) with elab;
-			[xret, "message"] := {{ "d", xerr, $$t, $$f, $$t }};
+			[xret, "message"] := {{ "d", xerr, true, false, true }};
 
 	rlab:	skip;
 	elab:	skip
@@ -40,7 +42,7 @@ with
 };
 
 proc Error (v) {
-			xret := "Error_call" ($$undefined, $$undefined, v) with elab;
+			xret := "Error_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -55,18 +57,18 @@ with
 (* *** TOSTRING *** *)
 
 proc EP_toString(xsc, vthis) {
-			goto [typeOf(vthis) = $$object_type] init throw;
+			goto [typeOf vthis = Obj] init throw;
 
 	init:	name := "";
 			xret := "get" (vthis, "name") with elab;
-			goto [xret = $$undefined] msg ndef;
+			goto [xret = undefined] msg ndef;
 
 	ndef:	xret := "i__toString" (xret) with elab;
 			name := xret;
 
 	msg:	msg := "";
 			xret := "get" (vthis, "message") with elab;
-			goto [xret = $$undefined] ccat mdef;
+			goto [xret = undefined] ccat mdef;
 
 	mdef:	xret := "i__toString" (xret) with elab;
 			msg := xret;
@@ -101,10 +103,11 @@ with
 (* *** EVALERROR *** *)
 
 proc EvalError_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $leerr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $leerr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -116,7 +119,7 @@ with
 };
 
 proc EvalError (v) {
-			xret := "EvalError_call" ($$undefined, $$undefined, v) with elab;
+			xret := "EvalError_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -130,10 +133,11 @@ with
 (* *** RANGEERROR *** *)
 
 proc RangeError_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lrgerr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lrgerr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -145,7 +149,7 @@ with
 };
 
 proc RangeError (v) {
-			xret := "RangeError_call" ($$undefined, $$undefined, v) with elab;
+			xret := "RangeError_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -159,10 +163,11 @@ with
 (* *** REFERENCEERROR *** *)
 
 proc ReferenceError_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lrferr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lrferr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -174,7 +179,7 @@ with
 };
 
 proc ReferenceError (v) {
-			xret := "ReferenceError_call" ($$undefined, $$undefined, v) with elab;
+			xret := "ReferenceError_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -188,10 +193,11 @@ with
 (* *** SYNTAXERROR *** *)
 
 proc SyntaxError_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lserr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lserr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -203,7 +209,7 @@ with
 };
 
 proc SyntaxError (v) {
-			xret := "SyntaxError_call" ($$undefined, $$undefined, v) with elab;
+			xret := "SyntaxError_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -217,10 +223,11 @@ with
 (* *** TYPEERROR *** *)
 
 proc TypeError_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $lterr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lterr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -232,7 +239,7 @@ with
 };
 
 proc TypeError (v) {
-			xret := "TypeError_call" ($$undefined, $$undefined, v) with elab;
+			xret := "TypeError_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -248,10 +255,11 @@ with
 (* *** URIERROR *** *)
 
 proc URIError_call (xsc, vthis, v) {
-			xret := new ();
-			xret := "create_default_object" (xret, $luerr_proto, "Error", $$t);
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $luerr_proto, "Error", true);
 
-			xret := "Error_construct" ($$undefined, xret, v) with elab;
+			xret := "Error_construct" (undefined, xret, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -263,7 +271,7 @@ with
 };
 
 proc URIError (v) {
-			xret := "URIError_call" ($$undefined, $$undefined, v) with elab;
+			xret := "URIError_call" (undefined, undefined, v) with elab;
 
 	rlab:	skip;
 	elab:	skip
@@ -276,7 +284,7 @@ with
 
 (* 13.2.3.8 [[ThrowTypeError]] *)
 proc ThrowTypeError (xsc, vthis) {
-		xerr := "TypeError_call" ($$undefined, $$undefined, "Attempt to access function `caller` or `arguments`");
+		xerr := "TypeError_call" (undefined, undefined, "Attempt to access function `caller` or `arguments`");
 	elab:	skip
 }
 with
