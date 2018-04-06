@@ -9,7 +9,7 @@
 (define success #f)
 (define global-outcome '())
 (define failure #f)
-(define print-cmds #t)
+(define print-cmds #f)
 (define call-stack-depth 0)
 (define max-depth 100)
 
@@ -25,11 +25,11 @@
           new-tabs
           (loop (- i 1) (string-append tab new-tabs))))))
 
-(define (print-info proc-name str) ;;42)
-	(when (and print-cmds (<= call-stack-depth max-depth))
-	(let* ((tabs (generate-tabs call-stack-depth))
-		(new-str (string-append tabs proc-name ": " str)))
-	(println new-str))))
+(define (print-info proc-name str)
+  (when (and print-cmds (<= call-stack-depth max-depth))
+    (let* ((tabs (generate-tabs call-stack-depth))
+           (new-str (string-append tabs proc-name ": " str)))
+      (println new-str))))
 
 ;;
 ;; SSkip      ()                  'skip       DONE
@@ -389,7 +389,7 @@
 
              [(symbolic? expr-val)
               (let ((cur-pc (pc)))
-                (println (format "CUR PC ~v" cur-pc))
+                (print-info proc-name (format "CUR PC ~v" cur-pc))
                 (let* ((new-solver (z3)))
                   (solver-clear new-solver)
                   (solver-assert new-solver (list cur-pc))
@@ -397,10 +397,10 @@
                     (solver-shutdown new-solver)
                     (if (unsat? res)
                         (begin
-                          (println "the current pc is UNSAT")
+                          (print-info proc-name "the current pc is UNSAT")
                           (set! success #t))
                         (begin
-                          (println "the current pc is SAT")
+                          (print-info proc-name "the current pc is SAT")
                           (cond
                             ((eq? expr-val #t)
                              (begin
@@ -423,7 +423,7 @@
                 (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else
-              (error "Illegal Conditional Goto Guard")])))]
+              (error "ll Conditional Goto Guard")])))]
       ;;
       ;; ('v-phi-assign x v1 v2 ... vn)
          [(eq? cmd-type 'v-phi-assign)
@@ -453,13 +453,13 @@
           (let* ((lhs-var (second cmd))
                  (proc-name-expr (third cmd))
                  (arg-exprs (fourth cmd)))
-            (println (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
+            ;;(println (format "~v : Procedure call: ~v (~v)" depth proc-name-expr arg-exprs))
             (let* (
                    (err-label (if (>= (length cmd) 5) (fifth cmd) null))
                    (call-proc-name (run-expr proc-name-expr store))
                    (arg-vals (map (lambda (expr) (run-expr expr store)) arg-exprs)))
               ;; (newline (current-output-port))
-              (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
+              ;; (println (format "~v : Procedure call: ~v (~v)" depth call-proc-name arg-vals))
               (set! depth (+ depth 1))
               (print-info proc-name (format "~v :=~v~v -> ?" lhs-var call-proc-name arg-vals))
               (run-proc prog call-proc-name heap store ctx lhs-var arg-vals cur-index err-label)))]
@@ -593,7 +593,7 @@
               (let* ((type-of (jsil-type-of val))
                      (tabs (generate-tabs call-stack-depth))
                      (new-str (string-append tabs ": " (format "typeOf: typeof ~v -> ~v = ~v" arg val type-of))))
-                (println new-str)
+                ;;(println new-str)
                 type-of))]
        ;;
        ;; ('jsil-list l)
