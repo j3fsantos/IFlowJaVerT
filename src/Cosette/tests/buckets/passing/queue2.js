@@ -680,5 +680,5 @@ Assert(head = x3);
 var isEmpty = queue.isEmpty();
 Assert(isEmpty);
 head = queue.dequeue();
-Assert(head = $$undefined);
+Assert(head = undefined);
 queue.clear();

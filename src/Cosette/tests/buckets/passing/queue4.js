@@ -672,7 +672,7 @@ function createQueue() {
 var queue = new buckets.Queue();
 var i;
 queue.forEach(function (e) {
-    Assert($$f); // should not enter here
+    Assert(false); // should not enter here
 });
 
 for (i = 0; i < 10; i += 1) {

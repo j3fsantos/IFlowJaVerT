@@ -680,5 +680,5 @@ head = queue.peek();
 Assert(head = x2);
 queue.clear();
 head = queue.peek();
-Assert(head = $$undefined);
+Assert(head = undefined);
 queue.clear();
