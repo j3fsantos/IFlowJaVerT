@@ -6,6 +6,7 @@ prefix="../src/Cosette/tests/"
 
 declare -a failing=("jasonsjones/failing" \
                     "javert/failing" \
+                    "test262/failing" \
                     "symbolic/failing")
 
 

@@ -15,5 +15,5 @@ rname=$name'.rkt'
 ./jsil2rkt.native -file "$jname" -js 
 logname=res_$name.txt
 racket $rname > $logname
-mv models.json $name"_models.json"
 tail -n 12 $logname
+mv models.json $name"_models.json"

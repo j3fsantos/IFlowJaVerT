@@ -8,7 +8,7 @@ declare -a passing=("buckets/passing" \
                     "concrete" \
                     "symbolic/passing" \
                     "jasonsjones/passing" \
-                    "test262")
+                    "test262/passing")
 
 echo "Running Cosette tests"
 echo "---------------------"
