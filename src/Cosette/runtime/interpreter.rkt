@@ -12,6 +12,7 @@
 (define print-cmds #t)
 (define call-stack-depth 0)
 (define max-depth 100)
+(define seen-instr (make-hasheq '()))
 
 (error-print-width 100000)
 
@@ -279,7 +280,7 @@
         (if (has-racket-implementation? proc-name)
             ;; Procedure Implemented in Racket
             (begin
-              (displayln "encontrei um rosette model!!!")
+              ;; (displayln "encontrei um rosette model!!!")
               (let* ((racket-proc (get-racket-implementation proc-name))
                      (outcome (apply racket-proc (cdr arg-vals)))
                      (new-store (mutate-store store lhs-var (cdr outcome))))
@@ -347,6 +348,7 @@
     ;;(println (pc))
     ;;(print-cmd cmd)
     ;; (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd "store"))
+    (hash-set! seen-instr (cons proc-name cur-index) #t)
     (cond
       ;;
       ;; ('print e) 
@@ -764,6 +766,7 @@
     (println (format "Outcome Success with assumptions and assertions: ~v" outcome-assumptions-success-and-assertions))
     (println (format "~v" (and (not (unsat? outcome-success-assume)) (unsat? outcome-failure) (unsat? outcome-assumptions-and-failure) (unsat? outcome-assumptions-success-and-not-assertions))))
     ;; JSON export
+    (println (format "~v" (jsexpr? seen-instr)))
     (define out (open-output-file "models.json" #:exists 'replace))
 ;;    (define output-string (format "~a" (jsexpr->string results-hashtbl)))
 ;;    (display output-string)
