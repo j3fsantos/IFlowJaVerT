@@ -697,7 +697,7 @@ let string_of_ext_proc_metadata (ext_proc : jsil_ext_procedure) : string =
 			(fun i (metadata, label, cmd) ->
 				match metadata.line_offset with
 				| None -> Printf.sprintf "[%d, %d]" i (-1) 
-				| Some n ->  Printf.sprintf "[%d, %d]" i (n - 1))
+				| Some n ->  Printf.sprintf "[%d, %d]" i n)
 			(Array.to_list ext_proc.lproc_body) in
 
 	let line_info_str = String.concat ", " line_info_lst in 

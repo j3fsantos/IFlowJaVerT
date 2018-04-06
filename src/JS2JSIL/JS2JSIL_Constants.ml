@@ -4,7 +4,7 @@ let small_tbl_size = 31
 let medium_tbl_size = 101
 
 
-let line_numbers_extension = "_line_numbers.txt"
+let line_numbers_extension = "_line_numbers.json"
 
 type js_symbolic_constructs_type = {
 	js_assume      : string; 
