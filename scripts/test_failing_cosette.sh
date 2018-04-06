@@ -20,13 +20,13 @@ do
   echo "currently in folder $prefix$folder"
   for file in $(ls $prefix$folder/*.js)
   do
-    time {
     cp $file .
     filename=$(basename $file)
     name=${filename%%.*}
     echo "Next file: $folder/$filename"
     ./js2jsil.native -file $filename -cosette &> /dev/null
     ./jsil2rkt.native -file $name.jsil -js &> /dev/null
+    time {
     res=$(racket $name.rkt | tail -n1)
     if [[ $res == "\"#f\"" ]]
     then
