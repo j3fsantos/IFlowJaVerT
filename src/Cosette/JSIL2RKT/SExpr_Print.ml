@@ -49,9 +49,9 @@ let sexpr_of_float x =
 
 let rec sexpr_of_literal lit =
   match lit with
-	| Undefined -> "$$undefined"
-	| Null -> "$$null"
-	| Empty -> "$$empty"
+	| Undefined -> "undefined"
+	| Null -> "null"
+	| Empty -> "empty"
 	| Constant c -> string_of_constant c
 	| Bool b ->
 		(match b with
@@ -198,7 +198,7 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SAssignment (var, e) -> Printf.sprintf "'(%sv-assign %s %s)" str_i var (se e)
 	(* ('new var)                *)
 	| SNew (var, e) -> 
-		let se = match e with | None -> "$$null" | Some e -> se e in 
+		let se = match e with | None -> "null" | Some e -> se e in 
 		Printf.sprintf "'(%snew %s %s)" str_i var se
  	(* ('h-read var e1 e2)	     *)
 	| SLookup (var, e1, e2) -> Printf.sprintf "'(%sh-read %s %s %s)" str_i var (se e1) (se e2)

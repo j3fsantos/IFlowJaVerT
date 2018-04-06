@@ -72,8 +72,8 @@
               (loc-val   (run-expr loc-expr store))
               (prop-val  (run-expr prop-expr store))
               (rhs-val   (run-expr rhs-expr store))
-              (heap      (mutate-heap heap loc-val prop-val rhs-val)))
-        ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
+              (heap      (heap-set-prop-val heap loc-val prop-val rhs-val)))
+         ;; (println (format "Mutation: [~v, ~v] = ~v" loc-val prop-val rhs-val))
          (print-info proc-name (format "[~v:~v, ~v:~v] := ~v:~v" loc-expr loc-val prop-expr prop-val rhs-expr rhs-val))
          (cons heap store))]
       ;;
@@ -90,10 +90,12 @@
       ;; ('new lhs-var)
       [(eq? cmd-type 'new)
        (let* ((lhs-var (second bcmd))
+              (metadata (third bcmd))
+              (metadata-val (run-expr metadata store))
               (loc-val (get-new-loc))
-              (store (mutate-store store lhs-var loc-val)))
-              ;;(heap  (mutate-heap  heap  loc-val protop jnull)))
-         (print-info proc-name (format "~v := new()" lhs-var))
+              (store (mutate-store store lhs-var loc-val))
+              (heap  (heap-create-object heap loc-val metadata-val)))
+         (print-info proc-name (format "~v := new(~v)" lhs-var metadata-val))
          (cons heap store))]
       ;;
       ;; ('has-field lhs-var e1 e2)
@@ -103,12 +105,7 @@
               (prop-expr (fourth bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
-              (prop-list (get-fields heap loc-val))
-              (is-js-field (member prop-val prop-list))
-              (result (not (eq? is-js-field #f)))
-              ;; (println (format "Has-field: ~v = hf [~v, ~v] : ~v, ~v" lhs-var loc-val prop-val is-js-field result))
-              ;; (println (format "object: ~v" (heap-get-obj heap loc-val)))
-              ;; (println (format "proplist: ~v" prop-list))
+              (result (heap-object-has-field heap loc-val prop-val))
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := has-field(~v, ~v)" lhs-var loc-val prop-val))
          (cons heap store))] 
@@ -118,8 +115,7 @@
        (let* ((lhs-var (second bcmd))
               (loc-expr (third bcmd))
               (loc-val (run-expr loc-expr store))
-              (obj (heap-get-obj heap loc-val))
-              (prop-list (petar-get-fields heap loc-val))
+              (prop-list (heap-get-fields heap loc-val))
               (result (cons 'jsil-list prop-list))
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := get-fields(~v) : ~v" lhs-var loc-val result))
@@ -132,7 +128,7 @@
               (prop-expr (fourth bcmd))
               (loc-val (run-expr loc-expr store))
               (prop-val (run-expr prop-expr store))
-              (result (heap-get heap loc-val prop-val))
+              (result (heap-get-prop-val heap loc-val prop-val))
               ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := [~v:~v, ~v:~v] : ~v" lhs-var loc-expr loc-val prop-expr prop-val result))
@@ -141,7 +137,7 @@
       ;; ('arguments lhs-var)
       [(eq? cmd-type 'arguments)
        (let* ((lhs-var (second bcmd))
-              (result (heap-get heap larguments parguments))
+              (result (heap-get-prop-val heap larguments parguments))
               ;;(displayln "you called arguments")
               ;;(displayln result) 
               (store (mutate-store store lhs-var result)))
@@ -164,6 +160,18 @@
               (loc-val (run-expr loc-expr store))
               (heap (heap-delete-object heap loc-val)))
          (print-info proc-name (format "delete-object(~v)" loc-val))
+         (cons heap store))]
+      
+      ;;
+      ;; ('metadata lhs-var e)
+      [(eq? cmd-type 'metadata)
+       (let* ((lhs-var (second bcmd))
+              (loc-expr (third bcmd))
+              (loc-val (run-expr loc-expr store))
+              (result (heap-get-metadata heap loc-val))
+              ;; (println (format "Lookup: ~v = [~v, ~v] : ~v" lhs-var loc-val prop-val result))
+              (store (mutate-store store lhs-var result)))
+         (print-info proc-name (format "~v := metadata(~v)] : ~v" lhs-var loc-val result))
          (cons heap store))]
       
       ;;
@@ -280,7 +288,7 @@
             ;; Procedure Implemented in JSIL
             (let* ((proc (get-proc prog proc-name))
                    (new-store (proc-init-store proc arg-vals))
-                   (new-heap  (mutate-heap heap larguments parguments (make-jsil-list arg-vals)))
+                   (new-heap  (heap-set-prop-val heap larguments parguments (make-jsil-list arg-vals)))
                    (new-ctx
                     (begin ;(displayln "I am going to create a context!!!")
                       (push-ctx-entry ctx proc-name store lhs-var (+ cur-index 1) err-label))))
