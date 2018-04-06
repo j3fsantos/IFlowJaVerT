@@ -4805,4 +4805,4 @@ let js2jsil e offset_converter for_verification =
 	let cur_imports = if for_verification then js2jsil_logic_imports else js2jsil_imports in
   (* TODO: Populate table with actual lemmas *)
   let lemmas : (string, jsil_lemma) Hashtbl.t = Hashtbl.create 511 in
-	{ imports = cur_imports; lemmas; predicates; onlyspecs = only_specs; procedures; procedure_names = proc_names;}, cc_tbl, vis_tbl
+	{ imports = cur_imports; lemmas; predicates; onlyspecs = only_specs; procedures; procedure_names = proc_names;}, cc_tbl, vis_tbl, e

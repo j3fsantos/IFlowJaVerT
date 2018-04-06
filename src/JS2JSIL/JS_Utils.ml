@@ -434,7 +434,9 @@ let get_fun_ids exp =
         let annots = exp.exp_annot in 
         let ids = List.filter (fun annot -> annot.annot_type = Id) annots in
         match ids with 
-          | id :: _ -> Some id.annot_formula
+          | id :: _ -> 
+              (* Printf.printf "found the id: %s\n" id.annot_formula; *)
+              Some id.annot_formula
           | _ -> None 
        ) fun_exprs in
   let ids = List.filter Option.is_some ids in 

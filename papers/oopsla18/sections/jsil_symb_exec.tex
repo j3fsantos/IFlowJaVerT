@@ -894,7 +894,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 \end{mathpar}}
 \end{display}
 
-\begin{lemma}[Bounded-Soundness]\label{teo:soundness:jsil:symb:exe:instrumented:instrumented}
+\begin{lemma}[Bounded-Soundness - Instrumented Semantics]\label{teo:soundness:jsil:symb:exe:instrumented:instrumented}
 $$
 \begin{array}{l}
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \jmodels{\symbinst}(\sstate[\pcsel \mapsto \sstate'.\pcsel], \scs) \\ \quad \quad 
@@ -909,48 +909,40 @@ $$
 {\scriptsize 
 \begin{mathpar}
 \inferrule[Symbolic Heaps]{}{
-\interpret{\symbolic}(\senv, \hemp) \semeq \hemp, \emptyset
+\interpret{\instrumented}(\senv, \hemp) \semeq \hemp, \emptyset
 \quad
-\frac{
-   l = \semexpr{\sexprl}{\senv} \quad
-    p = \semexpr{\sexprp}{\senv} \quad v = \semexpr{\sexprp}{\senv}
-}{
-\interpret{\symbolic}(\senv, \hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \hcell{l}{p}{v}, \emptyset
-}
+\interpret{\instrumented}(\senv, \hcell{\loc}{p}{\val}) \semeq  \hcell{\loc}{p}{\val}, \emptyset
+\qquad
+  \interpret{\instrumented}(\senv, \hcell{\loc}{p}{\none}) \semeq \hemp, \jsilset{ (l, p) }
 \qquad
 \frac{
-   l = \semexpr{\sexprl}{\senv} \quad p = \semexpr{\sexprp}{\senv}
+   \interpret{\instrumented}(\senv, \iheap_i) = h_i, \hdom_i, i =1,2
 }{
-  \interpret{\symbolic}(\senv, \hcell{\sexprl}{\sexprp}{\none}) \semeq \hemp, \jsilset{ (l, p) }
-}
-\qquad
-\frac{
-   \interpret{\symbolic}(\senv, \sheap_i) = h_i, \hdom_i, i =1,2
-}{
-\interpret{\symbolic}(\senv, \sheap_1 \dunion \sheap_2) \semeq  h_1 \dunion h_2, \hdom_1 \dunion \hdom_2
+\interpret{\instrumented}(\senv, \iheap_1 \dunion \iheap_2) \semeq  h_1 \dunion h_2, \hdom_1 \dunion \hdom_2
 }}
 \\
-\inferrule[Symbolic Domains]
-{
-   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \semexpr{\sexprl}{\senv} \, \wedge \, \val = \semexpr{\sdom(\sexprl)}{\senv}
-}{
-\interpret{\symbinst}(\senv, \sdom) \semeq \idom
+\inferrule[Instrumented Domains]
+{}{
+\interpret{\symbolic}(\senv, \sdom) 
+    \semeq \{ (l, p) \mid \sexprl \in \domain(\sdom) \, \wedge \, l = \semexpr{\sexprl}{\senv} \, \wedge \, p \not\in \semexpr{\sdom(\sexprl)}{\senv} \}
 }
 \and
 \inferrule[Symbolic States]{
     \sstate = (\sheap, \sdom, \sstore, \pc) 
     \quad 
-    \interpret{\symbinst}(\senv, \sheap) = \iheap
+    \interpret{\symbolic}(\senv, \sheap) = h, \hdom_1
    \quad
-    \interpret{\symbinst}(\senv, \sdom) = \idom
-    \\\\
-    \semexpr{\scs}{\senv} = \cs  
+    \interpret{\symbolic}(\senv, \sdom) = \hdom_2
     \quad
     \semexpr{\sstore}{\senv} = \store 
-    \quad
+    \\\\
+    \semexpr{\scs}{\senv} = \cs 
+    \quad 
     \semexpr{\pc}{\senv} = \jtrue 
+    \quad 
+    \hdom = \domain(h) \cup \hdom_1 \cup \hdom_2 
 }{
-\jmodels{\symbinst}(\sstate, \scs) \semeq ((h, \idom, \store), \cs)
+\jmodels{\symbolic}(\sstate, \scs) \semeq \{ ((h \dunion h', \store), \cs) \mid \domain(h') \cap \hdom = \emptyset \} 
 }
 \end{mathpar}}
 \end{display}

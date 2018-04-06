@@ -217,6 +217,7 @@ buckets.Heap = function (compareFunction) {
 
     /**
      * Adds the given element into the heap.
+     * @id heap_add 
      * @param {*} element The element.
      * @return True if the element was added or false if it is undefined.
      */

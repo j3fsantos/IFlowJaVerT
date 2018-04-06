@@ -76,7 +76,7 @@ let main () =
 			let all = if (!test262) then (load_file "harness.js") ^ "\n" ^ main else main in
 			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
 			let e = Parser_main.exp_from_string ~force_strict:true all in
-			let (ext_prog, cc_tbl, vis_tbl) = JS2JSIL_Compiler.js2jsil e offset_converter false in
+			let ext_prog, cc_tbl, vis_tbl, _ = JS2JSIL_Compiler.js2jsil e offset_converter false in
    		let prog, which_pred = JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog in
       run_jsil_prog prog which_pred (Some cc_tbl) (Some vis_tbl)
     with

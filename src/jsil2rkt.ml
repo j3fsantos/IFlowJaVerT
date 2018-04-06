@@ -91,7 +91,7 @@ let main () =
   			let all = harness ^ "\n\n" ^ main in
   			let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline all in
   			let e = Parser_main.exp_from_string ~force_strict:true all in
-  			let (ext_prog, _, _) = JS2JSIL_Compiler.js2jsil e offset_converter false in
+  			let ext_prog, _, _, _ = JS2JSIL_Compiler.js2jsil e offset_converter false in
   			JSIL_Syntax_Utils.prog_of_ext_prog !file ext_prog) in
   	
 

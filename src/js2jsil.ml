@@ -67,7 +67,7 @@ let process_file path =
 	let offset_converter = JS_Utils.memoized_offsetchar_to_offsetline e_str in
 	let e = Parser_main.exp_from_string ~force_strict:true e_str in
 
-    let ext_prog, _, _ = js2jsil e offset_converter (!for_verification) in
+    let ext_prog, _, _, e = js2jsil e offset_converter (!for_verification) in
 	
 	let file_name = Filename.chop_extension path in
 	(if (not (!sep_procs))
