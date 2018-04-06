@@ -192,6 +192,8 @@ rule read = parse
 	| "="                  { JSIL_Parser.EQUAL         }
 	| "<"                  { JSIL_Parser.LESSTHAN      }
 	| "<="                 { JSIL_Parser.LESSTHANEQUAL }
+	| ">"                  { JSIL_Parser.MORETHAN      }
+	| ">="                 { JSIL_Parser.MORETHANEQUAL }
 	| "<s"                 { JSIL_Parser.LESSTHANSTRING}
 	| "+"                  { JSIL_Parser.PLUS          }
 	| "-"                  { JSIL_Parser.MINUS         }
