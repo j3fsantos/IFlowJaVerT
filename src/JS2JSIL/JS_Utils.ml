@@ -426,6 +426,22 @@ let rec get_fun_exprs_expr exp =
   js_fold f_ac (fun x y -> y) true exp
 
 
+let get_fun_ids exp = 
+  let fun_exprs = get_fun_exprs_expr exp in 
+  let ids = 
+    List.map 
+      (fun exp -> 
+        let annots = exp.exp_annot in 
+        let ids = List.filter (fun annot -> annot.annot_type = Id) annots in
+        match ids with 
+          | id :: _ -> Some id.annot_formula
+          | _ -> None 
+       ) fun_exprs in
+  let ids = List.filter Option.is_some ids in 
+  let ids = List.map Option.get ids in 
+  ids 
+
+
 let func_decls_in_elem exp : exp list =
     match exp.exp_stx with
       | Function (s, name, args, body) -> [exp]

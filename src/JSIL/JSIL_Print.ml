@@ -704,14 +704,17 @@ let string_of_ext_proc_metadata (ext_proc : jsil_ext_procedure) : string =
 	"\"" ^ proc_name ^ "\": [ " ^ line_info_str ^ " ]"
 
 
-let string_of_ext_prog_metadata (ext_prog : (string, jsil_ext_procedure) Hashtbl.t) : string =
+let string_of_ext_prog_metadata (ext_prog : (string, jsil_ext_procedure) Hashtbl.t) (ids: string list) : string =
 	let str_procs = 
 		Hashtbl.fold
 			(fun _ ext_proc proc_strs -> (string_of_ext_proc_metadata ext_proc) :: proc_strs)
 			ext_prog [] in
 	let str_procs = String.concat ",\n" str_procs in  
-	"{" ^ str_procs ^ "}"
-
+	let str_procs = "\"stats\":" ^ "{" ^ str_procs ^ "},\n" in 
+	let ids = List.map (fun str -> "\"" ^ str ^ "\"") ids in 
+	let str_ids = "\"ids\": [ " ^ (String.concat ", " ids) ^ " ]" in 
+	let final_str = "{\n" ^ str_procs ^ str_ids ^ "\n}" in  
+ 	final_str 
 
 let str_of_assertion_list (a_list : jsil_logic_assertion list) : string =
 	List.fold_left
