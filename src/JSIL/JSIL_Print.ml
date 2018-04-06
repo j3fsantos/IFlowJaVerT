@@ -80,7 +80,7 @@ let rec string_of_literal (lit : jsil_lit) : string =
   	| Type t -> string_of_type t
 	| LList ll ->
 		(match ll with
-		| [] -> "$$nil"
+		| [] -> "nil"
 		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sl ll)))
 	| CList cl ->
 		(match cl with
@@ -166,7 +166,7 @@ let rec string_of_expression (e : jsil_expr) : string  =
 	(* {{ e1, e2, ... }} *)
 	| EList ll ->
 		(match ll with
-		| [] -> "$$nil"
+		| [] -> "nil"
 		| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map se ll)))
 	(* -{ e1, e2, ... }- *)
 	| ESet ll -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map se ll))
@@ -207,7 +207,7 @@ let rec string_of_logic_expression (e : jsil_logic_expr) : string =
 	(* {{ e1, ..., en }} *)
     | LEList list ->
 			(match list with
-			| [] -> "$$nil"
+			| [] -> "nil"
 			| ll -> Printf.sprintf "{{ %s }}" (String.concat ", " (List.map sle ll)))
 		(* -{ e1, ..., en }- *)
     | LESet list -> Printf.sprintf "-{ %s }-" (String.concat ", " (List.map sle list))

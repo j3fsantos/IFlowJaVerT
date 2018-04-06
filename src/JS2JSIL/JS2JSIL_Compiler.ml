@@ -1292,11 +1292,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_body := [x_f_val, "@construct"];  *)
 		let x_body = fresh_body_var () in
-		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String constructPropName))) in
+		let cmd_body = SLBasic (SLookup (x_body, Var xfvm, Literal (String constructPropName))) in
 
 		(* x_fscope := [x_f_val, "@scope"]; *)
 		let x_fscope = fresh_fscope_var () in
-		let cmd_scope = SLBasic (SLookup (x_fscope, Var x_f_val, Literal (String scopePropName))) in
+		let cmd_scope = SLBasic (SLookup (x_fscope, Var xfvm, Literal (String scopePropName))) in
 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_r1 = fresh_var () in
@@ -1571,11 +1571,11 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 
 		(* x_body := [x_f_val, "@call"]; *)
 		let x_body = fresh_body_var () in
-		let cmd_body = SLBasic (SLookup (x_body, Var x_f_val, Literal (String callPropName))) in
+		let cmd_body = SLBasic (SLookup (x_body, Var xfvm, Literal (String callPropName))) in
 
 		(* x_fscope := [x_f_val, "@scope"]; *)
 		let x_fscope = fresh_fscope_var () in
-		let cmd_scope = SLBasic (SLookup (x_fscope, Var x_f_val, Literal (String scopePropName))) in
+		let cmd_scope = SLBasic (SLookup (x_fscope, Var xfvm, Literal (String scopePropName))) in
 
 		(* x_r1 := x_body (x_scope, x_this, x_arg0_val, ..., x_argn_val) with err  *)
 		let x_rcall = fresh_var () in

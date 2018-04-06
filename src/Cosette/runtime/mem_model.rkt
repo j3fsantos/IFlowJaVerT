@@ -639,7 +639,7 @@
   (cond
     [(null? heap) (error (format "Error: getProperty: ~v is not in the heap." loc))]
     [(eq? (caar heap) loc) (fvl-get-prop-val (get-fvl (car heap)) prop)]
-    [#t (println (format "~v" (caar heap))) (heap-get-prop-val (cdr heap) loc prop)]
+    [#t (heap-get-prop-val (cdr heap) loc prop)]
   )
 )
 
@@ -716,10 +716,10 @@
 )
 
 ;; Get fields of an fvl
-(define (fvl-get-fields fvl prop)
+(define (fvl-get-fields fvl)
   (cond
     [(null? fvl) '()]
-    [#t (cons (caar fvl) (fvl-get-fields (cdr fvl) prop))]
+    [#t (cons (caar fvl) (fvl-get-fields (cdr fvl)))]
   )
 )
 

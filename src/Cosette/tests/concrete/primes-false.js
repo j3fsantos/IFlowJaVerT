@@ -1,5 +1,5 @@
 /**
-  @return #t
+  @return #f
 */
 
 function isPrime(value) {
@@ -18,8 +18,8 @@ function isPrime(value) {
   return primes[value];
 }
 
-var n = 7;
+var n = 4;
 
 var ret1 = isPrime(n);
 
-Assert(ret1 = $$t)
+Assert(ret1 = false)

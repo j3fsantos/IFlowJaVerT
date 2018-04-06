@@ -346,7 +346,7 @@
          (cmd-type (first cmd)))
     ;;(println (pc))
     ;;(print-cmd cmd)
-    (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd "store"))
+    ;; (println (format "Run-cmds-iter: procedure: ~v, index ~v, command ~v, store: ~v" proc-name cur-index cmd "store"))
     (cond
       ;;
       ;; ('print e) 
@@ -616,7 +616,7 @@
               (for*/all ([vlist vlist])
               (if (list? vlist)
                   (begin
-                    (println (format "Legal l-nth. l:~v; e:~v" vlist vidx))
+                    ;;(println (format "Legal l-nth. l:~v; e:~v" vlist vidx))
                     (list-ref vlist (inexact->exact (+ vidx 1))))
                   (begin
                     (println (format "Illegal l-nth. l:~v; e:~v" vlist vidx))
