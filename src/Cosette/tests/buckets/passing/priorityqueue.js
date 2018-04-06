@@ -1,5 +1,7 @@
 'use strict';
 
+// ----------------------------------- _base.js -------------------------------
+
 /**
  * Top level namespace for Buckets,
  * a JavaScript data structure library.
