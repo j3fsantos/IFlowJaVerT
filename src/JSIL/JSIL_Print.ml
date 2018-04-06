@@ -691,29 +691,27 @@ let string_of_prog_metadata (prog : jsil_program) : string =
 		""
 
 let string_of_ext_proc_metadata (ext_proc : jsil_ext_procedure) : string =
+	let proc_name = ext_proc.lproc_name in 
 	let line_info_lst =
 		List.mapi
 			(fun i (metadata, label, cmd) ->
 				match metadata.line_offset with
-				| None -> Printf.sprintf "(%d, %d)" i 0
-				| Some n ->  Printf.sprintf "(%d, %d)" i n)
+				| None -> Printf.sprintf "[%d, %d]" i (-1) 
+				| Some n ->  Printf.sprintf "[%d, %d]" i (n - 1))
 			(Array.to_list ext_proc.lproc_body) in
 
-	let line_info_str =
-		List.fold_left
-			(fun ac elem -> if (ac = "") then elem else ac ^ "\n" ^ elem)
-			""
-			line_info_lst in
-	"Proc: " ^ ext_proc.lproc_name ^ "\n" ^ line_info_str
+	let line_info_str = String.concat ", " line_info_lst in 
+	"\"" ^ proc_name ^ "\": [ " ^ line_info_str ^ " ]"
+
 
 let string_of_ext_prog_metadata (ext_prog : (string, jsil_ext_procedure) Hashtbl.t) : string =
-	Hashtbl.fold
-		(fun _ ext_proc acc_str ->
-			if (acc_str = "")
-				then (string_of_ext_proc_metadata ext_proc)
-				else acc_str ^ "\n" ^ (string_of_ext_proc_metadata ext_proc))
-		ext_prog
-		""
+	let str_procs = 
+		Hashtbl.fold
+			(fun _ ext_proc proc_strs -> (string_of_ext_proc_metadata ext_proc) :: proc_strs)
+			ext_prog [] in
+	let str_procs = String.concat ",\n" str_procs in  
+	"{" ^ str_procs ^ "}"
+
 
 let str_of_assertion_list (a_list : jsil_logic_assertion list) : string =
 	List.fold_left

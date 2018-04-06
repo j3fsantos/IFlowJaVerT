@@ -8,6 +8,9 @@ function f_two() { return 5; }
 
 function f_one() { return "one"; }
 
+/**
+  *  @id top
+  */
 function top(f1, f2) {
   var a = [ f_one, f_two, f_three ];
   var v1 = (a[f1])();
