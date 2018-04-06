@@ -24,4 +24,4 @@ if (useId) { url += ("?id"+id); }
  
 var res1 = url.includes("?id");
 var res2 = url.includes("?acct");
-Assert( ((not useAcct) and (not useId)) and (res1 or res2));
+Assert( res1 and res2 );
