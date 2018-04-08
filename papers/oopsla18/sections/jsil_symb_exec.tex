@@ -709,7 +709,7 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
     \quad 
     \hdom = \domain(h) \cup \hdom_1 \cup \hdom_2 
 }{
-\interpret{\symbconc}{\senv}(\sstate) \semeq \{ ((\heap , \store), \heap_f) \mid \domain(\heap_f) \cap \hdom = \emptyset \} 
+\interpret{\symbconc}{\senv}(\sstate) \semeq \{ (\heap, \store, \heap_f) \mid \domain(\heap_f) \cap \hdom = \emptyset \} 
 }
 
 \end{mathpar}}
@@ -726,7 +726,7 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
 
 
 \subsubsection{Main Results}
-The \emph{soundness theorem} (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace given by 
+The \emph{soundiness theorem} (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace given by 
 $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ and a concrete CF-state $(\jstate, \cs)$
 in the models of the initial symbolic CF-state filtered by the final path condition $\sstate'.\pcsel$,  
 then there exists a concrete CF-state $(\jstate', \cs')$ in the models of the final symbolic CF-state, such that: 
@@ -735,13 +735,13 @@ We use the final path condition $\sstate'.\pcsel$ for both the models of the ini
 symbolic states because we only care about the initial concrete CF-states for which 
 the concrete execution follows the same path as the symbolic~execution. 
 
-\begin{theorem}[Bounded Soundness]\label{teo:soundness:jsil:symb:exe}
+\begin{theorem}[Soundiness]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
-\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\jstate, \heap_f, \cs) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
-    \ \implies \ \exists \senv', \jstate', \cs' \, . \, 
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
+    \ \implies \ \exists \, \senv', \jstate', \cs' \, . \, 
         \transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\concrete}
-               \ \wedge \ (\jstate', \heap_f, \cs') \in \interpret{\symbconc}{\senv'}(\sstate', \heap_f, \scs')
+               \ \wedge \ (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate', \scs')
 \end{array}
 $$
 \end{theorem}
@@ -776,13 +776,13 @@ $$
 \begin{array}{l}
 \wedge_{k=1}^n \, \big( \transabssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
     \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big) 
-    \, \wedge \, (\jstate, \heap_f, \cs) \in \interpret{\symbconc}{\senv}(\sstate, \scs)
+    \, \wedge \, (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs)
     \\ \quad \quad
 %
       \ \implies \ \exists 1 \leq l \leq n, \senv', \jstate', \cs' \, . \, 
            \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete}
            \, \wedge \, 
-           (\jstate', \heap_f, \cs') \in \interpret{\symbconc}{\senv'}(\sstate_l, \scs_l)
+           (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate_l, \scs_l)
 \end{array}
 $$
 \end{corollary}
@@ -920,98 +920,120 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 \inferrule[Symbolic States]{
     \sstate = (\sheap, \sdom, \sstore, \pc) 
     \quad 
-    \interpret{\symbinst}{}(\senv, \sheap) = \iheap
+    \interpret{\symbinst}{\senv}(\sheap) = \iheap
    \quad
-    \interpret{\symbinst}{}(\senv, \sdom) = \idom
+    \interpret{\symbinst}{\senv}(\sdom) = \idom
     \\\\
-    \semexpr{\scs}{\senv} = \cs  
+    \interpret{\symbconc}{\senv}(\sstore) = \store 
     \quad
-    \semexpr{\sstore}{\senv} = \store 
-    \quad
-    \semexpr{\pc}{\senv} = \jtrue 
+    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
 }{
-\jmodels{\symbinst}(\senv, \sstate, \scs) \semeq ((h, \idom, \store), \cs)
+\interpret{\symbinst}{\senv}(\sstate) \semeq (\iheap, \idom, \store)
 }
 \end{mathpar}}
 \end{display}
 
-\begin{lemma}[Bounded-Soundness - Instrumented Semantics]\label{lemma:soundness:jsil:symb:exe:instrumented:instrumented}
+\begin{theorem}[Soundiness wrt Instrumented Semantics]\label{lemma:soundness:jsil:symb:exe:instrumented:instrumented}
 $$
 \begin{array}{l}
-\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \jmodels{\symbinst}(\sstate[\pcsel \mapsto \sstate'.\pcsel], \scs) \\ \quad \quad 
-    \ \implies \ \exists \istate', \cs' \, . \, 
-        \transabssemrule{\istate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\instrumented} \ \wedge \ (\istate', \cs') = \jmodels{\symbinst}(\sstate', \scs')
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
+    \ \implies \ \exists \, \senv', \istate', \cs' \, . \, 
+        \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \ \wedge \ (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')
 \end{array}
 $$
-\end{lemma}
+\end{theorem}
 
 
 \begin{display}{Instrumented State Interpretation}
 {\scriptsize 
 \begin{mathpar}
 \inferrule[Symbolic Heaps]{}{
-\interpret{\instrumented}{}(\hemp) \semeq \hemp, \emptyset
-\qquad
-\interpret{\instrumented}{}(\hcell{\loc}{p}{\val}) \semeq  \hcell{\loc}{p}{\val}, \emptyset
-\qquad
-  \interpret{\instrumented}{}(\hcell{\loc}{p}{\none}) \semeq \hemp, \jsilset{ (l, p) }
-\qquad
+\interpret{\instconc}{}(\hemp) \semeq \hemp
+\quad
 \frac{
-   \interpret{\instrumented}{}(\iheap_i) = h_i, \hdom_i, i =1,2
+   \heap = \hcell{\loc}{p}{\val}
 }{
-\interpret{\instrumented}{}(\iheap_1 \dunion \iheap_2) \semeq  h_1 \dunion h_2, \hdom_1 \dunion \hdom_2
-}}
-\\
-\inferrule[Instrumented Domains]
-{}{
-\interpret{\instrumented}{}(\idom) 
-    \semeq \{ (l, p) \mid l \in \domain(\idom) \, \wedge \, p \not\in \idom(l) \}
+\interpret{\instconc}{}(\hcell{\loc}{p}{\val}) \semeq  \heap
 }
-\and
-\inferrule[Symbolic States]{
-    \istate = (\iheap, \idom, \store) 
-    \quad 
-    \interpret{\instrumented}{}(\iheap) = h, \hdom_1
-   \quad
-    \interpret{\instrumented}{}(\idom) = \hdom_2
-    \quad 
-    \hdom = \domain(h) \cup \hdom_1 \cup \hdom_2 
+\quad
+  \interpret{\instconc}{}(\hcell{\loc}{p}{\none}) \semeq \hemp }
+\quad
+\frac{
+  \begin{array}{c}
+   \interpret{\instconc}{}(\iheap_i) = \heap_i, \hdom_i \mid_{i =1,2} \\
+   \heap = \heap_1 \dunion \heap_2
+  \end{array}
 }{
-\interpret{\instrumented}{}(\istate) \semeq \{ ((h, \store), h_F) \mid \domain(h_F) \cap \hdom = \emptyset \} 
+\interpret{\instconc}{}(\iheap_1 \dunion \iheap_2) \semeq  \heap
+}
+\qquad
+\inferrule[Symbolic States]{
+    \interpret{\instconc}{}(\iheap) = \heap
+}{
+\interpret{\instconc}{}(\iheap, \idom, \store) \semeq (\heap, \store)
 }
 \end{mathpar}}
 \end{display}
 
-\begin{lemma}[Frame Property - Instrumented Semantics]\label{lemma:frame:property}
+\begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
 $$
 \begin{array}{l}
-\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}  \ \wedge \
-      ((h, \store), h_F)  \in \interpret{\instrumented}{}(\istate) \\ \quad \quad 
-    \ \implies \  \exists h' \, . \, 
-        \transabssemrule{(h \dunion h_F, \store), \cs, i}{((h' \dunion h_F), \store'), \cs', j}{\mode}{\mode'}{\concrete} \ 
-               \wedge \ ((h', \store'), h_F) \in \interpret{\instrumented}{}(\istate')
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} 
+       \ \implies \ 
+        \transabssemrule{\istate \dunion \iheap_f, \cs, i}{\istate' \dunion \iheap_f, \cs', j}{\mode}{\mode'}{\instrumented} 
+\end{array}
+$$
+\end{theorem}
+
+\begin{lemma}[Instrumented Semantics Interpreation]\label{lemma:instrumented:semantics}
+$$
+\begin{array}{l}
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} 
+   \, \wedge \, \interpret{\instconc}{}(\istate) =  \jstate
+      \, \wedge \, \interpret{\instconc}{}(\istate') =  \jstate'
+       \ \implies \ 
+        \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete} 
 \end{array}
 $$
 \end{lemma}
 
-\begin{lemma}[Modular Symbolic Interpretation]\label{lemma:symb:interpretation}
+
+
+\begin{lemma}[Two-Level Symbolic Interpretation]\label{lemma:symb:interpretation}
 $$
-\begin{array}{l}
-(\jstate, \cs) \in \jmodels{\symbolic}(\senv, \sstate, \scs) 
+(\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs) 
    \iff 
-   \exists \iheap, h, h_F, \store \, . \,   \\ \quad \quad 
-       ((\iheap, \store), \cs)  = \interpret{\symbinst}{}(\senv, \sstate, \scs)
-       \ \wedge \
-       ((h, \store), h_F) \in \interpret{\instrumented}{}((\iheap, \store))
-       \ \wedge \ 
-       \jstate = (h \dunion h_F, \store)
-\end{array}
+   \exists \, \istate, h_F \, . \, 
+         (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate, \scs)  
+          \ \wedge \   
+      \jstate = \interpret{\instconc}{}(\istate)
+      \ \wedge \
+      h_F \disjoint \istate.\hpsel
 $$
 \end{lemma}
 
-
-
-
+\myparagraph{Soundiness - Proof} 
+We show how the intermediate results can be used together to 
+obtain the soundiness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}). 
+Assume we have that 
+$\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
+ $(\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2}).  
+ From \hyp{2}, we conclude, using Lemma~\ref{lemma:symb:interpretation}, that there is an 
+ instrumented state $\istate$ and a heap $\heap_f$ such that $(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate  \, \wedge \, \sstate'.\pcsel, \scs)$ (\ieq{1}), 
+ $\jstate = \interpret{\instconc}{}(\istate)$ (\ieq{2}), and $h_F \disjoint \istate.\hpsel$ (\ieq{3}). 
+ Applying Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} to \hyp{1} 
+ and \ieq{1}, it follows that there is a symbolic environment $\senv'$, an instrumented state $\istate'$, 
+ an a call stack $\cs'$ such that: 
+$\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$~(\ieq{4})
+and $(\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')$ (\ieq{5}).
+From \ieq{3} and \ieq{4}, we conclude, using Theorem~\ref{teo:frame:property}, that the following 
+holds $\transabssemrule{\istate \dunion \heap_f, \cs, i}{\istate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{6}). 
+Applying Lemma~\ref{lemma:instrumented:semantics} to \ieq{2} and \ieq{6}, we conclude that 
+ $\transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\instrumented}$ (\goal{1}), 
+ where $\jstate' = \interpret{\instconc}{}(\istate')$ (\ieq{8}).
+ From \ieq{5}, \ieq{6}, and \ieq{8}, we conclude, applying Lemma~\ref{lemma:symb:interpretation}, 
+ that $(\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv}(\sstate', \scs')$ (\goal{2}), 
+ which concludes the proof. 
 
 \subsection{Implementation}\label{subsec:jsil:analysis:implementation}
 

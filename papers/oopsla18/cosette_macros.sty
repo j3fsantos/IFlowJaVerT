@@ -68,7 +68,11 @@
   }{\\[-.8ex]\hket
   \end{tabbing}\vspace{-1ex}}
   
-
+  
+% Proof Labels
+\newcommand{\hyp}[1]{{\bf H#1}}
+\newcommand{\goal}[1]{{\bf G#1}}
+\newcommand{\ieq}[1]{{\bf I#1}}
 
 % Auxiliary - General Math 
 \newcommand{\command}[1]{\texttt{#1}\xspace}
@@ -85,6 +89,7 @@
 \newcommand{\partialmap}{\rightharpoonup}
 \newcommand{\fextends}{\geq}
 \newcommand\semeq{\,\triangleq\,}
+\newcommand{\disjoint}[0]{\, \# \,}
 
 % Lists
 \newcommand{\lstcons}[0]{::}
@@ -287,4 +292,5 @@
 \newcommand\idom{d}
 \newcommand\instrumented[0]{\darkmath{\textsf{i}}}
 \newcommand\symbinst[0]{\darkmath{\textsf{s}\rightarrow\textsf{i}}}
+\newcommand\instconc[0]{\instrumented\rightarrow\concrete}
 
