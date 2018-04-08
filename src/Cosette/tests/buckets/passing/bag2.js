@@ -562,7 +562,6 @@ buckets.Bag = function (toStrFunction) {
 var s1 = symb_string(s1);
 var s2 = symb_string(s2);
 var s3 = symb_string(s3);
-Assume ((not (s1 = s2)) and (not (s1 = s3)));
 
 var bag = new buckets.Bag();
 
@@ -570,6 +569,6 @@ bag.add(s1);
 bag.add(s2);
 bag.add(s3);
 bag.remove(s2);
-bag.remove(s2); // if s2 = s3, we remove both, otherwise s3 is still in there
+bag.remove(s2);
 var res = bag.size();
-Assert (((s2 = s3) and (res = 1)) or ((not (s2 = s3)) and (res = 2)));
+Assert ((((s1 = s2) or (s2 = s3)) and (res = 1)) or (res = 2));
