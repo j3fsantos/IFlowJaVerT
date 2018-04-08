@@ -415,19 +415,25 @@ In \S\ref{???}, we give a novel abstract semantics of \jsil, which we instantiat
 These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, allow us to  provably lift the results of analyses done on compiled \jsil code back up to JavaScript. To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution for JavaScript that precisely follows the semantics of the language.
 
 \myparagraph{Novelty: Compositionality} 
-Designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively, the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run; we refer to such bugs as \emph{frame bugs}. 
+Whole-program analyses are not the best fit for JavaScript applications, which are commonly run in highly dynamic execution environments. For instance, client-side programs dynamically load and execute third-party code as a matter of course. For this reason, it is important to be able to analyse incomplete JavaScript code in a compositional manner.
+However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively, the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run. 
 %
-Current symbolic execution tools for JavaScript~\cite{???} are not compositional. They assume access to the entire program, meaning that the results they obtain when analysing functions in isolation cannot be reused, as they would not account for the interaction between the function and all of its possible frames.
+We achieve compositionality by explicitly keeping track of properties that must {\em not be present} in a given object in order for the program to behave correctly, described in detail in \S\ref{???}.
+%Because JavaScript does not observe the frame property, such conditions need to refer to positive resources, object properties that need to be present with certain properties, as well as negative resources, object properties that must not be present. 
+Compositionality also allows us to state a verification result for \jilette, precisely capturing the conditions under which our symbolic execution is sound.
+To our knowledge, \jilette is the first compositional symbolic execution tool for dynamic languages.
 %
-In contrast, the symbolic execution of \jilette is compositional. This has several important benefits.
+%Current symbolic execution tools for JavaScript~\cite{???} are not compositional. They assume access to the entire program, meaning that the results they obtain when analysing functions in isolation cannot be reused, as they would not account for the interaction between the function and all of its possible frames.
 %
-First, it allows us to apply function summaries~\cite{???} instead of symbolically executing function bodies at each call site, speeding up execution time. This benefit is independent of the analysed language.
+%In contrast, the symbolic execution of \jilette is compositional. This has several important benefits.
 %
-Next, it allows us to catch frame bugs, which are not reachable by non-compositional symbolic execution tools. This benefit is specific to dynamic languages.
+%First, it allows us to use function specifications instead of symbolically executing function bodies at each call site, speeding up execution time. This benefit is independent of the analysed language.
 %
-Finally, it allows us to state a verification result for \jilette, precisely capturing the conditions under which our symbolic execution is sound.
+%Next, it allows us to catch frame bugs, which are not reachable by non-compositional symbolic execution tools. This benefit is specific to dynamic languages.
 %
-We achieve compositionality by instrumenting the concrete semantics to keep track of properties that we know are {\em not present} in a given object. This we describe in detail in \S\ref{???}. To our knowledge, \jilette is the first compositional symbolic execution tool for dynamic languages.
+%Finally, it allows us to state a verification result for \jilette, precisely capturing the conditions under which our symbolic execution is sound.
+%
+%, meaning that once a program is analysed successfully, once can choose to re-use the results of the analysis when analysing code that calls it, also yielding a more scalable analysis.
 
 \begin{wrapfigure}{R}{0.48\textwidth}
 \vspace*{-0.45cm}
@@ -440,7 +446,7 @@ We achieve compositionality by instrumenting the concrete semantics to keep trac
 \end{wrapfigure}
 
 \myparagraph{Architecture} The architecture of \jilette is shown in Figure 1. We extend the syntax of JavaScript with constructs for creating and reasoning about symbolic values, which are intuitive and allow the general developer to easily write assertions about the behaviour of their program. Using \JSComp, we compile the extended JavaScript code to \jsil, obtaining an extended \jsil program. The core of \jilette consists of a symbolic interpreter for
-\jsil, whose current, proof-of-concept implementation, is done with the help of Rosette~\cite{Rosette2,Rosette1}, a symbolic virtual machine that facilitates generation of solver-aided languages. The symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound. \pmaxinline{This is the first time we mention `bound'.}
+\jsil, whose current, proof-of-concept implementation, is done with the help of Rosette~\cite{Rosette2,Rosette1}, a framework that facilitates the creation of symbolic interpreters. The symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound. \pmaxinline{This is the first time we mention `bound'.}
 
 %The second component that \jilette uses is \JSComp~\cite{javert}, 
 %a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
@@ -476,7 +482,7 @@ to fail, exposing bugs in the tested code.
 Moreover, the compositionality of \jilette allows us to catch bugs that are not reachable by standard symbolic execution tools.
 We illustrate the capabilities of \jilette on an array of examples, which include tests from the Test262 test suite and real-world Node.js libraries, and which make use of JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. \pmaxinline{Revisit after evaluation.}
 
-\myparagraph{Application: Specification-directed Bug-finding} \pmaxinline{Very stuck here.} Due to the complexity of JavaScript semantics, functional correctness 
+\myparagraph{Application: Specification-directed Bug-finding} \pmaxinline{Feeling stuck here.} Due to the complexity of JavaScript semantics, functional correctness 
 specifications of JavaScript programs are highly intricate. 
 There are only a few tools (for example, \javert \cite{javert} and KJS \cite{Park:2015,stefanescu-park-yuwen-li-rosu-2016-oopsla}) that support such expressivity. They target the specialist developer wanting rich, 
 mechanically verified specifications of critical JavaScript code.
