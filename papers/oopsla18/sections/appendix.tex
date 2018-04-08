@@ -14,9 +14,63 @@ $$
 \end{lemma}
 \begin{proof}
 By induction on the structure of  $\jsilexpr$. 
+\vspace{5pt}
 
-\noindent\prooflab{Value} 
+\noindent \prooflab{Value} $\jsilexpr = \val$. It follows that: 
+$$
+\begin{array}{lll}
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
+       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \val)) & \text{by hyp.} \\  & 
+       =  \interpret{\symbconc}{\senv}(\val)  & \text{by def. of } \evalexpr{\symbolic}(-, -) \\ & 
+       = \val  & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
+       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \val)  & \text{by def. of }  \text{by def. of } \evalexpr{\concrete}(-, -)
+\end{array}
+$$
+\vspace{3pt}
 
+\noindent \prooflab{Variable} $\jsilexpr = \jvar$. It follows that: 
+$$
+\begin{array}{lll}
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
+       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jvar)) & \text{by hyp.} \\  & 
+       =  \interpret{\symbconc}{\senv}(\sstore(\jvar))  & \text{by def. of } \evalexpr{\symbolic}(-, -) \\ & 
+       =  (\interpret{\symbconc}{\senv}(\sstore))(\jvar)   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
+       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jvar)  &  \text{by def. of } \evalexpr{\concrete}(-, -)
+\end{array}
+$$
+\vspace{3pt}
+
+\noindent \prooflab{Unary Operator} $\jsilexpr = \ominus \jsilexpr$. We consider two distinct cases: 
+$\evalexpr{\symbolic}(\sstore, \jsilexpr) \in \vals$ and $\evalexpr{\symbolic}(\sstore, \jsilexpr) \not\in \vals$. 
+If $\evalexpr{\symbolic}(\sstore, \jsilexpr) \in \vals$, it means that there is a value $\val$ such 
+that  $\evalexpr{\symbolic}(\sstore, \jsilexpr) = \val$ (\ieq{1}). From \ieq{1}, we conclude that 
+$\interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)) = \val$ (\ieq{2}). 
+Applying the induction hypothesis to \ieq{2}, we conclude that: 
+$\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr) = \val$ (\ieq{3}). 
+It follows that: 
+$$
+\begin{array}{lll}
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
+       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \ominus \jsilexpr)) & \text{by hyp.} \\  & 
+       =  \interpret{\symbconc}{\senv}(\semop{\ominus}(\val))  & \text{by def. of } \evalexpr{\symbolic}(-, -) + \text{ hyp.} \\ & 
+       =  \semop{\ominus}(\val)   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
+       =  \semop{\ominus}(\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr))   & \text{by \ieq{3}}\\ &
+       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \ominus \jsilexpr)  & \text{by def. of } \evalexpr{\concrete}(-, -) 
+\end{array}
+$$
+If $\evalexpr{\symbolic}(\sstore, \jsilexpr) \not\in \vals$, it follows that: 
+$$
+\begin{array}{lll}
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
+       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \ominus \jsilexpr)) & \text{by hyp.} \\  & 
+       =  \interpret{\symbconc}{\senv}(\ominus \, \evalexpr{\symbolic}(\sstore, \jsilexpr))  & \text{by def. of } \evalexpr{\symbolic}(-, -) + \text{ hyp.} \\ & 
+       =  \semop{\ominus}(\interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)))   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
+       =  \semop{\ominus}(\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr))   & \text{by \indhyp}\\ &
+       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \ominus \jsilexpr)  & \text{by def. of } \evalexpr{\concrete}(-, -) 
+\end{array}
+$$
+
+\noindent \prooflab{Binary Operator} Similar to the previous case. 
 \end{proof}
 
 \begin{temax}[Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} - Soundiness wrt Instrumented Semantics]

@@ -340,10 +340,10 @@ for control flow commands.
 {\scriptsize
 \begin{mathpar} 
   \inferrule[\textsc{Expression Evaluation}]
-  {}{\evalexpr{c}(\store, \val) = \val \qquad 
-  	\evalexpr{c}(\store, \jvar) = \store(\jvar) \qquad 
-	\evalexpr{c}(\store, \ominus \jsilexpr) = \semop{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \qquad
-	\evalexpr{c}(\store, \jsilexpr_1 \oplus \jsilexpr_2) = \evalexpr{c}(\store, \jsilexpr_1) \ \semop{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)}
+  {}{\evalexpr{\concrete}(\store, \val) = \val \qquad 
+  	\evalexpr{\concrete}(\store, \jvar) = \store(\jvar) \qquad 
+	\evalexpr{\concrete}(\store, \ominus \jsilexpr) = \semop{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \qquad
+	\evalexpr{\concrete}(\store, \jsilexpr_1 \oplus \jsilexpr_2) = \evalexpr{c}(\store, \jsilexpr_1) \ \semop{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)}
   \\
   \inferrule[\textsc{GetDomain}]
    { 
@@ -444,6 +444,35 @@ for control flow commands.
 \text{
 {\scriptsize
 \begin{mathpar} 
+ \inferrule[\textsc{Expression Evaluation}]
+  {}{
+        {\begin{array}{c}
+           \evalexpr{\symbolic}(\sstore, \val) = \val  \\[2pt]
+  	   \evalexpr{\symbolic}(\sstore, \jvar) = \sstore(\jvar)  
+        \end{array}} \quad
+	%
+	\frac{
+		\sexprv =  \evalexpr{\symbolic}(\sstore, \jsilexpr) \quad
+		\sexprv' = \left\{ {\begin{array}{l}
+		      \semop{\ominus} (\sexprv) \ \text{if } \sexprv \in \vals \\
+		      \ominus \sexprv                   \ \ \ \text{  otherwise}
+		 \end{array}} \right. 
+	  }{
+	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) = \sexprv'
+	  } \qquad
+	  %
+	  \frac{
+	     \begin{array}{c}
+	         \sexprv_1 = \evalexpr{\symbolic}(\sstore, \jsilexpr_1) \\[2pt]
+	         \sexprv_2 = \evalexpr{\symbolic}(\sstore, \jsilexpr_2)  
+	     \end{array}    
+	     \quad 
+	     \sexprv' = \left\{ {\begin{array}{l}
+		      \semop{\oplus} (\sexprv_1, \sexprv_2) \ \text{if } \sexprv_1, \sexprv_2 \in \vals \\
+		      \sexprv_1 \oplus \sexprv_2      \  \ \ \text{  otherwise}
+		 \end{array}} \right. 
+	  }{\evalexpr{\symbolic}(\sstore, \jsilexpr_1 \oplus \jsilexpr_2) = \sexprv'}}
+\\
   \inferrule[\textsc{GetDomain}]
    { 
         \evalexpr{}(\sstore, \jsilexpr) = \sloc
