@@ -1,5 +1,14 @@
 %!TEX root = ../main.tex
 
+\pmax{Ok, plan:
+Examples:
+\begin{itemize}
+\item simple hasOwnProperty
+\item from spec hasOwnProperty
+\item procedural local bug - get
+\end{itemize}
+}
+
 We illustrate how \jilette can be used to run symbolic tests for \emph{unspecified} JavaScript code 
 and to automatically generate symbolic tests for JavaScript code annotated with separation logic specifications. 
 To this end, we make use the JavaScript implementation 
@@ -30,24 +39,20 @@ on which it is invoked has the property \jsinline|p| (e.g. {\small \jsinline|map
 evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:example}-(right), 
 because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
 
- \begin{figure}[t!]
+ \begin{figure}[h!]
  \begin{minipage}{0.5\textwidth}
  \begin{lstjs}[firstnumber=1]
 function Map () { this._contents = {} }
 
 Map.prototype.get = function (k) {
   var c = this._contents;
-  if (c.hasOwnProperty(k)) {
-    return this._contents[k] 
-  } else { return null }
+  return (c.hasOwnProperty(k) ? c[k] : null)
 }
 
 Map.prototype.put = function (k, v) {
-  var c = this._contents;
-  if this._contents.validKey(k)) {  
-    contents[k] = v   
-  } else
-    throw new Error("Invalid Key");
+  if this.validKey(k)) {  
+    this._contents[k] = v   
+  } else throw new Error("Invalid Key");
 } 
 
 Map.prototype.validKey = function (k) { ... }
@@ -55,7 +60,6 @@ Map.prototype.validKey = function (k) { ... }
 \end{minipage}
 \ 
  \begin{minipage}{0.4\textwidth}
- \hspace*{-1.2cm}
  \includegraphics[width=1\textwidth]{figures/mapDiagram.png}
  \end{minipage}
 \caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
