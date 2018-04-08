@@ -287,7 +287,7 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We present \jilette, a framework for trusted, compositional symbolic execution of JavaScript programs.
+We present \jilette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
 \jilette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
 Its aim is to assist the general programmer in debugging their code; the programmer writes symbolic tests for which \jilette provides concrete counter-models.
 We prove that the symbolic execution underpinning \jilette is sound and that it does not generate false positives. Moreover, this symbolic execution is compositional, which allows us to use \jilette to find bugs in separation logic specifications of JavaScript programs that are not detectable by standard symbolic execution techniques.
@@ -364,22 +364,41 @@ We evaluate \jilette on an array of examples, including tests from the official 
 
 \section{Introduction}
 
-JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications, used by 94.8\% of websites\footnote{\url{https://w3techs.com/technologies/details/cp-javascript/all/all}}; it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited memory. 
-It is the most active language in both GitHub and StackOverflow.\footnote{\url{http://githut.info}; \url{https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628}}
-Due to its dynamic nature and complex semantics, JavaScript remains a difficult target for symbolic analysis and logic-based verification.
 
-\pmax{Now, sth about the state-of-the-art}
+In current program analysis research, there exists a gap between bug-finding techniques and verification techniques. In bug-finding, the aim is to discover concrete executions that cause a given program to behave incorrectly, and the emphasis is on precision, that is, the absence of false positive bug reports. In verification, the aim is to produce a proof that a given program always behaves correctly, and the emphasis is on soundness, which mandates adherence to the language standard and the exploration of all possible paths. 
+%
+Soundness, however, comes at a cost: verification techniques are often too conservative, rejecting many programs that are safe, and have prohibitive scalability issues.
+%
+There is a growing consensus among experts that soundness is, in fact, not a necessity for most modern analysis applications~\cite{.}. Instead, the property they advocate and observe in the  majority of tools is \emph{soundiness}---maintaining soundness as much as possible, but without detrimental effects to precision and/or scalability.
 
-In current program analysis research, there is a gulf between bug-finding techniques and verification techniques. While bug-finding techniques aim at finding concrete executions that cause the input program to fail, verification techniques aim at proving that the input program will never fail for the inputs satisfying its preconditions. The former emphasise precision, whereas the latter emphasise soundness. Ideally, one would always go for soundness. However, soundness comes at a cost: verification techniques are often too conservative, rejecting many programs that are in fact sound, and also have prohibitive scalability issues. Furthermore, there is a growing consensus that soundness is not even necessary for most modern analysis applications, as many clients can tolerate unsoundness (auto-complete systems, code navigation etc). In [], the authors propose soundiness instead of soundness as the de facto standard. On the other hand, bug-finding tools are also lacking in that they are usually not justified with respect to the semantics of the targeted language, often relying on unstated simplifying assumptions, when not explicitly departing from the semantics of the language. As a result, the fact that a bug finding tool cannot find a bug gives no formal guarantee with respect the correctness of the input program. We trust these tools because they appear to work empirically. Another difference between bug-finding and verification techniques is that bug-finding tools are often underpinned by a whole-program analysis, whereas verification techniques are normally compositional, meaning that the results of the analysis for a given program can be re-used when analysing a program that contains it. We believe that compositionality is essential for tools that need to run regularly on large code bases. For instance, it would not be possible for Infer, a separation logic based bug-finding tool, to be part of the continuous integration system at Facebook, if it were not compositional. However, compositionality is not trivial to achieve when the targeted programming language does not exhibit the frame property, as is the case for most dynamic languages including JavaScript.  
-This paper aims at the sweet spot between bug-finding and verification. It presents a compositional symbolic execution for JavaScript whose soundiness guarantees are formally characterised. 
+The main issue with most bug-finding tools is not that they are soundy, but that they are not \emph{trustworthy}: their soundiness and precision are not formally characterised. They are usually not justified with respect to the semantics of the targeted language, often relying on unstated simplifying assumptions, if not explicitly departing from the semantics of the language. Consequentially, the fact that a bug-finding tool cannot find a bug carries no guarantees with respect to the correctness of the input program. We trust these tools because they appear to work empirically.
+
+Another difference between bug-finding and verification is that bug-finding tools are often based on whole-program analysis, whereas verification techniques are normally \emph{compositional}, meaning that the results of an analysis for a part of a program can be re-used when analysing the entire program. Compositionality is essential for tools that need to run regularly on large codebases. For instance, it would not be possible for Infer, a bug-finding tool based on separation logic, to be part of the continuous integration system at Facebook if it were not compositional. 
+
+We present \jilette, the first trustworthy, compositional symbolic execution framework for JavaScript (ECMAScript 5 Strict~\cite{ecma}) analysis. \jilette precisely follows the ES5 English standard, without introducing any simplifications. 
+It aims at the sweet spot between bug-finding and verification, 
+%It is not done directly on JavaScript, but instead on \jsil, an intermediate representation previously introduced for JavaScript verification~\cite{javert}. \jsil comes with a trusted infrastructure that allows us to provably lift the results of symbolic analyses on compiled \jsil code back up to JavaScript. 
+in that it comes with formal correctness guarantees and a precise result stating the conditions under which symbolic execution gives soundness. 
+
+%Additionally, its compositionality allows us to catch a broader class of bugs than the current symbolic execution tools and also allows us to state the conditions under which the soundiness of \jilette becomes soundness, that is, when the absence of found bugs implies verification.
+
+%However, compositionality is not trivial to achieve when the targeted programming language does not exhibit the frame property, as is the case for most dynamic languages including JavaScript.
 
 
 
-Currently, several symbolic analysis tools for JavaScript are available, such as \pmaxinline{list them, cite them - are we doing static or dynamic also?}. \pmaxinline{Say something positive, don't know what, mention bug-finding}. However, there exists a gap that needs to be addressed. The symbolic analysis engines of these tools are not formalised and do not come with correctness guarantees \pmaxinline{check, especially Jalangi}. Their analyses are also not compositional \pmaxinline{We don't know what this means yet, also check, but possibly omit}. Moreover, each of these tools is tailored for catching a specific category of bugs, rather than targeting bug-finding in general \pmaxinline{give evidence - also, why do we care?}.
 
-We present \jilette, a framework for symbolic execution of JavaScript (ECMAScript 5 Strict~\cite{ecma}) programs, which advances the state-of-the-art in the two following ways. First, the symbolic execution of \jilette is \emph{trustworthy}, in that it is formalised, proven sound, and precisely follows the ES5 English standard. This symbolic execution is not done directly on JavaScript, but instead on \jsil, an intermediate representation previously introduced for JavaScript verification~\cite{javert}. \jsil comes with a trusted infrastructure that allows us to provably lift the results of our symbolic analyses on compiled \jsil code back up to JavaScript. Second, the symbolic execution of \jilette is \emph{compositional}, allowing us to use \jilette to debug specifications of JavaScript programs and catch a broader class of bugs than the current symbolic execution tools.
+%JavaScript is the most widespread dynamic language: it is the de facto language for client-side Web applications, used by 94.8\% of websites\footnote{\url{https://w3techs.com/technologies/details/cp-javascript/all/all}}; it is used for server-side scripting via Node.js; and it is even run on small embedded devices with limited memory. 
+%It is the most active language in both GitHub and StackOverflow.\footnote{\url{http://githut.info}; \url{https://exploratory.io/viz/Hidetaka-Ko/94368d12800a?cb=1469037012628}}
+%Due to its dynamic nature and complex semantics, JavaScript remains a difficult target for symbolic analysis and logic-based verification. 
 
-We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
+%\pmax{Now, sth about the state-of-the-art}
+
+% TO RELATED WORK
+%Currently, several symbolic analysis tools for JavaScript are available, such as \pmaxinline{list them, cite them - are we doing static or dynamic also?}. \pmaxinline{Say something positive, don't know what, mention bug-finding}. However, there exists a gap that needs to be addressed. The symbolic analysis engines of these tools are not formalised and do not come with correctness guarantees \pmaxinline{check, especially Jalangi}. Their analyses are also not compositional \pmaxinline{We don't know what this means yet, also check, but possibly omit}. Moreover, each of these tools is tailored for catching a specific category of bugs, rather than targeting bug-finding in general \pmaxinline{give evidence - also, why do we care?}.
+
+
+
+%We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
 
 
 
@@ -388,6 +407,8 @@ We evaluate \jilette on an array of examples, including tests from the official 
 %These theoretical results, combined with the correctness of \JSComp, allows us to lift the results of analyses done on compiled \jsil code back up to JavaScript. 
 
 %To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution that precisely follows the semantics of the language.
+
+\myparagraph{Architecture} Something.
 
 \myparagraph{Novelty: Trustworthiness} Designing a tractable symbolic analysis for JavaScript that is faithful to the language standard and providing correctness results for such an analysis is known to be a difficult task, due to the complexity of the language. The current approaches \pmaxinline{cite stuff} normally do not give a formal account of the analysis and/or simplify the language semantics. Our approach to designing \jilette is grounded on adherence to the standard and establishing trust. 
 To contain the complexity of JavaScript, we move the analysis to \jsil, an intermediate representation for logic-based analysis of JavaScript~\cite{javert}. 
