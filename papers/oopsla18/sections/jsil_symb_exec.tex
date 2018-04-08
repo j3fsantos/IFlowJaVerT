@@ -356,7 +356,7 @@ for control flow commands.
   %
   \and
   %
-    \inferrule[\textsc{GetCell - Explicit Cell}]
+    \inferrule[\textsc{GetCell}]
    { 
          \evalexpr{c}(\store, \jsilexpr_1) = \loc
         \quad 
@@ -366,9 +366,6 @@ for control flow commands.
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), (\loc, p, \val)}}
  %
  \\
-   \inferrule[\textsc{Store Selector}]
-   {}{  \stosel((\heap, \store)) =  \store}
-  	\qquad
    \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
@@ -385,18 +382,23 @@ for control flow commands.
    { 
          \heap = \heap' \dunion (\loc, p) \mapsto -
    }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) =  (\heap', \store)}
-  %
-
    \\
-      \inferrule[\textsc{Assumption}]
-   {}{  \absassume{\concrete}(\jstate, \jtrue) =  (\jstate, \jtrue) }
-\and 
-    \inferrule[\textsc{Satisfiability}]
-   {}{  \abssat{\concrete}(\jstate, \jbool) = \jbool}
-  \and
-      \inferrule[\textsc{Symbolic Value Creation }]
+      \inferrule[\textsc{Store Selector}]
+   {}{  \stosel((-, \store)) =  \store}
+   \and
+      \inferrule[\textsc{Symbolic Value}]
    {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
- \end{mathpar}
+     \and 
+  \inferrule[\textsc{Assume}]
+   {
+       \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
+   }{  \absassume{\concrete}(\jstate, \jsilexpr) =  (\jstate, \jtrue) }
+  	\and
+    \inferrule[\textsc{Check Sat}]
+   {
+        \jbool = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) 
+   }{  \abssat{\concrete}(\jstate, \jsilexpr) = \jbool}
+  \end{mathpar}
   }}
  \end{display}
   
@@ -546,24 +548,30 @@ for control flow commands.
    }{  \hpupdt{\symbolic}(\sstate, (\sloc, \sexprp), \sexprv) = \sstate' }
 \\
   %
-      \inferrule[\textsc{Assume}]
+      \inferrule[\textsc{Store Selector}]
+   {}{  \stosel((-, -, \sstore, -)) =  \sstore}
+   \and 
+         \inferrule[\textsc{Symbolic Value}]
+   {\svar \in \svars \text{ is of type } \jtype}{\absmakesymbolicrule{\symbolic}{\jtype} = \svar}
+   \and
+       \inferrule[\textsc{Assume}]
+   {  
+         \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
+   }{  \absassume{\symbolic}(\sstate, \jsilexpr) =  \sstate \, \wedge \, \sexprb }
+   \\
+    \inferrule[\textsc{Check Sat - True}]
    { 
-         \sstate = (\sheap, \sdom, \sstore, \pc) 
-   }{  \absassume{\symbolic}(\sstate, \sexprv) =  (\sheap, \sdom, \sstore, \pc \wedge (\sexprv = \jtrue)) }
-  \qquad 
-    \inferrule[\textsc{Satisfiable - True}]
+   	\sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
+         \and
+         (\sstate.\pcsel \wedge \sexprb) \text{ SAT}
+   }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue}
+ \and 
+    \inferrule[\textsc{Check Sat - False}]
    { 
-         \pc = \sstate.\pcsel 
-         \quad 
-         (\pc \wedge (\sexprv = \jtrue)) \text{ SAT}
-   }{  \abssat{\symbolic}(\sstate, \sexprv) = \jtrue}
- \qquad 
-    \inferrule[\textsc{Satisfiable - False}]
-   { 
-         \pc = \sstate.\pcsel 
-         \quad 
-         (\pc \wedge (\sexprv = \jtrue)) \text{ UNSAT}
-   }{  \abssat{\symbolic}(\sstate, \sexprv) = \jfalse}
+         \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
+         \and
+         (\sstate.\pcsel \wedge \sexprb) \text{ UNSAT}
+   }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jfalse} 
  \end{mathpar}}}
  \end{display}
 
@@ -874,11 +882,11 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
         }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap, \idom, \store), (\loc, p, \val)}}
 %
   \and 
-   %
-    \inferrule[\textsc{Store Update}]
-   { 
-         \store' = \store[\jvar \mapsto \val]
-   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \idom, \store')}
+%   %
+%    \inferrule[\textsc{Store Update}]
+%   { 
+%         \store' = \store[\jvar \mapsto \val]
+%   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \idom, \store')}
  %
  \and
  % 
@@ -888,16 +896,16 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
          \quad 
          \iheap' = \iheap[(\loc, p) \mapsto \val]
    }{  \hpupdt{\instrumented}(\istate, (\loc, p), \val) =  (\iheap, \idom, \store) }
-\\
-  %
-      \inferrule[\textsc{Assume}]
-   {}{  \absassume{\instrumented}(\istate, \jtrue) =  \istate }
-  \and
-    \inferrule[\textsc{Satisfiable}]
-   {}{  \abssat{\instrumented}(\istate, \jbool) = \jbool}
-     \and
-      \inferrule[\textsc{Symbolic Value Creation }]
-   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
+%\\
+%  %
+%      \inferrule[\textsc{Assume}]
+%   {}{  \absassume{\instrumented}(\istate, \jtrue) =  \istate }
+%  \and
+%    \inferrule[\textsc{Satisfiable}]
+%   {}{  \abssat{\instrumented}(\istate, \jbool) = \jbool}
+%     \and
+%      \inferrule[\textsc{Symbolic Value Creation }]
+%   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
  \end{mathpar}}}
  \end{display}
 
