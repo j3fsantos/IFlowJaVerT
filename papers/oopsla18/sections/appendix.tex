@@ -7,7 +7,7 @@
 
 \section{\jsil Syntax and Semantics}
 
-\begin{lemma}
+\begin{lemma}\label{symb:eval:expr}
 $$
 \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)) = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr)
 $$
@@ -72,6 +72,80 @@ $$
 
 \noindent \prooflab{Binary Operator} Similar to the previous case. 
 \end{proof}
+
+\begin{lemma}[Heap Update - Symbolic Semantics]
+$$
+\begin{array}{l}
+\istate \in \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
+   \loc \in \interpret{\symbconc}{\senv}(\sloc)  \, \wedge \, 
+   p \in \interpret{\symbconc}{\senv}(\sexprp)  \, \wedge \, 
+   \val \in \interpret{\symbconc}{\senv}(\sexprv)   \\  \qquad \qquad
+       \implies \hpupdt{\instrumented}(\istate, \loc, p, \val) \in \interpret{\symbconc}{\senv}(\hpupdt{\symbolic}(\sstate, \sloc, \sexprp, \sexprv)) \\[3pt]
+%       
+\istate \in \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
+   \loc \in \interpret{\symbconc}{\senv}(\sloc)  \, \wedge \, 
+   p \in \interpret{\symbconc}{\senv}(\sexprp) \\  \qquad \qquad
+  \implies \hpupdt{\instrumented}(\istate, \loc, p, \none) \in \interpret{\symbconc}{\senv}(\hpupdt{\symbolic}(\sstate, \sloc, \sexprp, \none)) 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\hpupdt{\instrumented}$ and $\hpupdt{\symbolic}$.
+\end{proof}
+
+
+\begin{lemma}[Store Update - Symbolic Semantics]
+$$
+\begin{array}{l}
+\istate \in \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
+   \val \in \interpret{\symbconc}{\senv}(\sexprv)   
+       \implies \stupdt{\instrumented}(\istate, \jvar, \val) \in \interpret{\symbconc}{\senv}(\stupdt{\symbolic}(\sstate, \jvar, \sexprv))
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\stupdt{\instrumented}$ and $\stupdt{\symbolic}$.
+\end{proof}
+
+
+\begin{lemma}[Assume - Symbolic Semantics]
+$$
+\begin{array}{l}
+\istate \in \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)  
+       \implies  \interpret{\symbinst}{\senv}(\absassume{\instrumented}(\istate, \jsilexpr)) \in \absassume{\symbolic}(\sstate, \jsilexpr) 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Assume that $\istate \in \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)$ (\hyp{1}).
+Observe that $\absassume{\symbolic}(\sstate, \jsilexpr) = \sstate \, \wedge \, \sexprb$ (\ieq{1}), where 
+$\sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)$ (\ieq{2}). 
+From \hyp{1} and \ieq{1}, it follows that $\interpret{\symbinst}{\senv}(\sexprb) = \jtrue$ (\ieq{3}). 
+Combining \ieq{2} and \ieq{3}, we obtain $\interpret{\symbinst}{\senv}( \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)) = \jtrue$ (\ieq{4}). 
+Applying Lemma~\ref{symb:eval:expr} to \ieq{4}, we conclude that
+$\evalexpr{\concrete}(\interpret{\symbinst}{\senv}(\sstate.\stosel), \jsilexpr) = \jtrue$ (\ieq{5}). 
+From \ieq{5}, it follows that $\evalexpr{\concrete}(\istate.\stosel, \jsilexpr) = \jtrue$ (\ieq{6}), 
+from which we conclude that $\absassume{\instrumented}(\istate, \jsilexpr) = \istate$ (\ieq{7}). 
+From \hyp{1} and \ieq{7}, the result follows. 
+\end{proof}
+
+
+\begin{lemma}[Check Sat - Symbolic Semantics]
+$$
+\begin{array}{l}
+      \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue   
+      \implies  \exists \, \istate, \senv \, . \, 
+           \istate \in \interpret{\symbinst}{\senv}(\sstate)
+           \, \wedge \, 
+          \absassume{\instrumented}(\istate, \jsilexpr) = \jtrue
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Assume that $\abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue$ (\hyp{1}).
+\end{proof}
+
+
 
 \begin{temax}[Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} - Soundiness wrt Instrumented Semantics]
 
