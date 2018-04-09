@@ -2,6 +2,16 @@ import sys
 import json
 import colored
 
+# coverage.py: assemble the JSIL coverage output from Rosette into JS coverage
+# information
+#
+# invoke with: python3 coverage.py [test].js
+#
+# there must be corresponding files:
+# - [test]_coverage.txt (JSIL runtime coverage info from Rosette)
+# - [test]_line_numbers.json (mapping form JSIL line numbers to JS line numbers)
+
+
 def get_jsil_coverage(file):
     filename = file + '_coverage.txt'
     with open(filename) as coverage_file:
