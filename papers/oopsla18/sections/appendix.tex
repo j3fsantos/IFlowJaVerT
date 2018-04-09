@@ -294,9 +294,54 @@ $(\sloc,-) \notin \domain (\sheap')$ (\ieq{3}),
 $\pc \vdash \jsilset{\sexprp_1, ..., \sexprp_m} = \sdom(\sloc)$ (\ieq{4}), 
 $\forall_{0 \leq i \leq n} \, \sexprv_i \neq \none$ (\ieq{5}), 
 and $\forall_{n < i \leq m} \, \sexprv_i = \none$ (\ieq{6}), for $\sstate = (\sheap, \sdom, \sstore, \pc)$ (\ieq{7}). 
-From \hyp{1} and \ieq{7}, we conclude that $\istate.\stosel = \interpret{\symbinst}{\senv}(\sstore)$ (\ieq{8}). 
- Applying Lemma~\ref{symb:eval:expr} to \ieq{1}, we conclude s
+From \hyp{1} and \ieq{7}, we conclude that $\istate.\stosel = \interpret{\symbconc}{\senv}(\sstore)$ (\ieq{8}). 
+ Applying Lemma~\ref{symb:eval:expr} to \ieq{1}, we conclude 
+ $\evalexpr{\symbolic}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr) = \interpret{\symbconc}{\senv}(\sloc)$ (\ieq{2}). 
+ For clarity, we use the naming $\loc = \interpret{\symbconc}{\senv}(\sloc)$ (\ieq{3}). 
+ From \hyp{1}, \ieq{2}, \ieq{3}, and \ieq{7}, we conclude 
+ $\istate.\hpsel =  \interpret{\symbinst}{\senv}(\sheap') \, \uplus \, \big((\loc, \interpret{\symbconc}{\senv}(\sexprp_i)) \mapsto \interpret{\symbconc}{\senv}(\sexprv_i) \big)\mid_{i = 0}^m$ (\ieq{4}), 
+$(\loc,-) \notin \domain (\interpret{\symbinst}{\senv}(\sheap'))$ (\ieq{5}).
+From \hyp{1} and \ieq{4}, it follows that $\jsilset{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_m)} = \interpret{\symbconc}{\senv}(\sdom(\sloc))$ (\ieq{6}).
+Applying Lemma XXX to \ieq{6} and using \ieq{3}, we conclude that 
+ $\jsilset{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_m)} = (\interpret{\symbinst}{\senv}(\sdom))(\loc)$ (\ieq{7}). 
+ From \ieq{5} and \ieq{6}, we conclude that 
+ {\small $\forall_{0 \leq i \leq n} \, \interpret{\symbconc}{\senv}(\sexprv_i) \neq \none$} (\ieq{8}) and  
+{\small $\forall_{n < i \leq m} \, \interpret{\symbconc}{\senv}(\sexprv_i) = \none$} (\ieq{9}).
+From \ieq{2}, \ieq{3}, \ieq{5}, \ieq{6}, \ieq{7}-\ieq{9}, we conclude that 
+$\absgetdomainrule{\instrumented}{\istate, \jsilexpr}{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_n)}$, 
+establishing the result. 
 \end{proof}
+
+\begin{lemma}[Basic Commands - Soundiness for Symbolic Semantics]
+$$
+\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic} \, \wedge \, \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)
+     \implies 
+        \exists \, \istate' \, . \, \absbsemrule{\istate, \bcmd}{\istate'}{\instrumented} \, \wedge \, 
+            \istate = \interpret{\symbinst}{\senv}(\sstate')
+$$
+\end{lemma}
+\begin{proof}
+Suppose $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\hyp{1}) and 
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)$ (\hyp{2}).
+We proceed by case analysis on the rule used to derive \hyp{1}. 
+\vspace{3pt}
+
+
+\noindent \prooflab{Skip} It follows that $\absbsemrule{\sstate, \jsilskip}{\sstate}{\symbolic}$ (\ieq{1}) and 
+$\absbsemrule{\istate, \jsilskip}{\istate}{\instrumented}$ (\ieq{2}). 
+From \hyp{1} and \ieq{1}, we conclude that $\sstate' = \sstate$ (\ieq{3}). 
+From \hyp{2} and \ieq{3}, it follows that $\istate \in \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
+Letting $\istate' = \istate$, the result follows from \ieq{2} and \ieq{4}. 
+\vspace{5pt}
+
+\end{proof}
+
+%
+%\inferrule[\textsc{Property Collection}]
+%  {
+%           \absgetdomainrule{}{\absstate, \jsilexpr}{\absval}  
+%  }{\absbsemrule{\absstate, \jvar := \getfields(\jsilexpr)}{\stupdt{}(\absstate, \jvar, \absval)}{}} 
+%\and 
 
 
 \begin{temax}[Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} - Soundiness wrt Instrumented Semantics]
