@@ -8,7 +8,7 @@ Examples:
 \end{itemize}
 }
 
-Using the example of a \emph{key-value map}, given in Figure~\ref{map:example}~(left), we illustrate how \jilette can be used to run symbolic tests for unspecified JavaScript code and automatically generate symbolic tests for JavaScript code annotated with separation logic specifications.
+Using the example of a \emph{key-value map}, given in Figure~\ref{map:example}~(left), we illustrate how \cosette can be used to run symbolic tests for unspecified JavaScript code and automatically generate symbolic tests for JavaScript code annotated with separation logic specifications.
 The implementation contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with a given key;
@@ -81,7 +81,7 @@ In Figure \ref{map:example}~(right), we show a general heap of key-value maps. T
 
 \subsection{Symbolic Testing}
 
-Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. With \jilette, they can write unit tests that use \emph{symbolic inputs}, targeting a more comprehensive range of behaviours. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as follows:
+Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. With \cosette, they can write unit tests that use \emph{symbolic inputs}, targeting a more comprehensive range of behaviours. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as follows:
 
 \begin{lstjs}
 var k = make-symbolic-string(); var v = make-symbolic();
@@ -90,10 +90,10 @@ var m = new Map(); m.put(k, v); var result = m.get(k);
 assert(result = v)
 \end{lstjs}
 
-Let us briefly comment on this test. In line 1, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \jilette's constructs for creating symbolic variables. In line 2, we assume that \jsinline|k| is a valid key. In line 3, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 4, we assert that the retrieved value is equal to the one we had previously put.
+Let us briefly comment on this test. In line 1, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \cosette's constructs for creating symbolic variables. In line 2, we assume that \jsinline|k| is a valid key. In line 3, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 4, we assert that the retrieved value is equal to the one we had previously put.
 
 % 
-When running \jilette on the above test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
+When running \cosette on the above test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
 we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap and the implementation of \jsinline|get| from Figure~\ref{map:example}. We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error, as illustrated below.
 
 \vspace{-0.2cm}
@@ -103,12 +103,13 @@ we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand 
 \vspace{-0.2cm}
 \end{figure}
 
-This example highlights how \jilette does not require specialist knowledge, and can, therefore, 
+This example highlights how \cosette does not require specialist knowledge, and can, therefore, 
 be used by almost any JavaScript developer. The annotation burden amounts to the creation of 
 symbolic variables and the writing of assumptions and assertions, remaining minimal and intuitive, in stark contrast  with the standard annotation burden of verification tools.
 
-
 \subsection{Specification-directed Symbolic Debugging}
+
+\pmax{some nice intro, motivation, general, more general, compositional}
 
 %\begin{figure}[!h]
 %\centering
@@ -123,7 +124,7 @@ symbolic variables and the writing of assumptions and assertions, remaining mini
 %\vspace{-0.5cm}
 %\end{figure}
 
-We now illustrate how \jilette can be used in the debugging of separation logic specifications of JavaScript programs. For that, we revisit the specification of key-value maps from JaVerT~\cite{javert}, a toolchain for JavaScript verification based on separation logic, which involves several predicates, shown below. These predicates use JavaScript-specific abstractions that hide the internals of the language, such as \jsinline|JSObject(c)|, which states that \jsinline|c| is a standard JavaScript object, and \jsinline|DataProp(o, p, v)|, which states that the property \jsinline|p| of \jsinline|o| has value \jsinline|v|.
+As well as for whole-program analysis, \cosette can be used to analyse incomplete code, where the user can specify the initial and final symbolic states. We now illustrate how \cosette can be used in the debugging of separation logic specifications of JavaScript programs. For that, we revisit the specification of key-value maps from JaVerT~\cite{javert}, a toolchain for JavaScript verification based on separation logic. This specification involves several predicates, shown below, which use JavaScript-specific abstractions that hide the internals of the language, such as \jsinline|JSObject(c)|, which states that \jsinline|c| is a standard JavaScript object, and \jsinline|DataProp(o, p, v)|, which states that the property \jsinline|p| of \jsinline|o| has value \jsinline|v|.
 
 % \textcolor{red}{(m, "get") -> None * (m, "put") -> None * (m, "validKey") -> None} * 
 
@@ -142,9 +143,8 @@ KVPairs (o, kvs) := (kvs = \{ \}),
 
 
 The \jsinline|Map| predicate captures the resource corresponding to a map object. 
-Concretely, it first states that the map object has the property \jsinline|_contents|, which points to a default JavaScript object \jsinline|c|, using the predicates \jsinline|DataProp| and \jsinline|JSObject|. 
-\jsinline|DataProp(o, p, v)| captures the property \jsinline|p| of object \jsinline|o| and states that it has value \jsinline|v|, while abstracting over other associated JavaScript internals, whereas \jsinline|JSObject(o)| states that the object \jsinline|o| is an extensible object of class \jsinline|"Object"|, whose prototype is \jsinline|Object.prototype| (for more details, see~\cite{javert}). 
-Next, using the \jsinline|KVPairs| predicate (explained shortly), it states that \jsinline|c| holds the key-value pairs \jsinline|kvs|. Finally, it states that \jsinline|c| has no other properties except the keys present in \jsinline|kvs|. For this, it first obtains the set of keys from the set of key-value pairs \jsinline|kvs| using the predicate \jsinline|first(kvs, keys)|, which states that the first projection of \jsinline|kvs| equals \jsinline|keys| (its definition is standard), and then uses the \jsinline|emptyFields| assertion to state that all other properties are absent from the object.
+Concretely, it first states that the map object has the property \jsinline|_contents|, which points to a  JavaScript object \jsinline|c|.
+Next, using the \jsinline|KVPairs| predicate (explained shortly), it states that \jsinline|c| holds the key-value pairs \jsinline|kvs|. Finally, it obtains the set of keys \jsinline|keys| from the set of key-value pairs \jsinline|kvs| using the first projection predicate \jsinline|first|, and then uses the \jsinline|emptyFields| assertion to state that all other properties are absent from the object.
 
 The \jsinline|KVPairs(o, kvs)| predicate talks about key-value pairs of an object \jsinline|o|. 
 It is defined recursively on the structure of \jsinline|kvs| and it has two definitions, separated by a comma. 
@@ -214,7 +214,7 @@ Now, if we forgot to state the part of the $\mathtt{ValidKey(k)}$ predicate high
 In that case, as in the as illustrated in Figure~\ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype| would no longer be reachable by property lookup from \jsinline|c|, and
 the execution of line~5 (\jsinline|if (c.hasOwnProperty(k))|) would raise an error, as it would attempt to call the \jsinline|"hasOwnProperty"| property of object \jsinline|c| as a function instead. 
 Since this specification of $\mathtt{get(k)}$ requires normal termination, the raising of an error is considered a violation of the specification and 
-\jilette will produce the counter-model \jsinline|k = "hasOwnProperty"|.
+\cosette will produce the counter-model \jsinline|k = "hasOwnProperty"|.
 
 \subsection{Catching procedure-local bugs}
 

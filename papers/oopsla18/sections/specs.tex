@@ -1,11 +1,11 @@
 %!TEX root = ../main.tex
 
-We show how to use \jilette for debugging JavaScript code annotated with 
+We show how to use \cosette for debugging JavaScript code annotated with 
 separation logic (SL) specifications. Tools that allow for SL-reasoning about
 functional correctness properties in general, and those targeting 
 JavaScript in particular, require of the user to have substantial expertise 
 and to go through a long and complex proof trace in order to find the precise 
-source of an error. \jilette substantially simplifies this process by providing
+source of an error. \cosette substantially simplifies this process by providing
 concrete counter-models that invalidate the specification.
 In \S\ref{subsec:sep:assertions}, we extend the 
  \jsil symbolic interpreter with a mechanism for asserting
@@ -696,7 +696,7 @@ precondition $P$ of a \jsil procedure $\fid$ to a symbolic state $(\sheap, \ssto
 We will illustrate this with an example in the following section. 
 
 \myparagraph{Inductive Predicates} 
-\jilette does not have built-in abstraction mechanisms. Hence, it does not support symbolic
+\cosette does not have built-in abstraction mechanisms. Hence, it does not support symbolic
 execution over inductive predicates describing recursive data structures, which are 
 commonplace in separation-logic-style specifications~\cite{smallf, berdine:aplas:2005}. 
 As in~\cite{korat}, we deal with user-defined inductive predicate assertions by \emph{unfolding} 
@@ -729,7 +729,7 @@ of $\jstmt$ by a correct compiler $\compile$. Put formally:
 
 We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. First, we convert the JavaScript program and its \javert specification to a \jsil program with its \jsil Logic specification, using the \JSComp and $\ltr$ compilers. Next, we 
 generate a set of symbolic tests from the obtained \jsil program and \jsil Logic specification, as described in \S\ref{specs:to:symbolic:tests}. 
-Finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. If \jilette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
+Finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. If \cosette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
 
 \begin{figure}[t!]
 \centering

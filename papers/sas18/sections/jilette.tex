@@ -563,7 +563,7 @@ We now present our theoretical results. We denote the reflexive-transitive closu
 \centering
 \includegraphics[width=0.83\textwidth]{figures/symbSemEx.png}
 \vspace*{-0.1cm}
-\caption{Example of a \jilette symbolic execution}
+\caption{Example of a \cosette symbolic execution}
 \label{fig:sexecexample}
 \vspace*{-0.3cm}
 \end{figure}
@@ -751,7 +751,7 @@ then there also exists a concrete execution that will cause that assertion to fa
 Observe that the analysis is designed in such a way that there are no false positives, 
 meaning that if we find a failing symbolic trace,
 we can always instantiate its symbolic values obtaining a concrete counter-model for the 
-failing assertion. This is essential, as \jilette is meant to be a \emph{bug-finding} tool.
+failing assertion. This is essential, as \cosette is meant to be a \emph{bug-finding} tool.
 %
 \begin{corollary}[Bug-finding]\label{bug:finding}
 $\forall \, \prog, \sheap, \sstore, i, \pc, \sctx, \sheap', \sstore', j, \pc', \sctx' \, .$
@@ -771,7 +771,7 @@ starting from a given symbolic state $(\sheap, \sstore, \sctx)$,
 then the execution of the program starting from  any concrete state in the models 
 of the initial symbolic state (under the initial path condition) will result in a final concrete state
 in the models of one of the final symbolic states (under its associated path condition).  
-As \jilette does not infer loop invariants, if a \jsil program contains loops that cannot be unrolled statically, we will never be in the case of the verification corollary. 
+As \cosette does not infer loop invariants, if a \jsil program contains loops that cannot be unrolled statically, we will never be in the case of the verification corollary. 
 
 \begin{corollary}[Verification]\label{corollary:verification}
 $$
@@ -821,7 +821,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 %   \item \emph{Adequacy:} the symbolic execution of the concrete interpreter in \rosette 
 %            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
 %            We discuss adequacy in \S\ref{sec:evaluation} in the context of the global evaluation 
-%            of \jilette.
+%            of \cosette.
 %\end{itemize}
 %
 %%- describe the \rosette approach to the implementation of symbolic analysis 
@@ -1036,7 +1036,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 %\centering
 %\includegraphics[width=0.57\textwidth]{figures/jilette_blue.png}
 %\vspace*{-0.2cm}
-%\caption{\jilette: Symbolic execution for JavaScript}
+%\caption{\cosette: Symbolic execution for JavaScript}
 %\vspace*{-0.3cm}
 %\label{fig:jilette:diagram}
 %\end{wrapfigure}
@@ -1182,7 +1182,7 @@ for translating JavaScript logical expressions.
 
 \lstnewenvironment{lstjsex}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}, numbers=none, backgroundcolor=\color{mygray}}}{}
 
-We illustrate how \jilette can be used to write symbolic tests for JavaScript code by using the JavaScript implementation 
+We illustrate how \cosette can be used to write symbolic tests for JavaScript code by using the JavaScript implementation 
 of a  \emph{key-value map} given in Figure~\ref{map:example}~(left). 
 This implementation contains four functions: 
 \jsinline|Map|, for constructing an empty map;
@@ -1261,10 +1261,10 @@ var m = new Map();  m.put(s1, n1); var r = m.get(s1);
 assert(n1 = r)
 \end{lstjsex}
 %
-The symbolic test above checks for a desired property of the library---if we were to put a key/value pair \jsinline|(k, v)| into the map, then we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. We can run \jilette on this test to reveal the bug discusses above. Indeed, \jilette generates
+The symbolic test above checks for a desired property of the library---if we were to put a key/value pair \jsinline|(k, v)| into the map, then we should be able to retrieve the value \jsinline|v| using the key \jsinline|k|. We can run \cosette on this test to reveal the bug discusses above. Indeed, \cosette generates
 the failing model: \jsinline|s1 = "hasOwnProperty"|. 
 
-This example also highlights how \jilette does not require 
+This example also highlights how \cosette does not require 
 specialist knowledge, and can, therefore, be used by almost any JavaScript developer. 
 The annotation burden amounts to the creation of symbolic variables and the writing of assertions, remaining minimal and intuitive, in stark contrast with the standard annotation 
 burden of verification tools.
@@ -1279,12 +1279,12 @@ burden of verification tools.
 JavaScript comes equipped with a rich runtime environment (described in Chapter 15 of the 
 ES5 standard~\cite{ecma}), which consists of \emph{built-in libraries} that support advanced manipulation of, for example, objects, arrays, strings, regular expressions, and dates. 
 In this section, we identify two important challenges related to supporting the symbolic execution of
-JavaScript programs that interact with built-in libraries and explain how we solve them in \jilette. 
+JavaScript programs that interact with built-in libraries and explain how we solve them in \cosette. 
 
 \JSComp models built-in library functions as \jsil procedures, which can be called from within the compiled JavaScript code. However, the current runtime environment of \JSComp does not support all built-in libraries described in the standard. In particular, it doesn't support regular expressions, parts of the String library that use regular expressions, parts of the Date library, and JSON objects. The partiality of \JSComp when it comes to supporting JavaScript built-in libraries 
 gives rise to the first challenge:  
 \begin{quote}
-\emph{Challenge 1:} \jilette should allow for modular addition of  
+\emph{Challenge 1:} \cosette should allow for modular addition of  
 implementations of built-in libraries not yet covered by \JSComp.  
 \end{quote}
 
@@ -1298,13 +1298,13 @@ In such cases, we argue that these correspondents should be used instead of the
 functions provided by \JSComp, to minimise potential branching and looping on symbolic values. 
 Hence, we state the second challenge as follows: 
 \begin{quote}
-\emph{Challenge 2:} \jilette should prioritise native \rosette operations
+\emph{Challenge 2:} \cosette should prioritise native \rosette operations
 to the operations provided by \JSComp in the cases in which the native \rosette
 operations and JavaScript operations exactly match.
 \end{quote}
 
 \myparagraph{\rosette models of JavaScript built-in functions}
-To solve these two challenges, \jilette supports the on-the-fly extension of the \jsil interpreter 
+To solve these two challenges, \cosette supports the on-the-fly extension of the \jsil interpreter 
 with \rosette implementations of JavaScript built-in functions, which we call \rosette \emph{models}. 
 Hence, every time the interpreter evaluates a procedure call, it first checks whether or 
 not it corresponds to a built-in function for which there is a \rosette model. If it does, 
@@ -1326,7 +1326,7 @@ This example illustrates an important point about the difference between JavaScr
 \end{lstlisting}
 
 \myparagraph{Bug-finding with strings}
-By using the appropriate \rosette models for string operations, \jilette can find bugs in  
+By using the appropriate \rosette models for string operations, \cosette can find bugs in  
 non-trivial JavaScript programs that manipulate strings. For instance, consider 
 the following naive JavaScript implementation of a string sanitiser meant to remove 
 all occurrences of \emph{script tags} inside untrusted strings (for instance, those coming 
@@ -1337,14 +1337,14 @@ as input with \jsinline|"s"|.
 \begin{lstjsex}
 function sanitise (str) { return str.replace("script", "s") }
 \end{lstjsex}
-Now, we can use \jilette to test if the sanitiser meets its purpose, that is, that all
+Now, we can use \cosette to test if the sanitiser meets its purpose, that is, that all
 strings, after being sanitised, do not contain the substring \jsinline|"script"|:
 \begin{lstjsex}
 var s = sanitise(__s()); 
 var x = ! (s.contains("script")); d
 assert(x) 
 \end{lstjsex}
-\jilette will, in fact, be able to come up with a counter-model for this assertion. Concretely, this counter-model is \jsinline|s1 = "scriptcript"|. Despite its simplicity, this example illustrates the complexities underpinning the 
+\cosette will, in fact, be able to come up with a counter-model for this assertion. Concretely, this counter-model is \jsinline|s1 = "scriptcript"|. Despite its simplicity, this example illustrates the complexities underpinning the 
 design and implementation of robust string sanitisers, a commonly  
 used defense mechanism against XSS attacks~\cite{song}. 
  

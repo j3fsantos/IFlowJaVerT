@@ -180,7 +180,7 @@
 %\usepackage{macros_js}
 %\usepackage{gdshojs}
 
-\newcommand{\jilette}{Cosette\xspace}
+\newcommand{\cosette}{Cosette\xspace}
 \newcommand{\rosette}{Rosette\xspace}
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
@@ -233,7 +233,7 @@
 \fi}
 
 %% Title information
-\title[Short Title]{\jilette:~Compositional Symbolic Execution for JavaScript}         
+\title[Short Title]{\cosette:~Compositional Symbolic Execution for JavaScript}         
 %\titlenote{with title note}           
 %\subtitle{Subtitle}                     
 %\subtitlenote{with subtitle note}   
@@ -287,41 +287,41 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We present \jilette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
-\jilette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
-Its aim is to assist the general programmer in debugging their code; the programmer writes symbolic tests for which \jilette provides concrete counter-models.
-We prove that the symbolic execution underpinning \jilette is sound and that it does not generate false positives. Moreover, this symbolic execution is compositional, which allows us to use \jilette to find bugs in separation logic specifications of JavaScript programs that are not detectable by standard symbolic execution techniques.
+We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
+\cosette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
+Its aim is to assist the general programmer in debugging their code; the programmer writes symbolic tests for which \cosette provides concrete counter-models.
+We prove that the symbolic execution underpinning \cosette is sound and that it does not generate false positives. Moreover, this symbolic execution is compositional, which allows us to use \cosette to find bugs in separation logic specifications of JavaScript programs that are not detectable by standard symbolic execution techniques.
 %\pmaxinline{Now compositionality.}
 %
-We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
+We evaluate \cosette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \cosette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
 
 
 %
 %It works by compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not generate false positives.
 %
 %\bigskip
-%We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
+%We present \cosette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. At the core of \cosette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. This interpreter is written in \underline{Rosette}, %~\cite{Rosette2,Rosette1}, 
 %a symbolic virtual machine that enables the design of new solver-aided languages. 
-%\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
+%\cosette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, %~\cite{javert}, 
 %a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
-%We study two complementary uses of \jilette. 
-%First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
-%We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
-%Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
+%We study two complementary uses of \cosette. 
+%First, we show how \cosette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
+%We highlight the range of \cosette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+%Second, building on \cosette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find 
 %witnesses for bugs in both specification and code.
 %
 %\bigskip
-%We present \jilette, a framework for bounded symbolic execution of JavaScript (JS) code (ECMAScript 5, ES5). 
-%\jilette is the first symbolic execution tool for JS that models the language semantics precisely.  
+%We present \cosette, a framework for bounded symbolic execution of JavaScript (JS) code (ECMAScript 5, ES5). 
+%\cosette is the first symbolic execution tool for JS that models the language semantics precisely.  
 %It works by first compiling JS programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from 
 %JS to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. 
 %We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not to generate false positives. 
 %%every time the tool reports a bug, it provides a concrete model that triggers that bug. 
 %
-%We demonstrate how \jilette can be used for the symbolic testing of JS programs by 
-%finding concrete executions that trigger assertion and test failures. We highlight the range of \jilette 
+%We demonstrate how \cosette can be used for the symbolic testing of JS programs by 
+%finding concrete executions that trigger assertion and test failures. We highlight the range of \cosette 
 %by giving examples involving JS-specific features, such as: prototype-based inheritance, 
-%the for-in statement, and JS arrays. Finally, we thoroughly evaluate \jilette against a 
+%the for-in statement, and JS arrays. Finally, we thoroughly evaluate \cosette against a 
 %representative fragment of test262 adapted to include symbolic~values.
 %
 \end{abstract}
@@ -375,12 +375,12 @@ The main issue with most bug-finding tools is not that they are soundy, but that
 
 Another difference between bug-finding and verification is that bug-finding tools are often based on whole-program analysis, whereas verification techniques are normally \emph{compositional}, meaning that the results of an analysis for a part of a program can be re-used when analysing the entire program. Compositionality is essential for tools that need to run regularly on large codebases. For instance, it would not be possible for Infer, a bug-finding tool based on separation logic, to be part of the continuous integration system at Facebook if it were not compositional. 
 
-We present \jilette, the first trustworthy, compositional symbolic execution framework for JavaScript (ECMAScript 5 Strict~\cite{ecma}) analysis. \jilette precisely follows the ES5 English standard, without introducing any simplifications. 
+We present \cosette, the first trustworthy, compositional symbolic execution framework for JavaScript (ECMAScript 5 Strict~\cite{ecma}) analysis. \cosette precisely follows the ES5 English standard, without introducing any simplifications. 
 It aims at the sweet spot between bug-finding and verification, 
 %It is not done directly on JavaScript, but instead on \jsil, an intermediate representation previously introduced for JavaScript verification~\cite{javert}. \jsil comes with a trusted infrastructure that allows us to provably lift the results of symbolic analyses on compiled \jsil code back up to JavaScript. 
 in that it comes with formal correctness guarantees and a precise result stating the conditions under which symbolic execution gives soundness. 
 
-%Additionally, its compositionality allows us to catch a broader class of bugs than the current symbolic execution tools and also allows us to state the conditions under which the soundiness of \jilette becomes soundness, that is, when the absence of found bugs implies verification.
+%Additionally, its compositionality allows us to catch a broader class of bugs than the current symbolic execution tools and also allows us to state the conditions under which the soundiness of \cosette becomes soundness, that is, when the absence of found bugs implies verification.
 
 %However, compositionality is not trivial to achieve when the targeted programming language does not exhibit the frame property, as is the case for most dynamic languages including JavaScript.
 
@@ -398,20 +398,20 @@ in that it comes with formal correctness guarantees and a precise result stating
 
 
 
-%We evaluate \jilette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \jilette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
+%We evaluate \cosette on an array of examples, including tests from the official JavaScript Test262 test suite and real-world Node.js libraries. These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. We highlight the range of \cosette by using it to find bugs in a number of non-trivial separation logic specifications of JavaScript programs.
 
 
 
 %In \S\ref{???}, we give an abstract semantics of \jsil, which we instantiate to obtain the concrete %, instrumented (discussed shortly), 
-%and symbolic semantics, connected via a {\em soundness result}. Moreover, we prove that, when used for symbolic testing (discussed shortly), \jilette never produces false counter-models. 
+%and symbolic semantics, connected via a {\em soundness result}. Moreover, we prove that, when used for symbolic testing (discussed shortly), \cosette never produces false counter-models. 
 %These theoretical results, combined with the correctness of \JSComp, allows us to lift the results of analyses done on compiled \jsil code back up to JavaScript. 
 
 %To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution that precisely follows the semantics of the language.
  
-\myparagraph{Novelty: Trustworthiness} Designing a tractable symbolic analysis for JavaScript that is faithful to the language standard and providing correctness results for such an analysis is known to be a difficult task, due to the complexity of the language. The current approaches~\cite{.,.,.} normally do not give a formal account of the analysis and/or simplify the language semantics. Our approach to designing \jilette is grounded on adherence to the standard and establishing trust. 
+\myparagraph{Novelty: Trustworthiness} Designing a tractable symbolic analysis for JavaScript that is faithful to the language standard and providing correctness results for such an analysis is known to be a difficult task, due to the complexity of the language. The current approaches~\cite{.,.,.} normally do not give a formal account of the analysis and/or simplify the language semantics. Our approach to designing \cosette is grounded on adherence to the standard and establishing trust. 
 To contain the complexity of JavaScript, we move the analysis to \jsil, an intermediate representation for logic-based analysis of JavaScript~\cite{javert}. 
 \jsil comes with a trusted compiler, \JSComp, which has been extensively tested against the official test suite, Test262,\footnote{\url{https://github.com/tc39/test262}} and produces \jsil code that corresponds line-by-line to the standard. 
-In \S\ref{???}, we give a novel abstract semantics of \jsil, which we instantiate to obtain the concrete and symbolic semantics, connected via a {\em soundiness result}. Moreover, we prove that \jilette is precise, meaning that it never produces incorrect bug reports. 
+In \S\ref{???}, we give a novel abstract semantics of \jsil, which we instantiate to obtain the concrete and symbolic semantics, connected via a {\em soundiness result}. Moreover, we prove that \cosette is precise, meaning that it never produces incorrect bug reports. 
 These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, allow us to  provably lift the results of analyses done on compiled \jsil code back up to JavaScript. To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution for JavaScript that precisely follows the semantics of the language.
 
 \myparagraph{Novelty: Compositionality} 
@@ -420,18 +420,18 @@ However, designing a compositional analysis for dynamic languages, such as JavaS
 %
 We achieve compositionality by explicitly keeping track of properties that must {\em not be present} in a given object in order for the program to behave correctly, described in detail in \S\ref{???}.
 %Because JavaScript does not observe the frame property, such conditions need to refer to positive resources, object properties that need to be present with certain properties, as well as negative resources, object properties that must not be present. 
-Compositionality also allows us to state a verification result for \jilette, precisely capturing the conditions under which our symbolic execution is sound.
-To our knowledge, \jilette is the first compositional symbolic execution tool for dynamic languages.
+Compositionality also allows us to state a verification result for \cosette, precisely capturing the conditions under which our symbolic execution is sound.
+To our knowledge, \cosette is the first compositional symbolic execution tool for dynamic languages.
 %
 %Current symbolic execution tools for JavaScript~\cite{???} are not compositional. They assume access to the entire program, meaning that the results they obtain when analysing functions in isolation cannot be reused, as they would not account for the interaction between the function and all of its possible frames.
 %
-%In contrast, the symbolic execution of \jilette is compositional. This has several important benefits.
+%In contrast, the symbolic execution of \cosette is compositional. This has several important benefits.
 %
 %First, it allows us to use function specifications instead of symbolically executing function bodies at each call site, speeding up execution time. This benefit is independent of the analysed language.
 %
 %Next, it allows us to catch frame bugs, which are not reachable by non-compositional symbolic execution tools. This benefit is specific to dynamic languages.
 %
-%Finally, it allows us to state a verification result for \jilette, precisely capturing the conditions under which our symbolic execution is sound.
+%Finally, it allows us to state a verification result for \cosette, precisely capturing the conditions under which our symbolic execution is sound.
 %
 %, meaning that once a program is analysed successfully, once can choose to re-use the results of the analysis when analysing code that calls it, also yielding a more scalable analysis.
 
@@ -440,15 +440,15 @@ To our knowledge, \jilette is the first compositional symbolic execution tool fo
 \centering
 \includegraphics[width=0.47\textwidth]{figures/jilette_blue.png}
 \vspace*{-0.23cm}
-\caption{Architecture of \jilette}
+\caption{Architecture of \cosette}
 \vspace*{-0.4cm}
 \label{fig:jilette:diagram}
 \end{wrapfigure}
 
-\myparagraph{Architecture} The architecture of \jilette is shown in Figure 1. We extend the syntax of JavaScript with constructs for creating and reasoning about symbolic values, which are intuitive and allow the general developer to easily write assertions about the behaviour of their program. Using \JSComp, we compile the extended JavaScript code to \jsil, obtaining an extended \jsil program. The core of \jilette consists of a symbolic interpreter for
+\myparagraph{Architecture} The architecture of \cosette is shown in Figure 1. We extend the syntax of JavaScript with constructs for creating and reasoning about symbolic values, which are intuitive and allow the general developer to easily write assertions about the behaviour of their program. Using \JSComp, we compile the extended JavaScript code to \jsil, obtaining an extended \jsil program. The core of \cosette consists of a symbolic interpreter for
 \jsil, whose current, proof-of-concept implementation, is done with the help of Rosette~\cite{Rosette2,Rosette1}, a framework that facilitates the creation of symbolic interpreters. The symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound. \pmaxinline{This is the first time we mention `bound'.}
 
-%The second component that \jilette uses is \JSComp~\cite{javert}, 
+%The second component that \cosette uses is \JSComp~\cite{javert}, 
 %a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
 %\JSComp with support for the non-strict mode of ES5, as well as
 %regular expressions and the entire \jsinline|String| built-in library.
@@ -463,24 +463,24 @@ To our knowledge, \jilette is the first compositional symbolic execution tool fo
 %of the generated \jsil code precisely matches the abstraction level of Rosette, 
 % maximising the use of Rosette's native reasoning capabilities.
 
-%dynamic languages: they feature extensible objects, dynamic property access, and dynamic function calls. In terms of separation logic, they do not have the frame property~\cite{???}. What this effectively means is that is possible to introduce bugs into a JS/\jsil program by only extending the state for which it behaved correctly. We refer to such bugs as {\em frame bugs}.  This benefit is independent of the analysed language. Second, it allows us to catch frame bugs, which are not reachable by non-compositional symbolic execution tools. This benefit is specific to dynamic languages. We achieve compositionality by keeping track of properties that we know are {\em not present} in a given object. This we describe in detail in \S\ref{???}. To our knowledge, \jilette is the first compositional symbolic execution tool for dynamic languages.
+%dynamic languages: they feature extensible objects, dynamic property access, and dynamic function calls. In terms of separation logic, they do not have the frame property~\cite{???}. What this effectively means is that is possible to introduce bugs into a JS/\jsil program by only extending the state for which it behaved correctly. We refer to such bugs as {\em frame bugs}.  This benefit is independent of the analysed language. Second, it allows us to catch frame bugs, which are not reachable by non-compositional symbolic execution tools. This benefit is specific to dynamic languages. We achieve compositionality by keeping track of properties that we know are {\em not present} in a given object. This we describe in detail in \S\ref{???}. To our knowledge, \cosette is the first compositional symbolic execution tool for dynamic languages.
 
 
 \myparagraph{Application: Symbolic Testing} A commonly used 
 approach to obtaining trust in JavaScript code is running it against 
 adhoc test batteries---verifying that, given some concrete inputs, the code produces the expected
 outputs. The main drawback of this approach is that manually created test suites often have a high degree of incompleteness that is not properly characterised. % we also cant guarantee exhaustiveness 
-In \S\ref{???}, we show how to use \jilette
+In \S\ref{???}, we show how to use \cosette
 for symbolic testing of JavaScript code: instead of 
 tests with concrete 
 inputs, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
 first-order assertions over these inputs. 
-Then, if a test fails, \jilette provides the concrete inputs that cause it 
+Then, if a test fails, \cosette provides the concrete inputs that cause it 
 to fail, exposing bugs in the tested code. 
-%We give a {\em proof} that \jilette does not produce false positives. 
-Moreover, the compositionality of \jilette allows us to catch bugs that are not reachable by standard symbolic execution tools.
-We illustrate the capabilities of \jilette on an array of examples, which include tests from the Test262 test suite and real-world Node.js libraries, and which make use of JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. \pmaxinline{Revisit after evaluation.}
+%We give a {\em proof} that \cosette does not produce false positives. 
+Moreover, the compositionality of \cosette allows us to catch bugs that are not reachable by standard symbolic execution tools.
+We illustrate the capabilities of \cosette on an array of examples, which include tests from the Test262 test suite and real-world Node.js libraries, and which make use of JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. \pmaxinline{Revisit after evaluation.}
 
 \myparagraph{Application: Specification-directed Bug-finding} \pmaxinline{Feeling stuck here.} Due to the complexity of JavaScript semantics, functional correctness 
 specifications of JavaScript programs are highly intricate. 
@@ -488,23 +488,23 @@ There are only a few tools (for example, \javert \cite{javert} and KJS \cite{Par
 mechanically verified specifications of critical JavaScript code.
 However, when these 
 tools cannot prove that a given function satisfies a specification, to discover the error, 
-the developer needs to understand in detail a complicated proof trace (\javert), or  act with essentially no feedback~(KJS). In \S\ref{???}, we show how \jilette can be used as an auxiliary mechanism for debugging 
+the developer needs to understand in detail a complicated proof trace (\javert), or  act with essentially no feedback~(KJS). In \S\ref{???}, we show how \cosette can be used as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs in \javert. 
 Our approach consists of translating the separation logic specifications 
 into symbolic tests 
-and running these tests using \jilette. 
+and running these tests using \cosette. 
 Then, if a symbolic test generated from a given specification fails, we can 
 be sure that the code to be verified does not satisfy its specification. 
-More importantly, \jilette then generates a concrete witness that 
+More importantly, \cosette then generates a concrete witness that 
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code.
 
 %\pmax{Say more clearly what the novelty is. Say in a very pretty way the connection between seplogic and non-seplogic, verification and symbolic execution, etc.}
 
-%We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs.
+%We highlight two relevant use cases for \cosette. First, we show how \cosette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs.
 
 %\myparagraph{Architecture}
-%The core of \jilette consists of a symbolic interpreter for
+%The core of \cosette consists of a symbolic interpreter for
 %\jsil~\cite{javert}, a simple intermediate goto language. 
 %We obtain this symbolic interpreter \emph{for free}, 
 %by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1},~a 
@@ -513,7 +513,7 @@ both specifications and code.
 %are lifted to the \jsil symbolic interpreter. 
 %In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide insights on how to correctly design the concrete \jsil interpreter in Rosette.
 
-%The second component that \jilette uses is \JSComp~\cite{javert}, 
+%The second component that \cosette uses is \JSComp~\cite{javert}, 
 %a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
 %\JSComp with support for the non-strict mode of ES5, as well as
 %regular expressions and the entire \jsinline|String| built-in library.
@@ -533,15 +533,15 @@ both specifications and code.
 %adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 %output. The main drawback of this approach is that tests, in general,
 %cannot guarantee exhaustiveness. % we also cant guarantee exhaustiveness 
-%In \S\ref{symbolic:testing}, we show how to use \jilette
+%In \S\ref{symbolic:testing}, we show how to use \cosette
 %for symbolic testing of JavaScript code: instead of 
 %tests with concrete 
 %inputs, the developer uses symbolic inputs and states the 
 %constraints that the output needs to satisfy as simple, intuitive 
 %first-order assertions over these inputs. 
-%Furthermore, if a test fails, \jilette provides the concrete inputs that cause it 
+%Furthermore, if a test fails, \cosette provides the concrete inputs that cause it 
 %to fail, exposing bugs in the tested code. 
-%We highlight the capabilities of \jilette through examples that showcase
+%We highlight the capabilities of \cosette through examples that showcase
 %challenging reasoning on strings, regular expressions, and the \jsinline|eval|
 %statement.
 
@@ -554,14 +554,14 @@ both specifications and code.
 %tools cannot prove that a given function satisfies a specification, to discover the error, 
 %the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback~(KJS). 
 %
-%In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
+%In \S\ref{sec:specs}, we show how \cosette can be used as an auxiliary mechanism for debugging 
 %separation logic specifications of JavaScript programs in \javert. 
 %Our approach consists of: translating the separation logic specifications 
 %into symbolic tests 
-%and running these tests using \jilette. 
+%and running these tests using \cosette. 
 %Then, if a symbolic test generated from a given specification fails, we can 
 %be sure that the code to be verified does not satisfy its specification. 
-%More importantly, \jilette then generates a concrete witness that 
+%More importantly, \cosette then generates a concrete witness that 
 %invalidates the specification. This information greatly simplifies the debugging of 
 %both specifications and code. 
 
@@ -575,13 +575,13 @@ both specifications and code.
 %	and it has support for advanced string reasoning, critical for reasoning about commonly used JavaScript code;
 %
 %\dtag{2} it is \emph{accessible}, in that it can easily be used by a general JavaScript developer: 
-%	the annotation burden of \jilette is minimal; 
+%	the annotation burden of \cosette is minimal; 
 %	%
 %	and the assertion language is simple and intuitive;
 %\dtag{3} it is \emph{trustworthy}, in that its components come with correctness guarantees: 
 %	the correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript;
 %	%
-%	the soundness result for the symbolic execution used in \jilette guarantees absence of false positives;
+%	the soundness result for the symbolic execution used in \cosette guarantees absence of false positives;
 %	and \polish{sentence about unification;}
 %and \dtag{4} it is \emph{extensible}, in that its coverage can easily be extended in a modular way, allowing support for: 
 %	built-in libraries not covered by \JSComp; 
@@ -618,14 +618,14 @@ both specifications and code.
 
 
 %
-%\myparagraphq{Why \jilette} 
-%\jilette is \emph{useful}: it has tangible applications. 
+%\myparagraphq{Why \cosette} 
+%\cosette is \emph{useful}: it has tangible applications. 
 %It can report bugs in JavaScript programs, producing concrete witnesses triggering the bugs. It can also be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code.
-%\jilette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \jilette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
-%\jilette is \emph{trustworthy}: its components come with correctness guarantees. 
-%The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \jilette symbolic execution engine is based on a sound symbolic
+%\cosette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \cosette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
+%\cosette is \emph{trustworthy}: its components come with correctness guarantees. 
+%The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \cosette symbolic execution engine is based on a sound symbolic
 %analysis for \jsil, guaranteeing the absence of false positives. \polish{Sentence about unification.}
-%Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
+%Finally, \cosette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
 
 \newpage
 

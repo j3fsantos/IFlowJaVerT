@@ -128,7 +128,7 @@
 \newcommand{\JSComp}{JS-2-JSIL\xspace}
 \newcommand{\jsilverify}{JSILVerify\xspace}
 
-\newcommand{\jilette}{Cosette\xspace}
+\newcommand{\cosette}{Cosette\xspace}
 \newcommand{\rosette}{Rosette\xspace}
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
@@ -183,25 +183,25 @@
 \fi}
 
 \begin{document}
-\title{\jilette: A Symbolic Framework for Testing JavaScript Programs}
+\title{\cosette: A Symbolic Framework for Testing JavaScript Programs}
 
 \maketitle
 
 \begin{abstract}
-We present \jilette, a framework for bounded symbolic execution of JavaScript (JS) code (ECMAScript 5, ES5). 
-\jilette is the first symbolic execution tool for JS that models the language semantics precisely.  
+We present \cosette, a framework for bounded symbolic execution of JavaScript (JS) code (ECMAScript 5, ES5). 
+\cosette is the first symbolic execution tool for JS that models the language semantics precisely.  
 It works by first compiling JS programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from 
 JS to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. 
 We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not to generate false positives. 
 %every time the tool reports a bug, it provides a concrete model that triggers that bug. 
 
-We demonstrate how \jilette can be used for the symbolic testing of JS programs by 
-finding concrete executions that trigger assertion and test failures. We highlight the range of \jilette 
+We demonstrate how \cosette can be used for the symbolic testing of JS programs by 
+finding concrete executions that trigger assertion and test failures. We highlight the range of \cosette 
 by giving examples involving JS-specific features, such as: prototype-based inheritance, 
-the for-in statement, and JS arrays. Finally, we thoroughly evaluate \jilette against a 
+the for-in statement, and JS arrays. Finally, we thoroughly evaluate \cosette against a 
 representative fragment of test262 adapted to include symbolic~values. 
 
-%At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. 
+%At the core of \cosette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. 
 %This interpreter is written in \underline{Rosette}, a symbolic virtual machine that enables the design of new solver-aided languages. 
 
 \end{abstract}

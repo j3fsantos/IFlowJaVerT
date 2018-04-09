@@ -23,7 +23,7 @@ of $\jstmt$ by a correct compiler $\compile$. Put formally:
 
 We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. First, we convert the JavaScript program and its \javert specification to a \jsil program with its \jsil Logic specification, using the \JSComp and $\ltr$ compilers. Next, we 
 generate a set of symbolic tests from the obtained \jsil program and \jsil Logic specification, as described in \S\ref{specs:to:symbolic:tests}. 
-Finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. If \jilette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
+Finally, we run the generated \jsil symbolic tests on the \jsil symbolic execution engine. If \cosette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
 
 \begin{figure}[t!]
 \centering
