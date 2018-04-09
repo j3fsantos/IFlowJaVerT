@@ -583,20 +583,3 @@ bag.add(s1);
 bag.add(s2);
 var res = bag.size();
 Assert (res = 2);
-
-// TEST 2
-
-// Check that the size is ok when removing duplicated (or not) elements;
-var s3 = symb_string(s3);
-var s4 = symb_string(s4);
-var s5 = symb_string(s5);
-
-var bag = new buckets.Bag();
-
-bag.add(s3);
-bag.add(s4);
-bag.add(s5);
-bag.remove(s5);
-bag.remove(s5);
-var res = bag.size();
-Assert ((((s3 = s4) or (s4 = s5)) and (res = 1)) or (res = 2));
