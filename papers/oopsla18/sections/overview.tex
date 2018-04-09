@@ -9,37 +9,14 @@ Examples:
 \end{itemize}
 }
 
-We illustrate how \jilette can be used to run symbolic tests for \emph{unspecified} JavaScript code 
-and to automatically generate symbolic tests for JavaScript code annotated with separation logic specifications. 
-To this end, we make use the JavaScript implementation 
-of a  \emph{key-value map} given in Figure~\ref{map:example}~(left). 
-This implementation contains four functions: 
+Using the example of a \emph{key-value map}, given in Figure~\ref{map:example}~(left), we illustrate how \jilette can be used to run symbolic tests for unspecified JavaScript code and automatically generate symbolic tests for JavaScript code annotated with separation logic specifications.
+The implementation contains four functions: 
 \jsinline|Map|, for constructing an empty map;
-\jsinline|get|, for retrieving the value associated with the key given as input;
-\jsinline|put|, for inserting a new \emph{key-value pair} into the map and updating the values of existing keys; and
-\jsinline|validKey|, for deciding whether a key is valid.
-
-\myparagraph{Prototype chains and $\mathtt{Object.prototype}$}
-In order to better understand the implementation of the map library as well as its possible bugs, 
-one must first understand the \emph{prototype-based inheritance} mechanism of JavaScript. 
-Every JavaScript object has a prototype, which (for presentation purposes) we assume to 
-be stored  in an internal property \jsinline|@proto|. In order to determine the value of a property
-\jsinline|p| of an object \jsinline|o|, the semantics first checks if \jsinline|o| has a 
-property named \jsinline|p|, in which case the property look-up yields its value. Otherwise, the 
-semantics checks if \jsinline|p| belongs to the properties of the prototype of \jsinline|o| and so 
-forth. Hence, in the example, when looking up the value of the property \jsinline|hasOwnProperty|
-of the object \jsinline|contents|, one gets the value associated with the property  \jsinline|hasOwnProperty|
-of its prototype.
-The sequence of objects that can be accessed from a given object through the inspection 
-of the respective prototypes is called a \emph{prototype chain}.
-Prototype chains typically finish with the object \jsinline|Object.prototype| from which JavaScript 
-programs can access a number of built-in functions, which are part of the language runtime environment and are used for inspecting and manipulating objects.
-An example of such a function is \jsinline|hasOwnProperty(p)|, which checks whether or not the object 
-on which it is invoked has the property \jsinline|p| (e.g. {\small \jsinline|map.hasOwnProperty("_contents")|}
-evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:example}-(right), 
-because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
+\jsinline|get|, for retrieving the value associated with a given key;
+\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding if a key is valid.
 
  \begin{figure}[h!]
+ \vspace*{-0.3cm}
  \begin{minipage}{0.5\textwidth}
  \begin{lstjs}[firstnumber=1]
 function Map () { this._contents = {} }
@@ -59,55 +36,75 @@ Map.prototype.validKey = function (k) { ... }
 \end{lstjs}
 \end{minipage}
 \ 
- \begin{minipage}{0.4\textwidth}
+ \begin{minipage}{0.45\textwidth}
  \includegraphics[width=1\textwidth]{figures/mapDiagram.png}
  \end{minipage}
-\caption{JS map implementation (left) and example of a map library heap (right) \label{map:example}}
+ \vspace*{-0.3cm}
+\caption{JS map implementation (left); general key-value map heap (right) \label{map:example}}
+ \vspace*{-0.3cm}
 \end{figure}
 
 \myparagraph{Description of the example}
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
-The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are to be shared between all map 
-objects. Therefore, they are defined in \jsinline|Map.prototype|, which is the prototype 
-of all objects created using \jsinline|Map| as a constructor (i.e.~using~\jsinline|new Map()|).
+The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are shared between all map 
+objects and are, therefore, defined in \jsinline|Map.prototype|, which is the prototype\footnote{In JavaScript, every object has a prototype, and inheritance is modelled through \emph{prototype chains}. On property lookup, $\mathtt{o.p}$, the semantics first checks if the property $\mathtt{p}$ is present in the object $\mathtt{o}$, in which case its value is returned. Otherwise, the semantics checks if $\mathtt{p}$ is present in the prototype of $\mathtt{o}$, and so  forth.} of all objects created using \jsinline|Map| as a constructor (i.e.,~using~\jsinline|new Map()|). 
+The \jsinline|get| function returns the value associated with a given key in the map, or \jsinline|null| if the key is not in the map. 
+Note that, in order to check that the given key is in the map, \jsinline|get| uses the built-in function \jsinline|hasOwnProperty|, which lives in \jsinline|Object.prototype|, the prototype of all objects.
+The \jsinline|put| function updates the map if the supplied key is valid, and otherwise throws an error. 
+The \jsinline|validKey| function describes the conditions under which a given key is valid.
 
-Observe that a naive implementation of the function \jsinline|validKey| may result in potential 
-bugs. In particular, one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. 
-By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of
-\jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
+In Figure \ref{map:example}~(right), we show a general heap of key-value maps. There is the \jsinline|map| object, with its \jsinline|_contents| property pointing to the \jsinline|contents| object and its prototype being \jsinline|Map.prototype|. There is the \jsinline|contents| object, which holds the key-value pairs, and whose prototype is \jsinline|Object.prototype|. There is the \jsinline|Map.prototype| object, which holds the \jsinline|get|, \jsinline|put|, and \jsinline|validKey| functions,\footnote{In JavaScript, functions are also modelled as objects in the heap. Since their structure is not essential for this example, we only show the location of the appropriate object in the heap.} and whose prototype is also \jsinline|Object.prototype|. Finally, there is \jsinline|Object.prototype|, which holds the \jsinline|hasOwnProperty| function that is called by \jsinline|Map.prototype.get|.
 
+%Observe that a naive implementation of the function \jsinline|validKey| may result in potential bugs. In particular, one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of \jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
+
+%\myparagraph{Prototype chains and $\mathtt{Object.prototype}$}
+%In order to better understand the implementation of the map library as well as its possible bugs, 
+%one must first understand the \emph{prototype-based inheritance} mechanism of JavaScript. 
+%Every JavaScript object has a prototype, which (for presentation purposes) we assume to 
+%be stored  in an internal property \jsinline|@proto|. In order to determine the value of a property
+%\jsinline|p| of an object \jsinline|o|, the semantics first checks if \jsinline|o| has a 
+%property named \jsinline|p|, in which case the property look-up yields its value. Otherwise, the 
+%semantics checks if \jsinline|p| belongs to the properties of the prototype of \jsinline|o| and so 
+%forth. Hence, in the example, when looking up the value of the property \jsinline|hasOwnProperty|
+%of the object \jsinline|contents|, one gets the value associated with the property  \jsinline|hasOwnProperty|
+%of its prototype.
+%The sequence of objects that can be accessed from a given object through the inspection 
+%of the respective prototypes is called a \emph{prototype chain}.
+%Prototype chains typically finish with the object \jsinline|Object.prototype| from which JavaScript 
+%programs can access a number of built-in functions, which are part of the language runtime environment and are used for inspecting and manipulating objects.
+%An example of such a function is \jsinline|hasOwnProperty(p)|, which checks whether or not the object 
+%on which it is invoked has the property \jsinline|p| (e.g. {\small \jsinline|map.hasOwnProperty("_contents")|}
+%evaluates to \jsinline|true| when evaluated in the heap shown in Fig.~\ref{map:example}-(right), 
+%because the object \jsinline|map| has a property named~\jsinline|"_contents"|). 
 
 \lstnewenvironment{lstjsex}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}, numbers=none, backgroundcolor=\color{mygray}}}{}
 
-
 \subsection{Symbolic Testing}
 
-A simple way of testing the behaviour of the key-value map is to write a test 
-checking that after inserting a key/value pair \jsinline|(k, v)| into a map,  
-we are able to retrieve the value \jsinline|v| using the key \jsinline|k|. 
-Without \jilette we  would have to pick a concrete key and a concrete value. 
-Instead, with \jilette, we can simply use a symbolic string for the key and a symbolic number 
-for the value, as illustrated~below. 
-%
-\begin{lstjsex}
-var s1 = __s(); var n1 = __n(); 
-var m = new Map();  m.put(s1, n1); var r = m.get(s1);  
-assert(n1 = r)
-\end{lstjsex}
+Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. With \jilette, they can write unit tests that use \emph{symbolic inputs}, targeting a more comprehensive range of behaviours. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as follows:
+
+\begin{lstjs}
+var k = make-symbolic-string(); var v = make-symbolic();
+assume(validKey(k));
+var m = new Map(); m.put(k, v); var result = m.get(k);  
+assert(result = v)
+\end{lstjs}
+
+Let us briefly comment on this test. In line 1, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \jilette's constructs for creating symbolic variables. In line 2, we assume that \jsinline|k| is a valid key. In line 3, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 4, we assert that the retrieved value is equal to the one we had previously put.
+
 % 
-When running \jilette on the above test with a naive implementation  of \jsinline|validKey|,
-we obtain the failing model  \jsinline|s1 = "hasOwnProperty"|. 
+When running \jilette on the above test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
+we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap in Figure~\ref{map:example}~(right) and the implementation of \jsinline|get| in Figure~\ref{map:example}~(left). We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error.
 
 This example highlights how \jilette does not require specialist knowledge, and can, therefore, 
 be used by almost any JavaScript developer. The annotation burden amounts to the creation of 
-symbolic variables and the writing of assertions, remaining minimal and intuitive, in stark contrast 
-with the standard annotation burden of verification tools.
+symbolic variables and the writing of assumptions and assertions, remaining minimal and intuitive, in stark contrast  with the standard annotation burden of verification tools.
 
 
 \subsection{Specification-directed Symbolic Debugging}
 
-\begin{figure}[t!]
+\begin{figure}[!h]
 \centering
 \includegraphics[width=0.6\textwidth]{figures/symbvsass.png}
 
