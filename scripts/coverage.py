@@ -14,7 +14,7 @@ def get_jsil_coverage(file):
             coverage[fname] = []
         coverage[fname].append(fline)
     for fname in coverage:
-        coverage[fname] = sorted(coverage[fname])
+        coverage[fname] = sorted(set(coverage[fname]))
     return coverage
 
 def get_js_file(file):
@@ -29,19 +29,32 @@ def get_js_jsil_mapping(file):
     filename = file + '_line_numbers.json'
     with open(filename) as js_lines_file:
         js_json = js_lines_file.read()
-    js_line = json.loads(js_json)
-    for fname in js_line:
-        js_line[fname] = [line[1] for line in js_line[fname]]
-    return js_line
+    file_info = json.loads(js_json)
+    
+    js_line = {}
+    
+    for fname in file_info['stats']:
+        js_line[fname] = [line[1] for line in file_info['stats'][fname]]
+
+    ids = file_info['ids']
+    ids.insert(0, 'main')
+
+    return js_line, ids
+
+def to_json(exec_lines, found_lines, file):
+    res = {'executable': exec_lines,
+           'executed': found_lines}
+    res_json = json.dumps(res, indent=2)
+    filename = file + '_coverage_result.json'
+    with open(filename, 'w') as out_file:
+        out_file.write(res_json)
 
 def make_coverage(filename):
     base_file = filename.split('.')[0]
     
     coverage = get_jsil_coverage(base_file)
     js_lines = get_js_file(base_file)
-    mapping = get_js_jsil_mapping(base_file)
-    
-    js_fnames = list(mapping.keys()) # functions without the internals
+    mapping, js_fnames = get_js_jsil_mapping(base_file)
     
     # executable js lines
     exec_lines = {}
@@ -70,6 +83,10 @@ def make_coverage(filename):
                 if (js_line not in found_lines[fname]) and (js_line != -1):
                     found_lines[fname].append(js_line)
 #    print('found_lines:\t{}'.format(found_lines))
+    
+    # dump to JSON so we can merge the results from different test cases
+    # of the same library (line numbers must match!)
+    to_json(exec_lines, found_lines, base_file)
 
     return exec_lines, found_lines
 
@@ -91,7 +108,8 @@ def print_coverage(exec_lines, found_lines):
         nb_exec_lines = len(exec_lines[fname])
         nb_missing_lines = len(missing_lines)
         coverage_prop = (nb_exec_lines - nb_missing_lines)/nb_exec_lines
-        print('{}: coverage {:.2%}'.format(fname, coverage_prop))
+        print('{}: coverage {:.2%}\n'.format(fname, coverage_prop))
+
 
 if __name__ == "__main__":
     if (len(sys.argv) < 2):
