@@ -102,7 +102,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
             The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is \polish{satisfiable} in the abstract 
             state $\absstate$, and $\jfalse$ otherwise.
              
-   \item[Symbolic Value Creation,] $\absmakesymbolic : \jtypes \rightarrow \absvals$. 
+   \item[Symbolic Value Creation,] $\absmakesymbolic : \absstates \rightarrow \jtypes \rightarrow \absvals$. 
             The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh symbolic value of type $\jtype$.
 \end{description}
 
@@ -152,7 +152,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \absval)} 
      \quad 
     \absval \neq \none
-  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{	{}(\absstate', \jvar, \jtrue)}{}}
+  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jtrue)}{}}
  \and 
 \inferrule[\textsc{Member Check - False}]
   { 
@@ -160,7 +160,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
   }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jfalse)}{}} \\
   \inferrule[\textsc{Make Symbolic}]
   { 
-     \absval = \absmakesymbolicrule{}{\jtype}
+     \absval = \absmakesymbolicrule{}{\absstate, \jtype}
   }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
 \end{mathpar}}
  \vspace*{-0.6cm}
@@ -387,7 +387,7 @@ for control flow commands.
    {}{  \stosel((-, \store)) =  \store}
    \and
       \inferrule[\textsc{Symbolic Value}]
-   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
+   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} = \val}
      \and 
   \inferrule[\textsc{Assume}]
    {
@@ -477,7 +477,7 @@ for control flow commands.
 \\
   \inferrule[\textsc{GetDomain}]
    { 
-        \evalexpr{}(\sstore, \jsilexpr) = \sloc
+        \evalexpr{\symbolic}(\sstore, \jsilexpr) = \sloc
       \quad
        \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
         \\\\
@@ -494,21 +494,19 @@ for control flow commands.
  % 
      \inferrule[\textsc{GetCell - Not Found}]
    { 
-         \evalexpr{}(\sstore, \jsilexpr_1) = \sloc
+         \evalexpr{\symbolic}(\sstore, \jsilexpr_1) = \sloc
         \quad 
-        \evalexpr{}(\sstore, \jsilexpr_2) = \sexprp
+        \evalexpr{\symbolic}(\sstore, \jsilexpr_2) = \sexprp
       \quad
        \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
       \\\\
        (\sloc,-) \notin \domain (\sheap'')
-        \quad
-        \sdom(\sloc) = \sexprv_d
         \quad 
-        \sheap' = \sheap[(\sloc, \sexprp) \mapsto \none]
+        \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none)
        \\\\ 
-       \sdom' = \sdom[\sloc \mapsto \sexprv_d \cup \jsilset{\sexprp}] 
+       \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}] 
        \quad 
-       \pc' = \pc \wedge \sexprp \not\in (\sexprv_d \cup \jsilset{\sexprp_i \mid_{i=0}^m})
+       \pc' = \pc \wedge \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m})
    }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore, \pc'), (\sloc, \sexprp, \none)}}
   %
   \\
@@ -552,7 +550,10 @@ for control flow commands.
    {}{  \stosel((-, -, \sstore, -)) =  \sstore}
    \and 
          \inferrule[\textsc{Symbolic Value}]
-   {\svar \in \svars \text{ is of type } \jtype}{\absmakesymbolicrule{\symbolic}{\jtype} = \svar}
+   {\svar \in \svars \text{ is of type } \jtype
+     \quad 
+     \svar \not\in \fv(\sstate)
+    }{\absmakesymbolicrule{\symbolic}{\sstate, \jtype} = \svar}
    \and
        \inferrule[\textsc{Assume}]
    {  
@@ -836,7 +837,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 \begin{mathpar} 
  \inferrule[\textsc{GetDomain}]
    { 
-        \semexpr{\jsilexpr}{\store} = \loc
+        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
       \quad
        \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
         \\\\
@@ -853,30 +854,28 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
  % 
      \inferrule[\textsc{GetCell - Not Found}]
    { 
-         \semexpr{\jsilexpr_1}{\store} = \loc
+         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
         \quad 
-         \semexpr{\jsilexpr_2}{\store} = p
+         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
       \quad
        \iheap = \iheap'' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m
       \\\\
        (\loc,-) \notin \domain (\iheap'')
-        \quad
-        \idom(\loc) = \val_d
         \quad 
-       p \not\in \val_d \cup \jsilset{p_i \mid_{i=0}^m})
+       p \not\in \idom(\loc) \cup \jsilset{p_i \mid_{i=0}^m}
        \\\\
-        \iheap' = \iheap[(\loc, p) \mapsto \none]
+        \iheap' = \iheap \dunion ((\loc, p) \mapsto \none)
        \quad 
-       \idom' = \idom[\loc \mapsto \val_d \cup \jsilset{p}]
+       \idom' = \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}]
      }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap', \idom', \store), (\loc, p, \none)}}
   %
   \\
   %
     \inferrule[\textsc{GetCell - Found}]
    { 
-         \semexpr{\jsilexpr_1}{\store} = \loc
+         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
         \quad 
-         \semexpr{\jsilexpr_2}{\store} = p
+         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
       \quad
        \iheap = - \, \uplus \, (\loc, p) \mapsto \val
         }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap, \idom, \store), (\loc, p, \val)}}
@@ -908,8 +907,6 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 %   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
  \end{mathpar}}}
  \end{display}
-
-\newpage
 
 \begin{display}{Symbolic State Instrumented Interpretation}
 {\scriptsize 
@@ -949,7 +946,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 \\
 \inferrule[Symbolic Domains]
 {
-   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \semexpr{\sexprl}{\senv} \, \wedge \, \val = \semexpr{\sdom(\sexprl)}{\senv}
+   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \interpret{\symbconc}{\senv}(\sexprl) \, \wedge \, \val = \interpret{\symbconc}{\senv}(\sdom(\sexprl))
 }{
 \interpret{\symbinst}{\senv}(\sdom) \semeq \idom
 }
