@@ -358,6 +358,7 @@ buckets.Set = function (toStringFunction) {
      * @return {boolean} True if the set contains the specified element,
      * false otherwise.
      */
+    /* @id set_contains */
     theSet.contains = function (element) {
         return dictionary.containsKey(element);
     };
@@ -367,6 +368,7 @@ buckets.Set = function (toStringFunction) {
      * @param {Object} element The element to insert.
      * @return {boolean} True if the set did not already contain the specified element.
      */
+    /* @id set_add */
     theSet.add = function (element) {
         if (theSet.contains(element) || buckets.isUndefined(element)) {
             return false;
@@ -380,7 +382,9 @@ buckets.Set = function (toStringFunction) {
      * Removes all values that are not present in this set and the given set.
      * @param {buckets.Set} otherSet Other set.
      */
+    /* @id set_intersection */
     theSet.intersection = function (otherSet) {
+        /* @id set_intersection_callback */
         theSet.forEach(function (element) {
             if (!otherSet.contains(element)) {
                 theSet.remove(element);
@@ -393,7 +397,9 @@ buckets.Set = function (toStringFunction) {
      * Adds all values from the given set to this set.
      * @param {buckets.Set} otherSet Other set.
      */
+    /* @id set_union */
     theSet.union = function (otherSet) {
+        /* @id set_union_callback */
         otherSet.forEach(function (element) {
             theSet.add(element);
         });
@@ -404,7 +410,9 @@ buckets.Set = function (toStringFunction) {
      * Removes all the values that are present in the given set from this set.
      * @param {buckets.Set} otherSet other set.
      */
+    /* @id set_difference */
     theSet.difference = function (otherSet) {
+        /* @id set_difference_callback */
         otherSet.forEach(function (element) {
             theSet.remove(element);
         });
@@ -415,13 +423,14 @@ buckets.Set = function (toStringFunction) {
      * @param {buckets.Set} otherSet Other set.
      * @return {boolean} True if this set is a subset of the given set.
      */
+    /* @id set_isSubsetOf */
     theSet.isSubsetOf = function (otherSet) {
         var isSub = true;
 
         if (theSet.size() > otherSet.size()) {
             return false;
         }
-
+        /* @id set_isSubsetOf_callback */
         theSet.forEach(function (element) {
             if (!otherSet.contains(element)) {
                 isSub = false;
@@ -436,6 +445,7 @@ buckets.Set = function (toStringFunction) {
      * @return {boolean} True if the set contained the specified element, false
      * otherwise.
      */
+    /* @id set_remove */
     theSet.remove = function (element) {
         if (!theSet.contains(element)) {
             return false;
@@ -451,7 +461,9 @@ buckets.Set = function (toStringFunction) {
      * invoked an element as argument. To break the iteration you can
      * optionally return false inside the callback.
      */
+    /* @id set_forEach */
     theSet.forEach = function (callback) {
+        /* @id set_forEach_callback */
         dictionary.forEach(function (k, v) {
             return callback(v);
         });
@@ -461,6 +473,7 @@ buckets.Set = function (toStringFunction) {
      * Returns an array containing all the elements in the set in no particular order.
      * @return {Array} An array containing all the elements in the set.
      */
+    /* @id set_toArray */
     theSet.toArray = function () {
         return dictionary.values();
     };
@@ -469,6 +482,7 @@ buckets.Set = function (toStringFunction) {
      * Returns true if the set contains no elements.
      * @return {boolean} True if the set contains no elements.
      */
+    /* @id set_isEmpty */
     theSet.isEmpty = function () {
         return dictionary.isEmpty();
     };
@@ -477,6 +491,7 @@ buckets.Set = function (toStringFunction) {
      * Returns the number of elements in the set.
      * @return {number} The number of elements in the set.
      */
+    /* @id set_size */
     theSet.size = function () {
         return dictionary.size();
     };
@@ -484,6 +499,7 @@ buckets.Set = function (toStringFunction) {
     /**
      * Removes all the elements from the set.
      */
+    /* @id set_clear */
     theSet.clear = function () {
         dictionary.clear();
     };
@@ -494,6 +510,7 @@ buckets.Set = function (toStringFunction) {
      * @param {buckets.Set} other The other set.
      * @return {boolean} True if the set is equal to the given set.
      */
+    /* @id set_equals */
     theSet.equals = function (other) {
         var isEqual;
         if (buckets.isUndefined(other) || typeof other.isSubsetOf !== 'function') {
@@ -504,6 +521,7 @@ buckets.Set = function (toStringFunction) {
         }
 
         isEqual = true;
+        /* @id set_equals_callback */
         other.forEach(function (element) {
             isEqual = theSet.contains(element);
             return isEqual;

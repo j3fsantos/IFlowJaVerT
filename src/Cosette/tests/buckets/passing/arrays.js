@@ -5,7 +5,7 @@
 /**
  * Top level namespace for Buckets,
  * a JavaScript data structure library.
- * @name buckets
+ * @id buckets
  */
 var buckets = {};
 
@@ -115,7 +115,7 @@ buckets.compareToEquals = function (compareFunction) {
 // ------------------------------- arrays.js ----------------------------------
 
 /**
- * @namespace Contains various functions for manipulating arrays.
+ * @idspace Contains various functions for manipulating arrays.
  */
 buckets.arrays = {};
 
@@ -129,6 +129,7 @@ buckets.arrays = {};
  * @return {number} The index of the first occurrence of the specified element
  * or -1 if not found.
  */
+/* @id arrays_indexOf */
 buckets.arrays.indexOf = function (array, item, equalsFunction) {
     var equals = equalsFunction || buckets.defaultEquals,
         length = array.length,
@@ -151,6 +152,7 @@ buckets.arrays.indexOf = function (array, item, equalsFunction) {
  * @return {number} The index of the last occurrence of the specified element
  * within the specified array or -1 if not found.
  */
+/* @id arrays_lastIndexOf */
 buckets.arrays.lastIndexOf = function (array, item, equalsFunction) {
     var equals = equalsFunction || buckets.defaultEquals,
         length = array.length,
@@ -171,6 +173,7 @@ buckets.arrays.lastIndexOf = function (array, item, equalsFunction) {
  * check equality between two elements. Receives two arguments and returns true if they are equal.
  * @return {boolean} True if the specified array contains the specified element.
  */
+/* @id arrays_contains */
 buckets.arrays.contains = function (array, item, equalsFunction) {
     return buckets.arrays.indexOf(array, item, equalsFunction) >= 0;
 };
@@ -183,6 +186,7 @@ buckets.arrays.contains = function (array, item, equalsFunction) {
  * check equality between two elements. Receives two arguments and returns true if they are equal.
  * @return {boolean} True If the array changed after this call.
  */
+/* @id arrays_remove */
 buckets.arrays.remove = function (array, item, equalsFunction) {
     var index = buckets.arrays.indexOf(array, item, equalsFunction);
     if (index < 0) {
@@ -202,6 +206,7 @@ buckets.arrays.remove = function (array, item, equalsFunction) {
  * @return {number} The number of elements in the specified array.
  * equal to the specified item.
  */
+/* @id arrays_frequency */
 buckets.arrays.frequency = function (array, item, equalsFunction) {
     var equals = equalsFunction || buckets.defaultEquals,
         length = array.length,
@@ -226,6 +231,7 @@ buckets.arrays.frequency = function (array, item, equalsFunction) {
  * check equality between two elements. Receives two arguments and returns true if they are equal.
  * @return {boolean} True if the two arrays are equal.
  */
+/* @id arrays_equals */
 buckets.arrays.equals = function (array1, array2, equalsFunction) {
     var equals = equalsFunction || buckets.defaultEquals,
         length = array1.length,
@@ -247,6 +253,7 @@ buckets.arrays.equals = function (array1, array2, equalsFunction) {
  * @param {*} array The array to copy.
  * @return {Array} A copy of the specified array.
  */
+/* @id arrays_copy */
 buckets.arrays.copy = function (array) {
     return array.concat();
 };
@@ -258,6 +265,7 @@ buckets.arrays.copy = function (array) {
  * @param {number} j The index of second element.
  * @return {boolean} True if the array is defined and the indexes are valid.
  */
+/* @id arrays_swap */
 buckets.arrays.swap = function (array, i, j) {
     var temp;
 
@@ -277,6 +285,7 @@ buckets.arrays.swap = function (array, i, j) {
  * invoked with an element as argument. To break the iteration you can
  * optionally return false in the callback.
  */
+/* @id arrays_forEach */
 buckets.arrays.forEach = function (array, callback) {
     var lenght = array.length,
         i;

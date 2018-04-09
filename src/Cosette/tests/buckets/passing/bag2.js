@@ -366,6 +366,7 @@ buckets.Bag = function (toStrFunction) {
      * undefined 1 copy is added.
      * @return {boolean} True unless element is undefined.
      */
+    /* @id bag_add */
     bag.add = function (element, nCopies) {
         var node;
         if (isNaN(nCopies) || buckets.isUndefined(nCopies)) {
@@ -393,6 +394,7 @@ buckets.Bag = function (toStrFunction) {
      * @param {Object} element The element to search for.
      * @return {number} The number of copies of the element, 0 if not found.
      */
+    /* @id bag_count */
     bag.count = function (element) {
         if (!bag.contains(element)) {
             return 0;
@@ -406,6 +408,7 @@ buckets.Bag = function (toStrFunction) {
      * @return {boolean} True if the bag contains the specified element,
      * false otherwise.
      */
+    /* @id bag_contains */
     bag.contains = function (element) {
         return dictionary.containsKey(element);
     };
@@ -419,6 +422,7 @@ buckets.Bag = function (toStrFunction) {
      * undefined 1 copy is removed.
      * @return {boolean} True if at least 1 copy was removed.
      */
+    /* @id bag_remove */
     bag.remove = function (element, nCopies) {
         var node;
         if (isNaN(nCopies) || buckets.isUndefined(nCopies)) {
@@ -449,6 +453,7 @@ buckets.Bag = function (toStrFunction) {
      * including multiple copies.
      * @return {Array} An array containing all the elements in the bag.
      */
+    /* @id bag_toArray */
     bag.toArray = function () {
         var a = [],
             values = dictionary.values(),
@@ -473,6 +478,7 @@ buckets.Bag = function (toStrFunction) {
      * Returns a set of unique elements in the bag.
      * @return {buckets.Set} A set of unique elements in the bag.
      */
+    /* @id bag_toSet */
     bag.toSet = function () {
         var set = new buckets.Set(toStrF),
             elements = dictionary.values(),
@@ -491,6 +497,7 @@ buckets.Bag = function (toStrFunction) {
      * invoked with an element as argument. To break the iteration you can
      * optionally return false in the callback.
      */
+    /* @id bag_forEach */
     bag.forEach = function (callback) {
         dictionary.forEach(function (k, v) {
             var value = v.value,
@@ -508,6 +515,7 @@ buckets.Bag = function (toStrFunction) {
      * Returns the number of elements in the bag, including duplicates.
      * @return {number} The number of elements in the bag.
      */
+    /* @id bag_size */
     bag.size = function () {
         return nElements;
     };
@@ -516,6 +524,7 @@ buckets.Bag = function (toStrFunction) {
      * Returns true if the bag contains no elements.
      * @return {boolean} True if the bag contains no elements.
      */
+    /* @id bag_isEmpty */
     bag.isEmpty = function () {
         return nElements === 0;
     };
@@ -523,6 +532,7 @@ buckets.Bag = function (toStrFunction) {
     /**
      * Removes all the elements from the bag.
      */
+    /* @id bag_clear */
     bag.clear = function () {
         nElements = 0;
         dictionary.clear();
@@ -535,6 +545,7 @@ buckets.Bag = function (toStrFunction) {
      * @param {buckets.Bag} other The other bag.
      * @return {boolean} True if the bag is equal to the given bag.
      */
+    /* @id bag_equals */
     bag.equals = function (other) {
         var isEqual;
         if (buckets.isUndefined(other) || typeof other.toSet !== 'function') {
