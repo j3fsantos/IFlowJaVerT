@@ -649,7 +649,7 @@ buckets.Queue = function () {
         }
         eqf = equalsFunction || buckets.defaultEquals;
         isEqual = true;
-        /* @id queue_equals_forEach */
+        /* @id queue_equals_callback */
         other.forEach(function (element) {
             thisElement = queue.dequeue();
             queue.enqueue(thisElement);

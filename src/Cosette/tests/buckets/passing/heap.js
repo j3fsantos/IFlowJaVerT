@@ -344,9 +344,11 @@ buckets.Heap = function (compareFunction) {
         compare = compareFunction || buckets.defaultCompare;
 
     // Moves the node at the given index up to its proper place in the heap.
+    /* @id heap_siftUp */
     function siftUp(index) {
         var parent;
         // Returns the index of the parent of the node at the given index.
+        /* @id heap_siftUp_parentIndex */
         function parentIndex(nodeIndex) {
             return Math.floor((nodeIndex - 1) / 2);
         }
@@ -360,19 +362,23 @@ buckets.Heap = function (compareFunction) {
     }
 
     // Moves the node at the given index down to its proper place in the heap.
+    /* @id heap_siftDown */
     function siftDown(nodeIndex) {
         var min;
         // Returns the index of the left child of the node at the given index.
+        /* @id heap_siftDown_leftChildIndex */
         function leftChildIndex(nodeIndex) {
             return (2 * nodeIndex) + 1;
         }
 
         // Returns the index of the right child of the node at the given index.
+        /* @id heap_siftDown_rightChildIndex */
         function rightChildIndex(nodeIndex) {
             return (2 * nodeIndex) + 2;
         }
 
         // Returns the index of the smaller child node if it exists, -1 otherwise.
+        /* @id heap_siftDown_minIndex */
         function minIndex(leftChild, rightChild) {
             if (rightChild >= data.length) {
                 if (leftChild >= data.length) {
@@ -401,6 +407,7 @@ buckets.Heap = function (compareFunction) {
      * @return {*} The value at the root of the heap. Returns undefined if the
      * heap is empty.
      */
+    /* @id heap_peek */
     heap.peek = function () {
         if (data.length > 0) {
             return data[0];
@@ -413,6 +420,7 @@ buckets.Heap = function (compareFunction) {
      * @param {*} element The element.
      * @return True if the element was added or false if it is undefined.
      */
+    /* @id heap_add */
     heap.add = function (element) {
         if (buckets.isUndefined(element)) {
             return undefined;
@@ -427,6 +435,7 @@ buckets.Heap = function (compareFunction) {
      * @return {*} The removed element or
      * undefined if the heap is empty.
      */
+    /* @id heap_removeRoot */
     heap.removeRoot = function () {
         var obj;
         if (data.length > 0) {
@@ -447,6 +456,7 @@ buckets.Heap = function (compareFunction) {
      * @return {boolean} True if the Heap contains the specified element, false
      * otherwise.
      */
+    /* @id heap_contains */
     heap.contains = function (element) {
         var equF = buckets.compareToEquals(compare);
         return buckets.arrays.contains(data, element, equF);
@@ -456,6 +466,7 @@ buckets.Heap = function (compareFunction) {
      * Returns the number of elements in the heap.
      * @return {number} The number of elements in the heap.
      */
+    /* @id heap_size */
     heap.size = function () {
         return data.length;
     };
@@ -465,6 +476,7 @@ buckets.Heap = function (compareFunction) {
      * @return {boolean} True if the heap contains no elements; false
      * otherwise.
      */
+    /* @id heap_isEmpty */
     heap.isEmpty = function () {
         return data.length <= 0;
     };
@@ -472,6 +484,7 @@ buckets.Heap = function (compareFunction) {
     /**
      * Removes all the elements from the heap.
      */
+    /* @id heap_clear */
     heap.clear = function () {
         data.length = 0;
     };
@@ -483,6 +496,7 @@ buckets.Heap = function (compareFunction) {
      * invoked with an element as argument. To break the iteration you can
      * optionally return false.
      */
+    /* @id heap_forEach */
     heap.forEach = function (callback) {
         buckets.arrays.forEach(data, callback);
     };
@@ -493,6 +507,7 @@ buckets.Heap = function (compareFunction) {
      * @return {Array.<*>} An array containing all the elements in the heap
      * in no particular order.
      */
+    /* @id heap_toArray */
     heap.toArray = function () {
         return buckets.arrays.copy(data);
     };
@@ -503,6 +518,7 @@ buckets.Heap = function (compareFunction) {
      * @param {buckets.Heap} other The other heap.
      * @return {boolean} True if the heap is equal to the given heap.
      */
+    /* @id heap_equals */
     heap.equals = function (other) {
         var thisArray, otherArray, eqF;
 

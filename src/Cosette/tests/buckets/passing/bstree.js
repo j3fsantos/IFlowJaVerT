@@ -157,6 +157,7 @@ buckets.BSTree = function (compareFunction) {
         root;
 
     // Returns the sub-node containing the specified element or undefined.
+    /* @id bstree_searchNode */
     function searchNode(root, element) {
         var node = root,
             cmp;
@@ -172,6 +173,7 @@ buckets.BSTree = function (compareFunction) {
     }
 
     // Returns the sub-node containing the minimum element or undefined.
+    /* @id bstree_minimumAux */
     function minimumAux(root) {
         var node = root;
         while (node.leftCh !== undefined) {
@@ -185,6 +187,7 @@ buckets.BSTree = function (compareFunction) {
      * @param {Object} element The element to insert.
      * @return {boolean} True if the tree didn't already contain the element.
      */
+    /* @id bstree_add */
     tree.add = function (element) {
         if (buckets.isUndefined(element)) {
             return false;
@@ -193,6 +196,7 @@ buckets.BSTree = function (compareFunction) {
         /**
          * @private
          */
+        /* @id bstree_add_insertNode */
         function insertNode(node) {
             var position = root,
                 parent,
@@ -239,6 +243,7 @@ buckets.BSTree = function (compareFunction) {
     /**
      * Removes all the elements from the tree.
      */
+    /* @id bstree_clear */
     tree.clear = function () {
         root = undefined;
         nElements = 0;
@@ -248,6 +253,7 @@ buckets.BSTree = function (compareFunction) {
      * Returns true if the tree contains no elements.
      * @return {boolean} True if the tree contains no elements.
      */
+    /* @id bstree_isEmpty */
     tree.isEmpty = function () {
         return nElements === 0;
     };
@@ -256,6 +262,7 @@ buckets.BSTree = function (compareFunction) {
      * Returns the number of elements in the tree.
      * @return {number} The number of elements in the tree.
      */
+    /* @id bstree_size */
     tree.size = function () {
         return nElements;
     };
@@ -266,6 +273,7 @@ buckets.BSTree = function (compareFunction) {
      * @return {boolean} True if the tree contains the element,
      * false otherwise.
      */
+    /* @id bstree_contains */
     tree.contains = function (element) {
         if (buckets.isUndefined(element)) {
             return false;
@@ -277,9 +285,11 @@ buckets.BSTree = function (compareFunction) {
      * Removes the specified element from the tree.
      * @return {boolean} True if the tree contained the specified element.
      */
+    /* @id bstree_remove */
     tree.remove = function (element) {
         var node;
 
+        /* @id bstree_remove_transplant */
         function transplant(n1, n2) {
             if (n1.parent === undefined) {
                 root = n2;
@@ -292,7 +302,7 @@ buckets.BSTree = function (compareFunction) {
                 n2.parent = n1.parent;
             }
         }
-
+        /* @id bstree_remove_removeNode */
         function removeNode(node) {
             if (node.leftCh === undefined) {
                 transplant(node, node.rightCh);
@@ -325,8 +335,9 @@ buckets.BSTree = function (compareFunction) {
      * @param {function(Object):*} callback Function to execute, invoked with an element as 
      * argument. To break the iteration you can optionally return false in the callback.
      */
+    /* @id bstree_inorderTraversal */
     tree.inorderTraversal = function (callback) {
-
+        /* @id bstree_inorderTraversal_inorderRecursive */
         function inorderRecursive(node, callback, signal) {
             if (node === undefined || signal.stop) {
                 return;
@@ -352,8 +363,9 @@ buckets.BSTree = function (compareFunction) {
      * @param {function(Object):*} callback Function to execute, invoked with an element as 
      * argument. To break the iteration you can optionally return false in the callback.
      */
+    /* @id bstree_preorderTraversal */
     tree.preorderTraversal = function (callback) {
-
+        /* @id bstree_preorderTraversal_preorderRecursive */
         function preorderRecursive(node, callback, signal) {
             if (node === undefined || signal.stop) {
                 return;
@@ -379,8 +391,9 @@ buckets.BSTree = function (compareFunction) {
      * @param {function(Object):*} callback Function to execute, invoked with an element as 
      * argument. To break the iteration you can optionally return false in the callback.
      */
+    /* @id bstree_postorderTraversal */
     tree.postorderTraversal = function (callback) {
-
+        /* @id bstree_postorderTraversal_postorderRecursive */
         function postorderRecursive(node, callback, signal) {
             if (node === undefined || signal.stop) {
                 return;
@@ -407,8 +420,9 @@ buckets.BSTree = function (compareFunction) {
      * @param {function(Object):*} callback Function to execute, invoked with an element as 
      * argument. To break the iteration you can optionally return false in the callback.
      */
+    /* @id bstree_levelTraversal */
     tree.levelTraversal = function (callback) {
-
+        /* @id bstree_levelTraversal_levelAux */
         function levelAux(node, callback) {
             var queue = buckets.Queue();
             if (node !== undefined) {
@@ -436,6 +450,7 @@ buckets.BSTree = function (compareFunction) {
      * @return {*} The minimum element of the tree or undefined if the tree
      * is empty.
      */
+    /* @id bstree_minimum */
     tree.minimum = function () {
         if (tree.isEmpty()) {
             return undefined;
@@ -448,8 +463,9 @@ buckets.BSTree = function (compareFunction) {
      * @return {*} The maximum element of the tree or undefined if the tree
      * is empty.
      */
+    /* @id bstree_maximum */
     tree.maximum = function () {
-
+        /* @id bstree_maximum_maximumAux */
         function maximumAux(node) {
             while (node.rightCh !== undefined) {
                 node = node.rightCh;
@@ -471,6 +487,7 @@ buckets.BSTree = function (compareFunction) {
      * invoked with an element argument. To break the iteration you can
      * optionally return false in the callback.
      */
+    /* @id bstree_forEach */
     tree.forEach = function (callback) {
         tree.inorderTraversal(callback);
     };
@@ -479,8 +496,11 @@ buckets.BSTree = function (compareFunction) {
      * Returns an array containing all the elements in the tree in in-order.
      * @return {Array} An array containing all the elements in the tree in in-order.
      */
+    /* @id bstree_toArray */
     tree.toArray = function () {
         var array = [];
+        
+        /* @id bstree_toArray_callback */
         tree.inorderTraversal(function (element) {
             array.push(element);
         });
@@ -491,15 +511,16 @@ buckets.BSTree = function (compareFunction) {
      * Returns the height of the tree.
      * @return {number} The height of the tree or -1 if it's empty.
      */
+    /* @id bstree_height */
     tree.height = function () {
-
+        /* @id bstree_height_heightAux */
         function heightAux(node) {
             if (node === undefined) {
                 return -1;
             }
             return Math.max(heightAux(node.leftCh), heightAux(node.rightCh)) + 1;
         }
-
+        /* @id bstree_height_heightAux */
         function heightRecursive(node) {
             if (node === undefined) {
                 return -1;
@@ -516,6 +537,7 @@ buckets.BSTree = function (compareFunction) {
      * @param {buckets.BSTree} other The other tree.
      * @return {boolean} True if the tree is equal to the given tree.
      */
+    /* @id bstree_equals */
     tree.equals = function (other) {
         var isEqual;
 
@@ -527,6 +549,8 @@ buckets.BSTree = function (compareFunction) {
         }
 
         isEqual = true;
+        
+        /* @id bstree_equals_callback */
         other.forEach(function (element) {
             isEqual = tree.contains(element);
             return isEqual;

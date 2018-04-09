@@ -552,6 +552,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * empty array if the dictionary contains no 
      * mappings for the provided key.
      */
+    /* @id multiDict_get */
     multiDict.get = function (key) {
         var values = parent.get(key);
         if (buckets.isUndefined(values)) {
@@ -567,6 +568,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * @param {Object} value The value to associate.
      * @return {boolean} True if the value was not already associated with that key.
      */
+    /* @id multiDict_set */
     multiDict.set = function (key, value) {
         var array;
         if (buckets.isUndefined(key) || buckets.isUndefined(value)) {
@@ -594,6 +596,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * @return {*} True if the dictionary changed, false if the key doesn't exist or
      * if the specified value isn't associated with the given key.
      */
+    /* @id multiDict_remove */
     multiDict.remove = function (key, value) {
         var v, array;
         if (buckets.isUndefined(value)) {
@@ -617,6 +620,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * Returns an array containing all the keys in the dictionary.
      * @return {Array} An array containing all the keys in the dictionary.
      */
+    /* @id multiDict_keys */
     multiDict.keys = function () {
         return parent.keys();
     };
@@ -625,6 +629,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * Returns an array containing all the values in the dictionary.
      * @return {Array} An array containing all the values in the dictionary.
      */
+    /* @id multiDict_values */
     multiDict.values = function () {
         var values = parent.values(),
             array = [],
@@ -646,6 +651,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * @return {boolean} True if the dictionary has at least one value associatted
      * the specified key.
      */
+    /* @id multiDict_containsKey */
     multiDict.containsKey = function (key) {
         return parent.containsKey(key);
     };
@@ -653,6 +659,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
     /**
      * Removes all keys and values from the dictionary.
      */
+    /* @id multiDict_clear */
     multiDict.clear = function () {
         return parent.clear();
     };
@@ -661,6 +668,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * Returns the number of keys in the dictionary.
      * @return {number} The number of keys in the dictionary.
      */
+    /* @id multiDict_size */
     multiDict.size = function () {
         return parent.size();
     };
@@ -669,6 +677,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * Returns true if the dictionary contains no mappings.
      * @return {boolean} True if the dictionary contains no mappings.
      */
+    /* @id multDict_isEmpty */
     multiDict.isEmpty = function () {
         return parent.isEmpty();
     };
@@ -680,6 +689,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * 2 arguments: key and an array of values. To break the iteration you can
      * optionally return false inside the callback.
      */
+    /* @id multiDict_forEach */
     multiDict.forEach = function (callback) {
         return parent.forEach(callback);
     };
@@ -690,6 +700,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * @param {buckets.MultiDictionary} other The other dictionary.
      * @return {boolean} True if the dictionary is equal to the given dictionary.
      */
+    /* @id multiDict_equals */
     multiDict.equals = function (other) {
         var isEqual = true,
             thisValues;
@@ -700,12 +711,13 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
         if (multiDict.size() !== other.size()) {
             return false;
         }
-
+        /* @id multiDict_equals_callback */
         other.forEach(function (key, otherValues) {
             thisValues = multiDict.get(key) || [];
             if (thisValues.length !== otherValues.length) {
                 isEqual = false;
             } else {
+                /* @id multiDict_equals_callback_2 */
                 buckets.arrays.forEach(thisValues, function (value) {
                     isEqual = buckets.arrays.contains(otherValues, value, equalsF);
                     return isEqual;

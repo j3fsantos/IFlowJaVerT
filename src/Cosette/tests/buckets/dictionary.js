@@ -156,6 +156,7 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {*} The mapped value or
      * undefined if the dictionary contains no mapping for the provided key.
      */
+    /* @id dictionary_get */
     dictionary.get = function (key) {
         var pair = table[keyPrefix + toStr(key)];
         if (buckets.isUndefined(pair)) {
@@ -173,6 +174,7 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {*} Previous value associated with the provided key, or undefined if
      * there was no mapping for the key or the key/value is undefined.
      */
+    /* @id dictionary_set */
     dictionary.set = function (key, value) {
         var ret, k, previousElement;
         if (buckets.isUndefined(key) || buckets.isUndefined(value)) {
@@ -200,6 +202,7 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {*} Removed value associated with the specified key, or undefined if
      * there was no mapping for the key.
      */
+    /* @id dictionary_remove */
     dictionary.remove = function (key) {
         var k = keyPrefix + toStr(key),
             previousElement = table[k];
@@ -215,6 +218,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns an array containing all the keys in the dictionary.
      * @return {Array} An array containing all the keys in the dictionary.
      */
+    /* @id dictionary_keys */
     dictionary.keys = function () {
         var array = [],
             name;
@@ -230,6 +234,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns an array containing all the values in the dictionary.
      * @return {Array} An array containing all the values in the dictionary.
      */
+    /* @id dictionary_values */
     dictionary.values = function () {
         var array = [],
             name;
@@ -248,6 +253,7 @@ buckets.Dictionary = function (toStrFunction) {
      * 2 arguments: key and value. To break the iteration you can
      * optionally return false inside the callback.
      */
+    /* @id dictionary_forEach */
     dictionary.forEach = function (callback) {
         var name, pair, ret;
         for (name in table) {
@@ -267,6 +273,7 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {boolean} True if the dictionary contains a mapping for the
      * specified key.
      */
+    /* @id dictionary_containsKey */
     dictionary.containsKey = function (key) {
         return !buckets.isUndefined(dictionary.get(key));
     };
@@ -275,6 +282,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Removes all keys and values from the dictionary.
      * @this {buckets.Dictionary}
      */
+    /* @id dictionary_clear */
     dictionary.clear = function () {
         table = {};
         nElements = 0;
@@ -284,6 +292,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns the number of key-value pais in the dictionary.
      * @return {number} The number of key-value mappings in the dictionary.
      */
+    /* @id dictionary_size */
     dictionary.size = function () {
         return nElements;
     };
@@ -292,6 +301,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns true if the dictionary contains no keys.
      * @return {boolean} True if this dictionary contains no mappings.
      */
+    /* @id dictionary.isEmpty */
     dictionary.isEmpty = function () {
         return nElements <= 0;
     };
@@ -306,6 +316,7 @@ buckets.Dictionary = function (toStrFunction) {
      * the === operator is used to check equality between values.
      * @return {boolean} True if the dictionary is equal to the given dictionary.
      */
+    /* @id dictionary_equals */
     dictionary.equals = function (other, equalsFunction) {
         var eqf, isEqual;
         if (buckets.isUndefined(other) || typeof other.keys !== 'function') {
@@ -316,6 +327,7 @@ buckets.Dictionary = function (toStrFunction) {
         }
         eqf = equalsFunction || buckets.defaultEquals;
         isEqual = true;
+        /* @id dictionary_equals_callback */
         other.forEach(function (k, v) {
             isEqual = eqf(dictionary.get(k), v);
             return isEqual;
