@@ -1,9 +1,8 @@
 %!TEX root = ../main.tex
 
-\pmax{Ok, plan:
+\pmax{
 Examples:
 \begin{itemize}
-\item simple hasOwnProperty
 \item from spec hasOwnProperty
 \item procedural local bug - get
 \end{itemize}
@@ -95,7 +94,7 @@ Let us briefly comment on this test. In line 1, we declare \jsinline|k| to be a 
 
 % 
 When running \jilette on the above test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
-we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap in Figure~\ref{map:example}~(right) and the implementation of \jsinline|get| in Figure~\ref{map:example}~(left). We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error, as illustrated below.
+we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap and the implementation of \jsinline|get| from Figure~\ref{map:example}. We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error, as illustrated below.
 
 \vspace{-0.2cm}
 \begin{figure}[h!]
@@ -111,36 +110,36 @@ symbolic variables and the writing of assumptions and assertions, remaining mini
 
 \subsection{Specification-directed Symbolic Debugging}
 
-\begin{figure}[!h]
-\centering
-\includegraphics[width=0.6\textwidth]{figures/symbvsass.png}
+%\begin{figure}[!h]
+%\centering
+%\includegraphics[width=0.6\textwidth]{figures/symbvsass.png}
+%
+%\vspace*{-0.7cm}
+%{\small $$
+%\text{\emph{Negative resource constraints: }} \{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}
+%$$}
+%\vspace{-0.8cm}
+%\caption{Assertion vs. Symbolic Heap: {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}}\label{fig:symb:state:versus:assertion}
+%\vspace{-0.5cm}
+%\end{figure}
 
-\vspace*{-0.7cm}
-{\small $$
-\text{\emph{Negative resource constraints: }} \{ \hat{s}_1, \hat{s}_2 \} \subseteq \{ \hat{s}_1, \hat{s}_2 \}
-$$}
-\vspace{-0.8cm}
-\caption{Assertion vs. Symbolic Heap: {\small$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}}\label{fig:symb:state:versus:assertion}
-\vspace{-0.5cm}
-\end{figure}
+We now illustrate how \jilette can be used in the debugging of separation logic specifications of JavaScript programs. For that, we revisit the specification of key-value maps from JaVerT~\cite{javert}, a toolchain for JavaScript verification based on separation logic, which involves several predicates, shown below. These predicates use JavaScript-specific abstractions that hide the internals of the language, such as \jsinline|JSObject(c)|, which states that \jsinline|c| is a standard JavaScript object, and \jsinline|DataProp(o, p, v)|, which states that the property \jsinline|p| of \jsinline|o| has value \jsinline|v|.
 
-We now illustrate how to use \jilette in debugging of separation logic specifications. 
-In order to reason about a key-value map, we define several predicates, whose definitions we show below.
+% \textcolor{red}{(m, "get") -> None * (m, "put") -> None * (m, "validKey") -> None} * 
 
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-Map (m, kvs) := 
-  DataProp(m, "_contents", c) * JSObject(c) * 
-    \textcolor{red}{(m, "get") -> None * (m, "put") -> None * (m, "validKey") -> None} * 
-    KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys)
+    Map (m, kvs) := DataProp(m, "_contents", c) * JSObject(c) * 
+                      KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys)
 \end{Verbatim}
  \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-KVPairs (o, kvs) := 
-  (kvs = \{ \}),
-  (kvs = (k, v) -u- kvs') * ValidKey(k) * DataProp(o, k, v) * KVPairs(o, kvs')
+KVPairs (o, kvs) := (kvs = \{ \}),
+                    (kvs = (k, v) -u- kvs') * ValidKey(k) * DataProp(o, k, v) * KVPairs(o, kvs')
 \end{Verbatim}
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-ValidKey (k) := types(k : Str) * \textcolor{red}{(k <> "hasOwnProperty")}
+    ValidKey (k) := types(k : Str) * \textcolor{red}{(k <> "hasOwnProperty")}
 \end{Verbatim}
+
+
 
 The \jsinline|Map| predicate captures the resource corresponding to a map object. 
 Concretely, it first states that the map object has the property \jsinline|_contents|, which points to a default JavaScript object \jsinline|c|, using the predicates \jsinline|DataProp| and \jsinline|JSObject|. 
@@ -212,11 +211,11 @@ The predicate \jsinline|MapProto| specifies the resource of a valid map prototyp
 
 
 Now, if we forgot to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we did not state that $\mathtt{k}$ needed to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| would fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
-In that case, as illustrated in Figure~\ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype| would no longer be reachable by property lookup from \jsinline|c|, and
+In that case, as in the as illustrated in Figure~\ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype| would no longer be reachable by property lookup from \jsinline|c|, and
 the execution of line~5 (\jsinline|if (c.hasOwnProperty(k))|) would raise an error, as it would attempt to call the \jsinline|"hasOwnProperty"| property of object \jsinline|c| as a function instead. 
 Since this specification of $\mathtt{get(k)}$ requires normal termination, the raising of an error is considered a violation of the specification and 
 \jilette will produce the counter-model \jsinline|k = "hasOwnProperty"|.
 
-
+\subsection{Catching procedure-local bugs}
 
 %the jump to the error label in the compiled \jsil code will trigger the $\assert(\jfalse)$ of the generated symbolic test and the developer will be presented with the counter-model \jsinline|k = "hasOwnProperty"|.
