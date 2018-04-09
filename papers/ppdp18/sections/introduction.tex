@@ -5,12 +5,12 @@ it is used for server-side scripting via Node.js; and it is even run on small em
 memory. It is the most active language in both GitHub \cite{GithubActive} and StackOverflow \cite{SOActive}.
 The dynamic nature of JavaScript and its complex semantics make it a difficult target for
 symbolic analysis and logic-based verification. 
-This paper presents \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5~\cite{ecma}).
+This paper presents \cosette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5~\cite{ecma}).
 %
-We highlight two relevant use cases for \jilette. First, we show how \jilette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
+We highlight two relevant use cases for \cosette. First, we show how \cosette can be used as \dtag{i}~a tool for running symbolic tests for JavaScript programs; and \dtag{ii} a debugging tool for separation logic specifications of JavaScript programs. 
 
 \myparagraph{Architecture}
-The core of \jilette consists of a symbolic interpreter for
+The core of \cosette consists of a symbolic interpreter for
 \jsil~\cite{javert}, a simple intermediate goto language. 
 We obtain this symbolic interpreter \emph{for free}, 
 by implementing a concrete \jsil interpreter in Rosette~\cite{Rosette2,Rosette1},~a 
@@ -20,7 +20,7 @@ features, such as advanced string and regular-expression reasoning,
 are lifted to the \jsil symbolic interpreter. 
 In~\S\ref{sec:jsil:symb:exec}, we give a formalisation of the \jsil concrete and symbolic executions, linking them together with a {\em soundness result}. We also provide insights on how to correctly design the concrete \jsil interpreter in Rosette.
 
-The second component that \jilette uses is \JSComp~\cite{javert}, 
+The second component that \cosette uses is \JSComp~\cite{javert}, 
 a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
 \JSComp with support for the non-strict mode of ES5, as well as
 regular expressions and the entire \jsinline|String| built-in library.
@@ -40,15 +40,15 @@ approach to obtaining trust in JavaScript code is running it against
 adhoc test batteries---verifying that given concrete inputs, the code produces the expected
 output. The main drawback of this approach is that tests, in general,
 cannot guarantee exhaustiveness. % we also cant guarantee exhaustiveness 
-In \S\ref{symbolic:testing}, we show how to use \jilette
+In \S\ref{symbolic:testing}, we show how to use \cosette
 for symbolic testing of JavaScript code: instead of 
 tests with concrete 
 inputs, the developer uses symbolic inputs and states the 
 constraints that the output needs to satisfy as simple, intuitive 
 first-order assertions over these inputs. 
-Furthermore, if a test fails, \jilette provides the concrete inputs that cause it 
+Furthermore, if a test fails, \cosette provides the concrete inputs that cause it 
 to fail, exposing bugs in the tested code. 
-We highlight the capabilities of \jilette through examples that showcase
+We highlight the capabilities of \cosette through examples that showcase
 challenging reasoning on strings, regular expressions, and the \jsinline|eval|
 statement.
 
@@ -61,22 +61,22 @@ However, when these
 tools cannot prove that a given function satisfies a specification, to discover the error, 
 the developer needs to understand in detail a complicated proof trace (\javert), or even act with almost no feedback~(KJS). 
 
-In \S\ref{sec:specs}, we show how \jilette can be used as an auxiliary mechanism for debugging 
+In \S\ref{sec:specs}, we show how \cosette can be used as an auxiliary mechanism for debugging 
 separation logic specifications of JavaScript programs in \javert. 
 Our approach consists of: translating the separation logic specifications 
 into symbolic tests 
-and running these tests using \jilette. 
+and running these tests using \cosette. 
 Then, if a symbolic test generated from a given specification fails, we can 
 be sure that the code to be verified does not satisfy its specification. 
-More importantly, \jilette then generates a concrete witness that 
+More importantly, \cosette then generates a concrete witness that 
 invalidates the specification. This information greatly simplifies the debugging of 
 both specifications and code. 
 
-\myparagraphq{Why \jilette} 
-\jilette is \emph{useful}: it has tangible applications. 
+\myparagraphq{Why \cosette} 
+\cosette is \emph{useful}: it has tangible applications. 
 It can report bugs in JavaScript programs, producing concrete witnesses triggering the bugs. It can also be used as a helper tool for developers of logic-based functional correctness specifications of JavaScript code.
-\jilette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \jilette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
-\jilette is \emph{trustworthy}: its components come with correctness guarantees. 
-The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \jilette symbolic execution engine is based on a sound symbolic
+\cosette is \emph{approachable}: it can easily be used by a general JavaScript developer. The annotation burden of \cosette is minimal and the assertion language is simple and intuitive. \polish{Sweet spot?}
+\cosette is \emph{trustworthy}: its components come with correctness guarantees. 
+The correctness of the \JSComp compiler ensures full adherence to the real semantics of JavaScript. The \cosette symbolic execution engine is based on a sound symbolic
 analysis for \jsil, guaranteeing the absence of false positives. \polish{Sentence about unification.}
-Finally, \jilette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.
+Finally, \cosette is \emph{extensible}: its coverage can easily be extended in a modular way. This gives us the mechanism for supporting built-in libraries not covered by \JSComp, or adding support for standard-external runtime libraries, such as the DOM.

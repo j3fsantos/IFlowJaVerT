@@ -607,7 +607,7 @@ Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbo
 \centering
 \includegraphics[width=0.83\textwidth]{symbSemEx.png}
 \vspace*{-0.1cm}
-\caption{Example of a \jilette symbolic execution}
+\caption{Example of a \cosette symbolic execution}
 \label{fig:sexecexample}
 \vspace*{-0.3cm}
 \end{figure}
@@ -790,7 +790,7 @@ then there also exists a concrete execution that will cause that assertion to fa
 Observe that the analysis is designed in such a way that there are no false positives, 
 meaning that if we find a failing symbolic trace,
 we can always instantiate its symbolic values obtaining a concrete counter-model for the 
-failing assertion. This is essential, as \jilette is primarily a \emph{bug-finding} tool.
+failing assertion. This is essential, as \cosette is primarily a \emph{bug-finding} tool.
 
 
 \begin{corollary}[Bug-finding]\label{bug:finding}
@@ -806,7 +806,7 @@ starting from a given symbolic CF-state $(\sstate, \scs)$,
 then the execution of the program starting from  any concrete state in the models 
 of the initial symbolic state (under the initial path condition) will result in a final concrete state
 in the models of one of the final symbolic states (under its associated path condition).  
-As \jilette does not infer loop invariants, if a \jsil program contains loops that cannot be 
+As \cosette does not infer loop invariants, if a \jsil program contains loops that cannot be 
 unrolled statically, we will never be in the case of the verification corollary. 
 
 \begin{corollary}[Verification]\label{corollary:verification}

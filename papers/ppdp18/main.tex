@@ -147,7 +147,7 @@
 \newcommand{\JSComp}{JS-2-JSIL\xspace}
 \newcommand{\jsilverify}{JSILVerify\xspace}
 
-\newcommand{\jilette}{Cosette\xspace}
+\newcommand{\cosette}{Cosette\xspace}
 \newcommand{\rosette}{Rosette\xspace}
 
 \newcommand{\myparagraph}[1]{\smallskip\noindent {\bf #1.}\hspace{1pt}}
@@ -202,17 +202,17 @@
 \fi}
 
 \begin{document}
-\title{\jilette: Trusted Symbolic Testing for JavaScript}
+\title{\cosette: Trusted Symbolic Testing for JavaScript}
 
 \begin{abstract}
-We present \jilette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. 
-At the core of \jilette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. 
+We present \cosette, a symbolic execution tool for JavaScript (ECMAScript 5, ES5), which precisely follows the language standard. 
+At the core of \cosette is a sound symbolic interpreter for \jsil, an intermediate language well-suited for verification and analysis. 
 This interpreter is written in \underline{Rosette}, a symbolic virtual machine that enables the design of new solver-aided languages. 
-\jilette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
-We study two complementary uses of \jilette. 
-First, we show how \jilette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
-We highlight the range of \jilette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
-Second, building on \jilette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find witnesses for bugs in both specification and code.
+\cosette works by first compiling JavaScript programs to \jsil using \underline{\JSComp}, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the compiled \jsil code in the \jsil symbolic interpreter. 
+We study two complementary uses of \cosette. 
+First, we show how \cosette can be used for symbolic testing of JavaScript programs by finding concrete executions that trigger assertion and test failures. 
+We highlight the range of \cosette by giving examples using strings, regular expressions, and the notorious \jsinline|eval| statement.
+Second, building on \cosette, we develop a tool for debugging separation logic specifications by compiling them to symbolic tests in order to find witnesses for bugs in both specification and code.
 \end{abstract}
 
 %
