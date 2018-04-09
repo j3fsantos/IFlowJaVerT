@@ -95,7 +95,14 @@ Let us briefly comment on this test. In line 1, we declare \jsinline|k| to be a 
 
 % 
 When running \jilette on the above test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
-we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap in Figure~\ref{map:example}~(right) and the implementation of \jsinline|get| in Figure~\ref{map:example}~(left). We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error.
+we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap in Figure~\ref{map:example}~(right) and the implementation of \jsinline|get| in Figure~\ref{map:example}~(left). We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error, as illustrated below.
+
+\vspace{-0.2cm}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/heapfail.png}
+\vspace{-0.2cm}
+\end{figure}
 
 This example highlights how \jilette does not require specialist knowledge, and can, therefore, 
 be used by almost any JavaScript developer. The annotation burden amounts to the creation of 
@@ -202,13 +209,7 @@ The predicate \jsinline|ObjProtoF()| describes the resource captured by the \jsi
 In particular, it is needed because \texttt{get} uses the \texttt{hasOwnProperty} function, which is defined as a property of \jsinline|Object.prototype|. 
 The predicate \jsinline|MapProto| specifies the resource of a valid map prototype: in particular, the map prototype needs to define the methods \jsinline|put|, \jsinline|get|, and \jsinline|validKey|. Finally, note that, given the definition of the \jsinline|Map| and \jsinline|KVPairs| predicates, both preconditions shown entail that \jsinline|k| is a valid key.
 
-\begin{figure}[t!]
-\centering
-\includegraphics[width=0.9\textwidth]{figures/heapfail.png}
-\caption{Property shadowing: \jsinline|c.hasOwnProperty(...)| cannot reach \jsinline|Object.prototype|.} 
-\label{fig:cexget}
-\vspace{-0.5cm}
-\end{figure}
+
 
 Now, if we forgot to state the part of the $\mathtt{ValidKey(k)}$ predicate highlighted in red, that is, if we did not state that $\mathtt{k}$ needed to be different from \jsinline|"hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| would fail for unfoldings of $\mathtt{KVPairs}$ of depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|. 
 In that case, as illustrated in Figure~\ref{fig:cexget}, the \jsinline|"hasOwnProperty"| property of \jsinline|Object.prototype| would no longer be reachable by property lookup from \jsinline|c|, and
