@@ -1,1 +1,82 @@
 %!TEX root = ../main.tex
+
+\subsection{Concrete interpreter evaluation}
+
+Petar goes here
+
+\subsection{Symbolic interpreter evaluation}
+
+We validate \cosette as a JavaScript interpreter in paragraph~\ref{p1}, showcase its tractability by fully testing a library from node.js in paragraph~\ref{p2}, and demonstrate its symbolic bug-finding abilities with a real-world example in paragraph~\ref{p3}.
+
+\myparagraph{Challenging examples}
+
+\myparagraph{Buckets.js testing}
+
+The Buckets library is a JavaScript data-structure library available on GitHub~\ref{buckets}.
+It presents itself as "fully tested", and comes with a test suite that cover each of its files.
+Using \cosette, we translated these concrete tests into symbolic tests that are shorter, easier to maintain, and have more coverage; indeed, we found that some code paths were never taken in the original tests.
+
+Example: the \jsinline{queue.js} file (unless we find an even better one)
+
+Coverage: the table with coverage and time per file
+
+\begin{wraptable}{R}{0.5\textwidth}
+{\small
+	\centering
+	\vspace*{-0.1cm}
+	\caption{\cosette Verification Statistics}
+	\label{tab:stats}
+	\vspace*{-0.35cm}
+%    \rowcolors{2}{SkyBlue!20}{white}
+    \begin{tabular}{|lcccc|}
+    \hline
+%      \rowcolor{SkyBlue!40}
+      {\bfseries Example} & {\bfseries \#JS} & {\bfseries \#JSIL} & {\bfseries \#specs} & {\bfseries t(s)} \\
+      \hline
+      Key-value map		&  23 &  523 &   9 &  3.37 \\
+      ID Generator		&  16 &  330 &   4 &  0.73 \\ 
+      Priority queue	&  46 & 1003 &  10 &  7.14 \\
+      BST				&  70 & 1032 &   5 &  7.38 \\
+      Insertion sort	&  24 &  415 &   2 &  1.78 \\
+      Test262 examples  & 113 & 1367 &  16 &  3.46 \\
+      \hline
+   \end{tabular}
+  }
+  \vspace*{-0.4cm}
+\end{wraptable}
+
+\FloatBarrier
+
+\myparagraph{Debugging the \jsinline{queue-pri} library} 
+
+The JavaScript \jsinline{queue-pri} library is a priority queue library available on GitHub~\ref{queue-pri}, that allows the user to enqueue data with an optional priority value.
+
+Using \cosette, we were able to find an implementation bug for which the priority value given by the user was disregarded, because of a subtlety in the JavaScript interaction between \jsinline{0}, \jsinline{null}, and \jsinline{undefined} values.
+
+\begin{lstjs}
+var x1 = symb_number(x1);
+var x2 = symb_number(x2);
+var s1 = symb_string(s1);
+var s2 = symb_string(s2);
+
+queue.enqueue(s1, x1);
+queue.enqueue(s2, x2);
+
+var y1 = queue.dequeue().data;
+var y2 = queue.dequeue().data;
+
+Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) 
+    or ((x1 = x2) and (y1 = s1) and (y2 = s2))
+    or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
+\end{lstjs}
+
+\begin{lstjs}
+var payload = {
+    data: data,
+    priority: pri || null
+};
+\end{lstjs}
+
+\subsection{Spec-driven bugfinding}
+
+José goes here
