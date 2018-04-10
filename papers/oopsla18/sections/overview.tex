@@ -131,19 +131,19 @@ We have that \jsinline|kvs| is either empty or that it contains at least one key
 in which case we state that the key \jsinline|k| must be valid, that object \jsinline|o| has  property \jsinline|k| with value \jsinline|v|, and proceed recursively.
 The uniqueness of keys is guaranteed by the \jsinline|DataProp| predicate of \jsinline|KVPairs| and the separating conjunction.
 
-The \jsinline|ValidKey(k)| predicate captures the validity of a given key and holds \emph{iff} the corresponding JavaScript function \jsinline|validKey(k)| returns \jsinline|true|.
-In the definition of \jsinline|ValidKey|, we highlight in red a potential bug in the specification, already seen in the symbolic testing example.
-% source of errors on which we will focus shortly.
-
-\begin{wrapfigure}{R}{0.50\textwidth}
+\begin{wrapfigure}{R}{0.3\textwidth}
 \vspace*{-0.45cm}
 \centering
-\includegraphics[width=0.49\textwidth]{figures/symbvsass.png}
+\includegraphics[width=0.29\textwidth]{figures/symbvsass.png}
 \vspace*{-0.3cm}
 \caption{Unfolded assertion {\scriptsize$\mathtt{Map(map, \{ (\hat{s}_1, \hat{n}_1), (\hat{s}_2, \hat{n}_2) \} )}$}}\label{fig:symb:state:versus:assertion}
 \label{fig:unfolded}
 \vspace*{-0.4cm}
 \end{wrapfigure}
+
+The \jsinline|ValidKey(k)| predicate captures the validity of a given key and holds \emph{iff} the corresponding JavaScript function \jsinline|validKey(k)| returns \jsinline|true|.
+In the definition of \jsinline|ValidKey|, we highlight in red a potential bug in the specification, already seen in the symbolic testing example.
+% source of errors on which we will focus shortly.
 
 To give a better intuition of how the \jsinline|Map| predicate works, we show the full unfolding of {\small$\mathtt{Map(map, \{ (k_1, v_1), (k_2, v_2) \} )}$} in Figure \ref{fig:symb:state:versus:assertion}. Below, we show the relevant parts of the specifications of \jsinline|get(k)| and \jsinline|put(k, v)|, for the case in which
  \jsinline|k| already exists in the map:
