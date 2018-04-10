@@ -499,6 +499,7 @@ buckets.Bag = function (toStrFunction) {
      */
     /* @id bag_forEach */
     bag.forEach = function (callback) {
+        /* @id bag_forEach_callback */
         dictionary.forEach(function (k, v) {
             var value = v.value,
                 copies = v.copies,
@@ -556,6 +557,7 @@ buckets.Bag = function (toStrFunction) {
         }
 
         isEqual = true;
+        /* @id bag_equals_callback */
         other.forEach(function (element) {
             isEqual = (bag.count(element) === other.count(element));
             return isEqual;
