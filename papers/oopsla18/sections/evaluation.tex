@@ -20,44 +20,54 @@ Example: the \jsinline{queue.js} file (unless we find an even better one)
 
 Coverage: the table with coverage and time per file
 
-\begin{wraptable}{R}{0.5\textwidth}
-{\small
-	\centering
-	\vspace*{-0.1cm}
-	\caption{\cosette Verification Statistics}
-	\label{tab:stats}
-	\vspace*{-0.35cm}
-%    \rowcolors{2}{SkyBlue!20}{white}
-    \begin{tabular}{|lcccc|}
-    \hline
-%      \rowcolor{SkyBlue!40}
-      {\bfseries Example} & {\bfseries \#JS} & {\bfseries \#JSIL} & {\bfseries \#specs} & {\bfseries t(s)} \\
-      \hline
-      Key-value map		&  23 &  523 &   9 &  3.37 \\
-      ID Generator		&  16 &  330 &   4 &  0.73 \\ 
-      Priority queue	&  46 & 1003 &  10 &  7.14 \\
-      BST				&  70 & 1032 &   5 &  7.38 \\
-      Insertion sort	&  24 &  415 &   2 &  1.78 \\
-      Test262 examples  & 113 & 1367 &  16 &  3.46 \\
-      \hline
-   \end{tabular}
-  }
-  \vspace*{-0.4cm}
-\end{wraptable}
+%\begin{wraptable}{R}{0.5\textwidth}
+%{\small
+%	\centering
+%	\vspace*{-0.1cm}
+%	\caption{\cosette Verification Statistics}
+%	\label{tab:stats}
+%	\vspace*{-0.35cm}
+%%    \rowcolors{2}{SkyBlue!20}{white}
+%    \begin{tabular}{|lcccc|}
+%    \hline
+%%      \rowcolor{SkyBlue!40}
+%      {\bfseries Example} & {\bfseries \#JS} & {\bfseries \#JSIL} & {\bfseries \#specs} & {\bfseries t(s)} \\
+%      \hline
+%      Key-value map		&  23 &  523 &   9 &  3.37 \\
+%      ID Generator		&  16 &  330 &   4 &  0.73 \\ 
+%      Priority queue	&  46 & 1003 &  10 &  7.14 \\
+%      BST				&  70 & 1032 &   5 &  7.38 \\
+%      Insertion sort	&  24 &  415 &   2 &  1.78 \\
+%      Test262 examples  & 113 & 1367 &  16 &  3.46 \\
+%      \hline
+%   \end{tabular}
+%  }
+%  \vspace*{-0.4cm}
+%\end{wraptable}
 
 \FloatBarrier
 
+% note: the - in \jsinline{queue-pri} doesn't have the same color as the rest (because it's a minus sign), find a nicer way to output this
 \myparagraph{Debugging the \jsinline{queue-pri} library} 
 
-The JavaScript \jsinline{queue-pri} library is a priority queue library available on GitHub~\ref{queue-pri}, that allows the user to enqueue data with an optional priority value.
+The JavaScript \jsinline{queue-pri} library is a priority queue library available on GitHub~\ref{queue-pri}.
+It provides a \jsinline{PriorityQueue} class; assuming object \jsinline{queue} is an instance of that class, the user can enqueue and dequeue objects with an integer priority value, by calling functions \jsinline{queue.enqueue(data, priority)} and \jsinline{queue.dequeue()}.
+In this implementation, objects with smaller priority values are considered to have a higher priority and are dequeued first.
+When enqueuing an object, the priority value is actually optional, and it will internally be replaced by \jsinline{null} if it isn't provided.
+This means that the object will be dequeued last, after all the objects that have explicit priority values.
+Using \cosette symbolic testing, we were able to find a bug in which the library does not respect the priority ordering of objects, and that is not covered by the test cases provided with the library.
+When inserting an object with priority value $0$ (by calling \jsinline{queue.enqueue(obj, 0)}), the code actually replaces the priority by the \jsinline{null} value and places the object at the end of the queue.
 
-Using \cosette, we were able to find an implementation bug for which the priority value given by the user was disregarded, because of a subtlety in the JavaScript interaction between \jsinline{0}, \jsinline{null}, and \jsinline{undefined} values.
+\subsubsection{Symbolic test and countermodel}
+
+We wrote the following symbolic example to test the code of the library.
+We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent the priority values.
+Then, we enqueue first string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
+Finally, we dequeue the two strings into variables \jsinline{y1} and \jsinline{y2}, and we make sure that the ordering is consistent: either \jsinline{x1} $\leq$ \jsinline{x2}, in which case \jsinline{y1} $=$ \jsinline{s1} and \jsinline{y2} $=$ \jsinline{s2} (remember that lower priority number means higher priority), or \jsinline{x1} $>$ \jsinline{x2} and then \jsinline{y1} $=$ \jsinline{s2} and \jsinline{y2} $=$ \jsinline{s1}.
 
 \begin{lstjs}
-var x1 = symb_number(x1);
-var x2 = symb_number(x2);
-var s1 = symb_string(s1);
-var s2 = symb_string(s2);
+var x1 = symb_number(x1), x2 = symb_number(x2);
+var s1 = symb_string(s1), s2 = symb_string(s2);
 
 queue.enqueue(s1, x1);
 queue.enqueue(s2, x2);
@@ -70,12 +80,34 @@ Assert(((x1 < x2) and (y1 = s1) and (y2 = s2))
     or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
 \end{lstjs}
 
+
+However, when running this example with \cosette, we get the following countermodel, which invalidates the assertion: \jsinline{x1 = 1, x2 = 0, s1 = "!0!", s2 = "!1!"}.
+When running the test with these concrete values, we indeed get \jsinline{y1 = "!0!" = s1}, and \jsinline{y2 = "!1!" = s2}, which contradicts the assertion.
+
+\subsubsection{Origin of the bug and fix}
+
+After inspecting the code, we found that the error comes from the \jsinline{queue.enqueue} function, specifically the following lines:
+
 \begin{lstjs}
-var payload = {
-    data: data,
-    priority: pri || null
+PriorityQueue.prototype = {
+    ...,
+    enqueue: function (data, pri) {
+        var payload = {
+            data: data,
+            priority: pri || null
+        };
+        ...
+    };
+    ...
 };
 \end{lstjs}
+
+When inserting an object with priority value \jsinline{pri = 0}, the \jsinline{pri || null} expression actually evaluates to \jsinline{null} instead of the expected \jsinline{0}, effectively disregarding the priority value.
+This bug was not detected by the test suite provided with the library, because all of the tests use either \jsinline{null} or strictly positive priority values, but never \jsinline{0}.
+We replaced the faulty line with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again; in this case, \cosette certified that the assertion always holds and that the fixed code is indeed correct, for all possible insertions of two objects with explicit priority values.
+
+This examples shows that \cosette is capable to find bugs in real-world code, even in the presence of handwritten test cases, by generating symbolic examples that break the implicit assumptions made by the code, or by revealing corner cases that had not been considered.
+
 
 \subsection{Spec-driven bugfinding}
 
