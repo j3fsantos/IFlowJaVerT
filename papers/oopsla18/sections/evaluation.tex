@@ -8,15 +8,57 @@ Petar goes here
 
 We validate \cosette as a JavaScript interpreter in paragraph~\ref{p1}, showcase its tractability by fully testing a library from node.js in paragraph~\ref{p2}, and demonstrate its symbolic bug-finding abilities with a real-world example in paragraph~\ref{p3}.
 
-\myparagraph{Challenging examples}
+\myparagraph{Challenging JavaScript examples}
 
-\myparagraph{Buckets.js testing}
+\cosette is able to verify JavaScript programs that use nontrivial parts of the JavaScript semantics, such as dynamic dispatch and property enumeration (via \jsinline{for-in} loops), in the symbolic world.
 
-The Buckets library is a JavaScript data-structure library available on GitHub~\ref{buckets}.
-It presents itself as "fully tested", and comes with a test suite that cover each of its files.
-Using \cosette, we translated these concrete tests into symbolic tests that are shorter, easier to maintain, and have more coverage; indeed, we found that some code paths were never taken in the original tests.
+\subsubsection{Dynamic dispatch}
+The following example demonstrates that \cosette is able to bring together complex symbolic string and mathematical reasoning with JavaScript's memory model.
+
+\begin{lstjs}
+var o = Object.create(null);
+
+o.plusOne = function(x) { return x + 1 };
+o.minusOne = function(x) { return x - 1 };
+
+var s1 = symb_string(s1), s2 = symb_string(s2);
+var n1 = symb_number(n1), n2 = symb_number(n2);
+
+Assume(not (n1 = n2));
+
+var total1 = o[s1](n1);
+var total2 = o[s2](n2);
+
+Assert(total1 = total2);
+\end{lstjs}
+
+In this example, we create an object \jsinline{o} that contains two functions, \jsinline{o.plusOne} and \jsinline{o.minusOne}, which respectively add and subtract $1$ from their argument.
+We create two symbolic strings \jsinline{s1} and \jsinline{s2}, and two distinct symbolic numbers \jsinline{n1} and {n2}.
+Then, we compute the result of applying function \jsinline{o[s1]} to \jsinline{n1}, and \jsinline{o[s2]} to \jsinline{n2}, stating with the \jsinline{Assert} statement that we want both these values to be equal.
+
+According to the different values that the strings \jsinline{s1} and \jsinline{s2} take, quite different things can happen.
+If \jsinline{s1} (or \jsinline{s2}) is not a valid property name of \jsinline{o}, the program will give a runtime error, because \jsinline{o[s1]} (or \jsinline{o[s2]}) evaluates to \jsinline{undefined}, which is not a function, and cannot be applied; when running the program with \cosette, we indeed get a concrete model for this failing case.
+
+If both \jsinline{s1} and \jsinline{s2} are valid property names for \jsinline{o}, the program is always executed until its end.
+In that case, \cosette is able to present us with a model for the final assertion to hold (for example, \jsinline{s1 = "minusOne", s2 = "plusOne", n1 = 0}, and \jsinline{n2 = -2}), as well as a model that invalidates the final assertion (for example, \jsinline{s1 = "minusOne", s2 = "minusOne", n1 = 0} and \jsinline{n2 = 1}).
+
+This example demonstrates that \cosette has a fine understanding of the mechanics that underly the dynamic dispatch system in JavaScript, and is able to not only infer possible dynamic function names for a property function call to work, but is also able to relate the dynamic name to the function output.
+
+
+\subsubsection{Property enumeration}
+The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties in JavaScript objects.
+
+
+\myparagraph{Extensive testing of the BucketsJS library}
+
+The BucketsJS library is a JavaScript data-structure library available on GitHub~\ref{buckets}.
+It presents itself as \emph{fully tested}, and comes with a test suite that cover each of the data structures it exposes.
+Using \cosette, we translated these concrete tests into symbolic tests that are shorter, easier to maintain, and have more extensive coverage.
+We found that some code paths were never executed in the original tests, demonstrating that \cosette can be effectively used as a tool aiding test development.
+
 
 Example: the \jsinline{queue.js} file (unless we find an even better one)
+
 
 Coverage: the table with coverage and time per file
 
