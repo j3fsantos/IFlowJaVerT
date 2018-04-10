@@ -1,7 +1,8 @@
 %!TEX root = ../main.tex
 
-Using the example of a \emph{key-value map}, given in Figure~\ref{map:example}~(left), we illustrate how \cosette can be used to run symbolic tests for unspecified JavaScript code and automatically generate symbolic tests for JavaScript code annotated with separation logic specifications.
-The implementation contains four functions: 
+We illustrate how \cosette can be used both for whole-program and compositional symbolic testing of JavaScript programs. In the latter setting, we demonstrate how \cosette  explicitly exposes the resilience of JavaScript programs to the environment, not  considered by standard symbolic execution tools, but essential for compositional analysis.
+
+Our running example is a \emph{key-value map} implementation, given in Figure~\ref{map:example}~(left). It contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with a given key;
 \jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding if a key is valid.
@@ -71,7 +72,7 @@ In Figure \ref{map:example}~(right), we show a general heap of key-value maps. T
 
 \lstnewenvironment{lstjsex}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}, numbers=none}}{}
 
-\subsection{Symbolic Testing}
+\subsection{Whole-program Symbolic Testing}
 \label{subsec:st}
 
 Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. With \cosette, they can write unit tests that use \emph{symbolic inputs}, targeting a more comprehensive range of behaviours. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as in Figure~\ref{test:map}. In lines~1-2, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \cosette's constructs for creating symbolic variables. In line 3, we assume that \jsinline|k| is a valid key. In lines 4-5, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 6, we assert that the retrieved value is equal to the one we had previously put.
@@ -108,8 +109,22 @@ This example highlights how \cosette does not require specialist knowledge and c
 be used by almost any JavaScript developer. The annotation burden amounts to the creation of 
 symbolic variables and the writing of assumptions and assertions, remaining minimal and intuitive, in stark contrast  with the standard annotation burden of verification tools.
 
-\subsection{Specification-directed Bug-finding}
+\subsection{Compositional Symbolic Testing}
 \label{subsec:sdbf}
+
+\pmax{
+\begin{itemize}
+\item Compositionality = resilience to frame
+\item Summaries have to be resilient to frame
+\item You can start with writing summaries in various ways, and then you'll slowly get bits of the state that are missing
+\item We write things that look like separation logic specs
+\item There are built-in predicates for objects, properties, function objects, etc.
+\item BUT there are also NONES, and this is what is new
+\item Now guide through
+\item POINT - resilient to ALL frames, for whole-program analysis we are resilient only to one frame - we do get to create it, but it's only one after all
+\item Then, we can have more general specs, but needn't necessarily
+\end{itemize}
+}
 
 As well as for whole-program analysis, \cosette can be used to debug incomplete code, where the user can specify the initial and final symbolic states. One supported way of specifying these symbolic states is via separation logic assertions in the style of JaVerT~\cite{javert}. Here, we illustrate how \cosette can be used in the debugging of separation logic specifications of JavaScript programs. For that, we revisit the \javert specification of key-value maps. This specification involves several predicates, shown below, which use JavaScript-specific abstractions that hide the internals of the language, such as \jsinline|JSObject(c)|, which states that \jsinline|c| is a standard JavaScript object, and \jsinline|DataProp(o, p, v)|, which states that the property \jsinline|p| of \jsinline|o| has value \jsinline|v|.
 
