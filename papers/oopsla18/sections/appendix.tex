@@ -73,7 +73,7 @@ $$
 \noindent \prooflab{Binary Operator} Similar to the previous case. 
 \end{proof}
 
-\begin{lemma}[Heap Update - Soundiness for Symbolic Semantics]
+\begin{lemma}[Heap Update - Soundiness for Symbolic Semantics]\label{lemma:soundiness:heap:update}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
@@ -94,12 +94,12 @@ Immediate from the definitions of $\hpupdt{\instrumented}$ and $\hpupdt{\symboli
 \end{proof}
 
 
-\begin{lemma}[Store Update - Soundiness for Symbolic Semantics]
+\begin{lemma}[Store Update - Soundiness for Symbolic Semantics]\label{lemma:soundiness:store:update}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
    \val = \interpret{\symbconc}{\senv}(\sexprv)   
-       \implies \stupdt{\instrumented}(\istate, \jvar, \val) = \interpret{\symbconc}{\senv}(\stupdt{\symbolic}(\sstate, \jvar, \sexprv))
+       \implies \stupdt{\symbolic}(\sstate, \jvar, \sexprv) = \interpret{\symbconc}{\senv}(\stupdt{\instrumented}(\istate, \jvar, \val)) 
 \end{array}
 $$
 \end{lemma}
@@ -108,7 +108,7 @@ Immediate from the definitions of $\stupdt{\instrumented}$ and $\stupdt{\symboli
 \end{proof}
 
 
-\begin{lemma}[Assume - Soundiness for Symbolic Semantics]
+\begin{lemma}[Assume - Soundiness for Symbolic Semantics]\label{lemma:soundiness:assume}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)  
@@ -173,7 +173,7 @@ $\interpret{\symbinst}{\senv}(\evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)) 
 \end{proof}
 
 
-\begin{lemma}[Symbolic Value Creation - Soundiness for Symbolic Semantics]
+\begin{lemma}[Symbolic Value Creation - Soundiness for Symbolic Semantics]\label{lemma:symbvalue:soundiness}
 $$
 \istate = \interpret{\symbinst}{\senv}(\sstate) 
    \implies \exists \, \senv' \, . \,  \senv' \fextends \senv \ \wedge \ \absmakesymbolicrule{\concrete}{\istate, \jtype} 
@@ -185,7 +185,7 @@ $$
  \end{proof}
 
 
-\begin{lemma}[GetCell - Soundiness for Symbolic Semantics]
+\begin{lemma}[GetCell - Soundiness for Symbolic Semantics]\label{soundiness:getcell}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)  \ \wedge \ 
@@ -277,7 +277,7 @@ $\evalexpr{\concrete}(\istate.\stosel, \jsilexpr_2) = p$ (\ieq{21}).
  \end{proof}
 
 
-\begin{lemma}[GetDomain - Soundiness for Symbolic Semantics]
+\begin{lemma}[GetDomain - Soundiness for Symbolic Semantics]\label{lemma:getdomain:soundiness}
 $$
 \istate = \interpret{\symbinst}{\senv}(\sstate) \ \wedge \ 
   \absgetdomainrule{\symbolic}{\sstate, \jsilexpr}{\sexpr}  
@@ -312,12 +312,13 @@ $\absgetdomainrule{\instrumented}{\istate, \jsilexpr}{\interpret{\symbconc}{\sen
 establishing the result. 
 \end{proof}
 
-\begin{lemma}[Basic Commands - Soundiness for Symbolic Semantics]
+\begin{lemma}[Basic Commands - Soundiness for Symbolic Semantics]\label{lemma:soundiness:basic:commands}
 $$
 \absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic} \, \wedge \, \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)
      \implies 
         \exists \, \istate' \, . \, \absbsemrule{\istate, \bcmd}{\istate'}{\instrumented} \, \wedge \, 
-            \istate = \interpret{\symbinst}{\senv}(\sstate')
+            \istate' = \interpret{\symbinst}{\senv'}(\sstate')  \, \wedge \, 
+            \senv' \fextends  \senv
 $$
 \end{lemma}
 \begin{proof}
@@ -326,7 +327,6 @@ $\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)$ (
 We proceed by case analysis on the rule used to derive \hyp{1}. 
 \vspace{3pt}
 
-
 \noindent \prooflab{Skip} It follows that $\absbsemrule{\sstate, \jsilskip}{\sstate}{\symbolic}$ (\ieq{1}) and 
 $\absbsemrule{\istate, \jsilskip}{\istate}{\instrumented}$ (\ieq{2}). 
 From \hyp{1} and \ieq{1}, we conclude that $\sstate' = \sstate$ (\ieq{3}). 
@@ -334,63 +334,261 @@ From \hyp{2} and \ieq{3}, it follows that $\istate \in \interpret{\symbinst}{\se
 Letting $\istate' = \istate$, the result follows from \ieq{2} and \ieq{4}. 
 \vspace{5pt}
 
-
-\noindent \prooflab{Property Collection} It follows that $\absbsemrule{\sstate, \jsilskip}{\sstate}{\symbolic}$ (\ieq{1}) and 
-$\absbsemrule{\istate, \jsilskip}{\istate}{\instrumented}$ (\ieq{2}). 
-From \hyp{1} and \ieq{1}, we conclude that $\sstate' = \sstate$ (\ieq{3}). 
-From \hyp{2} and \ieq{3}, it follows that $\istate \in \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
-Letting $\istate' = \istate$, the result follows from \ieq{2} and \ieq{4}. 
+\noindent \prooflab{Property Collection} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \getfields(\jsilexpr)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic value $\sexprv$ such that 
+$\absgetdomainrule{\symbolic}{\sstate, \jsilexpr}{\sexprv}$ (\ieq{2}) 
+and $\sstate' = \stupdt{\symbolic}(\sstate, \jvar, \sexprv)$ (\ieq{3}).  
+From \hyp{2}, we conclude that $\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\ieq{4}). 
+Applying Lemma~\ref{lemma:getdomain:soundiness} to \ieq{2} and \ieq{4}, we conclude that 
+$\absgetdomainrule{\instrumented}{\istate, \jsilexpr}{\interpret{\symbconc}{\senv}(\sexprv)}$ (\ieq{5}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \ieq{3} and \ieq{4}, it follows that 
+$ \interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate, \jvar, \interpret{\symbconc}{\senv}(\sexprv))$ (\ieq{6}). 
+From \ieq{5} and \ieq{6}, we conclude that $\absbsemrule{\istate, \jvar := \getfields(\jsilexpr)}{\interpret{\symbinst}{\senv}(\sstate')}{\instrumented}$, establishing the result. 
 \vspace{5pt}
 
+ \noindent \prooflab{Assignment} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \jsilexpr}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic value $\sexprv$ such that 
+$\sexprv = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)$ (\ieq{2}) and $\sstate' = \stupdt{\symbolic}(\sstate, \jvar, \sexprv)$ (\ieq{3}). 
+From \hyp{2}, we conclude that $\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\ieq{4}). 
+Applying Lemma~\ref{symb:eval:expr} to \ieq{2} and \ieq{4}, it follows that 
+$\evalexpr{\symbolic}(\istate.\stosel, \jsilexpr) = \interpret{\symbconc}{\senv}(\sexprv)$ (\ieq{5}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \ieq{3} and \ieq{4}, it follows
+that $ \interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate, \jvar, \interpret{\symbconc}{\senv}(\sexprv))$ (\ieq{6}). 
+Combining \ieq{5} and \ieq{6}, we conclude that $\absbsemrule{\istate,\jvar := \jsilexpr}{\interpret{\symbinst}{\senv}(\sstate')}{\instrumented}$, establishing the result. 
+\vspace{5pt}
+
+ \noindent \prooflab{Object Creation} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \jsilnew()}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic location $\sloc$ such that $(\sloc, -) \not\in \domain(\sstate.\hpsel)$ (\ieq{2}) and 
+$\sstate' = \hpupdt{\symbolic}(\sstate, \sloc, \protop, \jnull)$ (\ieq{3}). From \hyp{2}, 
+we conclude that $\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\ieq{4}). 
+Let us now pick a location $\loc$ such that $(\loc, -) \not\in \domain(\istate.\hpsel)$ (\ieq{5}). 
+From \ieq{5}, it follows that $\absbsemrule{\istate, \jvar := \jsilnew()}{\istate'}{\instrumented}$ (\ieq{6}) for 
+$\istate' = \hpupdt{\instrumented}(\sstate, \sloc, \protop, \jnull)$ (\ieq{7}). 
+Letting $\senv' = \senv[\sloc \mapsto \loc]$ (\ieq{8}), we conclude that 
+$(\loc, \protop, \jnull) = \interpret{\symbinst}{\senv'}(\sloc, \protop, \jnull)$ (\ieq{9})
+and $\istate = \interpret{\symbinst}{\senv'}(\sstate)$ (\ieq{10}). 
+Applying Lemma~\ref{lemma:soundiness:heap:update} to \ieq{3}, \ieq{7}, \ieq{9}, and \ieq{10}, 
+the result follows. 
+\vspace{5pt}
+
+ \noindent \prooflab{Property Access} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \jvar := [\jsilexpr_1, \jsilexpr_2]}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic expression $\sexprv$ and a symbolic state $\sstate''$ such that 
+$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (-, -, \sexprv)}$ (\ieq{2}) 
+and $\sstate' = \stupdt{\symbolic}(\sstate'', \jvar, \sexprv)$ (\ieq{3}). 
+Since, $\stupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{3}, that
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate''.\pcsel)$ (\ieq{4}). 
+Applying Lemma~\ref{soundiness:getcell} to \ieq{2} and \ieq{4}, we conclude that
+there is an instrumented state $\istate''$ and an instrumented value $\ival$, such that 
+$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (-, -, \ival)}$ (\ieq{5}), 
+where $\istate'' = \interpret{\symbinst}{\senv}(\sstate'')$ (\ieq{6}) and $\ival = \interpret{\symbconc}{\senv}(\sexprv)$ (\ieq{7}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \ieq{3}, \ieq{6}, and \ieq{7}, it follows
+that  $\interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate'', \jvar, \ival)$ (\ieq{8}). 
+From \ieq{5} and \ieq{8}, we conclude the result. 
+\vspace{5pt}
+
+ \noindent \prooflab{Property Assignment}
+From \hyp{1}, it follows that $\absbsemrule{\sstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic location $\sloc$, a symbolic expression $\sexprp$, and a symbolic state $\sstate''$ such that 
+$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, -)}$ (\ieq{2}) and 
+$\sstate' = \hpupdt{\symbolic}(\sstate'', \sloc, \sexprp, \evalexpr{\symbolic}(\sstate''.\stosel, \jsilexpr_3))$ (\ieq{3}). 
+Since, $\hpupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{3}, that
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate''.\pcsel)$ (\ieq{4}). 
+Applying Lemma~\ref{soundiness:getcell} to \ieq{2} and \ieq{4}, we conclude that
+there is an instrumented state $\istate''$, a location $\loc$, and a property $p$, such that 
+$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (\loc, p, -)}$ (\ieq{5}), 
+where: $\istate'' = \interpret{\symbinst}{\senv}(\sstate'')$ (\ieq{6}), 
+ $\loc = \interpret{\symbconc}{\senv}(\sloc)$ (\ieq{7}), and  $p = \interpret{\symbconc}{\senv}(\sexprp)$ (\ieq{8}).
+Applying Lemma~\ref{symb:eval:expr} to \ieq{6}, we conclude that 
+$\interpret{\symbinst}{\senv}(\evalexpr{\symbolic}(\sstate''.\stosel, \jsilexpr_3)) = \evalexpr{\symbolic}(\istate''.\stosel, \jsilexpr_3)$ (\ieq{9}). 
+Applying Lemma~\ref{lemma:soundiness:heap:update} to \ieq{3} and \ieq{6}-\ieq{9}, the result follows.
+\vspace{5pt} 
+
+\noindent \prooflab{Property Deletion}
+From \hyp{1}, it follows that $\absbsemrule{\sstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic location $\sloc$, symbolic expressions $\sexprp$ and $\sexprv$, and a symbolic state $\sstate''$ such that 
+$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, \sexprp)}$ (\ieq{2}), 
+$\sexprp \neq \none$ (\ieq{3}), and  
+$\sstate' = \hpupdt{\symbolic}(\sstate'', \sloc, \sexprp, \none)$ (\ieq{4}). 
+Since, $\hpupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{4}, that
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate''.\pcsel)$ (\ieq{5}). 
+Applying Lemma~\ref{soundiness:getcell} to \ieq{2} and \ieq{5}, we conclude that
+there is an instrumented state $\istate''$, a location $\loc$, a property $p$, and a value $\val$, such that 
+$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (\loc, p, \val)}$ (\ieq{6}), 
+where: $\istate'' = \interpret{\symbinst}{\senv}(\sstate'')$ (\ieq{7}) and 
+ $(\loc, p, \val) = \interpret{\symbconc}{\senv}(\sloc, \sexprp, \sexprv)$ (\ieq{8}). 
+From \ieq{3}, we conclude that $\val \neq \none$ (\ieq{9}) directly. 
+Applying Lemma~\ref{lemma:soundiness:heap:update} to \ieq{4} and \ieq{8}, we conclude that 
+$ \hpupdt{\instrumented}(\istate'', \loc, p, \none) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{10}). 
+Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result. 
+\vspace{5pt} 
+
+\noindent \prooflab{Member Check - True}
+From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic expression $\sexprv$, and a symbolic state $\sstate''$ such that 
+$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (-, -, \sexprp)}$ (\ieq{2}), $\sexprp \neq \none$ (\ieq{3}), 
+and $\sstate' = \stupdt{\symbolic}(\sstate'', \jvar, \jtrue)$ (\ieq{4}). 
+Since, $\stupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{2}, that
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate''.\pcsel)$ (\ieq{5}).
+Applying Lemma~\ref{soundiness:getcell} to \ieq{2} and \ieq{5}, we conclude that
+there is an instrumented state $\istate''$ and an instrumented value $\ival$, such that 
+$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (-, -, \ival)}$ (\ieq{6}), 
+where $\istate'' = \interpret{\symbinst}{\senv}(\sstate'')$ (\ieq{7}) and $\ival = \interpret{\symbconc}{\senv}(\sexprv)$ (\ieq{8}). 
+From \ieq{3} and \ieq{8}, we conclude that $\ival \neq \none$ (\ieq{9}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \ieq{4} and \ieq{7}, it follows
+that  $\interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate'', \jvar, \jtrue)$ (\ieq{10}).
+Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result. 
+\vspace{5pt} 
+
+\noindent \prooflab{Member Check - False}
+From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic expression $\sexprv$, and a symbolic state $\sstate''$ such that 
+$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (-, -, \sexprp)}$ (\ieq{2}), $\sexprp = \none$ (\ieq{3}), 
+and $\sstate' = \stupdt{\symbolic}(\sstate'', \jvar, \jfalse)$ (\ieq{4}). 
+Since, $\stupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{2}, that
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate''.\pcsel)$ (\ieq{5}).
+Applying Lemma~\ref{soundiness:getcell} to \ieq{2} and \ieq{5}, we conclude that
+there is an instrumented state $\istate''$ and an instrumented value $\ival$, such that 
+$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (-, -, \ival)}$ (\ieq{6}), 
+where $\istate'' = \interpret{\symbinst}{\senv}(\sstate'')$ (\ieq{7}) and $\ival = \interpret{\symbconc}{\senv}(\sexprv)$ (\ieq{8}). 
+ From \ieq{3} and \ieq{8}, we conclude that $\ival = \none$ (\ieq{9}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \ieq{4} and \ieq{7}, it follows
+that  $\interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate'', \jvar, \jtrue)$ (\ieq{10}).
+Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result. 
+\vspace{5pt} 
+
+\noindent \prooflab{Make Symbolic}
+From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \jvar := \makesymbolic(\jtype)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a symbolic variable $\svar$ such that 
+$\absval = \absmakesymbolicrule{\symbolic}{\absstate, \jtype}$ (\ieq{2}) and $\sstate' = \stupdt{}(\absstate, \jvar, \svar)$ (\ieq{3}). 
+From \hyp{2} and \ieq{2}, we conclude that there is a symbolic environment $\senv'$ such that
+$\ival = \absmakesymbolicrule{\instrumented}{\istate, \jtype}$ (\ieq{4}) and $\ival = \interpret{\symbconc}{\senv'}(\svar)$ (\ieq{5}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{3}, and \ieq{5}, it follows that 
+ $\interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate, \jvar, \ival)$ (\ieq{6}).
+ Combining \ieq{4} and \ieq{6}, we obtain the result.  
 \end{proof}
+
+\begin{lemma}[Control Flow Commands - Soundiness for Symbolic Semantics]
+$$
+\begin{array}{l} 
+\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \, \wedge \, (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)  \\ \quad \quad
+     \implies 
+        \exists \, \istate' \, . \, \abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}
+         \, \wedge \, 
+            (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \cs')  \, \wedge \, 
+            \senv' \fextends  \senv
+ \end{array}
+$$
+\end{lemma}
+
+\begin{proof}
+Suppose $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
+$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2}).
+We proceed by case analysis on the rule used to derive \hyp{1}. 
+\vspace{3pt}
+
+\noindent \prooflab{Basic Command} 
+From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \cs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
+$\ccmd[\prog][\abscs]{i} = \bcmd$ (\ieq{2}), and $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\ieq{3}). 
+Applying Lemma~\ref{lemma:soundiness:basic:commands} to \ieq{3} and \hyp{2}, we conclude that 
+there is a symbolic environment $\senv'$ and an instrumented state $\istate'$ such that: 
+$\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\ieq{4}), $\istate' = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{5}), 
+and $\senv' \fextends \senv$ (\ieq{6}). 
+From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\istate, \cs, i}{\istate', \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{7}). 
+ Combining \hyp{2} and \ieq{5}-\ieq{7}, we obtain the result.  
+ \vspace{5pt}
+
+\noindent \prooflab{Cond. Goto - True} 
+From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \scs, j}{\top}{\top}{\symbolic}$ (\ieq{1}), 
+$\ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k}$ (\ieq{2}), and 
+$ \sstate' = \absassume{\symbolic}(\sstate, \jsilexpr)$ (\ieq{3}). 
+Applying Lemma~\ref{lemma:soundiness:assume} to 
+\hyp{2}, we conclude that 
+$ \absassume{\instrumented}(\istate, \jsilexpr) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
+From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{5}).
+Combining \hyp{2} and \ieq{5}, we obtain the result.     
+ \vspace{5pt}
+
+\noindent \prooflab{Cond. Goto - True} Similar to \prooflab{Cond. Goto - True}. 
+ \vspace{5pt}
+ 
+\noindent \prooflab{Goto} From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate, \scs, j}{\top}{\top}{\symbolic}$ (\ieq{1}),   
+where $\ccmd[\prog][\abscs]{i} = \goto \, j$ (\ieq{2}). 
+From \ieq{2}, we conclude that 
+$\abssemrule{\istate, \cs, i}{\istate, \cs, j}{\top}{\top}{\instrumented}$ (\ieq{3}).
+Combining \hyp{2} and \ieq{3}, we obtain the result. 
+ \vspace{5pt}
+ 
+\noindent \prooflab{Normal Return}
+From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, \retlab}{\sstate', \scs', i}{\top}{\top}{\symbolic}$ (\ieq{1}), 
+$\scs = (-, \sstore', \jvar, i, -) :: \scs'$ (\ieq{2}), $\sstore = \sstate.\stosel$ (\ieq{3}), 
+and $\sstate' = \stupdt{\symbolic}(\sstate[\stosel \mapsto \sstore'], \jvar, \sstore(\retvar))$ (\ieq{4}). 
+From \ieq{2}, we conclude that $\cs = (-, \interpret{\symbconc}{\senv}(\sstore'), \jvar, i, -) :: \interpret{\symbconc}{\senv}(\scs')$ (\ieq{5}). 
+From \ieq{3}, we conclude that $\istate.\stosel = \interpret{\symbconc}{\senv}(\sstore)$ (\ieq{6}). 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{4} and \ieq{6}, we conclude that $\stupdt{\instrumented}(\istate[\stosel \mapsto \interpret{\symbconc}{\senv}(\sstore')], \jvar, \istate.\stosel(\retvar)) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{7}). 
+From \ieq{5} and \ieq{7}, we conclude that $\abssemrule{\istate, \scs, \retlab}{\interpret{\symbinst}{\senv}(\sstate'), \interpret{\symbconc}{\senv}(\scs'), i}{\top}{\top}{\instrumented}$, 
+establishing the result. 
+ \vspace{5pt}
+
+\noindent \prooflab{Error Return}
+Similar to \prooflab{Normal Return}. 
+
+\noindent \prooflab{Assume}
+
+
+
+\end{proof}
+%
+%\inferrule[\textsc{Assume}]
+%  { 
+%      \ccmd[\prog][\abscs]{i}  = \assume(\jsilexpr) 
+%      \\\\ 
+%     \absstate' = \absassume{}(\absstate, \jsilexpr) 
+%  }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}} 
+%\and
+
+
+
+%\begin{lemma}[Assume - Soundiness for Symbolic Semantics]\label{lemma:soundiness:assume}
+%$$
+%\begin{array}{l}
+%\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)  
+%       \implies  \interpret{\symbinst}{\senv}(\absassume{\instrumented}(\istate, \jsilexpr)) = \absassume{\symbolic}(\sstate, \jsilexpr) 
+%\end{array}
+%$$
+%\end{lemma}
+%\begin{proof}
+
+
+%\begin{lemma}[Store Update - Soundiness for Symbolic Semantics]\label{lemma:soundiness:store:update}
+%$$
+%\begin{array}{l}
+%\istate = \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
+%   \val = \interpret{\symbconc}{\senv}(\sexprv)   
+%       \implies \stupdt{\instrumented}(\istate, \jvar, \val) = \interpret{\symbconc}{\senv}(\stupdt{\symbolic}(\sstate, \jvar, \sexprv))
+%\end{array}
+%$$
+%\end{lemma}
+%\begin{proof}
+%Immediate from the definitions of $\stupdt{\instrumented}$ and $\stupdt{\symbolic}$.
+%\end{proof}
+
 
 %
-%\inferrule[\textsc{Property Collection}]
-%  {
-%           \absgetdomainrule{}{\absstate, \jsilexpr}{\absval}  
-%  }{\absbsemrule{\absstate, \jvar := \getfields(\jsilexpr)}{\stupdt{}(\absstate, \jvar, \absval)}{}} 
-%\and 
+%  \inferrule[\textsc{Cond. Goto - True}]
+%   { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
+%     \\\\
+%     %   \absval = \evalexpr{}(\absstate.\stosel, \jsilexpr)
+%     %   \quad 
+%   
+%   }
+%   {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, j}{\top}{\top}{}}
 
-
-\begin{temax}[Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} - Soundiness wrt Instrumented Semantics]
-
-\end{temax}
-\begin{proof}
-TO DO. 
-\end{proof}
-
-%  \inferrule[\textsc{GetDomain}]
+%\inferrule[\textsc{Basic Command}]
 %   { 
-%        \evalexpr{\symbolic}(\sstore, \jsilexpr) = \sloc
-%      \quad
-%       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
-%        \\\\
-%        %
-%          (\sloc,-) \notin \domain (\sheap')  
-%        \quad
-%         \pc \vdash \jsilset{\sexprp_1, ..., \sexprp_m} = \sdom(\sloc)
-%         \\\\
-%        \forall_{0 \leq i \leq n} \, \sexprv_i \neq \none 
-%         \quad 
-%           \forall_{n < i \leq m} \, \sexprv_i = \none 
-%   }{  \absgetdomainrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr}{\jsilset{\sexprp_1, ..., \sexprp_n}}}
-
-
-% \inferrule[\textsc{GetDomain}]
-%   { 
-%        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
-%      \quad
-%       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
-%        \\\\
-%        %
-%          (\loc,-) \notin \domain (\iheap')  
-%        \quad
-%          \jsilset{p_1, ..., p_m} = \idom(\loc)
-%          \\\\
-%        \forall_{0 \leq i \leq n} \, \val_i \neq \none 
-%         \quad 
-%           \forall_{n < i \leq m} \, \val_i = \none 
-%   }{  \absgetdomainrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr}{\jsilset{p_1, ..., p_n}}}
+%     \ccmd[\prog][\abscs]{i} = \bcmd 
+%     \\\\
+%     \absbsemrule{\absstate, \bcmd}{\absstate'}{} 
+%   }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}}
 
 
 %\begin{temax}[Theorem~\ref{teo:soundness:jsil:symb:exe} - Soundness of the \jsil symbolic execution]
