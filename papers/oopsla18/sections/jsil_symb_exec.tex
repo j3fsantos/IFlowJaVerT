@@ -94,9 +94,9 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
            set of abstract property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
            in $\absstate$. 
    
-   \item[Assumption,] $\absassume{} : \absstates \rightarrow \exprs \partialmap \absvals$. 
+   \item[Assumption,] $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$. 
             The expression $\absassume{}(\absstate, \jsilexpr)$ denotes the abstract state obtained from the 
-            abstract state $\absstate$ by assuming that $\jsilexpr$ evaluates to the boolean $\jtrue$. 
+            abstract state $\absstate$ when it holds that $\jsilexpr$ evaluates to the boolean $\jtrue$. 
   
    \item[Satisfiability,] $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$. 
             The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is \polish{satisfiable} in the abstract 
@@ -214,7 +214,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
        \quad 
        \absstore = \absstate.\stosel
        \\\\
-       \absstate' = \absstate[\stosel \mapsto \absstore'[\jvar \mapsto \absstore(\retvar)]]
+       \absstate' = \stupdt{}(\absstate[\stosel \mapsto \absstore'], \jvar, \absstore(\retvar))
    }  
    {\abssemrule{\absstate, \abscs, \retlab}{\absstate', \abscs', i}{\top}{\top}{}}
      %
@@ -226,7 +226,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
        \quad 
        \absstore = \absstate.\stosel
        \\\\
-       \absstate' = \absstate[\stosel \mapsto \absstore'[\jvar \mapsto \absstore(\errvar)]]
+        \absstate' = \stupdt{}(\absstate[\stosel \mapsto \absstore'], \jvar, \absstore(\errvar))
    }  
    {\abssemrule{\absstate, \abscs, \errlab}{\absstate', \abscs', j}{\top}{\top}{}}
       \\
@@ -255,10 +255,6 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
   { 
       \ccmd[\prog][\abscs]{i}  = \assume(\jsilexpr) 
       \\\\ 
-      %\absstore = \absstate.\stosel
-      %\quad
-      %\evalexpr{}(\absstore, \jsilexpr) =  \absval
-      %\\\\
      \absstate' = \absassume{}(\absstate, \jsilexpr) 
   }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}} 
 \and
@@ -392,7 +388,7 @@ for control flow commands.
   \inferrule[\textsc{Assume}]
    {
        \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
-   }{  \absassume{\concrete}(\jstate, \jsilexpr) =  (\jstate, \jtrue) }
+   }{  \absassume{\concrete}(\jstate, \jsilexpr) =  \jstate }
   	\and
     \inferrule[\textsc{Check Sat}]
    {
