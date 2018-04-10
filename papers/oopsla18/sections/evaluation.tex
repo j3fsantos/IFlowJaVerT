@@ -46,9 +46,38 @@ This example demonstrates that \cosette has a fine understanding of the mechanic
 
 
 \subsubsection{Property enumeration}
-The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties in JavaScript objects.
+The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties of JavaScript objects.
 
+\begin{lstjs}
 
+function nbProp(o) {
+  var count = 0;
+  for (var p in o) {
+    count += 1;
+  }
+  return count;
+}
+
+var o = {a: 1, b: 2, c: 3};
+
+var s1 = symb_string(s1);
+
+o[s1] = 4;
+var res = nbProp(o);
+var expectedRes = 3;
+
+Assert(res = expectedRes);
+\end{lstjs}
+
+In this example, we create a JavaScript object \jsinline{o} that has three properties \jsinline{a, b}, and \jsinline{c}.
+Then, we create a symbolic string \jsinline{s1} and assign a value to the property of \jsinline{o} corresponding to {s1}.
+Finally, we count the actual number of properties in \jsinline{o}.
+There are two possible cases here: either \jsinline{s1} is equal to one of the concrete property names of \jsinline{o}, and the assignment actually overwrites the value associated with that property, or \jsinline{s1} is a fresh string and the assignment creates a new concrete property.
+
+\cosette is able to reason about both cases, and finds a model for the assertion; either shadowing the property if \jsinline{expectedRes = 3}, giving a fresh string if \jsinline{expectedRes = 4}, or saying that the assertiong is unsatisfiable if \jsinline{expectedRes} is different from these two values.
+
+This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
+ 
 \myparagraph{Extensive testing of the BucketsJS library}
 
 The BucketsJS library is a JavaScript data-structure library available on GitHub~\ref{buckets}.
