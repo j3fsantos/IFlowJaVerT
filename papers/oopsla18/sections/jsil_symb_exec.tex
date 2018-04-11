@@ -1,23 +1,56 @@
 %!TEX root = ../main.tex
 
-\pmax{Think story!}
+We describe our novel compositional symbolic execution engine for \jsil, an intermediate
+representation for JavaScript analysis~\cite{javert}.
+% 
+Like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising 
+the issue of how to guarantee that the results of the analysis still hold when extending the 
+initial state of the analysed program with a given arbitrary frame.
+%
+As in~\cite{gardner:popl:2012,javert}, we cater for this problem by constraining the frames 
+that can be added to that the initial state. More concretely, symbolic states
+describe not only the resources that need to be present for the execution to go through, but
+also the resources that must not be present.   
+%
+Furthermore, we propose a new methodology for designing/reasoning about
+compositional program analyses for languages that do not exhibit the frame property. 
+This methodology consists of the following steps: \dtag{1} designing an instrumented version
+of the language semantics that exhibits the frame property, \dtag{2} designing the program 
+analysis on the instrumented semantics, and \dtag{3} linking the program analysis 
+to the concrete semantics by describing the frames that can be safely added to the initial 
+state.   
+%
+This new methodology differs from  previous work in that it introduces the 
+instrumented semantics as an interim stage in the design of the analysis, 
+leading to more modular reasoning and simpler proofs. 
 
-We describe our novel symbolic execution engine for \jsil, an intermediate
-representation for JavaScript analysis previously introduced by \citet{javert}. 
-In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
-\jsil, which we then instantiate to obtain its concrete and symbolic semantics.
-In \S\ref{sex:formal:guarantees}, we present the formal guarantees of 
-our symbolic analysis, including: \dtag{i} a soundness result for the \jsil symbolic 
-execution, \dtag{ii} a guarantee of absence of false positives for bug-finding, \pmaxinline{Do we know what bug-finding is here?}
-\dtag{iii} a justification result for the lifting of analyses on compiled \jsil code back to JavaScript;
-and \dtag{iv} \polish{a verification result that precisely states the conditions 
-under which symbolic execution gives us verification guarantees.}
-Finally, in \S\ref{subsec:jsil:analysis:implementation}, we give a brief overview
-of our implementation. %in \rosette~\cite{Rosette1,Rosette2} NO NO NO! Burn the witch!
+In the spirit of~\cite{vanhorn:icfp:2010}, we define a parameterisable semantics for \jsil, 
+which can be instantiated with a \jsil state signature. The parameterisable semantics is the bedrock 
+for the formal development and implementation of our symbolic analysis. In fact, we use 
+it to obtain the concrete, instrumented, and symbolic semantics, by instantiating it 
+with a concrete, instrumented, and symbolic state signature, respectively. 
+This approach to the design of symbolic analyses has the following benefits: 
+\dtag{1} it streamlines the formalism, avoiding redundancy,
+\dtag{2} it makes the choices in the design of the instrumented and symbolic semantics explicit,
+and \dtag{3} it leads to modular implementations, avoiding code duplication.
 
 
-\subsection{Symbolic Semantics}\label{subsec:jsil:analysis:formalism}
 
+
+%In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
+%\jsil, which we then instantiate to obtain its concrete and symbolic semantics.
+%In \S\ref{sex:formal:guarantees}, we present the formal guarantees of 
+%our symbolic analysis, including: \dtag{i} a soundness result for the \jsil symbolic 
+%execution, \dtag{ii} a guarantee of absence of false positives for bug-finding, \pmaxinline{Do we know what bug-finding is here?}
+%\dtag{iii} a justification result for the lifting of analyses on compiled \jsil code back to JavaScript;
+%and \dtag{iv} \polish{a verification result that precisely states the conditions 
+%under which symbolic execution gives us verification guarantees.}
+%Finally, in \S\ref{subsec:jsil:analysis:implementation}, we give a brief overview
+%of our implementation. %in \rosette~\cite{Rosette1,Rosette2} NO NO NO! Burn the witch!
+
+
+\subsection{Parameterisable Semantics}\label{subsec:jsil:analysis:formalism}
+ 
 \subsubsection{Syntax} 
 \jsil is a simple goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. The syntax of \jsil is shown below. 
 
@@ -53,13 +86,7 @@ Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denot
 
 %
 
-\subsubsection{Abstract Semantics}
-We first define an abstract semantics for \jsil, which is parametric on a \jsil \emph{state signature}. 
-Then, we instantiate this abstract semantics with a concrete state signature to obtain the \emph{concrete semantics} for \jsil, and with a symbolic state signature to obtain its symbolic counterpart.
-This approach to the design of symbolic analyses has the following main benefits: \dtag{1} it streamlines the formalism, avoiding redundancy,
-\dtag{2} it makes explicit the choices in the design of the symbolic semantics,
-and \dtag{3} it leads to modular implementations, avoiding code duplication.
-
+\subsubsection{Parameterisable Semantics}
 
 The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
 Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. Abstract states expose the following functions and relations: 
@@ -266,7 +293,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
       %\quad
       %\absval = \evalexpr{}(\absstore, \jsilexpr)
       % \\\\
-       \abssat(\absstate, \neg \jsilexpr) = \jfalse
+       \abssat{}(\absstate, \neg \jsilexpr) = \jfalse
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i{+}1}{\top}{\top}{}} 
 \and 
 \inferrule[\textsc{Assert - False}]
@@ -277,7 +304,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
       %\quad
       %  \absval = \evalexpr{}(\absstore, \jsilexpr)
       % \\\\
-      \abssat(\absstate, \neg \jsilexpr) = \jtrue
+      \abssat{}(\absstate, \neg \jsilexpr) = \jtrue
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i}{\top}{\bot}{}} 
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
