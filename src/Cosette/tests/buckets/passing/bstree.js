@@ -5,7 +5,7 @@
 /**
  * Top level namespace for Buckets,
  * a JavaScript data structure library.
- * @name buckets
+ * @id buckets
  */
 var buckets = {};
 
@@ -14,6 +14,7 @@ var buckets = {};
  * @function
  * @private
  */
+/* @id base_defaultCompare */
 buckets.defaultCompare = function (a, b) {
     if (a < b) {
         return -1;
@@ -29,6 +30,7 @@ buckets.defaultCompare = function (a, b) {
  * @function
  * @private
  */
+/* @id base_defaultEquals */
 buckets.defaultEquals = function (a, b) {
     return a === b;
 };
@@ -38,6 +40,7 @@ buckets.defaultEquals = function (a, b) {
  * @function
  * @private
  */
+/* @id base_defaultToString */
 buckets.defaultToString = function (item) {
     if (item === null) {
         return 'BUCKETS_NULL';
@@ -56,6 +59,7 @@ buckets.defaultToString = function (item) {
  * @function
  * @private
  */
+/* @id base_isFunction */
 buckets.isFunction = function (func) {
     return (typeof func) === 'function';
 };
@@ -65,6 +69,7 @@ buckets.isFunction = function (func) {
  * @function
  * @private
  */
+/* @id base_isUndefined */
 buckets.isUndefined = function (obj) {
     return obj === undefined;
 };
@@ -74,6 +79,7 @@ buckets.isUndefined = function (obj) {
  * @function
  * @private
  */
+/* @id base_isString */
 buckets.isString = function (obj) {
     return Object.prototype.toString.call(obj) === '[object String]';
 };
@@ -83,8 +89,10 @@ buckets.isString = function (obj) {
  * @function
  * @private
  */
+/* @id base_reverseCompareFunction */
 buckets.reverseCompareFunction = function (compareFunction) {
     if (!buckets.isFunction(compareFunction)) {
+        /* @id base_reverseCompareFunction_inner1 */
         return function (a, b) {
             if (a < b) {
                 return 1;
@@ -95,6 +103,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
             return -1;
         };
     }
+    /* @id base_reverseCompareFunction_inner2 */
     return function (d, v) {
         return compareFunction(d, v) * -1;
     };
@@ -106,6 +115,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
  * @function
  * @private
  */
+/* @id base_compareToEquals */
 buckets.compareToEquals = function (compareFunction) {
     return function (a, b) {
         return compareFunction(a, b) === 0;

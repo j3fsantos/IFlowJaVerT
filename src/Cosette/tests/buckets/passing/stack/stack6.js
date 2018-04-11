@@ -120,7 +120,6 @@ buckets.compareToEquals = function (compareFunction) {
     };
 };
 
-
 // ---------------------------- linkedlist.js --------------------------------
 
 /**
@@ -148,7 +147,6 @@ buckets.LinkedList = function () {
         lastNode;
 
     // Returns the node at the specified index.
-    /* @id list_nodeAtIndex */
     function nodeAtIndex(index) {
         var node, i;
         if (index < 0 || index >= nElements) {
@@ -172,7 +170,6 @@ buckets.LinkedList = function () {
      * @return {boolean} True if the element was added or false if the index is invalid
      * or if the element is undefined.
      */
-    /* @id list_add */
     list.add = function (item, index) {
         var newNode, prev;
 
@@ -212,7 +209,6 @@ buckets.LinkedList = function () {
      * @return {*} The first element in the list or undefined if the list is
      * empty.
      */
-    /* @id list_first */
     list.first = function () {
         if (firstNode !== undefined) {
             return firstNode.element;
@@ -225,7 +221,6 @@ buckets.LinkedList = function () {
      * @return {*} The last element in the list or undefined if the list is
      * empty.
      */
-    /* @id list_last */
     list.last = function () {
         if (lastNode !== undefined) {
             return lastNode.element;
@@ -239,7 +234,6 @@ buckets.LinkedList = function () {
      * @return {*} The element at the given index or undefined if the index is
      * out of bounds.
      */
-    /* @id list_elementAtIndex */
     list.elementAtIndex = function (index) {
         var node = nodeAtIndex(index);
         if (node === undefined) {
@@ -269,7 +263,6 @@ buckets.LinkedList = function () {
      * of the specified element, or -1 if the list does not contain the
      * element.
      */
-    /* @id list_indexOf */
     list.indexOf = function (item, equalsFunction) {
         var equalsF = equalsFunction || buckets.defaultEquals,
             currentNode = firstNode,
@@ -306,7 +299,6 @@ buckets.LinkedList = function () {
      * @return {boolean} True if the list contains the specified element, false
      * otherwise.
      */
-    /* @id list_contains */
     list.contains = function (item, equalsFunction) {
         return (list.indexOf(item, equalsFunction) >= 0);
     };
@@ -325,7 +317,6 @@ buckets.LinkedList = function () {
      * @param {Object} item Element to be removed from the list, if present.
      * @return {boolean} True if the list contained the specified element.
      */
-    /* @id list_remove */
     list.remove = function (item, equalsFunction) {
         var equalsF = equalsFunction || buckets.defaultEquals,
             currentNode = firstNode,
@@ -364,7 +355,6 @@ buckets.LinkedList = function () {
     /**
      * Removes all the elements from the list.
      */
-    /* @id list_clear */
     list.clear = function () {
         firstNode = undefined;
         lastNode = undefined;
@@ -381,7 +371,6 @@ buckets.LinkedList = function () {
      * the === operator is used to check equality between elements.
      * @return {boolean} true if the list is equal to the given list.
      */
-    /* @id list_equals */
     list.equals = function (other, equalsFunction) {
         var eqf = equalsFunction || buckets.defaultEquals,
             isEqual = true,
@@ -393,7 +382,7 @@ buckets.LinkedList = function () {
         if (list.size() !== other.size()) {
             return false;
         }
-        /* @id list_equals_callback */
+
         other.forEach(function (element) {
             isEqual = eqf(element, node.element);
             node = node.next;
@@ -408,7 +397,6 @@ buckets.LinkedList = function () {
      * @param {number} index Given index.
      * @return {*} Removed element or undefined if the index is out of bounds.
      */
-    /* @id list_removeElementAtIndex */
     list.removeElementAtIndex = function (index) {
         var element, previous;
 
@@ -445,7 +433,6 @@ buckets.LinkedList = function () {
      * invoked with one argument: the element value, to break the iteration you can
      * optionally return false inside the callback.
      */
-    /* @id list_forEach */
     list.forEach = function (callback) {
         var currentNode = firstNode;
         while (currentNode !== undefined) {
@@ -461,7 +448,6 @@ buckets.LinkedList = function () {
      * element first, and the first element last).
      * @memberOf buckets.LinkedList
      */
-    /* @id list_reverse */
     list.reverse = function () {
         var current = firstNode,
             previous,
@@ -484,10 +470,8 @@ buckets.LinkedList = function () {
      * @return {Array.<*>} An array containing all the elements in the list,
      * in proper sequence.
      */
-    /* @id list_toArray */
     list.toArray = function () {
         var result = [];
-        /* @id list_toArray_callback */
         list.forEach(function (element) {
             result.push(element);
         });
@@ -498,7 +482,6 @@ buckets.LinkedList = function () {
      * Returns the number of elements in the list.
      * @return {number} The number of elements in the list.
      */
-    /* @id list_size */
     list.size = function () {
         return nElements;
     };
@@ -507,7 +490,6 @@ buckets.LinkedList = function () {
      * Returns true if the list contains no elements.
      * @return {boolean} true if the list contains no elements.
      */
-    /* @id list_isEmpty */
     list.isEmpty = function () {
         return nElements <= 0;
     };
@@ -515,23 +497,203 @@ buckets.LinkedList = function () {
     return list;
 };
 
-// ---------------------------------- tests ----------------------------------
+// ------------------------------- stack.js ----------------------------------
 
-var list = new buckets.LinkedList()
+/**
+ * Creates an empty Stack.
+ * @class A Stack is a Last-In-First-Out (LIFO) data structure, the last
+ * element added to the stack will be the first one to be removed. This
+ * implementation uses a linked list as the underlying storage.
+ * @constructor
+ */
+buckets.Stack = function () {
 
-var x1 = symb_number(x1)
-var x2 = symb_number(x2)
-var x3 = symb_number(x3)
-var x4 = symb_number(x4)
+    /** 
+     * @exports stack as buckets.Stack
+     * @private
+     */
+    var stack = {},
+        // Underlying list containing the elements.
+        list = new buckets.LinkedList();
 
-list.add(x1)
-list.add(x2)
-list.add(x3)
+    /**
+     * Pushes an element onto the top of the stack.
+     * @param {Object} elem The element.
+     * @return {boolean} True if the element was pushed or false if it's undefined.
+     */
+    /* @id stack_push */
+    stack.push = function (elem) {
+        return list.add(elem, 0);
+    };
 
-var index = list.indexOf(x4)
-var res1 = list.removeElementAtIndex(1)
-var res2 = list.elementAtIndex(1)
+    /**
+     * Pushes an element onto the top of the stack. Equivalent to push.
+     * @param {Object} elem The element.
+     * @return {boolean} true If the element was pushed or false if it's undefined.
+     */
+    /* @id stack_add */
+    stack.add = function (elem) {
+        return list.add(elem, 0);
+    };
 
-Assert(((x4 = x1) and (index = 0)) or ((not (x4 = x1)) and (x4 = x2) and (index = 1)) or ((not (x4 = x1)) and ((not (x4 = x2)) and (x4 = x3) and (index = 2)) or (not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)) and (index = -1)));
-Assert(res1 = x2);
-Assert(res2 = x3);
+    /**
+     * Removes the element at the top of the stack and returns it.
+     * @return {*} The element at the top of the stack or undefined if the
+     * stack is empty.
+     */
+    /* @id stack_pop */
+    stack.pop = function () {
+        return list.removeElementAtIndex(0);
+    };
+
+    /**
+     * Returns the element at the top of the stack without removing it.
+     * @return {*} The element at the top of the stack or undefined if the
+     * stack is empty.
+     */
+    /* @id stack_peek */
+    stack.peek = function () {
+        return list.first();
+    };
+
+    /**
+     * Returns the number of elements in the stack.
+     * @return {number} The number of elements in the stack.
+     */
+    /* @id stack_size */
+    stack.size = function () {
+        return list.size();
+    };
+
+    /**
+     * Returns true if the stack contains the specified element.
+     * <p>If the elements inside the stack are
+     * not comparable with the === operator, a custom equals function must be
+     * provided to perform searches, that function must receive two arguments and
+     * return true if they are equal, false otherwise. Example:</p>
+     *
+     * <pre>
+     * var petsAreEqualByName = function(pet1, pet2) {
+     *  return pet1.name === pet2.name;
+     * }
+     * </pre>
+     * @param {Object} elem Element to search for.
+     * @param {function(Object,Object):boolean=} equalsFunction Optional
+     * function used to check if two elements are equal.
+     * @return {boolean} True if the stack contains the specified element,
+     * false otherwise.
+     */
+    /* @id stack_contains */
+    stack.contains = function (elem, equalsFunction) {
+        return list.contains(elem, equalsFunction);
+    };
+
+    /**
+     * Checks if the stack is empty.
+     * @return {boolean} True if and only if this stack contains no elements, false
+     * otherwise.
+     */
+    /* @id stack_isEmpty */
+    stack.isEmpty = function () {
+        return list.isEmpty();
+    };
+
+    /**
+     * Removes all the elements from the stack.
+     */
+    /* @id stack_clear */
+    stack.clear = function () {
+        list.clear();
+    };
+
+    /**
+     * Executes the provided function once per element present in the stack in
+     * LIFO order.
+     * @param {function(Object):*} callback Function to execute, it's
+     * invoked with an element as argument. To break the iteration you can
+     * optionally return false inside the callback.
+     */
+    /* @id stack_forEach */
+    stack.forEach = function (callback) {
+        list.forEach(callback);
+    };
+
+    /**
+     * Returns an array containing all the elements in the stack in LIFO
+     * order.
+     * @return {Array.<*>} An array containing all the elements in the stack
+     * in LIFO order.
+     */
+    /* @id stack_toArray */
+    stack.toArray = function () {
+        return list.toArray();
+    };
+
+    /**
+     * Returns true if the stack is equal to another stack.
+     * Two stacks are equal if they have the same elements in the same order.
+     * @param {buckets.Stack} other The other stack.
+     * @param {function(Object,Object):boolean=} equalsFunction Optional
+     * function to check if two elements are equal. If the elements in the stacks
+     * are custom objects you should provide a custom equals function, otherwise
+     * the === operator is used to check equality between elements.
+     * @return {boolean} True if the stack is equal to the given stack.
+     */
+    /* @id stack_equals */
+    stack.equals = function (other, equalsFunction) {
+        var eqf, isEqual, thisElement;
+        if (buckets.isUndefined(other) || typeof other.peek !== 'function') {
+            return false;
+        }
+        if (stack.size() !== other.size()) {
+            return false;
+        }
+
+        eqf = equalsFunction || buckets.defaultEquals;
+        isEqual = true;
+        /* @id stack_equals_callback */
+        other.forEach(function (element) {
+            thisElement = stack.pop();
+            list.add(thisElement);
+            isEqual = eqf(thisElement, element);
+            return isEqual;
+        });
+
+        return isEqual;
+    };
+
+    return stack;
+};
+
+// -------------------------------- tests -------------------------------------
+
+var stack = new buckets.Stack();
+
+var n1 = symb_number(n1);
+var n2 = symb_number(n2);
+var n3 = symb_number(n3);
+Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n2 = n3));
+
+//test 6
+//it('toArray gives the elements in LIFO order', function () {
+var arr;
+var res1 = stack.toArray().length;
+Assert(res1 = 0);
+
+stack.push(n1);
+arr = stack.toArray();
+var res2 = arr[0];
+Assert(res2 = n1);
+var res3 = arr.length;
+Assert(res3 = 1);
+
+stack.push(n2);
+arr = stack.toArray();
+var res4 = arr[1];
+Assert(res4 = n1);
+var res5 = arr[0];
+Assert(res5 = n2);
+var res6 = arr.length;
+Assert(res6 = 2);

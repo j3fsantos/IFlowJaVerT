@@ -545,32 +545,41 @@ buckets.Set = function (toStringFunction) {
 
 // -------------------------------- tests -------------------------------------
 
-var set1 = new buckets.Set();
-var set2 = new buckets.Set();
+var set = new buckets.Set();
 
-var s1 = symb_string(s1);
-var s2 = symb_string(s2);
+var n1 = symb_number(n1);
+var n2 = symb_number(n2);
+var n3 = symb_number(n3);
+var n4 = symb_number(n4);
+var n5 = symb_number(n5);
 
-//Assume (not (s1 = s2));
+Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n1 = n4));
+Assume(not (n1 = n5));
 
-set1.add(s1);
-set1.add(s2);
+Assume(not (n2 = n3));
+Assume(not (n2 = n4));
+Assume(not (n2 = n5));
 
-set2.add(s2);
+Assume(not (n3 = n4));
+Assume(not (n3 = n5));
 
-// console.log("s1 union s2:");
-// s1.union(s2);
-// s1.forEach(console.log)
+Assume(not (n4 = n5));
 
-set1.intersection(set2);
-var size = set1.size();
-var res = set1.toArray()[0];
-Assert((size = 1) and (res = s2));
-
-// console.log("s1 \\ s2:");
-// s1.difference(s2);
-// s1.forEach(console.log)
-// 
-// console.log("s2 \\ s1:");
-// s2.difference(s1);
-// s2.forEach(console.log)
+// test 1
+// it('size gives the right value', function () {
+set.add(n1);
+set.add(n2);
+set.add(n3);
+var res1 = set.size();
+Assert(res1 = 3);
+set.add(n4);
+var res2 = set.size();
+Assert(res2 = 4);
+set.remove(n4);
+var res3 = set.size();
+Assert(res3 = 3);
+set.add(n3);
+var res4 = set.size();
+Assert(res4 = 3);

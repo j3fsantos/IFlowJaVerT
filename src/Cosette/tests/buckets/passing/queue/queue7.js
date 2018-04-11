@@ -120,8 +120,7 @@ buckets.compareToEquals = function (compareFunction) {
     };
 };
 
-
-// ---------------------------- linkedlist.js --------------------------------
+// ----------------------------- linkedlist.js --------------------------------
 
 /**
  * Creates an empty Linked List.
@@ -148,7 +147,6 @@ buckets.LinkedList = function () {
         lastNode;
 
     // Returns the node at the specified index.
-    /* @id list_nodeAtIndex */
     function nodeAtIndex(index) {
         var node, i;
         if (index < 0 || index >= nElements) {
@@ -172,7 +170,6 @@ buckets.LinkedList = function () {
      * @return {boolean} True if the element was added or false if the index is invalid
      * or if the element is undefined.
      */
-    /* @id list_add */
     list.add = function (item, index) {
         var newNode, prev;
 
@@ -212,7 +209,6 @@ buckets.LinkedList = function () {
      * @return {*} The first element in the list or undefined if the list is
      * empty.
      */
-    /* @id list_first */
     list.first = function () {
         if (firstNode !== undefined) {
             return firstNode.element;
@@ -225,7 +221,6 @@ buckets.LinkedList = function () {
      * @return {*} The last element in the list or undefined if the list is
      * empty.
      */
-    /* @id list_last */
     list.last = function () {
         if (lastNode !== undefined) {
             return lastNode.element;
@@ -239,7 +234,6 @@ buckets.LinkedList = function () {
      * @return {*} The element at the given index or undefined if the index is
      * out of bounds.
      */
-    /* @id list_elementAtIndex */
     list.elementAtIndex = function (index) {
         var node = nodeAtIndex(index);
         if (node === undefined) {
@@ -269,7 +263,6 @@ buckets.LinkedList = function () {
      * of the specified element, or -1 if the list does not contain the
      * element.
      */
-    /* @id list_indexOf */
     list.indexOf = function (item, equalsFunction) {
         var equalsF = equalsFunction || buckets.defaultEquals,
             currentNode = firstNode,
@@ -306,7 +299,6 @@ buckets.LinkedList = function () {
      * @return {boolean} True if the list contains the specified element, false
      * otherwise.
      */
-    /* @id list_contains */
     list.contains = function (item, equalsFunction) {
         return (list.indexOf(item, equalsFunction) >= 0);
     };
@@ -325,7 +317,6 @@ buckets.LinkedList = function () {
      * @param {Object} item Element to be removed from the list, if present.
      * @return {boolean} True if the list contained the specified element.
      */
-    /* @id list_remove */
     list.remove = function (item, equalsFunction) {
         var equalsF = equalsFunction || buckets.defaultEquals,
             currentNode = firstNode,
@@ -364,7 +355,6 @@ buckets.LinkedList = function () {
     /**
      * Removes all the elements from the list.
      */
-    /* @id list_clear */
     list.clear = function () {
         firstNode = undefined;
         lastNode = undefined;
@@ -381,7 +371,6 @@ buckets.LinkedList = function () {
      * the === operator is used to check equality between elements.
      * @return {boolean} true if the list is equal to the given list.
      */
-    /* @id list_equals */
     list.equals = function (other, equalsFunction) {
         var eqf = equalsFunction || buckets.defaultEquals,
             isEqual = true,
@@ -393,7 +382,7 @@ buckets.LinkedList = function () {
         if (list.size() !== other.size()) {
             return false;
         }
-        /* @id list_equals_callback */
+
         other.forEach(function (element) {
             isEqual = eqf(element, node.element);
             node = node.next;
@@ -408,7 +397,6 @@ buckets.LinkedList = function () {
      * @param {number} index Given index.
      * @return {*} Removed element or undefined if the index is out of bounds.
      */
-    /* @id list_removeElementAtIndex */
     list.removeElementAtIndex = function (index) {
         var element, previous;
 
@@ -445,7 +433,6 @@ buckets.LinkedList = function () {
      * invoked with one argument: the element value, to break the iteration you can
      * optionally return false inside the callback.
      */
-    /* @id list_forEach */
     list.forEach = function (callback) {
         var currentNode = firstNode;
         while (currentNode !== undefined) {
@@ -461,7 +448,6 @@ buckets.LinkedList = function () {
      * element first, and the first element last).
      * @memberOf buckets.LinkedList
      */
-    /* @id list_reverse */
     list.reverse = function () {
         var current = firstNode,
             previous,
@@ -484,10 +470,8 @@ buckets.LinkedList = function () {
      * @return {Array.<*>} An array containing all the elements in the list,
      * in proper sequence.
      */
-    /* @id list_toArray */
     list.toArray = function () {
         var result = [];
-        /* @id list_toArray_callback */
         list.forEach(function (element) {
             result.push(element);
         });
@@ -498,7 +482,6 @@ buckets.LinkedList = function () {
      * Returns the number of elements in the list.
      * @return {number} The number of elements in the list.
      */
-    /* @id list_size */
     list.size = function () {
         return nElements;
     };
@@ -507,7 +490,6 @@ buckets.LinkedList = function () {
      * Returns true if the list contains no elements.
      * @return {boolean} true if the list contains no elements.
      */
-    /* @id list_isEmpty */
     list.isEmpty = function () {
         return nElements <= 0;
     };
@@ -515,23 +497,208 @@ buckets.LinkedList = function () {
     return list;
 };
 
-// ---------------------------------- tests ----------------------------------
 
-var list = new buckets.LinkedList()
+// -------------------------------- queue.js ----------------------------------
 
-var x1 = symb_number(x1)
-var x2 = symb_number(x2)
-var x3 = symb_number(x3)
-var x4 = symb_number(x4)
+/**
+ * Creates an empty queue.
+ * @class A queue is a First-In-First-Out (FIFO) data structure, the first
+ * element added to the queue will be the first one to be removed. This
+ * implementation uses a linked list as the underlying storage.
+ * @constructor
+ */
 
-list.add(x1)
-list.add(x2)
-list.add(x3)
+/* @id buckets_Queue */
+buckets.Queue = function () {
 
-var index = list.indexOf(x4)
-var res1 = list.removeElementAtIndex(1)
-var res2 = list.elementAtIndex(1)
+    /** 
+     * @exports queue as buckets.Queue
+     * @private
+     */
+    var queue = {},
+        // Underlying list containing the elements.
+        list = new buckets.LinkedList();
 
-Assert(((x4 = x1) and (index = 0)) or ((not (x4 = x1)) and (x4 = x2) and (index = 1)) or ((not (x4 = x1)) and ((not (x4 = x2)) and (x4 = x3) and (index = 2)) or (not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)) and (index = -1)));
-Assert(res1 = x2);
-Assert(res2 = x3);
+    /**
+     * Inserts the specified element into the end of the queue.
+     * @param {Object} elem The element to insert.
+     * @return {boolean} True if the element was inserted, or false if it's undefined.
+     */
+    /* @id queue_enqueue */
+    queue.enqueue = function (elem) {
+        return list.add(elem);
+    };
+
+    /**
+     * Inserts the specified element into the end of the queue. Equivalent to enqueue.
+     * @param {Object} elem The element to insert.
+     * @return {boolean} True if the element was inserted, or false if it's undefined.
+     */
+    /* @id queue_add */
+    queue.add = function (elem) {
+        return list.add(elem);
+    };
+
+    /**
+     * Retrieves and removes the head of the queue.
+     * @return {*} The head of the queue, or undefined if the queue is empty.
+     */
+    /* @id queue_dequeue */
+    queue.dequeue = function () {
+        var elem;
+        if (list.size() !== 0) {
+            elem = list.first();
+            list.removeElementAtIndex(0);
+            return elem;
+        }
+        return undefined;
+    };
+
+    /**
+     * Retrieves, but does not remove, the head of the queue.
+     * @return {*} The head of the queue, or undefined if the queue is empty.
+     */
+    /* @id queue_peek */
+    queue.peek = function () {
+        if (list.size() !== 0) {
+            return list.first();
+        }
+        return undefined;
+    };
+
+    /**
+     * Returns the number of elements in the queue.
+     * @return {number} The number of elements in the queue.
+     */
+    /* @id queue_size */
+    queue.size = function () {
+        return list.size();
+    };
+
+    /**
+     * Returns true if the queue contains the specified element.
+     * <p>If the elements inside the queue are
+     * not comparable with the === operator, a custom equals function should be
+     * provided to perform searches, the function must receive two arguments and
+     * return true if they are equal, false otherwise. Example:</p>
+     *
+     * <pre>
+     * var petsAreEqualByName = function(pet1, pet2) {
+     *  return pet1.name === pet2.name;
+     * }
+     * </pre>
+     * @param {Object} elem Element to search for.
+     * @param {function(Object,Object):boolean=} equalsFunction Optional
+     * function to check if two elements are equal.
+     * @return {boolean} True if the queue contains the specified element,
+     * false otherwise.
+     */
+    /* @id queue_contains */
+    queue.contains = function (elem, equalsFunction) {
+        return list.contains(elem, equalsFunction);
+    };
+
+    /**
+     * Checks if the queue is empty.
+     * @return {boolean} True if and only if the queue contains no items.
+     */
+    /* @id queue_isEmpty */
+    queue.isEmpty = function () {
+        return list.size() <= 0;
+    };
+
+    /**
+     * Removes all the elements from the queue.
+     */
+    /* @id queue_clear */
+    queue.clear = function () {
+        list.clear();
+    };
+
+    /**
+     * Executes the provided function once per each element present in the queue in
+     * FIFO order.
+     * @param {function(Object):*} callback Function to execute, it's
+     * invoked an element as argument, to break the iteration you can
+     * optionally return false inside the callback.
+     */
+    /* @id queue_forEach */
+    queue.forEach = function (callback) {
+        list.forEach(callback);
+    };
+
+    /**
+     * Returns an array containing all the elements in the queue in FIFO
+     * order.
+     * @return {Array.<*>} An array containing all the elements in the queue
+     * in FIFO order.
+     */
+    /* @id queue_toArray */
+    queue.toArray = function () {
+        return list.toArray();
+    };
+
+    /**
+     * Returns true if the queue is equal to another queue.
+     * Two queues are equal if they have the same elements in the same order.
+     * @param {buckets.Queue} other The other queue.
+     * @param {function(Object,Object):boolean=} equalsFunction Optional
+     * function to check if two elements are equal. If the elements in the queues
+     * are custom objects you should provide a custom equals function, otherwise
+     * the === operator is used to check equality between elements.
+     * @return {boolean} True if the queue is equal to the given queue.
+     */
+    /* @id queue_equals */
+    queue.equals = function (other, equalsFunction) {
+        var eqf, isEqual, thisElement;
+        if (buckets.isUndefined(other) || typeof other.dequeue !== 'function') {
+            return false;
+        }
+        if (queue.size() !== other.size()) {
+            return false;
+        }
+        eqf = equalsFunction || buckets.defaultEquals;
+        isEqual = true;
+        /* @id queue_equals_callback */
+        other.forEach(function (element) {
+            thisElement = queue.dequeue();
+            queue.enqueue(thisElement);
+            isEqual = eqf(thisElement, element);
+            return isEqual;
+        });
+        return isEqual;
+    };
+
+    return queue;
+};
+
+// ------------------------------- our tests ----------------------------------
+
+// modeling the tests from test/queue-test.js
+
+var queue = new buckets.Queue();
+
+var x1 = symb_number(x1); // 1
+var x2 = symb_number(x2); // 2
+var x3 = symb_number(x3); // 3
+Assume((x1 < x2) and (x2 < x3));
+
+function createQueue() {
+  queue.enqueue(x1);
+  queue.enqueue(x2);
+  queue.enqueue(x3);
+}
+
+
+// TEST 7
+
+// it('contains returns false for non-inserted items', function () {
+var queue = new buckets.Queue();
+createQueue();
+var x4 = symb_number(x4);
+Assume((not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)));
+var res1 = queue.contains(x4);
+Assert(not res1);
+var res2 = queue.contains(undefined);
+Assert(not res2);
+queue.clear();

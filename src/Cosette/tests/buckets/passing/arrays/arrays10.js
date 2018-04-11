@@ -14,6 +14,7 @@ var buckets = {};
  * @function
  * @private
  */
+/* @id base_defaultCompare */
 buckets.defaultCompare = function (a, b) {
     if (a < b) {
         return -1;
@@ -29,6 +30,7 @@ buckets.defaultCompare = function (a, b) {
  * @function
  * @private
  */
+/* @id base_defaultEquals */
 buckets.defaultEquals = function (a, b) {
     return a === b;
 };
@@ -38,6 +40,7 @@ buckets.defaultEquals = function (a, b) {
  * @function
  * @private
  */
+/* @id base_defaultToString */
 buckets.defaultToString = function (item) {
     if (item === null) {
         return 'BUCKETS_NULL';
@@ -56,6 +59,7 @@ buckets.defaultToString = function (item) {
  * @function
  * @private
  */
+/* @id base_isFunction */
 buckets.isFunction = function (func) {
     return (typeof func) === 'function';
 };
@@ -65,6 +69,7 @@ buckets.isFunction = function (func) {
  * @function
  * @private
  */
+/* @id base_isUndefined */
 buckets.isUndefined = function (obj) {
     return obj === undefined;
 };
@@ -74,6 +79,7 @@ buckets.isUndefined = function (obj) {
  * @function
  * @private
  */
+/* @id base_isString */
 buckets.isString = function (obj) {
     return Object.prototype.toString.call(obj) === '[object String]';
 };
@@ -83,8 +89,10 @@ buckets.isString = function (obj) {
  * @function
  * @private
  */
+/* @id base_reverseCompareFunction */
 buckets.reverseCompareFunction = function (compareFunction) {
     if (!buckets.isFunction(compareFunction)) {
+        /* @id base_reverseCompareFunction_inner1 */
         return function (a, b) {
             if (a < b) {
                 return 1;
@@ -95,6 +103,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
             return -1;
         };
     }
+    /* @id base_reverseCompareFunction_inner2 */
     return function (d, v) {
         return compareFunction(d, v) * -1;
     };
@@ -106,6 +115,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
  * @function
  * @private
  */
+/* @id base_compareToEquals */
 buckets.compareToEquals = function (compareFunction) {
     return function (a, b) {
         return compareFunction(a, b) === 0;
@@ -298,22 +308,36 @@ buckets.arrays.forEach = function (array, callback) {
 
 // ------------------------------ our test now -------------------------------
 
-var x1 = symb_number(x1);
-var x2 = symb_number(x2);
-var x3 = symb_number(x3);
+var eq = function (arg1, arg2) {
+    return arg1.val === arg2.val;
+};
 
-var array = [ x1, x2 ];
+var n1 = symb_number(n1); // 1
+var n2 = symb_number(n2); // 8
+var n3 = symb_number(n3); // 10
+Assume(not (n1 = n2));
+Assume(not (n2 = n3));
+Assume(not (n3 = n1));
+var a = {
+        val: n1
+    },
+    b = {
+        val: n2
+    },
+    c = {
+        val: n3
+    };
+var customObjectArray = [a, a, b, c];
+var numberArray = [n1, n2, n2, n2, n3, n3];
 
-var nbElem = 0;
-buckets.arrays.forEach(array, function(x) { nbElem++ });
+// test 10
+// it('contains returns true for existing objects with custom equals', function () {
+var test = {
+    val: n1
+};
 
-var lastIndex = buckets.arrays.lastIndexOf(array, x1);
-
-Assume((not (x3 = x1)) and (not (x1 = x2)));
-var notFoundIndex = buckets.arrays.indexOf(x3);
-
-// asserts
-Assert(nbElem = 2);
-Assert(((x1 = x2) and (lastIndex = 1)) or ((not (x1 = x2)) and (lastIndex = 0)));
-Assert(notFoundIndex = -1);
-
+var res1 = buckets.arrays.contains(customObjectArray, test, eq);
+Assert(res1);
+test.val = n2;
+var res2 = buckets.arrays.contains(customObjectArray, test, eq);
+Assert(res2);

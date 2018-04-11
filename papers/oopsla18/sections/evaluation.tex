@@ -1,1 +1,185 @@
 %!TEX root = ../main.tex
+
+\subsection{Concrete interpreter evaluation}
+
+Petar goes here
+
+\subsection{Symbolic interpreter evaluation}
+
+We validate \cosette as a JavaScript interpreter in paragraph~\ref{p1}, showcase its tractability by fully testing a library from node.js in paragraph~\ref{p2}, and demonstrate its symbolic bug-finding abilities with a real-world example in paragraph~\ref{p3}.
+
+\myparagraph{Challenging JavaScript examples}
+
+\cosette is able to verify JavaScript programs that use nontrivial parts of the JavaScript semantics, such as dynamic dispatch and property enumeration (via \jsinline{for-in} loops), in the symbolic world.
+
+\subsubsection{Dynamic dispatch}
+The following example demonstrates that \cosette is able to bring together complex symbolic string and mathematical reasoning with JavaScript's memory model.
+
+\begin{lstjs}
+var o = Object.create(null);
+
+o.plusOne = function(x) { return x + 1 };
+o.minusOne = function(x) { return x - 1 };
+
+var s1 = symb_string(s1), s2 = symb_string(s2);
+var n1 = symb_number(n1), n2 = symb_number(n2);
+
+Assume(not (n1 = n2));
+
+var total1 = o[s1](n1);
+var total2 = o[s2](n2);
+
+Assert(total1 = total2);
+\end{lstjs}
+
+In this example, we create an object \jsinline{o} that contains two functions, \jsinline{o.plusOne} and \jsinline{o.minusOne}, which respectively add and subtract $1$ from their argument.
+We create two symbolic strings \jsinline{s1} and \jsinline{s2}, and two distinct symbolic numbers \jsinline{n1} and {n2}.
+Then, we compute the result of applying function \jsinline{o[s1]} to \jsinline{n1}, and \jsinline{o[s2]} to \jsinline{n2}, stating with the \jsinline{Assert} statement that we want both these values to be equal.
+
+According to the different values that the strings \jsinline{s1} and \jsinline{s2} take, quite different things can happen.
+If \jsinline{s1} (or \jsinline{s2}) is not a valid property name of \jsinline{o}, the program will give a runtime error, because \jsinline{o[s1]} (or \jsinline{o[s2]}) evaluates to \jsinline{undefined}, which is not a function, and cannot be applied; when running the program with \cosette, we indeed get a concrete model for this failing case.
+
+If both \jsinline{s1} and \jsinline{s2} are valid property names for \jsinline{o}, the program is always executed until its end.
+In that case, \cosette is able to present us with a model for the final assertion to hold (for example, \jsinline{s1 = "minusOne", s2 = "plusOne", n1 = 0}, and \jsinline{n2 = -2}), as well as a model that invalidates the final assertion (for example, \jsinline{s1 = "minusOne", s2 = "minusOne", n1 = 0} and \jsinline{n2 = 1}).
+
+This example demonstrates that \cosette has a fine understanding of the mechanics that underly the dynamic dispatch system in JavaScript, and is able to not only infer possible dynamic function names for a property function call to work, but is also able to relate the dynamic name to the function output.
+
+
+\subsubsection{Property enumeration}
+The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties of JavaScript objects.
+
+\begin{lstjs}
+
+function nbProp(o) {
+  var count = 0;
+  for (var p in o) {
+    count += 1;
+  }
+  return count;
+}
+
+var o = {a: 1, b: 2, c: 3};
+
+var s1 = symb_string(s1);
+
+o[s1] = 4;
+var res = nbProp(o);
+var expectedRes = 3;
+
+Assert(res = expectedRes);
+\end{lstjs}
+
+In this example, we create a JavaScript object \jsinline{o} that has three properties \jsinline{a, b}, and \jsinline{c}.
+Then, we create a symbolic string \jsinline{s1} and assign a value to the property of \jsinline{o} corresponding to {s1}.
+Finally, we count the actual number of properties in \jsinline{o}.
+There are two possible cases here: either \jsinline{s1} is equal to one of the concrete property names of \jsinline{o}, and the assignment actually overwrites the value associated with that property, or \jsinline{s1} is a fresh string and the assignment creates a new concrete property.
+
+\cosette is able to reason about both cases, and finds a model for the assertion; either shadowing the property if \jsinline{expectedRes = 3}, giving a fresh string if \jsinline{expectedRes = 4}, or saying that the assertiong is unsatisfiable if \jsinline{expectedRes} is different from these two values.
+
+This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
+ 
+\myparagraph{Extensive testing of the BucketsJS library}
+
+The BucketsJS library is a JavaScript data-structure library available on GitHub~\ref{buckets}.
+It presents itself as \emph{fully tested}, and comes with a test suite that cover each of the data structures it exposes.
+Using \cosette, we translated these concrete tests into symbolic tests that are shorter, easier to maintain, and have more extensive coverage.
+We found that some code paths were never executed in the original tests, demonstrating that \cosette can be effectively used as a tool aiding test development.
+
+
+Example: the \jsinline{queue.js} file (unless we find an even better one)
+
+
+Coverage: the table with coverage and time per file
+
+%\begin{wraptable}{R}{0.5\textwidth}
+%{\small
+%	\centering
+%	\vspace*{-0.1cm}
+%	\caption{\cosette Verification Statistics}
+%	\label{tab:stats}
+%	\vspace*{-0.35cm}
+%%    \rowcolors{2}{SkyBlue!20}{white}
+%    \begin{tabular}{|lcccc|}
+%    \hline
+%%      \rowcolor{SkyBlue!40}
+%      {\bfseries Example} & {\bfseries \#JS} & {\bfseries \#JSIL} & {\bfseries \#specs} & {\bfseries t(s)} \\
+%      \hline
+%      Key-value map		&  23 &  523 &   9 &  3.37 \\
+%      ID Generator		&  16 &  330 &   4 &  0.73 \\ 
+%      Priority queue	&  46 & 1003 &  10 &  7.14 \\
+%      BST				&  70 & 1032 &   5 &  7.38 \\
+%      Insertion sort	&  24 &  415 &   2 &  1.78 \\
+%      Test262 examples  & 113 & 1367 &  16 &  3.46 \\
+%      \hline
+%   \end{tabular}
+%  }
+%  \vspace*{-0.4cm}
+%\end{wraptable}
+
+\FloatBarrier
+
+% note: the - in \jsinline{queue-pri} doesn't have the same color as the rest (because it's a minus sign), find a nicer way to output this
+\myparagraph{Debugging the \jsinline{queue-pri} library} 
+
+The JavaScript \jsinline{queue-pri} library is a priority queue library available on GitHub~\ref{queue-pri}.
+It provides a \jsinline{PriorityQueue} class; assuming object \jsinline{queue} is an instance of that class, the user can enqueue and dequeue objects with an integer priority value, by calling functions \jsinline{queue.enqueue(data, priority)} and \jsinline{queue.dequeue()}.
+In this implementation, objects with smaller priority values are considered to have a higher priority and are dequeued first.
+When enqueuing an object, the priority value is actually optional, and it will internally be replaced by \jsinline{null} if it isn't provided.
+This means that the object will be dequeued last, after all the objects that have explicit priority values.
+Using \cosette symbolic testing, we were able to find a bug in which the library does not respect the priority ordering of objects, and that is not covered by the test cases provided with the library.
+When inserting an object with priority value $0$ (by calling \jsinline{queue.enqueue(obj, 0)}), the code actually replaces the priority by the \jsinline{null} value and places the object at the end of the queue.
+
+\subsubsection{Symbolic test and countermodel}
+
+We wrote the following symbolic example to test the code of the library.
+We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent the priority values.
+Then, we enqueue first string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
+Finally, we dequeue the two strings into variables \jsinline{y1} and \jsinline{y2}, and we make sure that the ordering is consistent: either \jsinline{x1} $\leq$ \jsinline{x2}, in which case \jsinline{y1} $=$ \jsinline{s1} and \jsinline{y2} $=$ \jsinline{s2} (remember that lower priority number means higher priority), or \jsinline{x1} $>$ \jsinline{x2} and then \jsinline{y1} $=$ \jsinline{s2} and \jsinline{y2} $=$ \jsinline{s1}.
+
+\begin{lstjs}
+var x1 = symb_number(x1), x2 = symb_number(x2);
+var s1 = symb_string(s1), s2 = symb_string(s2);
+
+queue.enqueue(s1, x1);
+queue.enqueue(s2, x2);
+
+var y1 = queue.dequeue().data;
+var y2 = queue.dequeue().data;
+
+Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) 
+    or ((x1 = x2) and (y1 = s1) and (y2 = s2))
+    or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
+\end{lstjs}
+
+
+However, when running this example with \cosette, we get the following countermodel, which invalidates the assertion: \jsinline{x1 = 1, x2 = 0, s1 = "!0!", s2 = "!1!"}.
+When running the test with these concrete values, we indeed get \jsinline{y1 = "!0!" = s1}, and \jsinline{y2 = "!1!" = s2}, which contradicts the assertion.
+
+\subsubsection{Origin of the bug and fix}
+
+After inspecting the code, we found that the error comes from the \jsinline{queue.enqueue} function, specifically the following lines:
+
+\begin{lstjs}
+PriorityQueue.prototype = {
+    ...,
+    enqueue: function (data, pri) {
+        var payload = {
+            data: data,
+            priority: pri || null
+        };
+        ...
+    };
+    ...
+};
+\end{lstjs}
+
+When inserting an object with priority value \jsinline{pri = 0}, the \jsinline{pri || null} expression actually evaluates to \jsinline{null} instead of the expected \jsinline{0}, effectively disregarding the priority value.
+This bug was not detected by the test suite provided with the library, because all of the tests use either \jsinline{null} or strictly positive priority values, but never \jsinline{0}.
+We replaced the faulty line with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again; in this case, \cosette certified that the assertion always holds and that the fixed code is indeed correct, for all possible insertions of two objects with explicit priority values.
+
+This examples shows that \cosette is capable to find bugs in real-world code, even in the presence of handwritten test cases, by generating symbolic examples that break the implicit assumptions made by the code, or by revealing corner cases that had not been considered.
+
+
+\subsection{Spec-driven bugfinding}
+
+José goes here
