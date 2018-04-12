@@ -26,6 +26,9 @@ rule read =
   | float    { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { TRUE }
   | "false"  { FALSE }
+  | "True"   { LTRUE }
+  | "False"  { LFALSE }
+  | "nil"    { LSTNIL }
   | "null"   { NULL }
   | "while"  { WHILE }
   | "if"     { IF }
@@ -35,8 +38,20 @@ rule read =
   | "delete" { DELETE }
   | "function" { FUNCTION }
   | "return" { RETURN }
+  | "not"      { NOT }
+  | "emp"    { EMP } 
+  | "->"     { ARROW }
   | identifier { IDENTIFIER (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
+  | "/\\"    { LAND }
+  | "\\/"    { LOR }
+  | "=="     { LEQ }
+  | "<#"     { LLESS }
+  | "<=#"    { LLESSEQ }
+  | ">#"     { LGREATER }
+  | ">=#"    { LGREATEREQ }
+  | '['      { LBRACK }
+  | ']'      { RBRACK }
   | '{'      { LCBRACE }
   | '}'      { RCBRACE }
   | '('      { LBRACE }
@@ -59,7 +74,7 @@ rule read =
   | "&&"     { AND }
   | "||"     { OR }
   | "!="     { NEQ }
-  | '!'      { NOT }
+  | '!'      { LNOT }
   | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof      { EOF }
 

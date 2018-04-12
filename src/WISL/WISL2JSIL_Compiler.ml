@@ -14,7 +14,7 @@ module LabelGenerator = struct
   end 
 
 
-(* First we compile expressions *)
+(* WISL Compiler *)
 let compile_binop b = match b with
   | EQUAL -> BinOp.Equal
   | LESSTHAN -> BinOp.LessThan
@@ -26,22 +26,30 @@ let compile_binop b = match b with
 	| MOD -> BinOp.Mod
 	| AND -> BinOp.And
 	| OR -> BinOp.Or
-  | _ -> failwith "compile_binop should not be used to compile this operator"
+  | LSTCONS -> BinOp.LstCons
+  | LSTCAT -> BinOp.LstCat
+  | _ -> failwith (Format.asprintf "compile_binop should not be used to compile %a"
+                  WISL_Printer.pp_binop b)
 
 let compile_unop u = match u with
   | NOT -> UnOp.Not
 
-let compile_value v = match v with
+let rec compile_value v = match v with
   | Bool b -> Literal.Bool b
   | Null -> Literal.Null
   | Loc l -> Literal.Loc l
   | Num n -> Literal.Num (float_of_num n)
   | Str s -> Literal.String s
+  | VList l -> Literal.LList (List.map compile_value l)
 
 
 let rec compile_expression expr =
   let is_special_binop b = match b with
     | NEQ | GREATERTHAN | GREATEREQUAL -> true
+    | _ -> false
+  in
+  let is_logic_only_binop b = match b with
+    | LSTCONS | LSTCAT -> true
     | _ -> false
   in
   let compile_special_binop (e1, b, e2) =
@@ -63,11 +71,15 @@ let rec compile_expression expr =
           UnOp.Not,
           JSIL.BinOp (comp_e1, BinOp.LessThan, comp_e2)
         )
-    | _ -> failwith "This is not a special binary operator"
+    | _ -> failwith (Format.asprintf 
+      "Operator %a is not a special operator" WISL_Printer.pp_binop b)
   in
   match expr with
   | Val v -> JSIL.Literal (compile_value v)
   | Var x -> JSIL.Var x
+  | BinOp (e1, b, e2) when is_logic_only_binop b ->
+      failwith (Format.asprintf "Operator %a should only be used in the logic"
+      WISL_Printer.pp_binop b)
   | BinOp (e1, b, e2) when is_special_binop b ->
     compile_special_binop (e1, b, e2)
   | BinOp (e1, b, e2) -> JSIL.BinOp (compile_expression e1,
@@ -195,6 +207,95 @@ let clean_unused_labs lcmdlist =
   in List.map (remove_if_unused used_labs) lcmdlist
   
 
+(* Logic related stuff *)
+let rec compile_logic_expression lexpr =
+  let is_special_binop b = match b with
+    | NEQ | GREATERTHAN | GREATEREQUAL -> true
+    | _ -> false
+  in
+  let compile_special_binop (le1, b, le2) =
+    let comp_le1 = compile_logic_expression le1 in
+    let comp_le2 = compile_logic_expression le2 in
+    match b with
+    | NEQ -> 
+        JSIL.LUnOp (
+          UnOp.Not,
+          JSIL.LBinOp (comp_le1, BinOp.Equal, comp_le2)
+        )
+    | GREATERTHAN ->
+        JSIL.LUnOp (
+          UnOp.Not,
+          JSIL.LBinOp (comp_le1, BinOp.LessThanEqual, comp_le2)
+        )
+    | GREATEREQUAL ->
+        JSIL.LUnOp (
+          UnOp.Not,
+          JSIL.LBinOp (comp_le1, BinOp.LessThan, comp_le2)
+        )
+    | _ -> failwith (Format.asprintf 
+      "Operator %a is not a special operator" WISL_Printer.pp_binop b)
+  in
+  match lexpr with
+  | LVal v -> JSIL.LLit (compile_value v)
+  | LVar lx -> JSIL.LVar lx
+  | PVar x -> JSIL.PVar x
+  | LBinOp (le1, b, le2) when is_special_binop b ->
+    compile_special_binop (le1, b, le2)
+  | LBinOp (le1, b, le2) ->
+      JSIL.LBinOp (compile_logic_expression le1,
+                   compile_binop b,
+                   compile_logic_expression le2)
+  | LUnOp (u, le) ->
+      JSIL.LUnOp (compile_unop u, compile_logic_expression le)
+  (* | LEList lel -> JSIL.LEList (List.map compile_logic_expression lel) *)
+
+
+let rec compile_logic_assertion asser = match asser with
+  | LTrue -> JSIL.LTrue
+  | LFalse -> JSIL.LFalse
+  | LNot la -> JSIL.LNot (compile_logic_assertion la)
+  | LAnd (la1, la2) -> JSIL.LAnd
+          (compile_logic_assertion la1,
+           compile_logic_assertion la2)
+  | LOr (la1, la2) -> JSIL.LOr
+          (compile_logic_assertion la1,
+           compile_logic_assertion la2)
+  | LEmp -> JSIL.LEmp
+  | LStar (la1, la2) -> JSIL.LStar
+          (compile_logic_assertion la1,
+           compile_logic_assertion la2)
+  | LPointsTo (le1, pn, le3) -> JSIL.LPointsTo
+          (compile_logic_expression le1,
+           JSIL.LLit (Literal.String pn),
+           (Permission.Mutable, compile_logic_expression le3))
+  | LEq (le1, le2) -> JSIL.LEq
+          (compile_logic_expression le1,
+           compile_logic_expression le2)
+  | LLess (le1, le2) -> JSIL.LLess
+          (compile_logic_expression le1,
+           compile_logic_expression le2)
+  | LGreater (le1, le2) -> JSIL.LNot (
+           JSIL.LLessEq
+           (compile_logic_expression le1,
+            compile_logic_expression le2))
+  | LLessEq (le1, le2) -> JSIL.LLessEq
+          (compile_logic_expression le1,
+           compile_logic_expression le2)
+  | LGreaterEq (le1, le2) -> JSIL.LNot
+          (JSIL.LLess
+           (compile_logic_expression le1,
+            compile_logic_expression le2))
+
+let compile_spec pre post name params =
+  let comp_pre = compile_logic_assertion pre in
+  let comp_post = compile_logic_assertion post in
+  let single_spec = JSIL.create_single_spec comp_pre [comp_post] JSIL.Normal in
+  JSIL.{
+    spec_name = name;
+    spec_params = params;
+    proc_specs = [single_spec];
+    previously_normalised = false;
+  }
 
 let compile_function func =
   let no_metadata =
@@ -203,14 +304,20 @@ let compile_function func =
     JSIL.pre_logic_cmds = [];
     JSIL.post_logic_cmds = []
    } in
-  let (fn, params, body, ret_expr) = func in
+  let fn = func.name in
+  let params = func.params in
+  let body = func.body in
+  let ret_expr = func.return_expr in
   let lbodylist = compile_statement body in
   let comp_ret_expr = compile_expression ret_expr in
   let clean_lbodylist = clean_unused_labs lbodylist in
   let retassigncmd = JSIL.LBasic (JSIL.Assignment ("x__ret", comp_ret_expr)) in
   let lretassigncmd = (no_metadata, Some "rlab", retassigncmd) in
   let lbody_withret = clean_lbodylist@[lretassigncmd] in
-  let lbody_withret_array = Array.of_list lbody_withret
+  let lbody_withret_array = Array.of_list lbody_withret in
+  let specs = match func.spec with
+    | Some sp -> Some (compile_spec sp.pre sp.post fn params)
+    | None -> None
   in {
     JSIL.lproc_name = fn;
     JSIL.lproc_body = lbody_withret_array;
@@ -219,7 +326,7 @@ let compile_function func =
     JSIL.lret_var = Some "x__ret";
     JSIL.lerror_label = None;
     JSIL.lerror_var = None;
-    JSIL.lspec = None
+    JSIL.lspec = specs
   }
 
 let compile_program prog =
@@ -233,7 +340,13 @@ let compile_program prog =
       proclist;
     proc_hash
   in
-  let main_of_stmt stmt = compile_function ("main", [], stmt, Val (Num (Int 0))) in
+  let main_of_stmt stmt = compile_function ({
+    name="main";
+    params=[];
+    body=stmt;
+    spec = None;
+    return_expr=(Val (Num (Int 0)))
+    }) in
   let stmtopt = prog.entry_point in
   let context = prog.context in
   let comp_context = List.map compile_function context in
