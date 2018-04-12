@@ -288,8 +288,12 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
-\cosette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
+We present \cosette, a framework for compositional
+symbolic testing of JavaScript programs.
+
+
+
+
 Its aim is to assist the general programmer in debugging their code; the programmer writes symbolic tests for which \cosette provides concrete counter-models.
 We prove that the symbolic execution underpinning \cosette is sound and that it does not generate false positives. Moreover, this symbolic execution is compositional, which allows us to use \cosette to find bugs in separation logic specifications of JavaScript programs that are not detectable by standard symbolic execution techniques.
 %\pmaxinline{Now compositionality.}
@@ -365,6 +369,17 @@ We evaluate \cosette on an array of examples, including tests from the official 
 
 \section{Introduction}
 
+
+
+%\pg{This is what we should answer by the introduction: 
+%What's the problem with the current state of the art?
+%What is our solution?
+%Why is the problem we're solving hard?
+%How do we solve the challenges?
+%Why do we do better than existing work?
+%What are the lessons learnt from the paper?}
+
+
 \pmax{Many messages, let's not forget any:
 \begin{itemize}
 \item Methodology for analysis of languages with no frame property
@@ -374,6 +389,100 @@ We evaluate \cosette on an array of examples, including tests from the official 
 \item more...?
 \end{itemize}
 }
+
+%%symbolic execution is...
+
+Symbolic testing has been successfully used to find bugs in code for 
+languages such as C, Java and JavaScript.  
+It provides stronger guarantees than the more 
+traditional concrete testing.
+Instead of concrete tests with concrete inputs, the developer uses
+symbolic tests with symbolic inputs and constraints on the output
+given by simple, intuitive  first-order assertions over
+these inputs. If the symbolic test fails, the developer obtains a
+concrete input 
+to demonstrate why it fails. 
+While key ideas behind symbolic testing  were introduced more than
+three decades ago, only recently have these techniques become
+practical as a result of significant advances in fundamental theory,
+solver technology, and scalable tool development.
+
+
+%%the problem 
+
+
+Symbolic testing provides an analysis of whole program behaviour. It
+works well for static languages such as C and Java which satisfy the
+{\em frame property}. Intuitively, the frame property states that, if
+a program produces an output when run in a given state, then it will
+produce the same output when run in an extended state. With the frame
+property, testing a C or Java program with respect to a symbolic state
+guarantees that the program will behave in the same way when the state
+is extended arbitrarily.  Symbolic testing works less well for dynamic
+languages such as JavaScript which do not satisfy the frame property.
+Without the frame property, testing a JavaScript program with respect
+to an initial symbolic state does not guarantee that the program will
+behave in the same way when the state is extended.  Such whole-program
+analysis is therefore not the best fit for JavaScript applications,
+which are commonly run in highly dynamic execution environments
+ where the state can be extended  arbitrarily. 
+
+
+
+%%what is our solution: compositionality
+
+
+ We introduce {\em compositional} symbolic testing for JavaScript
+ programs by working with partial instrumented symbolic heaps.
+ Compositionality is acheived by providing instrumentation that
+ explicitly keeping track of properties that must {\em not be present}
+ in a given partial heap in order for the program to behave correctly.
+ The operational semantics of JavaScript over such instrumented heaps does satisfy the frame
+ property.  
+
+,,,,,
+
+
+
+
+
+
+
+instrumentation needed for frame. 
+
+spec-driven bug finding and compositional symbolic testing. 
+
+
+%%trustworthiness
+
+
+
+We prove that the symbolic execution underpinning Cosette is sound and
+that it does not generate false positives. Moreover, this symbolic
+execution is compositional, which allows us to use Cosette to  nd bugs
+in separation logic speci cations of JavaScript programs that are not
+detectable by standard symbolic execution techniques. 
+
+%%really good thereotical results
+
+
+
+%%%%%evaluation of the tool
+
+We are doing compositional symbolic execution  for JavaScript 
+applications to whole-program symbolic testing, specification-driven
+bug finding and whatever else you've talking about 
+
+
+Moreover, the compositionality of \cosette allows us to catch bugs that are not reachable by standard symbolic execution tools.
+We illustrate the capabilities of \cosette on an array of examples, which include tests from the Test262 test suite and real-world Node.js libraries, and which make use of JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. \pmaxinline{Revisit after evaluation.}
+
+
+
+
+
+
+---------------THE OLD INTRO-----------------------
 
 In current program analysis research, there exists a gap between bug-finding techniques and verification techniques. In bug-finding, the aim is to discover concrete executions that cause a given program to behave incorrectly, and the emphasis is on precision, that is, the absence of false positive bug reports. In verification, the aim is to produce a proof that a given program always behaves correctly, and the emphasis is on soundness, which mandates adherence to the language standard and the exploration of all possible paths.
 %
@@ -426,7 +535,7 @@ These theoretical results, combined with the correctness of \JSComp and the fact
 
 \myparagraph{Novelty: Compositionality} 
 Whole-program analyses are not the best fit for JavaScript applications, which are commonly run in highly dynamic execution environments. For instance, client-side programs dynamically load and execute third-party code as a matter of course. For this reason, it is important to be able to analyse incomplete JavaScript code in a compositional manner.
-However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively, the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run. 
+However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively,  the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run. 
 %
 We achieve compositionality by explicitly keeping track of properties that must {\em not be present} in a given object in order for the program to behave correctly.
 %Because JavaScript does not observe the frame property, such conditions need to refer to positive resources, object properties that need to be present with certain properties, as well as negative resources, object properties that must not be present. 

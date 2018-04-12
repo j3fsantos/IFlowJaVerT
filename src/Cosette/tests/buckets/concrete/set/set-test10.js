@@ -1,5 +1,3 @@
-// -------------------------------- base.js ----------------------------------
-
 'use strict';
 
 /**
@@ -122,8 +120,7 @@ buckets.compareToEquals = function (compareFunction) {
     };
 };
 
-// ------------------------------- arrays.js ---------------------------------
-
+// --------------------------------- arrays.js -------------------------------
 /**
  * @namespace Contains various functions for manipulating arrays.
  */
@@ -298,7 +295,7 @@ buckets.arrays.forEach = function (array, callback) {
 };
 
 
-// ----------------------------- dictionary.js -------------------------------
+// ------------------------------- dictionary.js -----------------------------
 
 /**
  * Creates an empty dictionary.
@@ -341,7 +338,6 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {*} The mapped value or
      * undefined if the dictionary contains no mapping for the provided key.
      */
-    /* @id dictionary_get */
     dictionary.get = function (key) {
         var pair = table[keyPrefix + toStr(key)];
         if (buckets.isUndefined(pair)) {
@@ -359,7 +355,6 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {*} Previous value associated with the provided key, or undefined if
      * there was no mapping for the key or the key/value is undefined.
      */
-    /* @id dictionary_set */
     dictionary.set = function (key, value) {
         var ret, k, previousElement;
         if (buckets.isUndefined(key) || buckets.isUndefined(value)) {
@@ -387,7 +382,6 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {*} Removed value associated with the specified key, or undefined if
      * there was no mapping for the key.
      */
-    /* @id dictionary_remove */
     dictionary.remove = function (key) {
         var k = keyPrefix + toStr(key),
             previousElement = table[k];
@@ -403,7 +397,6 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns an array containing all the keys in the dictionary.
      * @return {Array} An array containing all the keys in the dictionary.
      */
-    /* @id dictionary_keys */
     dictionary.keys = function () {
         var array = [],
             name;
@@ -419,7 +412,6 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns an array containing all the values in the dictionary.
      * @return {Array} An array containing all the values in the dictionary.
      */
-    /* @id dictionary_values */
     dictionary.values = function () {
         var array = [],
             name;
@@ -438,7 +430,6 @@ buckets.Dictionary = function (toStrFunction) {
      * 2 arguments: key and value. To break the iteration you can
      * optionally return false inside the callback.
      */
-    /* @id dictionary_forEach */
     dictionary.forEach = function (callback) {
         var name, pair, ret;
         for (name in table) {
@@ -458,7 +449,6 @@ buckets.Dictionary = function (toStrFunction) {
      * @return {boolean} True if the dictionary contains a mapping for the
      * specified key.
      */
-    /* @id dictionary_containsKey */
     dictionary.containsKey = function (key) {
         return !buckets.isUndefined(dictionary.get(key));
     };
@@ -467,7 +457,6 @@ buckets.Dictionary = function (toStrFunction) {
      * Removes all keys and values from the dictionary.
      * @this {buckets.Dictionary}
      */
-    /* @id dictionary_clear */
     dictionary.clear = function () {
         table = {};
         nElements = 0;
@@ -477,7 +466,6 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns the number of key-value pais in the dictionary.
      * @return {number} The number of key-value mappings in the dictionary.
      */
-    /* @id dictionary_size */
     dictionary.size = function () {
         return nElements;
     };
@@ -486,7 +474,6 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns true if the dictionary contains no keys.
      * @return {boolean} True if this dictionary contains no mappings.
      */
-    /* @id dictionary.isEmpty */
     dictionary.isEmpty = function () {
         return nElements <= 0;
     };
@@ -501,10 +488,8 @@ buckets.Dictionary = function (toStrFunction) {
      * the === operator is used to check equality between values.
      * @return {boolean} True if the dictionary is equal to the given dictionary.
      */
-    /* @id dictionary_equals */
     dictionary.equals = function (other, equalsFunction) {
         var eqf, isEqual;
-        console.log('others.keys: ' + other.keys);
         if (buckets.isUndefined(other) || typeof other.keys !== 'function') {
             return false;
         }
@@ -513,7 +498,6 @@ buckets.Dictionary = function (toStrFunction) {
         }
         eqf = equalsFunction || buckets.defaultEquals;
         isEqual = true;
-        /* @id dictionary_equals_callback */
         other.forEach(function (k, v) {
             isEqual = eqf(dictionary.get(k), v);
             return isEqual;
@@ -524,222 +508,239 @@ buckets.Dictionary = function (toStrFunction) {
     return dictionary;
 };
 
-// --------------------------------- tests -----------------------------------
 
-var elems = 100,
-    dict;
+// ---------------------------------- set.js ---------------------------------
 
-var beforeEach = function () {
-    dict = new buckets.Dictionary();
+/**
+ * Creates an empty set.
+ * @class <p>A set is a data structure that contains no duplicate items.</p>
+ * <p>If the inserted elements are custom objects, a function
+ * that converts elements to unique strings must be provided at construction time. 
+ * <p>Example:</p>
+ * <pre>
+ * function petToString(pet) {
+ *  return pet.type + ' ' + pet.name;
+ * }
+ * </pre>
+ *
+ * @param {function(Object):string=} toStringFunction Optional function used
+ * to convert elements to unique strings. If the elements aren't strings or if toString()
+ * is not appropriate, a custom function which receives an object and returns a
+ * unique string must be provided.
+ */
+buckets.Set = function (toStringFunction) {
+
+    /** 
+     * @exports theSet as buckets.Set
+     * @private
+     */
+    var theSet = {},
+        // Underlying storage.
+        dictionary = new buckets.Dictionary(toStringFunction);
+
+    /**
+     * Returns true if the set contains the specified element.
+     * @param {Object} element Element to search for.
+     * @return {boolean} True if the set contains the specified element,
+     * false otherwise.
+     */
+    /* @id set_contains */
+    theSet.contains = function (element) {
+        return dictionary.containsKey(element);
+    };
+
+    /**
+     * Adds the specified element to the set if it's not already present.
+     * @param {Object} element The element to insert.
+     * @return {boolean} True if the set did not already contain the specified element.
+     */
+    /* @id set_add */
+    theSet.add = function (element) {
+        if (theSet.contains(element) || buckets.isUndefined(element)) {
+            return false;
+        }
+        dictionary.set(element, element);
+        return true;
+    };
+
+    /**
+     * Performs an intersection between this and another set.
+     * Removes all values that are not present in this set and the given set.
+     * @param {buckets.Set} otherSet Other set.
+     */
+    /* @id set_intersection */
+    theSet.intersection = function (otherSet) {
+        /* @id set_intersection_callback */
+        theSet.forEach(function (element) {
+            if (!otherSet.contains(element)) {
+                theSet.remove(element);
+            }
+        });
+    };
+
+    /**
+     * Performs a union between this and another set.
+     * Adds all values from the given set to this set.
+     * @param {buckets.Set} otherSet Other set.
+     */
+    /* @id set_union */
+    theSet.union = function (otherSet) {
+        /* @id set_union_callback */
+        otherSet.forEach(function (element) {
+            theSet.add(element);
+        });
+    };
+
+    /**
+     * Performs a difference between this and another set.
+     * Removes all the values that are present in the given set from this set.
+     * @param {buckets.Set} otherSet other set.
+     */
+    /* @id set_difference */
+    theSet.difference = function (otherSet) {
+        /* @id set_difference_callback */
+        otherSet.forEach(function (element) {
+            theSet.remove(element);
+        });
+    };
+
+    /**
+     * Checks whether the given set contains all the elements of this set.
+     * @param {buckets.Set} otherSet Other set.
+     * @return {boolean} True if this set is a subset of the given set.
+     */
+    /* @id set_isSubsetOf */
+    theSet.isSubsetOf = function (otherSet) {
+        var isSub = true;
+
+        if (theSet.size() > otherSet.size()) {
+            return false;
+        }
+        /* @id set_isSubsetOf_callback */
+        theSet.forEach(function (element) {
+            if (!otherSet.contains(element)) {
+                isSub = false;
+                return false;
+            }
+        });
+        return isSub;
+    };
+
+    /**
+     * Removes the specified element from the set.
+     * @return {boolean} True if the set contained the specified element, false
+     * otherwise.
+     */
+    /* @id set_remove */
+    theSet.remove = function (element) {
+        if (!theSet.contains(element)) {
+            return false;
+        }
+        dictionary.remove(element);
+        return true;
+    };
+
+    /**
+     * Executes the provided function once per element
+     * present in the set.
+     * @param {function(Object):*} callback Function to execute, it's
+     * invoked an element as argument. To break the iteration you can
+     * optionally return false inside the callback.
+     */
+    /* @id set_forEach */
+    theSet.forEach = function (callback) {
+        /* @id set_forEach_callback */
+        dictionary.forEach(function (k, v) {
+            return callback(v);
+        });
+    };
+
+    /**
+     * Returns an array containing all the elements in the set in no particular order.
+     * @return {Array} An array containing all the elements in the set.
+     */
+    /* @id set_toArray */
+    theSet.toArray = function () {
+        return dictionary.values();
+    };
+
+    /**
+     * Returns true if the set contains no elements.
+     * @return {boolean} True if the set contains no elements.
+     */
+    /* @id set_isEmpty */
+    theSet.isEmpty = function () {
+        return dictionary.isEmpty();
+    };
+
+    /**
+     * Returns the number of elements in the set.
+     * @return {number} The number of elements in the set.
+     */
+    /* @id set_size */
+    theSet.size = function () {
+        return dictionary.size();
+    };
+
+    /**
+     * Removes all the elements from the set.
+     */
+    /* @id set_clear */
+    theSet.clear = function () {
+        dictionary.clear();
+    };
+
+    /**
+     * Returns true if the set is equal to another set.
+     * Two sets are equal if they have the same elements.
+     * @param {buckets.Set} other The other set.
+     * @return {boolean} True if the set is equal to the given set.
+     */
+    /* @id set_equals */
+    theSet.equals = function (other) {
+        var isEqual;
+        if (buckets.isUndefined(other) || typeof other.isSubsetOf !== 'function') {
+            return false;
+        }
+        if (theSet.size() !== other.size()) {
+            return false;
+        }
+
+        isEqual = true;
+        /* @id set_equals_callback */
+        other.forEach(function (element) {
+            isEqual = theSet.contains(element);
+            return isEqual;
+        });
+        return isEqual;
+    };
+
+    return theSet;
 };
 
-//it('set and get value with string key', function () {
+// -------------------------------- tests -------------------------------------
+
+var set;
+
+var beforeEach = function () {
+    set = new buckets.Set();
+};
+
+// test 10
+//it('forEach returns all elements', function () {
 beforeEach();
-var i;
-dict.get('sd');
-
-// test with string keys
-for (i = 0; i < elems; i += 1) {
-    dict.set('' + i, i + 1);
-}
-dict.size();
-
-for (i = 0; i < elems; i += 1) {
-    dict.get('' + i);
-}
-
-dict.set('a', 5);
-dict.get('a');
-dict.set('a', 21);
-dict.size();
-dict.get('a');
-
-
-//it('set and get value with number key', function () {
-beforeEach();
-var i;
-// test with number keys
-for (i = 0; i < elems; i += 1) {
-    dict.set(i, i + 1);
-}
-
-for (i = 0; i < elems; i += 1) {
-    dict.get(i);
-}
-
-
-//it('set and get value with custom key', function () {
-beforeEach();
-
-var ts = function (obj) {
-        return obj.s;
-    },
-    i;
-dict = new buckets.Dictionary(ts);
-dict.get('sd');
-
-for (i = 0; i < elems; i += 1) {
-    var o = {};
-    o.s = '' + i;
-    dict.set(o, i + 1);
-}
-
-for (i = 0; i < elems; i += 1) {
-    var d = {};
-    d.s = '' + i;
-    dict.get(d);
-}
-
-
-//it('set keys with special keywords', function () {
-beforeEach();
-var dict = new buckets.Dictionary();
-
-dict.set('toString', 42);
-dict.size();
-dict.remove('toString');
-dict.size();
-
-dict.set('hasOwnProperty', 'foo');
-try {
-    dict.keys();
-} catch (e) {
-    dict.remove('hasOwnProperty');
-}
-
-dict.set('__proto__', {
-    value: 123
+var i, values;
+set.forEach(function (e) {
+    false;
 });
-
-//it('remove deletes existing key from the dictionary', function () {
-beforeEach();
-var i;
-dict.remove('1');
-for (i = 0; i < elems; i += 1) {
-    dict.set('' + i, i + 1);
+for (i = 0; i < 100; i += 1) {
+    set.add(i);
 }
-dict.size();
-
-for (i = 0; i < elems; i += 1) {
-    dict.remove('' + i);
-    dict.get('' + i);
-    dict.remove('' + i);
-}
-dict.size();
-
-//it('isEmpty returns true only if the dictionary contains no keys', function () {
-beforeEach();
-dict.isEmpty();
-dict.set('1', 1);
-dict.isEmpty();
-dict.remove('1');
-dict.isEmpty();
-
-
-//it('clear removes all key-value pairs', function () {
-beforeEach();
-dict.clear();
-dict.set(1, 1);
-dict.clear();
-dict.isEmpty();
-dict.get(1);
-
-
-///it('contains returns true for existing keys', function () {
-beforeEach();
-var i;
-dict.containsKey(0);
-for (i = 0; i < 10; i += 1) {
-    dict.set(i, i);
-    dict.containsKey(i);
-}
-for (i = 0; i < 10; i += 1) {
-    dict.remove(i);
-    dict.containsKey(i);
-}
-
-
-//it('size gives the right value', function () {
-beforeEach();
-var i;
-dict.size();
-for (i = 0; i < 10; i += 1) {
-    dict.set(i, i);
-    dict.size();
-}
-
-
-//it('keys returns all the stored keys', function () {
-beforeEach();
-var k = [],
-    i, keys;
-for (i = 0; i < elems; i += 1) {
-    keys = dict.keys();
-    k.sort();
-    keys.sort();
-    buckets.arrays.equals(k, keys);
-    dict.set('' + i, i);
-    k.push('' + i);
-}
-
-
-//it('values returns all the stored values', function () {
-beforeEach();
-var v = [],
-    i, values;
-for (i = 0; i < elems; i += 1) {
-    values = dict.values();
-    v.sort();
-    values.sort();
-    buckets.arrays.equals(v, values);
-    dict.set('' + i, i);
-    v.push(i);
-}
-
-
-//it('forEeach gives all key-value pairs', function () {
-beforeEach();
-var keys, values, i;
-for (i = 0; i < elems; i += 1) {
-    dict.set('' + i, i);
-}
-keys = dict.keys();
-values = dict.values();
-dict.forEach(function (k, v) {
-    buckets.arrays.remove(keys, k);
-    buckets.arrays.remove(values, v);
+values = set.toArray();
+values.length;
+set.forEach(function (e) {
+    buckets.arrays.remove(values, e);
 });
-keys.length;
 values.length;
 
 
-//it('forEeach can be interrupted', function () {
-beforeEach();
-var t = 0,
-    i;
-for (i = 0; i < elems; i += 1) {
-    dict.set('' + i, i);
-}
-dict.forEach(function (k, v) {
-    t += 1;
-    return false;
-});
-t;
-
-
-//it('equals returns true only if they have the same key-values pairs', function () {
-beforeEach();
-var dict2 = new buckets.Dictionary();
-
-dict.set('1', 1);
-dict.set('2', 2);
-
-dict2.set('2', 2);
-dict2.set('1', 1);
-
-dict.equals(dict2);
-dict2.clear();
-dict2.set(1, '1');
-dict2.set(2, '2');
-dict.equals(dict2);
-dict.equals([1, 2]);
