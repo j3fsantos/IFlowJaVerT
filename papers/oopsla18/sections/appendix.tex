@@ -282,13 +282,13 @@ $\evalexpr{\concrete}(\istate.\stosel, \jsilexpr_2) = p$ (\ieq{21}).
 \begin{lemma}[GetDomain - Soundiness for Symbolic Semantics]\label{lemma:getdomain:soundiness}
 $$
 \istate = \interpret{\symbinst}{\senv}(\sstate) \ \wedge \ 
-  \absgetdomainrule{\symbolic}{\sstate, \jsilexpr}{\sexpr}  
-  \implies \absgetdomainrule{\instrumented}{\istate, \jsilexpr}{\val}
+  \absgetdomainfun{\symbolic}(\sstate, \jsilexpr) = \sexpr  
+  \implies \absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \val
 $$
 \end{lemma}
 \begin{proof}
 Suppose that the following hold: 
-$\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\hyp{1}) and $\absgetdomainrule{\symbolic}{\sstate, \jsilexpr}{\sexpr}$ (\hyp{2}). 
+$\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\hyp{1}) and $\absgetdomainfun{\symbolic}(\sstate, \jsilexpr) = \sexpr$ (\hyp{2}). 
 From \hyp{2}, we conclude that 
 $\evalexpr{\symbolic}(\sstore, \jsilexpr) = \sloc$ (\ieq{1}), 
 $\sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m$ (\ieq{2}), 
@@ -310,7 +310,7 @@ Applying Lemma XXX to \ieq{6} and using \ieq{3}, we conclude that
  {\small $\forall_{0 \leq i \leq n} \, \interpret{\symbconc}{\senv}(\sexprv_i) \neq \none$} (\ieq{8}) and  
 {\small $\forall_{n < i \leq m} \, \interpret{\symbconc}{\senv}(\sexprv_i) = \none$} (\ieq{9}).
 From \ieq{2}, \ieq{3}, \ieq{5}, \ieq{6}, \ieq{7}-\ieq{9}, we conclude that 
-$\absgetdomainrule{\instrumented}{\istate, \jsilexpr}{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_n)}$, 
+$\absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_n)$, 
 establishing the result. 
 \end{proof}
 
@@ -342,11 +342,11 @@ Letting $\istate' = \istate$, the result follows from \ieq{2} and \ieq{4}.
 
 \noindent \prooflab{Property Collection} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \getfields(\jsilexpr)}{\sstate'}{\symbolic}$ (\ieq{1}). 
 From \ieq{1}, we conclude that there is a symbolic value $\sexprv$ such that 
-$\absgetdomainrule{\symbolic}{\sstate, \jsilexpr}{\sexprv}$ (\ieq{2}) 
+$\absgetdomainfun{\symbolic}(\sstate, \jsilexpr) = \sexprv$ (\ieq{2}) 
 and $\sstate' = \stupdt{\symbolic}(\sstate, \jvar, \sexprv)$ (\ieq{3}).  
 From \hyp{2}, we conclude that $\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\ieq{4}). 
 Applying Lemma~\ref{lemma:getdomain:soundiness} to \ieq{2} and \ieq{4}, we conclude that 
-$\absgetdomainrule{\instrumented}{\istate, \jsilexpr}{\interpret{\symbconc}{\senv}(\sexprv)}$ (\ieq{5}). 
+$\absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \interpret{\symbconc}{\senv}(\sexprv)$ (\ieq{5}). 
 Applying Lemma~\ref{lemma:soundiness:store:update} to \ieq{3} and \ieq{4}, it follows that 
 $ \interpret{\symbinst}{\senv}(\sstate') = \stupdt{\instrumented}(\istate, \jvar, \interpret{\symbconc}{\senv}(\sexprv))$ (\ieq{6}). 
 From \ieq{5} and \ieq{6}, we conclude that $\absbsemrule{\istate, \jvar := \getfields(\jsilexpr)}{\interpret{\symbinst}{\senv}(\sstate')}{\instrumented}$, establishing the result. 
