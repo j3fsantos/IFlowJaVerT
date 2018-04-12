@@ -545,41 +545,4 @@ buckets.Set = function (toStringFunction) {
 
 // -------------------------------- tests -------------------------------------
 
-var set = new buckets.Set();
 
-var n1 = symb_number(n1);
-var n2 = symb_number(n2);
-var n3 = symb_number(n3);
-var n4 = symb_number(n4);
-var n5 = symb_number(n5);
-
-Assume(not (n1 = n2));
-Assume(not (n1 = n3));
-Assume(not (n1 = n4));
-Assume(not (n1 = n5));
-
-Assume(not (n2 = n3));
-Assume(not (n2 = n4));
-Assume(not (n2 = n5));
-
-Assume(not (n3 = n4));
-Assume(not (n3 = n5));
-
-Assume(not (n4 = n5));
-
-// test 1
-// it('size gives the right value', function () {
-set.add(n1);
-set.add(n2);
-set.add(n3);
-var res1 = set.size();
-Assert(res1 = 3);
-set.add(n4);
-var res2 = set.size();
-Assert(res2 = 4);
-set.remove(n4);
-var res3 = set.size();
-Assert(res3 = 3);
-set.add(n3);
-var res4 = set.size();
-Assert(res4 = 3);
