@@ -2,7 +2,7 @@
 	open Lexing
 	open CCommon
 	
-	let keyword_table = Hashtbl.create 101 
+	let keyword_table = Hashtbl.create 307 
 	
 	let _ = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
 		[ (* JS Logic tokens *)

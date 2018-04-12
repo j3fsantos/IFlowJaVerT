@@ -1,11 +1,3 @@
-macro 
-	GPVFold (x, pi1, pi2, pi3, pi4) : 
-		if ((typeOf x = List)) then { 
-			if (((l-nth(x, 0) = "o") or ((l-nth(x, 0) = "v") and (l-nth(x, 1) = $lg)))) then { 
-				fold Pi(l-nth(x, 1), l-nth(x, 2), pi1, pi2, pi3, pi4) 
-			} 
-		};
-
 macro
 	GPVUnfold (x) : 
 		if ((typeOf x = List)) then { 

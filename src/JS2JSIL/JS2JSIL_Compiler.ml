@@ -564,26 +564,24 @@ let annotate_cmd_top_level metadata lcmd =
 
 	let lab, (cmd : jsil_lab_cmd) = lcmd in
 
-	let fold_unfold_pi_macro_for_put_and_get_value args =
+	let unfold_pi_macro_for_put_and_get_value args =
 		let new_args =
 			(match args with
 			| Some args ->  args
 			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
 		(match new_args with
 	    (* JOSE: I do not understand this case *)
-		| [ Literal n ] -> [], []
+		| [ Literal n ] -> []
 		(* PUTVALUE and GETVALUE cases *)
 		| [ arg ]
 		| [ arg; _ ] ->
 			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
-			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
-			let fold_macro = Macro (JS2JSIL_Constants.macro_GPVF_name, fold_args) in
 			let unfold_macro = Macro (JS2JSIL_Constants.macro_GPVU_name, [ arg ]) in
-			[ fold_macro ], [ unfold_macro ]
+			[ unfold_macro ]
 		(* No other cases handled *)
 		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
 
-	let fold_unfold_pi_for_hasProperty args =
+	let unfold_pi_for_hasProperty args =
 		let new_args =
 			(match args with
 			| Some args ->  args
@@ -593,21 +591,19 @@ let annotate_cmd_top_level metadata lcmd =
 		| [ arg1; arg2] ->
 			let l_arg1 = JSIL_Logic_Utils.expr_2_lexpr arg1 in
 			let l_arg2 = JSIL_Logic_Utils.expr_2_lexpr arg2 in
-			let fold_args = [l_arg1; l_arg2; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
-			let fold_lcmd = Fold (LPred (pi_predicate_name, fold_args)) in
 			let unfold_lcmd = RecUnfold pi_predicate_name in
-			[ fold_lcmd ], [ unfold_lcmd ]
+			[ unfold_lcmd ]
 		(* No other cases handled *)
 		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
 
 	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
 		(* Printf.printf "I found a call to GetValue/PutValue.\n"; *)
-		let fold_lcmds, unfold_lcmds = fold_unfold_pi_macro_for_put_and_get_value (get_args cmd) in
+		let unfold_lcmds = unfold_pi_macro_for_put_and_get_value (get_args cmd) in
 		let new_metadata =
 			{ metadata with post_logic_cmds = unfold_lcmds } in
 		(new_metadata, lab, cmd)
 	) else if (is_hasProperty_call cmd) then (
-			let fold_lcmds, unfold_lcmds = fold_unfold_pi_for_hasProperty (get_args cmd) in
+			let unfold_lcmds = unfold_pi_for_hasProperty (get_args cmd) in
 			let new_metadata =
 				{ metadata with post_logic_cmds = unfold_lcmds } in
 			(new_metadata, lab, cmd)
@@ -871,7 +867,6 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 		
 		(* x_arr := new () *)
 		let x_arr = fresh_obj_var () in
-		(* TODO: METADATA *)
 		let cmd_new_obj = annotate_cmd (LBasic (New (x_arr, Some (Var xarrm)))) None in
 
 		(* x_cdo := create_default_object (x_obj, $larr_proto, "Array") *)

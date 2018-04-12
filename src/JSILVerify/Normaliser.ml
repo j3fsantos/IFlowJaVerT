@@ -1971,6 +1971,9 @@ let alternative_new_unification_plan
 	let gamma_vars = TypEnv.unifiables gamma in
 	let preds_vars = DynArray.fold_left (fun ac pred -> SS.union (get_pred_vars pred) ac) SS.empty preds in
 
+	(* All variables *)
+	let all_vars = List.fold_left SS.union SS.empty [heap_vars; store_vars; pf_vars; gamma_vars; preds_vars] in 
+
 	(* The variables that we initially know *)
 	let init_vars = List.fold_left SS.union SS.empty [store_vars; concrete_locs; reachable_variables]  in
 
@@ -2075,6 +2078,30 @@ let alternative_new_unification_plan
 		List.iter (fun asrt -> print_debug (JSIL_Print.string_of_logic_assertion asrt)) !unification_plan;
 		print_debug "";
 	) else (
+		print_debug_petar "UP: WARNING: Unification plan incomplete.";
+		let unknown_variables = SS.diff all_vars !known_vars in 
+		print_debug_petar (Printf.sprintf "UP: WARNING: Unreachable variables: %s" (String.concat ", " (SS.elements unknown_variables)));
+
+		(* If any spatial assertion has not been unified, we must fail. All non-unified gamma corresponds to the unknown variables. *)
+		let continue = Hashtbl.fold (fun asrt _ ac -> 
+			if ac then (
+				match asrt with
+				| LPointsTo _ 
+				| LEmptyFields _
+				| LMetaData _ 
+				| LExtensible _ 
+				| LPred _ -> false
+				| LTypes vt -> List.fold_left (fun ac (le, _) -> 
+					(match le with
+					| PVar v
+					| LVar v -> if ac then (SS.mem v unknown_variables) else false
+					| _ -> true)) true vt
+				| _ -> true
+			)
+			else false) main true in 
+
+		print_debug_petar (Printf.sprintf "UP: Can we continue: %b" continue);
+
 		let msg = Printf.sprintf "create_unification_plan FAILURE!\nUnification plan:%s\nOriginal symb_state:%s\nUnvisited assertions:\n%s" 
 		    (Symbolic_State_Print.string_of_pre_unification_plan !unification_plan)
 		    (Symbolic_State_Print.string_of_symb_state symb_state)
