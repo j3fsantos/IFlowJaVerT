@@ -488,7 +488,8 @@ The first step of our methodology %for designing compositional analyses for lang
 consists of designing an instrumented version of the semantics that observes the frame property. 
 For that, we keep track of the properties that are present in a given object, as well as the presents 
 are not present. 
-An instrumented state $\istate$ is a tuple $(\iheap, \idom, \store)$ consisting of a heap and a store. 
+An instrumented state $\istate$ is a tuple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
+a domain table, and a store. 
 A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to values,
 whereas a store, $\store \in \stores$, maps program variables to values. 
 
