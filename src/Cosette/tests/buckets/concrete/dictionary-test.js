@@ -504,7 +504,6 @@ buckets.Dictionary = function (toStrFunction) {
     /* @id dictionary_equals */
     dictionary.equals = function (other, equalsFunction) {
         var eqf, isEqual;
-        console.log('others.keys: ' + other.keys);
         if (buckets.isUndefined(other) || typeof other.keys !== 'function') {
             return false;
         }
@@ -742,4 +741,4 @@ dict2.clear();
 dict2.set(1, '1');
 dict2.set(2, '2');
 dict.equals(dict2);
-dict.equals([1, 2]);
+//dict.equals([1, 2]); // bug because arrays now have a .keys() method
