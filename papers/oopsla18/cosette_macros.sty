@@ -92,6 +92,8 @@
 \newcommand\semeq{\,\triangleq\,}
 \newcommand{\disjoint}[0]{\, \# \,}
 \newcommand{\fv}{\command{fv}}
+\newcommand{\setext}[2]{#1_{#2}}
+\newcommand{\litstring}[1]{\text{{\it ``#1''}}}
 
 % Lists
 \newcommand{\lstcons}[0]{::}
@@ -163,10 +165,10 @@
 \newcommand\jsilskip[0]{\darkmath{\textsf {skip}}}
 \newcommand\jsilnew{\darkmath{\textsf {new}}}
 \newcommand\jsildelete{\darkmath{\textsf {delete}}}
-\newcommand\hasfield{\darkmath{\textsf {hasField}}}
+\newcommand\hasfield{\darkmath{\textsf {hasProp}}}
 \newcommand\assert{\darkmath{\textsf {assert}}}
 \newcommand\assume{\darkmath{\textsf {assume}}}
-\newcommand\getfields{\darkmath{\textsf {getFields}}}
+\newcommand\getfields{\darkmath{\textsf {getProps}}}
 \newcommand\makesymbolic{\darkmath{\textsf {makeSymbolic}}}
 \newcommand\ifgoto[3]{\darkmath{\textsf {goto}} \ [#1] \ #2, \ #3}
 \newcommand\goto{\darkmath{\textsf {goto}}}
@@ -208,11 +210,13 @@
 \newcommand{\domsel}[0]{\darkmath{\sf dom}}
 \newcommand\hlocs[1]{{\sf locs}(#1)}
 % abstract functions 
+\newcommand\absalloc[1]{\mathcal{A}lloc_{#1}}
 \newcommand\getdomain{\mathcal{G\!D}}
 \newcommand\getcell{\mathcal{GC}}
 \newcommand\absmakesymbolic{\mathcal{S}ym}
 \newcommand\absgetcellrule[3]{\getcell(#2) \leadsto_{#1} #3}
-\newcommand\absgetdomainrule[3]{\getdomain(#2) \leadsto_{#1} #3}
+\newcommand\absgetdomainfun[1]{\mathcal{G\!D}_{#1}}
+%\newcommand\absgetdomainrule[3]{\getdomain_{#1}(#2) = #3}
 \newcommand\absmakesymbolicrule[2]{\absmakesymbolic_{#1}(#2)}
 \newcommand\hpupdt[1]{\mathcal{H\!U}_{#1}}
 \newcommand\stupdt[1]{\mathcal{S\!U}_{#1}}

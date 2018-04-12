@@ -24,11 +24,13 @@ This new methodology differs from  previous work in that it introduces the
 instrumented semantics as an interim stage in the design of the analysis, 
 leading to more modular reasoning and simpler proofs. 
 
-In the spirit of~\cite{vanhorn:icfp:2010}, we define a parameterisable semantics for \jsil, 
-which can be instantiated with a \jsil state signature. The parameterisable semantics is the bedrock 
-for the formal development and implementation of our symbolic analysis. In fact, we use 
-it to obtain the concrete, instrumented, and symbolic semantics, by instantiating it 
-with a concrete, instrumented, and symbolic state signature, respectively. 
+In the spirit of~\cite{vanhorn:icfp:2010}, we define an abstract semantics for \jsil that  
+is parametric on a \jsil state signature.\footnote{We refer to it as \emph{abstract} since it 
+is parametric on a \jsil state signature. We are not doing abstract interpretation.} 
+The abstract semantics is the bedrock 
+for the formal development and implementation of the symbolic analysis. We 
+obtain the concrete, instrumented, and symbolic semantics, by instantiating 
+the abstract semantics with the corresponding symbolic state signature. 
 This approach to the design of symbolic analyses has the following benefits: 
 \dtag{1} it streamlines the formalism, avoiding redundancy,
 \dtag{2} it makes the choices in the design of the instrumented and symbolic semantics explicit,
@@ -49,7 +51,7 @@ and \dtag{3} it leads to modular implementations, avoiding code duplication.
 %of our implementation. %in \rosette~\cite{Rosette1,Rosette2} NO NO NO! Burn the witch!
 
 
-\subsection{Parameterisable Semantics}\label{subsec:jsil:analysis:formalism}
+\subsection{Concrete Semantics}\label{subsec:jsil:analysis:formalism}
  
 \subsubsection{Syntax} 
 \jsil is a simple goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. The syntax of \jsil is shown below. 
@@ -86,51 +88,58 @@ Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denot
 
 %
 
-\subsubsection{Parameterisable Semantics}
+\subsubsection{Abstract Semantics}
 
 The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
-Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. Abstract states expose the following functions and relations: 
+Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. 
+%Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. 
+In the following, we use the special symbol $\none$ to denote the absence of a property in an object, and we use $\setext{\absvals}{\none}$ for the set $\absvals \cup \{ \none \}$.
+Abstract states expose the following functions and relations: 
 \begin{description}
 \setlength{\itemsep}{0.2em}
   \item[\jsil Expression Evaluation,] $\evalexpr{} :  (\jvars \partialmap \absvals)  \partialmap \exprs \partialmap \absvals$. 
   	The expression $\evalexpr{}(\absstore, \jsilexpr)$ evaluates to the abstract value of the \jsil expression $\jsilexpr$ under store $\absstore$. 
             
   \item[Store Selector,] $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$. The expression $\stosel(\absstate)$ evaluates to the abstract store associated with a given abstract state $\absstate$. For clarity, we write $\absstate.\stosel$ instead of $\stosel(\absstate)$. 
-             
+
+  \item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc(\absstate)$ evaluates to a pair consisting
+          of an abstract value denoting a fresh location and the new abstract state that keeps track of that allocation. %
+%             
   \item[Store Update,] $\stupdt{}: \absstates \rightarrow \jvars \rightarrow \absvals \rightarrow \absstates$. 
              The expression $\stupdt{}(\absstate, \jvar, \absval)$ denotes the abstract state obtained from $\absstate$ 
              by updating the abstract value corresponding to $\jvar$ in $\absstate.\stosel$ to $\absval$. 
 
-   \item[Heap Update,] $\hpupdt{} : \absstates \rightarrow \absvals \partialmap \absvals \partialmap \absvals \partialmap \absstates$. 
+   \item[Heap Update,] $\hpupdt{} : \absstates \rightarrow \absvals \rightarrow \absvals \rightarrow \setext{\absvals}{\none} \rightarrow \absstates$. 
              The expression $\hpupdt{}(\absstate, \absloc, \absprop, \absval)$ denotes the abstract state obtained from $\absstate$ 
-             by updating the value of property $\absprop$ of the object at location $\absloc$ to $\absval$. 
+             by updating the value of property $\absprop$ of the object at location $\absloc$ to $\absval$ or creating that property, in the
+             case it does not exist.
                    
   
-  \item[GetCell,] $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \absvals$. 
+  \item[GetCell,] $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \setext{\absvals}{\none}$. 
           We pretty-print $(\absstate, \jsilexpr_1, \jsilexpr_2, \absstate', \absloc, \absprop, \absval) \in \getcell$ as $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$. 
           Informally, GetCell retrieves the value associated with a given property of a given object. More formally, if $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
-          then \dtag{1} $\absloc$ denotes the abstract location resulting from the evaluation of $\jsilexpr_1$, 
-          \dtag{2} $\absprop$ denotes the abstract property name resulting from the evaluation of $\jsilexpr_2$, 
-          \dtag{3} $\absval$ denotes the abstract value of the property $\absprop$ of the object at location $\absloc$, 
+          then \dtag{1} $\absloc$ denotes the location resulting from the evaluation of $\jsilexpr_1$, 
+          \dtag{2} $\absprop$ denotes the property name resulting from the evaluation of $\jsilexpr_2$, 
+          \dtag{3} $\absval$ denotes the value of the property $\absprop$ of the object at location $\absloc$, 
           and \dtag{4} $\absstate'$ denotes a (potential) modification of $\absstate$ that allows for the property inspection (discussed shortly). 
           Note that $\getcell$ is non-deterministic and is, therefore, a relation.
              
-  \item[GetDomain,] $\getdomain \subseteq \absstates \rightarrow \exprs \partialmap \absvals$. 
-           We pretty-print $(\absstate, \jsilexpr, \absval) \in \getdomain$ as $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$. 
-           If $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$ holds, then $\absval$ denotes the 
-           set of abstract property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
+  \item[GetDomain,] $\getdomain : \absstates \rightarrow \exprs \partialmap \absvals$. 
+          % We pretty-print $(\absstate, \jsilexpr, \absval) \in \getdomain$ as $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$. 
+           If $\absgetdomainfun{}(\absstate, \jsilexpr) = \absval$ holds, then $\absval$ denotes the 
+           set of property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
            in $\absstate$. 
    
    \item[Assumption,] $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$. 
             The expression $\absassume{}(\absstate, \jsilexpr)$ denotes the abstract state obtained from the 
-            abstract state $\absstate$ when it holds that $\jsilexpr$ evaluates to the boolean $\jtrue$. 
+            abstract state $\absstate$ by stating that $\jsilexpr$ is supposed to evaluate to $\jtrue$. 
   
    \item[Satisfiability,] $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$. 
             The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is \polish{satisfiable} in the abstract 
             state $\absstate$, and $\jfalse$ otherwise.
              
    \item[Symbolic Value Creation,] $\absmakesymbolic : \absstates \rightarrow \jtypes \rightarrow \absvals$. 
-            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh symbolic value of type $\jtype$.
+            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh abstract value of type $\jtype$.
 \end{description}
 
 \begin{figure}[ht!]
@@ -141,7 +150,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
 \and 
 \inferrule[\textsc{Property Collection}]
   {
-           \absgetdomainrule{}{\absstate, \jsilexpr}{\absval}  
+           \absval = \absgetdomainfun{}(\absstate, \jsilexpr)  
   }{\absbsemrule{\absstate, \jvar := \getfields(\jsilexpr)}{\stupdt{}(\absstate, \jvar, \absval)}{}} 
 \and 
 \inferrule[\textsc{Assignment}]
@@ -153,7 +162,7 @@ Abstract states are assumed to have a store component $\absstore: \jvars \partia
 \\
 \inferrule[\textsc{Object Creation}]
   { 
-   \loc \text{ fresh}
+     (\absstate, \loc) = \absalloc{}(\absstate)
   }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\hpupdt{}(\absstate, \loc, \protop, \jnull)}{}}
 \and 
 \inferrule[\textsc{Property Access}]
@@ -331,33 +340,62 @@ and \dtag{5} $j$ is the index to which it must jump in case of error return.
 Transitions for control flow commands have the form:  $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$, 
 meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the 
 call stack $\abscs$, in state $\absstate$ and execution mode $\mode$, generates 
-the state $\absstate'$, call stack $\abscs$,  and the next command to be evaluated is the $j$-th command of the first procedure 
+the state $\absstate'$, call stack $\abscs'$,  and the next command to be evaluated is the $j$-th command of the first procedure 
 of the call stack~$\abscs'$, in execution mode $\mode'$. 
 For clarity, we keep the executing program implicit and make use of a function $\ccmd{\prog, \cs, i}$, which 
 returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
-\jfs{
-\begin{enumerate}
-   \item Should we explain the rules?
-   \item We shou
-\end{enumerate}
-}
 
+
+\begin{wrapfigure}{R}{0.3\textwidth}
+%\vspace*{-0.25cm}
+{\small
+\hspace*{0.25cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\
+\hspace*{0.25cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\
+\hspace*{0.25cm} $\mathtt{2\quad x := [x, \litstring{\protop}] }$ \\ 
+\hspace*{0.25cm} $\mathtt{3\quad \ifgoto{x = \jnull}{\errlab}{0}}$ \\
+\hspace*{0.25cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\
+\hspace*{0.25cm} $\mathtt{5\quad \jsilcall{z}{y}{\litstring{foo}}{\errlab}}$ 
+}
+%\vspace*{-0.3cm}
+\caption{\jsil Example 1\label{jsil:example:frame}}
+\end{wrapfigure}
+
+\begin{table}
+\centering
+\renewcommand{\arraystretch}{1.2} 
+{\scriptsize \begin{tabular}{@{}ccccc@{}}\toprule
+\multicolumn{3}{c}{{\it Concrete Execution}} & &  \emph{Instrumented Execution}  \\
+\cmidrule{1-3} \cmidrule{5-5}
+\emph{Successful}  &  & \emph{Failing}  &   &       \\
+\cmidrule{1-1} \cmidrule{3-3}   
+{\includegraphics[width=0.25\textwidth]{figures/conc_exec.pdf}} & & 
+{\includegraphics[width=0.25\textwidth]{figures/conc_wrong_exec.pdf}}  & & 
+{\includegraphics[width=0.25\textwidth]{figures/inst_exec.pdf}}  \\  
+\bottomrule
+\end{tabular}}
+\vspace{2pt}
+\caption{Concrete vs instrumented execution\label{example:symb:states:vs:assertions}}
+\vspace*{-1cm}
+\end{table}
+
+\vspace{-5pt}
 \subsubsection{Concrete Semantics}
 A \jsil concrete state $\jstate$ is a pair $(\heap, \store)$ consisting of a heap and a store. 
-A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to \polish{\jsil values},
-whereas a store, $\store \in \stores$, maps \jsil program variables to \jsil values. 
+A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to values,
+whereas a store, $\store \in \stores$, maps program variables to values. 
 Given a heap~$\heap$, we denote: the empty heap by $\hemp$; heap lookup by $\heap(\loc, \jstring)$; 
 a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $\heap(\loc,\jstring) = \val$; 
 heap update by $\heap[(\loc, p) \mapsto \val]$, denoting the heap $\heap$ extended with $\heap(\loc,\jstring) = \val$;
 and the union of two disjoint heaps by $\heap_1 \dunion \heap_2$.
 We instantiate the abstract semantics for the concrete case by providing the appropriate definitions 
-for the required abstract functions/relations below, noting that abstract values are instantiated to
-\jsil values extended with the property absence indicator $\none$.
+for the required abstract functions/relations below.
+%, noting that abstract values are instantiated to\jsil values extended with the property absence indicator $\none$.
 We write $\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ for the concrete semantic 
 judgement for basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
 for control flow commands. 
 
+\vspace{3pt}
 \begin{display}{Concrete Semantics Rules}
 \text{
 {\scriptsize
@@ -375,7 +413,7 @@ for control flow commands.
        \heap = \heap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  
       \quad
           (\loc,-) \notin \domain (\heap')  
-       }{  \absgetdomainrule{\concrete}{(\heap, \store), \jsilexpr}{\jsilset{p_1, ..., p_m}}}
+       }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_m}}
   %
   \and
   %
@@ -389,6 +427,11 @@ for control flow commands.
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), (\loc, p, \val)}}
  %
  \\
+   \inferrule[\textsc{Allocation}]
+   { 
+         (\loc, -) \in \domain(\jstate.\hpsel)
+   }{  \absalloc{\concrete}(\jstate) =  (\jstate, \loc) }
+   \qquad 
    \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
@@ -399,33 +442,206 @@ for control flow commands.
          \heap' = \heap[(\loc, p) \mapsto \val]
          \quad 
          \val \neq \none
-   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \val) =  (\heap', \store)}
+   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \val) \semeq  (\heap', \store)}
  \qquad
        \inferrule[\textsc{Heap Update - $\none$}]
    { 
          \heap = \heap' \dunion (\loc, p) \mapsto -
-   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) =  (\heap', \store)}
+   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) \semeq  (\heap', \store)}
    \\
       \inferrule[\textsc{Store Selector}]
-   {}{  \stosel((-, \store)) =  \store}
+   {}{  \stosel((-, \store)) \semeq  \store}
    \and
       \inferrule[\textsc{Symbolic Value}]
-   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} = \val}
+   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
      \and 
   \inferrule[\textsc{Assume}]
    {
        \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
-   }{  \absassume{\concrete}(\jstate, \jsilexpr) =  \jstate }
+   }{  \absassume{\concrete}(\jstate, \jsilexpr) \semeq  \jstate }
   	\and
     \inferrule[\textsc{Check Sat}]
    {
         \jbool = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) 
-   }{  \abssat{\concrete}(\jstate, \jsilexpr) = \jbool}
+   }{  \abssat{\concrete}(\jstate, \jsilexpr) \semeq \jbool}
   \end{mathpar}
   }}
  \end{display}
-  
-\pmax{Perhaps a comment on the semantics - eval of expressions and something?}
+\vspace{5pt}
+
+The \jsil concrete semantics does not observe the frame property. To illustrate this,
+let us consider the program given in figure Figure~\ref{jsil:example:frame}. 
+This program looks for the object  that has the property $\litstring{get}$ in the 
+prototype chain of the object bound to $\mathtt{x}$, then it reads the value of that 
+property, and finally calls the procedure whose identifier is bound to that property 
+(with the argument $\litstring{foo}$). 
+When running this program on the state described on the top left corner of 
+Table~\ref{example:symb:states:vs:assertions}, the procedure call can be executed 
+successfully. However, if we extend the initial state with the frame $(\loc_o, \litstring{get}) \mapsto 5$, 
+as shown in the second column of Table~\ref{example:symb:states:vs:assertions}, the procedure 
+call will fail, since $5$ is not a procedure identifier. 
+
+
+\subsection{Instrumented Semantics}
+
+The first step of our methodology %for designing compositional analyses for languages that do not observe the frame property 
+consists of designing an instrumented version of the semantics that observes the frame property. 
+For that, we keep track of the properties that are present in a given object, as well as the presents 
+are not present. 
+An instrumented state $\istate$ is a tuple $(\iheap, \idom, \store)$ consisting of a heap and a store. 
+A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to values,
+whereas a store, $\store \in \stores$, maps program variables to values. 
+
+\vspace{5pt}
+\begin{display}{Instrumented Semantics Rules}
+\text{
+{\scriptsize
+\begin{mathpar} 
+ \inferrule[\textsc{GetDomain}]
+   { 
+        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
+      \quad
+       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
+        \\\\
+        %
+          (\loc,-) \notin \domain (\iheap')  
+        \quad
+          \jsilset{p_1, ..., p_m} = \idom(\loc)
+          \\\\
+        \forall_{0 \leq i \leq n} \, \val_i \neq \none 
+         \quad 
+           \forall_{n < i \leq m} \, \val_i = \none 
+   }{  \absgetdomainfun{\instrumented}((\iheap, \idom, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_n}}
+  \and
+ % 
+     \inferrule[\textsc{GetCell - Not Found}]
+   { 
+         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
+        \quad 
+         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
+      \quad
+       \iheap = \iheap'' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m
+      \\\\
+       (\loc,-) \notin \domain (\iheap'')
+        \quad 
+       p \not\in \idom(\loc) \cup \jsilset{p_i \mid_{i=0}^m}
+       \\\\
+        \iheap' = \iheap \dunion ((\loc, p) \mapsto \none)
+       \quad 
+       \idom' = \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}]
+     }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap', \idom', \store), (\loc, p, \none)}}
+  %
+  \\
+  %
+    \inferrule[\textsc{GetCell - Found}]
+   { 
+        \istate = (\iheap, \store, \idom) 
+        \quad
+         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
+      \\\\
+         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
+         \quad 
+       \iheap = - \, \uplus \, (\loc, p) \mapsto \val
+        }{  \absgetcellrule{\instrumented}{\istate, (\jsilexpr_1, \jsilexpr_2)}{\istate, (\loc, p, \val)}}
+%
+  \and 
+%   %
+%    \inferrule[\textsc{Store Update}]
+%   { 
+%         \store' = \store[\jvar \mapsto \val]
+%   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \idom, \store')}
+ %
+    \inferrule[\textsc{Allocation}]
+   { 
+         \istate = (\iheap, \store, \idom) 
+           \quad 
+         (\loc, -) \not\in \domain(\istate.\hpsel) 
+         \\\\
+         \idom' = \idom[\loc \mapsto \{ \protop \}]
+   }{  \absalloc{\concrete}(\istate) =  ((\iheap, \idom', \store), \loc) }
+ \and
+ % 
+       \inferrule[\textsc{Heap Update}]
+   { 
+         \istate = (\iheap, \idom, \store) 
+         \\\\ 
+         \iheap' = \iheap[(\loc, p) \mapsto \val]
+   }{  \hpupdt{\instrumented}(\istate, (\loc, p), \val) =  (\iheap, \idom, \store) }
+%\\
+%  %
+%      \inferrule[\textsc{Assume}]
+%   {}{  \absassume{\instrumented}(\istate, \jtrue) =  \istate }
+%  \and
+%    \inferrule[\textsc{Satisfiable}]
+%   {}{  \abssat{\instrumented}(\istate, \jbool) = \jbool}
+%     \and
+%      \inferrule[\textsc{Symbolic Value Creation }]
+%   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
+ \end{mathpar}}}
+ \end{display}
+
+\begin{display}{Symbolic State Instrumented Interpretation}
+{\scriptsize 
+\begin{mathpar}
+\inferrule[Symbolic Heaps]{}{
+\interpret{\symbinst}{\senv}(\hemp) \semeq \hemp
+\qquad
+\frac{
+  \begin{array}{c}
+   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
+    v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
+    \heap = \hcell{l}{p}{v}
+  \end{array}
+}{
+\interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap
+}
+\qquad
+\frac{
+  \begin{array}{c}
+   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+   p = \interpret{\symbconc}{\senv}(\sexprp)  \\ 
+      \heap = \hcell{l}{p}{\none}
+    \end{array}
+}{
+  \interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \heap
+}
+\qquad
+\frac{
+  \begin{array}{c}
+   \interpret{\symbconc}{\senv}(\sheap_i) = \iheap_i, \hdom_i \mid_{i =1,2} \\ 
+   \iheap = \iheap_1 \dunion \iheap_2 
+   \end{array}
+}{
+\interpret{\symbinst}{\senv}(\sheap_1 \dunion \sheap_2) \semeq \iheap
+}}
+\\
+\inferrule[Symbolic Domains]
+{
+   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \interpret{\symbconc}{\senv}(\sexprl) \, \wedge \, \val = \interpret{\symbconc}{\senv}(\sdom(\sexprl))
+}{
+\interpret{\symbinst}{\senv}(\sdom) \semeq \idom
+}
+\and
+\inferrule[Symbolic States]{
+    \sstate = (\sheap, \sdom, \sstore, \pc) 
+    \quad 
+    \interpret{\symbinst}{\senv}(\sheap) = \iheap
+   \quad
+    \interpret{\symbinst}{\senv}(\sdom) = \idom
+    \\\\
+    \interpret{\symbconc}{\senv}(\sstore) = \store 
+    \quad
+    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
+}{
+\interpret{\symbinst}{\senv}(\sstate) \semeq (\iheap, \idom, \store)
+}
+\end{mathpar}}
+\end{display}
+
+
+
+
 
 \subsubsection{Symbolic Semantics}
 In order to symbolically execute \jsil programs, we extend the syntax of \jsil expressions with 
@@ -512,7 +728,7 @@ for control flow commands.
         \forall_{0 \leq i \leq n} \, \sexprv_i \neq \none 
          \quad 
            \forall_{n < i \leq m} \, \sexprv_i = \none 
-   }{  \absgetdomainrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr}{\jsilset{\sexprp_1, ..., \sexprp_n}}}
+   }{  \absgetdomainfun{\symbolic}((\sheap, \sdom, \sstore, \pc), \jsilexpr) \semeq \jsilset{\sexprp_1, ..., \sexprp_n}}
   \and
  % 
      \inferrule[\textsc{GetCell - Not Found}]
@@ -852,143 +1068,6 @@ $$
 The {\bf proofs} of the above results are given in the Appendix. \polish{What do these results mean with respect to related work? How is this maintainable?} 
 
 \subsubsection{Proof Methodology}
-
-\vspace{5pt}
-\begin{display}{Instrumented Semantics Rules}
-\text{
-{\scriptsize
-\begin{mathpar} 
- \inferrule[\textsc{GetDomain}]
-   { 
-        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
-      \quad
-       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
-        \\\\
-        %
-          (\loc,-) \notin \domain (\iheap')  
-        \quad
-          \jsilset{p_1, ..., p_m} = \idom(\loc)
-          \\\\
-        \forall_{0 \leq i \leq n} \, \val_i \neq \none 
-         \quad 
-           \forall_{n < i \leq m} \, \val_i = \none 
-   }{  \absgetdomainrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr}{\jsilset{p_1, ..., p_n}}}
-  \and
- % 
-     \inferrule[\textsc{GetCell - Not Found}]
-   { 
-         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
-        \quad 
-         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
-      \quad
-       \iheap = \iheap'' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m
-      \\\\
-       (\loc,-) \notin \domain (\iheap'')
-        \quad 
-       p \not\in \idom(\loc) \cup \jsilset{p_i \mid_{i=0}^m}
-       \\\\
-        \iheap' = \iheap \dunion ((\loc, p) \mapsto \none)
-       \quad 
-       \idom' = \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}]
-     }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap', \idom', \store), (\loc, p, \none)}}
-  %
-  \\
-  %
-    \inferrule[\textsc{GetCell - Found}]
-   { 
-         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
-        \quad 
-         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
-      \quad
-       \iheap = - \, \uplus \, (\loc, p) \mapsto \val
-        }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), (\jsilexpr_1, \jsilexpr_2)}{(\iheap, \idom, \store), (\loc, p, \val)}}
-%
-  \and 
-%   %
-%    \inferrule[\textsc{Store Update}]
-%   { 
-%         \store' = \store[\jvar \mapsto \val]
-%   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \idom, \store')}
- %
- \and
- % 
-       \inferrule[\textsc{Heap Update}]
-   { 
-         \istate = (\iheap, \idom, \store) 
-         \quad 
-         \iheap' = \iheap[(\loc, p) \mapsto \val]
-   }{  \hpupdt{\instrumented}(\istate, (\loc, p), \val) =  (\iheap, \idom, \store) }
-%\\
-%  %
-%      \inferrule[\textsc{Assume}]
-%   {}{  \absassume{\instrumented}(\istate, \jtrue) =  \istate }
-%  \and
-%    \inferrule[\textsc{Satisfiable}]
-%   {}{  \abssat{\instrumented}(\istate, \jbool) = \jbool}
-%     \and
-%      \inferrule[\textsc{Symbolic Value Creation }]
-%   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
- \end{mathpar}}}
- \end{display}
-
-\begin{display}{Symbolic State Instrumented Interpretation}
-{\scriptsize 
-\begin{mathpar}
-\inferrule[Symbolic Heaps]{}{
-\interpret{\symbinst}{\senv}(\hemp) \semeq \hemp
-\qquad
-\frac{
-  \begin{array}{c}
-   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
-    v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
-    \heap = \hcell{l}{p}{v}
-  \end{array}
-}{
-\interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap
-}
-\qquad
-\frac{
-  \begin{array}{c}
-   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-   p = \interpret{\symbconc}{\senv}(\sexprp)  \\ 
-      \heap = \hcell{l}{p}{\none}
-    \end{array}
-}{
-  \interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \heap
-}
-\qquad
-\frac{
-  \begin{array}{c}
-   \interpret{\symbconc}{\senv}(\sheap_i) = \iheap_i, \hdom_i \mid_{i =1,2} \\ 
-   \iheap = \iheap_1 \dunion \iheap_2 
-   \end{array}
-}{
-\interpret{\symbinst}{\senv}(\sheap_1 \dunion \sheap_2) \semeq \iheap
-}}
-\\
-\inferrule[Symbolic Domains]
-{
-   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \interpret{\symbconc}{\senv}(\sexprl) \, \wedge \, \val = \interpret{\symbconc}{\senv}(\sdom(\sexprl))
-}{
-\interpret{\symbinst}{\senv}(\sdom) \semeq \idom
-}
-\and
-\inferrule[Symbolic States]{
-    \sstate = (\sheap, \sdom, \sstore, \pc) 
-    \quad 
-    \interpret{\symbinst}{\senv}(\sheap) = \iheap
-   \quad
-    \interpret{\symbinst}{\senv}(\sdom) = \idom
-    \\\\
-    \interpret{\symbconc}{\senv}(\sstore) = \store 
-    \quad
-    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
-}{
-\interpret{\symbinst}{\senv}(\sstate) \semeq (\iheap, \idom, \store)
-}
-\end{mathpar}}
-\end{display}
 
 \begin{theorem}[Soundiness wrt Instrumented Semantics]\label{lemma:soundness:jsil:symb:exe:instrumented:instrumented}
 $$
