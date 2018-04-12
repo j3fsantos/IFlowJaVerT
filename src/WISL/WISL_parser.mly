@@ -19,12 +19,14 @@
 %token SEMICOLON        /* ; */
 %token COMMA            /* , */
 %token ASSIGN           /* := */
-%token RCBRACE          /* { */
-%token LCBRACE          /* } */
+%token RCBRACE          /* } */
+%token LCBRACE          /* { */
 %token LBRACE           /* ( */
 %token RBRACE           /* ) */
+%token LBRACK           /* [ */
+%token RBRACK           /* ] */
 
-%left SEMICOLON
+%left SEMICOLON         /* ; */
 
 (* names *)
 %token <string> IDENTIFIER
@@ -49,9 +51,27 @@
 %token AND             /* && */
 %token OR              /* || */
 %token NEQ             /* != */
+%token LSTCONS         /* :: */
+%token LSTCAT          /* @ */
 
 (* Unary operators *)
 %token NOT
+
+(* Logic *)
+%token ARROW          /* -> */
+%token EMP
+%token LAND           /* /\ */
+%token LOR            /* \/ */
+%token LEQ            /* == */
+%token LLESS           /* <#  */
+%token LLESSEQ         /* <=# */
+%token LGREATER        /* >#  */
+%token LGREATEREQ      /* >=# */
+%token LTRUE
+%token LFALSE
+%token LSTNIL
+%token LNOT
+
 
 (* WISL Program *)
 %start <WISL_Syntax.program option> prog
@@ -67,10 +87,16 @@ functions:
   | fdcl = functions; f = fct
     { f::fdcl }
 
+
 fct:
+  | LCBRACE; pre = logic_assertion; RCBRACE; f = fct_only; LCBRACE;
+  post = logic_assertion; RCBRACE { WISL_Utils.add_spec f pre post }
+  | f = fct_only { f }
+
+fct_only:
   | FUNCTION; f = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE; stmt = statement;
     SEMICOLON; RETURN; e = expression; RCBRACE;
-    { (f, params, stmt, e) }
+    { WISL_Syntax.{name=f; params=params; body=stmt; return_expr=e; spec=None} }
 
 
 var_list:
@@ -108,6 +134,7 @@ expr_list:
   el = separated_list(COMMA, expression) { el }
 
 expression:
+  | LBRACE; e = expression; RBRACE { e }
   | v = value { WISL_Syntax.Val v }
   | x = IDENTIFIER { WISL_Syntax.Var x }
   | e1 = expression; b = binop; e2 = expression { WISL_Syntax.BinOp (e1, b, e2) }
@@ -141,3 +168,36 @@ value:
   | NULL { WISL_Syntax.Null }
 
 
+(* Logic stuff *)
+logic_assertion:
+  | LTRUE { WISL_Syntax.LTrue }
+  | LFALSE { WISL_Syntax.LFalse }
+  | LNOT; la = logic_assertion { WISL_Syntax.LNot la }
+  | la1 = logic_assertion; LAND; la2 = logic_assertion { WISL_Syntax.LAnd (la1, la2) }
+  | la1 = logic_assertion; LOR; la2 = logic_assertion { WISL_Syntax.LOr (la1, la2) }
+  | EMP { WISL_Syntax.LEmp }
+  | la1 = logic_assertion; TIMES; la2 = logic_assertion { WISL_Syntax.LStar (la1, la2) }
+  | LBRACE; le1 = logic_expression; COMMA; pn = IDENTIFIER; RBRACE; ARROW;
+    le3 = logic_expression { WISL_Syntax.LPointsTo (le1, pn, le3) }
+  | le1 = logic_expression; LEQ; le2 = logic_expression { WISL_Syntax.LEq (le1, le2) }
+  | le1 = logic_expression; LLESS; le2 = logic_expression { WISL_Syntax.LLess (le1, le2) }
+  | le1 = logic_expression; LLESSEQ; le2 = logic_expression { WISL_Syntax.LLessEq (le1, le2) }
+  | le1 = logic_expression; LGREATEREQ; le2 = logic_expression { WISL_Syntax.LGreaterEq (le1, le2) }
+  | le1 = logic_expression; LGREATER; le2 = logic_expression { WISL_Syntax.LGreater (le1, le2) }
+  
+logic_expression:
+  | v = logic_value { WISL_Syntax.LVal v }
+  | x = IDENTIFIER { WISL_Syntax.PVar x }
+  | e1 = logic_expression; b = logic_binop; e2 = logic_expression { WISL_Syntax.LBinOp (e1, b, e2) }
+  | u = unop; e = logic_expression{ WISL_Syntax.LUnOp (u, e) }
+  
+
+(* We also have lists in the logic *)
+logic_binop:
+  | b = binop { b }
+  | LSTCONS { WISL_Syntax.LSTCONS }
+  | LSTCAT { WISL_Syntax.LSTCAT }
+
+logic_value:
+  | v = value { v }
+  | LSTNIL { WISL_Syntax.VList [] }

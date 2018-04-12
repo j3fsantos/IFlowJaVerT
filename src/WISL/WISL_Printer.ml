@@ -29,11 +29,13 @@ let pp_binop fmt =
     | AND -> s "&&"
     | OR -> s "||"
     | NEQ -> s "!="
+    | LSTCAT -> s "@"
+    | LSTCONS -> s "::"
 
 let pp_unop fmt = 
   let s = fprintf fmt "@[%s@]" in 
     function 
-    | NOT -> s "not"
+    | NOT -> s "!"
 
 let rec pp_expr fmt = function
   | Val v -> pp_value fmt v
@@ -79,9 +81,9 @@ let rec pp_stmt fmt = function
   | If (e, s1, s2) -> fprintf fmt "@[if(%a) {\n%a\n} else {\n%a\n} @]"
                          pp_expr e pp_stmt s1 pp_stmt s2
                          
-let pp_fct fmt = function (fname, vlist, stmt, expr) ->
-  Format.fprintf fmt "@[function %s(%a) {@.%a;@.return %a@.}@]" fname
-  pp_var_list vlist pp_stmt stmt pp_expr expr
+let pp_fct fmt = function f ->
+  Format.fprintf fmt "@[function %s(%a) {@.%a;@.return %a@.}@]" f.name
+  pp_var_list f.params pp_stmt f.body pp_expr f.return_expr
 
 let pp_fct_context = pp_list ~sep:(format_of_string "@.@.") pp_fct
 
