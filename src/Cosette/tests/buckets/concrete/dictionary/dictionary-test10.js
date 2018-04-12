@@ -486,7 +486,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns true if the dictionary contains no keys.
      * @return {boolean} True if this dictionary contains no mappings.
      */
-    /* @id dictionary.isEmpty */
+    /* @id dictionary_isEmpty */
     dictionary.isEmpty = function () {
         return nElements <= 0;
     };
