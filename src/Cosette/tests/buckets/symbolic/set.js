@@ -545,32 +545,4 @@ buckets.Set = function (toStringFunction) {
 
 // -------------------------------- tests -------------------------------------
 
-var set1 = new buckets.Set();
-var set2 = new buckets.Set();
 
-var s1 = symb_string(s1);
-var s2 = symb_string(s2);
-
-//Assume (not (s1 = s2));
-
-set1.add(s1);
-set1.add(s2);
-
-set2.add(s2);
-
-// console.log("s1 union s2:");
-// s1.union(s2);
-// s1.forEach(console.log)
-
-set1.intersection(set2);
-var size = set1.size();
-var res = set1.toArray()[0];
-Assert((size = 1) and (res = s2));
-
-// console.log("s1 \\ s2:");
-// s1.difference(s2);
-// s1.forEach(console.log)
-// 
-// console.log("s2 \\ s1:");
-// s2.difference(s1);
-// s2.forEach(console.log)

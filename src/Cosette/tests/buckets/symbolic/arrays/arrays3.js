@@ -308,40 +308,32 @@ buckets.arrays.forEach = function (array, callback) {
 
 // ------------------------------ our test now -------------------------------
 
-var eq = function (arg1, arg2) {
-        return arg1.val === arg2.val;
-    };
 var n1 = symb_number(n1); // 1
 var n2 = symb_number(n2); // 8
 var n3 = symb_number(n3); // 10
+var n4 = symb_number(n4); // 42
+
 Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n1 = n4));
+
 Assume(not (n2 = n3));
-Assume(not (n3 = n1));
-var a = {
-        val: n1
-    },
-    b = {
-        val: n2
-    },
-    c = {
-        val: n3
-    };
-var customObjectArray = [a, a, b, c];
+Assume(not (n2 = n4));
+
+Assume(not (n3 = n4));
+
+
 var numberArray = [n1, n2, n2, n2, n3, n3];
 
+var reset = function() {
+  numberArray = [n1, n2, n2, n2, n3, n3];
+}
 
-// test 3
-//it('indexOf with custom equals gives the right index for valid objects', function () {
-var test = {
-    val: n1
-};
-var res1 = buckets.arrays.indexOf(customObjectArray, test, eq);
-Assert(res1 = 0);
+// initial setup
+reset();
 
-test.val = n2;
-var res2 = buckets.arrays.indexOf(customObjectArray, test, eq);
-Assert(res2 = 2);
-
-test.val = n3;
-var res3 = buckets.arrays.indexOf(customObjectArray, test, eq);
-Assert(res3 = 3);
+// contains
+var res6 = buckets.arrays.contains(numberArray, n1);
+var res7 = buckets.arrays.contains(numberArray, n4);
+Assert(res6);
+Assert(not res7);

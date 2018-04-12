@@ -11,8 +11,8 @@ logname=res_$name.txt
 
 ./js2jsil.native -file "$filename" -cosette -line_numbers &> /dev/null
 ./jsil2rkt.native -file "$jsilname" -js 
-racket $rktname > $logname
-tail -n 12 $logname
+time racket $rktname > $logname
+tail -n 1 $logname
 
 mv models.json $name"_models.json"
 mv coverage.txt $name"_raw_coverage.txt"

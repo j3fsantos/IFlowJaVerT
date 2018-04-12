@@ -13,7 +13,7 @@ import colored
 
 
 def get_jsil_coverage(file):
-    filename = file + '_coverage.txt'
+    filename = file + '_raw_coverage.txt'
     with open(filename) as coverage_file:
         lines = coverage_file.readlines()
     lines = [line.rstrip() for line in lines]

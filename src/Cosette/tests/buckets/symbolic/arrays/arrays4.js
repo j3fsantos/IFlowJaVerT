@@ -308,40 +308,33 @@ buckets.arrays.forEach = function (array, callback) {
 
 // ------------------------------ our test now -------------------------------
 
-
-var eq = function (arg1, arg2) {
-    return arg1.val === arg2.val;
-};
-
 var n1 = symb_number(n1); // 1
 var n2 = symb_number(n2); // 8
 var n3 = symb_number(n3); // 10
+var n4 = symb_number(n4); // 42
+
 Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n1 = n4));
+
 Assume(not (n2 = n3));
-Assume(not (n3 = n1));
-var a = {
-        val: n1
-    },
-    b = {
-        val: n2
-    },
-    c = {
-        val: n3
-    };
-var customObjectArray = [a, a, b, c];
+Assume(not (n2 = n4));
+
+Assume(not (n3 = n4));
+
+
 var numberArray = [n1, n2, n2, n2, n3, n3];
 
-var n4 = symb_number(n4);
-Assume(not (n4 = n1));
-Assume(not (n4 = n2));
-Assume(not (n4 = n3));
+var reset = function() {
+  numberArray = [n1, n2, n2, n2, n3, n3];
+}
 
-// test 18
-//it('remove can delete existing elements from number array', function () {
-var a = [n1, n2, n2, n3];
-var res1 = buckets.arrays.remove(a, n2);
-var res2 = buckets.arrays.indexOf(a, n2);
-var res3 = buckets.arrays.indexOf(a, n3);
-Assert(res1);
-Assert(res2 = 1);
-Assert(res3 = 2);
+// initial setup
+reset();
+
+// remove
+var res8 = buckets.arrays.remove(numberArray, n3);
+var res9 = buckets.arrays.remove(numberArray, n4);
+Assert(res8);
+Assert(not res9);
+reset();
