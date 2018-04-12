@@ -766,20 +766,47 @@ control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang
 interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
 Here, we focus on the existing work on logic-based analysis and symbolic execution for JavaScript. 
 
-\myparagraph{Symbolic Execution} Ooga. Booga. Boo.
+\myparagraph{Symbolic Execution for JS}
+\begin{itemize}
+   \item \cite{saxena:sp:2010} - Kudzu
+   \item \cite{li:fse:2014} - Toshiba guys
+   \item \cite{koushik:fse:2015} - jalangi
+   \item \cite{wittern:icse:2018} -  Julian 
+\end{itemize}
+
+
+\myparagraph{Specification-directed Testing}
+\begin{itemize}
+   \item \cite{dolby:fse:2007} - Julian 
+   \item \cite{milicevic:icse:2007} \cite{boyapati:issta:2002} - Korat
+   \item \cite{seidel:esop:2015} - Target
+   \item \cite{claessen:icfp:2000} - QuickCheck
+\end{itemize}
+
+
+\myparagraph{Logic-based Analysis for JS} 
+\begin{itemize}
+   \item \cite{gardner:popl:2012} - JS logic
+   \item \cite{swamy:pldi:2013} - dijkstra monad
+   \item \cite{stefanescu:oopsla:2016} - K framework
+   \item \cite{javert} - javert 
+\end{itemize}
+
+\myparagraph{Entailment in Separation Logic and Countermodels}
+\begin{itemize}
+   \item 
+\end{itemize}
 
 
 
-
-\myparagraph{Logic-based Analysis} 
 %
-\cite{gardner:popl:2012} have developed a separation logic for a small fragment of ECMAScript 3, to reason about the variable store emulated in the JavaScript heap.
-%
-\cite{rosu-serbanuta-2010-jlap} have developed $\mathbb{K}$, a term-rewriting framework  for  formalising the operational
-semantics of programming languages.
- In particular, they have developed KJS~\cite{Park:2015} which provides a $\mathbb{K}$-interpretation of the core language and part of the built-in libraries of the ES5 standard. KJS has been tested against the official ECMAScript Test262 test suite and passed all 2782 tests for the core language; the testing results for the built-in libraries are not reported. 
-\cite{stefanescu-park-yuwen-li-rosu-2016-oopsla} introduce a language-independent verification infrastructure 
-that can be instantiated with a $\mathbb{K}$-interpretation of a  language to automatically generate a symbolic verification tool for that language based on the $\mathbb{K}$ reachability logic. They apply this infrastructure to KJS to generate a verification tool for JavaScript, which they use to verify functional correctness properties of operations for manipulating data structures such as binary search trees, AVL trees, and lists.
+%\cite{gardner:popl:2012} have developed a separation logic for a small fragment of ECMAScript 3, to reason about the variable store emulated in the JavaScript heap.
+%%
+%\cite{rosu-serbanuta-2010-jlap} have developed $\mathbb{K}$, a term-rewriting framework  for  formalising the operational
+%semantics of programming languages.
+% In particular, they have developed KJS~\cite{Park:2015} which provides a $\mathbb{K}$-interpretation of the core language and part of the built-in libraries of the ES5 standard. KJS has been tested against the official ECMAScript Test262 test suite and passed all 2782 tests for the core language; the testing results for the built-in libraries are not reported. 
+%\cite{stefanescu-park-yuwen-li-rosu-2016-oopsla} introduce a language-independent verification infrastructure 
+%that can be instantiated with a $\mathbb{K}$-interpretation of a  language to automatically generate a symbolic verification tool for that language based on the $\mathbb{K}$ reachability logic. They apply this infrastructure to KJS to generate a verification tool for JavaScript, which they use to verify functional correctness properties of operations for manipulating data structures such as binary search trees, AVL trees, and lists.
 
 
 \section{Conclusions}\label{conclusions}
