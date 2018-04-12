@@ -365,6 +365,17 @@ We evaluate \cosette on an array of examples, including tests from the official 
 
 \section{Introduction}
 
+
+
+%\pg{This is what we should answer by the introduction: 
+%What's the problem with the current state of the art?
+%What is our solution?
+%Why is the problem we're solving hard?
+%How do we solve the challenges?
+%Why do we do better than existing work?
+%What are the lessons learnt from the paper?}
+
+
 \pmax{Many messages, let's not forget any:
 \begin{itemize}
 \item Methodology for analysis of languages with no frame property
@@ -374,6 +385,66 @@ We evaluate \cosette on an array of examples, including tests from the official 
 \item more...?
 \end{itemize}
 }
+
+%%symbolic execution is theis....
+
+Symbolic execution is a software testing technique that
+has been successfully used to analyse code in languages such as C,
+Java and JavaScript.  
+
+
+Symbolic execution uses mathematical logic to
+reason about program behaviour, providing much stronger guarantees
+than traditional concrete testing since the execution of program paths is
+considered in the context of all possible inputs. It has recently been
+shown to be practical as a result of significant advances in
+fundamental theory, solver technology, and scalable tool development.
+
+Symbolic execution is a whole-program testing technique that
+demonstrates
+that a program behaves well given  an initial context. The technique  works
+well for well-behaved languages such as C and Java that satisfy the
+{\em frame property}. Intuitively, the frame property means that if a
+program produces a given output when run in a given state, then we can
+extend this state arbitrarily, run the program in this extended state,
+and the program will produce the same output. With the frame property,
+symbolic testing with respect to one context gives some assurance that 
+the program works well with respect to all contexts. It gives
+assurance that
+
+
+ This means that
+the tests are ...... 
+
+
+
+
+
+
+
+JavaScript is one of the most widespread dynamic languages: it is the
+de facto language for client-side Web applications; it is used for
+server-side scripting via 
+Node.js; and it is even run on
+small embedded devices with limited memory. It is used by 94.8\% of websites , and is the most
+active language in both GitHub and StackOverflow. 
+
+
+
+
+
+
+Standardised by the
+ECMAScript committee and natively supported by all major browsers, JavaScript is a complex and evolving language. 
+
+
+
+we are analysing JS using symbolic execution
+
+symbolic execution, lots of success, concrete unit tests to symbolic
+tests. 
+
+
 
 In current program analysis research, there exists a gap between bug-finding techniques and verification techniques. In bug-finding, the aim is to discover concrete executions that cause a given program to behave incorrectly, and the emphasis is on precision, that is, the absence of false positive bug reports. In verification, the aim is to produce a proof that a given program always behaves correctly, and the emphasis is on soundness, which mandates adherence to the language standard and the exploration of all possible paths.
 %
@@ -426,7 +497,7 @@ These theoretical results, combined with the correctness of \JSComp and the fact
 
 \myparagraph{Novelty: Compositionality} 
 Whole-program analyses are not the best fit for JavaScript applications, which are commonly run in highly dynamic execution environments. For instance, client-side programs dynamically load and execute third-party code as a matter of course. For this reason, it is important to be able to analyse incomplete JavaScript code in a compositional manner.
-However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively, the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run. 
+However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively,  the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run. 
 %
 We achieve compositionality by explicitly keeping track of properties that must {\em not be present} in a given object in order for the program to behave correctly.
 %Because JavaScript does not observe the frame property, such conditions need to refer to positive resources, object properties that need to be present with certain properties, as well as negative resources, object properties that must not be present. 
