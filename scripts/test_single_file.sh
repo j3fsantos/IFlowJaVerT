@@ -2,19 +2,18 @@
 
 # copy file to current folder
 cp $1 .
-#echo "filename:" $1
+
 filename=$(basename $1)
-#echo "basename:" $filename
 name=${filename%%.*}
-#echo $name
-jname=$name'.jsil'
-#echo $jname
-rname=$name'.rkt'
-#echo $rname
-./js2jsil.native -file "$filename" -cosette -line_numbers &> /dev/null
-./jsil2rkt.native -file "$jname" -js 
+jsilname=$name'.jsil'
+rktname=$name'.rkt'
 logname=res_$name.txt
-racket $rname > $logname
+
+./js2jsil.native -file "$filename" -cosette -line_numbers &> /dev/null
+./jsil2rkt.native -file "$jsilname" -js 
+racket $rktname > $logname
 tail -n 12 $logname
+
 mv models.json $name"_models.json"
-mv coverage.txt $name"_coverage.txt"
+mv coverage.txt $name"_raw_coverage.txt"
+python3 coverage.py $filename > $name"_coverage.txt"
