@@ -2,6 +2,10 @@
 
 type unop =
   | NOT
+  (* Lists are only for the logic *)
+  | LEN
+  | HEAD
+  | TAIL
 
 type binop =
   | NEQ
@@ -17,6 +21,7 @@ type binop =
 	| MOD
 	| AND
 	| OR
+  (* Lists are only for the logic *)
   | LSTCONS (* list construction a::l, only for logic *)
   | LSTCAT  (* list concatenation, only for logic *)
 
@@ -80,6 +85,7 @@ type logic_assertion =
   | LOr of logic_assertion * logic_assertion
   | LEmp
   | LStar of logic_assertion * logic_assertion
+  | LPred of string * logic_expr list
   | LPointsTo of logic_expr * prop_name * logic_expr
   | LEq of logic_expr * logic_expr
   | LLess of logic_expr * logic_expr

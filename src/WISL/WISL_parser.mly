@@ -56,6 +56,9 @@
 
 (* Unary operators *)
 %token NOT
+%token HEAD
+%token TAIL
+%token LEN
 
 (* Logic *)
 %token ARROW          /* -> */
@@ -71,6 +74,7 @@
 %token LFALSE
 %token LSTNIL
 %token LNOT
+%token <string> LVAR
 
 
 (* WISL Program *)
@@ -157,6 +161,9 @@ binop:
 
 unop:
   | NOT { WISL_Syntax.NOT }
+  | LEN { WISL_Syntax.LEN }
+  | HEAD { WISL_Syntax.HEAD }
+  | TAIL { WISL_Syntax.TAIL }
   
 value:
   | i = INT { WISL_Syntax.Num (WISL_Syntax.Int i) }
@@ -172,6 +179,8 @@ value:
 logic_assertion:
   | LTRUE { WISL_Syntax.LTrue }
   | LFALSE { WISL_Syntax.LFalse }
+  | pr = IDENTIFIER; LBRACE; params = separated_list(COMMA, logic_expression); RBRACE
+    { WISL_Syntax.LPred (pr, params) }
   | LNOT; la = logic_assertion { WISL_Syntax.LNot la }
   | la1 = logic_assertion; LAND; la2 = logic_assertion { WISL_Syntax.LAnd (la1, la2) }
   | la1 = logic_assertion; LOR; la2 = logic_assertion { WISL_Syntax.LOr (la1, la2) }
@@ -188,6 +197,7 @@ logic_assertion:
 logic_expression:
   | v = logic_value { WISL_Syntax.LVal v }
   | x = IDENTIFIER { WISL_Syntax.PVar x }
+  | lx = LVAR { WISL_Syntax.LVar lx }
   | e1 = logic_expression; b = logic_binop; e2 = logic_expression { WISL_Syntax.LBinOp (e1, b, e2) }
   | u = unop; e = logic_expression{ WISL_Syntax.LUnOp (u, e) }
   
