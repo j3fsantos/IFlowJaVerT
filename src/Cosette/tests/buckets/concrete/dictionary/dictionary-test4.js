@@ -525,7 +525,7 @@ buckets.Dictionary = function (toStrFunction) {
 
 // --------------------------------- tests -----------------------------------
 
-var elems = 100,
+var elems = 5,
     dict;
 
 var beforeEach = function () {

@@ -1,0 +1,117 @@
+[1m[38;5;2mbase_defaultCompare: executed all lines
+base_defaultCompare: coverage 100.00%
+[0m
+[1m[38;5;1mbase_defaultEquals: missing lines [35]
+base_defaultEquals: coverage 0.00%
+[0m
+[1m[38;5;1mbase_defaultToString: missing lines [45, 46, 48, 49, 51, 52, 54]
+base_defaultToString: coverage 0.00%
+[0m
+[1m[38;5;1mbase_isFunction: missing lines [64]
+base_isFunction: coverage 0.00%
+[0m
+[1m[38;5;2mbase_isUndefined: executed all lines
+base_isUndefined: coverage 100.00%
+[0m
+[1m[38;5;1mbase_isString: missing lines [84]
+base_isString: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction: missing lines [94, 96, 107]
+base_reverseCompareFunction: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner1: missing lines [97, 98, 100, 101, 103]
+base_reverseCompareFunction_inner1: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner2: missing lines [108]
+base_reverseCompareFunction_inner2: coverage 0.00%
+[0m
+[1m[38;5;1mbase_compareToEquals: missing lines [120]
+base_compareToEquals: coverage 0.00%
+[0m
+[1m[38;5;2mbstree_searchNode: executed all lines
+bstree_searchNode: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_minimumAux: executed all lines
+bstree_minimumAux: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_add: executed all lines
+bstree_add: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_add_insertNode: executed all lines
+bstree_add_insertNode: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_clear: executed all lines
+bstree_clear: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_isEmpty: executed all lines
+bstree_isEmpty: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_size: executed all lines
+bstree_size: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_contains: executed all lines
+bstree_contains: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_remove: executed all lines
+bstree_remove: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_remove_transplant: executed all lines
+bstree_remove_transplant: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_remove_removeNode: executed all lines
+bstree_remove_removeNode: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_inorderTraversal: executed all lines
+bstree_inorderTraversal: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_inorderTraversal_inorderRecursive: executed all lines
+bstree_inorderTraversal_inorderRecursive: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_preorderTraversal: executed all lines
+bstree_preorderTraversal: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_preorderTraversal_preorderRecursive: executed all lines
+bstree_preorderTraversal_preorderRecursive: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_postorderTraversal: executed all lines
+bstree_postorderTraversal: coverage 100.00%
+[0m
+[1m[38;5;1mbstree_postorderTraversal_postorderRecursive: missing lines [955]
+bstree_postorderTraversal_postorderRecursive: coverage 88.89%
+[0m
+[1m[38;5;2mbstree_levelTraversal: executed all lines
+bstree_levelTraversal: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_levelTraversal_levelAux: executed all lines
+bstree_levelTraversal_levelAux: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_minimum: executed all lines
+bstree_minimum: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_maximum: executed all lines
+bstree_maximum: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_maximum_maximumAux: executed all lines
+bstree_maximum_maximumAux: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_forEach: executed all lines
+bstree_forEach: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_toArray: executed all lines
+bstree_toArray: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_toArray_callback: executed all lines
+bstree_toArray_callback: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_height: executed all lines
+bstree_height: coverage 100.00%
+[0m
+[1m[38;5;2mbstree_height_heightAux: executed all lines
+bstree_height_heightAux: coverage 100.00%
+[0m
+[1m[38;5;1mbstree_equals: missing lines [1096]
+bstree_equals: coverage 87.50%
+[0m
+[1m[38;5;2mbstree_equals_callback: executed all lines
+bstree_equals_callback: coverage 100.00%
+[0m

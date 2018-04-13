@@ -743,7 +743,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
 
 // ---------------------------------- tests -----------------------------------
 
-var elems = 100,
+var elems = 5,
     dict;
 
 var beforeEach = function() {
@@ -866,11 +866,11 @@ dict.get(1);
 beforeEach();
 var i;
 dict.containsKey(0);
-for (i = 0; i < 10; i += 1) {
+for (i = 0; i < 5; i += 1) {
     dict.set(i, i);
 dict.containsKey(i);
 }
-for (i = 0; i < 10; i += 1) {
+for (i = 0; i < 5; i += 1) {
     dict.remove(i);
 dict.containsKey(i);
 }
@@ -880,7 +880,7 @@ dict.containsKey(i);
 beforeEach();
 var i;
 dict.size();
-for (i = 0; i < 10; i += 1) {
+for (i = 0; i < 5; i += 1) {
     dict.set(i, i);
 dict.size();
 }

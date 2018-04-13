@@ -733,7 +733,7 @@ var i, values;
 set.forEach(function (e) {
     false;
 });
-for (i = 0; i < 100; i += 1) {
+for (i = 0; i < 5; i += 1) {
     set.add(i);
 }
 values = set.toArray();
