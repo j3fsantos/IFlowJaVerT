@@ -165,7 +165,7 @@ Abstract states expose the following functions and relations:
   \item[Store Selector,] $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$. The expression $\stosel(\absstate)$ evaluates to the abstract store associated with a given abstract state $\absstate$. For clarity, we write $\absstate.\stosel$ instead of $\stosel(\absstate)$. 
 
   \item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc(\absstate)$ evaluates to a pair consisting
-          of an abstract value denoting a fresh location and the new abstract state that keeps track of that allocation. %
+          of an abstract value denoting a fresh location and the new state that keeps track of that allocation. %
 %             
   \item[Store Update,] $\stupdt{}: \absstates \rightarrow \jvars \rightarrow \absvals \rightarrow \absstates$. 
              The expression $\stupdt{}(\absstate, \jvar, \absval)$ denotes the abstract state obtained from $\absstate$ 
@@ -698,7 +698,7 @@ $$
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.83\textwidth]{figures/symbSemEx.png}
+\includegraphics[width=0.6\textwidth]{figures/symbSemEx.png}
 \vspace*{-0.1cm}
 \caption{Example of a \cosette symbolic execution}
 \label{fig:sexecexample}
@@ -755,7 +755,7 @@ symbolic stores instead of concrete stores.
 
 \jfs{
 \begin{itemize}
-  \item Explain the rules
+  \item Explain the {\color{red}RED}
 \end{itemize}
 }
 
@@ -902,6 +902,7 @@ symbolic stores instead of concrete stores.
 \hspace*{-0.5cm} $\mathtt{4\quad assert\ (card \ x == 2)}$
 }
 \end{wrapfigure}
+
 \myparagraph{Example:}
 To get a better intuition of how symbolic execution works, let us take a look at the snippet of code shown on the right. 
 This code: 
@@ -910,172 +911,190 @@ This code:
 	\dtag{2}~assigns 42 to the property $\mathtt{s}$ of $\mathtt{o}$; 
 	\dtag{3}~collects all the properties of $\mathtt{o}$ into a set and assigns this set to $\mathtt{x}$; and
 	\dtag{4}~asserts that the cardinality of the set in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. 
-	     This last assertion will produce a failing symbolic execution. Let us understand why.
+	     This last assertion will produce a failing symbolic execution.
 %
-We start from an empty heap, empty domain, empty store, and path condition $\jtrue$: 
-$\sstate_0 = \tuple{\hemp, \demp, \storeemp, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state {\small $\sstate_1 = \tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \mathtt{l_o : \{ ``@proto"} \} \}, \{ \mathtt{o : l_o} \} , \jtrue}$}, illustrated at the top of Figure~\ref{fig:sexecexample}.
-The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. The semantic rule for \textsc{Property Assignment} makes use 
-of the abstract function \textsc{GetCell}. There are two potential \textsc{Get Cell} rules (\textsc{Not Found} and \textsc{Found}), and in our case, both of them are applicable. The key strategy is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and/or inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and $\hat{s}$, with value 42.
-The execution then continues in both branches with the property collection command $\mathtt{x := getFields(o)}$, which assigns the set of properties of the object $\mathtt{o}$ to the variable~$\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (card \ x = 2)}$, asserting that $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left.
-Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbolic execution trace, from which a concrete counter-model can be derived ($\hat{s} = \mathtt{``@proto"}$).
+To understand why, consider the symbolic execution of this program given in Figure~\ref{fig:sexecexample}.
+%
+The key insight is that the symbolic execution branches when executing the property assignment (line 2).
+% 
+More concretely, the symbolic execution can either use the rule \prooflab{GetCell - Found}, when 
+the inspected property coincides with one of the object's existing properties (in this case: $\hat{s} = \mathtt{``@proto"}$), 
+or the rule \prooflab{GetCell - Not Found}, when the inspected property is different from all of the 
+object's existing properties (in this case: $\hat{s} \neq \mathtt{``@proto"}$). 
+%
+Hence, while in the left branch,  the object has a single property $\mathtt{``@proto"}$ that gets updated to 42,
+in the right branch, the object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and 
+$\hat{s}$, with value 42. 
+%
+Therefore, the assert command fails in the left branch, leading the symbolic execution to produce the concrete counter-model 
+$\hat{s} = \mathtt{``@proto"}$.
+
+%
+% is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and/or inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and $\hat{s}$, with value 42.
+%We start from an empty heap, empty domain, empty store, and path condition $\jtrue$: 
+%$\sstate_0 = \tuple{\hemp, \demp, \storeemp, \jtrue}$. After the execution of the first command, $\mathtt{o := new\ ()}$, using the \textsc{Basic Command} and \textsc{Object Creation} rules, we get to the state {\small $\sstate_1 = \tuple{\{ \mathtt{l_o : \{ ``@proto" : null} \} \}, \mathtt{l_o : \{ ``@proto"} \} \}, \{ \mathtt{o : l_o} \} , \jtrue}$}, illustrated at the top of Figure~\ref{fig:sexecexample}.
+%The next command to be executed is the property assignment $\mathtt{o[\hat{s}] := 42}$. The semantic rule for \textsc{Property Assignment} makes use 
+%of the abstract function \textsc{GetCell}. 
+%There are two potential \textsc{Get Cell} rules (\textsc{Not Found} and \textsc{Found}), and in our case, both of them are applicable. 
+%The execution then continues in both branches with the property collection command $\mathtt{x := getFields(o)}$, which assigns the set of properties of the object $\mathtt{o}$ to the variable~$\mathtt{x}$ (last row of Figure~\ref{fig:sexecexample}). Finally, we execute $\mathtt{assert\ (card \ x = 2)}$, asserting that $\mathtt{o}$ has exactly two properties, which we observe to hold in the right branch, but not in the left.
+%Therefore, following the \textsc{Assert - False} rule, we obtain a failing symbolic execution trace, from which a concrete counter-model can be derived ($\hat{s} = \mathtt{``@proto"}$).
 
 
 
+%
+%\begin{display}{Symbolic State Instrumented Interpretation}
+%{\scriptsize 
+%\begin{mathpar}
+%\inferrule[Symbolic Heaps]{}{
+%\interpret{\symbinst}{\senv}(\hemp) \semeq \hemp
+%\qquad
+%\frac{
+%  \begin{array}{c}
+%   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+%    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
+%    v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
+%    \heap = \hcell{l}{p}{v}
+%  \end{array}
+%}{
+%\interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap
+%}
+%\qquad
+%\frac{
+%  \begin{array}{c}
+%   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+%   p = \interpret{\symbconc}{\senv}(\sexprp)  \\ 
+%      \heap = \hcell{l}{p}{\none}
+%    \end{array}
+%}{
+%  \interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \heap
+%}
+%\qquad
+%\frac{
+%  \begin{array}{c}
+%   \interpret{\symbconc}{\senv}(\sheap_i) = \iheap_i, \hdom_i \mid_{i =1,2} \\ 
+%   \iheap = \iheap_1 \dunion \iheap_2 
+%   \end{array}
+%}{
+%\interpret{\symbinst}{\senv}(\sheap_1 \dunion \sheap_2) \semeq \iheap
+%}}
+%\\
+%\inferrule[Symbolic Domains]
+%{
+%   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \interpret{\symbconc}{\senv}(\sexprl) \, \wedge \, \val = \interpret{\symbconc}{\senv}(\sdom(\sexprl))
+%}{
+%\interpret{\symbinst}{\senv}(\sdom) \semeq \idom
+%}
+%\and
+%\inferrule[Symbolic States]{
+%    \sstate = (\sheap, \sdom, \sstore, \pc) 
+%    \quad 
+%    \interpret{\symbinst}{\senv}(\sheap) = \iheap
+%   \quad
+%    \interpret{\symbinst}{\senv}(\sdom) = \idom
+%    \\\\
+%    \interpret{\symbconc}{\senv}(\sstore) = \store 
+%    \quad
+%    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
+%}{
+%\interpret{\symbinst}{\senv}(\sstate) \semeq (\iheap, \idom, \store)
+%}
+%\end{mathpar}}
+%\end{display}
 
-\begin{display}{Symbolic State Instrumented Interpretation}
-{\scriptsize 
-\begin{mathpar}
-\inferrule[Symbolic Heaps]{}{
-\interpret{\symbinst}{\senv}(\hemp) \semeq \hemp
-\qquad
-\frac{
-  \begin{array}{c}
-   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
-    v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
-    \heap = \hcell{l}{p}{v}
-  \end{array}
-}{
-\interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap
-}
-\qquad
-\frac{
-  \begin{array}{c}
-   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-   p = \interpret{\symbconc}{\senv}(\sexprp)  \\ 
-      \heap = \hcell{l}{p}{\none}
-    \end{array}
-}{
-  \interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \heap
-}
-\qquad
-\frac{
-  \begin{array}{c}
-   \interpret{\symbconc}{\senv}(\sheap_i) = \iheap_i, \hdom_i \mid_{i =1,2} \\ 
-   \iheap = \iheap_1 \dunion \iheap_2 
-   \end{array}
-}{
-\interpret{\symbinst}{\senv}(\sheap_1 \dunion \sheap_2) \semeq \iheap
-}}
-\\
-\inferrule[Symbolic Domains]
-{
-   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \interpret{\symbconc}{\senv}(\sexprl) \, \wedge \, \val = \interpret{\symbconc}{\senv}(\sdom(\sexprl))
-}{
-\interpret{\symbinst}{\senv}(\sdom) \semeq \idom
-}
-\and
-\inferrule[Symbolic States]{
-    \sstate = (\sheap, \sdom, \sstore, \pc) 
-    \quad 
-    \interpret{\symbinst}{\senv}(\sheap) = \iheap
-   \quad
-    \interpret{\symbinst}{\senv}(\sdom) = \idom
-    \\\\
-    \interpret{\symbconc}{\senv}(\sstore) = \store 
-    \quad
-    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
-}{
-\interpret{\symbinst}{\senv}(\sstate) \semeq (\iheap, \idom, \store)
-}
-\end{mathpar}}
-\end{display}
-
-
-\subsection{Connecting the Semantics}\label{sex:formal:guarantees}
-
-\subsubsection{Preliminaries}
-To establish the soundness of symbolic execution, we need to relate 
-symbolic states to concrete states. To this end, we make use of \emph{symbolic environments} 
-$\senv : \svars \rightharpoonup \vals$, mapping symbolic values to concrete values. 
+\myparagraph{Formal Guarantees:}
+We relate the symbolic semantics with the instrumented semantics using 
+\emph{symbolic environments}, $\senv : \svars \rightharpoonup \vals$, mapping 
+symbolic values to concrete values. 
 A symbolic environment is \emph{well-formed} if it maps symbolic 
 values to concrete values of the appropriate type (i.e.~symbolic strings are mapped to strings 
 and symbolic numbers are mapped to numbers). In the following, we always 
 assume well-formed symbolic environments. 
-%%
-Given a symbolic environment $\senv$, we define the interpretation of symbolic states as follows. 
+%
+Given a symbolic environment $\senv$, we use $\interpret{\symbinst}{\senv}(\sstate)$ to 
+denote the instrumented state obtained by interpreting $\sstate$ under $\senv$.  
 
-\begin{display}{Symbolic State Interpretation}
+Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} states 
+that if we have a symbolic trace $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$
+ and an instrumented state in the interpretation of $\sstate$ \emph{filtered by the final 
+ path condition}, then there is an instrumented trace that will produce a final instrumented state 
+ in the interpretation of the final symbolic state. 
+ Note that we have to use the final path condition $\sstate'.\pcsel$ when picking the initial 
+ instrumented state, because we only care about the initial instrumented states for which 
+the instrumented execution follows the same path as the symbolic execution. 
+
+%The soundness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
+%$\symbtranstrans[\prog][\mode][\mode']{\sheap, \sstore, i, \pc}{\sheap', \sstore', i', \pc'}[\sctx][\sctx']$ 
+%and a concrete state $(\heap, \store, \ctx)$ with a symbolic environment~$\senv$
+%in the models of the initial symbolic state under 
+%the final path condition $\pc'$, and $\senv$ concretises all symbolic variables of the program $\prog$, then there exists a concrete symbolic state $(\heap', \store', \ctx')$ 
+%that is in the models of the final symbolic state under $\pc'$ with the same symbolic environment~$\senv$, such that: 
+%$\semtranstrans[\symbeval{\prog}{\senv}][\mode][\mode']{\heap, \store, i}{\heap', \store', i'}[\ctx][\ctx']$. 
+
+
+\begin{theorem}[Bounded Soundness]\label{lemma:soundness:jsil:symb:exe:instrumented:instrumented}
+$$
+\begin{array}{l}
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
+    \ \implies \ \exists \, \senv', \istate', \cs' \, . \, 
+        \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad \quad \quad  \quad \quad \quad \quad  \quad \quad
+             \ \wedge \ (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')
+\end{array}
+$$
+\end{theorem}
+
+
+
+
+
+\subsection{Linking the Semantics}\label{sex:formal:guarantees}
+
+The last step of our methodology consists of  linking the symbolic semantics to the concrete semantics
+in way that describes the frames that can be safely added to the initial state.  
+In other words, the interpretation of symbolic states needs to describe both the concretisation of that 
+state, as well as all the frames that can be safely added to that concretisation. 
+
+Below we give the formal interpretation of symbolic states. 
+
+ \begin{display}{Symbolic State Interpretation}
 {\scriptsize 
 \begin{mathpar}
-\inferrule[Symbolic Expressions]
-{}{
-\interpret{\symbconc}{\senv}(\val) \semeq \val 
 %
-\qquad
-%
-\interpret{\symbconc}{\senv}(\svar) \semeq \senv(\svar)
-%
-\qquad
-%
-\interpret{\symbconc}{\senv}(\unoper\ \sexpr) \semeq \semop{\unoper} (\interpret{\symbconc}{\senv}(\sexpr))
-%
-\qquad 
-\interpret{\symbconc}{\senv}(\sexpr_1 \binoper \sexpr_2) \semeq \semop{\binoper}(\interpret{\symbconc}{\senv}(\sexpr_1), \interpret{\symbconc}{\senv}(\sexpr_2)) 
-}
-\\
-%
-\inferrule[Symbolic Stores]{}{
- \interpret{\symbconc}{\senv}(\storeemp) \semeq \storeemp   
-\qquad
-\frac{
-   \val = \interpret{\symbconc}{\senv}(\sexpr) 
-   \quad 
-   \store = \interpret{\symbconc}{\senv}(\sstore)
-}{
-  \interpret{\symbconc}{\senv}((\jvar: \sexpr) \dunion \sstore) \semeq (\jvar: \val) \dunion \store 
-}}
-\and
-\inferrule[Symbolic Contexts]{}{
-\interpret{\symbconc}{\senv}(\lstemp) \semeq \lstemp
-\qquad
-\frac{
-    \store = \interpret{\symbconc}{\senv}(\sstore)
-    \quad 
-    \cs = \interpret{\symbconc}{\senv}(\scs)
-}{
-\interpret{\symbconc}{\senv}((\pid, \sstore, \jvar, i, j) \lstcons \scs) \semeq (\pid, \store, \jvar, i, j) \lstcons \cs
-}}
- \\
- %
-\inferrule[Symbolic Heaps]{}{
+\inferrule[Empty Heap]{}{
 \interpret{\symbconc}{\senv}(\hemp) \semeq \hemp, \emptyset
+}
 \qquad
-\frac{
-  \begin{array}{c}
+\inferrule[Non-none Cell]{
    l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
-    v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
+    p =  \interpret{\symbconc}{\senv}(\sexprp) \\\\
+    v =  \interpret{\symbconc}{\senv}(\sexprv)  \quad 
     \heap = \hcell{l}{p}{v}
-  \end{array}
 }{
 \interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap, \emptyset
 }
 \qquad
-\frac{
-  \begin{array}{c}
+\inferrule[None Cell]{
    l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-   p = \interpret{\symbconc}{\senv}(\sexprp)  \\ 
+   p = \interpret{\symbconc}{\senv}(\sexprp)  \\\\
    \hdom = \jsilset{ (l, p) }
-    \end{array}
 }{
   \interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \hemp, \hdom
 }
-\qquad
-\frac{
-  \begin{array}{c}
-   \interpret{\symbconc}{\senv}(\sheap_i) = h_i, \hdom_i \mid_{i =1,2} \\ 
+\\\\
+\inferrule[Heap Composition]{
+   \interpret{\symbconc}{\senv}(\sheap_i) = h_i, \hdom_i \mid_{i =1,2} \\\\
    \heap = h_1 \dunion h_2 \quad 
    \hdom = \hdom_1 \dunion \hdom_2
-   \end{array}
 }{
 \interpret{\symbconc}{\senv}(\sheap_1 \dunion \sheap_2) \semeq \heap, \hdom
-}}
-\\
+}
+\qquad
 \inferrule[Symbolic Domains]
 {
-  \hdom =  \{ (l, p) \mid \sexprl \in \domain(\sdom) \, \wedge \, l = \interpret{\symbconc}{\senv}(\sexprl) 
-                 \, \wedge \, p \not\in \interpret{\symbconc}{\senv}(\sdom(\sexprl)) \}
+  \hdom =  \left\{ (l, p) \mid 
+                     {\begin{array}{l}
+                         \sexprl \in \domain(\sdom) \, \wedge \, l = \interpret{\symbconc}{\senv}(\sexprl)  \\ 
+                              \, \wedge \, p \not\in \interpret{\symbconc}{\senv}(\sdom(\sexprl))
+                     \end{array}} \right\}
 }{
 \interpret{\symbconc}{\senv}(\sdom) 
     \semeq \hdom 
@@ -1087,16 +1106,13 @@ Given a symbolic environment $\senv$, we define the interpretation of symbolic s
    \interpret{\symbconc}{\senv}(\sheap) = \heap, \hdom_1
    \quad
    \interpret{\symbconc}{\senv}(\sdom) = \hdom_2
-   \\\\
+   \quad
    \interpret{\symbconc}{\senv}(\sstore) = \store
     \quad 
     \interpret{\symbconc}{\senv}(\pc) = \jtrue 
-    \quad 
-    \hdom = \domain(h) \cup \hdom_1 \cup \hdom_2 
 }{
-\interpret{\symbconc}{\senv}(\sstate) \semeq \{ (\heap, \store, \heap_f) \mid \domain(\heap_f) \cap \hdom = \emptyset \} 
+\interpret{\symbconc}{\senv}(\sstate) \semeq \{ (\heap, \store, \heap_f) \mid \domain(\heap_f) \cap (\domain(h) \cup \hdom_1 \cup \hdom_2) = \emptyset \} 
 }
-
 \end{mathpar}}
 \end{display}
 
@@ -1177,15 +1193,7 @@ The {\bf proofs} of the above results are given in the Appendix. \polish{What do
 
 \subsubsection{Proof Methodology}
 
-\begin{theorem}[Soundiness wrt Instrumented Semantics]\label{lemma:soundness:jsil:symb:exe:instrumented:instrumented}
-$$
-\begin{array}{l}
-\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
-    \ \implies \ \exists \, \senv', \istate', \cs' \, . \, 
-        \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \ \wedge \ (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')
-\end{array}
-$$
-\end{theorem}
+
 
 
 
