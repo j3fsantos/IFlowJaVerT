@@ -99,6 +99,13 @@ type specification = {
   post: logic_assertion; (* At first, only one post-condition *)
 }
 
+
+type logic_predicate = {
+  pred_name: string;
+  pred_params: variable list;
+  pred_definitions: ((string option) * logic_assertion) list;
+}
+
 (* Programs and functions *)
 
 type wisl_fun = {
@@ -111,4 +118,7 @@ type wisl_fun = {
 
 type function_context = wisl_fun list
 
-type program = { context: function_context; entry_point: statement option}
+type program = { 
+  context: function_context;
+  predicates: logic_predicate list;
+  entry_point: statement option}
