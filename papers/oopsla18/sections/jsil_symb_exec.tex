@@ -1,42 +1,28 @@
 %!TEX root = ../main.tex
 
-We describe our novel compositional symbolic execution engine for \jsil, an intermediate
-representation for JavaScript analysis~\cite{javert}.
-% 
-Like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising 
-the issue of how to guarantee that the results of the analysis still hold when extending the 
-initial state of the analysed program with a given arbitrary frame.
+We propose a new methodology for designing compositional program analyses for languages that do not exhibit the frame property and apply this methodology to obtain a compositional symbolic execution engine for \jsil, an intermediate representation for JavaScript analysis~\cite{javert}. 
 %
-As in~\cite{gardner:popl:2012,javert}, we cater for this problem by constraining the frames 
-that can be added to that the initial state. More concretely, symbolic states
-describe not only the resources that need to be present for the execution to go through, but
-also the resources that must not be present.   
+%Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
 %
-Furthermore, we propose a new methodology for designing/reasoning about
-compositional program analyses for languages that do not exhibit the frame property. 
-This methodology consists of the following steps: \dtag{1} designing an instrumented version
-of the language semantics that exhibits the frame property, \dtag{2} designing the program 
-analysis on the instrumented semantics, and \dtag{3} linking the program analysis 
-to the concrete semantics by describing the frames that can be safely added to the initial 
-state.   
+Our methodology consists of the following steps: \dtag{1} designing an instrumented semantics of the language that exhibits the frame property, \dtag{2} designing the program  analysis on the instrumented semantics, and \dtag{3} linking the program analysis to the concrete semantics by describing the frames that can be safely added to the initial state.   
 %
-This new methodology differs from  previous work in that it introduces the 
-instrumented semantics as an interim stage in the design of the analysis, 
-leading to more modular reasoning and simpler proofs. 
+The key observation of this methodology is that by having the instrumented semantics as a proper interim stage in the design of the analysis, we obtain 
+more modular reasoning and substantially simpler proofs.
 
-In the spirit of~\cite{vanhorn:icfp:2010}, we define an abstract semantics for \jsil that  
-is parametric on a \jsil state signature.\footnote{We refer to it as \emph{abstract} since it 
+%\pmax{This makes everything even nicer.}
+
+For our symbolic analysis, we define a new, abstract semantics for \jsil that is parametric on a \jsil state signature, in the style of~\citet{vanhorn:icfp:2010}.\footnote{We refer to the semantics as \emph{abstract} since it 
 is parametric on a \jsil state signature. We are not doing abstract interpretation.} 
-The abstract semantics is the bedrock 
-for the formal development and implementation of the symbolic analysis. We 
-obtain the concrete, instrumented, and symbolic semantics, by instantiating 
-the abstract semantics with the corresponding symbolic state signature. 
-This approach to the design of symbolic analyses has the following benefits: 
-\dtag{1} it streamlines the formalism, avoiding redundancy,
-\dtag{2} it makes the choices in the design of the instrumented and symbolic semantics explicit,
-and \dtag{3} it leads to modular implementations, avoiding code duplication.
+This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. 
+We obtain the concrete, instrumented, and symbolic semantics by instantiating 
+the abstract semantics with the corresponding state signature. 
+We have observed a number of benefits to this approach: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and leads to modular implementations, avoiding code duplication.
+%
+%
 
-
+\pmax{Now, instrumentation}
+As is done in~\cite{gardner:popl:2012,javert}, we cater for this problem by constraining the frames that can be added to that the initial state. More concretely, symbolic states
+describe not only the resources that need to be present for the execution to go through, but also the resources that must not be present.
 
 
 %In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
