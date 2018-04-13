@@ -308,34 +308,32 @@ buckets.arrays.forEach = function (array, callback) {
 
 // ------------------------------ our test now -------------------------------
 
-
-var eq = function (arg1, arg2) {
-    return arg1.val === arg2.val;
-};
-
 var n1 = symb_number(n1); // 1
 var n2 = symb_number(n2); // 8
 var n3 = symb_number(n3); // 10
+var n4 = symb_number(n4); // 42
+
 Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n1 = n4));
+
 Assume(not (n2 = n3));
-Assume(not (n3 = n1));
-var a = {
-        val: n1
-    },
-    b = {
-        val: n2
-    },
-    c = {
-        val: n3
-    };
-var customObjectArray = [a, a, b, c];
+Assume(not (n2 = n4));
+
+Assume(not (n3 = n4));
+
+
 var numberArray = [n1, n2, n2, n2, n3, n3];
 
-// test 8
-// it('contains returns true for existing numbers', function () {
-var res1 = buckets.arrays.contains(numberArray, n1);
-Assert(res1);
-var res2 = buckets.arrays.contains(numberArray, n2);
-Assert(res2);
-var res3 = buckets.arrays.contains(numberArray, n3);
-Assert(res3);
+var reset = function() {
+  numberArray = [n1, n2, n2, n2, n3, n3];
+}
+
+// initial setup
+reset();
+
+// swap
+var i = symb_number(i);
+var res = buckets.arrays.swap(numberArray, 0, i);
+var l = numberArray.length;
+Assert(((i >= 0) and (i < l) and res) or (((i < 0) or (i >= l)) and (not res)));

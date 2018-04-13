@@ -1,3 +1,5 @@
+// --------------------------------- _base.js --------------------------------
+
 'use strict';
 
 /**
@@ -333,253 +335,269 @@ buckets.Dictionary = function (toStrFunction) {
     return dictionary;
 };
 
-
-// ---------------------------------- set.js ---------------------------------
+// ---------------------------------- bag.js ---------------------------------
 
 /**
- * Creates an empty set.
- * @class <p>A set is a data structure that contains no duplicate items.</p>
+ * Creates an empty bag.
+ * @class <p>A bag is a special kind of set in which members are
+ * allowed to appear more than once.</p>
  * <p>If the inserted elements are custom objects, a function
- * that converts elements to unique strings must be provided at construction time. 
+ * that maps elements to unique strings must be provided at construction time.</p>
  * <p>Example:</p>
  * <pre>
- * function petToString(pet) {
+ * function petToUniqueString(pet) {
  *  return pet.type + ' ' + pet.name;
  * }
  * </pre>
  *
- * @param {function(Object):string=} toStringFunction Optional function used
+ * @constructor
+ * @param {function(Object):string=} toStrFunction Optional function
  * to convert elements to unique strings. If the elements aren't strings or if toString()
  * is not appropriate, a custom function which receives an object and returns a
  * unique string must be provided.
  */
-buckets.Set = function (toStringFunction) {
+buckets.Bag = function (toStrFunction) {
 
     /** 
-     * @exports theSet as buckets.Set
+     * @exports bag as buckets.Bag
      * @private
      */
-    var theSet = {},
-        // Underlying storage.
-        dictionary = new buckets.Dictionary(toStringFunction);
+    var bag = {},
+        // Function to convert elements to unique strings.
+        toStrF = toStrFunction || buckets.defaultToString,
+        // Underlying  Storage
+        dictionary = new buckets.Dictionary(toStrF),
+        // Number of elements in the bag, including duplicates.
+        nElements = 0;
+    /**
+     * Adds nCopies of the specified element to the bag.
+     * @param {Object} element Element to add.
+     * @param {number=} nCopies The number of copies to add, if this argument is
+     * undefined 1 copy is added.
+     * @return {boolean} True unless element is undefined.
+     */
+    /* @id bag_add */
+    bag.add = function (element, nCopies) {
+        var node;
+        if (isNaN(nCopies) || buckets.isUndefined(nCopies)) {
+            nCopies = 1;
+        }
+        if (buckets.isUndefined(element) || nCopies <= 0) {
+            return false;
+        }
+
+        if (!bag.contains(element)) {
+            node = {
+                value: element,
+                copies: nCopies
+            };
+            dictionary.set(element, node);
+        } else {
+            dictionary.get(element).copies += nCopies;
+        }
+        nElements += nCopies;
+        return true;
+    };
 
     /**
-     * Returns true if the set contains the specified element.
+     * Counts the number of copies of the specified element in the bag.
+     * @param {Object} element The element to search for.
+     * @return {number} The number of copies of the element, 0 if not found.
+     */
+    /* @id bag_count */
+    bag.count = function (element) {
+        if (!bag.contains(element)) {
+            return 0;
+        }
+        return dictionary.get(element).copies;
+    };
+
+    /**
+     * Returns true if the bag contains the specified element.
      * @param {Object} element Element to search for.
-     * @return {boolean} True if the set contains the specified element,
+     * @return {boolean} True if the bag contains the specified element,
      * false otherwise.
      */
-    /* @id set_contains */
-    theSet.contains = function (element) {
+    /* @id bag_contains */
+    bag.contains = function (element) {
         return dictionary.containsKey(element);
     };
 
     /**
-     * Adds the specified element to the set if it's not already present.
-     * @param {Object} element The element to insert.
-     * @return {boolean} True if the set did not already contain the specified element.
+     * Removes nCopies of the specified element from the bag.
+     * If the number of copies to remove is greater than the actual number
+     * of copies in the bag, all copies are removed.
+     * @param {Object} element Element to remove.
+     * @param {number=} nCopies The number of copies to remove, if this argument is
+     * undefined 1 copy is removed.
+     * @return {boolean} True if at least 1 copy was removed.
      */
-    /* @id set_add */
-    theSet.add = function (element) {
-        if (theSet.contains(element) || buckets.isUndefined(element)) {
+    /* @id bag_remove */
+    bag.remove = function (element, nCopies) {
+        var node;
+        if (isNaN(nCopies) || buckets.isUndefined(nCopies)) {
+            nCopies = 1;
+        }
+        if (buckets.isUndefined(element) || nCopies <= 0) {
             return false;
         }
-        dictionary.set(element, element);
+
+        if (!bag.contains(element)) {
+            return false;
+        }
+        node = dictionary.get(element);
+        if (nCopies > node.copies) {
+            nElements -= node.copies;
+        } else {
+            nElements -= nCopies;
+        }
+        node.copies -= nCopies;
+        if (node.copies <= 0) {
+            dictionary.remove(element);
+        }
         return true;
     };
 
     /**
-     * Performs an intersection between this and another set.
-     * Removes all values that are not present in this set and the given set.
-     * @param {buckets.Set} otherSet Other set.
+     * Returns an array containing all the elements in the bag in no particular order,
+     * including multiple copies.
+     * @return {Array} An array containing all the elements in the bag.
      */
-    /* @id set_intersection */
-    theSet.intersection = function (otherSet) {
-        /* @id set_intersection_callback */
-        theSet.forEach(function (element) {
-            if (!otherSet.contains(element)) {
-                theSet.remove(element);
+    /* @id bag_toArray */
+    bag.toArray = function () {
+        var a = [],
+            values = dictionary.values(),
+            vl = values.length,
+            node,
+            element,
+            copies,
+            i,
+            j;
+        for (i = 0; i < vl; i += 1) {
+            node = values[i];
+            element = node.value;
+            copies = node.copies;
+            for (j = 0; j < copies; j += 1) {
+                a.push(element);
             }
-        });
-    };
-
-    /**
-     * Performs a union between this and another set.
-     * Adds all values from the given set to this set.
-     * @param {buckets.Set} otherSet Other set.
-     */
-    /* @id set_union */
-    theSet.union = function (otherSet) {
-        /* @id set_union_callback */
-        otherSet.forEach(function (element) {
-            theSet.add(element);
-        });
-    };
-
-    /**
-     * Performs a difference between this and another set.
-     * Removes all the values that are present in the given set from this set.
-     * @param {buckets.Set} otherSet other set.
-     */
-    /* @id set_difference */
-    theSet.difference = function (otherSet) {
-        /* @id set_difference_callback */
-        otherSet.forEach(function (element) {
-            theSet.remove(element);
-        });
-    };
-
-    /**
-     * Checks whether the given set contains all the elements of this set.
-     * @param {buckets.Set} otherSet Other set.
-     * @return {boolean} True if this set is a subset of the given set.
-     */
-    /* @id set_isSubsetOf */
-    theSet.isSubsetOf = function (otherSet) {
-        var isSub = true;
-
-        if (theSet.size() > otherSet.size()) {
-            return false;
         }
-        /* @id set_isSubsetOf_callback */
-        theSet.forEach(function (element) {
-            if (!otherSet.contains(element)) {
-                isSub = false;
-                return false;
-            }
-        });
-        return isSub;
+        return a;
     };
 
     /**
-     * Removes the specified element from the set.
-     * @return {boolean} True if the set contained the specified element, false
-     * otherwise.
+     * Returns a set of unique elements in the bag.
+     * @return {buckets.Set} A set of unique elements in the bag.
      */
-    /* @id set_remove */
-    theSet.remove = function (element) {
-        if (!theSet.contains(element)) {
-            return false;
+    /* @id bag_toSet */
+    bag.toSet = function () {
+        var set = new buckets.Set(toStrF),
+            elements = dictionary.values(),
+            l = elements.length,
+            i;
+        for (i = 0; i < l; i += 1) {
+            set.add(elements[i].value);
         }
-        dictionary.remove(element);
-        return true;
+        return set;
     };
 
     /**
      * Executes the provided function once per element
-     * present in the set.
+     * present in the bag, including multiple copies.
      * @param {function(Object):*} callback Function to execute, it's
-     * invoked an element as argument. To break the iteration you can
-     * optionally return false inside the callback.
+     * invoked with an element as argument. To break the iteration you can
+     * optionally return false in the callback.
      */
-    /* @id set_forEach */
-    theSet.forEach = function (callback) {
-        /* @id set_forEach_callback */
+    /* @id bag_forEach */
+    bag.forEach = function (callback) {
+        /* @id bag_forEach_callback */
         dictionary.forEach(function (k, v) {
-            return callback(v);
+            var value = v.value,
+                copies = v.copies,
+                i;
+            for (i = 0; i < copies; i += 1) {
+                if (callback(value) === false) {
+                    return false;
+                }
+            }
+            return true;
         });
     };
-
     /**
-     * Returns an array containing all the elements in the set in no particular order.
-     * @return {Array} An array containing all the elements in the set.
+     * Returns the number of elements in the bag, including duplicates.
+     * @return {number} The number of elements in the bag.
      */
-    /* @id set_toArray */
-    theSet.toArray = function () {
-        return dictionary.values();
+    /* @id bag_size */
+    bag.size = function () {
+        return nElements;
     };
 
     /**
-     * Returns true if the set contains no elements.
-     * @return {boolean} True if the set contains no elements.
+     * Returns true if the bag contains no elements.
+     * @return {boolean} True if the bag contains no elements.
      */
-    /* @id set_isEmpty */
-    theSet.isEmpty = function () {
-        return dictionary.isEmpty();
+    /* @id bag_isEmpty */
+    bag.isEmpty = function () {
+        return nElements === 0;
     };
 
     /**
-     * Returns the number of elements in the set.
-     * @return {number} The number of elements in the set.
+     * Removes all the elements from the bag.
      */
-    /* @id set_size */
-    theSet.size = function () {
-        return dictionary.size();
-    };
-
-    /**
-     * Removes all the elements from the set.
-     */
-    /* @id set_clear */
-    theSet.clear = function () {
+    /* @id bag_clear */
+    bag.clear = function () {
+        nElements = 0;
         dictionary.clear();
     };
 
     /**
-     * Returns true if the set is equal to another set.
-     * Two sets are equal if they have the same elements.
-     * @param {buckets.Set} other The other set.
-     * @return {boolean} True if the set is equal to the given set.
+     * Returns true if the bag is equal to another bag.
+     * Two bags are equal if they have the same elements and
+     * same number of copies per element.
+     * @param {buckets.Bag} other The other bag.
+     * @return {boolean} True if the bag is equal to the given bag.
      */
-    /* @id set_equals */
-    theSet.equals = function (other) {
+    /* @id bag_equals */
+    bag.equals = function (other) {
         var isEqual;
-        if (buckets.isUndefined(other) || typeof other.isSubsetOf !== 'function') {
+        if (buckets.isUndefined(other) || typeof other.toSet !== 'function') {
             return false;
         }
-        if (theSet.size() !== other.size()) {
+        if (bag.size() !== other.size()) {
             return false;
         }
 
         isEqual = true;
-        /* @id set_equals_callback */
+        /* @id bag_equals_callback */
         other.forEach(function (element) {
-            isEqual = theSet.contains(element);
+            isEqual = (bag.count(element) === other.count(element));
             return isEqual;
         });
         return isEqual;
     };
 
-    return theSet;
+    return bag;
 };
 
-// -------------------------------- tests -------------------------------------
+// ------------------------------ our tests now ------------------------------
 
-var set = new buckets.Set();
+// init
+var bag = new buckets.Bag();
 
+// size
 var n1 = symb_number(n1);
 var n2 = symb_number(n2);
 var n3 = symb_number(n3);
 var n4 = symb_number(n4);
-var n5 = symb_number(n5);
 
-Assume(not (n1 = n2));
-Assume(not (n1 = n3));
-Assume(not (n1 = n4));
-Assume(not (n1 = n5));
+bag.add(n1);
+bag.add(n1, n2);
+bag.remove(n1);
+var res1 = bag.remove(n3, n4);
+var res2 = bag.count(n1);
+Assert(((n3 = n1) and (((n2 > 0) and (n4 > 0) and (n4 <= n2) and res1 and (res2 = n2 - n4)) or ((n2 > 0) and (n4 > 0) and (n4 > n2) and res1 and (res2 = 0)) or ((n2 >= 0) and (n4 <= 0) and (not res1) and (res2 = n2)) or ((n2 <= 0) and (not res1) and (res2 = 0)))) or ((not (n3 = n1)) and (not res1) and (((n2 >= 0) and (res2 = n2)) or ((n2 < 0) and (res2 = 0)))));
 
-Assume(not (n2 = n3));
-Assume(not (n2 = n4));
-Assume(not (n2 = n5));
 
-Assume(not (n3 = n4));
-Assume(not (n3 = n5));
 
-Assume(not (n4 = n5));
 
-// test 1
-// it('size gives the right value', function () {
-set.add(n1);
-set.add(n2);
-set.add(n3);
-var res1 = set.size();
-Assert(res1 = 3);
-set.add(n4);
-var res2 = set.size();
-Assert(res2 = 4);
-set.remove(n4);
-var res3 = set.size();
-Assert(res3 = 3);
-set.add(n3);
-var res4 = set.size();
-Assert(res4 = 3);
+
+

@@ -306,49 +306,41 @@ buckets.arrays.forEach = function (array, callback) {
     }
 };
 
-
-var eq = function (arg1, arg2) {
-    return arg1.val === arg2.val;
-};
+// ------------------------------ our test now -------------------------------
 
 var n1 = symb_number(n1); // 1
 var n2 = symb_number(n2); // 8
 var n3 = symb_number(n3); // 10
+var n4 = symb_number(n4); // 42
+
 Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n1 = n4));
+
 Assume(not (n2 = n3));
-Assume(not (n3 = n1));
-var a = {
-        val: n1
-    },
-    b = {
-        val: n2
-    },
-    c = {
-        val: n3
-    };
-var customObjectArray = [a, a, b, c];
+Assume(not (n2 = n4));
+
+Assume(not (n3 = n4));
+
+
 var numberArray = [n1, n2, n2, n2, n3, n3];
 
-var n4 = symb_number(n4);
-Assume(not (n4 = n1));
-Assume(not (n4 = n2));
-Assume(not (n4 = n3));
-
-// test 21
-//it('forEach returns elements in the right order', function () {
-var a = [],
-    i;
-
-buckets.arrays.forEach(a, function (e) {
-    Assert(false); // should not enter here
-});
-
-for (i = 0; i < 10; i += 1) {
-    a.push(i);
+var reset = function() {
+  numberArray = [n1, n2, n2, n2, n3, n3];
 }
 
-i = 0;
-buckets.arrays.forEach(a, function (e) {
-    Assert(e = i);
-    i += 1;
-});
+// initial setup
+reset();
+
+// equals
+var array2 = [n1, n2, n3];
+var res1 = buckets.arrays.equals(array2, numberArray);
+Assert(not res1);
+buckets.arrays.remove(numberArray, n2);
+buckets.arrays.remove(numberArray, n2);
+buckets.arrays.remove(numberArray, n3);
+var res2 = buckets.arrays.equals(array2, numberArray);
+Assert(res2);
+numberArray[0] = n4;
+var res3 = buckets.arrays.equals(array2, numberArray);
+Assert(not res3);

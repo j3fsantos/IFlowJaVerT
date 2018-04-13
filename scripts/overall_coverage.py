@@ -7,7 +7,7 @@ import colored
 #
 # invoke with: python3 overall_coverage.py [test1].js [test2].js ...
 #
-# there must be corresponding files [test1]_coverage_result.js, etc.
+# there must be corresponding files [test1]_coverage_result.json, etc.
 
 
 def load_coverage(names):
