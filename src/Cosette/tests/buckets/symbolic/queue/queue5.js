@@ -688,6 +688,8 @@ function createQueue() {
   queue.enqueue(x3);
 }
 
+createQueue();
+
 var ar1 = queue.toArray();
 var ar2 = [];
 

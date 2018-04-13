@@ -663,7 +663,6 @@ buckets.Queue = function () {
         other.forEach(function (element) {
             thisElement = queue.dequeue();
             queue.enqueue(thisElement);
-            Assert(false);
             isEqual = eqf(thisElement, element);
             return isEqual;
         });
@@ -692,6 +691,8 @@ function createQueue() {
 var queue2 = new buckets.Queue();
 
 var ar = [];
+
+createQueue();
 
 queue.forEach(function (x) {
   ar.push(x);
