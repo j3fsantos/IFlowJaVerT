@@ -129,7 +129,7 @@ As well as for whole-program analysis, \cosette can be used for compositional sy
 
 Much like symbolic tests generalise concrete tests, specifications generalise symbolic tests. Given a JavaScript function, its specification, and the unfold depth for predicates, \cosette generates symbolic tests to verify that the function conforms to the specification up to that given depth. If this is not the case, \cosette will return a concrete counter-model that invalidates the specification. Unlike whole-program analysis tools, \cosette also tests if the given specification is compositional, that is, if it is resilient against all possible contexts in which the function can be run, and reports back to the user any found sources of non-compositionality.
 
-\cosette supports the specification of symbolic states via simple assertions in the style of JaVerT~\cite{javert}, reminiscent of separation logic. The developer has at their disposal a number of built-in predicates that capture the fundamental concepts of JavaScript (discussed throughout the text), and can define their own predicates as well. For instance, learning from the previous symbolic test, we could define the following predicate for describing valid keys:
+\cosette supports the specification of symbolic states via simple separation logic assertions in the style of JaVerT~\cite{javert}. The developer has at their disposal a number of built-in predicates that capture the fundamental concepts of JavaScript (discussed throughout the text), and can define their own predicates as well. For instance, learning from the previous symbolic test, we could define the following predicate for describing valid keys:
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
     ValidKey(k) := types(k : Str) * (k <> "hasOwnProperty"),
 \end{Verbatim}
@@ -285,9 +285,26 @@ Second, if we omitted the parts highlighted in blue, upon execution of the line 
 
 What this example illustrates is that, in order to be compositional, specifications of programs written in dynamic languages have to explicitly state which parts of the heap must not be present. \cosette is able to detect and report compositionality-related issues, such as those presented above, which are highly likely to remain unnoticed in whole-program analysis, as there we always have complete information about the entire contents of the heap.
 
-
 \subsection{Compositional Symbolic Testing}
-Writing functional correctness specs is difficult. But, you can write just the shapes and hope for the best. Up to a given depth. Don't hold your breath. Like, at all.
+
+%\begin{wrapfigure}{R}{0.45\textwidth}
+%\vspace*{-0.5cm}
+%\centering
+%\begin{lstjsex}
+%[ Map(m, mp) * MapProto(mp) * ValidKey(k) ]
+%    m.put(k, v); 
+%    var result = m.get(k);
+%[ Precondition * (result = v) ]
+%\end{lstjsex}
+%\vspace*{-0.4cm}
+%\caption{Revisited test for \jsinline|Map|}
+%\label{test:map:2}
+%\vspace*{-0.35cm}
+%\end{wrapfigure}
+
+A general developer can write concrete and symbolic tests for their code, but cannot be expected to write full functional correctness specifications in separation logic. Using \cosette, they can combine the best of both worlds by describing only the shape of their \polish{heap/memory/data structure} using separation logic and then testing the behaviour of the code using symbolic tests. Using this approach, one can not only find the same bugs as in whole-program symbolic testing, but also detect compositionality issues triggered by the tests. 
+
+\pmax{How does the shape look for the map? What's in the contents object, nothing?}
 
 \newpage
 
@@ -447,22 +464,22 @@ Writing functional correctness specs is difficult. But, you can write just the s
 %Given a JavaScript function, its separation logic specification, and the depth to which the unfold recursive predicates (non-recursive predicates are unfolded automatically), \cosette generates symbolic tests to verify that the function conforms to the specification up to that given depth.
 %Now, if we forgot to state the part of the \jsinline|ValidKey(k)| predicate highlighted in red, that is, if we did not state that \jsinline|k <> "hasOwnProperty"|, the symbolic test generated for the specification of \jsinline|get| would fail for depth $\geq 1$, with the counter-model \jsinline|k = "hasOwnProperty"|, triggering the same bug previously described in the context of symbolic testing.
 
-\subsection{Catching \polish{procedure-local} bugs}
-
-The bug associated with the shadowing of the \jsinline|hasOwnProperty| property of \jsinline|Object.prototype| illustrates how a JavaScript library can be broken by only using its own functions. However, as JavaScript does not observe the frame property, there exists an additional class of bugs that can be triggered by the environment in which the library is run. These bugs expose how the library is not resilient against the possible frames and signal which properties of which objects must not be present in order for the library to behave correctly.
-
-To illustrate such bugs, recall the symbolic test from \S\ref{subsec:st}. This symbolic test creates an empty map on which it checks whether or not the behaviour of \jsinline|put| is correct. After catching the \jsinline|hasOwnProperty| bug, one might want to construct a more general test, starting from an arbitrary map. For this, one would need to use the \jsinline|Map| predicate from \S\ref{subsec:sdbf}:
-
-\begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-         Map (m, kvs) := DataProp(m, "_contents", c) * JSObject(c) * 
-                           KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys)
-\end{Verbatim}
-
-\noindent as part of the initial state in which to run the symbolic test. Then, however, on execution of the test, when we reach the \jsinline|m.put(k, v)| command, we will get an error. The symbolic execution will not be able to determine if the property \jsinline|put|, which is supposed to be found in \jsinline|Map.prototype|, exists in the object~\jsinline|m| or not. This means that an environment can break the map library by putting into a map object the properties that are meant to be found in its prototype, and also that the specification of maps needs to be strengthened to forbid this explicitly:
-\begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-   Map (m, kvs) := DataProp(m, "_contents", c) * JSObject(c) * 
-                     \textcolor{red}{((m, "get) -> none)} * \textcolor{red}{((m, "put") -> none)} * \textcolor{red}{((m, "validKey") -> none)} *
-                       KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys).
-\end{Verbatim}
-
-Bugs such as this will very rarely be caught by whole-program analyses, because there the entire state of the program is known and the test needs to be especially crafted with these bugs in mind. The reason that \cosette can catch them easily is because it is compositional and can run in partially described states.
+%\subsection{Catching \polish{procedure-local} bugs}
+%
+%The bug associated with the shadowing of the \jsinline|hasOwnProperty| property of \jsinline|Object.prototype| illustrates how a JavaScript library can be broken by only using its own functions. However, as JavaScript does not observe the frame property, there exists an additional class of bugs that can be triggered by the environment in which the library is run. These bugs expose how the library is not resilient against the possible frames and signal which properties of which objects must not be present in order for the library to behave correctly.
+%
+%To illustrate such bugs, recall the symbolic test from \S\ref{subsec:st}. This symbolic test creates an empty map on which it checks whether or not the behaviour of \jsinline|put| is correct. After catching the \jsinline|hasOwnProperty| bug, one might want to construct a more general test, starting from an arbitrary map. For this, one would need to use the \jsinline|Map| predicate from \S\ref{subsec:sdbf}:
+%
+%\begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
+%         Map (m, kvs) := DataProp(m, "_contents", c) * JSObject(c) * 
+%                           KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys)
+%\end{Verbatim}
+%
+%\noindent as part of the initial state in which to run the symbolic test. Then, however, on execution of the test, when we reach the \jsinline|m.put(k, v)| command, we will get an error. The symbolic execution will not be able to determine if the property \jsinline|put|, which is supposed to be found in \jsinline|Map.prototype|, exists in the object~\jsinline|m| or not. This means that an environment can break the map library by putting into a map object the properties that are meant to be found in its prototype, and also that the specification of maps needs to be strengthened to forbid this explicitly:
+%\begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
+%   Map (m, kvs) := DataProp(m, "_contents", c) * JSObject(c) * 
+%                     \textcolor{red}{((m, "get) -> none)} * \textcolor{red}{((m, "put") -> none)} * \textcolor{red}{((m, "validKey") -> none)} *
+%                       KVPairs(c, kvs) * first(kvs, keys) * emptyFields(c, keys).
+%\end{Verbatim}
+%
+%Bugs such as this will very rarely be caught by whole-program analyses, because there the entire state of the program is known and the test needs to be especially crafted with these bugs in mind. The reason that \cosette can catch them easily is because it is compositional and can run in partially described states.

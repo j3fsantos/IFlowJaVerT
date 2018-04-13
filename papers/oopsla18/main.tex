@@ -484,6 +484,8 @@ We illustrate the capabilities of \cosette on an array of examples, which includ
 
 ---------------THE OLD INTRO-----------------------
 
+\pmax{What is the reader supposed to learn?}
+
 In current program analysis research, there exists a gap between bug-finding techniques and verification techniques. In bug-finding, the aim is to discover concrete executions that cause a given program to behave incorrectly, and the emphasis is on precision, that is, the absence of false positive bug reports. In verification, the aim is to produce a proof that a given program always behaves correctly, and the emphasis is on soundness, which mandates adherence to the language standard and the exploration of all possible paths.
 %
 Soundness, however, comes at a cost: verification techniques are often too conservative, rejecting many programs that are safe, and have prohibitive scalability issues. In fact, most modern analysis applications, including bug-finding tools, have various intended and/or unintended sources of unsoundness~\cite{soundyPaper}.
@@ -492,7 +494,7 @@ Soundness, however, comes at a cost: verification techniques are often too conse
 
 The main issue with most bug-finding tools is not that they are not sound, but that they are not \emph{trustworthy}: the extent of their soundness and precision is not formally characterised. They are usually not justified with respect to the semantics of the targeted language, often relying on unstated simplifying assumptions, if not explicitly departing from the semantics. Consequently, the fact that a bug-finding tool cannot find a bug carries no guarantees whatsoever with respect to the correctness of the input program. We trust these tools because they appear to work empirically.
 
-Another difference between bug-finding and verification is that bug-finding tools are often based on whole-program analysis, whereas verification techniques are normally \emph{compositional}, meaning that the results of an analysis for a part of a program can be re-used when analysing the entire program. Compositionality is essential for tools that need to run regularly on large codebases. For instance, it would not be possible for Infer, a bug-finding tool based on separation logic, to be part of the continuous integration system at Facebook if it were not compositional.
+Another difference between bug-finding and verification is that bug-finding tools are very often based on whole-program analysis, whereas verification techniques are normally \emph{compositional}, meaning that the results of an analysis for a part of a program can be re-used when analysing the entire program. Compositionality is essential for tools that need to run regularly on large codebases. For instance, it would not be possible for Infer, a bug-finding tool based on separation logic, to be part of the continuous integration system at Facebook if it were not compositional.
 
 We present \cosette, the first trustworthy, compositional symbolic execution framework for JavaScript (ECMAScript 5 Strict~\cite{ecma}) analysis. \cosette precisely follows the ES5 English standard, without introducing any simplifications. 
 It aims at the sweet spot between bug-finding and verification, 
@@ -785,7 +787,7 @@ In \S\ref{?}, overview. In \S\ref{?}, \jsil + abstract semantics + methodology f
 
 
 \newpage
-\section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
+\section{Compositional Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jsil_symb_exec}
 
 \section{Debugging Separation Logic Specifications}\label{sec:specs}
