@@ -685,8 +685,22 @@ Assume((x1 < x2) and (x2 < x3));
 function createQueue() {
   queue.enqueue(x1);
   queue.enqueue(x2);
+  queue.enqueue(x3);
 }
 
+var ar1 = queue.toArray();
+var ar2 = [];
+
 queue.forEach(function (x) {
-  x;
+  ar2.push(x);
 });
+
+var l1 = queue.size(), l2 = ar1.length, l3 = ar2.length;
+Assert(l1 = l2);
+Assert(l2 = l3);
+
+var i;
+for (i = 0; i < ar1.length; i++) {
+  var ar1i = ar1[i], ar2i = ar2[i];
+  Assert(ar1i = ar2i);
+}
