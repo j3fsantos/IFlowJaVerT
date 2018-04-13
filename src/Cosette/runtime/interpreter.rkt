@@ -11,8 +11,10 @@
 (define failure #f)
 (define print-cmds #f)
 (define call-stack-depth 0)
-(define max-depth 10)
+(define max-depth 4)
 (define seen-instr (make-hasheq '()))
+
+(define goto-limit 1000)
 
 (error-print-width 100000)
 
@@ -197,8 +199,6 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 10)
-
 (define goto-stack (make-parameter '()))
 
 (define (count-goto proc-name cur-index)
@@ -207,11 +207,12 @@
     (count (lambda (x) (equal? x key)) (goto-stack))))
 
 (define (kill x)
+  (println (format "KILLING ~v" x))
   (letrec ((iter (lambda (l)
-                   (assert (not (car l)))
-                   (cond ((not (null? (cdr l)))
-                          (iter (cdr l)))))))
-    (iter (union-guards x))))
+                       (assert (not (car l)))
+                       (cond ((not (null? (cdr l)))
+                              (iter (cdr l)))))))
+        (iter (union-guards x))))
 
 
 (define (find-prev-phi-cmd proc cur-index)

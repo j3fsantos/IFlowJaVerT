@@ -595,9 +595,3 @@ bag.remove(n1);
 var res1 = bag.remove(n3, n4);
 var res2 = bag.count(n1);
 Assert(((n3 = n1) and (((n2 > 0) and (n4 > 0) and (n4 <= n2) and res1 and (res2 = n2 - n4)) or ((n2 > 0) and (n4 > 0) and (n4 > n2) and res1 and (res2 = 0)) or ((n2 >= 0) and (n4 <= 0) and (not res1) and (res2 = n2)) or ((n2 <= 0) and (not res1) and (res2 = 0)))) or ((not (n3 = n1)) and (not res1) and (((n2 >= 0) and (res2 = n2)) or ((n2 < 0) and (res2 = 0)))));
-
-
-
-
-
-
