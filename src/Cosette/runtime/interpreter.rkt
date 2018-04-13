@@ -9,9 +9,9 @@
 (define success #f)
 (define global-outcome '())
 (define failure #f)
-(define print-cmds #t)
+(define print-cmds #f)
 (define call-stack-depth 0)
-(define max-depth 100)
+(define max-depth 10)
 (define seen-instr (make-hasheq '()))
 
 (error-print-width 100000)
@@ -197,7 +197,7 @@
       ;;
       [else (print cmd-type) (error "Illegal Basic Command")])))
 
-(define goto-limit 1000)
+(define goto-limit 10)
 
 (define goto-stack (make-parameter '()))
 
