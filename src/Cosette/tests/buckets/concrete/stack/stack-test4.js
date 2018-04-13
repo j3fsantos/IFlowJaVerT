@@ -681,11 +681,11 @@ stack.forEach(function (e) {
 true; // should not enter here
 });
 
-for (i = 0; i < 10; i += 1) {
+for (i = 0; i < 5; i += 1) {
     stack.add(i);
 }
 
-i = 10 - 1;
+i = 5 - 1;
 stack.forEach(function (e) {
 e;
     i -= 1;

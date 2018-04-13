@@ -517,7 +517,7 @@ buckets.LinkedList = function () {
 
 // ---------------------------------- tests ----------------------------------
 
-var elems = 100,
+var elems = 5,
     list;
 
 function equals(a, b) {
@@ -531,19 +531,18 @@ var beforeEach = function() {
 // test 7
 //it('elementAtIndex returns the correct value', function () {
 beforeEach();
-var i, J;
+var i, j;
 list.elementAtIndex(-1);
 list.elementAtIndex(0);
 list.elementAtIndex(1);
 
 for (i = 0; i < elems; i += 1) {
     list.add(i);
-list.elementAtIndex(list.size() - 1);
-list.elementAtIndex(i);
-
+    list.elementAtIndex(list.size() - 1);
+    list.elementAtIndex(i);
+    
     for (j = 0; j < i; j += 1) {
-list.elementAtIndex(j);
+        list.elementAtIndex(j);
     }
+    
 }
-
-

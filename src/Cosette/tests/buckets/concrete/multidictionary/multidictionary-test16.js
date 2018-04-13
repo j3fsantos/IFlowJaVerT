@@ -743,7 +743,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
 
 // ---------------------------------- tests -----------------------------------
 
-var elems = 100,
+var elems = 5,
     dict;
 
 var beforeEach = function() {

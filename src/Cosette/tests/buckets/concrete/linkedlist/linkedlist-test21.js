@@ -517,7 +517,7 @@ buckets.LinkedList = function () {
 
 // ---------------------------------- tests ----------------------------------
 
-var elems = 100,
+var elems = 5,
     list;
 
 function equals(a, b) {

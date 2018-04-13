@@ -721,7 +721,7 @@ stack.forEach(function (e) {
 true; // should not enter here
 });
 
-for (i = 0; i < 10; i += 1) {
+for (i = 0; i < 5; i += 1) {
     stack.add(i);
 }
 
