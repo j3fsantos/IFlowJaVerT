@@ -52,9 +52,9 @@ $\val \in \vals \defeq \ \jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid 
   $\jsilexpr \in \exprs \defeq \ \val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
  \\[0.1cm]
 %
-$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$ \\
+$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr $ \\
 %
-\hspace{0.02cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$ \\[0.1cm]
+\hspace{0.02cm} $\mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$ \\[0.1cm]
 % Commands
 $\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
 \hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$ \\[0.1cm]
@@ -90,7 +90,9 @@ Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denot
 \inferrule[\textsc{Property Collection}]
   {
            \absval = \absgetdomainfun{}(\absstate, \jsilexpr)  
-  }{\absbsemrule{\absstate, \jvar := \getfields(\jsilexpr)}{\stupdt{}(\absstate, \jvar, \absval)}{}} 
+           \quad
+           \absstate' =  \stupdt{}(\absstate, \jvar, \absval)
+  }{\absbsemrule{\absstate, \jvar := \getfields(\jsilexpr)}{\absstate'}{}} 
 \and 
 \inferrule[\textsc{Assignment}]
   {
@@ -112,34 +114,39 @@ Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denot
 \\
 \inferrule[\textsc{Property Assignment}]
   {    
-      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, -)} \quad \absstore = \absstate.\stosel \quad \absval = \evalexpr{}(\absstore, \jsilexpr_3)
+      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, -)} 
+      \\\\ \absstore = \absstate.\stosel \quad \absval = \evalexpr{}(\absstore, \jsilexpr_3)
   }{\absbsemrule{\absstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\hpupdt{}(\absstate', \absloc, \absprop, \absval)}{}} 
 \and
  \inferrule[\textsc{Property Deletion}]
   { 
         \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}
-        \quad
+        \\\\
      	\absval \neq \none
   }{\absbsemrule{\absstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\hpupdt{}(\absstate', \absloc, \absprop, \none)}{}}
 \\
 \inferrule[\textsc{Member Check - True}]
   { 
      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \absval)} 
-     \quad 
+     \\\\
     \absval \neq \none
-  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jtrue)}{}}
+    \quad 
+    \absstate'' = \stupdt{}(\absstate', \jvar, \jtrue)
+  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\absstate''}{}}
  \and 
 \inferrule[\textsc{Member Check - False}]
   { 
      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \none)} 
-  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\stupdt{}(\absstate', \jvar, \jfalse)}{}} \\
+     \\\\
+     \absstate'' =  \stupdt{}(\absstate', \jvar, \jfalse)
+  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\absstate''}{}} \\
   \inferrule[\textsc{Make Symbolic}]
   { 
      \absval = \absmakesymbolicrule{}{\absstate, \jtype}
   }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
 \end{mathpar}}
- \vspace*{-0.6cm}
-\caption{Abstract Semantics for Basic Commands: {\scriptsize$\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}\label{abs:sem:bcmds:fig}}
+ \vspace*{-0.5cm}
+\caption{Semantics of Basic Commands {\scriptsize$\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}\label{abs:sem:bcmds:fig}}
 \end{figure}
 
 
@@ -203,27 +210,31 @@ Abstract states expose the following functions and relations:
 \begin{mathpar} 
 \inferrule[\textsc{Basic Command}]
    { 
-     \ccmd[\prog][\abscs]{i} = \bcmd 
-     \\\\
+     \ccmd{i} = \bcmd 
+     \quad
      \absbsemrule{\absstate, \bcmd}{\absstate'}{} 
    }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}}
-  %
-  \and
-  %
+   \and 
+     \inferrule[\textsc{Goto}]
+   { 
+   \ccmd[\prog][\abscs]{i} = \goto \, j \quad}
+   {\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}{}}
+   \\
+   %
   \inferrule[\textsc{Cond. Goto - True}]
-   { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
-     \\\\
+   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} 
+     \quad
      %   \absval = \evalexpr{}(\absstate.\stosel, \jsilexpr)
      %   \quad 
      \absstate' = \absassume{}(\absstate, \jsilexpr) 
    }
    {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, j}{\top}{\top}{}}
   %
-  \and 
+  \qquad
   % 
   \inferrule[\textsc{Cond. Goto - False}]
-   { \ccmd[\prog][\abscs]{i} =  \ifgoto{\jsilexpr}{j}{k} 
-      \\\\ 
+   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} 
+      \quad 
        % \absval = \evalexpr{}(\absstate.\stosel, \jsilexpr)
        % \quad 
       \absstate' = \absassume{}(\absstate, \neg\jsilexpr) 
@@ -232,10 +243,7 @@ Abstract states expose the following functions and relations:
   %
   \\
   %
-  \inferrule[\textsc{Goto}]
-   { 
-   \ccmd[\prog][\abscs]{i} = \goto \, j \quad}
-   {\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}{}}
+
    %
    \qquad 
    %
@@ -263,35 +271,33 @@ Abstract states expose the following functions and relations:
       \\
     \inferrule[\textsc{Procedure Call}]
    { 
-    \ccmd[\prog][\abscs]{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
-     \and
+    \ccmd{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+     \quad
      \absstore = \absstate.\stosel 
-     \and 
+     \quad
     \evalexpr{}(\absstore, \jsilexpr) =  \pid' 
-        \and
-     \args(\prog, \pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+        \quad
+     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
       \\\\
       \absval_i = \evalexpr{}(\absstore, \jsilexpr_i) \mid_{i = 0}^{n} 
      \and
       \absval_i = \jundefined \mid_{i = n+1}^{m}  
       \and 
       \absstore' = [ \jvar_i \mapsto \absval_i \mid_{i = 0}^{m}]
-      \and 
-      \abscs' = (\pid', \absstore, \jvar, i{+}1, j) :: \abscs 
    }
-   {\abssemrule{\absstate, \abscs, i}{\absstate[\stosel \mapsto \absstore'], \abscs', 0}{\top}{\top}{}}
+   {\abssemrule{\absstate, \abscs, i}{\absstate[\stosel \mapsto \absstore'],  (\pid', \absstore, \jvar, i{+}1, j) :: \abscs, 0}{\top}{\top}{}}
     \\ 
 %
 \inferrule[\textsc{Assume}]
   { 
-      \ccmd[\prog][\abscs]{i}  = \assume(\jsilexpr) 
+      \ccmd{i}  = \assume(\jsilexpr) 
       \\\\ 
      \absstate' = \absassume{}(\absstate, \jsilexpr) 
   }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}} 
-\and
+\qquad
 \inferrule[\textsc{Assert - True}]
   { 
-      \ccmd[\prog][\abscs]{i}  = \assert(\jsilexpr)
+      \ccmd{i}  = \assert(\jsilexpr)
       \\\\ 
       %\absstore = \absstate.\stosel
       %\quad
@@ -299,10 +305,10 @@ Abstract states expose the following functions and relations:
       % \\\\
        \abssat{}(\absstate, \neg \jsilexpr) = \jfalse
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i{+}1}{\top}{\top}{}} 
-\and 
+\qquad 
 \inferrule[\textsc{Assert - False}]
   { 
-      \ccmd[\prog][\abscs]{i}  = \assert(\jsilexpr)
+      \ccmd{i}  = \assert(\jsilexpr)
       \\\\ 
       %\absstore = \absstate.\stosel
       %\quad
@@ -313,7 +319,7 @@ Abstract states expose the following functions and relations:
  \end{mathpar}}
 % \pmax{What happens when we exit from main, how do we stop? Basically, cmd returns nothing and we can't reduce?}
  \vspace*{-0.6cm}
-\caption{Abstract Execution for Control Flow Commands: $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}
+\caption{\hspace{0pt}Semantics of CF-Commands~{\small$\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}
 \label{abs:sem:cmds:fig}
 \end{figure}
 
@@ -340,23 +346,7 @@ of the call stack~$\abscs'$, in execution mode $\mode'$.
 For clarity, we keep the executing program implicit and make use of a function $\ccmd{\prog, \cs, i}$, which 
 returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
-
-
-\begin{wrapfigure}{R}{0.3\textwidth}
-%\vspace*{-0.25cm}
-{\small
-\hspace*{0.25cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\
-\hspace*{0.25cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\
-\hspace*{0.25cm} $\mathtt{2\quad x := [x, \litstring{\protop}] }$ \\ 
-\hspace*{0.25cm} $\mathtt{3\quad \ifgoto{x = \jnull}{\errlab}{0}}$ \\
-\hspace*{0.25cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\
-\hspace*{0.25cm} $\mathtt{5\quad \jsilcall{z}{y}{\litstring{foo}}{\errlab}}$ 
-}
-%\vspace*{-0.3cm}
-\caption{\jsil Example 1\label{jsil:example:frame}}
-\end{wrapfigure}
-
-\begin{table}
+\begin{table*}[t!]
 \centering
 \renewcommand{\arraystretch}{1.2} 
 {\scriptsize \begin{tabular}{@{}ccccc@{}}\toprule
@@ -371,8 +361,8 @@ returns the $i$-th command of the procedure that is first in $\cs$. %We write $\
 \end{tabular}}
 \vspace{2pt}
 \caption{Concrete vs instrumented execution\label{example:symb:states:vs:assertions}}
-\vspace*{-1cm}
-\end{table}
+\vspace*{-0.5cm}
+\end{table*}
 
 \vspace{-5pt}
 \subsubsection{Concrete Semantics}
@@ -395,12 +385,12 @@ for control flow commands.
 \text{
 {\scriptsize
 \begin{mathpar} 
-  \inferrule[\textsc{Expression Evaluation}]
-  {}{\evalexpr{\concrete}(\store, \val) = \val \qquad 
-  	\evalexpr{\concrete}(\store, \jvar) = \store(\jvar) \qquad 
-	\evalexpr{\concrete}(\store, \ominus \jsilexpr) = \semop{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \qquad
-	\evalexpr{\concrete}(\store, \jsilexpr_1 \oplus \jsilexpr_2) = \evalexpr{c}(\store, \jsilexpr_1) \ \semop{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)}
-  \\
+%  \inferrule[\textsc{Expression Evaluation}]
+%  {}{\evalexpr{\concrete}(\store, \val) = \val \qquad 
+%  	\evalexpr{\concrete}(\store, \jvar) = \store(\jvar) \qquad 
+%	\evalexpr{\concrete}(\store, \ominus \jsilexpr) = \semop{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \qquad
+%	\evalexpr{\concrete}(\store, \jsilexpr_1 \oplus \jsilexpr_2) = \evalexpr{c}(\store, \jsilexpr_1) \ \semop{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)}
+%  \\
   \inferrule[\textsc{GetDomain}]
    { 
         \evalexpr{c}(\store, \jsilexpr) = \loc
@@ -425,7 +415,7 @@ for control flow commands.
        r = (\loc, p, \val)
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), r}}
   %
-  \and
+  \\
   %
     \inferrule[\textsc{GetCell - Not Found}]
    { 
@@ -438,7 +428,7 @@ for control flow commands.
        r = (\loc, p, \none)
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), r}}
  %
- \\
+ \qquad
    \inferrule[\textsc{Allocation}]
    { 
          (\loc, -) \in \domain(\jstate.\hpsel)
@@ -448,7 +438,7 @@ for control flow commands.
    { 
          \store' = \store[\jvar \mapsto \val]
    }{  \stupdt{\concrete}((\heap, \store), \jvar, \val) =  (\heap, \store')}
-   \qquad
+   \\\\ 
        \inferrule[\textsc{Heap Update - Non-$\none$}]
    { 
          \heap' = \heap[(\loc, p) \mapsto \val]
@@ -460,30 +450,56 @@ for control flow commands.
    { 
          \heap = \heap' \dunion (\loc, p) \mapsto -
    }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) \semeq  (\heap', \store)}
-   \\
-      \inferrule[\textsc{Store Selector}]
+   \quad
+      \inferrule[\textsc{Store Sel}]
    {}{  \stosel((-, \store)) \semeq  \store}
-   \and
-      \inferrule[\textsc{Symbolic Value}]
-   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
-     \and 
-  \inferrule[\textsc{Assume}]
-   {
-       \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
-   }{  \absassume{\concrete}(\jstate, \jsilexpr) \semeq  \jstate }
-  	\and
-    \inferrule[\textsc{Check Sat}]
-   {
-        \jbool = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) 
-   }{  \abssat{\concrete}(\jstate, \jsilexpr) \semeq \jbool}
+%   \\\\
+%      \inferrule[\textsc{Symbolic Value}]
+%   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
+%     \and 
+%  \inferrule[\textsc{Assume}]
+%   {
+%       \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
+%   }{  \absassume{\concrete}(\jstate, \jsilexpr) \semeq  \jstate }
+%  	\and
+%    \inferrule[\textsc{Check Sat}]
+%   {
+%        \jbool = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) 
+%   }{  \abssat{\concrete}(\jstate, \jsilexpr) \semeq \jbool}
   \end{mathpar}
   }}
  \end{display}
 \vspace{5pt}
 
+\jfs{
+\begin{itemize}
+   \item mention the missing rules
+   \item explain the two getcell rules 
+   \item explain the symbols that are not defined
+\end{itemize}
+}
+
+
+\begin{wrapfigure}{R}{0.15\textwidth}
+%\vspace*{-0.25cm}
+{\small
+\hspace*{-0.5cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\
+\hspace*{-0.5cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\
+\hspace*{-0.5cm} $\mathtt{2\quad x := [x, \litstring{\protop}] }$ \\ 
+\hspace*{-0.5cm} $\mathtt{3\quad \ifgoto{x = \jnull}{\errlab}{0}}$ \\
+\hspace*{-0.5cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\
+\hspace*{-0.5cm} $\mathtt{5\quad \jsilcall{z}{y}{\litstring{foo}}{\errlab}}$ 
+}
+%\vspace*{-0.3cm}
+%{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
+\end{wrapfigure}
+
+
+
+
 \myparagraph{Example}
 The \jsil concrete semantics does not observe the frame property. To illustrate this,
-let us consider the program given in figure Figure~\ref{jsil:example:frame}. 
+let us consider the commands on the right. 
 This program looks for the object  that has the property $\litstring{get}$ in the 
 prototype chain of the object bound to $\mathtt{x}$, then it reads the value of that 
 property, and finally calls the procedure whose identifier is bound to that property 
@@ -492,7 +508,7 @@ When running this program on the state described on the top left corner of
 Table~\ref{example:symb:states:vs:assertions}, the procedure call can be executed 
 successfully. However, if we extend the initial state with the frame $(\loc_o, \litstring{get}) \mapsto 5$, 
 as shown in the second column of Table~\ref{example:symb:states:vs:assertions}, the procedure 
-call will fail, since $5$ is not a procedure identifier. 
+call fails, since $5$ is not a procedure identifier. 
 
 
 \subsection{Instrumented Semantics}\label{subsec:instrumented}
@@ -542,6 +558,17 @@ for control flow commands.
            \forall_{n < i \leq m} \, \val_i = \none 
    }{  \absgetdomainfun{\instrumented}((\iheap, \idom, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_n}}
   \and
+      \inferrule[\textsc{GetCell - Found}]
+   { 
+        \istate = (\iheap, \store, \idom) 
+        \quad
+         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
+      \\\\
+         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
+         \\\\ 
+       \iheap = - \, \uplus \, (\loc, p) \mapsto \ival
+        }{  \absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate, (\loc, p, \ival)}}
+        \\
  % 
      \inferrule[\textsc{GetCell - Not Found}]
    { 
@@ -550,35 +577,17 @@ for control flow commands.
          \evalexpr{\concrete}(\store, \jsilexpr_2) = p
       \quad
        \iheap = \iheap'' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m
-      \\\\
+      \quad
        (\loc,-) \notin \domain (\iheap'')
-        \quad 
+        \\\\ 
        p \not\in \idom(\loc) \cup \jsilset{p_i \mid_{i=0}^m}
-       \\\\
+       \qquad
         \iheap' = \iheap \dunion ((\loc, p) \mapsto \none)
-       \quad 
+       \qquad 
        \idom' = \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}]
      }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr_1, \jsilexpr_2}{(\iheap', \idom', \store), (\loc, p, \none)}}
   %
   \\
-  %
-    \inferrule[\textsc{GetCell - Found}]
-   { 
-        \istate = (\iheap, \store, \idom) 
-        \quad
-         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
-      \\\\
-         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
-         \quad 
-       \iheap = - \, \uplus \, (\loc, p) \mapsto \ival
-        }{  \absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate, (\loc, p, \ival)}}
-%
-  \and 
-%   %
-%    \inferrule[\textsc{Store Update}]
-%   { 
-%         \store' = \store[\jvar \mapsto \val]
-%   }{  \stupdt{\instrumented}((\iheap, \idom, \store), \jvar, \val) =  (\heap, \idom, \store')}
  %
     \inferrule[\textsc{Allocation}]
    { 
@@ -596,16 +605,6 @@ for control flow commands.
          \\\\ 
          \iheap' = \iheap[(\loc, p) \mapsto \ival]
    }{  \hpupdt{\instrumented}(\istate, (\loc, p), \ival) =  (\iheap, \idom, \store) }
-%\\
-%  %
-%      \inferrule[\textsc{Assume}]
-%   {}{  \absassume{\instrumented}(\istate, \jtrue) =  \istate }
-%  \and
-%    \inferrule[\textsc{Satisfiable}]
-%   {}{  \abssat{\instrumented}(\istate, \jbool) = \jbool}
-%     \and
-%      \inferrule[\textsc{Symbolic Value Creation }]
-%   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jtype} = \val}
  \end{mathpar}}}
  \end{display}
  
@@ -617,13 +616,19 @@ just means that this property does not exist in the current heap.
  
  \myparagraph{Example}
  In the right-most column of Table~\ref{example:symb:states:vs:assertions}, we give the instrumented 
- execution of the program given in Figure~\ref{jsil:example:frame} in an initial state where 
+ execution of the discussed example in an initial state where 
  the object at location $l_o$ is guaranteed not to have the property $\litstring{get}$. 
  Observe that: \dtag{1} the current instrumented heap cannot be extended  with 
  the frame $(\loc_o, \litstring{get}) \mapsto 5$ as it overlaps with $(\loc_o, \litstring{get}) \mapsto \none$, meaning 
  that the frame bug illustrated in the middle column cannot be replicated in the instrumented setting,  
  and \dtag{2} if we were to remove $(\loc_o, \litstring{get}) \mapsto \none$ from the initial heap, 
  the instrumented execution would get stuck in the execution of line $0$. 
+
+\jfs{
+\begin{itemize}
+  \item An example to explain the domain and how it interacts with the none-fields
+\end{itemize}
+}
 
 \myparagraph{Formal Guarantees}
 Theorem~\ref{teo:frame:property} states that the \jsil instrumented semantics observes the 
@@ -639,7 +644,7 @@ goes through in the concrete semantics.
 \begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
 $$
 \begin{array}{l}
-\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} 
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad
        \ \implies \ 
         \transabssemrule{\istate \dunion \iheap_f, \cs, i}{\istate' \dunion \iheap_f, \cs', j}{\mode}{\mode'}{\instrumented} 
 \end{array}
@@ -649,7 +654,7 @@ $$
 \begin{lemma}[Transparency for Instrumentation]\label{lemma:instrumented:semantics}
 $$
 \begin{array}{l}
-\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} 
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}  \\ \quad \quad
        \ \implies \ 
         \transabssemrule{\interpret{\instconc}{}(\istate), \cs, i}{\interpret{\instconc}{}(\istate'), \cs', j}{\mode}{\mode'}{\concrete} 
 \end{array}
@@ -691,14 +696,14 @@ $$
 %\end{display}
 
 
-\begin{figure}[!t]
+\begin{figure*}[!t]
 \centering
 \includegraphics[width=0.83\textwidth]{figures/symbSemEx.png}
 \vspace*{-0.1cm}
 \caption{Example of a \cosette symbolic execution}
 \label{fig:sexecexample}
 \vspace*{-0.3cm}
-\end{figure}
+\end{figure*}
 
 
 \subsection{Symbolic Semantics}
@@ -748,56 +753,62 @@ symbolic stores instead of concrete stores.
 % Therefore, an evaluation of a \jsil extended expression $\pvsexpr$ in a symbolic store $\sstore$ always yields a 
 %symbolic expression $\sexpr$.
 
-\vspace{5pt}
+\jfs{
+\begin{itemize}
+  \item Explain the rules
+\end{itemize}
+}
+
+\newpage
 \begin{display}{Symbolic Semantics Rules}
 \text{
 {\scriptsize
 \begin{mathpar} 
- \inferrule[\textsc{Expression Evaluation}]
-  {}{
-        {\begin{array}{c}
-           \evalexpr{\symbolic}(\sstore, \val) = \val  \\[2pt]
-  	   \evalexpr{\symbolic}(\sstore, \jvar) = \sstore(\jvar)  
-        \end{array}} \quad
-	%
-	\frac{
-		\sexprv =  \evalexpr{\symbolic}(\sstore, \jsilexpr) \quad
-		\sexprv' = \left\{ {\begin{array}{l}
-		      \semop{\ominus} (\sexprv) \ \text{if } \sexprv \in \vals \\
-		      \ominus \sexprv                   \ \ \ \text{  otherwise}
-		 \end{array}} \right. 
-	  }{
-	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) = \sexprv'
-	  } \qquad
-	  %
-	  \frac{
-	     \begin{array}{c}
-	         \sexprv_1 = \evalexpr{\symbolic}(\sstore, \jsilexpr_1) \\[2pt]
-	         \sexprv_2 = \evalexpr{\symbolic}(\sstore, \jsilexpr_2)  
-	     \end{array}    
-	     \quad 
-	     \sexprv' = \left\{ {\begin{array}{l}
-		      \semop{\oplus} (\sexprv_1, \sexprv_2) \ \text{if } \sexprv_1, \sexprv_2 \in \vals \\
-		      \sexprv_1 \oplus \sexprv_2      \  \ \ \text{  otherwise}
-		 \end{array}} \right. 
-	  }{\evalexpr{\symbolic}(\sstore, \jsilexpr_1 \oplus \jsilexpr_2) = \sexprv'}}
-\\
-  \inferrule[\textsc{GetDomain}]
-   { 
-        \evalexpr{\symbolic}(\sstore, \jsilexpr) = \sloc
-      \quad
-       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
-        \\\\
-        %
-          (\sloc,-) \notin \domain (\sheap')  
-        \quad
-         \pc \vdash \jsilset{\sexprp_1, ..., \sexprp_m} = \sdom(\sloc)
-         \\\\
-        \forall_{0 \leq i \leq n} \, \sexprv_i \neq \none 
-         \quad 
-           \forall_{n < i \leq m} \, \sexprv_i = \none 
-   }{  \absgetdomainfun{\symbolic}((\sheap, \sdom, \sstore, \pc), \jsilexpr) \semeq \jsilset{\sexprp_1, ..., \sexprp_n}}
-  \and
+% \inferrule[\textsc{Expression Evaluation}]
+%  {}{
+%        {\begin{array}{c}
+%           \evalexpr{\symbolic}(\sstore, \val) = \val  \\[2pt]
+%  	   \evalexpr{\symbolic}(\sstore, \jvar) = \sstore(\jvar)  
+%        \end{array}} \quad
+%	%
+%	\frac{
+%		\sexprv =  \evalexpr{\symbolic}(\sstore, \jsilexpr) \quad
+%		\sexprv' = \left\{ {\begin{array}{l}
+%		      \semop{\ominus} (\sexprv) \ \text{if } \sexprv \in \vals \\
+%		      \ominus \sexprv                   \ \ \ \text{  otherwise}
+%		 \end{array}} \right. 
+%	  }{
+%	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) = \sexprv'
+%	  } \qquad
+%	  %
+%	  \frac{
+%	     \begin{array}{c}
+%	         \sexprv_1 = \evalexpr{\symbolic}(\sstore, \jsilexpr_1) \\[2pt]
+%	         \sexprv_2 = \evalexpr{\symbolic}(\sstore, \jsilexpr_2)  
+%	     \end{array}    
+%	     \quad 
+%	     \sexprv' = \left\{ {\begin{array}{l}
+%		      \semop{\oplus} (\sexprv_1, \sexprv_2) \ \text{if } \sexprv_1, \sexprv_2 \in \vals \\
+%		      \sexprv_1 \oplus \sexprv_2      \  \ \ \text{  otherwise}
+%		 \end{array}} \right. 
+%	  }{\evalexpr{\symbolic}(\sstore, \jsilexpr_1 \oplus \jsilexpr_2) = \sexprv'}}
+%\\
+%  \inferrule[\textsc{GetDomain}]
+%   { 
+%        \evalexpr{\symbolic}(\sstore, \jsilexpr) = \sloc
+%      \quad
+%       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
+%        \\\\
+%        %
+%          (\sloc,-) \notin \domain (\sheap')  
+%        \quad
+%         \pc \vdash \jsilset{\sexprp_1, ..., \sexprp_m} = \sdom(\sloc)
+%         \\\\
+%        \forall_{0 \leq i \leq n} \, \sexprv_i \neq \none 
+%         \quad 
+%           \forall_{n < i \leq m} \, \sexprv_i = \none 
+%   }{  \absgetdomainfun{\symbolic}((\sheap, \sdom, \sstore, \pc), \jsilexpr) \semeq \jsilset{\sexprp_1, ..., \sexprp_n}}
+%  \and
  % 
      \inferrule[\textsc{GetCell - Not Found}]
    { 
@@ -810,11 +821,9 @@ symbolic stores instead of concrete stores.
        (\sloc,-) \notin \domain (\sheap'')
         \quad 
         \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none)
-       \\\\ 
-       \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}] 
-       \quad 
-       \pc' = \pc \wedge \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m})
-   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore, \pc'), (\sloc, \sexprp, \none)}}
+       \quad
+       \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore,  {\color{red}\pc \, \wedge \, \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}})), (\sloc, \sexprp, \none)}}
   %
   \\
   %
@@ -823,13 +832,13 @@ symbolic stores instead of concrete stores.
          \evalexpr{}(\sstore, \jsilexpr_1) = \sloc
         \quad 
         \evalexpr{}(\sstore, \jsilexpr_2) = \sexprp
-      \quad
+      \\\\
        \sheap = - \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv
         \\\\
         %
        %\pc \not\vdash \sexprp' \neq \sexprp 
        %\quad 
-       \sstate' = (\sheap, \sdom, \sstore, \pc \wedge (\sexprp = \sexprp'))
+       \sstate' = (\sheap, \sdom, \sstore, {\color{red} \pc \wedge (\sexprp = \sexprp')})
    }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{\sstate', (\sloc, \sexprp, \sexprv)}}
  %
  \and 
@@ -855,47 +864,46 @@ symbolic stores instead of concrete stores.
 %  %
 %      \inferrule[\textsc{Store Selector}]
 %   {}{  \stosel((-, -, \sstore, -)) =  \sstore}
-   \and 
+   \quad 
          \inferrule[\textsc{Symbolic Value}]
    {\svar \in \svars \text{ is of type } \jtype
      \quad 
      \svar \not\in \fv(\sstate)
     }{\absmakesymbolicrule{\symbolic}{\sstate, \jtype} = \svar}
-   \and
+   \\\\
        \inferrule[\textsc{Assume}]
    {  
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
    }{  \absassume{\symbolic}(\sstate, \jsilexpr) =  \sstate \, \wedge \, \sexprb }
-   \\
+   \qquad
     \inferrule[\textsc{Check Sat - True}]
    { 
    	\sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
-         \and
+         \\\\
          (\sstate.\pcsel \wedge \sexprb) \text{ SAT}
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue}
- \and 
+ \qquad 
     \inferrule[\textsc{Check Sat - False}]
    { 
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
-         \and
+         \\\\
          (\sstate.\pcsel \wedge \sexprb) \text{ UNSAT}
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jfalse} 
  \end{mathpar}}}
  \end{display}
 
 \vspace{5pt}
-\begin{wrapfigure}{R}{0.3\textwidth}
+\begin{wrapfigure}{R}{0.15\textwidth}
 {\small
-\hspace*{0.25cm} $\mathtt{0\quad s := symbolic\ (String)}$ \\
-\hspace*{0.25cm} $\mathtt{1\quad o := new\ ()}$ \\
-\hspace*{0.25cm} $\mathtt{2\quad o[s] := 42};$ \\
-\hspace*{0.25cm} $\mathtt{3\quad x := getFields(o);}$ \\
-\hspace*{0.25cm} $\mathtt{4\quad assert\ (card \ x == 2)}$
+\hspace*{-0.5cm} $\mathtt{0\quad s := symbolic\ (String)}$ \\
+\hspace*{-0.5cm} $\mathtt{1\quad o := new\ ()}$ \\
+\hspace*{-0.5cm} $\mathtt{2\quad o[s] := 42};$ \\
+\hspace*{-0.5cm} $\mathtt{3\quad x := getFields(o);}$ \\
+\hspace*{-0.5cm} $\mathtt{4\quad assert\ (card \ x == 2)}$
 }
-\caption{\jsil Example 2\label{jsil:example:symbolic}}
 \end{wrapfigure}
 \myparagraph{Example:}
-To get a better intuition of how symbolic execution works, let us take a look at the snippet of code shown in Figure~\ref{jsil:example:symbolic}. 
+To get a better intuition of how symbolic execution works, let us take a look at the snippet of code shown on the right. 
 This code: 
         \dtag{0}~creates a new symbolic string $\mathtt{s}$;
 	\dtag{1}~creates a new object $\mathtt{o}$;
