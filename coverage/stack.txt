@@ -1,0 +1,66 @@
+[1m[38;5;1mbase_defaultCompare: missing lines [17, 18, 20, 21, 23]
+base_defaultCompare: coverage 0.00%
+[0m
+[1m[38;5;2mbase_defaultEquals: executed all lines
+base_defaultEquals: coverage 100.00%
+[0m
+[1m[38;5;1mbase_defaultToString: missing lines [43, 44, 46, 47, 49, 50, 52]
+base_defaultToString: coverage 0.00%
+[0m
+[1m[38;5;1mbase_isFunction: missing lines [62]
+base_isFunction: coverage 0.00%
+[0m
+[1m[38;5;2mbase_isUndefined: executed all lines
+base_isUndefined: coverage 100.00%
+[0m
+[1m[38;5;1mbase_isString: missing lines [82]
+base_isString: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction: missing lines [92, 94, 105]
+base_reverseCompareFunction: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner1: missing lines [95, 96, 98, 99, 101]
+base_reverseCompareFunction_inner1: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner2: missing lines [106]
+base_reverseCompareFunction_inner2: coverage 0.00%
+[0m
+[1m[38;5;1mbase_compareToEquals: missing lines [118]
+base_compareToEquals: coverage 0.00%
+[0m
+[1m[38;5;2mstack_push: executed all lines
+stack_push: coverage 100.00%
+[0m
+[1m[38;5;2mstack_add: executed all lines
+stack_add: coverage 100.00%
+[0m
+[1m[38;5;2mstack_pop: executed all lines
+stack_pop: coverage 100.00%
+[0m
+[1m[38;5;2mstack_peek: executed all lines
+stack_peek: coverage 100.00%
+[0m
+[1m[38;5;2mstack_size: executed all lines
+stack_size: coverage 100.00%
+[0m
+[1m[38;5;1mstack_contains: missing lines [588]
+stack_contains: coverage 0.00%
+[0m
+[1m[38;5;1mstack_isEmpty: missing lines [598]
+stack_isEmpty: coverage 0.00%
+[0m
+[1m[38;5;2mstack_clear: executed all lines
+stack_clear: coverage 100.00%
+[0m
+[1m[38;5;2mstack_forEach: executed all lines
+stack_forEach: coverage 100.00%
+[0m
+[1m[38;5;2mstack_toArray: executed all lines
+stack_toArray: coverage 100.00%
+[0m
+[1m[38;5;1mstack_equals: missing lines [649]
+stack_equals: coverage 88.89%
+[0m
+[1m[38;5;2mstack_equals_callback: executed all lines
+stack_equals_callback: coverage 100.00%
+[0m

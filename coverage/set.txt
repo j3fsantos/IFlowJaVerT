@@ -1,0 +1,87 @@
+[1m[38;5;1mbase_defaultCompare: missing lines [17, 18, 20, 21, 23]
+base_defaultCompare: coverage 0.00%
+[0m
+[1m[38;5;2mbase_defaultEquals: executed all lines
+base_defaultEquals: coverage 100.00%
+[0m
+[1m[38;5;2mbase_defaultToString: executed all lines
+base_defaultToString: coverage 100.00%
+[0m
+[1m[38;5;1mbase_isFunction: missing lines [62]
+base_isFunction: coverage 0.00%
+[0m
+[1m[38;5;2mbase_isUndefined: executed all lines
+base_isUndefined: coverage 100.00%
+[0m
+[1m[38;5;2mbase_isString: executed all lines
+base_isString: coverage 100.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction: missing lines [92, 94, 105]
+base_reverseCompareFunction: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner1: missing lines [95, 96, 98, 99, 101]
+base_reverseCompareFunction_inner1: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner2: missing lines [106]
+base_reverseCompareFunction_inner2: coverage 0.00%
+[0m
+[1m[38;5;1mbase_compareToEquals: missing lines [118]
+base_compareToEquals: coverage 0.00%
+[0m
+[1m[38;5;2mset_contains: executed all lines
+set_contains: coverage 100.00%
+[0m
+[1m[38;5;2mset_add: executed all lines
+set_add: coverage 100.00%
+[0m
+[1m[38;5;2mset_intersection: executed all lines
+set_intersection: coverage 100.00%
+[0m
+[1m[38;5;2mset_intersection_callback: executed all lines
+set_intersection_callback: coverage 100.00%
+[0m
+[1m[38;5;2mset_union: executed all lines
+set_union: coverage 100.00%
+[0m
+[1m[38;5;2mset_union_callback: executed all lines
+set_union_callback: coverage 100.00%
+[0m
+[1m[38;5;2mset_difference: executed all lines
+set_difference: coverage 100.00%
+[0m
+[1m[38;5;2mset_difference_callback: executed all lines
+set_difference_callback: coverage 100.00%
+[0m
+[1m[38;5;2mset_isSubsetOf: executed all lines
+set_isSubsetOf: coverage 100.00%
+[0m
+[1m[38;5;2mset_isSubsetOf_callback: executed all lines
+set_isSubsetOf_callback: coverage 100.00%
+[0m
+[1m[38;5;2mset_remove: executed all lines
+set_remove: coverage 100.00%
+[0m
+[1m[38;5;2mset_forEach: executed all lines
+set_forEach: coverage 100.00%
+[0m
+[1m[38;5;2mset_forEach_callback: executed all lines
+set_forEach_callback: coverage 100.00%
+[0m
+[1m[38;5;2mset_toArray: executed all lines
+set_toArray: coverage 100.00%
+[0m
+[1m[38;5;2mset_isEmpty: executed all lines
+set_isEmpty: coverage 100.00%
+[0m
+[1m[38;5;2mset_size: executed all lines
+set_size: coverage 100.00%
+[0m
+[1m[38;5;2mset_clear: executed all lines
+set_clear: coverage 100.00%
+[0m
+[1m[38;5;1mset_equals: missing lines [706]
+set_equals: coverage 87.50%
+[0m
+[1m[38;5;2mset_equals_callback: executed all lines
+set_equals_callback: coverage 100.00%
+[0m

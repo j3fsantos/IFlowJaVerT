@@ -1,0 +1,84 @@
+[1m[38;5;1mbase_defaultCompare: missing lines [17, 18, 20, 21, 23]
+base_defaultCompare: coverage 0.00%
+[0m
+[1m[38;5;2mbase_defaultEquals: executed all lines
+base_defaultEquals: coverage 100.00%
+[0m
+[1m[38;5;1mbase_defaultToString: missing lines [43, 44, 46, 47, 49, 50, 52]
+base_defaultToString: coverage 0.00%
+[0m
+[1m[38;5;1mbase_isFunction: missing lines [62]
+base_isFunction: coverage 0.00%
+[0m
+[1m[38;5;2mbase_isUndefined: executed all lines
+base_isUndefined: coverage 100.00%
+[0m
+[1m[38;5;1mbase_isString: missing lines [82]
+base_isString: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction: missing lines [92, 94, 105]
+base_reverseCompareFunction: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner1: missing lines [95, 96, 98, 99, 101]
+base_reverseCompareFunction_inner1: coverage 0.00%
+[0m
+[1m[38;5;1mbase_reverseCompareFunction_inner2: missing lines [106]
+base_reverseCompareFunction_inner2: coverage 0.00%
+[0m
+[1m[38;5;1mbase_compareToEquals: missing lines [118]
+base_compareToEquals: coverage 0.00%
+[0m
+[1m[38;5;2mlist_nodeAtIndex: executed all lines
+list_nodeAtIndex: coverage 100.00%
+[0m
+[1m[38;5;2mlist_add: executed all lines
+list_add: coverage 100.00%
+[0m
+[1m[38;5;2mlist_first: executed all lines
+list_first: coverage 100.00%
+[0m
+[1m[38;5;2mlist_last: executed all lines
+list_last: coverage 100.00%
+[0m
+[1m[38;5;2mlist_elementAtIndex: executed all lines
+list_elementAtIndex: coverage 100.00%
+[0m
+[1m[38;5;1mlist_indexOf: missing lines [278]
+list_indexOf: coverage 90.00%
+[0m
+[1m[38;5;1mlist_contains: missing lines [311]
+list_contains: coverage 0.00%
+[0m
+[1m[38;5;1mlist_remove: missing lines [348, 349, 350]
+list_remove: coverage 85.71%
+[0m
+[1m[38;5;2mlist_clear: executed all lines
+list_clear: coverage 100.00%
+[0m
+[1m[38;5;1mlist_equals: missing lines [394]
+list_equals: coverage 87.50%
+[0m
+[1m[38;5;2mlist_equals_callback: executed all lines
+list_equals_callback: coverage 100.00%
+[0m
+[1m[38;5;2mlist_removeElementAtIndex: executed all lines
+list_removeElementAtIndex: coverage 100.00%
+[0m
+[1m[38;5;2mlist_forEach: executed all lines
+list_forEach: coverage 100.00%
+[0m
+[1m[38;5;2mlist_reverse: executed all lines
+list_reverse: coverage 100.00%
+[0m
+[1m[38;5;2mlist_toArray: executed all lines
+list_toArray: coverage 100.00%
+[0m
+[1m[38;5;2mlist_toArray_callback: executed all lines
+list_toArray_callback: coverage 100.00%
+[0m
+[1m[38;5;2mlist_size: executed all lines
+list_size: coverage 100.00%
+[0m
+[1m[38;5;1mlist_isEmpty: missing lines [512]
+list_isEmpty: coverage 0.00%
+[0m
