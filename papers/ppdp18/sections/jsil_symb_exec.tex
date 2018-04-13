@@ -6,7 +6,7 @@ We propose a new methodology for designing compositional program analyses for la
 %
 The methodology has three steps: \dtag{1} designing an instrumented semantics of the language that exhibits the frame property, \dtag{2} designing the program  analysis on the instrumented semantics, and \dtag{3} linking the program analysis to the concrete semantics by describing the frames that can be safely added to the initial state.   
 %
-The key observation is that by having the instrumented semantics as a proper interim stage in the design of the analysis, we obtain 
+The key innovation is to have the instrumented semantics as a proper interim stage in the design of the analysis, obtaining 
 more modular reasoning and substantially simpler proofs.
 
 For our symbolic analysis, we define a new, abstract semantics for \jsil that is parametric on a \jsil state signature, in the style of~\citet{vanhorn:icfp:2010}.\footnote{We refer to the semantics as \emph{abstract} since it 
@@ -16,7 +16,7 @@ We obtain the concrete, instrumented, and symbolic semantics by instantiating
 the abstract semantics with a corresponding state signature. 
 This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication.
 %
-We design the instrumented semantics in the style of~\cite{gardner:popl:2012,javert}, by explicitly keeping track of properties that are not present in a given object.
+Our instrumented semantics explicitly keeps track of properties that are not present in a given object, using ideas from~\cite{gardner:popl:2012,javert}.
 
 
 %In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
@@ -30,8 +30,108 @@ We design the instrumented semantics in the style of~\cite{gardner:popl:2012,jav
 %Finally, in \S\ref{subsec:jsil:analysis:implementation}, we give a brief overview
 %of our implementation. %in \rosette~\cite{Rosette1,Rosette2} NO NO NO! Burn the witch!
 
-\begin{figure*}[t!]
-\begin{minipage}{0.49\textwidth}
+\subsection{\jsil Syntax and Abstract Semantics}\label{subsec:jsil:analysis:formalism}
+ 
+\myparagraph{Syntax} \jsil is a simple goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. The syntax of \jsil is shown below. 
+
+\vspace{5pt}
+\begin{display}{Syntax of the \jsil Language}{
+\begin{tabular}{l}
+	% $\jnumber \in \numbers$ \jspc  $\jbool \in \bools$ \jspc $\jstring \in \strings$  \jspc 
+	% $\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
+	 %
+$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$
+   \\[0.1cm]
+ %
+  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
+ \\[0.1cm]
+%
+$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr $ \\
+%
+\hspace{0.02cm} $\mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$ \\[0.1cm]
+% Commands
+$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
+\hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$ \\[0.1cm]
+%
+$\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
+ \end{tabular}}
+\end{display}
+
+\vspace{5pt}
+\noindent \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jundefined$, $\jnull$, and $\jempty$, object locations~$\loc$, types~$\jtype$, and procedure identifiers $\pid$.
+\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, and various unary and binary operators, which, for instance, provide support for sets and lists. 
+
+\jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
+They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and symbolic variable creation. 
+%
+\jsil \emph{commands} include \jsil basic commands and commands related to control flow: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment, which allows \JSComp to produce code in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it from the formal presentation as it does not impact the reasoning. Further details can be found in~\cite{javert}.} 
+The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
+The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure identifier and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
+If the procedure raises an error, control is transferred to the $j$-th command; otherwise, it follows to the next command. 
+
+A \jsil procedure is of the form $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$, where $\pid$ is its identifier, $\jvec{\jvar}$ are its formal parameters, and its body ${\jvec{\jcmd}}$  is a sequence of \jsil commands. Procedures return via two dedicated indexes, $\retlab$ and $\errlab$, using two dedicated variables, $\retvar$ and $\errvar$. If a procedure reaches the $\retlab$ index, it returns normally with the return value denoted by $\retvar$; if it reaches $\errlab$, it returns an error, with the error value denoted by $\errvar$.
+A \jsil program $\prog \in \progs$ is a set of top-level procedures and its entry point is always the special procedure $\jsilmain$\hspace{-2pt}.
+
+
+%
+
+\myparagraph{Abstract semantics} The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
+Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. 
+%Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. 
+In the following, we use the special symbol $\none$ to denote the absence of a property in an object, and we use $\setext{\absvals}{\none}$ for the set $\absvals \cup \{ \none \}$.
+Abstract states expose the following functions and relations: 
+\begin{description}
+\setlength{\itemsep}{0.2em}
+  \item[\jsil Expression Evaluation,] $\evalexpr{} :  (\jvars \partialmap \absvals)  \partialmap \exprs \partialmap \absvals$. 
+  	The expression $\evalexpr{}(\absstore, \jsilexpr)$ evaluates to the value of the \jsil expression $\jsilexpr$ under store $\absstore$. 
+
+  \item[Store Selector,] $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$. The expression $\stosel(\absstate)$ evaluates to the store associated with a given  state $\absstate$. For clarity, we write $\absstate.\stosel$ instead of $\stosel(\absstate)$. 
+
+  \item[Store Update,] $\stupdt{}: \absstates \rightarrow \jvars \rightarrow \absvals \rightarrow \absstates$. 
+             The expression $\stupdt{}(\absstate, \jvar, \absval)$ denotes the state obtained from $\absstate$ 
+             by updating the value corresponding to $\jvar$ in $\absstate.\stosel$ to $\absval$. 
+
+  \item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc{}(\absstate)$ evaluates to a pair consisting
+          of a value denoting a fresh location and the new state that keeps track of that allocation. %
+%             
+
+
+   \item[Heap Update,] $\hpupdt{} : \absstates \rightarrow \absvals \rightarrow \absvals \rightarrow \setext{\absvals}{\none} \rightarrow \absstates$. 
+             The expression $\hpupdt{}(\absstate, \absloc, \absprop, \absval)$ denotes the state obtained from $\absstate$ 
+             by updating the value of property $\absprop$ of the object at location $\absloc$ to $\absval$ or creating that property, in the
+             case it does not exist.
+
+  \item[GetCell,] $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \setext{\absvals}{\none}$. 
+          We pretty-print $(\absstate, \jsilexpr_1, \jsilexpr_2, \absstate', \absloc, \absprop, \absval) \in \getcell$ as $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$. 
+          GetCell is the core of the abstract semantics. Informally, it retrieves the value associated with a given property of a given object. Formally, if $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
+          then~\dtag{1}~$\absloc$ denotes the location resulting from the evaluation of $\jsilexpr_1$, 
+          \dtag{2}~$\absprop$~denotes the property name resulting from the evaluation of $\jsilexpr_2$, 
+          \dtag{3}~$\absval$~denotes the value of the property $\absprop$ of the object at location $\absloc$, 
+          and \dtag{4}~$\absstate'$ denotes a potential modification of $\absstate$ that allows for the property inspection, discussed shortly. 
+          Note how $\getcell$ is widely used in the abstract semantics of the basic commands (Figure~\ref{abs:sem:cmds:fig}, left).
+          %Also, $\getcell$ is non-deterministic and is, therefore, a relation.
+            
+
+               
+             
+  \item[GetDomain,] $\getdomain : \absstates \rightarrow \exprs \partialmap \absvals$. 
+          % We pretty-print $(\absstate, \jsilexpr, \absval) \in \getdomain$ as $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$. 
+           If $\absgetdomainfun{}(\absstate, \jsilexpr) = \absval$ holds, then~$\absval$ denotes the 
+           set of property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
+           in $\absstate$.
+   
+   \item[Assumption,] $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$. 
+            The expression $\absassume{}(\absstate, \jsilexpr)$ denotes the state obtained from the state $\absstate$ by stating that $\jsilexpr$ is supposed to evaluate to $\jtrue$. 
+  
+   \item[Satisfiability,] $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$. 
+            The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is satisfiable in the  
+            state $\absstate$, and $\jfalse$ otherwise.
+             
+   \item[Symbolic Value Creation,] $\absmakesymbolic : \absstates \rightarrow \jtypes \rightarrow \absvals$. 
+            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh  value of type $\jtype$.
+\end{description}
+
+\begin{figure}[t!]
 {\scriptsize
 \begin{mathpar}
   \inferrule[\textsc{Skip}]{}
@@ -79,26 +179,66 @@ We design the instrumented semantics in the style of~\cite{gardner:popl:2012,jav
   { 
      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \absval)} 
      \\\\
-    \absval \neq \none
-    \quad 
-    \absstate'' = \stupdt{}(\absstate', \jvar, \jtrue)
+    \absstate'' = \stupdt{}(\absstate', \jvar, \absval \neq \none)
   }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\absstate''}{}}
  \qquad  
-\inferrule[\textsc{Member Check - False}]
-  { 
-     \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \none)} 
-     \\\\
-     \absstate'' =  \stupdt{}(\absstate', \jvar, \jfalse)
-  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\absstate''}{}} \\
+%\inferrule[\textsc{Member Check - False}]
+%  { 
+%     \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \none)} 
+%     \\\\
+%     \absstate'' =  \stupdt{}(\absstate', \jvar, \jfalse)
+%  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\absstate''}{}} \\
   \inferrule[\textsc{Make Symbolic}]
   { 
      \absval = \absmakesymbolicrule{}{\absstate, \jtype}
   }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
 \end{mathpar}}
+\vspace*{-0.5cm}
+\caption{Abstract semantics of basic commands: {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}\label{abs:sem:bcmds:fig}
+\vspace*{-0.45cm}
+\end{figure}
 
-\end{minipage}
+Transitions for \jsil
+basic commands (Figure~\ref{abs:sem:bcmds:fig}) are of the form 
+$\absbsemrule{\absstate, \bcmd}{\absstate'}{}$, meaning that the execution of the basic command 
+$\bcmd$ in the abstract state $\absstate$ results in the abstract state $\absstate'$. 
+%
+To describe transitions of \jsil commands, we introduce \emph{execution modes} and 
+\emph{call stacks}.  \jsil has two execution modes, ranged over by $\mode$: 
+$\top$, meaning the execution can proceed; and~$\bot$, meaning that a failure 
+has occurred and the execution must stop. Call stacks, ranged over by $\abscs$, are lists of tuples of the form $(\pid, \absstore, \jvar, i, j)$, where: 
+\dtag{1}~$\pid$~is the identifier of the executing procedure;
+\dtag{2}~$\absstore$~is the store of the procedure that called~$\pid$; 
+\dtag{3}~$\jvar$~is the variable to which the return of $\pid$ must be assigned in~$\absstore$; 
+\dtag{4} $i$ is the command index to which the control jumps after executing $\pid$ in case of normal return; 
+and \dtag{5} $j$ is the command index to which it jumps in case of error return. 
+Transitions for \jsil commands (Figure~\ref{abs:sem:cmds:fig}) have the form:  $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$, 
+meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the 
+call stack $\abscs$, in state $\absstate$ and execution mode $\mode$, generates 
+the state $\absstate'$, call stack $\abscs'$,  and the next command to be evaluated is the $j$-th command of the first procedure 
+of $\abscs'$, in execution mode $\mode'$. 
+For clarity, we keep the executing program implicit and use a function $\ccmd{\prog, \cs, i}$, which 
+returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
-\begin{minipage}{0.5\textwidth}
+\begin{table*}[t!]
+\centering
+\renewcommand{\arraystretch}{1.2} 
+{\scriptsize \begin{tabular}{@{}ccccc@{}}\toprule
+\multicolumn{3}{c}{{\it Concrete Execution}} & &  \emph{Instrumented Execution}  \\
+\cmidrule{1-3} \cmidrule{5-5}
+\emph{Successful}  &  & \emph{Failing}  &   &       \\
+\cmidrule{1-1} \cmidrule{3-3}   
+{\includegraphics[width=0.25\textwidth]{figures/conc_exec.pdf}} & & 
+{\includegraphics[width=0.25\textwidth]{figures/conc_wrong_exec.pdf}}  & & 
+{\includegraphics[width=0.25\textwidth]{figures/inst_exec.pdf}}  \\  
+\bottomrule
+\end{tabular}}
+\vspace{2pt}
+\caption{Concrete vs instrumented execution\label{example:symb:states:vs:assertions}}
+\vspace*{-0.5cm}
+\end{table*}
+
+\begin{figure}[t!]
 {\scriptsize
 \begin{mathpar} 
 \inferrule[\textsc{Basic Command}]
@@ -135,10 +275,6 @@ We design the instrumented semantics in the style of~\cite{gardner:popl:2012,jav
    {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, k}{\top}{\top}{}}
   %
   \\
-  %
-
-   %
-   \qquad 
    %
    \inferrule[\textsc{Normal Return}]
    {
@@ -210,156 +346,14 @@ We design the instrumented semantics in the style of~\cite{gardner:popl:2012,jav
       \abssat{}(\absstate, \neg \jsilexpr) = \jtrue
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i}{\top}{\bot}{}} 
  \end{mathpar}}
-\end{minipage}
- \vspace*{-0.4cm}
-\caption{Abstract semantics of \jsil basic commands (left) and \jsil commands (right)}\label{abs:sem:cmds:fig}
-\vspace*{-0.3cm}
-\end{figure*}
+ \vspace*{-0.5cm}
+ \captionsetup{format=nastyCaption}
+\caption{Abstract semantics of commands: \\{\small $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}\label{abs:sem:cmds:fig}
+\vspace*{-0.4cm}
+\end{figure}
 
-\subsection{Syntax and Abstract Semantics}\label{subsec:jsil:analysis:formalism}
- 
-\myparagraph{Syntax} \jsil is a simple goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. The syntax of \jsil is shown below. 
-
-\vspace{5pt}
-\begin{display}{Syntax of the \jsil Language}{
-\begin{tabular}{l}
-	% $\jnumber \in \numbers$ \jspc  $\jbool \in \bools$ \jspc $\jstring \in \strings$  \jspc 
-	% $\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
-	 %
-$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$
-   \\[0.1cm]
- %
-  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
- \\[0.1cm]
-%
-$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr $ \\
-%
-\hspace{0.02cm} $\mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$ \\[0.1cm]
-% Commands
-$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
-\hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$ \\[0.1cm]
-%
-$\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
- \end{tabular}}
-\end{display}
-
-\vspace{5pt}
-\noindent \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jundefined$, $\jnull$, and $\jempty$, object locations~$\loc$, types~$\jtype$, and procedure identifiers $\pid$.
-\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, and various unary and binary operators, which, for instance, provide support for sets and lists. 
-
-\jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
-They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and symbolic variable creation. 
-%
-\jsil \emph{commands} include \jsil basic commands and commands related to control flow: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment, which allows \JSComp to produce code in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it from the formal presentation as it does not impact the reasoning. Further details can be found in~\cite{javert}.} 
-The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
-The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure identifier and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
-If the procedure raises an error, control is transferred to the $j$-th command; otherwise, it follows to the next command. 
-
-A \jsil program $\prog \in \progs$ is a set of top-level procedures of the form $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$, where $\pid$ is the procedure identifier, $\jvec{\jvar}$ are its formal parameters, and its body ${\jvec{\jcmd}}$  is a sequence of \jsil commands.
-Every \jsil program contains a special procedure $\jsilmain$\hspace{-2pt}, denoting the entry point of the program. 
-\jsil procedures return via two dedicated indexes, $\retlab$ and $\errlab$, using two dedicated variables, $\retvar$ and $\errvar$. If a procedure reaches the $\retlab$ index, it returns normally with the return value denoted by $\retvar$; when it reaches $\errlab$, it returns an error, with the error value denoted by $\errvar$.
-
-%
-
-\myparagraph{Abstract semantics} The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
-Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. 
-%Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. 
-In the following, we use the special symbol $\none$ to denote the absence of a property in an object, and we use $\setext{\absvals}{\none}$ for the set $\absvals \cup \{ \none \}$.
-Abstract states expose the following functions and relations: 
-\begin{description}
-\setlength{\itemsep}{0.2em}
-  \item[\jsil Expression Evaluation,] $\evalexpr{} :  (\jvars \partialmap \absvals)  \partialmap \exprs \partialmap \absvals$. 
-  	The expression $\evalexpr{}(\absstore, \jsilexpr)$ evaluates to the value of the \jsil expression $\jsilexpr$ under store $\absstore$. 
-
-  \item[Store Selector,] $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$. The expression $\stosel(\absstate)$ evaluates to the store associated with a given  state $\absstate$. For clarity, we write $\absstate.\stosel$ instead of $\stosel(\absstate)$. 
-
-  \item[Store Update,] $\stupdt{}: \absstates \rightarrow \jvars \rightarrow \absvals \rightarrow \absstates$. 
-             The expression $\stupdt{}(\absstate, \jvar, \absval)$ denotes the state obtained from $\absstate$ 
-             by updating the value corresponding to $\jvar$ in $\absstate.\stosel$ to $\absval$. 
-
-  \item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc{}(\absstate)$ evaluates to a pair consisting
-          of a value denoting a fresh location and the new state that keeps track of that allocation. %
-%             
-
-
-   \item[Heap Update,] $\hpupdt{} : \absstates \rightarrow \absvals \rightarrow \absvals \rightarrow \setext{\absvals}{\none} \rightarrow \absstates$. 
-             The expression $\hpupdt{}(\absstate, \absloc, \absprop, \absval)$ denotes the state obtained from $\absstate$ 
-             by updating the value of property $\absprop$ of the object at location $\absloc$ to $\absval$ or creating that property, in the
-             case it does not exist.
-
-  \item[GetCell,] $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \setext{\absvals}{\none}$. 
-          We pretty-print $(\absstate, \jsilexpr_1, \jsilexpr_2, \absstate', \absloc, \absprop, \absval) \in \getcell$ as $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$. 
-          GetCell is the core of the abstract semantics. Informally, it retrieves the value associated with a given property of a given object. Formally, if $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
-          then \dtag{1} $\absloc$ denotes the location resulting from the evaluation of $\jsilexpr_1$, 
-          \dtag{2} $\absprop$ denotes the property name resulting from the evaluation of $\jsilexpr_2$, 
-          \dtag{3} $\absval$ denotes the value of the property $\absprop$ of the object at location $\absloc$, 
-          and \dtag{4} $\absstate'$ denotes a (potential) modification of $\absstate$ that allows for the property inspection (discussed shortly). 
-          Note how $\getcell$ is widely used in the abstract semantics of the basic commands (Figure~\ref{abs:sem:cmds:fig}, left).
-          %Also, $\getcell$ is non-deterministic and is, therefore, a relation.
-            
-
-               
-             
-  \item[GetDomain,] $\getdomain : \absstates \rightarrow \exprs \partialmap \absvals$. 
-          % We pretty-print $(\absstate, \jsilexpr, \absval) \in \getdomain$ as $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$. 
-           If $\absgetdomainfun{}(\absstate, \jsilexpr) = \absval$ holds, then $\absval$ denotes the 
-           set of property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
-           in $\absstate$. GetDomain will be essential for the treatment of 
-   
-   \item[Assumption,] $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$. 
-            The expression $\absassume{}(\absstate, \jsilexpr)$ denotes the state obtained from the state $\absstate$ by stating that $\jsilexpr$ is supposed to evaluate to $\jtrue$. 
-  
-   \item[Satisfiability,] $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$. 
-            The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is satisfiable in the  
-            state $\absstate$, and $\jfalse$ otherwise.
-             
-   \item[Symbolic Value Creation,] $\absmakesymbolic : \absstates \rightarrow \jtypes \rightarrow \absvals$. 
-            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh  value of type $\jtype$.
-\end{description}
-
-Transitions for basic commands and control flow commands are given 
-in Figure~\ref{abs:sem:cmds:fig}. Transitions for 
-basic commands are of the form 
-$\absbsemrule{\absstate, \bcmd}{\absstate'}{}$, meaning that the execution of the basic command 
-$\bcmd$ in the abstract state $\absstate$ results in the abstract state $\absstate'$. 
-%
-To describe transitions for control flow commands, we introduce \emph{execution modes} and 
-\emph{call stacks}.  \jsil has two execution modes, ranged over by $\mode$: 
-$\top$, which indicates that the execution can proceed; and~$\bot$, which indicates that a failure 
-has occurred and the execution must stop. Call stacks, ranged over by $\abscs$, are lists of tuples of the form $(\pid, \absstore, \jvar, i, j)$, where: 
-\dtag{1}~$\pid$~is the identifier of the procedure that is currently executing;
-\dtag{2}~$\absstore$~is the store of the procedure that called $\pid$; 
-\dtag{3}~$\jvar$~is the variable to which the return of $\pid$ must be assigned in $\absstore$; 
-\dtag{4} $i$ is the index of the command to which the control must jump after the execution of $\pid$ in case of normal return; 
-and \dtag{5} $j$ is the index to which it must jump in case of error return. 
-Transitions for control flow commands have the form:  $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$, 
-meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the 
-call stack $\abscs$, in state $\absstate$ and execution mode $\mode$, generates 
-the state $\absstate'$, call stack $\abscs'$,  and the next command to be evaluated is the $j$-th command of the first procedure 
-of the call stack~$\abscs'$, in execution mode $\mode'$. 
-For clarity, we keep the executing program implicit and make use of a function $\ccmd{\prog, \cs, i}$, which 
-returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
-
-\begin{table*}[t!]
-\centering
-\renewcommand{\arraystretch}{1.2} 
-{\scriptsize \begin{tabular}{@{}ccccc@{}}\toprule
-\multicolumn{3}{c}{{\it Concrete Execution}} & &  \emph{Instrumented Execution}  \\
-\cmidrule{1-3} \cmidrule{5-5}
-\emph{Successful}  &  & \emph{Failing}  &   &       \\
-\cmidrule{1-1} \cmidrule{3-3}   
-{\includegraphics[width=0.25\textwidth]{figures/conc_exec.pdf}} & & 
-{\includegraphics[width=0.25\textwidth]{figures/conc_wrong_exec.pdf}}  & & 
-{\includegraphics[width=0.25\textwidth]{figures/inst_exec.pdf}}  \\  
-\bottomrule
-\end{tabular}}
-\vspace{2pt}
-\caption{Concrete vs instrumented execution\label{example:symb:states:vs:assertions}}
-\vspace*{-0.5cm}
-\end{table*}
-
-
-\subsection{Concrete Semantics}
+\vspace*{-0.05cm}
+\subsection{\jsil Concrete Semantics}
 A \jsil concrete state $\jstate$ is a pair $(\heap, \store)$ consisting of a heap and a store. 
 A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to values,
 whereas a store, $\store \in \stores$, maps program variables to values. 
@@ -375,7 +369,7 @@ judgement for basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j
 for control flow commands. 
 
 \vspace{3pt}
-\begin{display}{Concrete Semantics Rules}
+\begin{display}{Selected Concrete Semantics Rules}
 \text{
 {\scriptsize
 \begin{mathpar} 
@@ -385,20 +379,8 @@ for control flow commands.
 %	\evalexpr{\concrete}(\store, \ominus \jsilexpr) = \semop{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \qquad
 %	\evalexpr{\concrete}(\store, \jsilexpr_1 \oplus \jsilexpr_2) = \evalexpr{c}(\store, \jsilexpr_1) \ \semop{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)}
 %  \\
-  \inferrule[\textsc{GetDomain}]
-   { 
-        \evalexpr{c}(\store, \jsilexpr) = \loc
-      \quad
-       \heap = \heap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  \\\\
-       %
-          (\loc,-) \notin \domain (\heap')  
-          \quad 
-          \val = \jsilset{p_1, ..., p_m}
-       }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \val}
-  %
-  \and
-  %
-    \inferrule[\textsc{GetCell - Found}]
+    %
+        \inferrule[\textsc{GetCell - Found}]
    { 
          \evalexpr{c}(\store, \jsilexpr_1) = \loc
         \quad 
@@ -408,9 +390,7 @@ for control flow commands.
        \quad 
        r = (\loc, p, \val)
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), r}}
-  %
-  \\
-  %
+        \qquad
     \inferrule[\textsc{GetCell - Not Found}]
    { 
          \evalexpr{c}(\store, \jsilexpr_1) = \loc
@@ -421,32 +401,38 @@ for control flow commands.
        \quad 
        r = (\loc, p, \none)
         }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), r}}
- %
- \qquad
-   \inferrule[\textsc{Allocation}]
+  %
+  \\
+  \inferrule[\textsc{GetDomain}]
    { 
-         (\loc, -) \in \domain(\jstate.\hpsel)
+        \evalexpr{c}(\store, \jsilexpr) = \loc
+      \quad (\loc,-) \notin \domain (\heap') \\\\
+       \heap = \heap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  
+       }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_m}}
+  %
+ %
+ \quad \;
+      \inferrule[\textsc{Allocation}]
+   { 
+         \loc \text{ fresh}%(\loc, -) \in \domain(\jstate.\hpsel)
    }{  \absalloc{\concrete}(\jstate) =  (\jstate, \loc) }
-   \qquad 
+   \quad \;
    \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
    }{  \stupdt{\concrete}((\heap, \store), \jvar, \val) =  (\heap, \store')}
-   \\\\ 
-       \inferrule[\textsc{Heap Update - Non-$\none$}]
+   \\ 
+       \inferrule[\textsc{Positive Heap Update}]
    { 
          \heap' = \heap[(\loc, p) \mapsto \val]
          \quad 
          \val \neq \none
    }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \val) \semeq  (\heap', \store)}
  \qquad
-       \inferrule[\textsc{Heap Update - $\none$}]
+       \inferrule[\textsc{Negative Heap Update}]
    { 
          \heap = \heap' \dunion (\loc, p) \mapsto -
    }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) \semeq  (\heap', \store)}
-   \quad
-      \inferrule[\textsc{Store Sel}]
-   {}{  \stosel((-, \store)) \semeq  \store}
 %   \\\\
 %      \inferrule[\textsc{Symbolic Value}]
 %   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
@@ -463,19 +449,25 @@ for control flow commands.
   \end{mathpar}
   }}
  \end{display}
-\vspace{5pt}
+\vspace{4pt}
 
-\jfs{
-\begin{itemize}
-   \item mention the missing rules
-   \item explain the two getcell rules 
-   \item explain the symbols that are not defined
-\end{itemize}
-}
+The instantiation of the \jsil abstract semantics to the concrete case is straightforward: if an object \jsinline|l| has property \jsinline|p|, GetCell returns the associated value, and $\none$ otherwise; GetDomain returns the set of properties of a given object;
+heap allocation returns a fresh object location without changing the state;
+the rules for store update and positive heap update are standard; and 
+the negative heap update removes the given property of a given object from the heap.
+The remaining rules can be seen in the Appendix.
+
+%\jfs{
+%\begin{itemize}
+%   %\item mention the missing rules
+%   \item explain the two getcell rules 
+%   %\item explain the symbols that are not defined
+%\end{itemize}
+%}
 
 
 \begin{wrapfigure}{R}{0.15\textwidth}
-%\vspace*{-0.25cm}
+\vspace*{-0.24cm}
 {\small
 \hspace*{-0.5cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\
 \hspace*{-0.5cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\
@@ -484,7 +476,7 @@ for control flow commands.
 \hspace*{-0.5cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\
 \hspace*{-0.5cm} $\mathtt{5\quad \jsilcall{z}{y}{\litstring{foo}}{\errlab}}$ 
 }
-%\vspace*{-0.3cm}
+\vspace*{-0.2cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
 \end{wrapfigure}
 
@@ -493,16 +485,16 @@ for control flow commands.
 
 \myparagraph{Example}
 The \jsil concrete semantics does not observe the frame property. To illustrate this,
-let us consider the commands on the right. 
-This program looks for the object  that has the property $\litstring{get}$ in the 
-prototype chain of the object bound to $\mathtt{x}$, then it reads the value of that 
-property, and finally calls the procedure whose identifier is bound to that property 
+let us consider the program on the right. 
+This program looks for the object that has the property $\litstring{get}$ in the 
+prototype chain of the object bound to $\mathtt{x}$, reads the value of that 
+property, and calls the procedure whose identifier is bound to that value 
 (with the argument $\litstring{foo}$). 
-When running this program on the state described on the top left corner of 
+When running this program from the state described in the top left corner of 
 Table~\ref{example:symb:states:vs:assertions}, the procedure call can be executed 
 successfully. However, if we extend the initial state with the frame $(\loc_o, \litstring{get}) \mapsto 5$, 
 as shown in the second column of Table~\ref{example:symb:states:vs:assertions}, the procedure 
-call fails, since $5$ is not a procedure identifier. 
+call fails, as $5$ is not a procedure identifier. 
 
 
 \subsection{Instrumented Semantics}\label{subsec:instrumented}
