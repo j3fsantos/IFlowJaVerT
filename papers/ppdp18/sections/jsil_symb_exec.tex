@@ -692,7 +692,7 @@ $$
 \end{figure*}
 
 
-\subsection{Symbolic Semantics}
+\subsection{Symbolic Semantics}\label{subsec:symb:semantics}
 In order to execute \jsil programs symbolically, we introduce typed symbolic variables $\svar \in \svars$: 
 we use $\sstring$, $\snumber$, $\sbool$, and $\sloc$ to denote symbolic strings, numbers, 
 booleans, and locations, respectively. We further introduce symbolic expressions, $\sexpr \in \sexprs$, defined as follows: 
@@ -1039,7 +1039,11 @@ in way that describes the frames that can be safely added to the initial state.
 In other words, the interpretation of symbolic states needs to describe both the concretisation of that 
 state, as well as all the frames that can be safely added to that concretisation. 
 
-Below we give the formal interpretation of symbolic states. 
+Below we give the formal interpretation of symbolic states. Informally, 
+$\interpret{\symbconc}{\senv}(\sstate)$ denotes a set of pairs of the form $(\jstate, \heap_f)$
+where $\jstate$ is the concrete state obtained from $\sstate$ using $\senv$, and $\heap_f$ 
+a heap frame that can be safely added to $\jstate$. In a nutshell, the legal heap frames 
+are those that not overlap with the negative resource captured by $\sstate$. 
 
  \begin{display}{Symbolic State Interpretation}
 {\scriptsize 
@@ -1102,32 +1106,17 @@ Below we give the formal interpretation of symbolic states.
 \end{mathpar}}
 \end{display}
 
-\jfs{
-\begin{enumerate}
-\item Explain the rules. 
-\item Explain how the interpretation of symbolic states is not the small footprint interpretation - it takes all the possible compatible frames into account. 
-\item Explain how the nones + domains restrict all the possible frames. 
-\end{enumerate}
-}
- 
+Theorem~\ref{teo:soundness:jsil:symb:exe} states the bounded soundness of the \jsil symbolic 
+execution with respect to the concrete semantics. Note that this theorem quantifies over all possible 
+frames, which is not the case for standard results  in symbolic execution. 
 
-
-\subsubsection{Main Results}
-The \emph{soundiness theorem} (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace given by 
-$\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ and a concrete CF-state $(\jstate, \cs)$
-in the models of the initial symbolic CF-state filtered by the final path condition $\sstate'.\pcsel$,  
-then there exists a concrete CF-state $(\jstate', \cs')$ in the models of the final symbolic CF-state, such that: 
-$\transabssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$. 
-We use the final path condition $\sstate'.\pcsel$ for both the models of the initial and final 
-symbolic states because we only care about the initial concrete CF-states for which 
-the concrete execution follows the same path as the symbolic~execution. 
-
-\begin{theorem}[Soundiness]\label{teo:soundness:jsil:symb:exe}
+\begin{theorem}[Bounded Sounded + Frame Resilience]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
-\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
+    \ \wedge \ (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
     \ \implies \ \exists \, \senv', \jstate', \cs' \, . \, 
-        \transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\concrete}
+        \transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\concrete} \\ \quad \quad \quad \quad \quad \quad \quad \quad \quad \quad 
                \ \wedge \ (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate', \scs')
 \end{array}
 $$
@@ -1139,7 +1128,7 @@ then there also exists a concrete execution that will cause that assertion to fa
 Observe that the analysis is designed in such a way that there are no false positives, 
 meaning that if we find a failing symbolic trace,
 we can always instantiate its symbolic values obtaining a concrete counter-model for the 
-failing assertion. This is essential, as \cosette is primarily a \emph{bug-finding} tool.
+failing assertion. %This is essential, as \cosette is primarily a \emph{bug-finding} tool.
 
 
 \begin{corollary}[Bug-finding]\label{bug:finding}
@@ -1151,7 +1140,7 @@ $$
 
 Finally, the \emph{verification} corollary (Corollary~\ref{corollary:verification})
 states that if we have symbolically explored all the possible execution paths
-starting from a given symbolic CF-state $(\sstate, \scs)$,  
+starting from a given symbolic state and call stack $(\sstate, \scs)$,  
 then the execution of the program starting from  any concrete state in the models 
 of the initial symbolic state (under the initial path condition) will result in a final concrete state
 in the models of one of the final symbolic states (under its associated path condition).  
@@ -1162,12 +1151,12 @@ unrolled statically, we will never be in the case of the verification corollary.
 $$
 \begin{array}{l}
 \wedge_{k=1}^n \, \big( \transabssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
-    \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big) 
+    \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big)  \\ \quad \quad
     \, \wedge \, (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs)
-    \\ \quad \quad
+    \\ \quad \quad  \quad 
 %
       \ \implies \ \exists 1 \leq l \leq n, \senv', \jstate', \cs' \, . \, 
-           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete}
+           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete} \\ \quad \quad \quad \quad \quad \quad 
            \, \wedge \, 
            (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate_l, \scs_l)
 \end{array}
@@ -1175,54 +1164,25 @@ $$
 \end{corollary}
 
 %
-The {\bf proofs} of the above results are given in the Appendix. \polish{What do these results mean with respect to related work? How is this maintainable?} 
+The {\bf proofs} of all the results in this section, as well as all the complete definitions, 
+are given in the Appendix.
 
-\subsubsection{Proof Methodology}
+%
+%
+%
+%\begin{lemma}[Two-Level Symbolic Interpretation]\label{lemma:symb:interpretation}
+%$$
+%(\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs) 
+%   \iff 
+%   \exists \, \istate, h_F \, . \, 
+%         (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate, \scs)  
+%          \ \wedge \   
+%      \jstate = \interpret{\instconc}{}(\istate)
+%      \ \wedge \
+%      h_F \disjoint \istate.\hpsel
+%$$
+%\end{lemma}
 
-
-
-
-
-
-
-
-
-
-\begin{lemma}[Two-Level Symbolic Interpretation]\label{lemma:symb:interpretation}
-$$
-(\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs) 
-   \iff 
-   \exists \, \istate, h_F \, . \, 
-         (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate, \scs)  
-          \ \wedge \   
-      \jstate = \interpret{\instconc}{}(\istate)
-      \ \wedge \
-      h_F \disjoint \istate.\hpsel
-$$
-\end{lemma}
-
-\myparagraph{Soundiness - Proof} 
-We show how the intermediate results can be used together to 
-obtain the soundiness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}). 
-Assume we have that 
-$\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
- $(\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2}).  
- From \hyp{2}, we conclude, using Lemma~\ref{lemma:symb:interpretation}, that there is an 
- instrumented state $\istate$ and a heap $\heap_f$ such that $(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate  \, \wedge \, \sstate'.\pcsel, \scs)$ (\ieq{1}), 
- $\jstate = \interpret{\instconc}{}(\istate)$ (\ieq{2}), and $h_F \disjoint \istate.\hpsel$ (\ieq{3}). 
- Applying Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} to \hyp{1} 
- and \ieq{1}, it follows that there is a symbolic environment $\senv'$, an instrumented state $\istate'$, 
- an a call stack $\cs'$ such that: 
-$\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$~(\ieq{4})
-and $(\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')$ (\ieq{5}).
-From \ieq{3} and \ieq{4}, we conclude, using Theorem~\ref{teo:frame:property}, that the following 
-holds $\transabssemrule{\istate \dunion \heap_f, \cs, i}{\istate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{6}). 
-Applying Lemma~\ref{lemma:instrumented:semantics} to \ieq{2} and \ieq{6}, we conclude that 
- $\transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\instrumented}$ (\goal{1}), 
- where $\jstate' = \interpret{\instconc}{}(\istate')$ (\ieq{8}).
- From \ieq{5}, \ieq{6}, and \ieq{8}, we conclude, applying Lemma~\ref{lemma:symb:interpretation}, 
- that $(\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv}(\sstate', \scs')$ (\goal{2}), 
- which concludes the proof. 
 
 \subsection{Implementation}\label{subsec:jsil:analysis:implementation}
 
@@ -1239,11 +1199,11 @@ solver-aided languages.
 \rosette is a small extension of Racket~\cite{racket} equipped with a symbolic compiler with support 
 for symbolic values and first order assertions. Because \rosette is itself solver-aided, languages 
 implemented in \rosette can also make use of the solver-aided facilities provided by \rosette. 
-Hence, by implementing a \emph{concrete} \jsil interpreter in \rosette, we obtain \emph{for free} a symbolic 
-interpreter for \jsil. %consistent with the symbolic semantics described in  \S\ref{subsec:jsil:analysis:formalism}. 
+Hence, by implementing the \emph{instrumented} \jsil interpreter in \rosette, we obtain the symbolic 
+interpreter described in \S\ref{subsec:symb:semantics}. %consistent with the symbolic semantics described in  \S\ref{subsec:jsil:analysis:formalism}. 
 %The idea of turning a concrete interpreter into a symbolic interpreter by embedding it in 
 %
-The implementation of the concrete interpreter in \rosette must fulfil the following criteria:
+The implementation of the instrumented interpreter in \rosette must fulfil the following criteria:
 
 \begin{itemize}          
    \item \emph{Efficiency:} the implementation must promote \rosette's efficient behaviour;
@@ -1253,9 +1213,10 @@ The implementation of the concrete interpreter in \rosette must fulfil the follo
   
    \item \emph{Adequacy:} the symbolic execution of the concrete interpreter in \rosette 
             must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
+            We discuss adequacy in \S\ref{sec:evaluation}. 
 \end{itemize}
 
-\subsubsection{Efficiency}
+\myparagraph{Efficiency}
 It is often possible for more than one transition of the symbolic 
 semantics to be applicable during symbolic execution, 
 giving rise to a potentially intractable number of possible symbolic states. 
@@ -1264,18 +1225,17 @@ symbolic state merging algorithm, which factors out the common
 part between multiple symbolic states  in order to expose more 
 opportunities for concrete evaluation. The non-mergeable portions of the state 
 are represented as \emph{guarded symbolic unions}. 
-Our goal is to write the interpreter code in a way that helps 
-\rosette merge sets of possible symbolic states, yielding minimal 
-guarded symbolic unions.
+In order to help
+\rosette merge sets of possible symbolic states, we only make use of 
+data structures natively supported by \rosette and we always update them 
+in place. 
 
-\subsubsection{Termination} The \jsil symbolic execution engine does not 
+\myparagraph{Termination} The \jsil symbolic execution engine does not 
 include the abstraction mechanisms which would allow it to finitise the symbolic 
-execution of loops depending on symbolic values~\cite{abstract:symbolic:exec}. 
+execution of loops that branch on symbolic values~\cite{abstract:symbolic:exec}. 
 Hence, the user is asked to specify an upper bound on the number of times
-the symbolic execution is allowed to branch on symbolic values by using
-conditional gotos. 
-Once that upper bound is reached, if a conditional goto that branches 
-on a symbolic value is encountered, the symbolic execution stops.  
+the symbolic execution is allowed to branch on symbolic values.
+Once that upper bound is reached, the symbolic execution stops.  
 
 
 
