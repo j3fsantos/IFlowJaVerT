@@ -169,7 +169,7 @@
 \newcommand\assert{\darkmath{\textsf {assert}}}
 \newcommand\assume{\darkmath{\textsf {assume}}}
 \newcommand\getfields{\darkmath{\textsf {getProps}}}
-\newcommand\makesymbolic{\darkmath{\textsf {makeSymbolic}}}
+\newcommand\makesymbolic{\darkmath{\textsf {symbolic}}}
 \newcommand\ifgoto[3]{\darkmath{\textsf {goto}} \ [#1] \ #2, \ #3}
 \newcommand\goto{\darkmath{\textsf {goto}}}
 \newcommand\jsilcall[4]{#1 := #2(#3) \, \darkmath{\textsf {with}} #4}
@@ -253,6 +253,7 @@
 
 % 
 % Symbolic Semantics 
+\newcommand\sbool{\hat{b}}
 \newcommand\sstring{\hat{s}}
 \newcommand{\sstrings}[0]{\hat{\mathcal{S}}}
 \newcommand\snumber{\hat{n}}
@@ -273,10 +274,11 @@
 \newcommand\sexprp{\hat{p}}
 \newcommand\sexprv{\hat{v}}
 \newcommand\sexprb{\hat{b}}
-\newcommand\sexprs{\hat{\sortstyle{E}}_{\jsilsubscript}}
+\newcommand\sexprs{\widehat{\text{$\sortstyle{E}xps$}}}
 \newcommand\pvsexpr{\underline{e}}
-\newcommand\pvsexprs{\underline{{\sortstyle{E}}}_{\jsilsubscript}}
+\newcommand\pvsexprs{\underline{{\sortstyle{E}}}}
 \newcommand\sloc[0]{\hat{\loc}}
+\newcommand\slocs[0]{\hat{\mathcal{L}}}
 \newcommand\scs{\hat{cs}}
 \newcommand\symbconc{\symbolic\rightarrow\concrete}
 
