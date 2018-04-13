@@ -4,7 +4,7 @@ We propose a new methodology for designing compositional program analyses for la
 %
 %Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
 %
-Our methodology consists of the following steps: \dtag{1} designing an instrumented semantics of the language that exhibits the frame property, \dtag{2} designing the program  analysis on the instrumented semantics, and \dtag{3} linking the program analysis to the concrete semantics by describing the frames that can be safely added to the initial state.   
+Our methodology has three steps: \dtag{1} designing an instrumented semantics of the language that exhibits the frame property, \dtag{2} designing the program  analysis on the instrumented semantics, and \dtag{3} linking the program analysis to the concrete semantics by describing the frames that can be safely added to the initial state.   
 %
 The key observation of this methodology is that by having the instrumented semantics as a proper interim stage in the design of the analysis, we obtain 
 more modular reasoning and substantially simpler proofs.
