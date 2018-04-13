@@ -452,10 +452,10 @@ for control flow commands.
 \vspace{4pt}
 
 The instantiation of the \jsil abstract semantics to the concrete case is straightforward: if an object \jsinline|l| has property \jsinline|p|, GetCell returns the associated value, and $\none$ otherwise; GetDomain returns the set of properties of a given object;
-heap allocation returns a fresh object location;
+heap allocation returns a fresh object location without changing the state;
 the rules for store update and positive heap update are standard; and 
 the negative heap update removes the given property of a given object from the heap.
-The remaining rules are not instructive and can be seen in the Appendix.
+The remaining rules can be seen in the Appendix.
 
 %\jfs{
 %\begin{itemize}
