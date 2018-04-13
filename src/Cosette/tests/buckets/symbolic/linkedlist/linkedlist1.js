@@ -519,19 +519,19 @@ buckets.LinkedList = function () {
 
 var list = new buckets.LinkedList()
 
-var x1 = symb_number(x1)
-var x2 = symb_number(x2)
-var x3 = symb_number(x3)
-var x4 = symb_number(x4)
+var x1 = symb_number(x1);
+var x2 = symb_number(x2);
+var x3 = symb_number(x3);
+var x4 = symb_number(x4);
+
+Assume(not (x1 = x2));
+Assume(not (x1 = x3));
+Assume(not (x2 = x3));
 
 list.add(x1)
 list.add(x2)
 list.add(x3)
 
-var index = list.indexOf(x4)
-var res1 = list.removeElementAtIndex(1)
-var res2 = list.elementAtIndex(1)
+var res = list.elementAtIndex(x4);
+Assert(((x4 = 0) and (res = x1)) or ((x4 = 1) and (res = x2)) or ((x4 = 2) and (res = x3)) or (((x4 < 0) or (x4 >= 3)) and (res = undefined)));
 
-Assert(((x4 = x1) and (index = 0)) or ((not (x4 = x1)) and (x4 = x2) and (index = 1)) or ((not (x4 = x1)) and ((not (x4 = x2)) and (x4 = x3) and (index = 2)) or (not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)) and (index = -1)));
-Assert(res1 = x2);
-Assert(res2 = x3);
