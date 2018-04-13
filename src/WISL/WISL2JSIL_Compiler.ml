@@ -312,6 +312,37 @@ let compile_spec pre post name params =
     previously_normalised = false;
   }
 
+
+let compile_predicate pred =
+  let rec is_recursive_assert asst_name asst =
+    let test_rec = is_recursive_assert asst_name in
+    match asst with
+    | LPred (x, _) when String.equal x asst_name -> true
+    | LNot la -> test_rec la
+    | LAnd (la1, la2) -> test_rec la1 || test_rec la2
+    | LOr (la1, la2) -> test_rec la1 || test_rec la2
+    | LStar (la1, la2) -> test_rec la1 || test_rec la2
+    | _ -> false
+  in
+  let is_recursive_id_logic_assert asst_name (_, asst) =
+    is_recursive_assert asst_name asst
+  in
+  let is_recursive_pred pr =
+    List.exists (is_recursive_id_logic_assert pr.pred_name) pr.pred_definitions
+  in
+  JSIL.{
+    name = pred.pred_name;
+    num_params = List.length pred.pred_params;
+    params = List.map (fun str -> (str, None)) pred.pred_params;
+    ins = [];
+    definitions = List.map 
+                  (fun (stopt, asst) -> (stopt, compile_logic_assertion asst))
+                  pred.pred_definitions;
+    previously_normalised_pred = false;
+  }
+  
+
+(* program related stuff *)
 let compile_function func =
   let no_metadata =
   { JSIL.line_offset = None;
@@ -355,6 +386,15 @@ let compile_program prog =
       proclist;
     proc_hash
   in
+  let hashtbl_of_preds predlist =
+    let pred_hash:((string, JSIL.jsil_logic_predicate) Hashtbl.t) = Hashtbl.create (List.length predlist) in
+    List.iter
+      (fun pred -> 
+        let _ = pred.JSIL.previously_normalised_pred in (* Necessary so type inference do not fail *)
+        Hashtbl.add pred_hash pred.JSIL.name pred)
+      predlist;
+    pred_hash
+  in
   let main_of_stmt stmt = compile_function ({
     name="main";
     params=[];
@@ -364,17 +404,20 @@ let compile_program prog =
     }) in
   let stmtopt = prog.entry_point in
   let context = prog.context in
+  let preds = prog.predicates in
   let comp_context = List.map compile_function context in
   let comp_mainfun = Option.map main_of_stmt stmtopt in
+  let comp_preds = List.map compile_predicate preds in
   let all_procs = if Option.is_none comp_mainfun
                  then comp_context
                  else (Option.get comp_mainfun)::comp_context
   in let proc_names = get_proc_names all_procs in
   let procs = hashtbl_of_procs all_procs in
+  let jsil_preds = hashtbl_of_preds comp_preds in
   {
     JSIL.imports = [];
   	JSIL.lemmas = Hashtbl.create 1;
-  	JSIL.predicates = Hashtbl.create 1;
+  	JSIL.predicates = jsil_preds;
   	JSIL.onlyspecs = Hashtbl.create 1;
   	JSIL.procedures = procs;
   	JSIL.procedure_names = proc_names;

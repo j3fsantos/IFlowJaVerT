@@ -12,6 +12,8 @@
 %token FUNCTION
 %token RETURN
 %token NULL
+%token PREDICATE
+
 
 (* punctuation *)
 %token COLON            /* : */
@@ -83,13 +85,22 @@
 
 prog:
   | EOF { None }
-  | fc = functions; stmt = statement; EOF { Some ({ WISL_Syntax.context=fc; WISL_Syntax.entry_point=(Some stmt) }) }
-  | fc = functions; EOF { Some ({ WISL_Syntax.context = fc; WISL_Syntax.entry_point = None})}
+  | fcp = functions_and_predicates; stmt = statement; EOF { 
+    let (fc, preds) = fcp in
+    Some (WISL_Syntax.{ predicates = preds; context=fc; entry_point=(Some stmt) })
+  }
+  | fcp = functions_and_predicates; EOF {
+    let (fc, preds) = fcp in
+    Some (WISL_Syntax.{ predicates = preds; context = fc; WISL_Syntax.entry_point = None })}
 
-functions:
-  | (* empty *) { [] }
-  | fdcl = functions; f = fct
-    { f::fdcl }
+functions_and_predicates:
+  | (* empty *) { ([], []) }
+  | fpdcl = functions_and_predicates; p = predicate
+    { let (fs, ps) = fpdcl in
+      (fs, p::ps) }
+  | fpdcl = functions_and_predicates; f = fct
+    { let (fs, ps) = fpdcl in
+      (f::fs, ps) }
 
 
 fct:
@@ -176,7 +187,21 @@ value:
 
 
 (* Logic stuff *)
+
+predicate:
+  | PREDICATE; p = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE;
+    defs = separated_nonempty_list(SEMICOLON, named_logic_assertion); RCBRACE;
+    { WISL_Syntax.{pred_name=p; pred_params=params; pred_definitions=defs} }
+
+named_logic_assertion:
+  | id = option(assertion_id); a = logic_assertion
+    { (id, a) }
+    
+assertion_id:
+  | LBRACK; n = IDENTIFIER; RBRACK { n }
+
 logic_assertion:
+  | LBRACE; la = logic_assertion; RBRACE; { la }
   | LTRUE { WISL_Syntax.LTrue }
   | LFALSE { WISL_Syntax.LFalse }
   | pr = IDENTIFIER; LBRACE; params = separated_list(COMMA, logic_expression); RBRACE
@@ -195,6 +220,7 @@ logic_assertion:
   | le1 = logic_expression; LGREATER; le2 = logic_expression { WISL_Syntax.LGreater (le1, le2) }
   
 logic_expression:
+  | LBRACE; le = logic_expression; RBRACE { le }
   | v = logic_value { WISL_Syntax.LVal v }
   | x = IDENTIFIER { WISL_Syntax.PVar x }
   | lx = LVAR { WISL_Syntax.LVar lx }

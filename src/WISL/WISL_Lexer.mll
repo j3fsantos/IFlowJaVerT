@@ -38,6 +38,7 @@ rule read =
   | "new"    { NEW }
   | "delete" { DELETE }
   | "function" { FUNCTION }
+  | "predicate" { PREDICATE }
   | "return" { RETURN }
   | "not"      { NOT }
   | "emp"    { EMP }
