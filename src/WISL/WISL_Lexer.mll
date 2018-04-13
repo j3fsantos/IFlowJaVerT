@@ -11,6 +11,7 @@
 let digit = ['0'-'9']
 let letter = ['a'-'z''A'-'Z']
 let identifier = letter(letter|digit|'_')*
+let lvar = '#' (letter|digit|'_'|'$')*
 let int = digit+
 let float = digit+ '.' digit*
 let loc = "$l" (letter|digit|'_')*
@@ -39,9 +40,13 @@ rule read =
   | "function" { FUNCTION }
   | "return" { RETURN }
   | "not"      { NOT }
-  | "emp"    { EMP } 
+  | "emp"    { EMP }
+  | "len"    { LEN }
+  | "hd"     { HEAD }
+  | "tl"     { TAIL }
   | "->"     { ARROW }
   | identifier { IDENTIFIER (Lexing.lexeme lexbuf) }
+  | lvar       { LVAR (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
   | "/\\"    { LAND }
   | "\\/"    { LOR }

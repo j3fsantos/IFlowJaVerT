@@ -1,17 +1,36 @@
 open WISL_Syntax
 open Format
 
+let pp_list (* list pretty-printer from frama-c *)
+    ?(pre=format_of_string "@[")
+    ?(sep=format_of_string ", ")
+    ?(last=sep)
+    ?(suf=format_of_string "@]")
+    ?(empty=format_of_string "")
+    pp_elt f l =
+  let rec aux f = function
+    | [] -> assert false
+    | [ e ] -> fprintf f "%a" pp_elt e
+    | [ e1; e2 ] -> fprintf f "%a%(%)%a" pp_elt e1 last pp_elt e2
+    | e :: l -> fprintf f "%a%(%)%a" pp_elt e sep aux l
+  in
+  match l with
+  | [] -> Format.fprintf f "%(%)" empty
+  | _ :: _ as l -> Format.fprintf f "%(%)%a%(%)" pre aux l suf
+
 let pp_number fmt = function
   | Int i -> fprintf fmt "@[%i@]" i
   | Float f -> fprintf fmt "@[%g@]" f
 
-let pp_value fmt = function
+let rec pp_value fmt = function
   | Bool true -> fprintf fmt "@[%s@]" "true"
   | Bool false -> fprintf fmt "@[%s@]" "false"
   | Loc s -> fprintf fmt "@[%s@]" s
   | Num n -> fprintf fmt "@[%a@]" pp_number n
   | Str s -> fprintf fmt "@[%s@]" s
   | Null -> fprintf fmt "@[%s@]" "null"
+  | VList l -> pp_list pp_value fmt l
+  
     
 let pp_binop fmt = 
   let s = fprintf fmt "@[%s@]" in 
@@ -36,6 +55,9 @@ let pp_unop fmt =
   let s = fprintf fmt "@[%s@]" in 
     function 
     | NOT -> s "!"
+    | HEAD -> s "hd"
+    | TAIL -> s "tl"
+    | LEN -> s "len"
 
 let rec pp_expr fmt = function
   | Val v -> pp_value fmt v
@@ -43,23 +65,6 @@ let rec pp_expr fmt = function
   | BinOp (e1, b, e2) -> fprintf fmt "@[%a@ %a@ %a@]"
     pp_expr e1 pp_binop b pp_expr e2
   | UnOp (u, e) -> fprintf fmt "@[%a@ %a@]" pp_unop u pp_expr e
-
-let pp_list (* list pretty-printer from frama-c *)
-    ?(pre=format_of_string "@[")
-    ?(sep=format_of_string ", ")
-    ?(last=sep)
-    ?(suf=format_of_string "@]")
-    ?(empty=format_of_string "")
-    pp_elt f l =
-  let rec aux f = function
-    | [] -> assert false
-    | [ e ] -> Format.fprintf f "%a" pp_elt e
-    | [ e1; e2 ] -> Format.fprintf f "%a%(%)%a" pp_elt e1 last pp_elt e2
-    | e :: l -> Format.fprintf f "%a%(%)%a" pp_elt e sep aux l
-  in
-  match l with
-  | [] -> Format.fprintf f "%(%)" empty
-  | _ :: _ as l -> Format.fprintf f "%(%)%a%(%)" pre aux l suf
   
 let pp_pn_e fmt = 
     function (pn, e)-> fprintf fmt "@[%s: %a@]" pn pp_expr e

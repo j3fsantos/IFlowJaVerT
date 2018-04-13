@@ -33,6 +33,9 @@ let compile_binop b = match b with
 
 let compile_unop u = match u with
   | NOT -> UnOp.Not
+  | LEN -> UnOp.LstLen
+  | HEAD -> UnOp.Car
+  | TAIL -> UnOp.Cdr
 
 let rec compile_value v = match v with
   | Bool b -> Literal.Bool b
@@ -52,6 +55,10 @@ let rec compile_expression expr =
     | LSTCONS | LSTCAT -> true
     | _ -> false
   in
+  let is_logic_only_unop u = match u with
+    | HEAD | TAIL | LEN -> true
+    | _ -> false
+  in 
   let compile_special_binop (e1, b, e2) =
     let comp_e1 = compile_expression e1 in
     let comp_e2 = compile_expression e2 in
@@ -84,6 +91,10 @@ let rec compile_expression expr =
     compile_special_binop (e1, b, e2)
   | BinOp (e1, b, e2) -> JSIL.BinOp (compile_expression e1,
                          compile_binop b, compile_expression e2)
+  | UnOp (u, e) when is_logic_only_unop u 
+  ->
+      failwith (Format.asprintf "Operator %a should only be used in the logic"
+      WISL_Printer.pp_unop u)
   | UnOp (u, e) -> JSIL.UnOp (compile_unop u, compile_expression e)
             
   
@@ -285,6 +296,10 @@ let rec compile_logic_assertion asser = match asser with
           (JSIL.LLess
            (compile_logic_expression le1,
             compile_logic_expression le2))
+  | LPred (pr, lel) -> JSIL.LPred (
+            pr,
+            List.map compile_logic_expression lel
+          )
 
 let compile_spec pre post name params =
   let comp_pre = compile_logic_assertion pre in
