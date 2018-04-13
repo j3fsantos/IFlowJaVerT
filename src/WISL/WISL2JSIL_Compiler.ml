@@ -358,8 +358,9 @@ let compile_function func =
   let comp_ret_expr = compile_expression ret_expr in
   let clean_lbodylist = clean_unused_labs lbodylist in
   let retassigncmd = JSIL.LBasic (JSIL.Assignment ("x__ret", comp_ret_expr)) in
-  let lretassigncmd = (no_metadata, Some "rlab", retassigncmd) in
-  let lbody_withret = clean_lbodylist@[lretassigncmd] in
+  let lretassigncmd = (no_metadata, None, retassigncmd) in
+  let rlabcmd = (no_metadata, Some "rlab", JSIL.LBasic (JSIL.Skip)) in
+  let lbody_withret = clean_lbodylist@[lretassigncmd; rlabcmd] in
   let lbody_withret_array = Array.of_list lbody_withret in
   let specs = match func.spec with
     | Some sp -> Some (compile_spec sp.pre sp.post fn params)
