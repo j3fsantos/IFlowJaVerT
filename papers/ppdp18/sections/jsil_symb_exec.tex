@@ -42,15 +42,24 @@ describe not only the resources that need to be present for the execution to go 
 
 \vspace{5pt}
 \begin{display}{Syntax of the \jsil Language}{
-\begin{tabular}{llllll}
-	 Numbers: $\jnumber \in \numbers$ &  Booleans: $\jbool \in \bools$ & \  \ Strings: $\jstring \in \strings$ & \  \ Locations: $\loc \in \locs$ & \  Vars: $\jvar \in \jvars$ & \ Types: $\jtype \in \jtypes$ \\[0.1cm]
-\multicolumn{6}{l}{Values: $\val \in \vals$ \defeq \ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! \jundefined \! \mid \! \jnull \! \mid \! \jempty \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$ \qquad Expressions: $\jsilexpr \in \exprs$ \defeq \ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr $} \\[0.1cm]
-	\multicolumn{6}{l}{Basic Commands: $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$} \\[0.1cm]
-	\multicolumn{6}{l}{\hspace{3.29cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$} \\[0.1cm]
-	% Commands
-	\multicolumn{6}{l}{Commands: $\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j} 
-	         \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$} \\[0.1cm]
-	\multicolumn{6}{l}{Procedures : $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$}
+\begin{tabular}{l}
+	% $\jnumber \in \numbers$ \jspc  $\jbool \in \bools$ \jspc $\jstring \in \strings$  \jspc 
+	% $\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
+	 %
+$\val \in \vals \defeq \ \jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$
+   \\[0.1cm]
+ %
+  $\jsilexpr \in \exprs \defeq \ \val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
+ \\[0.1cm]
+%
+$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid$ \\
+%
+\hspace{0.02cm} $\jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$ \\[0.1cm]
+% Commands
+$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
+\hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$ \\[0.1cm]
+%
+$\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
  \end{tabular}}
 \end{display}
 
