@@ -1,17 +1,19 @@
 %!TEX root = ../main.tex
 
-We illustrate how \cosette can be used both for whole-program and compositional symbolic testing of JavaScript programs. In the latter setting, we demonstrate how \cosette  explicitly exposes the resilience of JavaScript programs to the environment, not  considered by standard symbolic execution tools, but essential for compositional analysis.
+We illustrate how \cosette can be used both for whole-program and compositional symbolic testing of JavaScript programs. We demonstrate how \cosette  explicitly exposes the resilience of JavaScript programs to the environment, not considered by standard symbolic execution tools, but essential for compositional analysis.
 
-Our running example is a \emph{key-value map} implementation, given in Figure~\ref{map:example}~(left). It contains four functions: 
+Our running example is a \emph{key-value map} implementation, given in Figure~\ref{fig:2a}. It contains four functions: 
 \jsinline|Map|, for constructing an empty map;
 \jsinline|get|, for retrieving the value associated with a given key;
-\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding if a key is valid.
+\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding whether or not a key is valid.
 
- \begin{figure}[h!]
- \vspace*{-0.3cm}
- \begin{minipage}{0.5\textwidth}
- \begin{lstjs}[firstnumber=1]
-function Map () { this._contents = {} }
+ \begin{figure*}[t]
+ \centering
+ %
+ \begin{subfigure}[b]{0.33\textwidth}
+ {\lstset{language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}
+ \begin{lstlisting}
+function Map () { this._contents = {}}
 
 Map.prototype.get = function (k) {
   var c = this._contents;
@@ -27,16 +29,41 @@ Map.prototype.put = function (k, v) {
 } 
 
 Map.prototype.validKey = function (k) { ... }
-\end{lstjs}
-\end{minipage}
-\ 
- \begin{minipage}{0.45\textwidth}
- \includegraphics[width=1\textwidth]{figures/mapDiagram.png}
- \end{minipage}
- \vspace*{-0.3cm}
-\caption{JS map implementation (left); general key-value map heap (right) \label{map:example}}
- \vspace*{-0.3cm}
-\end{figure}
+\end{lstlisting}}
+\vspace*{-0.2cm}
+\caption{Library implementation}
+\label{fig:2a}
+\end{subfigure}
+%
+ \begin{subfigure}[b]{0.33\textwidth}
+ \includegraphics[width=0.93\textwidth]{figures/mapDiagram.png}
+ \vspace*{0.5cm}
+ \caption{General library heap}
+ \label{fig:2b}
+ \end{subfigure}
+ %
+ \begin{subfigure}[b]{0.3\textwidth}
+ \centering 
+ {\lstset{xleftmargin=.17\textwidth,language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}
+\begin{lstlisting}
+var k = make-symbolic-string();
+var v = make-symbolic();
+assume(validKey(k));
+var m = new Map(); m.put(k, v); 
+var result = m.get(k);
+assert(result = v)
+\end{lstlisting}}
+\vspace*{0.1cm}
+ \includegraphics[width=0.78\textwidth]{figures/heapfail.png}
+ \captionsetup{format=nastyCaption}
+\caption{Simple symbolic test (above); \\the \jsinline|"hasOwnProperty"| bug (below)}
+\label{fig:2c}
+\end{subfigure}
+\vspace*{-0.25cm}
+\caption{Running example: JavaScript key-value map library}
+\label{fig:two}
+ \vspace*{-0.4cm}
+\end{figure*}
 
 \myparagraph{Description of the example}
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
@@ -48,7 +75,7 @@ Note that, in order to check that the given key is in the map, \jsinline|get| us
 The \jsinline|put| function updates the map if the supplied key is valid, and otherwise throws an error. 
 The \jsinline|validKey| function describes the conditions under which a given key is valid. 
 
-In Figure \ref{map:example}~(right), we show a general heap of key-value maps. There is the \jsinline|map| object, with its \jsinline|_contents| property pointing to the \jsinline|contents| object and its prototype being \jsinline|Map.prototype|. There is the \jsinline|contents| object, which holds the key-value pairs, and whose prototype is \jsinline|Object.prototype|. There is the \jsinline|Map.prototype| object, which holds the \jsinline|get|, \jsinline|put|, and \jsinline|validKey| functions,\footnote{In JavaScript, functions are also modelled as objects in the heap. Since their structure is not essential for this example, we only show the location of the appropriate object in the heap.} and whose prototype is also \jsinline|Object.prototype|. Finally, there is \jsinline|Object.prototype|, which holds the \jsinline|hasOwnProperty| function that is called by \jsinline|Map.prototype.get|.
+In Figure \ref{fig:2b}, we show a general heap of key-value maps. There is the \jsinline|map| object, with its \jsinline|_contents| property pointing to the \jsinline|contents| object and its prototype being \jsinline|Map.prototype|. There is the \jsinline|contents| object, which holds the key-value pairs, and whose prototype is \jsinline|Object.prototype|. There is the \jsinline|Map.prototype| object, which holds the \jsinline|get|, \jsinline|put|, and \jsinline|validKey| functions,\footnote{In JavaScript, functions are modelled as objects in the heap. As their structure does not add to this example, we only show the locations of the appropriate objects.} and whose prototype is also \jsinline|Object.prototype|. Finally, there is \jsinline|Object.prototype|, which holds the \jsinline|hasOwnProperty| function that is called by \jsinline|Map.prototype.get|.
 
 %Observe that a naive implementation of the function \jsinline|validKey| may result in potential bugs. In particular, one can insert a key-value pair with \jsinline|"hasOwnProperty"| as a key into the map. By doing this, \jsinline|"hasOwnProperty"| in the prototype chain of \jsinline|_contents| is overridden and subsequent calls to \jsinline|get| will fail. 
 
@@ -79,37 +106,13 @@ In Figure \ref{map:example}~(right), we show a general heap of key-value maps. T
 
 Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. Using \cosette, they can write unit tests that have \emph{symbolic} inputs and outputs, testing a broad range of behaviours in a systematic way with a single symbolic test. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as in Figure~\ref{test:map}. In lines~1-2, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \cosette's constructs for creating symbolic variables. In line 3, we assume that \jsinline|k| is a valid key. In lines 4-5, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 6, we assert that the retrieved value is equal to the one we had previously put.
 
-\begin{wrapfigure}{R}{0.33\textwidth}
-\vspace*{-0.4cm}
-\centering
-\begin{lstjsex}
-var k = make-symbolic-string();
-var v = make-symbolic();
-assume(validKey(k));
-var m = new Map(); m.put(k, v); 
-var result = m.get(k);
-assert(result = v)
-\end{lstjsex}
-\vspace*{-0.35cm}
-\caption{Simple test for \jsinline|Map|}
-\label{test:map}
-\vspace*{-0.35cm}
-\end{wrapfigure}
-
 % 
 When running \cosette on this test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
-we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap and the implementation of \jsinline|get| from Figure~\ref{map:example}. We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object and resulting in an error, as illustrated below.
-
-\begin{wrapfigure}{R}{0.55\textwidth}
-\vspace*{-0.4cm}
-\centering
-\includegraphics[width=0.54\textwidth]{figures/heapfail.png}
-\vspace{-0.5cm}
-\end{wrapfigure}
+we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap and the implementation of \jsinline|get| from Figure~\ref{fig:two}. We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object (Figure~\ref{fig:2c}, below).
 
 This example highlights how \cosette does not require specialist knowledge and can 
-be used by almost any JavaScript developer. The annotation burden amounts to the creation of 
-symbolic variables and the writing of assumptions and assertions, remaining minimal and intuitive, in stark contrast with the standard annotation burden of verification tools.
+be used as a testing tool by a general JavaScript developer. The annotations amount to the creation of 
+symbolic variables and the writing of assumptions and assertions, remaining minimal and intuitive, in contrast with the standard annotation burden of verification tools.
 
 \subsection{Specification-driven Bug-finding}
 \label{subsec:sdbf}
@@ -140,13 +143,15 @@ Much like symbolic tests generalise concrete tests, specifications generalise sy
 
 \smallskip
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
-  Map (m, mp, kvs) := 
-    JSObjectWithProto(m, mp) * DataProp(m, "_contents", c) * JSObject(c) * KVPairs(c, kvs) *
-      \textcolor{red}{NoProp(m, "get")} * \textcolor{red}{NoProp(m, "put")} * \textcolor{red}{NoProp(m, "validKey")} * \textcolor{blue}{NoProps(c, First(keys))}
+ Map (m, mp, kvs) := JSObjectWithProto(m, mp) * 
+   DataProp(m, "_contents", c) * JSObject(c) * KVPairs(c, kvs) * 
+     \textcolor{red}{NoProp(m, "get")} * \textcolor{red}{NoProp(m, "put")} * \textcolor{red}{NoProp(m, "validKey")} * 
+       \textcolor{blue}{NoProps(c, First(keys))}
 \end{Verbatim}
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
   KVPairs (c, kvs) := (kvs = \{ \}),
-                      (kvs = (k, v) -u- kvs') * ValidKey(k) * DataProp(c, k, v) * KVPairs(c, kvs')
+                      (kvs = (k, v) -u- kvs') * ValidKey(k) * 
+                        DataProp(c, k, v) * KVPairs(c, kvs')
 \end{Verbatim}
 
 \smallskip
@@ -161,9 +166,9 @@ The highlighted parts of \jsinline|Map| describe the compositionality requiremen
 %The uniqueness of keys is guaranteed by the \jsinline|DataProp| predicate of \jsinline|KVPairs| and the separating conjunction.
 We also require a \jsinline|MapProto(mp)| predicate, describing that \jsinline|mp| is a valid map prototype, that is, that it defines the \jsinline|put|, \jsinline|get|, and \jsinline|validKey| methods. To avoid clutter, we keep its definition opaque.
 
-\begin{wrapfigure}{R}{0.41\textwidth}
-\vspace*{-0.8cm}
-\noindent 
+\begin{wrapfigure}{R}{0.23\textwidth}
+\vspace*{-0.33cm}
+\hspace*{-0.8cm}
 $
 {\scriptsize
 \begin{array}{c}
@@ -232,22 +237,22 @@ The postcondition states that the key-value pair has been inserted into the map,
 
 %\pmax{Explain specs a bit}
 
-When symbolically testing the specifications of the \jsinline|Map| library functions, as \jsinline|ValidKey(k)| has been adjusted to disallow \jsinline|"hasOwnProperty"|, that particular bug will not be triggered again. However, if we were to forget the highlighted parts in the \jsinline|Map| definition and \jsinline|put| specification, we would encounter other issues, exposing the tension between compositionality and dynamic languages. 
+When symbolically testing the specifications of the \jsinline|Map| library functions, the \jsinline|"hasOwnProperty"| bug will not be triggered again, as \jsinline|ValidKey(k)| has been adjusted appropriately. However, if we were to forget the highlighted parts in the \jsinline|Map| definition and \jsinline|put| specification, we would encounter other issues, exposing the tension between compositionality and dynamic languages. 
 
-\begin{wrapfigure}{R}{0.35\textwidth}
+\begin{wrapfigure}{R}{0.19\textwidth}
 \vspace*{-0.4cm}
+\hspace*{-0.6cm}
 \centering
-\includegraphics[width=0.34\textwidth]{figures/compositional.png}
-\vspace*{-0.2cm}
-\caption{Compositionality Issues}
-\label{fig:compositionality}
+\includegraphics[width=0.22\textwidth]{figures/compositional.png}
+\vspace*{-0.52cm}
+\caption*{\hspace*{-0.6cm}{\small Figure 4. Compositionality}}
 \vspace*{-0.4cm}
 \end{wrapfigure}
 
-First, if we omitted the part of the \jsinline|Map| predicate highlighted in red, \cosette would complain, when testing the \jsinline|put| function, that it has no information about the property \jsinline|"put"| of the map object~\jsinline|m| and cannot perform the lookup \jsinline|m.put| (Figure~\ref{fig:compositionality}, above). This means that the library code is not resilient to frames in which a map object \jsinline|m| has the property \jsinline|put|.
+First, if we omitted the part of the \jsinline|Map| predicate highlighted in red, \cosette would complain, when testing the \jsinline|put| function, that it has no information about the property \jsinline|"put"| of the map object~\jsinline|m| and cannot perform the lookup \jsinline|m.put| (Figure~4, above). This means that the library code is not resilient to frames in which a map object \jsinline|m| has the property \jsinline|put|.
 Analogous issues would arise for the \jsinline|"get"| and \jsinline|"validKey"| properties.% which also must be absent from all map objects. 
 
-Second, if we omitted the parts highlighted in blue, upon execution of the line \jsinline|this._contents[k] = v| (Figure~\ref{map:example}, line 12) \cosette would complain that it has no information about the property \jsinline|k| in the prototype chain of the contents object (Figure~\ref{fig:compositionality}, below). This information is required because the semantics of JavaScript has to look up the value of the property \jsinline|k| of the contents object before performing the actual assignment, to check if the assignment is allowed, that is, that the property is non-writable. As the key \jsinline|k| is symbolic, what this means is that the library is not resilient to frames in which there are non-writable properties in \jsinline|Object.prototype|. A similar issue arises for the \jsinline|Map| constructor (Figure~\ref{map:example}, line 1), which requires the property \jsinline|"_contents"| not to be non-writable in the prototype chains of map objects.
+Second, if we omitted the parts highlighted in blue, upon execution of the line \jsinline|this._contents[k] = v| (Figure~\ref{map:example}, line 12) \cosette would complain that it has no information about the property \jsinline|k| in the prototype chain of the contents object (Figure~4, below). This information is required because the semantics of JavaScript has to look up the value of the property \jsinline|k| of the contents object before performing the actual assignment, to check if the assignment is allowed, that is, that the property is non-writable. As the key \jsinline|k| is symbolic, what this means is that the library is not resilient to frames in which there are non-writable properties in \jsinline|Object.prototype|. A similar issue arises for the \jsinline|Map| constructor (Figure~\ref{map:example}, line 1), which requires the property \jsinline|"_contents"| not to be non-writable in the prototype chains of map objects.
 
 %Now, we can give the complete definition of the \jsinline|Map| predicate and the corrected, compositional specification of \jsinline|put(k, v)| when \jsinline|k| is a valid key that is not in the map, with the compositionality-related changes highlighted in red:
 %
@@ -285,26 +290,25 @@ Second, if we omitted the parts highlighted in blue, upon execution of the line 
 
 What this example illustrates is that, in order to be compositional, specifications of programs written in dynamic languages have to explicitly state which parts of the heap must not be present. \cosette is able to detect and report compositionality-related issues, such as those presented above, which are highly likely to remain unnoticed in whole-program analysis, as there we always have complete information about the entire contents of the heap.
 
-\subsection{Compositional Symbolic Testing}
+%\subsection{Compositional Symbolic Testing}
+%
+%%\begin{wrapfigure}{R}{0.45\textwidth}
+%%\vspace*{-0.5cm}
+%%\centering
+%%\begin{lstjsex}
+%%[ Map(m, mp) * MapProto(mp) * ValidKey(k) ]
+%%    m.put(k, v); 
+%%    var result = m.get(k);
+%%[ Precondition * (result = v) ]
+%%\end{lstjsex}
+%%\vspace*{-0.4cm}
+%%\caption{Revisited test for \jsinline|Map|}
+%%\label{test:map:2}
+%%\vspace*{-0.35cm}
+%%\end{wrapfigure}
+%
+%A general developer can write concrete and symbolic tests for their code, but cannot be expected to write full functional correctness specifications in separation logic. Using \cosette, they can combine the best of both worlds by describing only the shape of their \polish{heap/memory/data structure} using separation logic and then testing the behaviour of the code using symbolic tests. Using this approach, one can not only find the same bugs as in whole-program symbolic testing, but also detect compositionality issues triggered by the tests. 
 
-%\begin{wrapfigure}{R}{0.45\textwidth}
-%\vspace*{-0.5cm}
-%\centering
-%\begin{lstjsex}
-%[ Map(m, mp) * MapProto(mp) * ValidKey(k) ]
-%    m.put(k, v); 
-%    var result = m.get(k);
-%[ Precondition * (result = v) ]
-%\end{lstjsex}
-%\vspace*{-0.4cm}
-%\caption{Revisited test for \jsinline|Map|}
-%\label{test:map:2}
-%\vspace*{-0.35cm}
-%\end{wrapfigure}
-
-A general developer can write concrete and symbolic tests for their code, but cannot be expected to write full functional correctness specifications in separation logic. Using \cosette, they can combine the best of both worlds by describing only the shape of their \polish{heap/memory/data structure} using separation logic and then testing the behaviour of the code using symbolic tests. Using this approach, one can not only find the same bugs as in whole-program symbolic testing, but also detect compositionality issues triggered by the tests. 
-
-\pmax{How does the shape look for the map? What's in the contents object, nothing?}
 
 \newpage
 

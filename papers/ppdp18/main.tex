@@ -29,6 +29,21 @@
 \usepackage{wrapfig}
 \usepackage{fancyvrb}
 
+\usepackage{caption}
+
+\usepackage{varwidth}
+\DeclareCaptionFormat{nastyCaption}{%
+  % #1: label (e.g. "Table 1")
+  % #2: separator (e.g. ": ")
+  % #3: caption text
+  \begin{varwidth}{\linewidth}%
+    \centering
+    #1#2#3%
+  \end{varwidth}%
+}
+
+\usepackage{subcaption}
+
 \makeatletter
 \newif\ifFV@bgcolor
 \newbox\FV@bgbox
@@ -643,8 +658,8 @@ In \S\ref{?}, overview. In \S\ref{?}, \jsil + abstract semantics + methodology f
 %and regular expressions, whereas JS-2-JSIL successfully
 %contains the complexity of JavaScript itself.
 
-\newpage
-\section{Whatever the title of this section is}\label{sec:overview}
+\newpage \ \newpage
+\section{Using \cosette}\label{sec:overview}
 \input{sections/overview}
 
 
