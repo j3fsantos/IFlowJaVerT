@@ -78,6 +78,8 @@
 %token LNOT
 %token <string> LVAR
 
+(* Reserved names *)
+%token XRET
 
 (* WISL Program *)
 %start <WISL_Syntax.program option> prog
