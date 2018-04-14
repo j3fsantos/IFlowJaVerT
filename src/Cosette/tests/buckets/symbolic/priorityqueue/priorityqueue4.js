@@ -120,7 +120,7 @@ buckets.compareToEquals = function (compareFunction) {
     };
 };
 
-// --------------------------------- arrays.js -------------------------------
+// ------------------------------- arrays.js ---------------------------------
 
 /**
  * @namespace Contains various functions for manipulating arrays.
@@ -295,8 +295,7 @@ buckets.arrays.forEach = function (array, callback) {
     }
 };
 
-
-// ---------------------------------- heap.js --------------------------------
+// -------------------------------- heap.js ----------------------------------
 
 /**
  * Creates an empty binary heap.
@@ -355,11 +354,9 @@ buckets.Heap = function (compareFunction) {
         compare = compareFunction || buckets.defaultCompare;
 
     // Moves the node at the given index up to its proper place in the heap.
-    /* @id heap_siftUp */
     function siftUp(index) {
         var parent;
         // Returns the index of the parent of the node at the given index.
-        /* @id heap_siftUp_parentIndex */
         function parentIndex(nodeIndex) {
             return Math.floor((nodeIndex - 1) / 2);
         }
@@ -373,23 +370,19 @@ buckets.Heap = function (compareFunction) {
     }
 
     // Moves the node at the given index down to its proper place in the heap.
-    /* @id heap_siftDown */
     function siftDown(nodeIndex) {
         var min;
         // Returns the index of the left child of the node at the given index.
-        /* @id heap_siftDown_leftChildIndex */
         function leftChildIndex(nodeIndex) {
             return (2 * nodeIndex) + 1;
         }
 
         // Returns the index of the right child of the node at the given index.
-        /* @id heap_siftDown_rightChildIndex */
         function rightChildIndex(nodeIndex) {
             return (2 * nodeIndex) + 2;
         }
 
         // Returns the index of the smaller child node if it exists, -1 otherwise.
-        /* @id heap_siftDown_minIndex */
         function minIndex(leftChild, rightChild) {
             if (rightChild >= data.length) {
                 if (leftChild >= data.length) {
@@ -418,7 +411,6 @@ buckets.Heap = function (compareFunction) {
      * @return {*} The value at the root of the heap. Returns undefined if the
      * heap is empty.
      */
-    /* @id heap_peek */
     heap.peek = function () {
         if (data.length > 0) {
             return data[0];
@@ -431,7 +423,6 @@ buckets.Heap = function (compareFunction) {
      * @param {*} element The element.
      * @return True if the element was added or false if it is undefined.
      */
-    /* @id heap_add */
     heap.add = function (element) {
         if (buckets.isUndefined(element)) {
             return undefined;
@@ -446,7 +437,6 @@ buckets.Heap = function (compareFunction) {
      * @return {*} The removed element or
      * undefined if the heap is empty.
      */
-    /* @id heap_removeRoot */
     heap.removeRoot = function () {
         var obj;
         if (data.length > 0) {
@@ -467,7 +457,6 @@ buckets.Heap = function (compareFunction) {
      * @return {boolean} True if the Heap contains the specified element, false
      * otherwise.
      */
-    /* @id heap_contains */
     heap.contains = function (element) {
         var equF = buckets.compareToEquals(compare);
         return buckets.arrays.contains(data, element, equF);
@@ -477,7 +466,6 @@ buckets.Heap = function (compareFunction) {
      * Returns the number of elements in the heap.
      * @return {number} The number of elements in the heap.
      */
-    /* @id heap_size */
     heap.size = function () {
         return data.length;
     };
@@ -487,7 +475,6 @@ buckets.Heap = function (compareFunction) {
      * @return {boolean} True if the heap contains no elements; false
      * otherwise.
      */
-    /* @id heap_isEmpty */
     heap.isEmpty = function () {
         return data.length <= 0;
     };
@@ -495,7 +482,6 @@ buckets.Heap = function (compareFunction) {
     /**
      * Removes all the elements from the heap.
      */
-    /* @id heap_clear */
     heap.clear = function () {
         data.length = 0;
     };
@@ -507,7 +493,6 @@ buckets.Heap = function (compareFunction) {
      * invoked with an element as argument. To break the iteration you can
      * optionally return false.
      */
-    /* @id heap_forEach */
     heap.forEach = function (callback) {
         buckets.arrays.forEach(data, callback);
     };
@@ -518,7 +503,6 @@ buckets.Heap = function (compareFunction) {
      * @return {Array.<*>} An array containing all the elements in the heap
      * in no particular order.
      */
-    /* @id heap_toArray */
     heap.toArray = function () {
         return buckets.arrays.copy(data);
     };
@@ -529,7 +513,6 @@ buckets.Heap = function (compareFunction) {
      * @param {buckets.Heap} other The other heap.
      * @return {boolean} True if the heap is equal to the given heap.
      */
-    /* @id heap_equals */
     heap.equals = function (other) {
         var thisArray, otherArray, eqF;
 
@@ -552,19 +535,201 @@ buckets.Heap = function (compareFunction) {
     return heap;
 };
 
-// ------------------------------ our tests now ------------------------------
+// ---------------------------- priorityqueue.js -----------------------------
 
-var heap = new buckets.Heap();
+/**
+ * Creates an empty priority queue.
+ * @class <p>In a priority queue each element is associated with a "priority",
+ * elements are dequeued in highest-priority-first order (the elements with the
+ * highest priority are dequeued first). This implementation uses a binary 
+ * heap as the underlying storage.</p>
+ *
+ * <p>If the inserted elements are custom objects, a compare function must be provided,
+ * otherwise the <=, === and >= operators are used to compare object priority.</p>
+ * <p>Example:</p>
+ * <pre>
+ * function compare(a, b) {
+ *  if (a is less than b by some ordering criterion) {
+ *     return -1;
+ *  } if (a is greater than b by the ordering criterion) {
+ *     return 1;
+ *  }
+ *  // a must be equal to b
+ *  return 0;
+ * }
+ * </pre>
+ * @constructor
+ * @param {function(Object,Object):number=} compareFunction Optional
+ * function used to compare two element priorities. Must return a negative integer,
+ * zero, or a positive integer as the first argument is less than, equal to,
+ * or greater than the second.
+ */
+buckets.PriorityQueue = function (compareFunction) {
+
+    /** 
+     * @exports pQueue as buckets.PriorityQueue
+     * @private
+     */
+    var pQueue = {},
+        // Reversed compare function
+        compare = buckets.reverseCompareFunction(compareFunction),
+        // Underlying storage
+        heap = new buckets.Heap(compare);
+
+    /**
+     * Inserts the specified element into the priority queue.
+     * @param {Object} element The element to insert.
+     * @return {boolean} True if the element was inserted, or false if it's undefined.
+     */
+    /* @id pqueue_enqueue */
+    pQueue.enqueue = function (element) {
+        return heap.add(element);
+    };
+
+    /**
+     * Inserts the specified element into the priority queue. It's equivalent to enqueue.
+     * @param {Object} element The element to insert.
+     * @return {boolean} True if the element was inserted, or false if it's undefined.
+     */
+    /* @id pqueue_add */
+    pQueue.add = function (element) {
+        return heap.add(element);
+    };
+
+    /**
+     * Retrieves and removes the highest priority element of the queue.
+     * @return {*} The highest priority element of the queue,
+     * or undefined if the queue is empty.
+     */
+    /* @id pqueue_dequeue */
+    pQueue.dequeue = function () {
+        var elem;
+        if (heap.size() !== 0) {
+            elem = heap.peek();
+            heap.removeRoot();
+            return elem;
+        }
+        return undefined;
+    };
+
+    /**
+     * Retrieves, but does not remove, the highest priority element of the queue.
+     * @return {*} The highest priority element of the queue, or undefined if the queue is empty.
+     */
+    /* @id pqueue_peek */
+    pQueue.peek = function () {
+        return heap.peek();
+    };
+
+    /**
+     * Returns true if the priority queue contains the specified element.
+     * @param {Object} element Element to search for.
+     * @return {boolean} True if the priority queue contains the specified element,
+     * false otherwise.
+     */
+    /* @id pqueue_contains */
+    pQueue.contains = function (element) {
+        return heap.contains(element);
+    };
+
+    /**
+     * Checks if the priority queue is empty.
+     * @return {boolean} True if and only if the priority queue contains no items, false
+     * otherwise.
+     */
+    /* @id pqueue_isEmpty */
+    pQueue.isEmpty = function () {
+        return heap.isEmpty();
+    };
+
+    /**
+     * Returns the number of elements in the priority queue.
+     * @return {number} The number of elements in the priority queue.
+     */
+    /* @id pqueue_size */
+    pQueue.size = function () {
+        return heap.size();
+    };
+
+    /**
+     * Removes all elements from the priority queue.
+     */
+    /* @id pqueue_clear */
+    pQueue.clear = function () {
+        heap.clear();
+    };
+
+    /**
+     * Executes the provided function once per element present in the queue in
+     * no particular order.
+     * @param {function(Object):*} callback Function to execute, it's
+     * invoked one element as argument. To break the iteration you can
+     * optionally return false inside the callback.
+     */
+    /* @id pqueue_forEach */
+    pQueue.forEach = function (callback) {
+        heap.forEach(callback);
+    };
+
+    /**
+     * Returns an array containing all the elements in the queue in no
+     * particular order.
+     * @return {Array.<*>} An array containing all the elements in the queue
+     * in no particular order.
+     */
+    /* @id pqueue_toArray */
+    pQueue.toArray = function () {
+        return heap.toArray();
+    };
+
+    /**
+     * Returns true if the queue is equal to another queue.
+     * Two priority queues are equal if they have the same elements.
+     * @param {buckets.PriorityQueue} other The other queue.
+     * @return {boolean} True if the queue is equal to the given queue.
+     */
+    /* @id pqueue_equals */
+    pQueue.equals = function (other) {
+        var thisArray, otherArray, eqF;
+
+        if (buckets.isUndefined(other) || typeof other.dequeue !== 'function') {
+            return false;
+        }
+        if (pQueue.size() !== other.size()) {
+            return false;
+        }
+
+        thisArray = pQueue.toArray();
+        otherArray = other.toArray();
+        eqF = buckets.compareToEquals(compare);
+        thisArray.sort(compare);
+        otherArray.sort(compare);
+
+        return buckets.arrays.equals(thisArray, otherArray, eqF);
+    };
+
+    return pQueue;
+};
+
+// ------------------------------- our tests ----------------------------------
+
+var pqueue = new buckets.PriorityQueue();
 
 var x1 = symb_number(x1);
 var x2 = symb_number(x2);
 var x3 = symb_number(x3);
 
-Assume((not (x1 = x2)) and (not (x2 = x3)) and (not (x3 = x1)));
+pqueue.enqueue(x1);
+pqueue.enqueue(x2);
+pqueue.enqueue(x3);
 
-heap.add(x1);
-heap.add(x2);
-heap.add(x3);
-
-var res = heap.peek();
-Assert(((x1 < x2) and (x1 < x3) and (res = x1)) or ((x2 < x1) and (x2 < x3) and (res = x2)) or ((x3 < x1) and (x3 < x2) and (res = x3)));
+var ar = pqueue.toArray();
+var l1 = pqueue.size();
+var l2 = ar.length;
+Assert(l1 = l2);
+var i;
+for (i = 0; i < l1; i++) {
+  var ari = ar[i]; 
+  var resi = pqueue.contains(ari);
+  Assert(resi);
+}
