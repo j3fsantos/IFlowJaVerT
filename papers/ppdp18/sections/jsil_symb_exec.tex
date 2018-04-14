@@ -697,7 +697,7 @@ function for converting the former to the latter. Our choice simplifies both rea
 and~presentation, in that a path condition is simply a \jsil symbolic boolean expression. 
 
 We instantiate the abstract semantics for the symbolic case by providing the appropriate definitions 
-for the required abstract functions/relations below.% (we omit those that coincide with the instrumented case). 
+for the required abstract functions, focussing below on the \polish{Sth}. % (we omit those that coincide with the instrumented case). 
 We write $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ for the symbolic semantic 
 judgement for basic commands and $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ 
 for control flow commands, where $\scs$ ranges over symbolic call stacks. 
@@ -823,12 +823,12 @@ symbolic stores instead of concrete stores.
 %      \inferrule[\textsc{Store Selector}]
 %   {}{  \stosel((-, -, \sstore, -)) =  \sstore}
    \quad 
-         \inferrule[\textsc{Symbolic Value}]
+         \inferrule[\textsc{Symbolic Value Creation}]
    {\svar \in \svars \text{ is of type } \jtype
      \quad 
      \svar \not\in \fv(\sstate)
     }{\absmakesymbolicrule{\symbolic}{\sstate, \jtype} = \svar}
-   \\\\
+   \\
        \inferrule[\textsc{Assume}]
    {  
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
@@ -850,9 +850,8 @@ symbolic stores instead of concrete stores.
  \end{mathpar}}}
  \end{display}
 
-\vspace{5pt}
 \begin{wrapfigure}{R}{0.15\textwidth}
-{\small
+{\footnotesize
 \hspace*{-0.5cm} $\mathtt{0\quad s := symbolic\ (String)}$ \\
 \hspace*{-0.5cm} $\mathtt{1\quad o := new\ ()}$ \\
 \hspace*{-0.5cm} $\mathtt{2\quad o[s] := 42};$ \\
