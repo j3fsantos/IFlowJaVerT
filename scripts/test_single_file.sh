@@ -9,7 +9,7 @@ jsilname=$name'.jsil'
 rktname=$name'.rkt'
 logname=res_$name.txt
 
-./js2jsil.native -file "$filename" -cosette -line_numbers &> /dev/null
+./js2jsil.native -file "$filename" -cosette -line_numbers
 ./jsil2rkt.native -file "$jsilname" -js 
 time racket $rktname > $logname
 tail -n 1 $logname
