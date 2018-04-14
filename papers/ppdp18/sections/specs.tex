@@ -101,7 +101,7 @@ entailment to an external constraint solver (in our case, \rosette).
        \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
        \State $\qquad \qquad \mid~ \fail{\option} \ \, :$ \Return $\fail{\option}$
      \State $\mid~\sass \lstcons \up' :$   
-      \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst)) %\textbf{ and } (\sstate.\pcsel \vdash \subst(\sass)))$ 
+      \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst))$ %\textbf{ and } (\sstate.\pcsel \vdash \subst(\sass)))$ 
       \State $\qquad \qquad \textbf{then}$ \Call{Unification}{$\sstate'$, $\up'$, $\subst$}
 \EndFunction
 \end{algorithmic}
