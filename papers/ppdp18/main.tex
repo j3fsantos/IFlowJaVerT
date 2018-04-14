@@ -242,16 +242,16 @@
 \fi}
 
 \begin{abstract}
-We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
+We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript (JS) programs.
 %\cosette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
 Its aim is to assist the general programmer in debugging their code: the programmer writes symbolic tests for which \cosette provides concrete counter-models.
 We create \cosette following a new, general methodology for designing compositional program analyses for dynamic languages.
-We prove that the symbolic execution underpinning \cosette is sound and that it does not generate false positives. Moreover, its compositionality allows us to use \cosette to find bugs in separation logic specifications of JavaScript programs that are not detectable by standard symbolic execution techniques.
+We prove that the symbolic execution underpinning \cosette is sound and that it does not generate false positives. Moreover, its compositionality allows us to use \cosette to find bugs specifications of JS programs that are not detectable by standard symbolic execution techniques.
 %\pmaxinline{Now compositionality.}
 %
-We evaluate \cosette on challenging examples that showcase JavaScript-specific features, as well as on real-world Node.js libraries. %These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. 
+We evaluate \cosette on challenging examples that showcase JS-specific features, as well as on real-world Node.js libraries. %These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. 
 We highlight the range of \cosette by using it to find bugs in a number of %non-trivial 
-separation logic specifications of JavaScript programs. 
+separation logic specifications of JS programs. 
 %
 %It works by compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not generate false positives.
 %
@@ -455,11 +455,11 @@ in that it comes with formal correctness guarantees and a precise result stating
 To contain the complexity of JavaScript, we move the analysis to \jsil, an intermediate representation for logic-based analysis of JavaScript~\cite{javert}. 
 \jsil comes with a trusted compiler, \JSComp, which has been extensively tested against the official test suite, Test262,\footnote{\url{https://github.com/tc39/test262}} and produces \jsil code that corresponds line-by-line to the standard. 
 In \S\ref{???}, we give a novel abstract semantics of \jsil, which we instantiate to obtain the concrete and symbolic semantics, connected via a {\em soundiness result}. Moreover, we prove that \cosette is precise, meaning that it never produces incorrect bug reports. 
-These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, allow us to  provably lift the results of analyses done on compiled \jsil code back up to JavaScript. To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution for JavaScript that precisely follows the semantics of the language.
+These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, allow us to  provably lift the results of analyses done on compiled \jsil code back up to JavaScript. %To our knowledge, this is the first formalisation of a symbolic execution used for JavaScript analysis, and is the first symbolic execution for JavaScript that precisely follows the semantics of the language.
 
 \myparagraph{Novelty: Compositionality} 
 Whole-program analyses are not the best fit for JavaScript applications, which are commonly run in highly dynamic execution environments. For instance, client-side programs dynamically load and execute third-party code as a matter of course. For this reason, it is important to be able to analyse incomplete JavaScript code in a compositional manner.
-However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively,  the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run. 
+However, designing a compositional analysis for dynamic languages, such as JavaScript and \jsil, is a non-trivial task. This is because, unlike static languages, such as C, C++, and Java, dynamic languages do not observe the \emph{frame property}~\cite{?}, which is essential for compositionality. Intuitively,  the frame property means that if a program produces a given output when run in a given state, then we can extend this state arbitrarily, run the program in this extended state, and the program will produce the same output. In JavaScript and \jsil, it is possible to introduce bugs into a program by extending the state in which it is run.
 %
 We achieve compositionality by explicitly keeping track of properties that must {\em not be present} in a given object in order for the program to behave correctly.
 %Because JavaScript does not observe the frame property, such conditions need to refer to positive resources, object properties that need to be present with certain properties, as well as negative resources, object properties that must not be present. 
@@ -489,8 +489,9 @@ To our knowledge, \cosette is the first compositional symbolic execution tool fo
 \label{fig:jilette:diagram}
 \end{wrapfigure}
 
+\setcounter{figure}{1} 
 \myparagraph{Architecture} The architecture of \cosette is shown in Figure 1. We extend the syntax of JavaScript with constructs for creating and reasoning about symbolic values, which are intuitive and allow the general developer to easily write assertions about the behaviour of their program. Using \JSComp, we compile the extended JavaScript code to \jsil, obtaining an extended \jsil program. The core of \cosette consists of a symbolic interpreter for
-\jsil, whose current, proof-of-concept implementation, is done with the help of Rosette~\cite{Rosette2,Rosette1}, a framework that facilitates the creation of symbolic interpreters. The symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound. \pmaxinline{This is the first time we mention `bound'.}
+\jsil, whose current, proof-of-concept implementation, is done with the help of Rosette~\cite{Rosette2,Rosette1}, a framework that facilitates the creation of symbolic interpreters. The symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound. %\pmaxinline{This is the first time we mention `bound'.}
 
 %The second component that \cosette uses is \JSComp~\cite{javert}, 
 %a well-tested, standard-compliant compiler from JavaScript to \jsil. We extend
