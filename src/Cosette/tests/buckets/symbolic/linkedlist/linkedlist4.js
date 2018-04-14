@@ -349,7 +349,6 @@ buckets.LinkedList = function () {
                     previous.next = currentNode.next;
                     currentNode.next = undefined;
                 } else {
-                    // console.log('in the middle')
                     previous.next = currentNode.next;
                     currentNode.next = undefined;
                 }
