@@ -578,32 +578,24 @@ var bst = new buckets.BSTree();
 var x1 = symb_number(x1);
 var x2 = symb_number(x2);
 var x3 = symb_number(x3);
-var x4 = symb_number(x4);
 
 Assume(not (x1 = x2));
 Assume(not (x1 = x3));
-Assume(not (x1 = x4));
 Assume(not (x2 = x3));
-Assume(not (x2 = x4));
-Assume(not (x3 = x4));
 
 bst.add(x1);
 bst.add(x2);
 bst.add(x3);
-//bst.add(x4);
 
-bst.remove(x2);
-var res1 = bst.contains(x2);
-Assert(not res1);
-var res2 = bst.contains(x3);
-Assert(res2);
-var res0 = bst.contains(undefined);
-Assert(not res0);
+// test2: something fails
 
-bst.remove(x1);
-bst.remove(x3);
-//bst.remove(x4);
-var res3 = bst.contains(x1);
-Assert(not res3);
-var res4 = bst.isEmpty();
-Assert(res4);
+var x4 = symb_number(x4);
+var ar2 = [];
+bst.inorderTraversal(function(x) {
+  if (x === x4) {
+    return false;
+  }
+  ar2.push(x);
+});
+var l2 = ar2.length;
+Assert(((not (x4 = x1)) and (not (x4 = x2)) and (not (x4 = x3)) and (l2 = 3)) or (((x4 = x1) or (x4 = x2) or (x4 = x3)) and (l2 < 3)));
