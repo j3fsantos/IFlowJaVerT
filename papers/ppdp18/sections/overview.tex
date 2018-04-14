@@ -69,7 +69,7 @@ assert(result = v)
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are shared between all map 
-objects and are, therefore, defined in \jsinline|Map.prototype|, which is the prototype\footnote{In JavaScript, every object has a prototype, and inheritance is modelled through \emph{prototype chains}. On property lookup, $\mathtt{o.p}$, the semantics first checks if the property $\mathtt{p}$ is present in the object $\mathtt{o}$, in which case its value is returned. Otherwise, the semantics checks if $\mathtt{p}$ is present in the prototype of $\mathtt{o}$, and so  forth.} of all objects created using \jsinline|Map| as a constructor (i.e.,~using~\jsinline|new Map()|). 
+objects and are, therefore, defined in \jsinline|Map.prototype|, which is the prototype\footnote{In JavaScript, inheritance is modelled through \emph{prototype chains}. On property lookup, $\mathtt{o.p}$, we first check if the property $\mathtt{p}$ is present in the object $\mathtt{o}$, in which case its value is returned. Otherwise, we  check if $\mathtt{p}$ is present in the prototype of $\mathtt{o}$, and so  forth.} of all objects created using \jsinline|Map| as a constructor (i.e.,~using~\jsinline|new Map()|). 
 The \jsinline|get| function returns the value associated with a given key in the map, or \jsinline|null| if the key is not in the map. 
 Note that, in order to check that the given key is in the map, \jsinline|get| uses the built-in function \jsinline|hasOwnProperty|, which lives in \jsinline|Object.prototype|, the prototype of all objects.
 The \jsinline|put| function updates the map if the supplied key is valid, and otherwise throws an error. 
@@ -101,10 +101,11 @@ In Figure \ref{fig:2b}, we show a general heap of key-value maps. There is the \
 
 \lstnewenvironment{lstjsex}{\lstset{language=JavaScript,basicstyle=\fontsize{8}{8}\ttfamily,escapeinside={~}{~}, numbers=none}}{}
 
+\vspace*{-0.2cm}
 \subsection{Whole-program Symbolic Testing}
 \label{subsec:st}
 
-Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. Using \cosette, they can write unit tests that have \emph{symbolic} inputs and outputs, testing a broad range of behaviours in a systematic way with a single symbolic test. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as in Figure~\ref{test:map}. In lines~1-2, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \cosette's constructs for creating symbolic variables. In line 3, we assume that \jsinline|k| is a valid key. In lines 4-5, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 6, we assert that the retrieved value is equal to the one we had previously put.
+Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. Using \cosette, they can write unit tests that have \emph{symbolic} inputs and outputs, testing a broad range of behaviours in a systematic way with a single symbolic test. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as in Figure~\ref{fig:2c}. In lines~1-2, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \cosette's constructs for creating symbolic variables. In line 3, we assume that \jsinline|k| is a valid key. In lines 4-5, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key \jsinline|k|. Finally, in line 6, we assert that the retrieved value is equal to the one we had previously put.
 
 % 
 When running \cosette on this test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
@@ -114,6 +115,7 @@ This example highlights how \cosette does not require specialist knowledge and c
 be used as a testing tool by a general JavaScript developer. The annotations amount to the creation of 
 symbolic variables and the writing of assumptions and assertions, remaining minimal and intuitive, in contrast with the standard annotation burden of verification tools.
 
+\vspace*{-0.2cm}
 \subsection{Specification-driven Bug-finding}
 \label{subsec:sdbf}
 
@@ -191,7 +193,7 @@ $
 \end{wrapfigure}
 
 On the right-hand side, we show one compositional specification of \jsinline|put(k, v)|. 
-In the precondition, we assume to have a map object \jsinline|m|, with key-value pairs \jsinline|kvs| and prototype \jsinline|Map.Prototype|. We also assume that \jsinline|k| is a valid key not already in the map. For compositionality, highlighted in blue, we have to state that the property \jsinline|k| is not non-writable in \jsinline|Object.prototype|.\footnote{In JavaScript, object properties can be non-writable, meaning that their value cannot be changed. In this specification, we assume that the property exists and is writable; we have another specification, in which the property does not exist.}
+In the precondition, we assume to have a map object \jsinline|m|, with key-value pairs \jsinline|kvs| and prototype \jsinline|Map.Prototype|. We also assume that \jsinline|k| is a valid key not already in the map. For compositionality, highlighted in blue, we have to state that the property \jsinline|k| is not non-writable in \jsinline|Object.prototype|.\footnote{In JavaScript, object properties can be non-writable, meaning that their value cannot be changed. In this specification, we assume that the property exists and is writable.}% we have another specification, in which the property does not exist.}
 The postcondition states that the key-value pair has been inserted into the map, while the remaining part of the heap remains unchanged.
 
 % for example, \jsinline|JSObject(o)| states that \jsinline|o| is a standard JavaScript object; \jsinline|JSObjectWithProto(o, op)| states that \jsinline|o| is a JavaScript object with prototype \jsinline|op|; and \jsinline|DataProp(o, p, v)| states that the property \jsinline|p| of~\jsinline|o| has value \jsinline|v|. One can also describe the absence of object properties: \jsinline|NoProp(o, p)| states that the object~\jsinline|o| does not have property \jsinline|p|, and \jsinline|NoProps(o, props)| states that the object \jsinline|o| has no other properties except those in the set \jsinline|props|. There also exist predicates for describing function objects, prototype chains, function closures, etc.,
@@ -245,14 +247,15 @@ When symbolically testing the specifications of the \jsinline|Map| library funct
 \centering
 \includegraphics[width=0.22\textwidth]{figures/compositional.png}
 \vspace*{-0.52cm}
-\caption*{\hspace*{-0.6cm}{\small Figure 4. Compositionality}}
+\caption*{\hspace*{-0.6cm}{\small Figure 3. Compositionality}}
 \vspace*{-0.4cm}
 \end{wrapfigure}
 
-First, if we omitted the part of the \jsinline|Map| predicate highlighted in red, \cosette would complain, when testing the \jsinline|put| function, that it has no information about the property \jsinline|"put"| of the map object~\jsinline|m| and cannot perform the lookup \jsinline|m.put| (Figure~4, above). This means that the library code is not resilient to frames in which a map object \jsinline|m| has the property \jsinline|put|.
+\setcounter{figure}{3} 
+First, if we omitted the part of the \jsinline|Map| predicate highlighted in red, \cosette would complain, when testing the \jsinline|put| function, that it has no information about the property \jsinline|"put"| of the map object~\jsinline|m| and cannot perform the lookup \jsinline|m.put| (Figure~3, above). This means that the library code is not resilient to frames in which a map object \jsinline|m| has the property \jsinline|put|.
 Analogous issues would arise for the \jsinline|"get"| and \jsinline|"validKey"| properties.% which also must be absent from all map objects. 
 
-Second, if we omitted the parts highlighted in blue, upon execution of the line \jsinline|this._contents[k] = v| (Figure~\ref{fig:2a}, line 12) \cosette would complain that it has no information about the property \jsinline|k| in the prototype chain of the contents object (Figure~4, below). This information is required because the semantics of JavaScript has to look up the value of the property \jsinline|k| of the contents object before performing the actual assignment, to check if the assignment is allowed, that is, that the property is non-writable. As the key \jsinline|k| is symbolic, what this means is that the library is not resilient to frames in which there are non-writable properties in \jsinline|Object.prototype|. A similar issue arises for the \jsinline|Map| constructor (Figure~\ref{fig:2a}, line 1), which requires the property \jsinline|"_contents"| not to be non-writable in the prototype chains of map objects.
+Second, if we omitted the parts highlighted in blue, upon execution of the line \jsinline|this._contents[k] = v| (Figure~\ref{fig:2a}, line 12) \cosette would complain that it has no information about the property \jsinline|k| in the prototype chain of the contents object (Figure~3, below). This information is required because the semantics of JavaScript has to look up the value of the property \jsinline|k| of the contents object before performing the actual assignment, to check if the assignment is allowed, that is, that the property is non-writable. As the key \jsinline|k| is symbolic, what this means is that the library is not resilient to frames in which there are non-writable properties in \jsinline|Object.prototype|. A similar issue arises for the \jsinline|Map| constructor (Figure~\ref{fig:2a}, line 1), which requires the property \jsinline|"_contents"| not to be non-writable in the prototype chains of map objects.
 
 %Now, we can give the complete definition of the \jsinline|Map| predicate and the corrected, compositional specification of \jsinline|put(k, v)| when \jsinline|k| is a valid key that is not in the map, with the compositionality-related changes highlighted in red:
 %
