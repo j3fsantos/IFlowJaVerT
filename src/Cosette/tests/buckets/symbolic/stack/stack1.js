@@ -120,7 +120,7 @@ buckets.compareToEquals = function (compareFunction) {
     };
 };
 
-// ----------------------------- linkedlist.js --------------------------------
+// ---------------------------- linkedlist.js --------------------------------
 
 /**
  * Creates an empty Linked List.
@@ -497,89 +497,79 @@ buckets.LinkedList = function () {
     return list;
 };
 
-
-// -------------------------------- queue.js ----------------------------------
+// ------------------------------- stack.js ----------------------------------
 
 /**
- * Creates an empty queue.
- * @class A queue is a First-In-First-Out (FIFO) data structure, the first
- * element added to the queue will be the first one to be removed. This
+ * Creates an empty Stack.
+ * @class A Stack is a Last-In-First-Out (LIFO) data structure, the last
+ * element added to the stack will be the first one to be removed. This
  * implementation uses a linked list as the underlying storage.
  * @constructor
  */
-
-/* @id buckets_Queue */
-buckets.Queue = function () {
+buckets.Stack = function () {
 
     /** 
-     * @exports queue as buckets.Queue
+     * @exports stack as buckets.Stack
      * @private
      */
-    var queue = {},
+    var stack = {},
         // Underlying list containing the elements.
         list = new buckets.LinkedList();
 
     /**
-     * Inserts the specified element into the end of the queue.
-     * @param {Object} elem The element to insert.
-     * @return {boolean} True if the element was inserted, or false if it's undefined.
+     * Pushes an element onto the top of the stack.
+     * @param {Object} elem The element.
+     * @return {boolean} True if the element was pushed or false if it's undefined.
      */
-    /* @id queue_enqueue */
-    queue.enqueue = function (elem) {
-        return list.add(elem);
+    /* @id stack_push */
+    stack.push = function (elem) {
+        return list.add(elem, 0);
     };
 
     /**
-     * Inserts the specified element into the end of the queue. Equivalent to enqueue.
-     * @param {Object} elem The element to insert.
-     * @return {boolean} True if the element was inserted, or false if it's undefined.
+     * Pushes an element onto the top of the stack. Equivalent to push.
+     * @param {Object} elem The element.
+     * @return {boolean} true If the element was pushed or false if it's undefined.
      */
-    /* @id queue_add */
-    queue.add = function (elem) {
-        return list.add(elem);
+    /* @id stack_add */
+    stack.add = function (elem) {
+        return list.add(elem, 0);
     };
 
     /**
-     * Retrieves and removes the head of the queue.
-     * @return {*} The head of the queue, or undefined if the queue is empty.
+     * Removes the element at the top of the stack and returns it.
+     * @return {*} The element at the top of the stack or undefined if the
+     * stack is empty.
      */
-    /* @id queue_dequeue */
-    queue.dequeue = function () {
-        var elem;
-        if (list.size() !== 0) {
-            elem = list.first();
-            list.removeElementAtIndex(0);
-            return elem;
-        }
-        return undefined;
+    /* @id stack_pop */
+    stack.pop = function () {
+        return list.removeElementAtIndex(0);
     };
 
     /**
-     * Retrieves, but does not remove, the head of the queue.
-     * @return {*} The head of the queue, or undefined if the queue is empty.
+     * Returns the element at the top of the stack without removing it.
+     * @return {*} The element at the top of the stack or undefined if the
+     * stack is empty.
      */
-    /* @id queue_peek */
-    queue.peek = function () {
-        if (list.size() !== 0) {
-            return list.first();
-        }
-        return undefined;
+    /* @id stack_peek */
+    stack.peek = function () {
+        return list.first();
     };
 
     /**
-     * Returns the number of elements in the queue.
-     * @return {number} The number of elements in the queue.
+     * Returns the number of elements in the stack.
+     * @return {number} The number of elements in the stack.
      */
-    /* @id queue_size */
-    queue.size = function () {
+    /* @id stack_size */
+    stack.size = function () {
         return list.size();
     };
 
     /**
-     * Returns true if the queue contains the specified element.
-     * <p>If the elements inside the queue are
-     * not comparable with the === operator, a custom equals function should be
-     * provided to perform searches, the function must receive two arguments and
+     * Returns true if the stack contains the specified element.
+     * <p>If the elements inside the stack are
+     * not comparable with the === operator, a custom equals function must be
+     * provided to perform searches, that function must receive two arguments and
      * return true if they are equal, false otherwise. Example:</p>
      *
      * <pre>
@@ -589,124 +579,118 @@ buckets.Queue = function () {
      * </pre>
      * @param {Object} elem Element to search for.
      * @param {function(Object,Object):boolean=} equalsFunction Optional
-     * function to check if two elements are equal.
-     * @return {boolean} True if the queue contains the specified element,
+     * function used to check if two elements are equal.
+     * @return {boolean} True if the stack contains the specified element,
      * false otherwise.
      */
-    /* @id queue_contains */
-    queue.contains = function (elem, equalsFunction) {
+    /* @id stack_contains */
+    stack.contains = function (elem, equalsFunction) {
         return list.contains(elem, equalsFunction);
     };
 
     /**
-     * Checks if the queue is empty.
-     * @return {boolean} True if and only if the queue contains no items.
+     * Checks if the stack is empty.
+     * @return {boolean} True if and only if this stack contains no elements, false
+     * otherwise.
      */
-    /* @id queue_isEmpty */
-    queue.isEmpty = function () {
-        return list.size() <= 0;
+    /* @id stack_isEmpty */
+    stack.isEmpty = function () {
+        return list.isEmpty();
     };
 
     /**
-     * Removes all the elements from the queue.
+     * Removes all the elements from the stack.
      */
-    /* @id queue_clear */
-    queue.clear = function () {
+    /* @id stack_clear */
+    stack.clear = function () {
         list.clear();
     };
 
     /**
-     * Executes the provided function once per each element present in the queue in
-     * FIFO order.
+     * Executes the provided function once per element present in the stack in
+     * LIFO order.
      * @param {function(Object):*} callback Function to execute, it's
-     * invoked an element as argument, to break the iteration you can
+     * invoked with an element as argument. To break the iteration you can
      * optionally return false inside the callback.
      */
-    /* @id queue_forEach */
-    queue.forEach = function (callback) {
+    /* @id stack_forEach */
+    stack.forEach = function (callback) {
         list.forEach(callback);
     };
 
     /**
-     * Returns an array containing all the elements in the queue in FIFO
+     * Returns an array containing all the elements in the stack in LIFO
      * order.
-     * @return {Array.<*>} An array containing all the elements in the queue
-     * in FIFO order.
+     * @return {Array.<*>} An array containing all the elements in the stack
+     * in LIFO order.
      */
-    /* @id queue_toArray */
-    queue.toArray = function () {
+    /* @id stack_toArray */
+    stack.toArray = function () {
         return list.toArray();
     };
 
     /**
-     * Returns true if the queue is equal to another queue.
-     * Two queues are equal if they have the same elements in the same order.
-     * @param {buckets.Queue} other The other queue.
+     * Returns true if the stack is equal to another stack.
+     * Two stacks are equal if they have the same elements in the same order.
+     * @param {buckets.Stack} other The other stack.
      * @param {function(Object,Object):boolean=} equalsFunction Optional
-     * function to check if two elements are equal. If the elements in the queues
+     * function to check if two elements are equal. If the elements in the stacks
      * are custom objects you should provide a custom equals function, otherwise
      * the === operator is used to check equality between elements.
-     * @return {boolean} True if the queue is equal to the given queue.
+     * @return {boolean} True if the stack is equal to the given stack.
      */
-    /* @id queue_equals */
-    queue.equals = function (other, equalsFunction) {
+    /* @id stack_equals */
+    stack.equals = function (other, equalsFunction) {
         var eqf, isEqual, thisElement;
-        if (buckets.isUndefined(other) || typeof other.dequeue !== 'function') {
+        if (buckets.isUndefined(other) || typeof other.peek !== 'function') {
             return false;
         }
-        if (queue.size() !== other.size()) {
+        if (stack.size() !== other.size()) {
             return false;
         }
+
         eqf = equalsFunction || buckets.defaultEquals;
         isEqual = true;
-        /* @id queue_equals_callback */
+        /* @id stack_equals_callback */
         other.forEach(function (element) {
-            thisElement = queue.dequeue();
-            queue.enqueue(thisElement);
+            thisElement = stack.pop();
+            list.add(thisElement);
             isEqual = eqf(thisElement, element);
             return isEqual;
         });
+
         return isEqual;
     };
 
-    return queue;
+    return stack;
 };
 
-// ------------------------------- our tests ----------------------------------
+// -------------------------------- tests -------------------------------------
 
-// modeling the tests from test/queue-test.js
+var stack = new buckets.Stack();
 
-var queue = new buckets.Queue();
-
-var x1 = symb_number(x1); // 1
-var x2 = symb_number(x2); // 2
-var x3 = symb_number(x3); // 3
-Assume((x1 < x2) and (x2 < x3));
-
-function createQueue() {
-  queue.enqueue(x1);
-  queue.enqueue(x2);
-  queue.enqueue(x3);
-}
+var n1 = symb_number(n1);
+var n2 = symb_number(n2);
+var n3 = symb_number(n3);
+Assume(not (n1 = n2));
+Assume(not (n1 = n3));
+Assume(not (n2 = n3));
 
 
-// TEST 1
-
-//it('size gives the right value', function () {
-var queue = new buckets.Queue();
-var size = queue.size();
-Assert(size = 0);
-createQueue();
-var size = queue.size();
-Assert(size = 3);
-var x4 = symb_number(x4);
-queue.enqueue(x4);
-var size = queue.size();
-Assert(size = 4);
-queue.dequeue();
-var size = queue.size();
-Assert(size = 3);
-queue.clear();
-var size = queue.size();
-Assert(size = 0);
-queue.clear();
+// test 1
+//it('pop returns and removes the top element or undefined', function () {
+var res1 = stack.pop();
+Assert(res1 = undefined);
+stack.push(n1);
+stack.push(n2);
+stack.add(n3);
+var res6 = stack.peek();
+var res2 = stack.pop();
+var res3 = stack.pop();
+var res4 = stack.pop();
+var res5 = stack.pop();
+Assert(res2 = n3);
+Assert(res6 = n3);
+Assert(res3 = n2);
+Assert(res4 = n1);
+Assert(res5 = undefined);

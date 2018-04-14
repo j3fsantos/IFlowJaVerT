@@ -679,16 +679,15 @@ Assume(not (n2 = n3));
 
 // test 1
 //it('pop returns and removes the top element or undefined', function () {
-var res1 = stack.pop();
-Assert(res1 = undefined);
+var res1 = stack.size();
+Assert(res1 = 0);
 stack.push(n1);
 stack.push(n2);
 stack.push(n3);
-var res2 = stack.pop();
-var res3 = stack.pop();
-var res4 = stack.pop();
-var res5 = stack.pop();
-Assert(res2 = n3);
-Assert(res3 = n2);
-Assert(res4 = n1);
-Assert(res5 = undefined);
+var res2 = stack.size();
+Assert(res2 = 3);
+var res3 = stack.isEmpty();
+Assert(not res3);
+stack.clear();
+var res4 = stack.isEmpty();
+Assert(res4);
