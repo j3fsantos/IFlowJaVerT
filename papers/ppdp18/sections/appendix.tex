@@ -575,7 +575,7 @@ From \ieq{2} and \ieq{4}, we conclude that
 
 \noindent \prooflab{Assert - True}
 From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate, \scs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
-$ \ccmd[\prog][\scs]{i}  = \assert(\jsilexpr)$ (\ieq{2}), and $\abssat{\symbolic}(\sstate, \neg \jsilexpr) = \jfalse$ (\ieq{3}). 
+$ \ccmd[\prog][\scs]{i}  = \jassert(\jsilexpr)$ (\ieq{2}), and $\abssat{\symbolic}(\sstate, \neg \jsilexpr) = \jfalse$ (\ieq{3}). 
 Applying Lemma~\ref{lemma:soundiness:sat} to \ieq{3}, we conclude that 
 $\abssat{\instrumented}(\istate, \neg \jsilexpr) = \jfalse$ (\ieq{4}). 
 Combining \ieq{2} and \ieq{4}, the result follows. 

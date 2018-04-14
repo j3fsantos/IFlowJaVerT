@@ -167,7 +167,7 @@
 \newcommand\jsilnew{\darkmath{\textsf {new}}}
 \newcommand\jsildelete{\darkmath{\textsf {delete}}}
 \newcommand\hasfield{\darkmath{\textsf {hasProp}}}
-\newcommand\assert{\darkmath{\textsf {assert}}}
+\newcommand\jassert{\darkmath{\textsf {assert}}}
 \newcommand\assume{\darkmath{\textsf {assume}}}
 \newcommand\getfields{\darkmath{\textsf {getProps}}}
 \newcommand\makesymbolic{\darkmath{\textsf {symb}}}
@@ -293,7 +293,6 @@
 \newcommand\hdom[0]{\delta}
 
 
-
 %
 % Instrumented Semantics
 \newcommand\istate{\underline{\sigma}}
@@ -305,3 +304,26 @@
 \newcommand\symbinst[0]{\darkmath{\textsf{s}\rightarrow\textsf{i}}}
 \newcommand\instconc[0]{\instrumented\rightarrow\concrete}
 
+
+%
+% Separation Logic
+\newcommand\lexpr[0]{\ensuremath{E}}
+\newcommand{\lemp}{\texttt{emp}}%{\E{emp}}
+\newcommand{\pointsto}{\mapsto}
+\newcommand{\sep}{\mathbin{*}}
+\newcommand{\emptyfields}[2]{\command{noProps}(#1, #2)}
+\newcommand{\qass}[0]{Q}
+\newcommand{\rass}[0]{R}
+\newcommand{\sass}[0]{S}
+\newcommand{\pass}[0]{P}
+\newcommand{\up}[0]{up}
+\newcommand{\subst}[0]{\theta}
+\newcommand{\success}[1]{\textbf{S}(#1)}
+\newcommand{\fail}[1]{\textbf{F}(#1)}
+\newcommand{\GetCellV}[1]{\getcell_{\darkmath{\textsf {V}}}(#1)}
+\newcommand{\GetDomainV}[1]{\getdomain_{\darkmath{\textsf {V}}}(#1)}
+\newcommand{\unifylexpr}{\mathcal{U}_{\darkmath{\textsf {E}}}}
+%
+\newcommand{\osome}[1]{\darkmath{\textsf {Some}}(#1)}
+\newcommand{\onone}[0]{\darkmath{\textsf {None}}}
+\newcommand{\option}[0]{o}

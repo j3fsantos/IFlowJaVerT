@@ -52,7 +52,7 @@ $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \js
 \hspace{0.02cm} $\mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$ \\[0.1cm]
 % Commands
 $\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
-\hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \assert(\jsilexpr)$ \\[0.1cm]
+\hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \jassert(\jsilexpr)$ \\[0.1cm]
 %
 $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
  \end{tabular}}
@@ -65,7 +65,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 \jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
 They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and symbolic variable creation. 
 %
-\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
+\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\jassert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
 The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
 The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure identifier and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
 If the procedure raises an error, control is transferred to the $j$-th command; otherwise, it follows to the next command. 
@@ -325,7 +325,7 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
 \qquad
 \inferrule[\textsc{Assert - True}]
   { 
-      \ccmd{i}  = \assert(\jsilexpr)
+      \ccmd{i}  = \jassert(\jsilexpr)
       \\\\ 
       %\absstore = \absstate.\stosel
       %\quad
@@ -336,7 +336,7 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
 \qquad 
 \inferrule[\textsc{Assert - False}]
   { 
-      \ccmd{i}  = \assert(\jsilexpr)
+      \ccmd{i}  = \jassert(\jsilexpr)
       \\\\ 
       %\absstore = \absstate.\stosel
       %\quad
