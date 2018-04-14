@@ -221,21 +221,20 @@ For clarity, we keep the executing program implicit and use a function $\ccmd{\p
 returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
 \begin{table*}[t!]
-\centering
-\renewcommand{\arraystretch}{1.2} 
-{\scriptsize \begin{tabular}{@{}ccccc@{}}\toprule
+\centering 
+{\scriptsize \begin{tabular}{@{}c@{}ccc@{}c@{}}\toprule
 \multicolumn{3}{c}{{\it Concrete Execution}} & &  \emph{Instrumented Execution}  \\
 \cmidrule{1-3} \cmidrule{5-5}
 \emph{Successful}  &  & \emph{Failing}  &   &       \\
 \cmidrule{1-1} \cmidrule{3-3}   
-{\includegraphics[width=0.25\textwidth]{figures/conc_exec.pdf}} & & 
-{\includegraphics[width=0.25\textwidth]{figures/conc_wrong_exec.pdf}}  & & 
-{\includegraphics[width=0.25\textwidth]{figures/inst_exec.pdf}}  \\  
+{\includegraphics[width=0.31\textwidth,valign=T]{figures/conc_exec.png}} & & 
+{\includegraphics[width=0.27\textwidth,valign=T]{figures/conc_wrong_exec.png}} & & 
+{\includegraphics[width=0.35\textwidth,valign=T]{figures/inst_exec.png}}  \\  
 \bottomrule
 \end{tabular}}
 \vspace{2pt}
 \caption{Concrete vs instrumented execution\label{example:symb:states:vs:assertions}}
-\vspace*{-0.5cm}
+\vspace*{-0.8cm}
 \end{table*}
 
 \begin{figure}[t!]
@@ -492,10 +491,9 @@ property, and calls the procedure whose identifier is bound to that value
 (with the argument $\litstring{foo}$). 
 When running this program from the state described in the top left corner of 
 Table~\ref{example:symb:states:vs:assertions}, the procedure call can be executed 
-successfully. However, if we extend the initial state with the frame $(\loc_o, \litstring{get}) \mapsto 5$, 
+successfully. However, if we extend the initial state with the frame $(\loc_o, \litstring{get}) \mapsto 42$, 
 as shown in the second column of Table~\ref{example:symb:states:vs:assertions}, the procedure 
-call fails, as $5$ is not a procedure identifier. 
-
+call fails, as $42$ is not a procedure identifier. 
 
 \subsection{Instrumented Semantics}\label{subsec:instrumented}
 
