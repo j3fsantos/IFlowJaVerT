@@ -680,26 +680,24 @@ expressions denoting arbitrary values.
 A \emph{symbolic state} $\sstate = (\sheap, \sdom, \sstore, \pc)$ is a 4-tuple consisting of a 
 symbolic heap $\sheap$, a symbolic domain $\sdom$, a symbolic store $\sstore$, and a path condition $\pc$. 
 Symbolic heaps, stores, and domains correspond to the symbolic liftings of their instrumented 
-counterparts given in \S\ref{subsec:instrumented}, by replacing concrete values symbolic expressions. 
-Hence, for instance, a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
+counterparts given in \S\ref{subsec:instrumented}, by replacing concrete values with symbolic expressions: e.g.,~a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
 is a partial function mapping pairs of object locations and symbolic expressions to symbolic expressions
-extended with the special value $\none$. 
+extended with $\none$. 
 %A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
 %$\jvar \in \jvars$ to symbolic expressions.
 %A symbolic location, $\sdom \in \sdoms$,  a partial function mapping object locations 
 %to symbolic expressions. 
 %The \emph{heap domain} maps object locations to set of properties that may be defined in the corresponding object.  
 A \emph{path condition}~\cite{symb:exec:survey} is a first-order quantifier-free formula over symbolic variables, 
-which accumulates constraints on the symbolic variables that trigger 
-the execution to follow the path that led to the current symbolic state.
+which accumulates constraints on the symbolic variables that direct 
+the execution to the current symbolic state.
 To avoid clutter, we conflate logical values with \jsil logical values and \jsil logical 
-operators with the boolean logical operators. Alternatively, we could have chosen to 
-have two different types, \jsil logical expressions and logical expressions, together with a lifting 
+operators with the boolean logical operators. Alternatively, we could have \jsil logical expressions and logical expressions separately, together with a lifting 
 function for converting the former to the latter. Our choice simplifies both reasoning 
-and~presentation, in that a path condition is simply a \jsil symbolic expression of type boolean. 
+and~presentation, in that a path condition is simply a \jsil symbolic boolean expression. 
 
 We instantiate the abstract semantics for the symbolic case by providing the appropriate definitions 
-for the required abstract functions/relations below (we omit those that coincide with the instrumented case). 
+for the required abstract functions/relations below.% (we omit those that coincide with the instrumented case). 
 We write $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ for the symbolic semantic 
 judgement for basic commands and $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ 
 for control flow commands, where $\scs$ ranges over symbolic call stacks. 
@@ -720,7 +718,6 @@ symbolic stores instead of concrete stores.
 \end{itemize}
 }
 
-\newpage
 \begin{display}{Symbolic Semantics Rules}
 \text{
 {\scriptsize
@@ -864,7 +861,7 @@ symbolic stores instead of concrete stores.
 }
 \end{wrapfigure}
 
-\myparagraph{Example:}
+\myparagraph{Example}
 To get a better intuition of how symbolic execution works, let us take a look at the snippet of code shown on the right. 
 This code: 
         \dtag{0}~creates a new symbolic string $\mathtt{s}$;
@@ -962,7 +959,7 @@ $\hat{s} = \mathtt{``@proto"}$.
 %\end{mathpar}}
 %\end{display}
 
-\myparagraph{Formal Guarantees:}
+\myparagraph{Formal Guarantees}
 We relate the symbolic semantics with the instrumented semantics using 
 \emph{symbolic environments}, $\senv : \svars \rightharpoonup \vals$, mapping 
 symbolic values to concrete values. 
@@ -1139,8 +1136,7 @@ $$
 \end{corollary}
 
 %
-The {\bf proofs} of all the results in this section, as well as all the complete definitions, 
-are given in the Appendix.
+%The {\bf proofs} of all the results in this section, as well as all the complete definitions, are given in the Appendix.
 
 %
 %
