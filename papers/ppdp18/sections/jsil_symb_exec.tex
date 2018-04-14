@@ -223,10 +223,10 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
 \begin{table*}[t!]
 \centering 
 {\scriptsize \begin{tabular}{@{}c@{}ccc@{}c@{}}\toprule
-\multicolumn{3}{c}{{\it Concrete Execution}} & &  \emph{Instrumented Execution}  \\
+\multicolumn{3}{c}{{\it Concrete Execution: successful (left); failing (right)}} & &  \emph{Instrumented Execution}  \\
+%\cmidrule{1-3} \cmidrule{5-5}
+%\emph{Successful}  &  & \emph{Failing}  &   &       \\
 \cmidrule{1-3} \cmidrule{5-5}
-\emph{Successful}  &  & \emph{Failing}  &   &       \\
-\cmidrule{1-1} \cmidrule{3-3}   
 {\includegraphics[width=0.30\textwidth,valign=T]{figures/conc_exec.png}} & & 
 {\includegraphics[width=0.26\textwidth,valign=T]{figures/conc_wrong_exec.png}} & & 
 {\includegraphics[width=0.342\textwidth,valign=T]{figures/inst_exec.png}}  \\  
@@ -314,7 +314,7 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
       \absstore' = [ \jvar_i \mapsto \absval_i \mid_{i = 0}^{m}]
    }
    {\abssemrule{\absstate, \abscs, i}{\absstate[\stosel \mapsto \absstore'],  (\pid', \absstore, \jvar, i{+}1, j) :: \abscs, 0}{\top}{\top}{}}
-    \\ 
+    \\
 %
 \inferrule[\textsc{Assume}]
   { 
@@ -584,13 +584,13 @@ only means that this property does not exist in the current heap. Also, note how
  
  \myparagraph{Example: Frame revisited}
  In the rightmost column of Table~\ref{example:symb:states:vs:assertions}, we give the instrumented 
- execution of the discussed example in an initial state where 
+ execution of the frame example when
  the object at location $l_o$ is guaranteed not to have the property $\litstring{get}$. 
  Then, the  instrumented heap cannot be extended  with 
  the frame $(\loc_o, \litstring{get}) \mapsto 5$ as it overlaps with $(\loc_o, \litstring{get}) \mapsto \none$, meaning 
- that the frame bug illustrated in the middle column cannot be replicated in the instrumented settin.,  
- Also, if we were to remove $(\loc_o, \litstring{get}) \mapsto \none$ from the initial heap, 
- the instrumented execution would get stuck in the execution of line~$0$. 
+ that the illustrated frame bug cannot be replicated in the instrumented setting.  
+ Also, if we remove $(\loc_o, \litstring{get}) \mapsto \none$ from the initial heap, 
+ the instrumented execution will get stuck in the execution of line~$0$. 
 
 \begin{wrapfigure}{R}{0.12\textwidth}
 \vspace*{-0.27cm}
@@ -686,7 +686,7 @@ $$
 \vspace*{-0.3cm}
 \caption{Execution traces: Instrumented GetCell (left); \cosette symbolic execution (right)}
 \label{fig:sexecexample}
-\vspace*{-0.4cm}
+\vspace*{-0.3cm}
 \end{figure*}
 
 \vspace*{-0.2cm}
