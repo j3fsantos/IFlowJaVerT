@@ -687,7 +687,7 @@ $$
 \vspace*{-0.3cm}
 \caption{Execution traces: Instrumented GetCell (left); \cosette symbolic execution (right)}
 \label{fig:sexecexample}
-\vspace*{-0.3cm}
+\vspace*{-0.4cm}
 \end{figure*}
 
 \vspace*{-0.2cm}
@@ -872,41 +872,41 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
 \vspace*{2pt}
 GetCell extends its instrumented counterpart by recording relevant information in the path condition (highlighted): if a symbolic property is found, we record the appropriate equality; if it is not found, we record that it is different from all of the properties.
 
-\begin{wrapfigure}{R}{0.15\textwidth}
+\begin{wrapfigure}{R}{0.12\textwidth}
+\vspace*{0.2cm}
 {\footnotesize
-\hspace*{-0.5cm} $\mathtt{0\quad s := symbolic\ (String)}$ \\
-\hspace*{-0.5cm} $\mathtt{1\quad o := new\ ()}$ \\
-\hspace*{-0.5cm} $\mathtt{2\quad o[s] := 42};$ \\
-\hspace*{-0.5cm} $\mathtt{3\quad x := getFields(o);}$ \\
-\hspace*{-0.5cm} $\mathtt{4\quad assert\ (card \ x == 2)}$
+\hspace*{-0.55cm} $\mathtt{0\quad s := symb\ (String)}$ \\
+\hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\
+\hspace*{-0.55cm} $\mathtt{2\quad o[s] := 42};$ \\
+\hspace*{-0.55cm} $\mathtt{3\quad x := getFields(o);}$ \\
+\hspace*{-0.55cm} $\mathtt{4\quad assert\ (card \ x = 2)}$
 }
+\vspace*{-0.2cm}
 \end{wrapfigure}
 
 \myparagraph{Example}
-To get a better intuition of how symbolic execution works, let us take a look at the snippet of code shown on the right. 
+To get a better intuition of the symbolic execution, let us observe the code snippet on the right and its symbolic execution in Figure~\ref{fig:sexecexample} (right). 
 This code: 
-        \dtag{0}~creates a new symbolic string $\mathtt{s}$;
-	\dtag{1}~creates a new object $\mathtt{o}$;
-	\dtag{2}~assigns 42 to the property $\mathtt{s}$ of $\mathtt{o}$; 
-	\dtag{3}~collects all the properties of $\mathtt{o}$ into a set and assigns this set to $\mathtt{x}$; and
-	\dtag{4}~asserts that the cardinality of the set in $\mathtt{x}$ is 2, i.e.~that~$\mathtt{o}$ has two properties in the end. 
-	     This last assertion will produce a failing symbolic execution.
+        \dtag{0-1}~creates a new symbolic string \jsinline|s| and a new object~\jsinline|o|;
+	\dtag{2}~assigns 42 to the property \jsinline|s| of~\jsinline|o|; 
+	\dtag{3}~collects all the properties of $\mathtt{o}$; and
+	\dtag{4}~asserts that $\mathtt{o}$ has two properties in the end. 
+	     The last assertion will produce a failing symbolic execution.
 %
-To understand why, consider the symbolic execution of this program given in Figure~\ref{fig:sexecexample}.
+%To understand why, consider the symbolic execution of this program given in Figure~\ref{fig:sexecexample} (right).
 %
 The key insight is that the symbolic execution branches when executing the property assignment (line 2).
 % 
 More concretely, the symbolic execution can either use the rule \prooflab{GetCell - Found}, when 
-the inspected property coincides with one of the object's existing properties (in this case: $\hat{s} = \mathtt{``@proto"}$), 
+the inspected property coincides with one of the object's existing properties ({\small$\hat{s} = \mathtt{``@proto"}$}), 
 or the rule \prooflab{GetCell - Not Found}, when the inspected property is different from all of the 
-object's existing properties (in this case: $\hat{s} \neq \mathtt{``@proto"}$). 
+object's existing properties ({\small $\hat{s} \neq \mathtt{``@proto"}$}). 
 %
-Hence, while in the left branch,  the object has a single property $\mathtt{``@proto"}$ that gets updated to 42,
-in the right branch, the object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and 
-$\hat{s}$, with value 42. 
+In the left branch, $\mathtt{o}$ has only a single property {\small$\mathtt{``@proto"}$} (that gets updated to 42), whereas
+in the right branch, it has two properties, {\small$\mathtt{``@proto"}$} and $\hat{s}$. 
 %
-Therefore, the assert command fails in the left branch, leading the symbolic execution to produce the concrete counter-model 
-$\hat{s} = \mathtt{``@proto"}$.
+Therefore, the assert command fails in the left branch and the symbolic execution  produces the concrete counter-model 
+{\small$\hat{s} = \mathtt{``@proto"}$}.
 
 %
 % is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and/or inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and $\hat{s}$, with value 42.
@@ -981,12 +981,11 @@ $\hat{s} = \mathtt{``@proto"}$.
 %\end{display}
 
 \myparagraph{Formal Guarantees}
-We relate the symbolic semantics with the instrumented semantics using 
+We relate the symbolic semantics to the instrumented semantics using 
 \emph{symbolic environments}, $\senv : \svars \rightharpoonup \vals$, mapping 
 symbolic values to concrete values. 
 A symbolic environment is \emph{well-formed} if it maps symbolic 
-values to concrete values of the appropriate type (i.e.~symbolic strings are mapped to strings 
-and symbolic numbers are mapped to numbers). In the following, we always 
+values to concrete values of the appropriate type (e.g.~symbolic strings are mapped to strings). In the following, we  
 assume well-formed symbolic environments. 
 %
 Given a symbolic environment $\senv$, we use $\interpret{\symbinst}{\senv}(\sstate)$ to 
@@ -997,8 +996,8 @@ that if we have a symbolic trace $\transabssemrule{\sstate, \scs, i}{\sstate', \
  and an instrumented state in the interpretation of $\sstate$ \emph{filtered by the final 
  path condition}, then there is an instrumented trace that will produce a final instrumented state 
  in the interpretation of the final symbolic state. 
- Note that we have to use the final path condition $\sstate'.\pcsel$ when picking the initial 
- instrumented state, because we only care about the initial instrumented states for which 
+ We use the final path condition $\sstate'.\pcsel$ when picking the initial 
+ instrumented state because we only care about the initial instrumented states for which 
 the instrumented execution follows the same path as the symbolic execution. 
 
 %The soundness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
@@ -1011,10 +1010,11 @@ the instrumented execution follows the same path as the symbolic execution.
 
 
 \begin{theorem}[Bounded Soundness]\label{lemma:soundness:jsil:symb:exe:instrumented:instrumented}
+\vspace*{-0.1cm}
 $$
 \begin{array}{l}
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
-    \ \implies \ \exists \, \senv', \istate', \cs' \, . \, 
+    \ \implies \ \exists \, \senv' \geq \senv, \istate', \cs' \, . \, 
         \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad \quad \quad  \quad \quad \quad \quad  \quad \quad
              \ \wedge \ (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')
 \end{array}
@@ -1023,8 +1023,7 @@ $$
 
 
 
-
-
+\vspace*{-0.25cm}
 \subsection{Linking the Semantics}\label{sex:formal:guarantees}
 
 The last step of our methodology consists of  linking the symbolic semantics to the concrete semantics
