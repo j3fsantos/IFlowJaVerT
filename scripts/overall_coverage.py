@@ -45,7 +45,7 @@ def make_overall_coverage(cov):
     fnames.remove('main') # it's named by default but we don't care
     
     if not lines_consistent(cov):
-        raise Error('Line numbering not consistent, aborting.')
+        raise ValueError('Line numbering not consistent, aborting.')
 
     overall = {}
 
