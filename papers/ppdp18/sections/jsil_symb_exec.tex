@@ -91,8 +91,7 @@ Abstract states expose the following functions and relations:
              The expression $\stupdt{}(\absstate, \jvar, \absval)$ denotes the state obtained from $\absstate$ 
              by updating the value corresponding to $\jvar$ in $\absstate.\stosel$ to $\absval$. 
 
-  \item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc{}(\absstate)$ evaluates to a pair consisting
-          of a value denoting a fresh location and the new state that keeps track of that allocation. %
+  %\item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc{}(\absstate)$ evaluates to a pair consistingof a value denoting a fresh location and the new state that keeps track of that allocation. %
 %             
 
 
@@ -153,8 +152,8 @@ Abstract states expose the following functions and relations:
 \\
 \inferrule[\textsc{Object Creation}]
   { 
-     (\absstate, \loc) = \absalloc{}(\absstate)
-  }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\hpupdt{}(\absstate, \loc, \protop, \jnull)}{}}
+     \loc \text{ fresh} \qquad \absgetcellrule{}{\absstate, \loc, \protop}{\absstate', -} \\\\ \absstate'' = \hpupdt{}(\absstate', \loc, \protop, \jnull)
+       }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\stupdt{}(\absstate'', \jvar, \loc)}{}}
 \qquad  
 \inferrule[\textsc{Property Access}]
   { 
@@ -195,7 +194,7 @@ Abstract states expose the following functions and relations:
 \end{mathpar}}
 \vspace*{-0.5cm}
 \caption{Abstract semantics of basic commands: {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}\label{abs:sem:bcmds:fig}
-\vspace*{-0.45cm}
+\vspace*{-0.5cm}
 \end{figure}
 
 Transitions for \jsil
@@ -203,22 +202,22 @@ basic commands (Figure~\ref{abs:sem:bcmds:fig}) are of the form
 $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$, meaning that the execution of the basic command 
 $\bcmd$ in the abstract state $\absstate$ results in the abstract state $\absstate'$. 
 %
-To describe transitions of \jsil commands, we introduce \emph{execution modes} and 
-\emph{call stacks}.  \jsil has two execution modes, ranged over by $\mode$: 
+To describe transitions of \jsil commands, we introduce \emph{execution modes}, $\mode$, and 
+\emph{call stacks}, $\cs$.  \jsil has two execution modes: 
 $\top$, meaning the execution can proceed; and~$\bot$, meaning that a failure 
-has occurred and the execution must stop. Call stacks, ranged over by $\abscs$, are lists of tuples of the form $(\pid, \absstore, \jvar, i, j)$, where: 
+has occurred and the execution must stop. Call stacks are lists of tuples of the form $(\pid, \absstore, \jvar, i, j)$, where: 
 \dtag{1}~$\pid$~is the identifier of the executing procedure;
 \dtag{2}~$\absstore$~is the store of the procedure that called~$\pid$; 
-\dtag{3}~$\jvar$~is the variable to which the return of $\pid$ must be assigned in~$\absstore$; 
-\dtag{4} $i$ is the command index to which the control jumps after executing $\pid$ in case of normal return; 
-and \dtag{5} $j$ is the command index to which it jumps in case of error return. 
+\dtag{3}~$\jvar$~is the variable that will hold the return value of $\pid$ in~$\absstore$; 
+\dtag{4} $i$ is the command index to which the control jumps after $\pid$ terminates normally; 
+and \dtag{5} $j$ is the command index to which it jumps in case of an error. 
 Transitions for \jsil commands (Figure~\ref{abs:sem:cmds:fig}) have the form:  $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$, 
-meaning that, in the context of the entire program $\prog$, the evaluation of the $i$-th command of the first procedure in the 
+meaning that, given a program $\prog$, the evaluation of the $i$-th command of the first procedure in the 
 call stack $\abscs$, in state $\absstate$ and execution mode $\mode$, generates 
 the state $\absstate'$, call stack $\abscs'$,  and the next command to be evaluated is the $j$-th command of the first procedure 
-of $\abscs'$, in execution mode $\mode'$. 
-For clarity, we keep the executing program implicit and use a function $\ccmd{\prog, \cs, i}$, which 
-returns the $i$-th command of the procedure that is first in $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
+of $\abscs'$, in execution mode~$\mode'$. 
+For clarity, we keep the program implicit and use a function $\ccmd{\prog, \cs, i}$, which 
+returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
 
 \begin{table*}[t!]
 \centering 
@@ -229,7 +228,7 @@ returns the $i$-th command of the procedure that is first in $\cs$. %We write $\
 \cmidrule{1-1} \cmidrule{3-3}   
 {\includegraphics[width=0.31\textwidth,valign=T]{figures/conc_exec.png}} & & 
 {\includegraphics[width=0.27\textwidth,valign=T]{figures/conc_wrong_exec.png}} & & 
-{\includegraphics[width=0.35\textwidth,valign=T]{figures/inst_exec.png}}  \\  
+{\includegraphics[width=0.352\textwidth,valign=T]{figures/inst_exec.png}}  \\  
 \bottomrule
 \end{tabular}}
 \vspace{2pt}
@@ -348,10 +347,10 @@ returns the $i$-th command of the procedure that is first in $\cs$. %We write $\
  \vspace*{-0.5cm}
  \captionsetup{format=nastyCaption}
 \caption{Abstract semantics of commands: \\{\small $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}\label{abs:sem:cmds:fig}
-\vspace*{-0.4cm}
+\vspace*{-0.7cm}
 \end{figure}
 
-\vspace*{-0.05cm}
+\vspace*{-0.2cm}
 \subsection{\jsil Concrete Semantics}
 A \jsil concrete state $\jstate$ is a pair $(\heap, \store)$ consisting of a heap and a store. 
 A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to values,
@@ -367,7 +366,6 @@ We write $\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ for the concrete se
 judgement for basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
 for control flow commands. 
 
-\vspace{3pt}
 \begin{display}{Selected Concrete Semantics Rules}
 \text{
 {\scriptsize
@@ -410,12 +408,7 @@ for control flow commands.
        }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_m}}
   %
  %
- \quad \;
-      \inferrule[\textsc{Allocation}]
-   { 
-         \loc \text{ fresh}%(\loc, -) \in \domain(\jstate.\hpsel)
-   }{  \absalloc{\concrete}(\jstate) =  (\jstate, \loc) }
-   \quad \;
+ \qquad 
    \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
@@ -448,7 +441,6 @@ for control flow commands.
   \end{mathpar}
   }}
  \end{display}
-\vspace{4pt}
 
 The instantiation of the \jsil abstract semantics to the concrete case is straightforward: if an object \jsinline|l| has property \jsinline|p|, GetCell returns the associated value, and $\none$ otherwise; GetDomain returns the set of properties of a given object;
 heap allocation returns a fresh object location without changing the state;
@@ -495,24 +487,23 @@ successfully. However, if we extend the initial state with the frame $(\loc_o, \
 as shown in the second column of Table~\ref{example:symb:states:vs:assertions}, the procedure 
 call fails, as $42$ is not a procedure identifier. 
 
-\subsection{Instrumented Semantics}\label{subsec:instrumented}
+\vspace*{-0.2cm}
+\subsection{\jsil Instrumented Semantics}\label{subsec:instrumented}
 
 The first step of our methodology %for designing compositional analyses for languages that do not observe the frame property 
 consists of designing an instrumented version of the semantics that observes the frame property. 
 %
-For that, not only do we keep track of the properties that are present in a given object, but also the properties that 
-are not present.
+For that, we keep track of not only the properties that are present in a given object, but also the properties that are not present.
 
 An instrumented state $\istate$ is a tuple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
 a domain table, and a store. 
 %
 An instrumented heap, $\iheap \in \iheaps : \locs \partialmap \strings \partialmap \setext{\vals}{\none}$, 
-differs from a concrete heap in that it can map object properties to $\none$, to indicate that those properties 
-do not exist. 
+differs from a concrete heap in that it can map object properties to $\none$, to indicate their absence. 
 %
 A domain table $\idom : \locs \partialmap \vals$, maps each location in the domain of a heap to the set 
 of properties that it can \emph{possibly} have. For instance, if $p \not\in \idom(\loc)$, then the object 
-at location $\loc$ does not have the property $p$. 
+at location $\loc$ does not have the property~$p$. 
 %
 
 We instantiate the abstract semantics for the instrumented case by providing the appropriate definitions 
@@ -521,7 +512,7 @@ We write $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ for the instrum
 judgement for basic commands and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
 for control flow commands. 
 
-\vspace{5pt}
+\vspace{3pt}
 \begin{display}{Instrumented Semantics Rules}
 \text{
 {\scriptsize
@@ -544,10 +535,10 @@ for control flow commands.
   \and
       \inferrule[\textsc{GetCell - Found}]
    { 
-        \istate = (\iheap, \store, \idom) 
-        \quad
+        \istate = (\iheap, -, \store) 
+        \\\\
          \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
-      \\\\
+      \quad
          \evalexpr{\concrete}(\store, \jsilexpr_2) = p
          \\\\ 
        \iheap = - \, \uplus \, (\loc, p) \mapsto \ival
@@ -573,20 +564,11 @@ for control flow commands.
   %
   \\
  %
-    \inferrule[\textsc{Allocation}]
-   { 
-         \istate = (\iheap, \store, \idom) 
-           \quad 
-         (\loc, -) \not\in \domain(\istate.\hpsel) 
-         \\\\
-         \idom' = \idom[\loc \mapsto \{ \protop \}]
-   }{  \absalloc{\concrete}(\istate) =  ((\iheap, \idom', \store), \loc) }
- \and
  % 
        \inferrule[\textsc{Heap Update}]
    { 
          \istate = (\iheap, \idom, \store) 
-         \\\\ 
+         \\
          \iheap' = \iheap[(\loc, p) \mapsto \ival]
    }{  \hpupdt{\instrumented}(\istate, (\loc, p), \ival) =  (\iheap, \idom, \store) }
  \end{mathpar}}}
@@ -626,22 +608,16 @@ goes through in the instrumented semantics, then its concretisation (given by $\
 goes through in the concrete semantics. 
 
 \begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
-$$
-\begin{array}{l}
-\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad
-       \ \implies \ 
+\hspace*{-0.28cm}$$
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}\Rightarrow
         \transabssemrule{\istate \dunion \iheap_f, \cs, i}{\istate' \dunion \iheap_f, \cs', j}{\mode}{\mode'}{\instrumented} 
-\end{array}
 $$
 \end{theorem}
 
 \begin{lemma}[Transparency for Instrumentation]\label{lemma:instrumented:semantics}
 $$
-\begin{array}{l}
-\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}  \\ \quad \quad
-       \ \implies \ 
-        \transabssemrule{\interpret{\instconc}{}(\istate), \cs, i}{\interpret{\instconc}{}(\istate'), \cs', j}{\mode}{\mode'}{\concrete} 
-\end{array}
+\hspace*{-0.22cm}
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \Rightarrow \transabssemrule{\interpret{\instconc}{}(\istate), \cs, i}{\interpret{\instconc}{}(\istate'), \cs', j}{\mode}{\mode'}{\concrete} 
 $$
 \end{lemma}
 
@@ -689,7 +665,7 @@ $$
 \vspace*{-0.3cm}
 \end{figure*}
 
-
+\vspace*{-0.2cm}
 \subsection{Symbolic Semantics}\label{subsec:symb:semantics}
 In order to execute \jsil programs symbolically, we introduce typed symbolic variables $\svar \in \svars$: 
 we use $\sstring$, $\snumber$, $\sbool$, and $\sloc$ to denote symbolic strings, numbers, 
