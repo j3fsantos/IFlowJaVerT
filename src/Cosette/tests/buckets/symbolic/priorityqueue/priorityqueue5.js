@@ -721,7 +721,7 @@ var x3 = symb_number(x3);
 
 pqueue.enqueue(x1);
 pqueue.enqueue(x2);
-// pqueue.enqueue(x3);
+pqueue.enqueue(x3);
 
 pqueue.dequeue();
 
