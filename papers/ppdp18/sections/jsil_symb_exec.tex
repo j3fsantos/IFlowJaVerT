@@ -507,10 +507,10 @@ of properties that it can \emph{possibly} have, that is, if $p \not\in \idom(\lo
 at location $\loc$ does not have the property~$p$. In this way, we implicitly keep track of an infinite number of absent properties.
 %
 
-Below, we instantiate the \jsil abstract semantics to the instrumented case. 
+We instantiate the abstract semantics to the instrumented case. 
 We write $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ for the instrumented semantic 
-judgement for \jsil basic commands and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
-for \jsil commands. 
+judgement for basic commands, and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
+for~commands. 
 
 \begin{display}{Selected Instrumented Semantics Rules}
 \text{
@@ -628,6 +628,7 @@ heap cells mapped to $\none$ and domain information).
 Lemma~\ref{lemma:instrumented:semantics} states that if a given execution 
 goes through in the instrumented semantics, then its concretisation (given by $\interpret{\instconc}{}$) 
 goes through in the concrete semantics. %All proofs can be found in the Appendix.
+For $\istate = (\iheap, \idom, \store)$, we write $\istate \dunion \iheap'$ to denote $(\iheap \dunion \iheap', \idom, \store)$.
 
 \begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
 \hspace*{-0.28cm}$$
@@ -702,8 +703,8 @@ expressions denoting arbitrary values.
 
 A \emph{symbolic state} $\sstate = (\sheap, \sdom, \sstore, \pc)$ is a 4-tuple consisting of a 
 symbolic heap $\sheap$, a symbolic domain $\sdom$, a symbolic store $\sstore$, and a path condition $\pc$. 
-Symbolic heaps, stores, and domains correspond to the symbolic liftings of their instrumented 
-counterparts given in \S\ref{subsec:instrumented}, by replacing concrete values with symbolic expressions: e.g.,~a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
+We obtain symbolic heaps, stores, and domains from their instrumented 
+counterparts of~\S\ref{subsec:instrumented} by replacing concrete values with symbolic expressions: e.g.,~a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
 is a partial function mapping pairs of object locations and symbolic expressions to symbolic expressions
 extended with $\none$. 
 %A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
@@ -715,17 +716,18 @@ A \emph{path condition}~\cite{symb:exec:survey} is a first-order quantifier-free
 which accumulates constraints on the symbolic variables that direct 
 the execution to the current symbolic state.
 To avoid clutter, we conflate logical values with \jsil logical values and \jsil logical 
-operators with the boolean logical operators. Alternatively, we could have \jsil logical expressions and logical expressions separately, together with a lifting 
-function for converting the former to the latter. Our choice simplifies both reasoning 
-and~presentation, in that a path condition is simply a \jsil symbolic boolean expression. 
+operators with the boolean logical operators. 
+%Alternatively, we could have \jsil logical expressions and logical expressions separately, together with a lifting function for converting the former to the latter. 
+This choice simplifies both reasoning 
+and~presentation, as path condition is simply a \jsil symbolic boolean expression. 
 
-We instantiate the abstract semantics for the symbolic case by providing the appropriate definitions 
-for the required abstract functions, focussing below on the \polish{Sth}. % (we omit those that coincide with the instrumented case). 
+We instantiate the abstract semantics for the symbolic case, 
+%by providing the appropriate definitions for the required abstract functions, 
+focussing on the relevant definitions below. % (we omit those that coincide with the instrumented case). 
 We write $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ for the symbolic semantic 
 judgement for basic commands and $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ 
-for control flow commands, where $\scs$ ranges over symbolic call stacks. 
-A symbolic call stack only differs from a concrete call stack in that it contains 
-symbolic stores instead of concrete stores.
+for commands. $\scs$ denotes symbolic call stacks, which contain symbolic stores.
+For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$ to denote $(\sheap, \sdom, \sstore, \pc \wedge \sexprb)$ and $\sstate.\pcsel\!$ to denote $\pc$.
 
 %Furthermore, we redefine \jsil expressions, $\pvsexpr \in \pvsexprs$ to take into account symbolic values
 % as follows: $\pvsexpr \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \pvsexpr \mid \pvsexpr \binoper \pvsexpr$.
@@ -735,12 +737,7 @@ symbolic stores instead of concrete stores.
 % Therefore, an evaluation of a \jsil extended expression $\pvsexpr$ in a symbolic store $\sstore$ always yields a 
 %symbolic expression $\sexpr$.
 
-\jfs{
-\begin{itemize}
-  \item Explain the {\color{red}RED}
-\end{itemize}
-}
-
+\vspace{2pt}
 \begin{display}{Symbolic Semantics Rules}
 \text{
 {\scriptsize
@@ -804,7 +801,7 @@ symbolic stores instead of concrete stores.
         \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none)
        \quad
        \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
-   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore,  {\color{red}\pc \, \wedge \, \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}})), (\sloc, \sexprp, \none)}}
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \, \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}})), (\sloc, \sexprp, \none)}}
   %
   \\
   %
@@ -815,14 +812,13 @@ symbolic stores instead of concrete stores.
         \evalexpr{}(\sstore, \jsilexpr_2) = \sexprp
       \\\\
        \sheap = - \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv
-        \\\\
+        \quad
         %
        %\pc \not\vdash \sexprp' \neq \sexprp 
        %\quad 
-       \sstate' = (\sheap, \sdom, \sstore, {\color{red} \pc \wedge (\sexprp = \sexprp')})
+       \sstate' = (\sheap, \sdom, \sstore, {\color{blue} \pc \wedge (\sexprp = \sexprp')})
    }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{\sstate', (\sloc, \sexprp, \sexprv)}}
  %
- \and 
 %   \inferrule[\textsc{Store Update}]
 %   { 
 %         \sstate = (\sheap, \sdom, \sstore, \pc) 
@@ -872,6 +868,9 @@ symbolic stores instead of concrete stores.
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jfalse} 
  \end{mathpar}}}
  \end{display}
+
+\vspace*{2pt}
+GetCell extends its instrumented counterpart by recording relevant information in the path condition (highlighted): if a symbolic property is found, we record the appropriate equality; if it is not found, we record that it is different from all of the properties.
 
 \begin{wrapfigure}{R}{0.15\textwidth}
 {\footnotesize
