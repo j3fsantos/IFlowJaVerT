@@ -16,8 +16,7 @@ We obtain the concrete, instrumented, and symbolic semantics by instantiating
 the abstract semantics with a corresponding state signature. 
 This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication.
 %
-Our instrumented semantics explicitly keeps track of properties that are not present in a given object, using ideas from~\cite{gardner:popl:2012,javert}.
-
+Our instrumented semantics explicitly keeps track of properties that are not present in a given object, using ideas from~\cite{gardner:popl:2012,javert}. All definitions and proofs are given in full in the Appendix.
 
 %In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
 %\jsil, which we then instantiate to obtain its concrete and symbolic semantics.
@@ -30,8 +29,10 @@ Our instrumented semantics explicitly keeps track of properties that are not pre
 %Finally, in \S\ref{subsec:jsil:analysis:implementation}, we give a brief overview
 %of our implementation. %in \rosette~\cite{Rosette1,Rosette2} NO NO NO! Burn the witch!
 
+\vspace*{-0.2cm}
 \subsection{\jsil Syntax and Abstract Semantics}\label{subsec:jsil:analysis:formalism}
- 
+
+\vspace*{-0.1cm}
 \myparagraph{Syntax} \jsil is a simple goto language featuring top-level procedures and commands operating on object heaps. It was purposefully designed to natively support the main dynamic features of JavaScript: extensible objects; dynamic property access; and dynamic procedure calls. The syntax of \jsil is shown below. 
 
 \vspace{5pt}
@@ -64,7 +65,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 \jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
 They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and symbolic variable creation. 
 %
-\jsil \emph{commands} include \jsil basic commands and commands related to control flow: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment, which allows \JSComp to produce code in Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it from the formal presentation as it does not impact the reasoning. Further details can be found in~\cite{javert}.} 
+\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\assert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
 The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
 The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure identifier and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
 If the procedure raises an error, control is transferred to the $j$-th command; otherwise, it follows to the next command. 
@@ -226,14 +227,14 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
 \cmidrule{1-3} \cmidrule{5-5}
 \emph{Successful}  &  & \emph{Failing}  &   &       \\
 \cmidrule{1-1} \cmidrule{3-3}   
-{\includegraphics[width=0.31\textwidth,valign=T]{figures/conc_exec.png}} & & 
-{\includegraphics[width=0.27\textwidth,valign=T]{figures/conc_wrong_exec.png}} & & 
-{\includegraphics[width=0.352\textwidth,valign=T]{figures/inst_exec.png}}  \\  
+{\includegraphics[width=0.30\textwidth,valign=T]{figures/conc_exec.png}} & & 
+{\includegraphics[width=0.26\textwidth,valign=T]{figures/conc_wrong_exec.png}} & & 
+{\includegraphics[width=0.342\textwidth,valign=T]{figures/inst_exec.png}}  \\  
 \bottomrule
 \end{tabular}}
 \vspace{2pt}
 \caption{Concrete vs. instrumented execution\label{example:symb:states:vs:assertions}}
-\vspace*{-0.8cm}
+\vspace*{-0.9cm}
 \end{table*}
 
 \begin{figure}[t!]
@@ -446,7 +447,7 @@ The instantiation of the \jsil abstract semantics to the concrete case is straig
 heap allocation returns a fresh object location without changing the state;
 the rules for store update and positive heap update are standard; and 
 the negative heap update removes the given property of a given object from the heap.
-The remaining rules can be seen in the Appendix.
+%The remaining rules can be seen in the Appendix.
 
 %\jfs{
 %\begin{itemize}
@@ -495,23 +496,22 @@ consists of designing an instrumented version of the semantics that observes the
 %
 For that, we keep track of not only the properties that are present in a given object, but also the properties that are not present.
 
-An instrumented state $\istate$ is a tuple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
+An instrumented state $\istate$ is a triple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
 a domain table, and a store. 
 %
 An instrumented heap, $\iheap \in \iheaps : \locs \partialmap \strings \partialmap \setext{\vals}{\none}$, 
-differs from a concrete heap in that it can map object properties to $\none$, to indicate their absence. 
+differs from a concrete heap in that it can map object properties to $\none$, indicating their absence. 
 %
 A domain table $\idom : \locs \partialmap \vals$, maps each location in the domain of a heap to the set 
-of properties that it can \emph{possibly} have. For instance, if $p \not\in \idom(\loc)$, then the object 
-at location $\loc$ does not have the property~$p$. 
+of properties that it can \emph{possibly} have, that is, if $p \not\in \idom(\loc)$, then the object 
+at location $\loc$ does not have the property~$p$. In this way, we implicitly keep track of an infinite number of absent properties.
 %
 
 Below, we instantiate the \jsil abstract semantics to the instrumented case. 
 We write $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ for the instrumented semantic 
-judgement for basic commands and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
-for control flow commands. All rules can be found in the Appendix. 
+judgement for \jsil basic commands and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
+for \jsil commands. 
 
-\vspace{3pt}
 \begin{display}{Selected Instrumented Semantics Rules}
 \text{
 {\scriptsize
@@ -575,9 +575,12 @@ for control flow commands. All rules can be found in the Appendix.
  
  The main difference between the concrete and the instrumented semantics is apparent in the rule \textsc{GetCell - Not Found}. 
 In particular, while the expression $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
-means that one is sure that the object denoted by $\jsilexpr_1$ does not have the property 
+means that one is certain that the object denoted by $\jsilexpr_1$ does not have the property 
 denoted by $\jsilexpr_2$, the expression $\absgetcellrule{\concrete}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
-only means that this property does not exist in the current heap. 
+only means that this property does not exist in the current heap. In the same rule, observe how a none-cell inspected by GetCell ``materialises'' by moving from the domain table, where information about was kept implicit, to the heap, where it is made explicit.
+Finally, note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table.
+ 
+ %As we inspect properties using GetCell, they .
  
  \myparagraph{Example}
  In the rightmost column of Table~\ref{example:symb:states:vs:assertions}, we give the instrumented 
@@ -589,21 +592,21 @@ only means that this property does not exist in the current heap.
  and \dtag{2} if we were to remove $(\loc_o, \litstring{get}) \mapsto \none$ from the initial heap, 
  the instrumented execution would get stuck in the execution of line $0$. 
 
-\jfs{
-\begin{itemize}
-  \item An example to explain the domain and how it interacts with the none-fields
-\end{itemize}
-}
+%\jfs{
+%\begin{itemize}
+%  \item An example to explain the domain and how it interacts with the none-fields
+%\end{itemize}
+%}
 
 \myparagraph{Formal Guarantees}
 Theorem~\ref{teo:frame:property} states that the \jsil instrumented semantics observes the 
 frame property. Lemma~\ref{lemma:instrumented:semantics} relates the instrumented 
 semantics with the concrete semantics via an erasure function  $\interpret{\instconc}{}$. Informally, $\interpret{\instconc}{}(\istate)$
-denotes the concrete state obtained by erasing negative-resource information in $\istate$, that is,  
-heap cells mapped to $\none$ and domain information. 
+denotes the concrete state obtained by erasing negative information in $\istate$ (i.e.~  
+heap cells mapped to $\none$ and domain information). 
 Lemma~\ref{lemma:instrumented:semantics} states that if a given execution 
 goes through in the instrumented semantics, then its concretisation (given by $\interpret{\instconc}{}$) 
-goes through in the concrete semantics. All proofs can be found in the Appendix.
+goes through in the concrete semantics. %All proofs can be found in the Appendix.
 
 \begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
 \hspace*{-0.28cm}$$
