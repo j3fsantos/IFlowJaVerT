@@ -506,41 +506,31 @@ of properties that it can \emph{possibly} have. For instance, if $p \not\in \ido
 at location $\loc$ does not have the property~$p$. 
 %
 
-We instantiate the abstract semantics for the instrumented case by providing the appropriate definitions 
-for the required abstract functions/relations below (we omit those that coincide with the concrete case). 
+Below, we instantiate the \jsil abstract semantics to the instrumented case. 
 We write $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ for the instrumented semantic 
 judgement for basic commands and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
-for control flow commands. 
+for control flow commands. All rules can be found in the Appendix. 
 
 \vspace{3pt}
-\begin{display}{Instrumented Semantics Rules}
+\begin{display}{Selected Instrumented Semantics Rules}
 \text{
 {\scriptsize
 \begin{mathpar} 
- \inferrule[\textsc{GetDomain}]
+     \inferrule[\textsc{Heap Update}]
    { 
-        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
-      \quad
-       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
-        \\\\
-        %
-          (\loc,-) \notin \domain (\iheap')  
-        \quad
-          \jsilset{p_1, ..., p_m} = \idom(\loc)
-          \\\\
-        \forall_{0 \leq i \leq n} \, \val_i \neq \none 
-         \quad 
-           \forall_{n < i \leq m} \, \val_i = \none 
-   }{  \absgetdomainfun{\instrumented}((\iheap, \idom, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_n}}
-  \and
+         \istate = (\iheap, \idom, \store) 
+         \quad
+         \iheap' = \iheap[(\loc, p) \mapsto \ival]
+   }{  \hpupdt{\instrumented}(\istate, (\loc, p), \ival) =  (\iheap', \idom, \store) }
+   \and
       \inferrule[\textsc{GetCell - Found}]
    { 
         \istate = (\iheap, -, \store) 
-        \\\\
+        \quad
          \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
-      \quad
+      \\\\
          \evalexpr{\concrete}(\store, \jsilexpr_2) = p
-         \\\\ 
+         \quad 
        \iheap = - \, \uplus \, (\loc, p) \mapsto \ival
         }{  \absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate, (\loc, p, \ival)}}
         \\
@@ -563,25 +553,34 @@ for control flow commands.
      }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr_1, \jsilexpr_2}{(\iheap', \idom', \store), (\loc, p, \none)}}
   %
   \\
+  \inferrule[\textsc{GetDomain}]
+   { 
+        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
+      \quad
+       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
+        \quad
+        %
+          (\loc,-) \notin \domain (\iheap')  
+        \quad
+          \jsilset{p_1, ..., p_m} = \idom(\loc)
+          \\\\
+        \forall_{0 \leq i \leq n} \, \val_i \neq \none 
+         \quad 
+           \forall_{n < i \leq m} \, \val_i = \none 
+   }{  \absgetdomainfun{\instrumented}((\iheap, \idom, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_n}}
  %
  % 
-       \inferrule[\textsc{Heap Update}]
-   { 
-         \istate = (\iheap, \idom, \store) 
-         \\
-         \iheap' = \iheap[(\loc, p) \mapsto \ival]
-   }{  \hpupdt{\instrumented}(\istate, (\loc, p), \ival) =  (\iheap, \idom, \store) }
  \end{mathpar}}}
  \end{display}
  
- The main difference between the two is apparent in the rule \textsc{GetCell - Not Found}. 
+ The main difference between the concrete and the instrumented semantics is apparent in the rule \textsc{GetCell - Not Found}. 
 In particular, while the expression $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 means that one is sure that the object denoted by $\jsilexpr_1$ does not have the property 
 denoted by $\jsilexpr_2$, the expression $\absgetcellrule{\concrete}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
-just means that this property does not exist in the current heap. 
+only means that this property does not exist in the current heap. 
  
  \myparagraph{Example}
- In the right-most column of Table~\ref{example:symb:states:vs:assertions}, we give the instrumented 
+ In the rightmost column of Table~\ref{example:symb:states:vs:assertions}, we give the instrumented 
  execution of the discussed example in an initial state where 
  the object at location $l_o$ is guaranteed not to have the property $\litstring{get}$. 
  Observe that: \dtag{1} the current instrumented heap cannot be extended  with 
@@ -599,13 +598,12 @@ just means that this property does not exist in the current heap.
 \myparagraph{Formal Guarantees}
 Theorem~\ref{teo:frame:property} states that the \jsil instrumented semantics observes the 
 frame property. Lemma~\ref{lemma:instrumented:semantics} relates the instrumented 
-semantics with the concrete semantics. To express this relation, we make 
-use of the function  $\interpret{\instconc}{}$. Informally,   $\interpret{\instconc}{}(\istate)$
-denotes the concrete state obtained by erasing negative-resource information in $\istate$: 
+semantics with the concrete semantics via an erasure function  $\interpret{\instconc}{}$. Informally, $\interpret{\instconc}{}(\istate)$
+denotes the concrete state obtained by erasing negative-resource information in $\istate$, that is,  
 heap cells mapped to $\none$ and domain information. 
 Lemma~\ref{lemma:instrumented:semantics} states that if a given execution 
 goes through in the instrumented semantics, then its concretisation (given by $\interpret{\instconc}{}$) 
-goes through in the concrete semantics. 
+goes through in the concrete semantics. All proofs can be found in the Appendix.
 
 \begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
 \hspace*{-0.28cm}$$
