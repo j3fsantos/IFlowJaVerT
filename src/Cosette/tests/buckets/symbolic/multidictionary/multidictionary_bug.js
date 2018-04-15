@@ -617,9 +617,6 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
             return true;
         }
         array = parent.get(key);
-        if (buckets.isUndefined(array)) {
-          return false;
-        }
         if (buckets.arrays.remove(array, value, equalsF)) {
             if (array.length === 0) {
                 parent.remove(key);
@@ -749,16 +746,13 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
 var dict = new buckets.MultiDictionary()
 
 var s1 = symb_string(s1);
-var s2 = symb_string(s2);
 var x1 = symb_number(x1);
 var x2 = symb_number(x2);
 
-Assume(not (x1 = x2));
-
 dict.set(s1, x1);
-dict.set(s2, x2);
+dict.set(s1, x2);
 
 var res1 = dict.remove(s1, x1);
 Assert(res1);
-var res2 = dict.remove(s1, x2);
-Assert(((s1 = s2) and (not (x1 = x2)) and res2) or (((not (s1 = s2)) or ((s1 = s2) and (x1 = x2))) and (not res2)));
+var res2 = dict.remove(s1, x1);
+Assert(((x1 = x2) and res2) or ((not (x1 = x2)) and (not res2)));
