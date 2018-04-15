@@ -1026,57 +1026,57 @@ $$
 \vspace*{-0.25cm}
 \subsection{Linking the Semantics}\label{sex:formal:guarantees}
 
-The last step of our methodology consists of  linking the symbolic semantics to the concrete semantics
-in way that describes the frames that can be safely added to the initial state.  
-In other words, the interpretation of symbolic states needs to describe both the concretisation of that 
-state, as well as all the frames that can be safely added to that concretisation. 
+The last step of our methodology consists of linking the symbolic semantics to the concrete semantics in a way that describes the frames that can be safely added to the initial state.  
+In other words, the interpretation of symbolic states needs to describe both the concretisation of that state and the frames safe for that concretisation. 
 
-Below we give the formal interpretation of symbolic states. Informally, 
+Below, we give the formal interpretation of symbolic states. Informally, 
 $\interpret{\symbconc}{\senv}(\sstate)$ denotes a set of pairs of the form $(\jstate, \heap_f)$
 where $\jstate$ is the concrete state obtained from $\sstate$ using $\senv$, and $\heap_f$ 
-a heap frame that can be safely added to $\jstate$. In a nutshell, the legal heap frames 
-are those that not overlap with the negative resource captured by $\sstate$. 
+a heap frame that can be safely added to $\jstate$, meaning that it does not overlap with the negative resource captured by~$\sstate$. 
 
- \begin{display}{Symbolic State Interpretation}
+\newcommand{\shorthand}{\sortstyle{I}}
+
+\smallskip
+ \begin{display}{Symbolic State Interpretation $(\shorthand = \interpret{\symbconc}{\senv})$}
 {\scriptsize 
 \begin{mathpar}
 %
 \inferrule[Empty Heap]{}{
-\interpret{\symbconc}{\senv}(\hemp) \semeq \hemp, \emptyset
+\shorthand(\hemp) \semeq \hemp, \emptyset
 }
 \qquad
 \inferrule[Non-none Cell]{
-   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-    p =  \interpret{\symbconc}{\senv}(\sexprp) \\\\
-    v =  \interpret{\symbconc}{\senv}(\sexprv)  \quad 
-    \heap = \hcell{l}{p}{v}
+%   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+%    p =  \interpret{\symbconc}{\senv}(\sexprp) \\\\
+%    v =  \interpret{\symbconc}{\senv}(\sexprv)  \quad 
+    \heap = \hcell{\shorthand(\sexprl)}{\shorthand(\sexprp)}{\shorthand(\sexprv)}
 }{
-\interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap, \emptyset
+\shorthand(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \heap, \emptyset
 }
 \qquad
 \inferrule[None Cell]{
-   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
-   p = \interpret{\symbconc}{\senv}(\sexprp)  \\\\
-   \hdom = \jsilset{ (l, p) }
+%   l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+%   p = \interpret{\symbconc}{\senv}(\sexprp)  \\\\
+   \hdom = \jsilset{ (\shorthand(\sexprl), \shorthand(\sexprp) }
 }{
-  \interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \hemp, \hdom
+  \shorthand(\hcell{\sexprl}{\sexprp}{\none}) \semeq \hemp, \hdom
 }
 \\
 \inferrule[Heap Composition]{
-   \interpret{\symbconc}{\senv}(\sheap_i) = h_i, \hdom_i \mid_{i =1,2} \\\\
-   \heap = h_1 \dunion h_2 \quad 
-   \hdom = \hdom_1 \dunion \hdom_2
+%   \interpret{\symbconc}{\senv}(\sheap_i) = h_i, \hdom_i \mid_{i =1,2} \\\\
+   \heap = \shorthand(h_1) \dunion \shorthand(h_2) \\\\
+   \hdom = \shorthand(\hdom_1) \dunion \shorthand(\hdom_2)
 }{
-\interpret{\symbconc}{\senv}(\sheap_1 \dunion \sheap_2) \semeq \heap, \hdom
+f(\sheap_1 \dunion \sheap_2) \semeq \heap, \hdom
 }
 \qquad
 \inferrule[Symbolic Domains]
 {
   \hdom =  \left\{ (l, p) \mid 
-                     {\begin{array}{l}
-                         \sexprl \in \domain(\sdom) \, \wedge \, l = \interpret{\symbconc}{\senv}(\sexprl)  \\ 
-                              \, \wedge \, p \not\in \interpret{\symbconc}{\senv}(\sdom(\sexprl))
-                     \end{array}} \right\}
+                     {
+                         \sexprl \in \domain(\sdom) \, \wedge \, l = f(\sexprl)  
+                              \, \wedge \, p \not\in f(\sdom(\sexprl))
+                     } \right\}
 }{
 \interpret{\symbconc}{\senv}(\sdom) 
     \semeq \hdom 
@@ -1085,24 +1085,26 @@ are those that not overlap with the negative resource captured by $\sstate$.
 \inferrule[Symbolic States]{
     \sstate = (\sheap, \sdom, \sstore, \pc) 
     \quad 
-   \interpret{\symbconc}{\senv}(\sheap) = \heap, \hdom_1
+   \shorthand(\sheap) = \heap, \hdom_1
    \quad
-   \interpret{\symbconc}{\senv}(\sdom) = \hdom_2
+   \shorthand(\sdom) = \hdom_2
    \quad
-   \interpret{\symbconc}{\senv}(\sstore) = \store
+   \shorthand(\sstore) = \store
     \quad 
-    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
+    \shorthand(\pc) = \jtrue 
 }{
-\interpret{\symbconc}{\senv}(\sstate) \semeq \{ (\heap, \store, \heap_f) \mid \domain(\heap_f) \cap (\domain(h) \cup \hdom_1 \cup \hdom_2) = \emptyset \} 
+\shorthand(\sstate) \semeq \{ (\heap, \store, \heap_f) \mid \domain(\heap_f) \cap (\domain(h) \cup \hdom_1 \cup \hdom_2) = \emptyset \} 
 }
 \end{mathpar}}
 \end{display}
 
+\smallskip
 Theorem~\ref{teo:soundness:jsil:symb:exe} states the bounded soundness of the \jsil symbolic 
-execution with respect to the concrete semantics. Note that this theorem quantifies over all possible 
+execution with respect to the concrete semantics. This theorem quantifies over all possible 
 frames, which is not the case for standard results  in symbolic execution. 
 
-\begin{theorem}[Bounded Sounded + Frame Resilience]\label{teo:soundness:jsil:symb:exe}
+\vspace*{-0.1cm}
+\begin{theorem}[Bounded Soundess + Frame Resilience]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
@@ -1116,13 +1118,13 @@ $$
 
 The \emph{bug-finding} corollary (Corollary~\ref{bug:finding}) states that if 
 we find a symbolic trace that results in a failed assertion, 
-then there also exists a concrete execution that will cause that assertion to fail.
-Observe that the analysis is designed in such a way that there are no false positives, 
-meaning that if we find a failing symbolic trace,
-we can always instantiate its symbolic values obtaining a concrete counter-model for the 
+then there also exists a concrete execution for which that assertion fails.
+The analysis is designed in such a way that there are no false positives: 
+if we find a failing symbolic trace,
+we can always instantiate its symbolic values to obtain a concrete counter-model for the 
 failing assertion. %This is essential, as \cosette is primarily a \emph{bug-finding} tool.
 
-
+\vspace*{-0.1cm}
 \begin{corollary}[Bug-finding]\label{bug:finding}
 $$
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\bot}{\symbolic}  
@@ -1131,24 +1133,24 @@ $$
 \end{corollary}
 
 Finally, the \emph{verification} corollary (Corollary~\ref{corollary:verification})
-states that if we have symbolically explored all the possible execution paths
+states that if we have symbolically explored all possible execution paths
 starting from a given symbolic state and call stack $(\sstate, \scs)$,  
-then the execution of the program starting from  any concrete state in the models 
+then the execution of the program starting from any concrete state in the models 
 of the initial symbolic state (under the initial path condition) will result in a final concrete state
 in the models of one of the final symbolic states (under its associated path condition).  
-As \cosette does not infer loop invariants, if a \jsil program contains loops that cannot be 
-unrolled statically, we will never be in the case of the verification corollary. 
+As \cosette does not infer loop invariants, if a program contains loops that cannot be unrolled statically, we will never be in the case of the verification~corollary. 
 
+\vspace*{-0.1cm}
 \begin{corollary}[Verification]\label{corollary:verification}
 $$
 \begin{array}{l}
 \wedge_{k=1}^n \, \big( \transabssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
-    \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big)  \\ \quad \quad
+    \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big)  \\  \quad
     \, \wedge \, (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs)
-    \\ \quad \quad  \quad 
+    \\ \qquad 
 %
-      \ \implies \ \exists 1 \leq l \leq n, \senv', \jstate', \cs' \, . \, 
-           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete} \\ \quad \quad \quad \quad \quad \quad 
+      \ \implies \ \exists l \in \{ 1, \ldots, n \}, \senv', \jstate', \cs' \, . \, 
+           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete} \\ \qquad \qquad \qquad
            \, \wedge \, 
            (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate_l, \scs_l)
 \end{array}
@@ -1174,60 +1176,54 @@ $$
 %$$
 %\end{lemma}
 
-
+\vspace*{-0.3cm}
 \subsection{Implementation}\label{subsec:jsil:analysis:implementation}
 
 
-Implementing a symbolic execution engine for \jsil is a non-trivial 
+Implementing a symbolic execution engine is a non-trivial 
 task, requiring a substantial engineering effort. 
 % 
 % 
-Hence, instead of implementing the symbolic semantics of \jsil from scratch, we leverage on 
+We implement a proof-of-concept prototype version of \cosette, leveraging on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine designed to 
 enable swift development of new 
 solver-aided languages. 
 %
-\rosette is a small extension of Racket~\cite{racket} equipped with a symbolic compiler with support 
-for symbolic values and first order assertions. Because \rosette is itself solver-aided, languages 
-implemented in \rosette can also make use of the solver-aided facilities provided by \rosette. 
+\rosette is an extension of Racket~\cite{racket} equipped with a symbolic compiler with support 
+for symbolic values and first-order assertions. As \rosette is itself solver-aided, languages 
+implemented in \rosette can also make use of its solver-aided facilities. 
 Hence, by implementing the \emph{instrumented} \jsil interpreter in \rosette, we obtain the symbolic 
 interpreter described in \S\ref{subsec:symb:semantics}. %consistent with the symbolic semantics described in  \S\ref{subsec:jsil:analysis:formalism}. 
 %The idea of turning a concrete interpreter into a symbolic interpreter by embedding it in 
 %
-The implementation of the instrumented interpreter in \rosette must fulfil the following criteria:
+Our implementation satisfies the following criteria.
 
-\begin{itemize}          
-   \item \emph{Efficiency:} the implementation must promote \rosette's efficient behaviour;
+%\begin{description}         
+   %\item[Efficiency:] the implementation must promote \rosette's efficient behaviour;
    
-   \item \emph{Termination:} the user must be given a way to establish a bound for the symbolic execution 
-            of programs that loop on symbolic values; 
-  
-   \item \emph{Adequacy:} the symbolic execution of the concrete interpreter in \rosette 
-            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
-            We discuss adequacy in \S\ref{sec:evaluation}. 
-\end{itemize}
+   %\item[Termination:] the user must be given a way to establish a bound for the symolic execution          of programs that loop on symbolic values; 
+%\end{description}
 
 \myparagraph{Efficiency}
-It is often possible for more than one transition of the symbolic 
-semantics to be applicable during symbolic execution, 
-giving rise to a potentially intractable number of possible symbolic states. 
-To counter this problem, \rosette uses a sophisticated 
+Symbolic execution can quickly give rise to a potentially intractable number of possible symbolic states. 
+To counter this, \rosette uses a sophisticated 
 symbolic state merging algorithm, which factors out the common 
-part between multiple symbolic states  in order to expose more 
-opportunities for concrete evaluation. The non-mergeable portions of the state 
-are represented as \emph{guarded symbolic unions}. 
-In order to help
-\rosette merge sets of possible symbolic states, we only make use of 
-data structures natively supported by \rosette and we always update them 
-in place. 
+part between multiple symbolic states in order to expose more 
+opportunities for concrete evaluation.
+To assist \rosette with the merging, we make use of 
+data structures natively supported by \rosette and always update them 
+in-place. 
 
-\myparagraph{Termination} The \jsil symbolic execution engine does not 
-include the abstraction mechanisms which would allow it to finitise the symbolic 
-execution of loops that branch on symbolic values~\cite{abstract:symbolic:exec}. 
-Hence, the user is asked to specify an upper bound on the number of times
-the symbolic execution is allowed to branch on symbolic values.
+%The non-mergeable portions of the state are represented as \emph{guarded symbolic unions}. 
+
+\myparagraph{Termination} As the \jsil symbolic execution engine cannot
+ finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify 
+ an upper bound on the number of times the symbolic execution can
+ branch on symbolic values.
 Once that upper bound is reached, the symbolic execution stops.  
 
-
+   \myparagraph{Adequacy} The symbolic execution of the concrete interpreter in \rosette 
+            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
+            We discuss adequacy in \S\ref{sec:evaluation}. 
 
 
