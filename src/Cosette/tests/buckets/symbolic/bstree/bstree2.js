@@ -590,7 +590,7 @@ Assume(not (x3 = x4));
 bst.add(x1);
 bst.add(x2);
 bst.add(x3);
-//bst.add(x4);
+bst.add(x4);
 
 bst.remove(x2);
 var res1 = bst.contains(x2);
@@ -602,7 +602,7 @@ Assert(not res0);
 
 bst.remove(x1);
 bst.remove(x3);
-//bst.remove(x4);
+bst.remove(x4);
 var res3 = bst.contains(x1);
 Assert(not res3);
 var res4 = bst.isEmpty();
