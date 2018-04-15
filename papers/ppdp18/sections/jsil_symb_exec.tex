@@ -801,7 +801,7 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
         \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none)
        \quad
        \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
-   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \, \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}})), (\sloc, \sexprp, \none)}}
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr_1, \jsilexpr_2}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \, \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}})), (\sloc, \sexprp, \none)}}
   %
   \\
   %
@@ -817,7 +817,7 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
        %\pc \not\vdash \sexprp' \neq \sexprp 
        %\quad 
        \sstate' = (\sheap, \sdom, \sstore, {\color{blue} \pc \wedge (\sexprp = \sexprp')})
-   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{\sstate', (\sloc, \sexprp, \sexprv)}}
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr_1, \jsilexpr_2}{\sstate', (\sloc, \sexprp, \sexprv)}}
  %
 %   \inferrule[\textsc{Store Update}]
 %   { 

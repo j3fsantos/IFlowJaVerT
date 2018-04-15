@@ -78,72 +78,88 @@ As it is customary~\cite{javert,jacobs2011verifast,sepwithsmt}, the decision pro
 on the spatial part of the symbolic state, and then discharging the pure part of the 
 entailment to an external constraint solver (in our case, \rosette). 
 
-
-
 \begin{algorithm}
 \algblock[Name]{match}{end}
-\caption{FIP - Symbolic States}\label{fip:symb:states}
+\caption{Frame Inference for Symbolic States}\label{fip:symb:states}
 \begin{algorithmic}[1]
 \Function{Unification}{$\sstate$, $\up$, $\subst$}
     \State $\textbf{match}$ $\up$ $\textbf{with}$
     \State $\mid~\lstemp:$ \Return $\success{\subst, \sstate.\hpsel, \sstate.\domsel}$
     \State $\mid~(\sloc, \sexprp) \pointsto \sexprv \lstcons \up' :$ 
     \State $\qquad \textbf{match} \ \GetCellV{\sstate, \subst(\sloc), \subst(\sexprp)}$ $\textbf{with}$
-    \State $\qquad \mid~\success{\sstate', (-, -, \sexprv')}:$
+    \State $\qquad \mid~\success{\sstate', \sexprv'}:$
     \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
      \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
       \State $\qquad \qquad \mid~ \fail{\option} \ \, :$ \Return $\fail{\option}$
       \State $\qquad \mid~\fail{\option}:$ \Return $\fail{\option}$
      \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \up' :$  
        \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \subst(\sloc)}$ $\textbf{with}$
-       \State $\qquad \mid~\success{\sstate', (-, \sexprv')}:$
+       \State $\qquad \mid~\success{\sstate', \sexprv'}:$
          \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
        \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
        \State $\qquad \qquad \mid~ \fail{\option} \ \, :$ \Return $\fail{\option}$
+       \State $\qquad \mid~\fail{\option}:$ \Return $\fail{\option}$
      \State $\mid~\sass \lstcons \up' :$   
-      \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst))$ %\textbf{ and } (\sstate.\pcsel \vdash \subst(\sass)))$ 
-      \State $\qquad \qquad \textbf{then}$ \Call{Unification}{$\sstate'$, $\up'$, $\subst$}
+      \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst))$
+      \State $\qquad \qquad \textbf{then}$ \Return $\fail{\onone}$
+      \State $\qquad \qquad \textbf{else}$ $\textbf{if} \,(\sstate.\pcsel \vdash \subst(\sass))$
+       \State $\qquad \qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\up'$, $\subst$}
+      \State $\qquad \qquad \qquad \textbf{else}$  \Return $\fail{\osome{\subst(\sass)}}$
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
 
-%\State BLA
-%\ForAll{BLA}
-%\If{BLE}
-%  \State BLI
-%\Else
-%  \State $P,Q := \lemp$
-%\EndIf
-%\State $lla  := InferSpec$
-%\ForAll{$ Bla$}
-%\If{$Q_f \sep Q_M \vdash Q \sep \jtrue$}
-%  \State $BLA $
-%\EndIf
-%\EndFor
-%\EndFor
-%\match
-%\end
 
-%
-%\algblock[Name]{Start}{End}
-%\algblockdefx[NAME]{START}{END}%
-%    [2][Unknown]{Start #1(#2)}%
-%    {Ending}
-%\algblockdefx[NAME]{}{OTHEREND}%
-%    [1]{Until (#1)}
-%\begin{algorithmic}
-%\Start
-%    \Start
-%        \START[One]{x}
-%        \END
-%        \START{0}
-%        \OTHEREND{\texttt{True}}
-%    \End
-%    \Start
-%    \End
-%\End
-%\end{algorithmic}
-%
+
+\vspace{2pt}
+\begin{display}{Verification Rules}
+\text{
+{\scriptsize
+\begin{mathpar} 
+  \inferrule[\textsc{GetDomain}]
+   { 
+       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
+         \quad 
+          (\sloc,-) \notin \domain (\sheap')  
+         \quad
+        \forall_{0 \leq i \leq n} \,  \sexprv_i \neq \none 
+         \quad
+           \forall_{n < i \leq m} \, \sexprv_i = \none
+           \\\\ 
+           \sexprv =  \{ \sexprp_i \mid_{i = n{+}1}^m\}
+           \and
+           \sheap'' = (\sloc, \sexprp_i) \mapsto \sexprv_i  \mid_{i=0}^n
+           \and
+           \sdom = \sdom' \dunion (\sloc \mapsto \sexprv')
+   }{  \GetDomainV{(\sheap, \sdom, \sstore, \pc), \sloc} \semeq \success{(\sheap' \, \uplus \,  \sheap'', \sdom', \sstore, \pc), \sexprv' \backslash \sexprv}}
+  \\\\
+      \inferrule[\textsc{GetCell - Found}]
+   { 
+      (\sheap, \sdom, \sstore, \pc) = \sstate    
+       \quad
+         {\color{blue} \pc \vdash (\sexprp = \sexprp')}
+          \\\\ 
+       %
+       \sheap = \sheap' \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv \\\\
+        %
+       \sstate' =  (\sheap', \sdom, \sstore, \pc)
+   }{  \absgetcellrule{\symbolic}{ , \sloc, \sexprp}{\sstate', \sexprv}}
+\quad
+     \inferrule[\textsc{GetCell - Not Found}]
+   { 
+       \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
+      \quad
+       (\sloc,-) \notin \domain (\sheap'')
+        \\\\ 
+        \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none) \mid_{i=n{+}1}^{m}
+       \quad
+       \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
+       \\\\
+        \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \,)), (\sloc, \sexprp, \none)}}}
+ \end{mathpar}}}
+ \end{display}
+
 
 
 \subsection{From SL-Specifications to Symbolic Tests}\label{specs:to:symbolic:tests}
