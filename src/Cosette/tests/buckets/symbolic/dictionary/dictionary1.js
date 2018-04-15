@@ -365,7 +365,11 @@ Assert(((s1 = s2) and (res1 = x1)) or ((not (s1 = s2)) and (res1 = undefined)));
 var res2 = dict.set(s1, undefined);
 Assert(res2 = undefined);
 
-var res3 = dict.get(undefined);
+var s3 = symb_string(s3);
+Assume(not (s3 = s1));
+Assume(not (s3 = s2));
+
+var res3 = dict.get(s3);
 Assert(res3 = undefined);
 
 var res = dict.get(s1);
