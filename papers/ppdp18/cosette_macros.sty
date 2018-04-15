@@ -3,6 +3,7 @@
 % Auxiliary - Text 
 \newcommand{\dtag}[1]{{\small \bf (#1)}}
 \newcommand{\prooflab}[1]{{\small {\scshape [#1]}}}
+\newcommand\dspc[0]{\phantom{xx}}
 
 
 % --------------------------------------------------------------------- %
@@ -96,6 +97,7 @@
 \newcommand{\setext}[2]{#1_{#2}}
 \newcommand{\litstring}[1]{\text{{\it ``#1''}}}
 \newcommand{\lconf}[1]{\{ #1 \}}
+\newcommand{\functionset}[2]{[ #1 \rightarrow #2 ]}
 
 % Lists
 \newcommand{\lstcons}[0]{::}
@@ -336,7 +338,7 @@
 \newcommand{\satisfies}{\models}
 %
 \newcommand\csmain{cs_{\sf main}^0}
-
+\newcommand\sepassert{\darkmath{\textsf {assert}_*}\xspace}
 
 % From specs to tests
 \newcommand{\testify}[1]{\mathcal{T}_{#1}}

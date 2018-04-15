@@ -50,14 +50,14 @@ set denoted by $\lexpr_2$. The syntax of assertions is given below.
 
 \noindent Unsurprisingly, every symbolic state can be thought of as an assertion. In particular, 
 the symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the assertion: 
-\begin{equation}
+\begin{equation*}
 {\small \begin{array}{l}
 \big(\varoast_{(\sloc, \sexprp) \in \domain(\sheap)} (\sloc, \sexprp) \mapsto \sheap(\sloc, \sexprp)\big) 
   \sep \big(\varoast_{\sloc \in \domain(\sdom)} \, \emptyfields{\sloc}{\idom(\sloc)}\big)  \\
  %
  \qquad \sep \big(\bigwedge_{\jvar \in \domain(\sstore)} \, \jvar = \sstore(\jvar)\big) \sep \pc
 \end{array}}
-\end{equation}
+\end{equation*}
 
 
 \jfs{
@@ -84,7 +84,7 @@ As it is customary~\cite{javert,jacobs2011verifast,sepwithsmt}, the decision pro
 on the spatial part of the symbolic state, and then discharging the pure part of the 
 entailment to an external constraint solver (in our case, \rosette). 
 
-\begin{algorithm}
+{\small \begin{algorithm}
 \algblock[Name]{match}{end}
 \caption{Frame Inference for Symbolic States}\label{fip:symb:states}
 \begin{algorithmic}[1]
@@ -119,7 +119,7 @@ entailment to an external constraint solver (in our case, \rosette).
       \State $\qquad \qquad \textbf{else}$  \Return $\fail{\subst(\sass)}$
 \EndFunction
 \end{algorithmic}
-\end{algorithm}
+\end{algorithm}}
 
 %    \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst))$
 %      \State $\qquad \qquad \textbf{then}$ \Return $\fail{\onone}$
@@ -251,6 +251,56 @@ $$
 $$
 \end{definition}
 
+\begin{figure}
+{\scriptsize
+$$
+\begin{array}{ll}
+\testify{\fnormal}(\pid, \svar_i\mid_{i=0}^n, \pc, Q) \ \semeq & \\
+         \dspc \dspc  \darkmath{\sf proc} \jsilmain () \{ 
+         &  \text{Generated testing procedure for \underline{normal}-return specification:} \\ 
+             \dspc \dspc \dspc 0_{\phantom{\sf nm}}:  \assume(\pc) 
+                   & \text{  {\bf a.} Assume the initial path condition} \\ 
+   %
+             \dspc \dspc \dspc 1_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab}  
+                   & \text{  {\bf b.} Call the procedure to be tested $\pid$ with symbolic arguments $\svar_i\mid_{i=0}^n$} \\ 
+             \dspc \dspc \dspc \retlab \, : \sepassert(Q[\jvar/\retvar])
+                  & \text{  {\bf c.}  In case of normal return, assert the $\fnormal$-postcondition of $\pid$} \\ 
+             \dspc \dspc \dspc \errlab \, \, \, : \jassert(\jfalse)
+                  & \text{  {\bf d.}  In case of error return, assert $\jfalse$} \\ 
+         \ \ \ \ \ \ \ \} &\\[8pt]
+%%
+\testify{}(\specsig{P}{\pid(\jvec{x})}{Q}{\flag}) \ \semeq & \\      
+    \dspc \dspc  \mathbf{let} \ \subst = \mathbf{pick} \ \functionset{locs(P)}{\locs \backslash eflocs(P)} \ \mathbf{in} 
+           & \text{  {\bf a.}  Compute a substitution from the symbolic locations in $P$ to} \\ 
+           & \text{ $\phantom{a.}\ $ randomly picked concrete locations not overlapping with those in $P$}  \\
+    %
+    \dspc \dspc  \mathbf{let} \ (-, C, EF, \pc) = \subst(P) \ \mathbf{in}  
+            & \text{  {\bf b.}  Apply the substitution to $P$ obtaining $(-, C, EF, \pc)$}  \\
+    %
+    \dspc \dspc  \mathbf{let} \ \sstore = [ \jvar_i \mapsto \svar_i \mid_{i=0}^n] \ \mathbf{in} 
+            & \text{  {\bf c.} Compute the initial store mapping each argument to a symbolic}  \\
+            & \text{ $\phantom{c.} \ $  value of the appropriate type}  \\
+       %
+    \dspc \dspc  \mathbf{let} \ \sheap = symbeval{C}{\sstore} \ \mathbf{in} 
+           & \text{  {\bf d.}  Symbolically evaluate $EFS$ under $\sstore$, obtaining $\sheap$}  \\
+     %
+    \dspc \dspc  \mathbf{let} \ \pc' = SANIT{symbeval{EF}{\sstore}} \, \wedge \,  UEF{\sheap}{symbeval{EFS}{\sstore}}  \ \mathbf{in} 
+           & \text{  {\bf e.}  Compute the appropriate NR- and separation constraints}  \\
+    %
+      \dspc \dspc  \mathbf{let} \ \pc'' = symbeval{\subst(\pc)}{\sstore} \, \wedge \, \pc'  \ \mathbf{in} 
+          & \text{  {\bf f.} Construct the initial path condition from $\pc$ and $\pc'$}  \\
+    %
+       \dspc \dspc  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i\mid_{i=0}^n, \pc'', SymbEval{\subst(Q)}{\sstore})  \ \mathbf{in} 
+          & \text{  {\bf g.} Synthesise the symbolic test} \\
+     %
+      \dspc \dspc \dspc (\proc, \sheap) 
+\end{array}
+$$}
+\vspace*{-0.2cm}
+\caption{Symbolic Test Generation Algorithm~\label{fig:test:generation}}
+\vspace*{-0.2cm}
+\end{figure}
+
 Given a \jsil program $\prog$ containing a procedure $\pid$ with spec {\small $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$}, 
 our goal is to construct a symbolic test for checking whether or not $\pid$ behaves as its specification mandates.
 A symbolic test is a pair $(\proc, \sheap)$ consisting of a \jsil procedure with the code of the test and the initial 
@@ -271,12 +321,14 @@ is not~valid.
 \begin{theorem}[Bug-finding for SL Specifications]\label{teo:bug:finding:sl}
 $$
 \begin{array}{l}
-\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sheap) \, \wedge \, 
-  \prog[\jsilmain \mapsto \proc] : \\ \quad \quad %\symbtranstranserr{\sheap, [], i, \pc}{\sctxmain}{\pc'} \\
-    \implies  \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
+\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sstate) \, \wedge \, 
+  \prog' :  \transabssemrule{\sstate, \csmain, 0}{-}{\top}{\bot}{\symbolic} \\ \quad \quad 
+    \implies  
+         \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
 \end{array}
 $$
-\noindent where $\csmain$ denotes the initial call stack: $[ (\jsilmain, -, -, -) ]$.
+\noindent where:  $\csmain = [ (\jsilmain, -, -, -) ]$ 
+and $\prog' = \prog[\jsilmain \mapsto \proc]$.
 \end{theorem}
 
 
@@ -551,7 +603,7 @@ $$
 %
 %\myparagraph{Representation of SL-assertions}
 %We target SL-assertions $P$ that can be represented as quadruples,
-%$(\existentials, \cells, \efs, \pfs)$, consisting of: 
+%$(\existentials, \cells, EFS, \pfs)$, consisting of: 
 %\dtag{1} a set $\existentials$ of existentially quantified symbolic locations, 
 %\dtag{2} a list $\cells$ containing the non-none cell assertions (those whose value is different from $\none$), 
 %\dtag{3} a set $\efs$ containing the none-cell assertions and the empty-fields assertions, and
