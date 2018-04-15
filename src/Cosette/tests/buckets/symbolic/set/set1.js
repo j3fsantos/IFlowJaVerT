@@ -545,4 +545,16 @@ buckets.Set = function (toStringFunction) {
 
 // -------------------------------- tests -------------------------------------
 
+var set = new buckets.Set();
+
+var x1 = symb_number(x1);
+var x2 = symb_number(x2);
+
+set.add(x1);
+var res = set.add(x2);
+Assert(((x1 = x2) and (not res)) or ((not (x1 = x2)) and res));
+
+var x3 = symb_number(x3);
+var res2 = set.contains(x3);
+Assert(((x3 = x1) and res2) or ((not (x1 = x3)) and (not res2)));
 
