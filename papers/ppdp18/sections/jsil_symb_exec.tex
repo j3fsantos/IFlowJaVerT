@@ -1184,7 +1184,7 @@ Implementing a symbolic execution engine is a non-trivial
 task, requiring a substantial engineering effort. 
 % 
 % 
-We implement a proof-of-concept prototype version of \cosette, leveraging on 
+We implement a proof-of-concept, prototype version of \cosette, leveraging on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine designed to 
 enable swift development of new 
 solver-aided languages. 
@@ -1222,8 +1222,5 @@ in-place.
  branch on symbolic values.
 Once that upper bound is reached, the symbolic execution stops.  
 
-   \myparagraph{Adequacy} The symbolic execution of the concrete interpreter in \rosette 
-            must be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. 
-            We discuss adequacy in \S\ref{sec:evaluation}. 
-
+\myparagraph{Adequacy} The symbolic lifting of the instrumented interpreter done by \rosette needs to be consistent with the symbolic semantics described in \S\ref{subsec:jsil:analysis:formalism}. We would expect this to be true, as our symbolic semantics is a symbolic lifting of our instrumented semantics. In order to make certain, we constructed and successfully ran symbolic tests for each \jsil command, assuming the premises and asserting the conclusion of the corresponding rule of the symbolic semantics.
 
