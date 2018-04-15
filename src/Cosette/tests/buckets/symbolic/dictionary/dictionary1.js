@@ -311,7 +311,7 @@ buckets.Dictionary = function (toStrFunction) {
      * Returns true if the dictionary contains no keys.
      * @return {boolean} True if this dictionary contains no mappings.
      */
-    /* @id dictionary.isEmpty */
+    /* @id dictionary_isEmpty */
     dictionary.isEmpty = function () {
         return nElements <= 0;
     };
@@ -358,12 +358,17 @@ var s1 = symb_string(s1); // "2"
 var s2 = symb_string(s2); // "foo"
 
 dict.set(s1, x1);
-dict.set(x2, s2);
+var res1 = dict.set(s2, x2);
+Assert(((s1 = s2) and (res1 = x1)) or ((not (s1 = s2)) and (res1 = undefined)));
 
-var z = dict.get(s1);
 
-var size = dict.size();
-var x2toStr = x2.toString();
-//console.log(x2toStr);
+var res2 = dict.set(s1, undefined);
+Assert(res2 = undefined);
 
-Assert(((x2toStr = s1) and (size = 1) and (z = s2)) or ((not (x2toStr = s1)) and (size = 2) and (z = x1)));
+var res3 = dict.get(undefined);
+Assert(res3 = undefined);
+
+var res = dict.get(s1);
+
+Assert(((s1 = s2) and (x1 = x2) and (res = x1)) or ((s1 = s2) and (not (x1 = x2)) and (res = x2)) or ((not (s1 = s2)) and (res = x1)));
+
