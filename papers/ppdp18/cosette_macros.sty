@@ -95,6 +95,7 @@
 \newcommand{\fv}{\command{fv}}
 \newcommand{\setext}[2]{#1_{#2}}
 \newcommand{\litstring}[1]{\text{{\it ``#1''}}}
+\newcommand{\lconf}[1]{\{ #1 \}}
 
 % Lists
 \newcommand{\lstcons}[0]{::}
@@ -180,9 +181,12 @@
 \newcommand\jsilmain{\darkmath{\textsf {main}}}
 \newcommand\procedure[3]{\darkmath{\sf proc} #1(#2) \{ #3 \}}
 \newcommand\nprocedure[4]{\darkmath{\sf proc} #1(#2) \{ #3 \} \, \darkmath{\sf with} \, (#4)}
+\newcommand{\flag}[0]{\ensuremath{\mathit{fl}}\xspace}
 % programs
 \newcommand{\prog}[0]{p}
 \newcommand{\progs}[0]{\sortstyle{P}}
+\newcommand\fnormal{{\sf nm}}
+\newcommand\ferror{{\sf er}}
 \newcommand\normalsubscript{{\sf nm}}
 \newcommand\errorsubscript{{\sf er}}
 \newcommand\retlab[0]{i_{\normalsubscript}}
@@ -320,10 +324,23 @@
 \newcommand{\subst}[0]{\theta}
 \newcommand{\success}[1]{\darkmath{\textsf {Succ}}(#1)}
 \newcommand{\fail}[1]{\darkmath{\textsf {Fail}}(#1)}
-\newcommand{\GetCellV}[1]{\getcell_{\darkmath{\textsf {V}}}(#1)}
-\newcommand{\GetDomainV}[1]{\getdomain_{\darkmath{\textsf {V}}}(#1)}
+\newcommand{\GetCellV}[1]{\getcell_{\darkmath{\textsf {FIP}}}(#1)}
+\newcommand{\GetDomainV}[1]{\getdomain_{\darkmath{\textsf {FIP}}}(#1)}
 \newcommand{\unifylexpr}{\mathcal{U}_{\darkmath{\textsf {E}}}}
 %
 \newcommand{\osome}[1]{\darkmath{\textsf {Some}}(#1)}
 \newcommand{\onone}[0]{\darkmath{\textsf {None}}}
 \newcommand{\option}[0]{o}
+%
+\newcommand{\specsig}[4]{{#4} : \lconf{#1} \, #2 \,  \lconf{#3}}
+\newcommand{\satisfies}{\models}
+%
+\newcommand\csmain{cs_{\sf main}^0}
+
+
+% From specs to tests
+\newcommand{\testify}[1]{\mathcal{T}_{#1}}
+\newcommand{\testifyfun}[1]{\mathcal{T}_{#1}}
+
+
+

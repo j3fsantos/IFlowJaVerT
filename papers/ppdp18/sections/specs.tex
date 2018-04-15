@@ -62,11 +62,17 @@ the symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the 
 
 \jfs{
 \begin{itemize}
-   \item Symbolic states are assertions 
+   \item Normaliser  
    \item Assert-* 
 \end{itemize}
 }
 
+\myparagraph{Inductive Predicates}
+\cosette does not support symbolic execution over inductive predicates describing recursive 
+data structures, which are commonplace in separation-logic-style specifications~\cite{smallf, berdine:aplas:2005}. 
+As in~\cite{korat}, we deal with user-defined inductive predicate assertions by \emph{unfolding} 
+those assertions up to a fixed bound, which is established by the user. This unfolding mechanism 
+is routine and its details are, therefore, omitted from the paper. 
 
 \subsection{Frame Inference Problem}\label{subsec:fip}
 
@@ -84,35 +90,45 @@ entailment to an external constraint solver (in our case, \rosette).
 \begin{algorithmic}[1]
 \Function{Unification}{$\sstate$, $\up$, $\subst$}
     \State $\textbf{match}$ $\up$ $\textbf{with}$
-    \State $\mid~\lstemp:$ \Return $\success{\subst, \sstate.\hpsel, \sstate.\domsel}$
+    \State $\mid~\lstemp:$ \Return $\success{\subst, \sstate}$
+   % Cell ASS
     \State $\mid~(\sloc, \sexprp) \pointsto \sexprv \lstcons \up' :$ 
     \State $\qquad \textbf{match} \ \GetCellV{\sstate, \subst(\sloc), \subst(\sexprp)}$ $\textbf{with}$
     \State $\qquad \mid~\success{\sstate', \sexprv'}:$
     \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
      \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
-      \State $\qquad \qquad \mid~ \fail{\option} \ \, :$ \Return $\fail{\option}$
-      \State $\qquad \mid~\fail{\option}:$ \Return $\fail{\option}$
+      \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
+      \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
+      % EF ASS
      \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \up' :$  
        \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \subst(\sloc)}$ $\textbf{with}$
        \State $\qquad \mid~\success{\sstate', \sexprv'}:$
          \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
        \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
-       \State $\qquad \qquad \mid~ \fail{\option} \ \, :$ \Return $\fail{\option}$
-       \State $\qquad \mid~\fail{\option}:$ \Return $\fail{\option}$
+       \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
+       \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
+     % Logical Equality  
+     \State $\mid~(\sexprv = \sexprv') \lstcons \up' :$  
+        \State $\qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
+         \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate$, $\up'$, $\subst'$}
+       \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
+     % OTHER PURE ASS
      \State $\mid~\sass \lstcons \up' :$   
-      \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst))$
-      \State $\qquad \qquad \textbf{then}$ \Return $\fail{\onone}$
-      \State $\qquad \qquad \textbf{else}$ $\textbf{if} \,(\sstate.\pcsel \vdash \subst(\sass))$
-       \State $\qquad \qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\up'$, $\subst$}
-      \State $\qquad \qquad \qquad \textbf{else}$  \Return $\fail{\osome{\subst(\sass)}}$
+      \State $\qquad \textbf{if} \,(\sstate.\pcsel \vdash \subst(\sass))$
+       \State $\qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\up'$, $\subst$}
+      \State $\qquad \qquad \textbf{else}$  \Return $\fail{\subst(\sass)}$
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
 
+%    \State $\qquad \textbf{if} \, (\fv(\sass) \not\subseteq \domain(\subst))$
+%      \State $\qquad \qquad \textbf{then}$ \Return $\fail{\onone}$
+%  
+
 
 
 \vspace{2pt}
-\begin{display}{Verification Rules}
+\begin{display}{Selected FIP Rules}
 \text{
 {\scriptsize
 \begin{mathpar} 
@@ -132,37 +148,170 @@ entailment to an external constraint solver (in our case, \rosette).
            \and
            \sdom = \sdom' \dunion (\sloc \mapsto \sexprv')
    }{  \GetDomainV{(\sheap, \sdom, \sstore, \pc), \sloc} \semeq \success{(\sheap' \, \uplus \,  \sheap'', \sdom', \sstore, \pc), \sexprv' \backslash \sexprv}}
-  \\\\
+  \\
       \inferrule[\textsc{GetCell - Found}]
    { 
       (\sheap, \sdom, \sstore, \pc) = \sstate    
        \quad
-         {\color{blue} \pc \vdash (\sexprp = \sexprp')}
-          \\\\ 
-       %
-       \sheap = \sheap' \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv \\\\
-        %
-       \sstate' =  (\sheap', \sdom, \sstore, \pc)
-   }{  \absgetcellrule{\symbolic}{ , \sloc, \sexprp}{\sstate', \sexprv}}
+       \sheap = \sheap' \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv 
+       \\\\
+       {\color{blue} \pc \vdash (\sexprp = \sexprp')}
+       \quad
+       \sstate' = (\sheap', \sdom, \sstore, \pc)
+   }{  \GetCellV{\sstate, \sloc, \sexprp} \semeq \success{\sstate', \sexprv}}
 \quad
      \inferrule[\textsc{GetCell - Not Found}]
    { 
+     (\sheap, \sdom, \sstore, \pc) = \sstate  
+     \quad 
+        { \color{blue} \pc \vdash \sexprp \not\in \sdom(\sloc)}
+        \\\\
+        \sstate' = (\sheap, \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}], \sstore,  \pc)
+   }{  \GetCellV{\sstate, \sloc, \sexprp} \semeq \success{\sstate', \none}}
+\\
+     \inferrule[\textsc{GetCell - Fail with Domain Info}]
+   { 
        \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
-      \quad
+      \qquad
        (\sloc,-) \notin \domain (\sheap'')
-        \\\\ 
-        \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none) \mid_{i=n{+}1}^{m}
-       \quad
-       \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
-       \\\\
-        \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}
-   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), (\jsilexpr_1, \jsilexpr_2)}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \,)), (\sloc, \sexprp, \none)}}}
+       \qquad
+        { \color{blue} \pc \not\vdash \sexprp \not\in \sdom(\sloc)}
+        \qquad
+          { \color{blue} \pc \not\vdash \sexprp = \sexprp_i \mid_{i=0}^m}
+   }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} (\sexprp \in \sdom(\sloc)) \, \wedge \, \wedge_{i=0}^m (\sexprp_i \neq \sexprp)}}}
+ \\
+ \\
+     \inferrule[\textsc{GetCell - Fail without Domain Info}]
+   { 
+       \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
+      \qquad
+       (\sloc,-) \notin \domain (\sheap'')
+       \qquad
+       \sloc \not\in \domain(\sdom)
+        \qquad
+          { \color{blue} \pc \not\vdash \sexprp = \sexprp_i \mid_{i=0}^m}
+   }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} (\wedge_{i=0}^m (\sexprp_i \neq \sexprp)}}}
  \end{mathpar}}}
  \end{display}
 
+\newcommand{\unificationfun}{\textsc{Unification}}
+\newcommand{\unificationplan}{\mathcal{UP}}
+\newcommand{\normaliser}{\mathcal{N}}
+\newcommand{\statecompose}{\circ}
+
+\begin{theorem}[Soundness of FIP]\label{teo:fip:soundness}
+$$
+\begin{array}{l}
+	\unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}
+        \implies 
+        \interpret{}{}(\sstate) = \interpret{}{}(\sstate_f \statecompose \normaliser(\pass, \subst))
+\end{array}
+$$ 
+\end{theorem}
+
+\begin{theorem}[Bug-finding for SL]\label{teo:fip:bugfinding}
+$$
+\begin{array}{l}
+\unificationfun(\sstate, \pass) = \fail{\pc_f} 
+   \implies
+   \interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset
+\end{array}
+$$ 
+\end{theorem}
 
 
 \subsection{From SL-Specifications to Symbolic Tests}\label{specs:to:symbolic:tests}
+
+\jsil Logic specifications have the form $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$, where $\pass$ and $\qass$ are the 
+pre- and postconditions of the procedure with identifier $\pid$ and formal parameters $\jvec{x}$. 
+Each specification is associated with a return mode $\flag \in \{ \fnormal, \ferror \}$, indicating if the function
+ returns normally or with an error. 
+ %If it returns normally, then its return value can be accessed  via a dedicated variable 
+% $\retvar$, and $\errvar$ otherwise. 
+ Intuitively, a specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is 
+valid for a given \jsil program $\prog$, if $\prog$ contains a procedure with identifier 
+$\pid$ and ``whenever $\pid$ is executed in a state satisfying $P$, then, 
+if it terminates, it does so in a state satisfying $Q$, with return mode $\flag$''.
+The formal definition is given below. 
+
+
+\begin{definition}[Validity of \jsil Logic Specifications]
+A \jsil logic specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is valid with respect to a program 
+$\prog$, written $\prog \satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$, if and only if, for all logical 
+contexts $(\iheap, \store, \senv)$, heaps $\heap_f$, stores $\store_f$, and flags $\flag'$, it holds that: 
+$$
+\begin{array}{l}
+   (\jstate, \heap_f, \cs) \in \interpret{}{}(P) 
+   \ \wedge \ 
+    \abssemrule{\jstate \dunion \heap_f, \cs, 0}{\jstate', \cs', i_{\flag'}}{\top}{\top}{\concrete} \\ \quad \
+   \implies
+      \flag' = \flag \ \wedge \ \exists \jstate'' \, . \, \jstate' = \jstate'' \dunion \heap_f
+          \ \wedge \   (\jstate'', \heap_f, \cs') \in \interpret{}{}(Q) 
+\end{array}
+$$
+\end{definition}
+
+Given a \jsil program $\prog$ containing a procedure $\pid$ with spec {\small $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$}, 
+our goal is to construct a symbolic test for checking whether or not $\pid$ behaves as its specification mandates.
+A symbolic test is a pair $(\proc, \sheap)$ consisting of a \jsil procedure with the code of the test and the initial 
+symbolic heap on which to execute the test. 
+%
+Figure~\ref{fig:test:generation} presents the test generation procedure. Intuitively, $\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})$ 
+returns the symbolic test for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$. The test generation function $\testifyfun{} \ $ is defined in terms 
+of two auxiliary functions, $\testifyfun{\fnormal}$ and $\testifyfun{\ferror}$, for generating tests for $\fnormal$-mode and 
+$\ferror$-mode specifications, respectively. 
+For space reasons, we only present $\testifyfun{\fnormal}$, $\testifyfun{\ferror}$ is equivalent. 
+The test program $\prog'$, denoted by $\prog[\jsilmain \mapsto \proc]$, is obtained from the original program $\prog$ and the test procedure $\proc$ by replacing the 
+$\jsilmain$ of $\prog$ with the new test procedure, $\proc$. 
+
+Finally, Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the 
+test generated for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ finds a bug, then the specification 
+is not~valid.
+
+\begin{theorem}[Bug-finding for SL Specifications]\label{teo:bug:finding:sl}
+$$
+\begin{array}{l}
+\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sheap) \, \wedge \, 
+  \prog[\jsilmain \mapsto \proc] : \\ \quad \quad %\symbtranstranserr{\sheap, [], i, \pc}{\sctxmain}{\pc'} \\
+    \implies  \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
+\end{array}
+$$
+\noindent where $\csmain$ denotes the initial call stack: $[ (\jsilmain, -, -, -) ]$.
+\end{theorem}
+
+
+
+%
+%\noindent Given a \jsil program $\prog$ containing a procedure $\fid$ with spec {\small $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$}, 
+%our goal is to construct a symbolic test for checking whether or not $\fid$ behaves as its specification mandates.
+%A symbolic test is a pair $(\proc, \sheap)$ consisting of a \jsil procedure with the code of the test and the initial 
+%symbolic heap on which to execute the test. 
+%%
+%Figure~\ref{fig:test:generation} presents the test generation procedure. Intuitively, $\testify{}(\specsig{P}{\fid(\jvec{x})}{Q}{\flag})$ 
+%returns the symbolic test for $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$. The test generation function $\testifyfun{}$ is defined in terms 
+%of two auxiliary functions, $\testifyfun{\fnormal}$ and $\testifyfun{\ferror}$, for generating tests for $\fnormal$-mode and 
+%$\ferror$-mode specifications, respectively. 
+%The test program $\prog'$, denoted by $\prog[\jsilmain \mapsto \proc]$, is obtained from the original program $\prog$ and the test procedure $\proc$ by replacing the 
+%$\jsilmain$ of $\prog$ with the new test procedure, $\proc$. 
+%%
+%Finally, Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the 
+%test generated for $\specsig{P}{\fid(\jvec{x})}{Q}{\flag}$ finds a bug, then the specification 
+%is not~valid.
+%
+%\begin{theorem}[Bug-finding for SL Specifications]\label{teo:bug:finding:sl}
+%$$
+%\begin{array}{l}
+%\testify{}(\specsig{P}{\fid(\jvec{x})}{Q}{\flag})  = (\proc, \sheap) \, \wedge \, 
+%   \prog[\jsilmain \mapsto \proc] : \symbtranstranserr{\sheap, [], i, \pc}{\sctxmain}{\pc'} \\
+%  \qquad \qquad \implies
+%        \prog \not\satisfies \specsig{P}{\fid(\jvec{x})}{Q}{\flag}
+%\end{array}
+%$$
+%\noindent where $\sctxmain$ denotes the initial call stack: $[ (\jsilmain, -, -, -) ]$.
+%\end{theorem}
+
+
+
 
 
 
