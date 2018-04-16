@@ -1,0 +1,10 @@
+proc RegExp_construct (xsc, vthis) {
+			xmet := new ();
+			xret := new (xmet);
+			xret := "create_default_object" (xret, $lre_proto, "RegExp", true);
+	rlab:	skip
+}
+with
+{
+	ret: xret, rlab;
+};

@@ -4,6 +4,69 @@ import Internals.jsil;
 (* THE MATH LIBRARY *)
 (* **************** *)
 
+(* *** ABS *** *)
+
+proc M_abs (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_abs (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ACOS *** *)
+
+proc M_acos (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_acos (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ASIN *** *)
+
+proc M_asin (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_asin (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ATAN *** *)
+
+proc M_atan (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_atan (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
 
 (* *** CEIL *** *)
 
@@ -11,6 +74,38 @@ proc M_ceil (xsc, vthis, x) {
 			xret := "i__toNumber" (x) with elab;
 
 			xret := m_ceil (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** COS *** *)
+
+proc M_cos (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_cos (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** EXP *** *)
+
+proc M_exp (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_exp (xret);
 
 	rlab:	skip;
 	elab:	skip
@@ -37,7 +132,186 @@ with
 	err:	xret, elab;
 };
 
-(* *** MAX *** *)
+(* *** LOG *** *)
+
+proc M_log (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_log (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ROUND *** *)
+
+proc M_round (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_round (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** SIN *** *)
+
+proc M_sin (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_sin (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** SQRT *** *)
+
+proc M_sqrt (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_sqrt (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** TAN *** *)
+
+proc M_tan (xsc, vthis, x) {
+			xret := "i__toNumber" (x) with elab;
+
+			xret := m_tan (xret);
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** ATAN2 *** *)
+
+proc M_atan2 (xsc, vthis, x, y) {
+			xret := "i__toNumber" (x) with elab;
+			x := xret;
+
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+
+			xret := x m_atan2 y;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** POW *** *)
+
+proc M_pow (xsc, vthis, x, y) {
+			xret := "i__toNumber" (x) with elab;
+			x := xret;
+
+			xret := "i__toNumber" (y) with elab;
+			y := xret;
+
+			goto [((x = 1) or (x = -1)) and ((y = inf) or (y = -inf))] oops set;
+
+	set:	xret := x ** y;
+			goto rlab;
+
+	oops:	xret := nan;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xret, elab;
+};
+
+(* *** RANDOM *** *)
+
+proc M_random (xsc, vthis) {
+
+			xret := $$random;
+
+	rlab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+};
+
+(* *** MIN *** *)
+
+proc M_min (xsc, vthis) {
+
+			la := args;
+			len := l-len (la);
+			goto [len < 3] ri setup;
+
+	setup:	n := 2;
+			xret := inf;
+
+	loop:	goto [n < len] head rlab;
+
+	head:	cur := l-nth (la, n);
+			xerr := "i__toNumber" (cur) with elab;
+			cur := xerr;
+			goto [not (cur = cur)] rn comp;
+
+	comp:	sc := m_sgn (cur);
+			sm := m_sgn (xret);
+
+			goto [sc < sm] swap cmp;
+
+	cmp:	goto [cur < xret] swap next;
+	swap:	xret := cur;
+	next:	n := n + 1;
+			goto loop;
+
+	ri:		xret := inf;
+			goto rlab;
+
+	rn:		xret := nan;
+			goto rlab;
+
+	rlab:	skip;
+	elab:	skip
+}
+with
+{
+	ret:	xret, rlab;
+	err:	xerr, elab;
+};
 
 proc M_max (xsc, vthis) {
 

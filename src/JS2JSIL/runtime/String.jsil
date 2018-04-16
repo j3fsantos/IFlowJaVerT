@@ -406,7 +406,7 @@ proc SP_substring (xsc, vthis, start, end) {
 			intS := xret;
 			goto [end = undefined] undef def;
 	undef:	intE := len;
-			goto fst;	
+			goto fst;
 
 	def:	xret := "i__toInteger" (end) with elab;
 			intE := xret;

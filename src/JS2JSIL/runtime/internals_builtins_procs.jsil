@@ -1,4 +1,4 @@
-import Array.jsil, Boolean.jsil, Function.jsil, Global.jsil, Init.jsil, Internals.jsil, Math.jsil, Number.jsil, Object.jsil, String.jsil, Errors.jsil;
+import Array.jsil, Boolean.jsil, Date.jsil, Function.jsil, Global.jsil, Init.jsil, Internals.jsil, Math.jsil, Number.jsil, Object.jsil, RegExp.jsil, String.jsil, Errors.jsil;
 
 proc lalalalalalalalala () {
 	rlab: skip
