@@ -15,4 +15,5 @@ time racket $rktname > $logname
 tail -n 12 $logname
 
 python3 coverage.py $filename > $name"_coverage.txt"
-python3 sum_solver.py $filename
+solvertime=$(python3 sum_solver.py $filename)
+echo "Solver time: "$solvertime"s"
