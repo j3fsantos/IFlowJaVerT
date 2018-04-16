@@ -14,7 +14,7 @@
 (define max-depth 10)
 (define seen-instr (make-hasheq '()))
 
-(define goto-limit 1000)
+(define goto-limit 10000)
 
 (define total-solver-time 0)
 
