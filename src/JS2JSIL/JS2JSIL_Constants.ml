@@ -23,7 +23,6 @@ let js_symbolic_constructs = {
 let js2jsil_imports = [
 	"Array.jsil";
 	"Boolean.jsil";
-	"Date.jsil";
 	"Function.jsil";
 	"Global.jsil";
 	"Init.jsil";
@@ -31,7 +30,6 @@ let js2jsil_imports = [
 	"Math.jsil";
 	"Number.jsil";
 	"Object.jsil";
-	"RegExp.jsil";
 	"String.jsil";
 	"Errors.jsil"
 ]
