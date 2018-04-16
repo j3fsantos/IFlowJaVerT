@@ -36,49 +36,6 @@ with
 	err:	xret, elab;
 };
 
-(* *** MIN *** *)
-
-proc M_min (xsc, vthis) {
-
-			la := args;
-			len := l-len (la);
-			goto [len < 3] ri setup;
-
-	setup:	n := 2;
-			xret := inf;
-
-	loop:	goto [n < len] head rlab;
-
-	head:	cur := l-nth (la, n);
-			xerr := "i__toNumber" (cur) with elab;
-			cur := xerr;
-			goto [not (cur = cur)] rn comp;
-
-	comp:	sc := m_sgn (cur);
-			sm := m_sgn (xret);
-
-			goto [sc < sm] swap cmp;
-
-	cmp:	goto [cur < xret] swap next;
-	swap:	xret := cur;
-	next:	n := n + 1;
-			goto loop;
-
-	ri:		xret := inf;
-			goto rlab;
-
-	rn:		xret := nan;
-			goto rlab;
-
-	rlab:	skip;
-	elab:	skip
-}
-with
-{
-	ret:	xret, rlab;
-	err:	xerr, elab;
-};
-
 proc M_max (xsc, vthis) {
 
 			la := args;
