@@ -521,28 +521,29 @@
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
               (println (format "CUR PC ~v" cur-pc))
-              (let* ((old-solver (current-solver))
-                     (new-solver (solve+))
-                     (res (new-solver cur-pc)))
-                (solver-shutdown old-solver)
-                (if (unsat? res)
-                    (begin
-                      (println "the current pc is UNSAT")
-                      (set! success #t))
-                    (begin
-                      (println "the current pc is SAT")
-                      (cond
-                        ((eq? expr-val #t)
-                         (begin
-                           (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
-                           (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
-                        
-                        ((eq? expr-val #f)
-                         (begin
-                           (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
-                           (set! success #t)))
-                        (#t (set! success #t)))))))]
-                        
+              (let* ((new-solver (z3)))
+                (solver-clear new-solver)
+                (solver-assert new-solver (list cur-pc))
+                (let ((res (solver-check new-solver)))
+                  (solver-shutdown new-solver)
+                  (if (unsat? res)
+                      (begin
+                        (println "the current pc is UNSAT")
+                        (set! success #t))
+                      (begin
+                        (println "the current pc is SAT")
+                        (cond
+                          ((eq? expr-val #t)
+                           (begin
+                             (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
+                             (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
+                          
+                          ((eq? expr-val #f)
+                           (begin
+                             (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
+                             (set! success #t)))
+                          (#t (set! success #t))))))))]
+
              [(eq? expr-val #t)
                 (print-info proc-name (format "Assuming sth concrete that holds... continuing symbolic execution: ~v" expr-val))
                  (run-cmds-iter-next prog heap store ctx cur-index cur-index)]
