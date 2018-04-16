@@ -9,12 +9,12 @@
 (define success #f)
 (define global-outcome '())
 (define failure #f)
-(define print-cmds #f)
+(define print-cmds #t)
 (define call-stack-depth 0)
 (define max-depth 10)
 (define seen-instr (make-hasheq '()))
 
-(define goto-limit 1000)
+(define goto-limit 10000)
 
 (define (base-file-name)
   (let* (

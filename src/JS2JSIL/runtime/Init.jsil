@@ -171,6 +171,19 @@ proc setupInitialHeap () {
 			[$lnum, "POSITIVE_INFINITY"] := {{ "d", inf, false, false, false }};
 			[$lnum, "NEGATIVE_INFINITY"] := {{ "d", -inf, false, false, false }};
 
+			(* Number.prototype *)
+
+			xret := "create_default_object" ($lnum_proto, $lobj_proto, "Number", true);
+
+			m := metadata($lnum_proto);
+			[m,           "@primitiveValue"]      := 0;
+			[$lnum_proto, "constructor"]          := {{ "d", $lnum, true, false, true }};
+			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, true, false, true }};
+			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, true, false, true }};
+
+			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", empty, 0);
+
 			(* Math object *)
 
 			xret := "create_default_object" ($lmath, $lobj_proto, "Math", true);
