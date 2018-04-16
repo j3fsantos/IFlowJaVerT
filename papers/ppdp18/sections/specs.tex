@@ -6,7 +6,7 @@ functional correctness properties in general, and those targeting
 JavaScript in particular, require the user to have substantial expertise 
 and to go through a long and complex proof trace, whenever verification
 is not successful. \cosette substantially simplifies this process by providing
-concrete counter-models that invalidate its input specifications.
+concrete counter-models that invalidate the input specifications.
 
 In \S\ref{subsec:sep:assertions}, we extend the 
  \jsil symbolic interpreter with a mechanism for asserting
@@ -29,12 +29,14 @@ counter-model that invalidates the corresponding specification.
 \jsil Logic assertions~\cite{javert}
 provide a compositional way of describing \emph{partial} symbolic states. 
 \jsil assertions include: boolean operations; the separating conjunction; 
-existential quantification; and assertions for describing heaps. The $\lemp$ assertion describes 
+and assertions for describing heaps. The $\lemp$ assertion describes 
 an empty heap. The cell assertion, $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$,  describes an object 
 at the location denoted by $\lexpr_1$ with a property denoted by $\lexpr_2$ that has the value 
-denoted by $\lexpr_3$. The assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
+denoted by $\lexpr_3$. The object domain assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
 the location denoted by $\lexpr_1$ has no properties other than possibly those included in the
 set denoted by $\lexpr_2$. The syntax of assertions is given below. 
+We refer to assertions different from $- \sep -$ as \emph{simple assertions}
+and use $\spass$ and $\sqass$ to range over them.
 
 \vspace{5pt}
 \begin{display}{\jsil Logic Assertions}
@@ -44,11 +46,16 @@ set denoted by $\lexpr_2$. The syntax of assertions is given below.
   %%%%
   $\lexpr \quad \ \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr \quad \quad \quad \quad \quad \quad \quad \ \ $   \text{ Logical Expressions} \\
   $\rass, \sass \ \triangleq \jtrue \mid \jfalse \mid  \neg \rass \mid \rass \land \sass \mid \rass \lor \sass  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$  \quad \text{\hfill{Pure Asrts.}} \\
-  $\pass, \qass \triangleq \sass \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \exists \svar. \pass \mid \pass \sep \qass  \mid \emptyfields{\lexpr}{\lexpr} $ \ \quad \text{\hfill Asrts.} \\
+  $\pass, \qass \triangleq \sass \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \pass \sep \qass  \mid \emptyfields{\lexpr}{\lexpr} $ \quad \quad \quad \quad \ \  \text{\hfill Asrts.} \\
 \end{tabular}}
 \end{display}
 
-\noindent Unsurprisingly, every symbolic state can be thought of as an assertion. In particular, 
+\noindent Without loss of generality, we implicitly assume that different symbolic locations 
+denote different concrete locations.\footnote{In order to express aliasing, the user has to write multiple assertions.}
+ Furthermore, given a cell assertion $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$, we always assume 
+ $\lexpr_1$ to be either a concrete location $\loc$ or a symbolic location $\sloc$. 
+%
+Unsurprisingly, every symbolic state can be thought of as an assertion. In particular, 
 the symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the assertion: 
 \begin{equation*}
 {\small \begin{array}{l}
@@ -58,21 +65,106 @@ the symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the 
  \qquad \sep \big(\bigwedge_{\jvar \in \domain(\sstore)} \, \jvar = \sstore(\jvar)\big) \sep \pc
 \end{array}}
 \end{equation*}
-
-
-\jfs{
-\begin{itemize}
-   \item Normaliser  
-   \item Assert-* 
-\end{itemize}
-}
+Analogously, every assertion can be trivially re-organised into a symbolic state: 
+\dtag{1} cell assertions form the heap part of the state, 
+\dtag{2} object domain assertions form the domain part,
+\dtag{3} equalities involving program variables form the store, and 
+\dtag{4} pure assertions form the path condition. 
+Finally,  all the occurrences of program variables in the heap, domain, and path condition 
+are replaced with their corresponding symbolic expressions given by the store. 
+We use $\normaliser(\pass)$ to refer to the symbolic state corresponding 
+to $\pass$. 
 
 \myparagraph{Inductive Predicates}
-\cosette does not support symbolic execution over inductive predicates describing recursive 
-data structures, which are commonplace in separation-logic-style specifications~\cite{smallf, berdine:aplas:2005}. 
-As in~\cite{korat}, we deal with user-defined inductive predicate assertions by \emph{unfolding} 
-those assertions up to a fixed bound, which is established by the user. This unfolding mechanism 
-is routine and its details are, therefore, omitted from the paper. 
+\cosette does not support symbolic execution over inductive predicates, which are commonplace 
+in separation-logic-style specifications~\cite{smallf, berdine:aplas:2005}. 
+As in~\cite{korat}, we deal with user-defined inductive predicates by \emph{unfolding} 
+those predicates up to a fixed bound, given by the user. This unfolding mechanism 
+is routine and is, therefore, omitted from the paper. 
+
+\myparagraph{Asserting SL-Assertions}
+We extend \jsil with a special construct, $\sepassert(P)$, for stating that 
+the SL-assertion $P$ must hold whenever that command is evaluated. 
+The symbolic semantics is given below. 
+\begin{mathpar}
+\inferrule[\textsc{SL-Assert - True}]
+  { 
+     \ccmd{i}  = \sepassert(\pass)  \\\\
+     %
+     \unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}
+  }{
+    \abssemrule{\sstate, \scs, i}{\sstate, \scs, i{+}1}{\top}{\top}{\symbolic}
+}
+\qquad
+\inferrule[\textsc{SL-Assert - False}]
+  { 
+     \ccmd{i}  = \sepassert(\pass)  \\\\
+     %
+    \unificationfun(\sstate, \pass) = \fail{\pc_f}  \\\\ 
+    %
+     (\sstate.\pcsel \wedge \pc_f) \text{ SAT}
+  }{
+    \abssemrule{\sstate, \scs, i}{\sstate, \scs, i}{\top}{\bot}{\symbolic}
+}
+\end{mathpar}
+
+The rules make use of a partial decision procedure $\unificationfun(\sstate, \pass)$ for 
+determining whether or not a given symbolic state $\sstate$ satisfies an SL-assertion $P$, 
+which is in general undecidable \cite{citemeplease}. More concretely, 
+the decision procedure outputs: 
+\dtag{1} $\success{\subst, \sstate_f}$ when it finds a substitution $\subst$ and 
+a symbolic state frame $\sstate_f$ for which it holds that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))$ 
+and \dtag{2} $\fail{\pc_f}$ when it finds a first order formula $\pc_f$ such that 
+$\interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass)$ (with $\interpret{}{}(\sstate \, \wedge \, \pc_f) \neq \emptyset$). 
+%
+Note that, as we do not want to produce \emph{false positives}, in order to trigger 
+an assertion failure, we need to find a concrete witness for that failure. In fact, all 
+states and frames $(\jstate, \heap_f)$ in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are 
+valid witnesses in that: $(\jstate, \heap_f)$
+ 
+
+%Determining whether or not a symbolic state satisfies an SL-assertion $P$ is, in general, 
+%undecidable \cite{citemeplease}. Furthermore, since we do not want to produce \emph{false positives}, in order to trigger 
+%an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
+%$\sepassert(P)$ in the symbolic state $\sstate$, the symbolic analysis must  
+%report an assertion failure only if it can find a concrete state $\jstate$ and a heap frame 
+%$\heap_f$ such that: $(\jstate, \heap_f) \in \interpret{}{}(\sstate)$ 
+%and $(\jstate, \heap_f) \not\in \interpret{}{}(P)$. 
+
+
+%Determining whether or not a symbolic state satisfies an SL-assertion $P$ is, in general, 
+%undecidable \cite{citemeplease}. Since we do not want to produce \emph{false positives}, in order to trigger 
+%an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
+%$\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must  
+%report an assertion failure only if it can find a concrete state $(\heap, \store)$  and a symbolic environment 
+%$\senv$ such that: 
+%$(\heap, \store, \senv) \in Models{\sheap, \sstore}{\pc}$ and
+%$(\heap, \store, \senv) \not\in \sepmodels{P}$.
+
+
+
+%\polish{the configurations need to be updated with the bot or top in the appropriate place. It appears 3 times: below, 
+%when the rules are re-stated with a call to the decision procedure, in Theorem 8.}
+%{\small \begin{mathpar}
+%\inferrule[\textsc{Assert - True}]
+%  { 
+%     \sheap, \sstore, \pc \satisfies P
+%  }{\symbtrans{\sheap, \sstore, \sepassert(P), \pc}{\sheap, \sstore, \pc}} 
+%\and
+%\inferrule[\textsc{Assert - False}]
+%  { 
+%          \sheap, \sstore, \pc \not\satisfies P
+%  }{\symbtranserr{\sheap, \sstore, \sepassert(P), \pc}{}{\pc}} 
+%\end{mathpar}}
+%\hspace{-3pt}Determining whether or not a symbolic state satisfies an SL-assertion $P$ is, in general, 
+%undecidable \cite{citemeplease}. Since we do not want to produce \emph{false positives}, in order to trigger 
+%an assertion failure, we need to find a concrete witness for that failure. More precisely, when executing 
+%$\sepassert(P)$ in the symbolic state $(\sheap, \sstore, \pc)$, the symbolic analysis must  
+%report an assertion failure only if it can find a concrete state $(\heap, \store)$  and a symbolic environment 
+%$\senv$ such that: 
+%$(\heap, \store, \senv) \in \smodels{\sheap, \sstore}{\pc}$ and
+%$(\heap, \store, \senv) \not\in \sepmodels{P}$.
+
 
 \subsection{Frame Inference Problem}\label{subsec:fip}
 
@@ -194,17 +286,13 @@ entailment to an external constraint solver (in our case, \rosette).
  \end{mathpar}}}
  \end{display}
 
-\newcommand{\unificationfun}{\textsc{Unification}}
-\newcommand{\unificationplan}{\mathcal{UP}}
-\newcommand{\normaliser}{\mathcal{N}}
-\newcommand{\statecompose}{\circ}
 
 \begin{theorem}[Soundness of FIP]\label{teo:fip:soundness}
 $$
 \begin{array}{l}
 	\unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}
         \implies 
-        \interpret{}{}(\sstate) = \interpret{}{}(\sstate_f \statecompose \normaliser(\pass, \subst))
+        \interpret{}{}(\sstate) = \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))
 \end{array}
 $$ 
 \end{theorem}
@@ -218,6 +306,7 @@ $$
 \end{array}
 $$ 
 \end{theorem}
+
 
 
 \subsection{From SL-Specifications to Symbolic Tests}\label{specs:to:symbolic:tests}
@@ -252,48 +341,20 @@ $$
 \end{definition}
 
 \begin{figure}
-{\scriptsize
+{\small
 $$
-\begin{array}{ll}
-\testify{\fnormal}(\pid, \svar_i\mid_{i=0}^n, \pc, Q) \ \semeq & \\
-         \dspc \dspc  \darkmath{\sf proc} \jsilmain () \{ 
-         &  \text{Generated testing procedure for \underline{normal}-return specification:} \\ 
-             \dspc \dspc \dspc 0_{\phantom{\sf nm}}:  \assume(\pc) 
-                   & \text{  {\bf a.} Assume the initial path condition} \\ 
-   %
-             \dspc \dspc \dspc 1_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab}  
-                   & \text{  {\bf b.} Call the procedure to be tested $\pid$ with symbolic arguments $\svar_i\mid_{i=0}^n$} \\ 
-             \dspc \dspc \dspc \retlab \, : \sepassert(Q[\jvar/\retvar])
-                  & \text{  {\bf c.}  In case of normal return, assert the $\fnormal$-postcondition of $\pid$} \\ 
-             \dspc \dspc \dspc \errlab \, \, \, : \jassert(\jfalse)
-                  & \text{  {\bf d.}  In case of error return, assert $\jfalse$} \\ 
-         \ \ \ \ \ \ \ \} &\\[8pt]
-%%
-\testify{}(\specsig{P}{\pid(\jvec{x})}{Q}{\flag}) \ \semeq & \\      
-    \dspc \dspc  \mathbf{let} \ \subst = \mathbf{pick} \ \functionset{locs(P)}{\locs \backslash eflocs(P)} \ \mathbf{in} 
-           & \text{  {\bf a.}  Compute a substitution from the symbolic locations in $P$ to} \\ 
-           & \text{ $\phantom{a.}\ $ randomly picked concrete locations not overlapping with those in $P$}  \\
-    %
-    \dspc \dspc  \mathbf{let} \ (-, C, EF, \pc) = \subst(P) \ \mathbf{in}  
-            & \text{  {\bf b.}  Apply the substitution to $P$ obtaining $(-, C, EF, \pc)$}  \\
-    %
-    \dspc \dspc  \mathbf{let} \ \sstore = [ \jvar_i \mapsto \svar_i \mid_{i=0}^n] \ \mathbf{in} 
-            & \text{  {\bf c.} Compute the initial store mapping each argument to a symbolic}  \\
-            & \text{ $\phantom{c.} \ $  value of the appropriate type}  \\
-       %
-    \dspc \dspc  \mathbf{let} \ \sheap = symbeval{C}{\sstore} \ \mathbf{in} 
-           & \text{  {\bf d.}  Symbolically evaluate $EFS$ under $\sstore$, obtaining $\sheap$}  \\
-     %
-    \dspc \dspc  \mathbf{let} \ \pc' = SANIT{symbeval{EF}{\sstore}} \, \wedge \,  UEF{\sheap}{symbeval{EFS}{\sstore}}  \ \mathbf{in} 
-           & \text{  {\bf e.}  Compute the appropriate NR- and separation constraints}  \\
-    %
-      \dspc \dspc  \mathbf{let} \ \pc'' = symbeval{\subst(\pc)}{\sstore} \, \wedge \, \pc'  \ \mathbf{in} 
-          & \text{  {\bf f.} Construct the initial path condition from $\pc$ and $\pc'$}  \\
-    %
-       \dspc \dspc  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i\mid_{i=0}^n, \pc'', SymbEval{\subst(Q)}{\sstore})  \ \mathbf{in} 
-          & \text{  {\bf g.} Synthesise the symbolic test} \\
-     %
-      \dspc \dspc \dspc (\proc, \sheap) 
+\begin{array}{lll}
+\testify{}(\specsig{P}{\pid(\jvar_1, ..., \jvar_n)}{Q}{\flag}) \ \semeq                           &  \testify{\fnormal}(\pid, \svar_i\mid_{i=0}^n, Q) \ \semeq \\
+%
+\ \  \mathbf{let} \ \sstore =  [ \jvar_i \mapsto \svar_i \mid_{i=0}^n] \ \mathbf{in}        &  \ \  \darkmath{\sf proc} \jsilmain () \{    \\
+%
+ \ \  \mathbf{let} \ \sstate = \normaliser(\sstore(P)) \ \mathbf{in}                               &   \ \ \ \ 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab} \\
+ %
+\ \  \mathbf{let} \ Q' = \sstore(Q) \ \mathbf{in}                                                           &    \ \ \ \ \retlab \, : \sepassert(Q[\jvar/\retvar])  \\
+ %
+ \ \  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i\mid_{i=0}^n, Q')  \ \mathbf{in}  &    \ \ \ \ \errlab \, \, \, : \jassert(\jfalse)   \\
+ %
+ \ \ \ \ (\proc, \sstate)                                                                                                 &    \ \ \}  
 \end{array}
 $$}
 \vspace*{-0.2cm}

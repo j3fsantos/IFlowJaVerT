@@ -690,7 +690,7 @@ $$
 
 
 \vspace*{-0.2cm}
-\subsection{Symbolic Semantics}\label{subsec:symb:semantics}
+\subsection{\jsil Symbolic Semantics}\label{subsec:symb:semantics}
 In order to execute \jsil programs symbolically, we introduce typed symbolic variables $\svar \in \svars$: 
 we use $\sstring$, $\snumber$, $\sbool$, and $\sloc$ to denote symbolic strings, numbers, 
 booleans, and locations, respectively. We further introduce symbolic expressions, $\sexpr \in \sexprs$, defined as follows: 
@@ -1024,7 +1024,7 @@ $$
 \subsection{Linking the Semantics}\label{sex:formal:guarantees}
 
 The last step of our methodology consists of linking the symbolic semantics to the concrete semantics in a way that describes the frames that can be safely added to the initial state.  
-In other words, the interpretation of symbolic states needs to describe both the concretisation of that state and the frames safe for that concretisation. 
+In other words, the interpretation of symbolic states needs to describe both the concretisation of that state and the safe frames for that concretisation. 
 
 Below, we give the formal interpretation of symbolic states. Informally, 
 $\interpret{\symbconc}{\senv}(\sstate)$ denotes a set of pairs of the form $(\jstate, \heap_f)$
