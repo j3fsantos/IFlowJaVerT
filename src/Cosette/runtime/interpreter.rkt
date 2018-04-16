@@ -550,33 +550,31 @@
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
               (println (format "CUR PC ~v" cur-pc))
-              (let* ((new-solver (z3)))
-                (solver-clear new-solver)
-                (solver-assert new-solver (list cur-pc))
-                (let (
-                  (time-before (current-milliseconds))
-                  (res (solver-check new-solver))
-                  (time-after (current-milliseconds)))
-                  (update-solver-time (- time-after time-before))
-                  (solver-shutdown new-solver)
-                  (if (unsat? res)
-                      (begin
-                        (println "the current pc is UNSAT")
-                        (set! success #t))
-                      (begin
-                        (println "the current pc is SAT")
-                        (cond
-                          ((eq? expr-val #t)
-                           (begin
-                             (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
-                             (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
-                          
-                          ((eq? expr-val #f)
-                           (begin
-                             (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
-                             (set! success #t)))
-                          (#t (set! success #t))))))))]
-
+              (let* ((old-solver (current-solver))
+                     (time-before (current-milliseconds))
+                     (new-solver (solve+))
+                     (res (new-solver cur-pc))
+                     (time-after (current-milliseconds)))
+                (update-solver-time (- time-after time-before))
+                (solver-shutdown old-solver)
+                (if (unsat? res)
+                    (begin
+                      (println "the current pc is UNSAT")
+                      (set! success #t))
+                    (begin
+                      (println "the current pc is SAT")
+                      (cond
+                        ((eq? expr-val #t)
+                         (begin
+                           (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
+                           (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
+                        
+                        ((eq? expr-val #f)
+                         (begin
+                           (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
+                           (set! success #t)))
+                        (#t (set! success #t)))))))]
+                        
              [(eq? expr-val #t)
                 (print-info proc-name (format "Assuming sth concrete that holds... continuing symbolic execution: ~v" expr-val))
                  (run-cmds-iter-next prog heap store ctx cur-index cur-index)]
