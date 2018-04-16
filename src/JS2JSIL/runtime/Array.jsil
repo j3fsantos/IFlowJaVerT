@@ -877,7 +877,7 @@ proc AP_splice() {
 			goto loop1;
 
 	end1:	num := l-len (arguments);
-			xret := "M_max" (empty, empty, num - 4, 0) with elab;
+			xret := "local_max" (num - 4, 0) with elab;
 			itemc := xret;
 			ladcic := len - adc;
 			ladcic := ladcic + itemc;
