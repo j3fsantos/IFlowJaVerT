@@ -50,3 +50,52 @@ with
 	ret: xret, rlab;
 	err: pv, elab;
 };
+
+(* *** VALUEOF *** *)
+
+proc NP_valueOf (xsc, vthis) {
+			goto [typeOf (vthis) = Num] num ionum;
+	num:	xret := vthis;
+			goto rlab;
+
+	ionum:	goto [typeOf (vthis) = Obj] onum throw;
+	onum:	m := metadata(vthis);
+			xret := [m, "@class"];
+			goto [xret = "Number"] retnum throw;
+	retnum:	xret := [m, "@primitiveValue"];
+
+	rlab:	skip;
+
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
+
+(* *** TOSTRING *** *)
+
+proc NP_toString (xsc, vthis, radix) {
+			goto [typeOf (vthis) = Num] num ionum;
+	num:	xret := vthis;
+			goto retstr;
+
+	ionum:	goto [typeOf (vthis) = Obj] onum throw;
+	onum:	m := metadata(vthis);
+			xret := [m, "@class"];
+			goto [xret = "Number"] retnum throw;
+	retnum:	xret := [m, "@primitiveValue"];
+	retstr:	xret := num_to_string (xret);
+
+	rlab:	skip;
+
+	throw:	xret := "TypeError" ();
+	elab:	skip
+}
+with
+{
+	ret: xret, rlab;
+	err: xret, elab;
+};
