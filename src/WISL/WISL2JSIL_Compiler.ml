@@ -83,6 +83,8 @@ let rec compile_expression expr =
   in
   match expr with
   | Val v -> JSIL.Literal (compile_value v)
+  | Var "ret" -> failwith "ret is the special name used for the return
+                           value in the logic. It cannot be a variable name"
   | Var x -> JSIL.Var x
   | BinOp (e1, b, e2) when is_logic_only_binop b ->
       failwith (Format.asprintf "Operator %a should only be used in the logic"
@@ -249,6 +251,7 @@ let rec compile_logic_expression lexpr =
   match lexpr with
   | LVal v -> JSIL.LLit (compile_value v)
   | LVar lx -> JSIL.LVar lx
+  | PVar "ret" -> JSIL.PVar "x__ret" (* special name for return value *)
   | PVar x -> JSIL.PVar x
   | LBinOp (le1, b, le2) when is_special_binop b ->
     compile_special_binop (le1, b, le2)

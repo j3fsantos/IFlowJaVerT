@@ -50,6 +50,7 @@ rule read =
   | identifier { IDENTIFIER (Lexing.lexeme lexbuf) }
   | lvar       { LVAR (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
+  | "//"     { read_comment lexbuf } 
   | "/\\"    { LAND }
   | "\\/"    { LOR }
   | "=="     { LEQ }
@@ -63,6 +64,8 @@ rule read =
   | '}'      { RCBRACE }
   | '('      { LBRACE }
   | ')'      { RBRACE }
+  | "::"     { LSTCONS }
+  | '@'      { LSTCAT }
   | ":="     { ASSIGN }
   | ':'      { COLON }
   | '.'      { DOT }
@@ -102,3 +105,9 @@ and read_string buf =
     }
   | _ { raise (SyntaxError ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
   | eof { raise (SyntaxError ("String is not terminated")) }
+
+and read_comment =
+  parse
+  | newline { new_line lexbuf; read lexbuf }
+  | eof     { EOF }
+  | _       { read_comment lexbuf }
