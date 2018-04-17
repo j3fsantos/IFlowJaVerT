@@ -87,20 +87,20 @@
 
 prog:
   | EOF { None }
-  | fcp = functions_and_predicates; stmt = statement; EOF { 
+  | fcp = definitions; stmt = statement; EOF { 
     let (fc, preds) = fcp in
     Some (WISL_Syntax.{ predicates = preds; context=fc; entry_point=(Some stmt) })
   }
-  | fcp = functions_and_predicates; EOF {
+  | fcp = definitions; EOF {
     let (fc, preds) = fcp in
     Some (WISL_Syntax.{ predicates = preds; context = fc; WISL_Syntax.entry_point = None })}
 
-functions_and_predicates:
+definitions:
   | (* empty *) { ([], []) }
-  | fpdcl = functions_and_predicates; p = predicate
+  | fpdcl = definitions; p = predicate
     { let (fs, ps) = fpdcl in
       (fs, p::ps) }
-  | fpdcl = functions_and_predicates; f = fct
+  | fpdcl = definitions; f = fct
     { let (fs, ps) = fpdcl in
       (f::fs, ps) }
 
@@ -183,6 +183,7 @@ value:
   | f = FLOAT { WISL_Syntax.Num (WISL_Syntax.Float f) }
   | s = STRING { WISL_Syntax.Str s }
   | l = LOCATION { WISL_Syntax.Loc l }
+  | LBRACK; vl = separated_list(COMMA, value); RBRACK { WISL_Syntax.VList vl }
   | TRUE { WISL_Syntax.Bool true }
   | FALSE { WISL_Syntax.Bool false }
   | NULL { WISL_Syntax.Null }
