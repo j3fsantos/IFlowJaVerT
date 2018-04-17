@@ -29,6 +29,7 @@ cp scripts/test_failing_cosette.sh environment
 cp scripts/concretize.py environment
 cp scripts/coverage.py environment
 cp scripts/overall_coverage.py environment
+cp scripts/sum_solver.py environment
 
 # test262 tests
 rm -rf test262/environment
