@@ -4,11 +4,7 @@
 
 prefix="../src/Cosette/tests/"
 
-declare -a passing=("buckets/passing" \
-                    "concrete" \
-                    "symbolic/passing" \
-                    "jasonsjones/passing" \
-                    "test262/passing")
+declare -a passing=("buckets/symbolic/stack")
 
 echo "Running Cosette tests"
 echo "---------------------"
