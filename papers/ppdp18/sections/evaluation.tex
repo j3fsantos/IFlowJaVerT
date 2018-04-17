@@ -91,32 +91,63 @@ Example: the \jsinline{queue.js} file (unless we find an even better one)
 
 Coverage: the table with coverage and time per file
 
-%\begin{wraptable}{R}{0.5\textwidth}
+%\begin{table*}[t!]
 %{\small
-%	\centering
-%	\vspace*{-0.1cm}
-%	\caption{\cosette Verification Statistics}
-%	\label{tab:stats}
-%	\vspace*{-0.35cm}
-%%    \rowcolors{2}{SkyBlue!20}{white}
-%    \begin{tabular}{|lcccc|}
-%    \hline
-%%      \rowcolor{SkyBlue!40}
-%      {\bfseries Example} & {\bfseries \#JS} & {\bfseries \#JSIL} & {\bfseries \#specs} & {\bfseries t(s)} \\
-%      \hline
-%      Key-value map		&  23 &  523 &   9 &  3.37 \\
-%      ID Generator		&  16 &  330 &   4 &  0.73 \\ 
-%      Priority queue	&  46 & 1003 &  10 &  7.14 \\
-%      BST				&  70 & 1032 &   5 &  7.38 \\
-%      Insertion sort	&  24 &  415 &   2 &  1.78 \\
-%      Test262 examples  & 113 & 1367 &  16 &  3.46 \\
-%      \hline
-%   \end{tabular}
-%  }
-%  \vspace*{-0.4cm}
-%\end{wraptable}
-
+%\begin{center}
+%\begin{tabular}{@{}lcccccc@{}}\toprule
+%Program: &sspc & $xvar{h} = 0$ &dspc& \multicolumn{3}{c}{$xvar{h} = 1$} \\  
+%\cmidrule{1-1}   \cmidrule{3-3}  \cmidrule{5-7}
+%%& & {\it Both Approaches} & & {\it Naive Approach} &sspc & {\it No-Sensitive-Upgrade} \\  
+%\cmidrule{3-3}  \cmidrule{5-5} \cmidrule{7-7}-
+%%$xvar{l} = \jtrue;$ & & $\Sigma.propslab(r \cdot \texttt{l}) := L$ & & $\Sigma.propslab(r \cdot \texttt{l}) := L$ & & $\Sigma.propslab(r \cdot \texttt{l}) := L$ \\
+%$xvar{o} = \texttt{L};$ & & $\begin{array}{c} 
+%\Sigma.propslab(r \cdot \texttt{o}) := L/\\ 
+%\Sigma.\texttt(r_o) := L 
+%\end{array}$ 
+%& & $\begin{array}{c} 
+%\Sigma.propslab(r \cdot \texttt{o}) := L/\\ 
+%\Sigma.\texttt(r_o) := L \end{array}$
+%& & $\begin{array}{c} 
+%\Sigma.propslab(r \cdot \texttt{o}) := L/\\ 
+%\Sigma.\texttt(r_o) := L 
+%\end{array}$\\
+%%$xvar{h} ~?$ & & branch not taken & & branch taken & & branch taken \\
+% sspc $(xvar{o}.xvar{p} = \jtrue);$ & & --- & & $\begin{array}{c} 
+%\Sigma.propslab(r_o \cdot \texttt{p}) := H/\\
+%\Sigma.\exists(r_o \cdot \texttt{p}) := H/\\ 
+%\Sigma.\texttt(r_o) := L 
+%\end{array}$ & & {\it stuck} \\ 
+%%$!(\texttt{p}{xvar{o}}{}{}) ~?$ & & branch taken & & branch not taken & & --- \\
+%% sspc $(xvar{l} = \jfalse);$ & & $\Sigma.propslab(r \cdot \texttt{l}) := L$ & & --- & & --- \\ 
+%\cmidrule{1-1} \cmidrule{3-3}  \cmidrule{5-5} \cmidrule{7-7}
+%Final Low Memory: & & $xvar{l} = \jfalse$ & & $xvar{l} = \jtrue$ & & --- \\
+%\bottomrule
+%\end{tabular}
+%\end{center}
+%}
+%\caption{Preventing Security Leaks via the Domain of an Object}\label{ex:ssl}
+%\end{table*}
+\begin{table*}[h]
+{
+\small
+%\begin{center}
+\begin{tabular}{lcl}
+\toprule
+JS Lines & JS Executable lines & JSIL lines \\
+\cmidrule{1-1} \cmidrule{3-3}
+123 & abc & yolo\\
+\bottomrule
+%\end{center}
+\end{tabular}
+}
+\caption{Coverage analysis for the buckets.js library}
+\end{table*}
 \FloatBarrier
+
+for js lines: single + integrated
+jsil lines: file itself, file + libraries
+
+times: total time (racket) averaged over N times and solver time
 
 % note: the - in \jsinline{queue-pri} doesn't have the same color as the rest (because it's a minus sign), find a nicer way to output this
 \myparagraph{Debugging the \jsinline{queue-pri} library} 
