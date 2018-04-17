@@ -116,6 +116,15 @@ with
 *)
 proc setupInitialHeap () {
 
+  			xret := "create_object_with_call_construct" ($lg_isNan, "Object_isNan", empty, 1);
+			xret := "create_object_with_call_construct" ($lfp_toString, "FP_toString", empty, 0);
+  			xret := "create_object_with_call_construct" ($lfp_call, "FP_call", empty, 1);
+ 			xret := "create_object_with_call_construct" ($lfp_apply, "FP_apply", empty, 2);
+  			xret := "create_object_with_call_construct" ($lfp_bind, "FP_bind", empty, 1);
+			xret := "create_object_with_call_construct" ($lmath_ceil, "M_ceil", empty, 1);
+			xret := "create_object_with_call_construct" ($lmath_floor, "M_floor", empty, 1);
+			xret := "create_object_with_call_construct" ($lmath_max, "M_max", empty, 2);
+
   			(* Function object *)
 
   			xret := "create_object_with_call_construct" ($lfun, "Function_call", "Function_construct", 1);
@@ -134,12 +143,6 @@ proc setupInitialHeap () {
   			[$lfun_proto, "apply"]       := {{ "d", $lfp_apply, true, false, true }};
   			[$lfun_proto, "bind"]        := {{ "d", $lfp_bind, true, false, true }};
 
-			xret := "create_object_with_call_construct" ($lfp_toString, "FP_toString", empty, 0);
-  			xret := "create_object_with_call_construct" ($lfp_call, "FP_call", empty, 1);
- 			xret := "create_object_with_call_construct" ($lfp_apply, "FP_apply", empty, 2);
-  			xret := "create_object_with_call_construct" ($lfp_bind, "FP_bind", empty, 1);
-
-
 			(* Boolean object *)
 
 			xret := "create_object_with_call_construct" ($lbool, "Boolean_call", "Boolean_construct", 1);
@@ -156,9 +159,6 @@ proc setupInitialHeap () {
 			[$lbool_proto, "constructor"] := {{ "d", $lbool, true, false, true }};
 			[$lbool_proto, "toString"]    := {{ "d", $lbp_toString, true, false, true }};
 			[$lbool_proto, "valueOf"]     := {{ "d", $lbp_valueOf, true, false, true }};
-
-			xret := "create_object_with_call_construct" ($lbp_toString, "BP_toString", empty, 0);
-			xret := "create_object_with_call_construct" ($lbp_valueOf, "BP_valueOf", empty, 0);
 
 			(* Number object *)
 
@@ -181,9 +181,6 @@ proc setupInitialHeap () {
 			[$lnum_proto, "toString"]             := {{ "d", $lnp_toString, true, false, true }};
 			[$lnum_proto, "valueOf"]              := {{ "d", $lnp_valueOf, true, false, true }};
 
-			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", empty, 1);
-			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", empty, 0);
-
 			(* Math object *)
 
 			xret := "create_default_object" ($lmath, $lobj_proto, "Math", true);
@@ -201,9 +198,6 @@ proc setupInitialHeap () {
 			[$lmath, "floor"]  := {{ "d", $lmath_floor, true, false, true }};
 			[$lmath, "max"]    := {{ "d", $lmath_max, true, false, true }};
 
-			xret := "create_object_with_call_construct" ($lmath_ceil, "M_ceil", empty, 1);
-			xret := "create_object_with_call_construct" ($lmath_floor, "M_floor", empty, 1);
-			xret := "create_object_with_call_construct" ($lmath_max, "M_max", empty, 2);
 
 			(* Error object *)
 
@@ -271,14 +265,61 @@ proc setupInitialHeap () {
 			[m, "@call"] := "ThrowTypeError";
 			[xret, "length"] := {{ "d", 0, false, false, false }};		
 
-  			(* Array object *)
-
-  			xret := "create_object_with_call_construct" ($larr, "Array_call", "Array_construct", 1);
-
-  			[$larr, "prototype"] := {{ "d", $larr_proto, false, false, false }};
-  			[$larr, "isArray"]   := {{ "d", $larr_isArray, true, false, true }};
-
 			xret := "create_object_with_call_construct" ($larr_isArray, "Array_isArray", empty, 1);
+
+			xret := "create_object_with_call_construct" ($lbp_toString, "BP_toString", empty, 0);
+			xret := "create_object_with_call_construct" ($lbp_valueOf, "BP_valueOf", empty, 0);
+			xret := "create_object_with_call_construct" ($lnp_toString, "NP_toString", empty, 1);
+			xret := "create_object_with_call_construct" ($lnp_valueOf, "NP_valueOf", empty, 0);
+
+			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", empty, 2);
+  			xret := "create_object_with_call_construct" ($lobj_keys, "Object_keys", empty, 1);
+			
+			xret := "create_object_with_call_construct" ($lap_toString, "AP_toString", empty, 0);
+			xret := "create_object_with_call_construct" ($lap_concat, "AP_concat", empty, 1);
+			xret := "create_object_with_call_construct" ($lap_pop, "AP_pop", empty, 0);
+			xret := "create_object_with_call_construct" ($lap_push, "AP_push", empty, 1);
+			xret := "create_object_with_call_construct" ($lap_reverse, "AP_reverse", empty, 0);
+			xret := "create_object_with_call_construct" ($lap_sort, "AP_sort", empty, 1);
+			xret := "create_object_with_call_construct" ($lap_splice, "AP_splice", empty, 2);
+			xret := "create_object_with_call_construct" ($lap_indexOf, "AP_indexOf", empty, 1);
+			xret := "create_object_with_call_construct" ($lap_lastIndexOf, "AP_lastIndexOf", empty, 1);
+			xret := "create_object_with_call_construct" ($lap_forEach, "AP_forEach", empty, 1);
+			xret := "create_object_with_call_construct" ($lap_map, "AP_map", empty, 1);
+
+			xret := "create_object_with_call_construct" ($lsp_toString, "SP_toString", empty, 0);
+			xret := "create_object_with_call_construct" ($lsp_valueOf, "SP_valueOf", empty, 0);
+			xret := "create_object_with_call_construct" ($lsp_charAt, "SP_charAt", empty, 1);
+			xret := "create_object_with_call_construct" ($lsp_concat, "SP_concat", empty, 1);
+			xret := "create_object_with_call_construct" ($lsp_indexOf, "SP_indexOf", empty, 1);
+			xret := "create_object_with_call_construct" ($lsp_lastIndexOf, "SP_lastIndexOf", empty, 1);
+			xret := "create_object_with_call_construct" ($lsp_replace, "SP_replace", empty, 2);
+			xret := "create_object_with_call_construct" ($lsp_substring, "SP_substring", empty, 2);
+			xret := "create_object_with_call_construct" ($lop_toString, "OP_toString", empty, 0);
+			xret := "create_object_with_call_construct" ($lop_valueOf, "OP_valueOf", empty, 0);
+  			xret := "create_object_with_call_construct" ($lop_hasOwnProperty, "OP_hasOwnProperty", empty, 1);
+
+			(* String.prototype *)
+
+			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", true);
+
+			m := metadata($lstr_proto);
+			[m, "@primitiveValue"]             := "";
+			[$lstr_proto, "length"]            := {{ "d", 0, false, false, false }};
+			[$lstr_proto, "constructor"]       := {{ "d", $lstr, true, false, true }};
+			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, true, false, true }};
+			[$lstr_proto, "valueOf"]           := {{ "d", $lsp_valueOf, true, false, true }};
+			[$lstr_proto, "charAt"]            := {{ "d", $lsp_charAt, true, false, true }};
+			[$lstr_proto, "concat"]            := {{ "d", $lsp_concat, true, false, true }};
+			[$lstr_proto, "indexOf"]           := {{ "d", $lsp_indexOf, true, false, true }};
+			[$lstr_proto, "lastIndexOf"]       := {{ "d", $lsp_lastIndexOf, true, false, true }};
+			[$lstr_proto, "replace"]           := {{ "d", $lsp_replace, true, false, true }};
+			[$lstr_proto, "substring"]         := {{ "d", $lsp_substring, true, false, true }};
+
+			(* String object *)
+
+			xret := "create_object_with_call_construct" ($lstr, "String_call", "String_construct", 1);
+			[$lstr, "prototype"]    := {{ "d", $lstr_proto, false, false, false }};
 
 			(* Array.prototype *)
 
@@ -298,49 +339,21 @@ proc setupInitialHeap () {
 			[$larr_proto, "forEach"]        := {{ "d", $lap_forEach, true, false, true }};
 			[$larr_proto, "map"]            := {{ "d", $lap_map, true, false, true }};
 
-			xret := "create_object_with_call_construct" ($lap_toString, "AP_toString", empty, 0);
-			xret := "create_object_with_call_construct" ($lap_concat, "AP_concat", empty, 1);
-			xret := "create_object_with_call_construct" ($lap_pop, "AP_pop", empty, 0);
-			xret := "create_object_with_call_construct" ($lap_push, "AP_push", empty, 1);
-			xret := "create_object_with_call_construct" ($lap_reverse, "AP_reverse", empty, 0);
-			xret := "create_object_with_call_construct" ($lap_sort, "AP_sort", empty, 1);
-			xret := "create_object_with_call_construct" ($lap_splice, "AP_splice", empty, 2);
-			xret := "create_object_with_call_construct" ($lap_indexOf, "AP_indexOf", empty, 1);
-			xret := "create_object_with_call_construct" ($lap_lastIndexOf, "AP_lastIndexOf", empty, 1);
-			xret := "create_object_with_call_construct" ($lap_forEach, "AP_forEach", empty, 1);
-			xret := "create_object_with_call_construct" ($lap_map, "AP_map", empty, 1);
+  			(* Array object *)
 
-			(* String object *)
+  			xret := "create_object_with_call_construct" ($larr, "Array_call", "Array_construct", 1);
 
-			xret := "create_object_with_call_construct" ($lstr, "String_call", "String_construct", 1);
+  			[$larr, "prototype"] := {{ "d", $larr_proto, false, false, false }};
+  			[$larr, "isArray"]   := {{ "d", $larr_isArray, true, false, true }};
 
-			[$lstr, "prototype"]    := {{ "d", $lstr_proto, false, false, false }};
+			(* Object.prototype *)
 
-			(* String.prototype *)
+			xret := "create_default_object" ($lobj_proto, null, "Object", true);
 
-			xret := "create_default_object" ($lstr_proto, $lobj_proto, "String", true);
-
-			m := metadata($lstr_proto);
-			[m, "@primitiveValue"]             := "";
-			[$lstr_proto, "length"]            := {{ "d", 0, false, false, false }};
-			[$lstr_proto, "constructor"]       := {{ "d", $lstr, true, false, true }};
-			[$lstr_proto, "toString"]          := {{ "d", $lsp_toString, true, false, true }};
-			[$lstr_proto, "valueOf"]           := {{ "d", $lsp_valueOf, true, false, true }};
-			[$lstr_proto, "charAt"]            := {{ "d", $lsp_charAt, true, false, true }};
-			[$lstr_proto, "concat"]            := {{ "d", $lsp_concat, true, false, true }};
-			[$lstr_proto, "indexOf"]           := {{ "d", $lsp_indexOf, true, false, true }};
-			[$lstr_proto, "lastIndexOf"]       := {{ "d", $lsp_lastIndexOf, true, false, true }};
-			[$lstr_proto, "replace"]           := {{ "d", $lsp_replace, true, false, true }};
-			[$lstr_proto, "substring"]         := {{ "d", $lsp_substring, true, false, true }};
-
-			xret := "create_object_with_call_construct" ($lsp_toString, "SP_toString", empty, 0);
-			xret := "create_object_with_call_construct" ($lsp_valueOf, "SP_valueOf", empty, 0);
-			xret := "create_object_with_call_construct" ($lsp_charAt, "SP_charAt", empty, 1);
-			xret := "create_object_with_call_construct" ($lsp_concat, "SP_concat", empty, 1);
-			xret := "create_object_with_call_construct" ($lsp_indexOf, "SP_indexOf", empty, 1);
-			xret := "create_object_with_call_construct" ($lsp_lastIndexOf, "SP_lastIndexOf", empty, 1);
-			xret := "create_object_with_call_construct" ($lsp_replace, "SP_replace", empty, 2);
-			xret := "create_object_with_call_construct" ($lsp_substring, "SP_substring", empty, 2);
+			[$lobj_proto, "hasOwnProperty"]       := {{ "d", $lop_hasOwnProperty, true, false, true }};
+			[$lobj_proto, "toString"]             := {{ "d", $lop_toString, true, false, true }};
+			[$lobj_proto, "valueOf"]              := {{ "d", $lop_valueOf, true, false, true }};
+			[$lobj_proto, "constructor"]          := {{ "d", $lobj, true, false, true }};
 
   			(* Object object *)
 
@@ -349,49 +362,28 @@ proc setupInitialHeap () {
   			[$lobj, "prototype"]                := {{ "d", $lobj_proto, false, false, false }};
 			[$lobj, "create"]                   := {{ "d", $lobj_create, true, false, true }};
 			[$lobj, "keys"]                     := {{ "d", $lobj_keys, true, false, true }};
-
-			xret := "create_object_with_call_construct" ($lobj_create, "Object_create", empty, 2);
-  			xret := "create_object_with_call_construct" ($lobj_keys, "Object_keys", empty, 1);
-
-			(* Object.prototype *)
-
-			xret := "create_default_object" ($lobj_proto, null, "Object", true);
-
-			[$lobj_proto, "constructor"]          := {{ "d", $lobj, true, false, true }};
-			[$lobj_proto, "toString"]             := {{ "d", $lop_toString, true, false, true }};
-			[$lobj_proto, "valueOf"]              := {{ "d", $lop_valueOf, true, false, true }};
-			[$lobj_proto, "hasOwnProperty"]       := {{ "d", $lop_hasOwnProperty, true, false, true }};
-
-			xret := "create_object_with_call_construct" ($lop_toString, "OP_toString", empty, 0);
-			xret := "create_object_with_call_construct" ($lop_valueOf, "OP_valueOf", empty, 0);
-  			xret := "create_object_with_call_construct" ($lop_hasOwnProperty, "OP_hasOwnProperty", empty, 1);
-
+			
 			(* Global object *)
 
 			xret := "create_default_object" ($lg, $lobj_proto, "Object", true);
 
-  			[$lg, "NaN"]                := {{ "d", nan, false, false, false }};
-  			[$lg, "Infinity"]           := {{ "d", inf, false, false, false }};
   			[$lg, "undefined"]          := {{ "d", undefined, false, false, false }};
-
-  			[$lg, "isNaN"]              := {{ "d", $lg_isNan, true, false, true }};
-  			[$lg, "isFinite"]           := {{ "d", $lg_isFinite, true, false, true }};
   			[$lg, "Object"]             := {{ "d", $lobj, true, false, true }};
-  			[$lg, "Function"]           := {{ "d", $lfun, true, false, true }};
  			[$lg, "Array"]              := {{ "d", $larr, true, false, true }};
   			[$lg, "String"]             := {{ "d", $lstr, true, false, true }};
+  			[$lg, "Math"]               := {{ "d", $lmath, true, false, true }};
+  			[$lg, "isNaN"]              := {{ "d", $lg_isNan, true, false, true }};
+  			[$lg, "NaN"]                := {{ "d", nan, false, false, false }};
+  			[$lg, "Infinity"]           := {{ "d", inf, false, false, false }};
+  			[$lg, "Function"]           := {{ "d", $lfun, true, false, true }};
   			[$lg, "Boolean"]            := {{ "d", $lbool, true, false, true }};
   			[$lg, "Number"]             := {{ "d", $lnum, true, false, true }};
-  			[$lg, "Math"]               := {{ "d", $lmath, true, false, true }};
   			[$lg, "Error"]              := {{ "d", $lerr, true, false, true }};
-  			[$lg, "RangeError"]         := {{ "d", $lrgerr, true, false, true }};
   			[$lg, "ReferenceError"]     := {{ "d", $lrferr, true, false, true }};
   			[$lg, "SyntaxError"]        := {{ "d", $lserr, true, false, true }};
   			[$lg, "TypeError"]          := {{ "d", $lterr, true, false, true }};
-
-  			xret := "create_object_with_call_construct" ($lg_isNan, "Object_isNan", empty, 1);
-  			xret := "create_object_with_call_construct" ($lg_isFinite, "Object_isFinite", empty, 1);
-
+  			[$lg, "RangeError"]         := {{ "d", $lrgerr, true, false, true }};
+  			
 	rlab:	xret := empty
 }
 with

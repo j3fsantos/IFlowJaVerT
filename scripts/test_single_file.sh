@@ -14,6 +14,6 @@ logname=res_$name.txt
 time racket $rktname > $logname
 tail -n 12 $logname
 
-mv models.json $name"_models.json"
-mv coverage.txt $name"_raw_coverage.txt"
 python3 coverage.py $filename > $name"_coverage.txt"
+solvertime=$(python3 sum_solver.py $filename)
+echo "Solver time: "$solvertime"s"

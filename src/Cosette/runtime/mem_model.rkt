@@ -583,7 +583,6 @@
   )
 )
 
-
 ;; Get metadata of an object
 (define (get-metadata object)
   (second object)

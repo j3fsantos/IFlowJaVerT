@@ -561,41 +561,9 @@ let annotate_cmd_top_level metadata lcmd =
 
 	let lab, (cmd : jsil_lab_cmd) = lcmd in
 
-	let fold_unfold_pi_macro_for_put_and_get_value args =
-		let new_args =
-			(match args with
-			| Some args ->  args
-			| None -> raise (Failure "No argument passed to GetPutValue folding.")) in
-		(match new_args with
-	  (* JOSE: I do not understand this case *)
-		| [ Literal n ] -> [], []
-		(* PUTVALUE and GETVALUE cases *)
-		| [ arg ]
-		| [ arg; _ ] ->
-			let arg = JSIL_Logic_Utils.expr_2_lexpr arg in
-			let fold_args = [arg; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
-			let fold_macro = Macro (JS2JSIL_Constants.macro_GPVF_name, fold_args) in
-			let unfold_macro = Macro (JS2JSIL_Constants.macro_GPVU_name, [ arg ]) in
-			[ fold_macro ], [ unfold_macro ]
-		(* No other cases handled *)
-		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
+	let fold_unfold_pi_macro_for_put_and_get_value args = [], [] in
 
-	let fold_unfold_pi_for_hasProperty args =
-		let new_args =
-			(match args with
-			| Some args ->  args
-			| None -> raise (Failure "No argument passed to hasProperty folding.")) in
-		(match new_args with
-		(* HasProperty case *)
-		| [ arg1; arg2] ->
-			let l_arg1 = JSIL_Logic_Utils.expr_2_lexpr arg1 in
-			let l_arg2 = JSIL_Logic_Utils.expr_2_lexpr arg2 in
-			let fold_args = [l_arg1; l_arg2; LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()); LVar (fresh_logical_variable ()) ] in
-			let fold_lcmd = Fold (LPred (pi_predicate_name, fold_args)) in
-			let unfold_lcmd = RecUnfold pi_predicate_name in
-			[ fold_lcmd ], [ unfold_lcmd ]
-		(* No other cases handled *)
-		| _ -> raise (Failure "Folding/Unfolding in the wrong place.")) in
+	let fold_unfold_pi_for_hasProperty args = [], [] in
 
 	if ((is_get_value_call cmd) || (is_put_value_call cmd))  then (
 		(* Printf.printf "I found a call to GetValue/PutValue.\n"; *)
@@ -649,6 +617,7 @@ let rec translate_expr tr_ctx e : ((jsil_metadata * (string option) * jsil_lab_c
 	(* All the other commands must get the offsets and nothing else *)
 	let js_char_offset          = e.Parser_syntax.exp_offset in
 	let js_line_offset          = tr_ctx.tr_offset_converter js_char_offset in
+(*	Printf.printf "Expression: %s; line: %d\n" (Pretty_print.string_of_exp true e) js_line_offset; *)
 	let metadata                = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	let annotate_cmds           = annotate_cmds_top_level metadata in
 	let annotate_cmd            = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
@@ -2775,8 +2744,10 @@ and translate_statement tr_ctx e  =
 	(* All the other commands must get the offsets and nothing else *)
 	let js_char_offset          = e.Parser_syntax.exp_offset in
 	let js_line_offset          = tr_ctx.tr_offset_converter js_char_offset in
+	(* Printf.printf "Statement: %s; line: %d\n" (Pretty_print.string_of_exp true e) js_line_offset; *)
 	let metadata                = { line_offset = Some js_line_offset; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in
 	let annotate_cmds           = annotate_cmds_top_level metadata in
+	let annotate_cmds_empty     = annotate_cmds_top_level { line_offset = None; invariant = None; pre_logic_cmds = []; post_logic_cmds = [] } in 
 	let annotate_cmd            = fun cmd lab -> annotate_cmd_top_level metadata (lab, cmd) in
 
 	(* The first command must get the logic commands and the invariants *)
@@ -3258,7 +3229,7 @@ and translate_statement tr_ctx e  =
 				(match (returns_empty_exp e), bprevious with
 				| true, Some x_previous ->
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in
-					let new_cmds = annotate_cmds new_cmds in
+					let new_cmds = annotate_cmds_empty new_cmds in
 					cmds_ac @ cmds_e @ new_cmds, Var x_r, errs_ac @ errs_e, rets_ac @ rets_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
 				| _, _ ->
 					cmds_ac @ cmds_e, x_e, errs_ac @ errs_e, rets_ac @ rets_e, breaks_ac @ breaks_e, conts_ac @ conts_e)
@@ -3268,7 +3239,7 @@ and translate_statement tr_ctx e  =
 				(match (returns_empty_exp e), bprevious with
 				| true, Some x_previous ->
 					(let new_cmds, x_r = make_check_empty_test x_previous x_e in
-					let new_cmds = annotate_cmds new_cmds in
+					let new_cmds = annotate_cmds_empty new_cmds in
 					loop rest_es (Some (Var x_r)) (cmds_ac @ cmds_e @ new_cmds) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))
 				| _, _ ->
 					loop rest_es (Some x_e) (cmds_ac @ cmds_e) (errs_ac @ errs_e) (rets_ac @ rets_e) (breaks_ac @ breaks_e) (conts_ac @ conts_e))) in

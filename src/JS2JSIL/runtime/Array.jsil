@@ -798,6 +798,26 @@ with
 	err: 	xret, elab;
 };
 
+proc local_max (a, b) {
+			xret := a;
+			goto [a < b] setb rlab;
+	setb:	xret := b;
+	rlab:	skip
+}
+with {
+	ret:	xret, rlab;
+};
+
+proc local_min (a, b) {
+			xret := a;
+			goto [b < a] setb rlab;
+	setb:	xret := b;
+	rlab:	skip
+}
+with {
+	ret:	xret, rlab;
+};
+
 (* *** SPLICE *** *)
 proc AP_splice() {
 			arguments := args;
@@ -828,14 +848,14 @@ proc AP_splice() {
 			rs := xret;
 
 			goto [rs < 0] ift iff;
-	ift:	xret := "M_max" (empty, empty, len + rs, 0) with elab;
+	ift:	xret := "local_max" (len + rs, 0) with elab;
 			goto sync;
-    iff:	xret := "M_min" (empty, empty, rs, len) with elab;
+    iff:	xret := "local_min" (rs, len) with elab;
 	sync:	acs := xret;
 
 			xret := "i__toInteger" (deleteCount) with elab;
-			xret := "M_max" (empty, empty, xret, 0) with elab;
-			xret := "M_min" (empty, empty, xret, len - acs) with elab;
+			xret := "local_max" (xret, 0) with elab;
+			xret := "local_min" (xret, len - acs) with elab;
 			adc := xret;
 
 			k := 0;
@@ -857,7 +877,7 @@ proc AP_splice() {
 			goto loop1;
 
 	end1:	num := l-len (arguments);
-			xret := "M_max" (empty, empty, num - 4, 0) with elab;
+			xret := "local_max" (num - 4, 0) with elab;
 			itemc := xret;
 			ladcic := len - adc;
 			ladcic := ladcic + itemc;

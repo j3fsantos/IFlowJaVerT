@@ -4,7 +4,6 @@ import Internals.jsil;
 (* THE MATH LIBRARY *)
 (* **************** *)
 
-
 (* *** CEIL *** *)
 
 proc M_ceil (xsc, vthis, x) {
@@ -36,8 +35,6 @@ with
 	ret:	xret, rlab;
 	err:	xret, elab;
 };
-
-(* *** MAX *** *)
 
 proc M_max (xsc, vthis) {
 

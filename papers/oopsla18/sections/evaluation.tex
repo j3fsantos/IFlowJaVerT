@@ -78,7 +78,7 @@ There are two possible cases here: either \jsinline{s1} is equal to one of the c
 
 This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
  
-\myparagraph{Extensive testing of the BucketsJS library}
+\myparagraph{Replacing concrete unit tests with symbolic tests}
 
 The BucketsJS library is a JavaScript data-structure library available on GitHub~\ref{buckets}.
 It presents itself as \emph{fully tested}, and comes with a test suite that cover each of the data structures it exposes.
@@ -86,7 +86,15 @@ Using \cosette, we translated these concrete tests into symbolic tests that are 
 We found that some code paths were never executed in the original tests, demonstrating that \cosette can be effectively used as a tool aiding test development.
 
 
-Example: the \jsinline{queue.js} file (unless we find an even better one)
+\subsubsection{\jsinline{buckets.arrays.swap}}
+Original test:
+
+Our test:
+
+\subsubsection{\jsinline{buckets.bag.add} (or \jsinline{remove}?)}
+Original test:
+
+Our test:
 
 
 Coverage: the table with coverage and time per file

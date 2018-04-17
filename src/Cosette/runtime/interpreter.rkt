@@ -9,17 +9,26 @@
 (define success #f)
 (define global-outcome '())
 (define failure #f)
-(define print-cmds #t)
+(define print-cmds #f)
 (define call-stack-depth 0)
 (define max-depth 10)
 (define seen-instr (make-hasheq '()))
 
-(define goto-limit 1000)
+(define goto-limit 10000)
 
-(define total-solver-time 0)
+(define (base-file-name)
+  (let* (
+    (path (path->string (find-system-path 'run-file)))
+    (split-path (string-split path "."))
+    (base-name (car split-path)))
+    base-name))
+
+(define time-filename (string-append (base-file-name) "_solver_time.txt"))
+(define time-out (open-output-file time-filename #:exists 'replace))
 
 (define (update-solver-time new-time)
-  (set! total-solver-time (+ total-solver-time new-time)))
+  (displayln (format "solver time ~v..." new-time))
+  (writeln new-time time-out))
 
 (define/match (ite? e)
    [((expression op child ...)) (or (string=? "ite" (~v op)) (string=? "ite*" (~v op)))]
@@ -31,19 +40,6 @@
         (cdr child)
         '())]
    [(_) '()])
-
-(define (concretize-solver-time)
-  (cond
-    [(union? total-solver-time)
-      (let* (
-        (time-cases (union-contents total-solver-time)))
-        (foldl (lambda (x ac) (+ (cdr x) ac)) 0 time-cases))]
-    [(ite? total-solver-time)
-      (let* (
-        (time-cases (ite-cases total-solver-time)))
-        (foldl (lambda (x ac) (+ x ac)) 0 time-cases))]
-    [else
-      total-solver-time]))
 
 (error-print-width 100000)
 
@@ -426,9 +422,9 @@
                   (solver-clear new-solver)
                   (solver-assert new-solver (list cur-pc))
                   (let (
-                    (time-before (current-inexact-milliseconds))
+                    (time-before (current-milliseconds))
                     (res (solver-check new-solver))
-                    (time-after (current-inexact-milliseconds)))
+                    (time-after (current-milliseconds)))
                     (solver-shutdown new-solver)
                     (update-solver-time (- time-after time-before))
                     (if (unsat? res)
@@ -554,33 +550,31 @@
            [(symbolic? expr-val)
             (let ((cur-pc (pc)))
               (println (format "CUR PC ~v" cur-pc))
-              (let* ((new-solver (z3)))
-                (solver-clear new-solver)
-                (solver-assert new-solver (list cur-pc))
-                (let (
-                  (time-before (current-inexact-milliseconds))
-                  (res (solver-check new-solver))
-                  (time-after (current-inexact-milliseconds)))
-                  (update-solver-time (- time-after time-before))
-                  (solver-shutdown new-solver)
-                  (if (unsat? res)
-                      (begin
-                        (println "the current pc is UNSAT")
-                        (set! success #t))
-                      (begin
-                        (println "the current pc is SAT")
-                        (cond
-                          ((eq? expr-val #t)
-                           (begin
-                             (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
-                             (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
-                          
-                          ((eq? expr-val #f)
-                           (begin
-                             (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
-                             (set! success #t)))
-                          (#t (set! success #t))))))))]
-
+              (let* ((old-solver (current-solver))
+                     (time-before (current-milliseconds))
+                     (new-solver (solve+))
+                     (res (new-solver cur-pc))
+                     (time-after (current-milliseconds)))
+                (update-solver-time (- time-after time-before))
+                (solver-shutdown old-solver)
+                (if (unsat? res)
+                    (begin
+                      (println "the current pc is UNSAT")
+                      (set! success #t))
+                    (begin
+                      (println "the current pc is SAT")
+                      (cond
+                        ((eq? expr-val #t)
+                         (begin
+                           (print-info proc-name (format "Assume true... continuing symbolic execution: ~v" expr-val))
+                           (run-cmds-iter-next prog heap store ctx cur-index cur-index)))
+                        
+                        ((eq? expr-val #f)
+                         (begin
+                           (print-info proc-name (format "Assume false... aborting symbolic execution: ~v" expr-val))
+                           (set! success #t)))
+                        (#t (set! success #t)))))))]
+                        
              [(eq? expr-val #t)
                 (print-info proc-name (format "Assuming sth concrete that holds... continuing symbolic execution: ~v" expr-val))
                  (run-cmds-iter-next prog heap store ctx cur-index cur-index)]
@@ -778,8 +772,13 @@
 (define (run-program prog heap)
   (jsil-discharge)
   (let* (
+    (models-filename (string-append (base-file-name) "_models.json"))
+    (models-out (open-output-file models-filename #:exists 'replace))
+    (coverage-filename (string-append (base-file-name) "_raw_coverage.txt"))
+    (coverage-out (open-output-file coverage-filename #:exists 'replace))
+    ;;
     (outcome (run-proc prog "main" heap '() '() '() '() -1 -1))
-    (time-before (current-inexact-milliseconds))
+    (time-before (current-milliseconds))
     (outcome-jose  (solve (assert (or (and (get-assumptions) (not success))  (and (get-assumptions) success (not (get-assertions)))))))
     (outcome-assumptions-and-failure (solve (assert (and (get-assumptions) (not success)))))
     (outcome-assumptions-success-and-not-assertions (solve (assert (and (get-assumptions) success (not (get-assertions))))))
@@ -787,7 +786,7 @@
     (outcome-failure (solve (assert failure)))
     (outcome-success-assume (solve (assert (and (get-assumptions) success))))
     (outcome-failure-assume (solve (assert (and (get-assumptions) failure))))
-    (time-after (current-inexact-milliseconds))
+    (time-after (current-milliseconds))
     (results-list
       (list
         (cons "jose" (outcome-string outcome-jose))
@@ -802,30 +801,25 @@
     (displayln (pc))
     (display "Assumptions: ")
     (displayln (get-assumptions))
-    (displayln "Assertions: ")
+    (display "Assertions: ")
     (displayln (get-assertions))
-    (displayln "Success: ")
+    (display "Success: ")
     (displayln success)
-    (displayln "Failure: ")
+    (display "Failure: ")
     (displayln failure)
-    (displayln (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
-    (displayln (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
-    (displayln (format "Outcome Failure: ~v" outcome-failure))
-    (displayln (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
-    (displayln (format "Outcome Success with assumptions: ~v" outcome-success-assume))
-    (displayln (format "Outcome Success with assumptions and assertions: ~v" outcome-assumptions-success-and-assertions))
-    (displayln (format "Solver time: ~a" (concretize-solver-time)))
+    (println (format "Outcome Assumptions and not success: ~v" outcome-assumptions-and-failure))
+    (println (format "Outcome Assumptions, success, and not assertions: ~v" outcome-assumptions-success-and-not-assertions))
+    (println (format "Outcome Failure: ~v" outcome-failure))
+    (println (format "Outcome Failure with assumptions: ~v" outcome-failure-assume))
+    (println (format "Outcome Success with assumptions: ~v" outcome-success-assume))
+    (println (format "Outcome Success with assumptions and assertions: ~v" outcome-assumptions-success-and-assertions))
     (displayln (format "~v" (and (not (unsat? outcome-success-assume)) (unsat? outcome-failure) (unsat? outcome-assumptions-and-failure) (unsat? outcome-assumptions-success-and-not-assertions))))
     ;; Solver time
-;; JSON export
-    (define models-out (open-output-file "models.json" #:exists 'replace))
-    (define coverage-out (open-output-file "coverage.txt" #:exists 'replace))
-;;    (define output-string (format "~a" (jsexpr->string results-hashtbl)))
-;;    (display output-string)
     (write-json results-list models-out)
     (write-coverage coverage-out)
     (close-output-port models-out)
     (close-output-port coverage-out)
+    (close-output-port time-out)
     (set! global-outcome outcome)
     (terminate outcome)))
 
