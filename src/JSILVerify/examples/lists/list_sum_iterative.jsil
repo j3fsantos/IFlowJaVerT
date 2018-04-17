@@ -1,4 +1,4 @@
-pred my_lseg(x, y, alpha) : 
+pred my_lseg(+x, +y, alpha) : 
   (x == y) * (alpha == {{ }}),
   
   ((x, "value") -> #v) * 
@@ -8,7 +8,7 @@ pred my_lseg(x, y, alpha) :
 
 
 
-pred my_list(x, alpha : List) : 
+pred my_list(+x, alpha : List) : 
   (x == null) * (alpha == {{ }}),
   
   ((x, "value") -> #v) *
@@ -17,7 +17,7 @@ pred my_list(x, alpha : List) :
   (alpha == #v :: #beta);
 
 
-pred my_alpha_sum(alpha,sum) : 
+pred my_alpha_sum(+alpha,sum) : 
   (alpha == {{ }}) * (sum == 0),
   (alpha == (#v :: #beta))  * my_alpha_sum(#beta,#sum_beta) * (sum == (#sum_beta + #v));
 
@@ -78,12 +78,9 @@ proc list_sum_iterative(x){
   else1:  x_next := [x, "next"];
           x_val  := [x, "value"];
 
-          [*  apply lseg_append(#x, x, #done, x_val, x_next) *]
-          skip;
-          [* fold my_alpha_sum(#done @ {{ x_val }}, count + x_val) *]
-          skip;
-          [* fold my_alpha_sum((cdr #rest), (#rest_sum - x_val)) *]
-          
+          [* apply lseg_append(#x, x, #done, x_val, x_next);
+             fold my_alpha_sum(#done @ {{ x_val }}, count + x_val);
+             fold my_alpha_sum((cdr #rest), (#rest_sum - x_val)) *]
           count := count + x_val;
           
           x := x_next;

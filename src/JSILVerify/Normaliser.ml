@@ -2004,6 +2004,12 @@ let alternative_new_unification_plan
 	let setup_single_assertion a io =
 		let ins, outs = io in 
 		let unknown_ins = SS.diff ins init_vars in 
+		  print_debug_petar (Printf.sprintf "Asrt: %s; Ins: %s; Outs: %s; Unknown: %s"
+			  (JSIL_Print.string_of_logic_assertion a)
+				(String.concat "," (SS.elements ins))
+				(String.concat "," (SS.elements outs))
+				(String.concat "," (SS.elements unknown_ins))
+			);
 			Hashtbl.replace main a (unknown_ins, outs) in 
 	
 	List.iter (fun (a : jsil_logic_assertion) -> 
