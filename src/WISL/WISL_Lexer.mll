@@ -46,7 +46,7 @@ rule read =
   | "hd"     { HEAD }
   | "tl"     { TAIL }
   | "->"     { ARROW }
-  | "x__ret" { XRET } (* unused, but not variable should have that name *)
+  | "x__ret" { Printf.printf "x__ret is reserved and cannot be used\n"; XRET } (* unused, but not variable should have that name *)
   | identifier { IDENTIFIER (Lexing.lexeme lexbuf) }
   | lvar       { LVAR (Lexing.lexeme lexbuf) }
   | '"'      { read_string (Buffer.create 17) lexbuf }
