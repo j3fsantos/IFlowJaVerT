@@ -1,3 +1,15 @@
+predicate list(x, alpha) {
+  (x == null) * (alpha == nil);
+  ((x, head) -> #v) * ((x, tail) -> #z) *
+  list(#z, #beta) * (alpha == #v::#beta)
+}
+
+predicate list_seg(x, y, alpha) {
+  (x == y) * (alpha == nil);
+  ((x, head) -> #v) * ((x, tail) -> #z) *
+  list_seg(#z, y, #beta) * (alpha == #v::#beta)
+}
+
 function lrev(x) {
   y := null;
   while (x != null) {
