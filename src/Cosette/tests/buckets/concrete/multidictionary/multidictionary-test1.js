@@ -687,7 +687,7 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
      * Returns true if the dictionary contains no mappings.
      * @return {boolean} True if the dictionary contains no mappings.
      */
-    /* @id multDict_isEmpty */
+    /* @id multiDict_isEmpty */
     multiDict.isEmpty = function () {
         return parent.isEmpty();
     };
