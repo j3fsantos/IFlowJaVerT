@@ -548,25 +548,22 @@ buckets.Set = function (toStringFunction) {
 var set1 = new buckets.Set();
 var set2 = new buckets.Set();
 
-var x1 = symb_number(x1);
-var x2 = symb_number(x2);
-var x3 = symb_number(x3);
-
-Assume(not (x1 = x3));
+var x1 = symb_string(x1);
+var x2 = symb_string(x2);
+var x3 = symb_string(x3);
+var x4 = symb_string(x4);
 
 set1.add(x1);
 set1.add(x2);
 
-set2.add(x2);
 set2.add(x3);
+set2.add(x4);
 
-var res3 = set2.isSubsetOf(set1);
-Assert(not res3);
+var res1 = set2.isSubsetOf(set1);
 
 set1.union(set2);
 
-var res1 = set1.contains(x3);
-Assert(res1);
+var res2 = set1.contains(x3); 
+var res3 = set2.isSubsetOf(set1);
 
-var res2 = set2.isSubsetOf(set1);
-Assert(res2);
+Assert(res1 and (res2 and res3));
