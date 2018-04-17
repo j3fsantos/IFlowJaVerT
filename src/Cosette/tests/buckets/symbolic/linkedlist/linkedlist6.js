@@ -148,7 +148,7 @@ buckets.LinkedList = function () {
         lastNode;
 
     // Returns the node at the specified index.
-    /* @id list_nodeAtIndex */
+    /* @id linkedlist_nodeAtIndex */
     function nodeAtIndex(index) {
         var node, i;
         if (index < 0 || index >= nElements) {
@@ -172,7 +172,7 @@ buckets.LinkedList = function () {
      * @return {boolean} True if the element was added or false if the index is invalid
      * or if the element is undefined.
      */
-    /* @id list_add */
+    /* @id linkedlist_add */
     list.add = function (item, index) {
         var newNode, prev;
 
@@ -212,7 +212,7 @@ buckets.LinkedList = function () {
      * @return {*} The first element in the list or undefined if the list is
      * empty.
      */
-    /* @id list_first */
+    /* @id linkedlist_first */
     list.first = function () {
         if (firstNode !== undefined) {
             return firstNode.element;
@@ -225,7 +225,7 @@ buckets.LinkedList = function () {
      * @return {*} The last element in the list or undefined if the list is
      * empty.
      */
-    /* @id list_last */
+    /* @id linkedlist_last */
     list.last = function () {
         if (lastNode !== undefined) {
             return lastNode.element;
@@ -239,7 +239,7 @@ buckets.LinkedList = function () {
      * @return {*} The element at the given index or undefined if the index is
      * out of bounds.
      */
-    /* @id list_elementAtIndex */
+    /* @id linkedlist_elementAtIndex */
     list.elementAtIndex = function (index) {
         var node = nodeAtIndex(index);
         if (node === undefined) {
@@ -269,7 +269,7 @@ buckets.LinkedList = function () {
      * of the specified element, or -1 if the list does not contain the
      * element.
      */
-    /* @id list_indexOf */
+    /* @id linkedlist_indexOf */
     list.indexOf = function (item, equalsFunction) {
         var equalsF = equalsFunction || buckets.defaultEquals,
             currentNode = firstNode,
@@ -306,7 +306,7 @@ buckets.LinkedList = function () {
      * @return {boolean} True if the list contains the specified element, false
      * otherwise.
      */
-    /* @id list_contains */
+    /* @id linkedlist_contains */
     list.contains = function (item, equalsFunction) {
         return (list.indexOf(item, equalsFunction) >= 0);
     };
@@ -325,7 +325,7 @@ buckets.LinkedList = function () {
      * @param {Object} item Element to be removed from the list, if present.
      * @return {boolean} True if the list contained the specified element.
      */
-    /* @id list_remove */
+    /* @id linkedlist_remove */
     list.remove = function (item, equalsFunction) {
         var equalsF = equalsFunction || buckets.defaultEquals,
             currentNode = firstNode,
@@ -364,7 +364,7 @@ buckets.LinkedList = function () {
     /**
      * Removes all the elements from the list.
      */
-    /* @id list_clear */
+    /* @id linkedlist_clear */
     list.clear = function () {
         firstNode = undefined;
         lastNode = undefined;
@@ -381,7 +381,7 @@ buckets.LinkedList = function () {
      * the === operator is used to check equality between elements.
      * @return {boolean} true if the list is equal to the given list.
      */
-    /* @id list_equals */
+    /* @id linkedlist_equals */
     list.equals = function (other, equalsFunction) {
         var eqf = equalsFunction || buckets.defaultEquals,
             isEqual = true,
@@ -393,7 +393,7 @@ buckets.LinkedList = function () {
         if (list.size() !== other.size()) {
             return false;
         }
-        /* @id list_equals_callback */
+        /* @id linkedlist_equals_callback */
         other.forEach(function (element) {
             isEqual = eqf(element, node.element);
             node = node.next;
@@ -408,7 +408,7 @@ buckets.LinkedList = function () {
      * @param {number} index Given index.
      * @return {*} Removed element or undefined if the index is out of bounds.
      */
-    /* @id list_removeElementAtIndex */
+    /* @id linkedlist_removeElementAtIndex */
     list.removeElementAtIndex = function (index) {
         var element, previous;
 
@@ -445,7 +445,7 @@ buckets.LinkedList = function () {
      * invoked with one argument: the element value, to break the iteration you can
      * optionally return false inside the callback.
      */
-    /* @id list_forEach */
+    /* @id linkedlist_forEach */
     list.forEach = function (callback) {
         var currentNode = firstNode;
         while (currentNode !== undefined) {
@@ -461,7 +461,7 @@ buckets.LinkedList = function () {
      * element first, and the first element last).
      * @memberOf buckets.LinkedList
      */
-    /* @id list_reverse */
+    /* @id linkedlist_reverse */
     list.reverse = function () {
         var current = firstNode,
             previous,
@@ -484,10 +484,10 @@ buckets.LinkedList = function () {
      * @return {Array.<*>} An array containing all the elements in the list,
      * in proper sequence.
      */
-    /* @id list_toArray */
+    /* @id linkedlist_toArray */
     list.toArray = function () {
         var result = [];
-        /* @id list_toArray_callback */
+        /* @id linkedlist_toArray_callback */
         list.forEach(function (element) {
             result.push(element);
         });
@@ -498,7 +498,7 @@ buckets.LinkedList = function () {
      * Returns the number of elements in the list.
      * @return {number} The number of elements in the list.
      */
-    /* @id list_size */
+    /* @id linkedlist_size */
     list.size = function () {
         return nElements;
     };
@@ -507,7 +507,7 @@ buckets.LinkedList = function () {
      * Returns true if the list contains no elements.
      * @return {boolean} true if the list contains no elements.
      */
-    /* @id list_isEmpty */
+    /* @id linkedlist_isEmpty */
     list.isEmpty = function () {
         return nElements <= 0;
     };

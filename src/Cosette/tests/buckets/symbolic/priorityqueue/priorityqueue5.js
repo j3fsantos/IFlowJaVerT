@@ -581,7 +581,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @param {Object} element The element to insert.
      * @return {boolean} True if the element was inserted, or false if it's undefined.
      */
-    /* @id pqueue_enqueue */
+    /* @id priorityqueue_enqueue */
     pQueue.enqueue = function (element) {
         return heap.add(element);
     };
@@ -591,7 +591,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @param {Object} element The element to insert.
      * @return {boolean} True if the element was inserted, or false if it's undefined.
      */
-    /* @id pqueue_add */
+    /* @id priorityqueue_add */
     pQueue.add = function (element) {
         return heap.add(element);
     };
@@ -601,7 +601,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @return {*} The highest priority element of the queue,
      * or undefined if the queue is empty.
      */
-    /* @id pqueue_dequeue */
+    /* @id priorityqueue_dequeue */
     pQueue.dequeue = function () {
         var elem;
         if (heap.size() !== 0) {
@@ -616,7 +616,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * Retrieves, but does not remove, the highest priority element of the queue.
      * @return {*} The highest priority element of the queue, or undefined if the queue is empty.
      */
-    /* @id pqueue_peek */
+    /* @id priorityqueue_peek */
     pQueue.peek = function () {
         return heap.peek();
     };
@@ -627,7 +627,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @return {boolean} True if the priority queue contains the specified element,
      * false otherwise.
      */
-    /* @id pqueue_contains */
+    /* @id priorityqueue_contains */
     pQueue.contains = function (element) {
         return heap.contains(element);
     };
@@ -637,7 +637,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @return {boolean} True if and only if the priority queue contains no items, false
      * otherwise.
      */
-    /* @id pqueue_isEmpty */
+    /* @id priorityqueue_isEmpty */
     pQueue.isEmpty = function () {
         return heap.isEmpty();
     };
@@ -646,7 +646,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * Returns the number of elements in the priority queue.
      * @return {number} The number of elements in the priority queue.
      */
-    /* @id pqueue_size */
+    /* @id priorityqueue_size */
     pQueue.size = function () {
         return heap.size();
     };
@@ -654,7 +654,7 @@ buckets.PriorityQueue = function (compareFunction) {
     /**
      * Removes all elements from the priority queue.
      */
-    /* @id pqueue_clear */
+    /* @id priorityqueue_clear */
     pQueue.clear = function () {
         heap.clear();
     };
@@ -666,7 +666,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * invoked one element as argument. To break the iteration you can
      * optionally return false inside the callback.
      */
-    /* @id pqueue_forEach */
+    /* @id priorityqueue_forEach */
     pQueue.forEach = function (callback) {
         heap.forEach(callback);
     };
@@ -677,7 +677,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @return {Array.<*>} An array containing all the elements in the queue
      * in no particular order.
      */
-    /* @id pqueue_toArray */
+    /* @id priorityqueue_toArray */
     pQueue.toArray = function () {
         return heap.toArray();
     };
@@ -688,7 +688,7 @@ buckets.PriorityQueue = function (compareFunction) {
      * @param {buckets.PriorityQueue} other The other queue.
      * @return {boolean} True if the queue is equal to the given queue.
      */
-    /* @id pqueue_equals */
+    /* @id priorityqueue_equals */
     pQueue.equals = function (other) {
         var thisArray, otherArray, eqF;
 
