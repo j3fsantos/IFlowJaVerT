@@ -82,6 +82,7 @@ let rec compile_expression expr =
       "Operator %a is not a special operator" WISL_Printer.pp_binop b)
   in
   match expr with
+  | Val (VList vl) -> failwith "lists can only be used in the logic"
   | Val v -> JSIL.Literal (compile_value v)
   | Var "ret" -> failwith "ret is the special name used for the return
                            value in the logic. It cannot be a variable name"
