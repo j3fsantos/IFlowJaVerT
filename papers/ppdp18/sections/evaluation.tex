@@ -4,12 +4,12 @@ We demonstrate the practical validity of \cosette as a tool for bug-finding in J
 We wrote symbolic tests fully covering the code of real-world Node.js libraries, and found several  implementation bugs.
 Moreover, we measured evaluation times, including solver times, to assess the performance of \cosette.
 
-Throughout this section, we will be using the Buckets.js~\ref{buckets} (which has around 65k downloads on npm) data structure library as a running example.
+Throughout this section, we will be using the Buckets.js~\cite{buckets} (which has around 65k downloads on npm) data structure library as a running example.
 It implements most common data structures, comes with unit tests, and has no external dependencies, which is necessary for the whole-program analysis of \cosette.
 
 \subsection{Making Concrete Tests Symbolic}
 
-When writing libraries, developers more and more often include extensive test suites, called unit tests, along with actual code (JavaScript has several well-known unit test libraries, such as Jasmine~\ref{jasmine}, AVA~ref{ava}, or Mocha~\ref{Mocha}).
+When writing libraries, developers more and more often include extensive test suites, called unit tests, along with actual code (JavaScript has several well-known unit test libraries, such as Jasmine~\cite{jasmine}, Ava~\cite{ava}, or Mocha~\cite{mocha}).
 These test suites allow the developer to have reasonable confidence in the well-behavedness of their code, up to the level of detail of the tests.
 However, being concrete by nature, these tests might miss corner cases or code paths that the developer hasn't reasoned about.
 
@@ -42,7 +42,7 @@ assert((i >= 0 && i < len && res) || ((i < 0 || i >= len) && !res));
 \subsection{Bug-finding}
 
 Writing tests helps the developer to have more confidence in their code, but it can also reveal bugs.
-With the help of \cosette, we were able to find a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\ref{queue-pri}). 
+With the help of \cosette, we were able to find a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
 
 \myparagraph{\jsinline{multidictionary}} The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 In the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key is completely removed from the dictionary, or it can be an actual value.
