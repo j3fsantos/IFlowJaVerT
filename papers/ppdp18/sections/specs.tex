@@ -1,41 +1,40 @@
 %!TEX root = ../main.tex
 
 We show how to use \cosette for debugging \jsil code annotated with 
-separation logic (SL) specifications. Tools that allow for SL-reasoning about
-functional correctness properties in general, and those targeting 
-JavaScript in particular, require the user to have substantial expertise 
-and to go through a long and complex proof trace, whenever verification
-is not successful. \cosette substantially simplifies this process by providing
-concrete counter-models that invalidate the input specifications.
+separation logic (SL) specifications. Tools that support SL-reasoning about
+functional correctness properties of programs often require of the user to 
+analyse long, complex proof traces whenever
+verification fails. 
+\cosette substantially simplifies this process by providing
+concrete counter-models that invalidate the input specification. 
 
-In \S\ref{subsec:sep:assertions}, we extend the 
+
+We extend the 
  \jsil symbolic interpreter with a mechanism for asserting
-SL-assertions. 
+SL-assertions (\S\ref{subsec:sep:assertions}) and show how to 
+implement this mechanism by giving a sound decision procedure 
+for solving the frame inference problem (FIP)~\cite{}
+in the context of symbolic execution (\S\ref{subsec:fip}).
 %
-In \S\ref{subsec:fip}, we show how to implement this mechanism by giving 
-a sound decision procedure for solving the frame inference problem (FIP)~\cite{}
-in the context of symbolic execution.
+%Unlike verification tools, our emphasis is in the generation of counter-models for failing cases. 
 %
-Unlike verification tools, our emphasis is in the generation of counter-models 
-for failing cases. 
-%
-Finally, in \S\ref{specs:to:symbolic:tests}, we present an algorithm  
+We present an algorithm  
 for generating symbolic tests from SL-specifications, which guarantees 
 that whenever a symbolic test fails, \cosette produces a concrete 
-counter-model that invalidates the corresponding specification.
+counter-model that invalidates the corresponding specification (\S\ref{specs:to:symbolic:tests}).
 
 \vspace{-5pt}
 \subsection{Symbolic Execution with SL-Assertions}\label{subsec:sep:assertions}
 
 \jsil Logic assertions~\cite{javert}
 provide a compositional way of describing \emph{partial} symbolic states. 
-\jsil assertions include: boolean operations; the separating conjunction; 
+They include: boolean operations; the separating conjunction; 
 and assertions for describing heaps. The $\lemp$ assertion describes 
 an empty heap. The cell assertion, $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$,  describes an object 
 at the location denoted by $\lexpr_1$ with a property denoted by $\lexpr_2$ that has the value 
 denoted by $\lexpr_3$. The object domain assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
 the location denoted by $\lexpr_1$ has no properties other than possibly those included in the
-set denoted by $\lexpr_2$. The syntax of assertions is given below. 
+set denoted by $\lexpr_2$. %The syntax of assertions is given below. 
 We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
 and use $\spass$ and $\sqass$ to range over them.
 
@@ -52,12 +51,12 @@ and use $\spass$ and $\sqass$ to range over them.
 \end{display}
 
 \noindent Without loss of generality, we implicitly assume that different symbolic locations 
-denote different concrete locations.\footnote{In order to express aliasing, the user has to write multiple assertions.}
+denote different concrete locations.\footnote{To express aliasing, the user has to write multiple assertions.}
  Furthermore, given a cell assertion $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$, we always assume 
  $\lexpr_1$ to be either a concrete location $\loc$ or a symbolic location $\sloc$. 
 %
-Unsurprisingly, every symbolic state can be thought of as an assertion. In particular, 
-the symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the assertion: 
+Note that 
+a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the assertion 
 \begin{equation*}
 {\small \begin{array}{l}
 \big(\varoast_{(\sloc, \sexprp) \in \domain(\sheap)} (\sloc, \sexprp) \mapsto \sheap(\sloc, \sexprp)\big) 
@@ -68,17 +67,17 @@ the symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the 
 \end{equation*}
 
 \noindent where $\varoast$ denotes the iterated separating conjunction~\cite{}. 
-Analogously, every assertion can be trivially re-organised into a symbolic state: 
-\dtag{1} cell assertions form the heap part of the state, 
-\dtag{2} object domain assertions form the domain part,
-\dtag{3} equalities involving program variables form the store, and 
-\dtag{4} pure assertions form the path condition. 
-Finally,  all the occurrences of program variables in the heap, domain, and path condition 
-are replaced with their corresponding symbolic expressions given by the store. 
-We use $\normaliser(\pass)$ to refer to the symbolic state corresponding 
-to $\pass$. 
+Analogously, an assertion can be normalised into a symbolic state: 
+ cell assertions form the heap; 
+object domain assertions form the domain table;
+ equalities involving program variables form the store; and 
+ pure assertions form the path condition. 
+Finally,  all occurrences of program variables in the heap, domain table, and path condition 
+are replaced with their corresponding symbolic expressions from the store. 
+We refer to the normalised symbolic state corresponding 
+to $\pass$ by $\normaliser(\pass)$. 
 %
-In the following, we use $\interpret{}{}(\sstate)$ for denoting the set 
+We also use $\interpret{}{}(\sstate)$ for denoting the set 
 $\{ (\jstate, \heap_f) \mid \exists \senv \, . \, (\jstate, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate) \}$ 
 and $\interpret{}{}(\pass)$ for denoting $\interpret{}{}(\normaliser(\pass))$. 
 
@@ -86,13 +85,16 @@ and $\interpret{}{}(\pass)$ for denoting $\interpret{}{}(\normaliser(\pass))$.
 \cosette does not support symbolic execution over inductive predicates, which are commonplace 
 in SL-style specifications~\cite{smallf, berdine:aplas:2005}. 
 As in~\cite{korat}, we deal with user-defined inductive predicates by \emph{unfolding} 
-those predicates up to a fixed bound, given by the user. This unfolding mechanism 
-is routine and is, therefore, omitted from the paper. 
+those predicates up to a fixed, user-defined bound. We omit this unfolding mechanism 
+as it is routine. 
 
 \myparagraph{Asserting SL-Assertions}
 We extend \jsil with a special construct, $\sepassert(P)$, for stating that 
 the assertion $P$ must hold whenever that command is evaluated. 
 The symbolic semantics is given below. 
+
+\vspace*{-0.2cm}
+{\footnotesize
 \begin{mathpar}
 \inferrule[\textsc{SL-Assert - True}]
   { 
@@ -107,32 +109,29 @@ The symbolic semantics is given below.
   { 
      \ccmd{i}  = \sepassert(\pass)  \\\\
      %
-    \unificationfun(\sstate, \pass) = \fail{\pc_f}  \\\\ 
+    \unificationfun(\sstate, \pass) = \fail{\pc_f}  \quad
     %
      (\sstate.\pcsel \wedge \pc_f) \text{ SAT}
   }{
     \abssemrule{\sstate, \scs, i}{\sstate, \scs, i}{\top}{\bot}{\symbolic}
 }
-\end{mathpar}
+\end{mathpar}}
 
-\vspace{-3pt}
-\noindent The rules make use of a partial decision procedure $\unificationfun(\sstate, \pass)$ for 
-determining whether or not a given symbolic state $\sstate$ satisfies an assertion $P$, 
-which is in general undecidable \cite{citemeplease}. More concretely, 
+\vspace*{-0.2cm}
+\noindent The rules use a partial decision procedure $\unificationfun(\sstate, \pass)$ for 
+determining if a given symbolic state $\sstate$ satisfies an assertion $P$, 
+undecidable in general \cite{citemeplease}. More concretely, 
 the decision procedure outputs: 
-\dtag{1} $\success{\subst, \sstate_f}$ when it finds a substitution $\subst$ and 
-a symbolic state frame $\sstate_f$ for which it holds that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))$, 
-where we use $\statecompose$ for the composition of two symbolic states, 
-and \dtag{2} $\fail{\pc_f}$ when it finds a first order formula $\pc_f$ such that 
+ $\success{\subst, \sstate_f}$ when it finds a substitution $\subst$ and 
+a symbolic state frame $\sstate_f$ such that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))$ holds;\footnote{ 
+We use $\statecompose$ for the composition of two symbolic states.}
+and $\fail{\pc_f}$ when it finds a first-order formula $\pc_f$, such that 
 $\interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset$. 
 Note that every concrete state and heap frame in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are counter models 
-for $P$. By requiring that $(\sstate.\pcsel \, \wedge \, \pc_f)$ be satisfiable, 
-the semantics only triggers an assertion failure when it finds a concrete witness for the failure ---
-any instantiation of $(\sstate \, \wedge \, \pc_f)$. 
+for $P$. By requiring that $(\sstate.\pcsel \, \wedge \, \pc_f)$ is satisfiable, 
+the semantics only triggers an assertion failure when it finds a concrete witness for the failure---any instantiation of $(\sstate \, \wedge \, \pc_f)$. 
 
-
-
-\subsection{Frame Inference Problem}\label{subsec:fip}
+\subsection{The Frame Inference Problem}\label{subsec:fip}
 
 We describe a partial decision procedure, which we  
 implement as part of the \jsil symbolic interpreter, for proving entailments 
@@ -142,7 +141,16 @@ As it is customary~\cite{javert,jacobs2011verifast,sepwithsmt}, the decision pro
 on the spatial part of the symbolic state, and then discharging the pure part of the 
 entailment to an external constraint solver (in our case, \rosette). 
 
-\begin{table} 
+\myparagraph{Unification Plan}
+When solving $\unificationfun(\sstate, \pass)$, the symbolic variables of $\pass$ that are not 
+in $\sstate$ are assumed to be existentially quantified. 
+To find the appropriate bindings for these variables, we 
+introduce \emph{unification plans} (Def.~\ref{def:up}).
+Informally, a unification plan is an ordering of the simple assertions in $\pass$ that 
+guarantees that the unification algorithm does not have to backtrack at unification~time. 
+
+\vspace{-0.2cm}
+\begin{table}[!h]
 {\small \begin{tabular}{@{}c@{}ccc@{}c@{}}\toprule
 \emph{Argument} & & \textbf{IN}  & & \textbf{OUT}  \\
 \cmidrule{1-1} \cmidrule{3-3} \cmidrule{5-5}
@@ -161,31 +169,22 @@ $\lexpr_1 = \lexpr_2$                               & & $\upin(\lexpr_1)$/$\upin
 $\sass$                                                    & & $\fv(\sass)$                                           & & $\emptyset$ \\
 \bottomrule
 \end{tabular}}
-\caption{\emph{in} and \emph{out} sets for assertions and logical expressions}
-\vspace{-25pt}
+%\caption{\emph{in} and \emph{out} sets for assertions and logical expressions}
+%\label{tab:insouts}
+\vspace{-0.3cm}
 \end{table}
 
-\myparagraph{Unification Plan}
-When solving $\unificationfun(\sstate, \pass)$, the symbolic variables of $\pass$ that are not 
-in $\sstate$ are assumed to be existentially quantified. 
-In order to find the appropriate bindings for these variables, we 
-introduce the notion of \emph{unification plan} (Definition~\ref{def:up}).
-Informally, a unification plan is an ordering of the simple assertions in $\pass$ that 
-guarantees that the unification algorithm does not have to backtrack at unification~time. 
-
-We define for each assertion an \emph{in} set and an \emph{out} set (these 
+To construct unification plans, we define an \emph{in} set and an \emph{out} set for each assertion and logical expression, illustrated above. These 
 sets are reminiscent of the predicate parameter modes in~\cite{nguyen:vmcai:2008}).
 Intuitively, the variables in the \emph{out} set of an assertion are those that can be computed 
-using the variables in the \emph{in} set, together with the current state. 
-For instance, given the assertion $(\svar_1, \svar_2) \pointsto \svar_3$, if we know the bindings
+using the variables in the \emph{in} set, together with the current state (e.g.~given the assertion $(\svar_1, \svar_2) \pointsto \svar_3$, if we know the bindings
 for $\svar_1$ and $\svar_2$, we can compute the bindings for $\svar_3$, given 
-the current symbolic state. 
+the current symbolic state). 
 %
-Analogously, we define \emph{in} and \emph{out} sets for logical expressions. 
-The variables in the \emph{out} set of a logical expression are those that can be computed
+For logical expressions, the variables in the \emph{out} set are those that can be computed
 given the value of the whole expression, whereas the variables in the \emph{in} set 
-are those that need to be known for us to compute the value of the whole expression.  
-Finally, the definition of unification plan is given below. 
+are those that we need to know to compute the value of the whole expression.  
+Finally, the definition of a unification plan is given below. 
 
 \begin{definition}[Unification Plan]\label{def:up}
 A \emph{unification plan} $\up$ is a sequence of simple assertions $\sqass_i \mid_{i=0}^n$ such that
@@ -200,13 +199,12 @@ where $\upin_0$ is the set of \underline{non}-existentially quantified logical v
 \noindent It is not always possible to generate a unification plan for an SL-assertion. We only 
 consider assertions that admit a unification plan. 
 
-
 \myparagraph{Unification Algorithm}
 Given a symbolic state $\sstate$ and an assertion $\pass$, $\unificationfun(\sstate, \pass)$: 
-\dtag{1} replaces all the occurrences of program variables in $\pass$ with their bindings 
+\dtag{1} replaces all occurrences of program variables in $\pass$ with their bindings 
 given by $\sstate.\stosel$;
-\dtag{2} computes an initial substitution $\subst_0$ mapping all the non-existentially quantified symbolic 
-variables in $\pass$ to themselves (put formally: $\subst_0 = \identity_{\fv(\sstate) \cap \fv(\pass)}$); 
+\dtag{2} computes an initial substitution $\subst_0$, mapping all the non-existentially quantified symbolic 
+variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate) \cap \fv(\pass)}$); 
 \dtag{3} creates a unification plan $\up$ for $\pass$; and, 
 \dtag{4} calls Algorithm~\ref{fip:symb:states}. 
 %
@@ -215,24 +213,21 @@ Algorithm~\ref{fip:symb:states} makes use of the following auxiliary functions:
 \begin{description}
 \setlength{\itemsep}{0.2em}
   \item[FIP GetCell.] In case of success, $\GetCellV{\sstate, \sloc, \sexprp}$ returns 
-          a pair consisting of the symbolic expression $\sexprv$ associated with 
+          the symbolic expression $\sexprv$ associated with 
           $(\sloc, \sexprp)$ in the heap component of $\sstate$ \underline{and} 
           the state obtained by removing that cell from $\sstate.\hpsel$.
   
   \item[FIP GetDomain.] In case of success, $\GetDomainV{\sstate, \sloc}$ returns 
-          a pair consisting of the symbolic expression $\sexprv_d$ denoting the domain 
-          of the object at location $\sloc$ in $\sstate$ \underline{and} 
+          the symbolic expression $\sexprv_d$, denoting the domain 
+          of the object at location $\sloc$ in $\sstate$, \underline{and} 
           the state obtained by removing all the negative resource associated with 
           $\sloc$ from $\sstate$.  
   
   \item[Expression Unification.]  In case of success, $\unifylexpr(\sexprv, \sexprv', \subst, \pc)$ 
           returns a substitution $\subst'$ that extends $\subst$ such that $\pc \vdash \sexprv = \subst'(\sexprv')$. 
 \end{description}
-In case of failure, all auxiliary functions return a constraint $\pc_f$ under which 
-the unification is guaranteed not to be possible. 
-Below, we give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\GetDomainV{\sstate, \sloc}$.  
 
-{\small \begin{algorithm}[t!]
+{\footnotesize \begin{algorithm}[t!]
 \algblock[Name]{match}{end}
 \caption{Frame Inference for Symbolic States}\label{fip:symb:states}
 \begin{algorithmic}[1]
@@ -269,6 +264,9 @@ Below, we give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\Get
 \end{algorithmic}
 \end{algorithm}}
 
+\vspace*{-0.8cm}
+We give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\GetDomainV{\sstate, \sloc}$, analogous to those in \S\ref{subsec:symb:semantics}, except that they return a new symbolic state 
+from which the matched resource is removed and their corresponding constraints are lifted to the premise (highlighted in blue). Also, in case of failure, all auxiliary functions return a constraint $\pc_f$ under which the unification is not possible (highlighted in red). 
 
 \vspace{2pt}
 \begin{display}{Selected FIP Rules}
@@ -321,7 +319,7 @@ Below, we give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\Get
         { \color{blue} \pc \not\vdash \sexprp \not\in \sdom(\sloc)}
         \qquad
           { \color{blue} \pc \not\vdash \sexprp = \sexprp_i \mid_{i=0}^m}
-   }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} (\sexprp \in \sdom(\sloc)) \, \wedge \, \wedge_{i=0}^m (\sexprp_i \neq \sexprp)}}}
+   }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} (\sexprp \in \sdom(\sloc)) \, \wedge \, (\wedge_{i=0}^m (\sexprp_i \neq \sexprp))}}}
  \\
  \\
      \inferrule[\textsc{GetCell - Fail without Domain Info}]
@@ -333,21 +331,18 @@ Below, we give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\Get
        \sloc \not\in \domain(\sdom)
         \qquad
           { \color{blue} \pc \not\vdash \sexprp = \sexprp_i \mid_{i=0}^m}
-   }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} (\wedge_{i=0}^m (\sexprp_i \neq \sexprp)}}}
+   }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} \wedge_{i=0}^m (\sexprp_i \neq \sexprp)}}}
  \end{mathpar}}}
  \end{display}
 
-The rules are analogous to the rules in \S\ref{subsec:symb:semantics} except that they return a new symbolic state 
-from which the matched resource is removed and their corresponding constraints are lifted to the premise. 
-
 \myparagraph{Formal Guarantees}
-Theorem~\ref{teo:fip:soundness} states that the unification algorithm is sound: 
+The unification algorithm is sound: 
 given an SL-assertion $\pass$ and a symbolic state $\sstate$, if
 $\unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}$, then there is a symbolic state
-$\sstate'$ such that $\sstate = \sstate' \statecompose \sstate_f$ and $\sstate'$ satisfies $\pass$. 
+$\sstate'$ such that $\sstate = \sstate' \statecompose \sstate_f$ and $\sstate'$ satisfies $\pass$ (Theorem~\ref{teo:fip:soundness}). 
 The bug-finding theorem, Theorem~\ref{teo:fip:bugfinding}, is more subtle. It states that, 
 in case of failure, to find a counter-model for $\pass$, one has to pick a concretisation of the 
-symbolic state that is consistent with the failing constraint generated by the unification algorithm.
+symbolic state consistent with the failing constraint generated by the unification.% algorithm.
 
 
 \begin{theorem}[Soundness of FIP]\label{teo:fip:soundness}
@@ -404,7 +399,7 @@ $$
 \end{definition}
 
 \begin{figure}
-{\small
+{\footnotesize
 $$
 \begin{array}{lll}
 \testify{}(\specsig{P}{\pid(\jvar_1, ..., \jvar_n)}{Q}{\flag}) \ \semeq                           &  \testify{\fnormal}(\pid, \svar_i\mid_{i=0}^n, Q) \ \semeq \\
@@ -420,7 +415,7 @@ $$
  \ \ \ \ (\proc, \sstate)                                                                                                 &    \ \ \}  
 \end{array}
 $$}
-\vspace*{-0.2cm}
+\vspace*{-0.4cm}
 \caption{Symbolic Test Generation Algorithm~\label{fig:test:generation}}
 \vspace*{-0.2cm}
 \end{figure}
@@ -434,7 +429,7 @@ Figure~\ref{fig:test:generation} presents the test generation procedure. Intuiti
 returns the symbolic test for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$. The test generation function $\testifyfun{} \ $ is defined in terms 
 of two auxiliary functions, $\testifyfun{\fnormal}$ and $\testifyfun{\ferror}$, for generating tests for $\fnormal$-mode and 
 $\ferror$-mode specifications, respectively. 
-For space reasons, we only present $\testifyfun{\fnormal}$, $\testifyfun{\ferror}$ is equivalent. 
+For space reasons, we only present $\testifyfun{\fnormal}$ ($\testifyfun{\ferror}$ is equivalent). 
 The test program $\prog'$, denoted by $\prog[\jsilmain \mapsto \proc]$, is obtained from the original program $\prog$ and the test procedure $\proc$ by replacing the 
 $\jsilmain$ of $\prog$ with the new test procedure, $\proc$. 
 
