@@ -14,6 +14,13 @@
 %token NULL
 %token PREDICATE
 %token INVARIANT
+%token FOLD
+%token UNFOLD
+%token APPLY
+%token RECUNFOLD
+%token ASSERT
+%token PRE
+%token POST
 
 
 (* punctuation *)
@@ -131,12 +138,25 @@ statement_with_meta_list:
   | sl = separated_nonempty_list(SEMICOLON, statement_with_meta) { sl }
 
 statement_with_meta:
-  | inv = option(invariant); s = statement
-    { let metadata = WISL_Syntax.{invariant = inv; precmds = []; postcmds = []; } in
+  | inv = option(invariant); 
+    pre = option(pre_logic_cmds);
+    s = statement;
+    post = option(post_logic_cmds)
+    { 
+      let prec = Option.map_default (fun x -> x) [] pre in
+      let postc = Option.map_default (fun x -> x) [] post in
+      let metadata = WISL_Syntax.{invariant = inv; precmds = prec; postcmds = postc; } in
       (metadata, s) }
 
 invariant:
-  | LCBRACE; INVARIANT; COLON; l = logic_assertion; RCBRACE { l }
+  | LCBRACE; INVARIANT; COLON; l = logic_assertion ; RCBRACE { l }
+
+pre_logic_cmds:
+  | LCBRACE; PRE; COLON; lcmds = separated_list(SEMICOLON, logic_command);
+    RCBRACE { lcmds }
+post_logic_cmds:
+  | LCBRACE; POST; COLON; lcmds = separated_list(SEMICOLON, logic_command);
+    RCBRACE { lcmds }
 
 statement:
   | SKIP { WISL_Syntax.Skip }
@@ -218,6 +238,23 @@ named_logic_assertion:
     
 assertion_id:
   | LBRACK; n = IDENTIFIER; RBRACK { n }
+
+
+logic_command:
+  | FOLD; a = logic_assertion { WISL_Syntax.Fold a }
+  | UNFOLD; a = logic_assertion { WISL_Syntax.Unfold a }
+  | APPLY; name = IDENTIFIER; LBRACE;
+    params = separated_list(COMMA, logic_expression); RBRACE
+    { WISL_Syntax.ApplyLem (name, params) }
+  | RECUNFOLD; x = IDENTIFIER { WISL_Syntax.RecUnfold x }
+  | IF; LBRACE; g = logic_expression; RBRACE; LCBRACE;
+    thencmds = separated_list(SEMICOLON, logic_command); RCBRACE;
+    ELSE; LCBRACE; elsecmds = separated_list(SEMICOLON, logic_command); RCBRACE
+    { WISL_Syntax.LogicIf (g, thencmds, elsecmds) }
+  | IF; LBRACE; g = logic_expression; RBRACE; LCBRACE;
+    thencmds = separated_list(SEMICOLON, logic_command); RCBRACE;
+    { WISL_Syntax.LogicIf (g, thencmds, [])}
+
 
 logic_assertion:
   | LBRACE; la = logic_assertion; RBRACE; { la }

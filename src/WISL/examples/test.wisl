@@ -21,17 +21,21 @@ function lrev(x) {
   return y
 }
 
+{ list(x, #alpha) }
 function llen(x) {
   y := x;
   n := 0;
   {invariant: list(x, #alpha) * (n == len #done) * lseg(x, y, #done)
-              * list(y, #rest) * (#alpha == #done @ #rest)}
+              * list(y, #rest) * (#alpha == #done @ #rest) }
+  { pre: unfold list(x, #alpha) }
   while (y != null) {
     y := y.tail;
     n := n + 1
-  };
+  }
+  {post: fold list(x, #alpha) };
   return n
 }
+{ list(x, #alpha) * (ret == len #alpha) }
 
 function lcopy(x) {
   t := x;

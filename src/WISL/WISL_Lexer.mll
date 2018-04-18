@@ -41,7 +41,14 @@ rule read =
   | "predicate" { PREDICATE }
   | "invariant" { INVARIANT }
   | "return" { RETURN }
-  | "not"      { NOT }
+  | "fold"   { FOLD }
+  | "unfold*" { RECUNFOLD }
+  | "unfold" { UNFOLD }
+  | "apply"  { APPLY }
+  | "assert" { ASSERT }
+  | "pre"    { PRE }
+  | "post"   { POST }
+  | "not"    { NOT }
   | "emp"    { EMP }
   | "len"    { LEN }
   | "hd"     { HEAD }
