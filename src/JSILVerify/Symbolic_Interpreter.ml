@@ -1123,6 +1123,7 @@ and pre_symb_evaluate_cmd
 		let metadata, cmd = get_proc_cmd proc next in
 		if (sec_is_visited_node search_info next) then ( 
 			(*  Already symbolically executed the next command *)
+			(print_debug_petar (Printf.sprintf "Spec vars: %s" (String.concat ", " (SS.elements spec_vars))));
 			(match metadata.invariant with
 			| None   -> raise (Failure "Back edges MUST point to commands with invariants")
 			| Some a ->
@@ -1134,7 +1135,7 @@ and pre_symb_evaluate_cmd
 				print_normal (Printf.sprintf "spec_alocs: %s\n" (String.concat ", " (SS.elements spec_alocs)));
 
 				try 
-					let unification_plan = Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) symb_state_inv spec_alocs in
+					let unification_plan = Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) symb_state_inv (SS.union spec_vars spec_alocs) in
 					match Spatial_Entailment.unify_symb_states s_prog.pred_defs SS.empty spec_vars unification_plan None symb_state_inv symb_state with
 					| Some (true, (_, _, new_subst, _, _)) ->
 						print_normal (Printf.sprintf "new_subst: %s\n" (JSIL_Print.string_of_substitution new_subst));
@@ -1169,7 +1170,7 @@ and pre_symb_evaluate_cmd
 					print_normal (Printf.sprintf "spec_alocs: %s\n" (String.concat ", " (SS.elements spec_alocs))); 
 
 					try
-						let unification_plan = Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) symb_state_inv spec_alocs in
+						let unification_plan = Normaliser.create_unification_plan ?predicates_sym:(Some s_prog.pred_defs) symb_state_inv (SS.union spec_vars spec_alocs) in
 						match Spatial_Entailment.unify_symb_states s_prog.pred_defs SS.empty spec_vars unification_plan (Some pat_subst) symb_state_inv symb_state with
 						| Some (true, _) ->
 							symb_state_inv, spec_vars_inv
