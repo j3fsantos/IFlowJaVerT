@@ -5,9 +5,711 @@
 \newtheorem{cormax}{}
 
 
-\section{\jsil Syntax and Semantics}
+\section{Full Definitions --- Section~\ref{sec:jsil:symb:exec}}
 
-\subsection{Soundiness Proof}
+\subsection{Abstract Semantics}
+
+\begin{figure}[h!]
+\begin{tabular}{l}
+$\jnumber \in \numbers$ \jspc  $\jbool \in \bools$ \jspc $\jstring \in \strings$  \jspc 
+$\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
+%
+$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$
+   \\[0.1cm]
+ %
+  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
+ \\[0.1cm]
+%
+$\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr]$ \\
+%
+\hspace{0.02cm} $\mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr)$ \\
+\hspace{0.02cm} $\mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$  \\[0.1cm]
+% Commands
+$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
+\hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \jassert(\jsilexpr)$ \\[0.1cm]
+%
+$\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
+ \end{tabular}
+ \caption{Syntax of the \jsil Language}
+ \end{figure}
+ 
+ \begin{figure}[h!]
+ \begin{tabular}{ll}
+ \textsc{Expression Eval.:} & $\evalexpr{} :  (\jvars \partialmap \absvals)  \partialmap \exprs \partialmap \absvals$ \\ 
+                                                    & $\absval = \evalexpr{}(\absstore, \jsilexpr)$ \\[2pt]
+ %
+ \textsc{Heap Allocation:}            & $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$ \\ 
+                                                    & $\absstate' = \absalloc{}(\absstate)$ \\[2pt]
+ %
+\textsc{Store Selector:}                & $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$ \\ 
+                                                     & $\absstore' = \absstate.\stosel$ \\[2pt]
+% 
+\textsc{Store Update:}                 & $\stupdt{}: \absstates \rightarrow \jvars \rightarrow \absvals \rightarrow \absstates$ \\
+                                                    & $\absstate' = \stupdt{}(\absstate, \jvar, \absval)$ \\[2pt]
+%             
+\textsc{Heap Update:}                 & $\hpupdt{} : \absstates \rightarrow \absvals \rightarrow \absvals \rightarrow \setext{\absvals}{\none} \rightarrow \absstates$\\
+                                                    & $\absstate' = \hpupdt{}(\absstate, \absloc, \absprop, \absval)$ \\[2pt]
+ %
+ \textsc{GetCell:}                         & $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \setext{\absvals}{\none}$ \\ 
+                                                    & $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ \\[2pt]
+%
+ \textsc{GetDomain:}                   & $\getdomain : \absstates \rightarrow \exprs \partialmap \absvals$ \\ 
+                                                    & $\absval = \absgetdomainfun{}(\absstate, \jsilexpr)$ \\[2pt]
+% 
+\textsc{Assumption:}                   & $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$ \\ 
+                                                    & $\absstate' = \absassume{}(\absstate, \jsilexpr)$ \\[2pt]
+%
+\textsc{Satisfiability:}                   & $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$ \\ 
+                                                    & $\jbool = \abssat{}(\absstate, \jsilexpr)$ \\[2pt]
+%
+\textsc{Symbolic Val.:}                 & $\absmakesymbolic : \absstates \rightarrow \jtypes \rightarrow \absvals$ \\ 
+                                                    & $\absval = \absmakesymbolicrule{}{\jtype}$
+ \end{tabular}
+ \caption{Abstract State Signature}
+ \end{figure}
+ 
+ 
+ \begin{figure}[h!]
+\begin{mathpar}
+  \inferrule[\textsc{Skip}]{}
+	{ \absbsemrule{\absstate, \jsilskip}{\absstate}{}}  	
+\and 
+\inferrule[\textsc{Property Collection}]
+  {
+           \absval = \absgetdomainfun{}(\absstate, \jsilexpr)  
+           \quad
+           \absstate' =  \stupdt{}(\absstate, \jvar, \absval)
+  }{\absbsemrule{\absstate, \jvar := \getfields(\jsilexpr)}{\absstate'}{}} 
+%
+\\ 
+\inferrule[\textsc{Assignment}]
+  {
+        \absstore = \absstate.\stosel
+        \quad 
+        \absval = \evalexpr{}(\absstore, \jsilexpr)
+  }{\absbsemrule{\absstate, \jvar := \jsilexpr}{\stupdt{}(\absstate, \jvar, \absval)}{}} 
+\and
+\inferrule[\textsc{Property Access}]
+  { 
+  	\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (-, -, \absval)}
+  }{ \absbsemrule{\absstate, \jvar := [\jsilexpr_1, \jsilexpr_2]}{\stupdt{}(\absstate', \jvar, \absval)}{}}
+%
+\end{mathpar}
+%
+\caption{Abstract semantics of basic commands: {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}
+%
+\end{figure}
+
+
+
+ \begin{figure}[h!]
+\begin{mathpar}
+\inferrule[\textsc{Object Creation}]
+  { 
+       (\absstate_1, \loc) = \absalloc{}(\absstate) 
+       \\\\
+        \absgetcellrule{}{\absstate_1, \loc, \protop}{\absstate_2, -} 
+        \\\\ 
+        \absstate_3 = \hpupdt{}(\absstate_2, \loc, \protop, \jnull) 
+       }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\stupdt{}(\absstate_3, \jvar, \loc)}{}}
+\and
+\inferrule[\textsc{Property Assignment}]
+  {    
+       \absval = \evalexpr{}(\absstate.\stosel, \jsilexpr_3)
+       \\\\
+      \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate_1, (\absloc, \absprop, -)} 
+      \\\\ 
+     \absstate_2 = \hpupdt{}(\absstate', \absloc, \absprop, \absval)
+  }{\absbsemrule{\absstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\absstate_2}{}} 
+  \\
+ \inferrule[\textsc{Property Deletion}]
+  { 
+        \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate_1, (\absloc, \absprop, \absval)}
+        \\\\
+     	\absval \neq \none 
+	\quad 
+	\absstate_2 = \hpupdt{}(\absstate_1, \absloc, \absprop, \none)
+  }{\absbsemrule{\absstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\absstate_2}{}}
+\quad
+\inferrule[\textsc{Member Check - True}]
+  { 
+     \absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate_1, (-, -, \absval)} 
+     \\\\
+    \absstate_2 = \stupdt{}(\absstate_1, \jvar, \absval \neq \none)
+  }{\absbsemrule{\absstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\absstate_2}{}}
+ %
+ \\  
+ %
+  \inferrule[\textsc{Make Symbolic}]
+  { 
+     \absval = \absmakesymbolicrule{}{\absstate, \jtype}
+  }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
+\end{mathpar}
+%
+\caption{Abstract semantics of basic commands (cont.): {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}
+%
+\end{figure}
+
+
+
+
+\begin{figure}[h!]
+\begin{mathpar} 
+\inferrule[\textsc{Basic Command}]
+   { 
+     \ccmd{i} = \bcmd 
+     \quad
+     \absbsemrule{\absstate, \bcmd}{\absstate'}{} 
+   }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}}
+   \and 
+     \inferrule[\textsc{Goto}]
+   { 
+   \ccmd[\prog][\abscs]{i} = \goto \, j \quad}
+   {\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, j}{\top}{\top}{}}
+   \\
+   %
+  \inferrule[\textsc{Cond. Goto - True}]
+   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} 
+     \\\\
+     \absstate' = \absassume{}(\absstate, \jsilexpr) 
+   }
+   {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, j}{\top}{\top}{}}
+  %
+  \qquad
+  % 
+  \inferrule[\textsc{Cond. Goto - False}]
+   { \ccmd{i} =  \ifgoto{\jsilexpr}{j}{k} 
+       \\\\ 
+      \absstate' = \absassume{}(\absstate, \neg\jsilexpr) 
+   }
+   {\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, k}{\top}{\top}{}}
+  %
+  \\
+   %
+   \inferrule[\textsc{Normal Return}]
+   {
+       \abscs = (-, \absstore', \jvar, i, -) :: \abscs'  
+       \\\\ 
+       \absstore = \absstate.\stosel
+       \quad 
+       \absstate' = \absstate[\stosel \mapsto \absstore']
+       \\\\
+       \absstate'' = \stupdt{}(\absstate', \jvar, \absstore(\retvar))
+   }  
+   {\abssemrule{\absstate, \abscs, \retlab}{\absstate'', \abscs', i}{\top}{\top}{}}
+     %
+   \qquad 
+   %
+      \inferrule[\textsc{Error Return}]
+   { 
+       \abscs = (-, \absstore', \jvar, -, j) :: \abscs'
+       \\\\ 
+       \absstore = \absstate.\stosel
+       \quad 
+       \absstate' = \absstate[\stosel \mapsto \absstore'] 
+       \\\\
+        \absstate'' = \stupdt{}(\absstate', \jvar, \absstore(\errvar))
+   }  
+   {\abssemrule{\absstate, \abscs, \errlab}{\absstate'', \abscs', j}{\top}{\top}{}}
+      \\
+    \inferrule[\textsc{Procedure Call}]
+   { 
+    \ccmd{i} =   \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}
+     \qquad
+     \absstore = \absstate.\stosel 
+     \\\\
+    \evalexpr{}(\absstore, \jsilexpr) =  \pid' 
+      \qquad
+     \args(\pid') = \jsillist{\jvar_1, ..., \jvar_{m}} 
+      \qquad
+      \absval_i = \evalexpr{}(\absstore, \jsilexpr_i) \mid_{i = 0}^{n} 
+     \\\\
+      \absval_i = \jundefined \mid_{i = n+1}^{m}  
+      \and
+      \absstore' = [ \jvar_i \mapsto \absval_i \mid_{i = 0}^{m}]
+   }
+   {\abssemrule{\absstate, \abscs, i}{\absstate[\stosel \mapsto \absstore'],  (\pid', \absstore, \jvar, i{+}1, j) :: \abscs, 0}{\top}{\top}{}}
+    \\
+%
+\inferrule[\textsc{Assume}]
+  { 
+      \ccmd{i}  = \assume(\jsilexpr) 
+      \and 
+     \absstate' = \absassume{}(\absstate, \jsilexpr) 
+  }{\abssemrule{\absstate, \abscs, i}{\absstate', \abscs, i{+}1}{\top}{\top}{}} 
+\\
+\inferrule[\textsc{Assert - True}]
+  { 
+      \ccmd{i}  = \jassert(\jsilexpr)
+      \\\\ 
+       \abssat{}(\absstate, \neg \jsilexpr) = \jfalse
+  }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i{+}1}{\top}{\top}{}} 
+\qquad 
+\inferrule[\textsc{Assert - False}]
+  { 
+      \ccmd{i}  = \jassert(\jsilexpr)
+      \\\\ 
+      \abssat{}(\absstate, \neg \jsilexpr) = \jtrue
+  }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i}{\top}{\bot}{}} 
+ \end{mathpar}
+\caption{Abstract semantics of commands: \\{\small $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}
+\end{figure}
+
+\newpage
+$\phantom{xxx}$
+\newpage 
+
+\subsection{Concrete Semantics}
+
+\begin{figure}[h!]
+\begin{mathpar} 
+  \inferrule[\textsc{Expression Evaluation}]
+  {}{
+  {\begin{array}{l}
+     \evalexpr{\concrete}(\store, \val) \semeq \val \quad 
+  	\evalexpr{\concrete}(\store, \jvar) \semeq \store(\jvar) \quad
+	\evalexpr{\concrete}(\store, \ominus \jsilexpr) \semeq \semop{\ominus} \ \evalexpr{c}(\store, \jsilexpr) \\
+	%
+	 \evalexpr{\concrete}(\store, \jsilexpr_1 \oplus \jsilexpr_2) \semeq \evalexpr{c}(\store, \jsilexpr_1) \ \semop{\oplus} \ \evalexpr{c}(\store, \jsilexpr_2)
+  \end{array}}}
+  \\
+ %
+     \inferrule[\textsc{Allocation}]
+   { 
+         (\loc, -) \in \domain(\jstate.\hpsel)
+   }{  \absalloc{\concrete}(\jstate) \semeq (\jstate, \loc) }
+ \quad
+       \inferrule[\textsc{Store Selector}]
+   {}{  \stosel((-, \store)) \semeq  \store}
+    \quad 
+ %
+     \inferrule[\textsc{Store Update}]
+   { 
+         \store' = \store[\jvar \mapsto \val]
+   }{  \stupdt{\concrete}((\heap, \store), \jvar, \val) \semeq (\heap, \store')}
+ \\
+ %
+       \inferrule[\textsc{Positive Heap Update}]
+   { 
+         \heap' = \heap[(\loc, p) \mapsto \val]
+         \quad 
+         \val \neq \none
+   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \val) \semeq  (\heap', \store)}
+ \qquad
+       \inferrule[\textsc{Negative Heap Update}]
+   { 
+         \heap = \heap' \dunion (\loc, p) \mapsto -
+   }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) \semeq  (\heap', \store)}
+   \\
+    %
+        \inferrule[\textsc{GetCell - Found}]
+   { 
+         \loc = \evalexpr{c}(\store, \jsilexpr_1)
+        \quad 
+         p = \evalexpr{}(\store, \jsilexpr_2) 
+        \\\\
+       \heap = - \, \uplus \, (\loc, p) \mapsto \val
+       \quad 
+       r = (\loc, p, \val)
+        }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), r}}
+        \qquad
+    \inferrule[\textsc{GetCell - Not Found}]
+   { 
+         \loc = \evalexpr{c}(\store, \jsilexpr_1)
+        \quad 
+         p = \evalexpr{}(\store, \jsilexpr_2)
+        \\\\
+       (\loc, p) \not\in \domain(\heap)
+       \quad 
+       r = (\loc, p, \none)
+        }{  \absgetcellrule{\concrete}{(\heap, \store), \jsilexpr_1, \jsilexpr_2}{(\heap, \store), r}}
+  %
+  \\
+  \inferrule[\textsc{GetDomain}]
+   { 
+        \loc = \evalexpr{c}(\store, \jsilexpr) 
+      \and
+       (\loc,-) \notin \domain (\heap') 
+      \and
+       \heap = \heap' \, \uplus \, \big((\loc, p_i) \mapsto \val_i \big)\mid_{i = 0}^m  
+       }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_m}}
+  %
+   \\
+      \inferrule[\textsc{Symbolic Value}]
+   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
+     \and 
+  \inferrule[\textsc{Assume}]
+   {
+       \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
+   }{  \absassume{\concrete}(\jstate, \jsilexpr) \semeq  \jstate }
+  	\and
+    \inferrule[\textsc{Check Sat}]
+   {
+        \jbool = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) 
+   }{  \abssat{\concrete}(\jstate, \jsilexpr) \semeq \jbool}
+  \end{mathpar}
+  \caption{Concrete Semantics Rules}
+\end{figure}
+
+
+\subsection{Instrumented Semantics}
+
+\begin{figure}[h!]
+\begin{mathpar} 
+   \inferrule[\textsc{Allocation}]
+   { 
+         \istate = (\iheap, \idom, \store) 
+           \quad 
+         (\loc, -) \not\in \domain(\istate.\hpsel) 
+         \\\\
+         \idom' = \idom[\loc \mapsto \{ \}]
+   }{  \absalloc{\instrumented}(\istate) \semeq  ((\iheap, \idom', \store), \loc) }
+   \qquad
+   \inferrule[\textsc{Heap Update}]
+   { 
+         \istate = (\iheap, \idom, \store) 
+         \quad
+         \iheap' = \iheap[(\loc, p) \mapsto \ival]
+   }{  \hpupdt{\instrumented}(\istate, (\loc, p), \ival) \semeq  (\iheap', \idom, \store) }
+   \\
+      \inferrule[\textsc{GetCell - Found}]
+   { 
+         \loc = \evalexpr{\concrete}(\store, \jsilexpr_1) 
+      \quad
+         p = \evalexpr{\concrete}(\store, \jsilexpr_2) 
+         \\\\ 
+       \iheap = - \, \uplus \, (\loc, p) \mapsto \ival
+       \quad 
+       r = (\loc, p, \ival)
+        }{  \absgetcellrule{\instrumented}{(\iheap, -, \store), \jsilexpr_1, \jsilexpr_2}{\istate, r}}
+        \quad
+ % 
+     \inferrule[\textsc{GetCell - Not Found}]
+   { 
+         \loc = \evalexpr{\concrete}(\store, \jsilexpr_1) 
+        \quad 
+        p = \evalexpr{\concrete}(\store, \jsilexpr_2) 
+       \\\\
+       p \not\in \idom(\loc) 
+       \quad
+        \iheap' = \iheap \dunion ((\loc, p) \mapsto \none)
+       \\\\ 
+       \idom' = \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}]
+       \ 
+       r = (\loc, p, \none)
+     }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr_1, \jsilexpr_2}{(\iheap', \idom', \store), r}}
+  %
+  \\
+  \inferrule[\textsc{GetDomain}]
+   { 
+        \loc = \evalexpr{\concrete}(\store, \jsilexpr) 
+      \and
+       \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
+        \and
+        %
+          (\loc,-) \notin \domain (\iheap')  
+        \\\\
+          \jsilset{p_1, ..., p_m} = \idom(\loc)
+          \and
+        \forall_{0 \leq i \leq n} \, \val_i \neq \none 
+         \and 
+           \forall_{n < i \leq m} \, \val_i = \none 
+   }{  \absgetdomainfun{\instrumented}((\iheap, \idom, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_n}}
+  \end{mathpar}
+  \caption{Instrumented Semantics Rules: For all the omitted functions the rules coincide with the concrete 
+  semantics.}
+\end{figure}
+
+\begin{figure}[h!]
+\begin{mathpar}
+\inferrule[Empty Heap]{}{\interpret{\instconc}{}(\hemp) \semeq \hemp}
+\qquad
+\inferrule[Heap Non-$\none$-Cell]{}{
+\interpret{\instconc}{}(\hcell{\loc}{p}{\val}) \semeq   \hcell{\loc}{p}{\val}
+}
+\\
+\inferrule[Heap $\none$-Cell]
+{}{
+ \interpret{\instconc}{}(\hcell{\loc}{p}{\none}) \semeq \hemp 
+}
+\qquad
+\inferrule[Heap Composition]
+{
+ \interpret{\instconc}{}(\iheap_i) = \heap_i, \hdom_i \mid_{i =1,2}
+}{
+\interpret{\instconc}{}(\iheap_1 \dunion \iheap_2) \semeq  \heap_1 \dunion \heap_2
+}
+\\
+\inferrule[Symbolic States]{
+    \interpret{\instconc}{}(\iheap) = \heap
+}{
+\interpret{\instconc}{}(\iheap, \idom, \store) \semeq (\heap, \store)
+}
+\end{mathpar}
+\caption{Instrumented State Interpretation - Erasure}
+\end{figure}
+
+\newpage
+\subsection{Symbolic Semantics}
+
+
+\begin{figure}[h!]
+\begin{mathpar} 
+ \inferrule[\textsc{Expression Evaluation}]
+  {}{  
+      {\begin{array}{c}
+        \evalexpr{\symbolic}(\sstore, \val) \semeq \val 
+        %
+        \qquad
+       %
+        \evalexpr{\symbolic}(\sstore, \jvar) \semeq \sstore(\jvar)  
+	%
+	 \qquad
+	 %
+	\frac{
+		\val =  \evalexpr{\symbolic}(\sstore, \jsilexpr) 
+           }{
+	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) \semeq \semop{\ominus} (\val)
+	  } \\[10pt]
+	%
+	\frac{
+		\sexprv =  \evalexpr{\symbolic}(\sstore, \jsilexpr) 
+		\quad 
+		\sexprv \not\in \vals
+           }{
+	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) \semeq \ominus \sexprv
+	  }  
+	  %
+	  \quad 
+	  % 
+	  \frac{
+	      \val_1 = \evalexpr{\symbolic}(\sstore, \jsilexpr_1)
+	      \quad 
+	      \val_2 = \evalexpr{\symbolic}(\sstore, \jsilexpr_2)  
+	  }{\evalexpr{\symbolic}(\sstore, \jsilexpr_1 \oplus \jsilexpr_2) \semeq \semop{\oplus}(\val_1, \val_2)} \\[10pt]
+	  %
+	      \frac{
+	      \sexprv_1 = \evalexpr{\symbolic}(\sstore, \jsilexpr_1)
+	      \quad 
+	      \sexprv_2 = \evalexpr{\symbolic}(\sstore, \jsilexpr_2)  
+	      \quad 
+	      \{ \sexprv_1, \sexprv_2 \} \not\subseteq \vals
+	  }{\evalexpr{\symbolic}(\sstore, \jsilexpr_1 \oplus \jsilexpr_2) \semeq \sexprv_1 \oplus \sexprv_2}
+	\end{array}}
+	}
+	\\
+   %
+   \inferrule[\textsc{Allocation}]
+   { 
+         \istate = (\sheap, \sdom, \sstore) 
+           \and 
+         (\loc, -) \not\in \domain(\sstate.\hpsel) 
+         \and
+         \sdom' = \sdom[\loc \mapsto \{ \}]
+   }{  \absalloc{\instrumented}(\sstate) \semeq  ((\sheap, \sdom', \sstore), \loc) }
+   %
+   \\
+   %
+   \inferrule[\textsc{Store Selector}]
+   	{}{  \stosel((-, -, \sstore, -)) \semeq \sstore}
+  \and 
+  \inferrule[\textsc{Store Update}]
+   { 
+         \sstore' = \sstore[\jvar \mapsto \val]
+   }{  \stupdt{\symbolic}((\sheap, \sdom, \sstore, \pc), \jvar, \val) \semeq (\sheap, \sdom, \sstore', \pc)  }
+   \\
+   %
+       \inferrule[\textsc{Heap Update}]
+   { 
+         \sheap' = \sheap[(\sloc, \sexprp) \mapsto \sexprv]
+   }{  \hpupdt{\symbolic}((\sheap, \sdom, \sstore, \pc), (\sloc, \sexprp), \sexprv) \semeq (\sheap', \sdom, \sstore, \pc)' }
+   %
+  \\
+      \inferrule[\textsc{GetCell - Found}]
+   { 
+        \sloc = \evalexpr{}(\sstore, \jsilexpr_1) 
+        \and 
+        \sexprp = \evalexpr{}(\sstore, \jsilexpr_2) 
+      \and
+       \sheap = - \, \uplus \, (\sloc, \sexprp') \mapsto \sexprv
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr_1, \jsilexpr_2}{(\sheap, \sdom, \sstore, \pc \wedge (\sexprp = \sexprp')), (\sloc, \sexprp, \sexprv)}}
+   \\ 
+   %
+     \inferrule[\textsc{GetCell - Not Found}]
+   { 
+         \sloc = \evalexpr{\symbolic}(\sstore, \jsilexpr_1) 
+        \quad 
+        \sexprp = \evalexpr{\symbolic}(\sstore, \jsilexpr_2) 
+        \quad 
+        \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none)
+       \\\\
+       \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr_1, \jsilexpr_2}{(\sheap', \sdom', \sstore, \pc \, \wedge \, \sexprp \not\in \sdom(\sloc)), (\sloc, \sexprp, \none)}}
+ \end{mathpar}
+ \caption{Symbolic Semantics Rules}
+ \end{figure}
+
+
+\begin{figure}[h!]
+\begin{mathpar} 
+\inferrule[\textsc{GetDomain}]
+   { 
+        \sloc = \evalexpr{\symbolic}(\sstore, \jsilexpr) 
+      \qquad
+       \sheap = \sheap' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m  
+        \qquad
+        %
+          (\sloc,-) \notin \domain (\sheap')  
+        \\\\
+         \pc \vdash \jsilset{\sexprp_1, ..., \sexprp_m} = \sdom(\sloc)
+         \qquad
+        \forall_{0 \leq i \leq n} \, \sexprv_i \neq \none 
+         \qquad 
+           \forall_{n < i \leq m} \, \sexprv_i = \none 
+   }{  \absgetdomainfun{\symbolic}((\sheap, \sdom, \sstore, \pc), \jsilexpr) \semeq \jsilset{\sexprp_1, ..., \sexprp_n}}
+  \\
+   \inferrule[\textsc{Symbolic Value Creation}]
+   {\svar \in \svars \text{ is of type } \jtype
+     \quad 
+     \svar \not\in \fv(\sstate)
+    }{\absmakesymbolicrule{\symbolic}{\sstate, \jtype} = \svar}
+   \and 
+   \inferrule[\textsc{Assume}]
+   {  
+         \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
+   }{  \absassume{\symbolic}(\sstate, \jsilexpr) =  \sstate \, \wedge \, \sexprb }
+   \\
+    
+   \qquad
+    \inferrule[\textsc{Check Sat - True}]
+   { 
+   	\sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
+         \\\\
+         (\sstate.\pcsel \wedge \sexprb) \text{ SAT}
+   }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue}
+ \qquad 
+    \inferrule[\textsc{Check Sat - False}]
+   { 
+         \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
+         \\\\
+         (\sstate.\pcsel \wedge \sexprb) \text{ UNSAT}
+   }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jfalse} 
+ \end{mathpar}
+ \caption{Symbolic Semantics Rules - cont.}
+ \end{figure}
+
+
+
+\begin{figure}[h!]
+\begin{mathpar}
+\inferrule[Symbolic Expressions]
+{}{
+{\begin{array}{l}
+\interpret{\symbconc}{\senv}(\val) \semeq \val 
+%
+\quad
+%
+\interpret{\symbconc}{\senv}(\svar) \semeq \senv(\svar)
+%
+\quad
+%
+\interpret{\symbconc}{\senv}(\unoper\ \sexpr) \semeq \semop{\unoper} (\interpret{\symbconc}{\senv}(\sexpr)) \\[5pt]
+% 
+\interpret{\symbconc}{\senv}(\sexpr_1 \binoper \sexpr_2) \semeq \semop{\binoper}(\interpret{\symbconc}{\senv}(\sexpr_1), \interpret{\symbconc}{\senv}(\sexpr_2)) 
+\end{array}}
+}
+\\
+%
+\inferrule[Symbolic Stores]{}{
+ \interpret{\symbconc}{\senv}(\storeemp) \semeq \storeemp   
+\qquad
+\frac{
+   \val = \interpret{\symbconc}{\senv}(\sexpr) 
+   \quad 
+   \store = \interpret{\symbconc}{\senv}(\sstore)
+}{
+  \interpret{\symbconc}{\senv}((\jvar: \sexpr) \dunion \sstore) \semeq (\jvar: \val) \dunion \store 
+}}
+\and
+\inferrule[Symbolic Contexts]{}{
+\interpret{\symbconc}{\senv}(\lstemp) \semeq \lstemp
+\qquad
+\frac{
+    \store = \interpret{\symbconc}{\senv}(\sstore)
+    \quad 
+    \cs = \interpret{\symbconc}{\senv}(\scs)
+}{
+\interpret{\symbconc}{\senv}((\pid, \sstore, \jvar, i, j) \lstcons \scs) \semeq (\pid, \store, \jvar, i, j) \lstcons \cs
+}}
+\\
+\inferrule[Empty Heap]{}{\interpret{\symbinst}{\senv}(\hemp) \semeq \hemp}
+\qquad
+\inferrule[Heap Non-$\none$-Cell]{
+  l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
+   v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
+}{
+\interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \hcell{l}{p}{v}
+}
+\\
+\inferrule[Heap $\none$-Cell]
+{
+  l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+    p =  \interpret{\symbconc}{\senv}(\sexprp) 
+}{
+ \interpret{\symbinst}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \hcell{l}{p}{\none} 
+}
+\qquad
+\inferrule[Heap Composition]
+{
+ \interpret{\symbinst}{\senv}(\sheap_i) = \iheap_i, \hdom_i \mid_{i =1,2}
+}{
+\interpret{\symbinst}{}(\sheap_1 \dunion \sheap_2) \semeq  \iheap_1 \dunion \iheap_2
+}
+%
+\\
+\inferrule[Symbolic Domains]
+{
+   \idom(\loc) = \val  \iff  \exists \sexprl \in \domain(\sdom) \, . \,  \loc = \interpret{\symbconc}{\senv}(\sexprl) \, \wedge \, \val = \interpret{\symbconc}{\senv}(\sdom(\sexprl))
+}{
+\interpret{\symbinst}{\senv}(\sdom) \semeq \idom
+}
+\and
+\inferrule[Symbolic States]{
+    \interpret{\symbinst}{\senv}(\sheap) = \iheap
+   \quad
+    \interpret{\symbinst}{\senv}(\sdom) = \idom
+    \quad
+    \interpret{\symbconc}{\senv}(\sstore) = \store 
+    \quad
+    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
+}{
+\interpret{\symbinst}{\senv}(\sheap, \sdom, \sstore, \pc) \semeq (\iheap, \idom, \store)
+}
+\end{mathpar}
+\caption{Symbolic State Instrumented Interpretation}
+\end{figure}
+
+
+\newpage 
+
+$\phantom{xxxx}$
+
+\newpage
+
+\subsection{Linking the Semantics}
+
+
+$\phantom{xxxx}$
+
+\newpage
+
+
+\newpage 
+
+
+
+\section{Proof --- Section~\ref{sec:jsil:symb:exec}}
 
 \begin{lemma}[Expression Evaluation - Soundiness for Symbolic Semantics]\label{symb:eval:expr}
 $$

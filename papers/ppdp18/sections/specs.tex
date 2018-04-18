@@ -188,10 +188,11 @@ are those that need to be known for us to compute the value of the whole express
 Finally, the definition of unification plan is given below. 
 
 \begin{definition}[Unification Plan]\label{def:up}
-A \emph{unification plan} $\up$ is a sequence of simple assertions $\sqass_i \mid_{i=0}^n$ such that: 
-$$
- \forall 0 \leq i \leq n \, . \, \upin(\sqass_i) \subseteq \big(\cup_{j = 0}^{i-1} \upout(\sqass_j)\big) \cup \upin_0
-$$
+A \emph{unification plan} $\up$ is a sequence of simple assertions $\sqass_i \mid_{i=0}^n$ such that
+for all $0 \leq i \leq n$, it holds that:
+$
+ \upin(\sqass_i) \subseteq \big(\cup_{j = 0}^{i-1} \upout(\sqass_j)\big) \cup \upin_0
+$,
 where $\upin_0$ is the set of \underline{non}-existentially quantified logical variables. 
 \end{definition}
 
