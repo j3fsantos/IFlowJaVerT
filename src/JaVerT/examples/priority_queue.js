@@ -1,49 +1,47 @@
 /**
-	@pred Node(n, pri, val, next, np) :
-		JSObjWithProto(n, np)      * types(np : $$object_type) *
-		DataProp(n, "pri",  pri)   * types(pri : $$number_type) * (0 <# pri) *
+	@pred Node(+n, pri, val, next, np) :
+		JSObjWithProto(n, np)      * 
+		DataProp(n, "pri",  pri)   * (0 <# pri) *
 		DataProp(n, "val",  val)   *
 		DataProp(n, "next", next)  *
-		((n, "insert") -> None);
+		((n, "insert") -> none);
 	
 	
 	@pred NodePrototype(np) :
 		JSObject(np) *
 		DataProp(np, "insert", #insert_loc) *
-		FunctionObject(#insert_loc, "insert", _, #insert_proto) *
-		((np, "pri") -> None) * 
-		((np, "val") -> None) * 
-		((np, "next") -> None);
+		JSFunctionObject(#insert_loc, "insert", _, _, _) *
+		((np, "pri") -> none) * 
+		((np, "val") -> none) * 
+		((np, "next") -> none);
 	
-	@pred NodeList(nl, np, max_pri, length) :
-		(nl == $$null) * (max_pri == 0) * (length == 0) * types(max_pri : $$number_type, length : $$number_type),
+	@pred NodeList(+nl, np, max_pri, length) :
+		(nl == null) * (max_pri == 0) * (length == 0),
 	
 		Node(nl, max_pri, #val, #next, np) * (0 <# max_pri) *
 		NodeList(#next, np, #pri, #len_nl) * (#pri <=# max_pri) *
-	  	(length == #len_nl + 1) *
-		types(nl : $$object_type, np : $$object_type, #pri : $$number_type, max_pri : $$number_type, length : $$number_type, #len_nl : $$number_type);
+	  	(length == #len_nl + 1);
 	
 	
-	@pred Queue(pq, qp, np, max_pri, length) :
-		JSObjWithProto(pq, qp) * types(qp : $$object_type) *
+	@pred Queue(+pq, qp, np, max_pri : Num, length : Num) :
+		JSObjWithProto(pq, qp) * 
 		DataProp(pq, "_head",  #head) *
-		NodeList(#head, np, max_pri, length) * types(max_pri : $$number_type, length : $$number_type) *
-		((pq, "enqueue") -> None) * 
-		((pq, "dequeue") -> None);
+		NodeList(#head, np, max_pri, length) *
+		((pq, "enqueue") -> none) * 
+		((pq, "dequeue") -> none);
 	
 	
-	@pred QueuePrototype(qp, np, c, enq_sc):
+	@pred QueuePrototype(+qp, np, c : Num, enq_sc):
 		JSObject(qp) *
-		DataProp(qp, "enqueue", #enqueue_loc) * FunctionObject(#enqueue_loc, "enqueue", enq_sc, _) *
-		DataProp(qp, "dequeue", #dequeue_loc) * FunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _) *
-		((qp, "_head") -> None) *
-		FunctionObject(#n, "Node", #node_sc, np) * NodePrototype(np) * 
-		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc) * 
-		types(c : $$number_type);
+		DataProp(qp, "enqueue", #enqueue_loc) * JSFunctionObject(#enqueue_loc, "enqueue", enq_sc, _, _) *
+		DataProp(qp, "dequeue", #dequeue_loc) * JSFunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _, _) *
+		((qp, "_head") -> none) *
+		JSFunctionObject(#n, "Node", #node_sc, _, np) * NodePrototype(np) * 
+		closure(Node : #n, counter : c; Node : #node_sc, enqueue: enq_sc, dequeue: #dequeue_sc, PQLib: #pq_sc);
 	
 	@pred PriorityQueueModule(pq) :
 	  QueuePrototype(#pqp, #np, 0, #sc) *
-	  FunctionObject(pq, "PriorityQueue", #pq_sc, #pqp) *
+	  JSFunctionObject(pq, "PriorityQueue", #pq_sc, _, #pqp) *
 	  o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
 */
 
@@ -58,8 +56,8 @@
 
 /** 
  	@id PQLib
-    @pre  (initialHeapPostWeak())
-    @post (initialHeapPostWeak() * PriorityQueueModule (ret))
+    @pre  ObjectPrototype()
+    @post ObjectPrototype() * PriorityQueueModule (ret)
 */
 var PriorityQueue = (function () {
 
@@ -69,19 +67,19 @@ var PriorityQueue = (function () {
 	 	@id  Node
 	
 	 	@pre (
-	 		initialHeapPostWeak() * 
-	 	   	(pri == #pri) * types(#pri: $$number_type) * (0 <# #pri) *
+	 	   	(pri == #pri) * (0 <# #pri) *
 	 	   	(val == #val) *
-	 	   	((this, "pri") -> None) * ((this, "val") -> None) * ((this, "next") -> None) * 
-	 	   	((this, "insert") -> None) *
+	 	   	((this, "pri") -> none) * ((this, "val") -> none) * ((this, "next") -> none) * 
+	 	   	((this, "insert") -> none) *
 	 	   	JSObjWithProto(this, #np) * NodePrototype(#np) *
-	 	   	scope(counter : #c) * types(#c : $$number_type) 
+	 	   	scope(counter : #c) * types(#c : Num) *
+	 	   	ObjectPrototype()
 	 	)
 	 	@post (
-	 		initialHeapPostWeak() * 
-			Node(this, #pri, #val, $$null, #np) * 
+			Node(this, #pri, #val, null, #np) * 
 			NodePrototype(#np) * 
-			scope(counter : #c + 1)
+			scope(counter : #c + 1) * 
+			ObjectPrototype()
 		)
 	*/
 	var Node = function (pri, val) {
@@ -97,10 +95,9 @@ var PriorityQueue = (function () {
 		@pre (
 			(nl == #nl) * 
 			NodeList(#nl, #np, #pri_nl, #length) *
-			Node(this, #npri, #nval, $$null, #np) *
+			Node(this, #npri, #nval, null, #np) *
 			NodePrototype(#np) *
-			(#pri_nl <# #npri) *
-			types(#npri : $$number_type, #pri_nl : $$number_type)
+			(#pri_nl <# #npri)
 		)
 	    @post (
 			NodeList(this, #np, #npri, #length + 1) *
@@ -111,13 +108,12 @@ var PriorityQueue = (function () {
 	    @pre (
 			(nl == #nl) *
 			NodeList(#nl, #np, #pri_nl, #length) *
-			Node(this, #npri, #nval, $$null, #np) *
+			Node(this, #npri, #nval, null, #np) *
 			NodePrototype(#np) *
-			(#npri <=# #pri_nl) *
-			types(#npri : $$number_type, #pri_nl : $$number_type)
+			(#npri <=# #pri_nl)
 	   	)
 	   	@post (
-	   		types(#nl : $$object_type) *
+	   		types(#nl : Obj) *
 			NodeList(#nl, #np, #pri_nl, #length + 1) *
 			NodePrototype(#np) *
 			(ret == #nl) 
@@ -126,19 +122,16 @@ var PriorityQueue = (function () {
 	Node.prototype.insert = function (nl) {
 		/** @tactic unfold NodeList(#nl, #np, #pri_nl, #length) */
 		if (nl === null) {
-		   /** @tactic fold NodeList(this, #np, #npri, #length + 1) */
 		   return this
 		}
 		
 		if (this.pri > nl.pri) {
 		   this.next = nl;
-		   /** @tactic fold NodeList(this, #np, #npri, #length + 1) */
 		   return this
 		}
 		
 		var tmp = this.insert (nl.next);
 		nl.next = tmp;
-		/** @tactic fold NodeList(#nl, #np, #pri_nl, #length + 1) */
 		return nl
 	}
 
@@ -146,22 +139,21 @@ var PriorityQueue = (function () {
 	    @id  PriorityQueue
 	
 		@pre (
-			initialHeapPostWeak() * 
-	        ((this, "_head") -> None) *
-	        ((this, "enqueue") -> None) *
-	        ((this, "dequeue") -> None) *
+			ObjectPrototype() *
+	        ((this, "_head") -> none) *
+	        ((this, "enqueue") -> none) *
+	        ((this, "dequeue") -> none) *
 	        JSObjWithProto(this, #pqp) *
 	        o_chains(enqueue: #sc, PQLib: $$scope) *
 	        QueuePrototype(#pqp, #np, #c, #sc)
 	    )
 	    @post (
-	    	initialHeapPostWeak() * 
+	    	ObjectPrototype() *
 	    	Queue(this, #pqp, #np, 0, 0) *
 	    	QueuePrototype(#pqp, #np, #c, #sc)
 	    )
 	*/
 	var PQ = function () {
-		/** @tactic fold NodeList($$null, #np, 0, 0) */
 		this._head = null;
 	};
 
@@ -169,33 +161,33 @@ var PriorityQueue = (function () {
 		@id enqueue
 				
 		@pre (
-			initialHeapPostWeak() * 
-			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
+			(pri == #pri) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
 			o_chains(enqueue: #sc, PQLib: $$scope) *
-			(#pri <=# #pri_q)
+			(#pri <=# #pri_q) *
+			ObjectPrototype()
 		)
 		@post (
-			initialHeapPostWeak() * 
 			Queue(this, #pqp, #np, #pri_q, #length + 1) *
-			QueuePrototype(#pqp, #np, #c + 1, #sc)
+			QueuePrototype(#pqp, #np, #c + 1, #sc) *
+			ObjectPrototype()
 		)
 		
 		@pre (
-			initialHeapPostWeak() * 
-			(pri == #pri) * types(#pri : $$number_type) * (0 <# #pri) *
+			(pri == #pri) * (0 <# #pri) *
 			(val == #val) * 
 			Queue(this, #pqp, #np, #pri_q, #length) *
 			QueuePrototype(#pqp, #np, #c, #sc) *
 			o_chains(enqueue: #sc, PQLib: $$scope) *
-			(#pri_q <# #pri)
+			(#pri_q <# #pri) *
+			ObjectPrototype()
 		)
 		@post (
-			initialHeapPostWeak() * 
 			Queue(this, #pqp, #np, #pri, #length + 1) *
-			QueuePrototype(#pqp, #np, #c + 1, #sc)
+			QueuePrototype(#pqp, #np, #c + 1, #sc) *
+			ObjectPrototype()
 		)
 	*/
 	PQ.prototype.enqueue = function(pri, val) {
@@ -219,22 +211,21 @@ var PriorityQueue = (function () {
        DataProp(#r, "pri", #pri_q) * DataProp(#r, "val", #some_val)
      )
      @pre (
-       initialHeapPostWeak() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       o_chains(enqueue: #sc, dequeue: $$scope)
+       o_chains(enqueue: #sc, dequeue: $$scope) *
+       GlobalObject() * BI_ErrorObject()
      )
      @posterr (
-       initialHeapPostWeak() * 
        Queue(this, #pqp, #np, 0, 0) *
        QueuePrototype(#pqp, #np, #c, #sc) *
-       (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty")
+       (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty") *
+       GlobalObject() * BI_ErrorObject()
      )
    */
    PQ.prototype.dequeue = function () {
       /** @tactic unfold NodeList(#head, #np, #pri_q, #length) */
       if (this._head === null) {
-        /** @tactic fold NodeList(#head, #np, #pri_q, #length) */
         throw new Error("Queue is empty");
       }
 

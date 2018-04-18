@@ -79,6 +79,7 @@
       "hasField",     JSIL_Parser.HASFIELD;
       "getFields",    JSIL_Parser.GETFIELDS;
       "metadata",     JSIL_Parser.METADATA; 
+      "setMetadata",  JSIL_Parser.SETMETADATA; 
       "args",         JSIL_Parser.ARGUMENTS;
       "goto",         JSIL_Parser.GOTO;
       "with",         JSIL_Parser.WITH;
@@ -155,8 +156,8 @@ let filename = (letter|digit|'_')+ '.' (letter|digit|'_')+
 let lvar = '#' (letter|digit|'_'|'$')*
 let lvar2 = "_lvar_" (letter|digit|'_')*
 let normalised_lvar = "##NORMALISED_LVAR" (letter|digit|'_'|'$')*
-let loc = "$l" (letter|digit|'_')*
-let aloc = "_$l_" (letter|digit|'_')*
+let loc = "$l" (letter|digit|'_'|'#')*
+let aloc = "_$l_" (letter|digit|'_'|'#')*
 let normalised_aloc = "_$l_#" (letter|digit|'_')*
 let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"

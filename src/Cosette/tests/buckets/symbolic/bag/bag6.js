@@ -953,10 +953,20 @@ var bag = new buckets.Bag();
 // size
 var n1 = symb_number(n1);
 var n2 = symb_number(n2);
+var n3 = symb_number(n3);
+var n4 = symb_number(n4);
 
-bag.add(n1, n2);
-var res1 = bag.size();
-Assert(((n2 >= 0) and (res1 = n2)) or ((n2 < 0) and (res1 = 0)));
-bag.add(n1);
+var res1 = bag.isEmpty();
+Assert(res1);
 var res2 = bag.size();
-Assert(((n2 >= 0) and (res2 = n2 + 1)) or ((n2 < 0) and (res2 = 1)));
+Assert(res2 = 0);
+
+bag.add(n1);
+bag.add(n1, n2);
+var res3 = bag.isEmpty();
+Assert(not res3);
+bag.remove(n1);
+bag.remove(n3, n4);
+bag.clear();
+var res4 = bag.isEmpty();
+Assert(res4);

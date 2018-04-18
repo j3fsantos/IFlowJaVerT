@@ -2,35 +2,34 @@
 	***** VALID AND INVALID KEYS *****
 	
 	@pred ValidKey(key) : 
-		isNamedProperty(key) *  
-		(! (key == "hasOwnProperty"));
+		types(key : Str) * (! (key == "hasOwnProperty"));
 		
 	@pred InvalidKey(key) :
-		types (key : $$undefined_type),
-		types (key : $$null_type),
-		types (key : $$boolean_type),
-		types (key : $$number_type),
-		types (key : $$string_type) * (key == "hasOwnProperty");
+		types (key : Undefined),
+		types (key : Null),
+		types (key : Bool),
+		types (key : Num),
+		types (key : Str) * (key == "hasOwnProperty");
 */
 
 /**	
-	@pred Map (m, mp, kvs, keys) :
+	@pred Map (+m, mp, kvs, keys) :
 		JSObjWithProto(m, mp) *
 		DataProp(m, "_contents", #c) * JSObject(#c) *
-		((m, "get") -> None) * ((m, "put") -> None) * ((m, "validKey") -> None) *
-		((#c, "hasOwnProperty") -> None) * KVPairs(#c, kvs, keys) * EmptyProps(#c, -u- (keys, -{ "hasOwnProperty" }-));
+		((m, "get") -> none) * ((m, "put") -> none) * ((m, "validKey") -> none) *
+		((#c, "hasOwnProperty") -> none) * KVPairs(#c, kvs, keys) * empty_fields(#c : -u- (keys, -{ "hasOwnProperty" }-));
   	
-	@pred KVPairs (o, kvs, keys) :
+	@pred KVPairs (+o, kvs, keys) :
 		[def1] (kvs == -{ }-) * (keys == -{ }-),
 		[def2] (kvs == -u- (-{ {{ #key, #value }} }-, #rkvs)) * (keys == -u- (-{ #key }-, #rkeys)) *
 					ValidKey(#key) * DataProp(o, #key, #value) * KVPairs(o, #rkvs, #rkeys);
 		
   	@pred MapProto(mp) :
 		JSObject(mp) *
-		DataProp(mp, "get", #get_loc) * FunctionObject(#get_loc, "mapGet", _, _) *
-		DataProp(mp, "put", #put_loc) * FunctionObject(#put_loc, "mapPut", _, _) *
-		DataProp(mp, "validKey", #vK_loc) * FunctionObject(#vK_loc, "isValidKey", _, _) *
-		((mp, "_contents") -> None);
+		DataProp(mp, "get", #get_loc) * JSFunctionObject(#get_loc, "mapGet", _, _, _) *
+		DataProp(mp, "put", #put_loc) * JSFunctionObject(#put_loc, "mapPut", _, _, _) *
+		DataProp(mp, "validKey", #vK_loc) * JSFunctionObject(#vK_loc, "isValidKey", _, _, _) *
+		((mp, "_contents") -> none);
 */
 
 /**
@@ -39,10 +38,10 @@
     @pre (
     	initialHeapPostWeak() * 
     	JSObjWithProto(this, #mp) *
-        ((this, "_contents") -> None) *
-        ((this, "get") -> None) *
-        ((this, "put") -> None) *
-        ((this, "validKey") -> None) *
+        ((this, "_contents") -> none) *
+        ((this, "get") -> none) *
+        ((this, "put") -> none) *
+        ((this, "validKey") -> none) *
         MapProto(#mp)
     )
     
@@ -64,10 +63,10 @@ function Map () {
 	@id isValidKey
 	
 	@pre  ((key == #key) * ValidKey(#key))
-	@post (ret == $$t)
+	@post (ret == true)
 		
 	@pre ((key == #key) * InvalidKey(#key))
-	@post (ret == $$f)
+	@post (ret == false)
 */
 Map.prototype.validKey = function (key) {
 	return (typeof(key) === "string" && key !== "hasOwnProperty")
@@ -76,14 +75,14 @@ Map.prototype.validKey = function (key) {
 /**
 	@id mapGet
 	
-	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak() 
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * GlobalObject() * ObjectPrototype()
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * GlobalObject() * ObjectPrototype()
 
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == $$null) * initialHeapPostWeak() 
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * GlobalObject() * ObjectPrototype()
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == null) * GlobalObject() * ObjectPrototype()
 	
-	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * initialHeapPostWeak() 
-	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * initialHeapPostWeak() 
+	@pre  (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * ({{ #k, #v }} --e-- #kvs) * GlobalObject() * ObjectPrototype()
+	@post Map(this, #mp, #kvs, #keys) * MapProto(#mp) * (ret == #v) * GlobalObject() * ObjectPrototype()
 */
 Map.prototype.get = function (k) {
 	/* @tactic assert ( DataProp(this, "_contents", #c) ) */
@@ -101,17 +100,15 @@ Map.prototype.get = function (k) {
 /**
 	@id mapPut
 	
-	@pre    ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * initialHeapPostWeak() *
-	            types(#kvs: $$set_type, #keys: $$set_type))
-	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * initialHeapPostWeak() 
+	@pre     (k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * InvalidKey(#k) * GlobalObject() * ObjectPrototype()
+	@posterr Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ErrorObjectWithMessage(err, "Invalid Key") * GlobalObject() * ObjectPrototype()
 
-	@pre  ((k == #k) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * initialHeapPostWeak() *
-				types(#kvs: $$set_type, #keys: $$set_type) * (v == #v))
- 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * initialHeapPostWeak() 
+	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (! (#k --e-- #keys)) * GlobalObject() * ObjectPrototype()
+ 	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #kvs), -u- (-{ #k }-, #keys)) * MapProto(#mp) * GlobalObject() * ObjectPrototype()
 
-	@pre  ((k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
-			(#kvs == -u- ({{ #k, #w }}, #rkvs)) * initialHeapPostWeak() * types(#kvs: $$set_type, #keys: $$set_type))
-	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * initialHeapPostWeak() 
+	@pre  (k == #k) * (v == #v) * Map(this, #mp, #kvs, #keys) * MapProto(#mp) * ValidKey(#k) * (#k --e-- #keys) * 
+			(#kvs == -u- (-{ {{ #k, #w }} }-, #rkvs)) * GlobalObject() * ObjectPrototype()
+	@post Map(this, #mp, -u- (-{ {{ #k, #v }} }-, #rkvs), #keys) * MapProto(#mp) * GlobalObject() * ObjectPrototype()
 */
 Map.prototype.put = function (k, v) {
 	/* @tactic assert( DataProp(this, "_contents", #c) * scope (v : #v) ) */

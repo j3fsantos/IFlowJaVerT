@@ -216,6 +216,8 @@ let rec sexpr_of_bcmd bcmd i line_numbers_on =
 	| SArguments (var) -> Printf.sprintf "'(%sarguments %s)" str_i var
 	(* ('metadata var e) *)
 	| MetaData (var, e) -> Printf.sprintf "'(%smetadata %s %s)" str_i var (se e)
+	(* ('metadata var e) *)
+	| SetMetaData (e1, e2) -> Printf.sprintf "'(%sset-metadata %s %s)" str_i (se e1) (se e2)
 	(* ('terminate-successfully) *)
     | STermSucc -> Printf.sprintf "'(%ssuccess)" str_i
 	(* ('terminate-successfully) *)

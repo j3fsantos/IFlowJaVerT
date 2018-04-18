@@ -335,6 +335,373 @@ buckets.Dictionary = function (toStrFunction) {
     return dictionary;
 };
 
+// --------------------------------- arrays.js -------------------------------
+
+// --------------------------------- arrays.js -------------------------------
+/**
+ * @namespace Contains various functions for manipulating arrays.
+ */
+buckets.arrays = {};
+
+/**
+ * Returns the index of the first occurrence of the specified item
+ * within the specified array.
+ * @param {*} array The array.
+ * @param {*} item The element to search for.
+ * @param {function(Object,Object):boolean=} equalsFunction Optional function to
+ * check equality between two elements. Receives two arguments and returns true if they are equal.
+ * @return {number} The index of the first occurrence of the specified element
+ * or -1 if not found.
+ */
+buckets.arrays.indexOf = function (array, item, equalsFunction) {
+    var equals = equalsFunction || buckets.defaultEquals,
+        length = array.length,
+        i;
+    for (i = 0; i < length; i += 1) {
+        if (equals(array[i], item)) {
+            return i;
+        }
+    }
+    return -1;
+};
+
+/**
+ * Returns the index of the last occurrence of the specified element
+ * within the specified array.
+ * @param {*} array The array.
+ * @param {Object} item The element to search for.
+ * @param {function(Object,Object):boolean=} equalsFunction Optional function to
+ * check equality between two elements. Receives two arguments and returns true if they are equal.
+ * @return {number} The index of the last occurrence of the specified element
+ * within the specified array or -1 if not found.
+ */
+buckets.arrays.lastIndexOf = function (array, item, equalsFunction) {
+    var equals = equalsFunction || buckets.defaultEquals,
+        length = array.length,
+        i;
+    for (i = length - 1; i >= 0; i -= 1) {
+        if (equals(array[i], item)) {
+            return i;
+        }
+    }
+    return -1;
+};
+
+/**
+ * Returns true if the array contains the specified element.
+ * @param {*} array The array.
+ * @param {Object} item The element to search for.
+ * @param {function(Object,Object):boolean=} equalsFunction Optional function to
+ * check equality between two elements. Receives two arguments and returns true if they are equal.
+ * @return {boolean} True if the specified array contains the specified element.
+ */
+buckets.arrays.contains = function (array, item, equalsFunction) {
+    return buckets.arrays.indexOf(array, item, equalsFunction) >= 0;
+};
+
+/**
+ * Removes the first ocurrence of the specified element from the specified array.
+ * @param {*} array The array.
+ * @param {*} item The element to remove.
+ * @param {function(Object,Object):boolean=} equalsFunction Optional function to
+ * check equality between two elements. Receives two arguments and returns true if they are equal.
+ * @return {boolean} True If the array changed after this call.
+ */
+buckets.arrays.remove = function (array, item, equalsFunction) {
+    var index = buckets.arrays.indexOf(array, item, equalsFunction);
+    if (index < 0) {
+        return false;
+    }
+    array.splice(index, 1);
+    return true;
+};
+
+/**
+ * Returns the number of elements in the array equal
+ * to the specified element.
+ * @param {Array} array The array.
+ * @param {Object} item The element.
+ * @param {function(Object,Object):boolean=} equalsFunction Optional function to
+ * check equality between two elements. Receives two arguments and returns true if they are equal.
+ * @return {number} The number of elements in the specified array.
+ * equal to the specified item.
+ */
+buckets.arrays.frequency = function (array, item, equalsFunction) {
+    var equals = equalsFunction || buckets.defaultEquals,
+        length = array.length,
+        freq = 0,
+        i;
+    for (i = 0; i < length; i += 1) {
+        if (equals(array[i], item)) {
+            freq += 1;
+        }
+    }
+    return freq;
+};
+
+/**
+ * Returns true if the provided arrays are equal.
+ * Two arrays are considered equal if both contain the same number
+ * of elements and all corresponding pairs of elements
+ * are equal and are in the same order.
+ * @param {Array} array1
+ * @param {Array} array2
+ * @param {function(Object,Object):boolean=} equalsFunction Optional function to
+ * check equality between two elements. Receives two arguments and returns true if they are equal.
+ * @return {boolean} True if the two arrays are equal.
+ */
+buckets.arrays.equals = function (array1, array2, equalsFunction) {
+    var equals = equalsFunction || buckets.defaultEquals,
+        length = array1.length,
+        i;
+
+    if (array1.length !== array2.length) {
+        return false;
+    }
+    for (i = 0; i < length; i += 1) {
+        if (!equals(array1[i], array2[i])) {
+            return false;
+        }
+    }
+    return true;
+};
+
+/**
+ * Returns a shallow copy of the specified array.
+ * @param {*} array The array to copy.
+ * @return {Array} A copy of the specified array.
+ */
+buckets.arrays.copy = function (array) {
+    return array.concat();
+};
+
+/**
+ * Swaps the elements at the specified positions in the specified array.
+ * @param {Array} array The array.
+ * @param {number} i The index of the first element.
+ * @param {number} j The index of second element.
+ * @return {boolean} True if the array is defined and the indexes are valid.
+ */
+buckets.arrays.swap = function (array, i, j) {
+    var temp;
+
+    if (i < 0 || i >= array.length || j < 0 || j >= array.length) {
+        return false;
+    }
+    temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+    return true;
+};
+
+/**
+ * Executes the provided function once per element present in the array.
+ * @param {Array} array The array.
+ * @param {function(Object):*} callback Function to execute,
+ * invoked with an element as argument. To break the iteration you can
+ * optionally return false in the callback.
+ */
+buckets.arrays.forEach = function (array, callback) {
+    var lenght = array.length,
+        i;
+    for (i = 0; i < lenght; i += 1) {
+        if (callback(array[i]) === false) {
+            return;
+        }
+    }
+};
+
+// ---------------------------------- set.js ---------------------------------
+
+/**
+ * Creates an empty set.
+ * @class <p>A set is a data structure that contains no duplicate items.</p>
+ * <p>If the inserted elements are custom objects, a function
+ * that converts elements to unique strings must be provided at construction time. 
+ * <p>Example:</p>
+ * <pre>
+ * function petToString(pet) {
+ *  return pet.type + ' ' + pet.name;
+ * }
+ * </pre>
+ *
+ * @param {function(Object):string=} toStringFunction Optional function used
+ * to convert elements to unique strings. If the elements aren't strings or if toString()
+ * is not appropriate, a custom function which receives an object and returns a
+ * unique string must be provided.
+ */
+buckets.Set = function (toStringFunction) {
+
+    /** 
+     * @exports theSet as buckets.Set
+     * @private
+     */
+    var theSet = {},
+        // Underlying storage.
+        dictionary = new buckets.Dictionary(toStringFunction);
+
+    /**
+     * Returns true if the set contains the specified element.
+     * @param {Object} element Element to search for.
+     * @return {boolean} True if the set contains the specified element,
+     * false otherwise.
+     */
+    theSet.contains = function (element) {
+        return dictionary.containsKey(element);
+    };
+
+    /**
+     * Adds the specified element to the set if it's not already present.
+     * @param {Object} element The element to insert.
+     * @return {boolean} True if the set did not already contain the specified element.
+     */
+    theSet.add = function (element) {
+        if (theSet.contains(element) || buckets.isUndefined(element)) {
+            return false;
+        }
+        dictionary.set(element, element);
+        return true;
+    };
+
+    /**
+     * Performs an intersection between this and another set.
+     * Removes all values that are not present in this set and the given set.
+     * @param {buckets.Set} otherSet Other set.
+     */
+    theSet.intersection = function (otherSet) {
+        theSet.forEach(function (element) {
+            if (!otherSet.contains(element)) {
+                theSet.remove(element);
+            }
+        });
+    };
+
+    /**
+     * Performs a union between this and another set.
+     * Adds all values from the given set to this set.
+     * @param {buckets.Set} otherSet Other set.
+     */
+    theSet.union = function (otherSet) {
+        otherSet.forEach(function (element) {
+            theSet.add(element);
+        });
+    };
+
+    /**
+     * Performs a difference between this and another set.
+     * Removes all the values that are present in the given set from this set.
+     * @param {buckets.Set} otherSet other set.
+     */
+    theSet.difference = function (otherSet) {
+        otherSet.forEach(function (element) {
+            theSet.remove(element);
+        });
+    };
+
+    /**
+     * Checks whether the given set contains all the elements of this set.
+     * @param {buckets.Set} otherSet Other set.
+     * @return {boolean} True if this set is a subset of the given set.
+     */
+    theSet.isSubsetOf = function (otherSet) {
+        var isSub = true;
+
+        if (theSet.size() > otherSet.size()) {
+            return false;
+        }
+
+        theSet.forEach(function (element) {
+            if (!otherSet.contains(element)) {
+                isSub = false;
+                return false;
+            }
+        });
+        return isSub;
+    };
+
+    /**
+     * Removes the specified element from the set.
+     * @return {boolean} True if the set contained the specified element, false
+     * otherwise.
+     */
+    theSet.remove = function (element) {
+        if (!theSet.contains(element)) {
+            return false;
+        }
+        dictionary.remove(element);
+        return true;
+    };
+
+    /**
+     * Executes the provided function once per element
+     * present in the set.
+     * @param {function(Object):*} callback Function to execute, it's
+     * invoked an element as argument. To break the iteration you can
+     * optionally return false inside the callback.
+     */
+    theSet.forEach = function (callback) {
+        dictionary.forEach(function (k, v) {
+            return callback(v);
+        });
+    };
+
+    /**
+     * Returns an array containing all the elements in the set in no particular order.
+     * @return {Array} An array containing all the elements in the set.
+     */
+    theSet.toArray = function () {
+        return dictionary.values();
+    };
+
+    /**
+     * Returns true if the set contains no elements.
+     * @return {boolean} True if the set contains no elements.
+     */
+    theSet.isEmpty = function () {
+        return dictionary.isEmpty();
+    };
+
+    /**
+     * Returns the number of elements in the set.
+     * @return {number} The number of elements in the set.
+     */
+    theSet.size = function () {
+        return dictionary.size();
+    };
+
+    /**
+     * Removes all the elements from the set.
+     */
+    theSet.clear = function () {
+        dictionary.clear();
+    };
+
+    /**
+     * Returns true if the set is equal to another set.
+     * Two sets are equal if they have the same elements.
+     * @param {buckets.Set} other The other set.
+     * @return {boolean} True if the set is equal to the given set.
+     */
+    theSet.equals = function (other) {
+        var isEqual;
+        if (buckets.isUndefined(other) || typeof other.isSubsetOf !== 'function') {
+            return false;
+        }
+        if (theSet.size() !== other.size()) {
+            return false;
+        }
+
+        isEqual = true;
+        other.forEach(function (element) {
+            isEqual = theSet.contains(element);
+            return isEqual;
+        });
+        return isEqual;
+    };
+
+    return theSet;
+};
+
 // ---------------------------------- bag.js ---------------------------------
 
 /**
