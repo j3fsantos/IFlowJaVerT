@@ -16,16 +16,16 @@
 	@pre	(value == 4)
 	@post	(ret   == 64)
 	
-	@pre	(value == $$t)
+	@pre	(value == true)
 	@post	(ret   == 32)
 	
-	@pre	(value == $$f)
+	@pre	(value == false)
 	@post	(ret   == 32)
 	
-	@pre	(value == $$null)
+	@pre	(value == null)
 	@post	(ret   == 32)
 	
-	@pre	(value == $$undefined)
+	@pre	(value == undefined)
 	@post	(ret   == 32)
 	
 	@pre	(value == "0")

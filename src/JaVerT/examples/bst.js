@@ -1,31 +1,30 @@
 /**
 	@pred NullableObject(o) : 
-		types(o : $$object_type),
-		(o == $$null) * types (o : $$null_type);
+		types(o : Obj),
+		types (o : Null);
 
-	@pred Node(n, val, left, right) :
+	@pred Node(+n : Obj, val : Num, left, right) :
 		JSObject(n) *
-		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right) *
-		types(val : $$number_type);
+		DataProp(n, "value", val) * DataProp(n, "left",  left) * DataProp(n, "right", right);
 
-	@pred BST(n, K) :
-		(n == $$null) * (K == -{ }-) * types (n : $$null_type, K : $$set_type),
+	@pred BST(+n, K : Set) :
+		(n == null) * (K == -{ }-) * types (n : Null, K : Set),
 		
 		Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 
 		(K == -u- (#KL, -{ #val }-, #KR)) * 
-		(forall #x : $$number_type. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
-		(forall #x : $$number_type. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
-		types(#val : $$number_type, K : $$set_type, #KL : $$set_type, #KR : $$set_type);
+		(forall #x : Num. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
+		(forall #x : Num. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
+		types(#val : Num, #KL : Set, #KR : Set);
 */
 
 /**
 	@id makeNode
 	
 	@pre 
-		(v == #v) * types (#v : $$number_type)
+		(v == #v) * types (#v : Num)
 		
 	@post
-		Node(#r, #v, $$null, $$null) * types (#r : $$object_type) * (ret == #r)
+		Node(#r, #v, null, null) * types (#r : Obj) * (ret == #r)
 */
 function make_node(v)
 {
@@ -41,17 +40,17 @@ function make_node(v)
 	@id insert
 
 	@pre
-		initialHeapPostWeak() * 
+		GlobalObject() * ObjectPrototype() * 
 		(t == #t) * BST(#t, #K) * 
-		(v == #v) * types (#v : $$number_type) *
-		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
-		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
+		(v == #v) * types (#v : Num) *
+		scope(make_node : #makeNode) * JSFunctionObject(#makeNode, "makeNode", _, _, _) *
+		scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)
 		
 	@post 
-		initialHeapPostWeak() * 
-		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : $$object_type) *
-		scope(make_node : #makeNode) * FunctionObject(#makeNode, "makeNode", _, _) *
-		scope(insert : #insert) * FunctionObject(#insert, "insert", _, _)
+		GlobalObject() * ObjectPrototype() * 
+		BST(#t_new, -u- (#K, -{ #v }-)) * (ret == #t_new) * types (#t_new : Obj) *
+		scope(make_node : #makeNode) * JSFunctionObject(#makeNode, "makeNode", _, _, _) *
+		scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)
 */
 function insert(v, t)
 {
@@ -59,14 +58,7 @@ function insert(v, t)
   
   /** @tactic unfold BST(#t, #K) */
   if (t === null) {
-  
-  	result = make_node(v);
-  	
-  	/** @invariant scope(result : #r) 
-  		@tactic fold BST($$null, -{ }-)
-  		@tactic fold BST($$null, -{ }-)
-  		@tactic fold BST(#r, -{ #v }-) */
-    return result
+  	return make_node(v);
   }
 
   if (v < t.value)
@@ -74,7 +66,6 @@ function insert(v, t)
   else if (v > t.value) 
     t.right = insert(v, t.right);
 
-  /** @tactic fold BST(#t, -u- (#K, -{ #v }-)) */
   return t;
 }
 
@@ -82,14 +73,14 @@ function insert(v, t)
 	@id find
 	
 	@pre
-		initialHeapPostWeak() *
-		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : $$number_type) * 
-		scope(find : #find) * FunctionObject(#find, "find", _, _)
+		(t == #t) * BST(#t, #K) * (v == #v) * types (#v : Num) * 
+		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _) *
+		GlobalObject() * ObjectPrototype() 
 
 	@post 
-		initialHeapPostWeak() * 
-		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : $$boolean_type) *
-		scope(find : #find) * FunctionObject(#find, "find", _, _)
+		BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : Bool) *
+		scope(find : #find) * JSFunctionObject(#find, "find", _, _, _) * 
+		GlobalObject() * ObjectPrototype() 
 */
 function find (v, t)
 {
@@ -107,7 +98,6 @@ function find (v, t)
 		  result = find(v, t.right);
 	}
 	
-	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -116,28 +106,27 @@ function find (v, t)
 	
 	@pre
 		initialHeapPostWeak() * 
-		(t == #t) * BST(#t, #K) * types(#t : $$object_type) * 
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		(t == #t) * BST(#t, #K) * types(#t : Obj) * 
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 
 	@post 
 		initialHeapPostWeak() * 
-		BST(#t, #K) * (ret == #r) * types(#r : $$number_type) * (#r --e-- #K) * 
-		(forall #x : $$number_type. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		BST(#t, #K) * (ret == #r) * types(#r : Num) * (#r --e-- #K) * 
+		(forall #x : Num. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 */
 function find_min(t)
 {
 	/** @tactic unfold BST(#t, #K) */
 	var result;
-	
-	/** @invariant DataProp(#t, "left", #il) * BST(#il, #KL) */
-	/** @tactic flash BST(#il, #KL) */
+		
+	/** @tactic assert (DataProp(#t, "left", #il) * BST(#il, #KL)) 
+	    @tactic flash BST(#il, #KL) */
 	if (t.left === null)
 		result = t.value;
 	else
 		result = find_min(t.left);
 		
-	/** @tactic fold BST(#t, #K) */
 	return result;
 }
 
@@ -147,24 +136,23 @@ function find_min(t)
 	@pre
 		initialHeapPostWeak() * 
 		(t == #t) * BST(#t, #K) * 
-		(v == #v) * types (#v : $$number_type) *
-		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		(v == #v) * types (#v : Num) *
+		scope(remove : #remove) * JSFunctionObject(#remove, "remove", _, _, _) *
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 
 	@post 
 		initialHeapPostWeak() * 
 		(ret == #t_new) * BST(#t_new, #K_new) * (#K_new == #K -d- -{ #v }-) * NullableObject(#t_new) *
-		scope(remove : #remove) * FunctionObject(#remove, "remove", _, _) *
-		scope(find_min : #findMin) * FunctionObject(#findMin, "findMin", _, _)
+		scope(remove : #remove) * JSFunctionObject(#remove, "remove", _, _, _) *
+		scope(find_min : #findMin) * JSFunctionObject(#findMin, "findMin", _, _, _)
 */
 function remove(v, t)
 {
 	/** @tactic unfold BST(#t, #K) */
 	if (t === null)
-		/** @tactic fold BST(#t, #K) */
 		return null;
 
-	/** @invariant DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR) */
+	/** @tactic assert(DataProp(#t, "left", #il) * DataProp(#t, "right", #ir) * BST(#il, #KL) * BST(#ir, #KR)) */
 	if (v === t.value) {
 		/** @tactic flash BST(#il, #KL) */
 		if (t.left === null) {	
@@ -187,6 +175,5 @@ function remove(v, t)
 	else
 		t.right = remove(v, t.right);	
 
-	/** @tactic fold BST(#t, #K -d- -{ #v }-) */
   	return t;
 }
