@@ -435,7 +435,7 @@ $\phantom{xxx}$
 \qquad
 \inferrule[Heap Composition]
 {
- \interpret{\instconc}{}(\iheap_i) = \heap_i, \hdom_i \mid_{i =1,2}
+ \interpret{\instconc}{}(\iheap_i) = \heap_i \mid_{i =1,2}
 }{
 \interpret{\instconc}{}(\iheap_1 \dunion \iheap_2) \semeq  \heap_1 \dunion \heap_2
 }
@@ -662,7 +662,7 @@ $\phantom{xxx}$
 \qquad
 \inferrule[Heap Composition]
 {
- \interpret{\symbinst}{\senv}(\sheap_i) = \iheap_i, \hdom_i \mid_{i =1,2}
+ \interpret{\symbinst}{\senv}(\sheap_i) = \iheap_i \mid_{i =1,2}
 }{
 \interpret{\symbinst}{}(\sheap_1 \dunion \sheap_2) \semeq  \iheap_1 \dunion \iheap_2
 }
@@ -699,6 +699,60 @@ $\phantom{xxxx}$
 
 \subsection{Linking the Semantics}
 
+\begin{figure}[h!]
+\begin{mathpar}
+\inferrule[Empty Heap]{}{\interpret{\symbinst}{\senv}(\hemp) \semeq \hemp, \emptyset}
+\qquad
+\inferrule[Heap Non-$\none$-Cell]{
+  l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+    p =  \interpret{\symbconc}{\senv}(\sexprp) \\
+   v =  \interpret{\symbconc}{\senv}(\sexprv) \quad 
+}{
+\interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  \hcell{l}{p}{v}, \emptyset
+}
+\\
+\inferrule[Heap $\none$-Cell]
+{
+  l = \interpret{\symbconc}{\senv}(\sexprl) \quad 
+    p =  \interpret{\symbconc}{\senv}(\sexprp) 
+}{
+ \interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq \hemp, \jsilset{ (l, p) }
+}
+\\
+\inferrule[Heap Composition]
+{
+ \interpret{\symbconc}{\senv}(\sheap_i) = \heap_i, \hdom_i \mid_{i =1,2}
+}{
+\interpret{\symbconc}{}(\sheap_1 \dunion \sheap_2) \semeq  \heap_1 \dunion \heap_2, \hdom_1 \dunion \hdom_2
+}
+%
+\\
+\inferrule[Symbolic Domains]
+{
+  \hdom =  \{ (l, p) \mid \sexprl \in \domain(\sdom) \, \wedge \, l = \interpret{\symbconc}{\senv}(\sexprl) 
+                 \, \wedge \, p \not\in \interpret{\symbconc}{\senv}(\sdom(\sexprl)) \}
+}{
+\interpret{\symbconc}{\senv}(\sdom) 
+    \semeq \hdom 
+}
+\and
+\inferrule[Symbolic States]{
+   \interpret{\symbconc}{\senv}(\sheap) = \heap, \hdom_1
+   \quad
+   \interpret{\symbconc}{\senv}(\sdom) = \hdom_2
+   \\\\
+   \interpret{\symbconc}{\senv}(\sstore) = \store
+    \quad 
+    \interpret{\symbconc}{\senv}(\pc) = \jtrue 
+    \quad 
+    \hdom = \domain(h) \cup \hdom_1 \cup \hdom_2 
+}{
+\interpret{\symbconc}{\senv}(\sheap, \sdom, \sstore, \pc) \semeq \{ (\heap, \store, \heap_f) \mid \domain(\heap_f) \cap \hdom = \emptyset \} 
+}
+
+\end{mathpar}
+\end{figure}
+
 
 $\phantom{xxxx}$
 
@@ -711,7 +765,9 @@ $\phantom{xxxx}$
 
 \section{Proof --- Section~\ref{sec:jsil:symb:exec}}
 
-\begin{lemma}[Expression Evaluation - Soundiness for Symbolic Semantics]\label{symb:eval:expr}
+\subsection{Symbolic Semantics}
+
+\begin{lemma}[Expression Evaluation - Soundness for Symbolic Semantics]\label{symb:eval:expr}
 $$
 \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)) = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr)
 $$
@@ -722,24 +778,24 @@ By induction on the structure of  $\jsilexpr$.
 
 \noindent \prooflab{Value} $\jsilexpr = \val$. It follows that: 
 $$
-\begin{array}{lll}
-  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
-       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \val)) & \text{by hyp.} \\  & 
-       =  \interpret{\symbconc}{\senv}(\val)  & \text{by def. of } \evalexpr{\symbolic}(-, -) \\ & 
-       = \val  & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
-       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \val)  & \text{by def. of }  \text{by def. of } \evalexpr{\concrete}(-, -)
+\begin{array}{ll}
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  & \\ 
+      \qquad  =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \val)) & \text{by hyp.} \\  
+      \qquad =  \interpret{\symbconc}{\senv}(\val)  & \text{by def. of } \evalexpr{\symbolic}(-, -) \\ 
+      \qquad = \val  & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ 
+      \qquad = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \val)  & \text{by def. of }  \text{by def. of } \evalexpr{\concrete}(-, -)
 \end{array}
 $$
 \vspace{3pt}
 
 \noindent \prooflab{Variable} $\jsilexpr = \jvar$. It follows that: 
 $$
-\begin{array}{lll}
-  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
-       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jvar)) & \text{by hyp.} \\  & 
-       =  \interpret{\symbconc}{\senv}(\sstore(\jvar))  & \text{by def. of } \evalexpr{\symbolic}(-, -) \\ & 
-       =  (\interpret{\symbconc}{\senv}(\sstore))(\jvar)   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
-       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jvar)  &  \text{by def. of } \evalexpr{\concrete}(-, -)
+\begin{array}{ll}
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  & \\
+       \qquad =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jvar)) & \text{by hyp.} \\  
+        \qquad =  \interpret{\symbconc}{\senv}(\sstore(\jvar))  & \text{by def. of } \evalexpr{\symbolic}(-, -) \\ 
+       \qquad =  (\interpret{\symbconc}{\senv}(\sstore))(\jvar)   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ 
+      \qquad = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jvar)  &  \text{by def. of } \evalexpr{\concrete}(-, -)
 \end{array}
 $$
 \vspace{3pt}
@@ -754,30 +810,30 @@ $\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr) = \val$ 
 It follows that: 
 $$
 \begin{array}{lll}
-  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
-       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \ominus \jsilexpr)) & \text{by hyp.} \\  & 
-       =  \interpret{\symbconc}{\senv}(\semop{\ominus}(\val))  & \text{by def. of } \evalexpr{\symbolic}(-, -) + \text{ hyp.} \\ & 
-       =  \semop{\ominus}(\val)   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
-       =  \semop{\ominus}(\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr))   & \text{by \ieq{3}}\\ &
-       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \ominus \jsilexpr)  & \text{by def. of } \evalexpr{\concrete}(-, -) 
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  & \\
+       \qquad =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \ominus \jsilexpr)) & \text{by hyp.} \\   
+      \qquad =  \interpret{\symbconc}{\senv}(\semop{\ominus}(\val))  & \text{by def. of } \evalexpr{\symbolic}(-, -) + \text{ hyp.} \\ 
+      \qquad =  \semop{\ominus}(\val)   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ 
+      \qquad =  \semop{\ominus}(\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr))   & \text{by \ieq{3}}\\ 
+      \qquad = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \ominus \jsilexpr)  & \text{by def. of } \evalexpr{\concrete}(-, -) 
 \end{array}
 $$
 If $\evalexpr{\symbolic}(\sstore, \jsilexpr) \not\in \vals$, it follows that: 
 $$
 \begin{array}{lll}
-  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  &
-       =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \ominus \jsilexpr)) & \text{by hyp.} \\  & 
-       =  \interpret{\symbconc}{\senv}(\ominus \, \evalexpr{\symbolic}(\sstore, \jsilexpr))  & \text{by def. of } \evalexpr{\symbolic}(-, -) + \text{ hyp.} \\ & 
-       =  \semop{\ominus}(\interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)))   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\ &
-       =  \semop{\ominus}(\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr))   & \text{by \indhyp}\\ &
-       = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \ominus \jsilexpr)  & \text{by def. of } \evalexpr{\concrete}(-, -) 
+  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr))  & \\ 
+    \qquad   =  \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \ominus \jsilexpr)) & \text{by hyp.} \\  
+      \qquad =  \interpret{\symbconc}{\senv}(\ominus \, \evalexpr{\symbolic}(\sstore, \jsilexpr))  & \text{by def. of } \evalexpr{\symbolic}(-, -) + \text{ hyp.} \\ 
+      \qquad =  \semop{\ominus}(\interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)))   & \text{by def. of } \interpret{\symbconc}{\senv}(-) \\
+      \qquad =  \semop{\ominus}(\evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr))   & \text{by \indhyp}\\
+    \qquad   = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \ominus \jsilexpr)  & \text{by def. of } \evalexpr{\concrete}(-, -) 
 \end{array}
 $$
 
 \noindent \prooflab{Binary Operator} Similar to the previous case. 
 \end{proof}
 
-\begin{lemma}[Heap Update - Soundiness for Symbolic Semantics]\label{lemma:soundiness:heap:update}
+\begin{lemma}[Heap Update - Soundness for Symbolic Semantics]\label{lemma:soundiness:heap:update}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
@@ -798,11 +854,11 @@ Immediate from the definitions of $\hpupdt{\instrumented}$ and $\hpupdt{\symboli
 \end{proof}
 
 
-\begin{lemma}[Store Update - Soundiness for Symbolic Semantics]\label{lemma:soundiness:store:update}
+\begin{lemma}[Store Update - Soundness for Symbolic Semantics]\label{lemma:soundiness:store:update}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
-   \val = \interpret{\symbconc}{\senv}(\sexprv)   
+   \val = \interpret{\symbconc}{\senv}(\sexprv) \\ \qquad   
        \implies \stupdt{\symbolic}(\sstate, \jvar, \sexprv) = \interpret{\symbconc}{\senv}(\stupdt{\instrumented}(\istate, \jvar, \val)) 
 \end{array}
 $$
@@ -812,7 +868,7 @@ Immediate from the definitions of $\stupdt{\instrumented}$ and $\stupdt{\symboli
 \end{proof}
 
 
-\begin{lemma}[Assume - Soundiness for Symbolic Semantics]\label{lemma:soundiness:assume}
+\begin{lemma}[Assume - Soundness for Symbolic Semantics]\label{lemma:soundiness:assume}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)  
@@ -834,7 +890,7 @@ From \hyp{1} and \ieq{7}, the result follows.
 \end{proof}
 
 
-\begin{lemma}[Check Sat - Soundiness for Symbolic Semantics]\label{lemma:soundiness:sat}
+\begin{lemma}[Check Sat - Soundness for Symbolic Semantics]\label{lemma:soundiness:sat}
 $$
 \begin{array}{l}
       \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue   
@@ -877,11 +933,13 @@ $\interpret{\symbinst}{\senv}(\evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)) 
 \end{proof}
 
 
-\begin{lemma}[Symbolic Value Creation - Soundiness for Symbolic Semantics]\label{lemma:symbvalue:soundiness}
+\begin{lemma}[Symbolic Value Creation - Soundness for Symbolic Semantics]\label{lemma:symbvalue:soundiness}
 $$
-\istate = \interpret{\symbinst}{\senv}(\sstate) 
+\begin{array}{l}
+\istate = \interpret{\symbinst}{\senv}(\sstate) \\ \qquad
    \implies \exists \, \senv' \, . \,  \senv' \fextends \senv \ \wedge \ \absmakesymbolicrule{\concrete}{\istate, \jtype} 
               = \interpret{\symbinst}{\senv[\svar \mapsto \val]}(\absmakesymbolicrule{\symbolic}{\istate, \jtype})
+\end{array}
 $$
  \end{lemma}
  \begin{proof}
@@ -889,20 +947,22 @@ $$
  \end{proof}
 
 
-\begin{lemma}[GetCell - Soundiness for Symbolic Semantics]\label{soundiness:getcell}
+\begin{lemma}[GetCell - Soundness for Symbolic Semantics]\label{soundiness:getcell}
 $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)  \ \wedge \ 
 \absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate', (\sloc, \sexprp, \sexprv)} \\ \quad \quad
   \implies \absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate', (\loc, p, \ival)} 
-     \ \wedge \ \istate' = \interpret{\symbinst}{\senv}(\sstate')
+     \ \wedge \ \istate' = \interpret{\symbinst}{\senv}(\sstate') \\ \qquad \qquad
      \ \wedge \ \interpret{\symbconc}{\senv}((\sloc, \sexprp, \sexprv)) = (\loc, p, \ival)
 \end{array}
 $$
  \end{lemma}
  \begin{proof}
  Suppose $\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)$ (\hyp{1}) 
- and $\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate', (\sloc, \sexprp, \sexprv)}$ (\hyp{2}). 
+ and:
+ $$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate', (\sloc, \sexprp, \sexprv)} \text{ (\hyp{2})}
+ $$ 
  We consider two distinct cases, one in which the inspected field exists 
  in the object and one in which it does not. 
  \vspace{3pt} 
@@ -930,7 +990,7 @@ From \hyp{1} and \ieq{3}, we conclude that:
  Combining \ieq{12} and \ieq{13}, it follows that 
  $\istate.\hpsel = - \, \uplus \, (\interpret{\symbconc}{\senv}(\sloc), \interpret{\symbconc}{\senv}(\sexprp)) \mapsto \interpret{\symbconc}{\senv}(\sexprv)$ (\ieq{14}). 
  From \ieq{10}, \ieq{11}, and \ieq{14}, we conclude that 
- $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate, (\loc, p, \ival)}$ (\ieq{15}), 
+ $$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate, (\loc, p, \ival)} \text{ (\ieq{15})}$$ 
  for $(\loc, p, \ival) =  \interpret{\symbconc}{\senv}(\sloc, \sexprp, \sexprv)$ (\ieq{16}). 
  From \ieq{4}, it follows that $\istate \in \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{17}). 
  From \ieq{15}-\ieq{17}, the result follows. 
@@ -1005,9 +1065,10 @@ From \hyp{1} and \ieq{7}, we conclude that $\istate.\stosel = \interpret{\symbco
  From \hyp{1}, \ieq{2}, \ieq{3}, and \ieq{7}, we conclude 
  $\istate.\hpsel =  \interpret{\symbinst}{\senv}(\sheap') \, \uplus \, \big((\loc, \interpret{\symbconc}{\senv}(\sexprp_i)) \mapsto \interpret{\symbconc}{\senv}(\sexprv_i) \big)\mid_{i = 0}^m$ (\ieq{4}), 
 $(\loc,-) \notin \domain (\interpret{\symbinst}{\senv}(\sheap'))$ (\ieq{5}).
-From \hyp{1} and \ieq{4}, it follows that $\jsilset{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_m)} = \interpret{\symbconc}{\senv}(\sdom(\sloc))$ (\ieq{6}).
+From \hyp{1} and \ieq{4}, it follows that: 
+$$\jsilset{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_m)} = \interpret{\symbconc}{\senv}(\sdom(\sloc)) \text{ (\ieq{6})}$$
 Applying Lemma XXX to \ieq{6} and using \ieq{3}, we conclude that 
- $\jsilset{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_m)} = (\interpret{\symbinst}{\senv}(\sdom))(\loc)$ (\ieq{7}). 
+ $$\jsilset{\interpret{\symbconc}{\senv}(\sexprp_1), ..., \interpret{\symbconc}{\senv}(\sexprp_m)} = (\interpret{\symbinst}{\senv}(\sdom))(\loc) \text{ (\ieq{7})}$$ 
  From \ieq{5} and \ieq{6}, we conclude that 
  {\small $\forall_{0 \leq i \leq n} \, \interpret{\symbconc}{\senv}(\sexprv_i) \neq \none$} (\ieq{8}) and  
 {\small $\forall_{n < i \leq m} \, \interpret{\symbconc}{\senv}(\sexprv_i) = \none$} (\ieq{9}).
@@ -1016,7 +1077,7 @@ $\absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \interpret{\symbconc}{\se
 establishing the result. 
 \end{proof}
 
-\begin{lemma}[Basic Commands - Soundiness for Symbolic Semantics]\label{lemma:soundiness:basic:commands}
+\begin{lemma}[Basic Commands - Bounded Soundness for Symbolic Semantics]\label{lemma:soundiness:basic:commands}
 $$
 \begin{array}{l}
 \absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic} 
@@ -1042,7 +1103,10 @@ From \hyp{2} and \ieq{3}, it follows that $\istate \in \interpret{\symbinst}{\se
 Letting $\istate' = \istate$, the result follows from \ieq{2} and \ieq{4}. 
 \vspace{5pt}
 
-\noindent \prooflab{Property Collection} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \getfields(\jsilexpr)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+\noindent \prooflab{Property Collection} From \hyp{1}, it follows that 
+$$
+\absbsemrule{\sstate, \jvar := \getfields(\jsilexpr)}{\sstate'}{\symbolic} \text{ (\ieq{1})}
+$$ 
 From \ieq{1}, we conclude that there is a symbolic value $\sexprv$ such that 
 $\absgetdomainfun{\symbolic}(\sstate, \jsilexpr) = \sexprv$ (\ieq{2}) 
 and $\sstate' = \stupdt{\symbolic}(\sstate, \jvar, \sexprv)$ (\ieq{3}).  
@@ -1079,7 +1143,8 @@ Applying Lemma~\ref{lemma:soundiness:heap:update} to \ieq{3}, \ieq{7}, \ieq{9}, 
 the result follows. 
 \vspace{5pt}
 
- \noindent \prooflab{Property Access} From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \jvar := [\jsilexpr_1, \jsilexpr_2]}{\sstate'}{\symbolic}$ (\ieq{1}). 
+ \noindent \prooflab{Property Access} From \hyp{1}, it follows that 
+ $$\absbsemrule{\sstate, \jvar := \jvar := [\jsilexpr_1, \jsilexpr_2]}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$
 From \ieq{1}, we conclude that there is a symbolic expression $\sexprv$ and a symbolic state $\sstate''$ such that 
 $\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (-, -, \sexprv)}$ (\ieq{2}) 
 and $\sstate' = \stupdt{\symbolic}(\sstate'', \jvar, \sexprv)$ (\ieq{3}). 
@@ -1095,9 +1160,10 @@ From \ieq{5} and \ieq{8}, we conclude the result.
 \vspace{5pt}
 
  \noindent \prooflab{Property Assignment}
-From \hyp{1}, it follows that $\absbsemrule{\sstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \hyp{1}, it follows that 
+$$\absbsemrule{\sstate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$
 From \ieq{1}, we conclude that there is a symbolic location $\sloc$, a symbolic expression $\sexprp$, and a symbolic state $\sstate''$ such that 
-$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, -)}$ (\ieq{2}) and 
+$$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, -)} \text{ (\ieq{2})}$$ and 
 $\sstate' = \hpupdt{\symbolic}(\sstate'', \sloc, \sexprp, \evalexpr{\symbolic}(\sstate''.\stosel, \jsilexpr_3))$ (\ieq{3}). 
 Since, $\hpupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{3}, that
 $\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate''.\pcsel)$ (\ieq{4}). 
@@ -1112,9 +1178,10 @@ Applying Lemma~\ref{lemma:soundiness:heap:update} to \ieq{3} and \ieq{6}-\ieq{9}
 \vspace{5pt} 
 
 \noindent \prooflab{Property Deletion}
-From \hyp{1}, it follows that $\absbsemrule{\sstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \hyp{1}, it follows that 
+$$\absbsemrule{\sstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$
 From \ieq{1}, we conclude that there is a symbolic location $\sloc$, symbolic expressions $\sexprp$ and $\sexprv$, and a symbolic state $\sstate''$ such that 
-$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, \sexprp)}$ (\ieq{2}), 
+$$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, \sexprp)} \text{ (\ieq{2})}$$ 
 $\sexprp \neq \none$ (\ieq{3}), and  
 $\sstate' = \hpupdt{\symbolic}(\sstate'', \sloc, \sexprp, \none)$ (\ieq{4}). 
 Since, $\hpupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{4}, that
@@ -1131,7 +1198,8 @@ Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result.
 \vspace{5pt} 
 
 \noindent \prooflab{Member Check - True}
-From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \hyp{1}, it follows that:
+$$\absbsemrule{\sstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$ 
 From \ieq{1}, we conclude that there is a symbolic expression $\sexprv$, and a symbolic state $\sstate''$ such that 
 $\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (-, -, \sexprp)}$ (\ieq{2}), $\sexprp \neq \none$ (\ieq{3}), 
 and $\sstate' = \stupdt{\symbolic}(\sstate'', \jvar, \jtrue)$ (\ieq{4}). 
@@ -1148,7 +1216,8 @@ Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result.
 \vspace{5pt} 
 
 \noindent \prooflab{Member Check - False}
-From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \hyp{1}, it follows that 
+$$\absbsemrule{\sstate, \jvar := \hasfield(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$
 From \ieq{1}, we conclude that there is a symbolic expression $\sexprv$, and a symbolic state $\sstate''$ such that 
 $\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (-, -, \sexprp)}$ (\ieq{2}), $\sexprp = \none$ (\ieq{3}), 
 and $\sstate' = \stupdt{\symbolic}(\sstate'', \jvar, \jfalse)$ (\ieq{4}). 
@@ -1165,7 +1234,8 @@ Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result.
 \vspace{5pt} 
 
 \noindent \prooflab{Make Symbolic}
-From \hyp{1}, it follows that $\absbsemrule{\sstate, \jvar := \jvar := \makesymbolic(\jtype)}{\sstate'}{\symbolic}$ (\ieq{1}). 
+From \hyp{1}, it follows that 
+$$\absbsemrule{\sstate, \jvar := \jvar := \makesymbolic(\jtype)}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$ 
 From \ieq{1}, we conclude that there is a symbolic variable $\svar$ such that 
 $\absval = \absmakesymbolicrule{\symbolic}{\absstate, \jtype}$ (\ieq{2}) and $\sstate' = \stupdt{}(\absstate, \jvar, \svar)$ (\ieq{3}). 
 From \hyp{2} and \ieq{2}, we conclude that there is a symbolic environment $\senv'$ such that
@@ -1179,10 +1249,10 @@ Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{3}, and \ieq
 $$
 \begin{array}{l} 
 \abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
-     \, \wedge \, (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs)
+     \, \wedge \, (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \\ \quad
      \, \wedge \, \pc \vdash \sstate'.\pcsel  \\ \quad \quad
      \implies 
-        \exists \, \istate' \, . \, \abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}
+        \exists \, \istate' \, . \, \abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\  \quad \quad \quad \quad \quad
          \, \wedge \, 
             (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate' \, \wedge \, \pc, \cs')  \, \wedge \, 
             \senv' \fextends  \senv
@@ -1214,7 +1284,8 @@ $ \sstate' = \absassume{\symbolic}(\sstate, \jsilexpr)$ (\ieq{3}).
 Applying Lemma~\ref{lemma:soundiness:assume} to 
 \hyp{2}, we conclude that 
 $ \absassume{\instrumented}(\istate, \jsilexpr) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
-From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{5}).
+From \ieq{2} and \ieq{4}, we conclude that 
+$$\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\instrumented} \text{ (\ieq{5})}$$
 Combining \hyp{2} and \ieq{5}, we obtain the result.     
  \vspace{5pt}
 
@@ -1224,18 +1295,24 @@ Combining \hyp{2} and \ieq{5}, we obtain the result.
 \noindent \prooflab{Goto} From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate, \scs, j}{\top}{\top}{\symbolic}$ (\ieq{1}),   
 where $\ccmd[\prog][\scs]{i} = \goto \, j$ (\ieq{2}). 
 From \ieq{2}, we conclude that 
-$\abssemrule{\istate, \cs, i}{\istate, \cs, j}{\top}{\top}{\instrumented}$ (\ieq{3}).
+$$\abssemrule{\istate, \cs, i}{\istate, \cs, j}{\top}{\top}{\instrumented} \text{ (\ieq{3})}$$
 Combining \hyp{2} and \ieq{3}, we obtain the result. 
  \vspace{3pt}
  
 \noindent \prooflab{Normal Return}
 From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, \retlab}{\sstate', \scs', i}{\top}{\top}{\symbolic}$ (\ieq{1}), 
 $\scs = (-, \sstore', \jvar, i, -) :: \scs'$ (\ieq{2}), $\sstore = \sstate.\stosel$ (\ieq{3}), 
-and $\sstate' = \stupdt{\symbolic}(\sstate[\stosel \mapsto \sstore'], \jvar, \sstore(\retvar))$ (\ieq{4}). 
+and 
+$$\sstate' = \stupdt{\symbolic}(\sstate[\stosel \mapsto \sstore'], \jvar, \sstore(\retvar)) \text{ (\ieq{4})}$$
 From \ieq{2}, we conclude that $\cs = (-, \interpret{\symbconc}{\senv}(\sstore'), \jvar, i, -) :: \interpret{\symbconc}{\senv}(\scs')$ (\ieq{5}). 
 From \ieq{3}, we conclude that $\istate.\stosel = \interpret{\symbconc}{\senv}(\sstore)$ (\ieq{6}). 
-Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{4} and \ieq{6}, we conclude that $\stupdt{\instrumented}(\istate[\stosel \mapsto \interpret{\symbconc}{\senv}(\sstore')], \jvar, \istate.\stosel(\retvar)) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{7}). 
-From \ieq{5} and \ieq{7}, we conclude that $\abssemrule{\istate, \scs, \retlab}{\interpret{\symbinst}{\senv}(\sstate'), \interpret{\symbconc}{\senv}(\scs'), i}{\top}{\top}{\instrumented}$, 
+Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{4} and \ieq{6}, we conclude that 
+$$
+\stupdt{\instrumented}(\istate[\stosel \mapsto \interpret{\symbconc}{\senv}(\sstore')], \jvar, \istate.\stosel(\retvar)) = \interpret{\symbinst}{\senv}(\sstate')
+ \text{ (\ieq{7})}
+$$ 
+From \ieq{5} and \ieq{7}, we conclude that 
+$$\abssemrule{\istate, \scs, \retlab}{\interpret{\symbinst}{\senv}(\sstate'), \interpret{\symbconc}{\senv}(\scs'), i}{\top}{\top}{\instrumented}$$ 
 establishing the result. 
  \vspace{5pt}
 
@@ -1272,7 +1349,7 @@ Applying Lemma~\ref{lemma:soundiness:assume} to
 \hyp{2} and \ieq{3}, we conclude that 
 $\absassume{\instrumented}(\istate, \jsilexpr) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
 From \ieq{2} and \ieq{4}, we conclude that 
- $\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{5}). 
+ $$\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\symbolic} \text{ (\ieq{5})}$$
  \vspace{5pt}
 
 \noindent \prooflab{Assert - True}
@@ -1298,7 +1375,8 @@ $$
 $$
 \end{lemma}
 \begin{proof}
-By induction on the length of the symbolic trace $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$.
+By induction on the length of the symbolic trace 
+$$\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$$
 The proof becomes trivial once we've observed that one step of the symbolic execution either does not change the path condition or further constrains it through conjunction), i.e.,~the path condition is never relaxed by the symbolic execution. Therefore, all models of $\sstate'.\pcsel$ must also be the models of $\sstate.\pcsel$.
 \end{proof}
 
@@ -1307,10 +1385,10 @@ The proof becomes trivial once we've observed that one step of the symbolic exec
 $$
 \begin{array}{l} 
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \, \wedge \, 
-     (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs)  \, \wedge \, 
+     (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs)  \\ \quad \, \wedge \, 
      \pc \vdash \sstate'.\pcsel \\ \quad \quad
      \implies 
-        \exists \, \istate', \cs' \, . \, \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}
+        \exists \, \istate', \cs' \, . \, \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad \quad
          \, \wedge \, 
             (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')  \, \wedge \, 
             \senv' \fextends  \senv
@@ -1320,7 +1398,7 @@ $$
 \begin{proof}
 
 Suppose $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}), 
-$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs)$~(\hyp{2}), and 
+$$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \text{ (\hyp{2})}$$ and 
 $\pc \vdash \sstate'.\pcsel$ (\hyp{3}). 
 We have to prove that there is an instrumented state $\istate'$,
 such that $\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$, 
@@ -1342,9 +1420,10 @@ the result follows.
 \noindent \prooflab{Inductive Case} $n = m + 1$. It follows that there is a symbolic state 
 $\sstate''$, a context $\scs''$, an index $k$, and a mode $\mode''$, such that: 
 $$
-\transabssemrule{\sstate, \scs, i}{\sstate'', \scs'', k}{\mode}{\mode''}{\symbolic} \text{ (\ieq{1})}
-\qquad 
+\begin{array}{c}
+\transabssemrule{\sstate, \scs, i}{\sstate'', \scs'', k}{\mode}{\mode''}{\symbolic} \text{ (\ieq{1})} \\ 
 \abssemrule{\sstate'', \scs'', k}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \text{ (\ieq{2})}
+\end{array}
 $$
 From \ieq{1} and \ieq{2}, it follows that $\mode = \mode'' = \top$. 
 Applying Lemma~\ref{lemma:pc:monotonocity} to \ieq{2}, we conclude that $\sstate'.\pcsel \vdash \sstate''.\pcsel$ (\ieq{3}). 
@@ -1370,7 +1449,7 @@ $$
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  
     \ \wedge \ (\istate, \cs) \in \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \\ \quad \quad 
     \ \implies \ \exists \, \senv', \istate', \cs' \, . \, 
-        \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}
+        \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad  \quad \quad \quad \quad 
                \ \wedge \ (\istate', \cs') \in \interpret{\symbinst}{\senv'}(\sstate', \scs')
 \end{array}
 $$
