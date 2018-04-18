@@ -5,8 +5,8 @@
   ### Nullable objects are either objects or null
   ###
   @pred nullableObject(o) : 
-    [nOb01] types(o : Obj),
-    [nOb02] (o == null);
+    types(o : Obj),
+    (o == null);
 
   ###
   ### A node is an object with a property 'value' (number)
@@ -14,7 +14,7 @@
   ###
   ### In-parameters: n
   ###
-  @pred Node(+n:Obj, v:Num, t):
+  @pred Node(n, v, t):
     JSObject(n) *
     DataProp(n, "value", v) *
     DataProp(n, "next", t);
@@ -26,7 +26,7 @@
   ###
   ### In-parameters: nl
   ###
-  @pred NDList(+nl, E:Set):
+  @pred NDList(nl, E):
     (l == null) * (E == -{ }-),
 
     Node(nl, #v, #t) * NDList(#t, #tE) *
@@ -41,7 +41,7 @@
   ###
   ### In-parameters: nl
   ###
-  @pred SOList(+nl, E:Set):
+  @pred SOList(nl, E):
     (nl == null) * (E == -{ }-),
 
     Node(nl, #v, #t) * SOList(#t, #tE) *
@@ -58,8 +58,6 @@
 		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
 */
 function insert(node, value) {
-    
-    /** @tactic unfold SOList(#n, #E) */
     if (node === null) {
         return { next: null, value: value }
     } else if (node.value === value) {
@@ -84,7 +82,6 @@ function insert(node, value) {
 */
 function sort(head) {
     var result;
-    /** @tactic unfold NDList(#h, #E) */
     if (head === null) {
         result = null
     } else {
