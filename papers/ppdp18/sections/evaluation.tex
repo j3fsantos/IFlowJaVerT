@@ -80,7 +80,7 @@ The priority value is either an integer (the lower the value, the higher the pri
 With symbolic tests of the \jsinline{enqueue} and \jsinline{dequeue} methods of the library, we found that elements enqueued with a priority value of \jsinline{0} were actually being enqueued at the end of the queue, when they should have had the highest priority instead.
 
 We identified the bug to come from the following part of the code: \jsinline!enqueue: function (data, pri) {var payload = { data: data, priority: pri || null }; ... }!
-Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer thought that it reduced to 0.
+Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer thought that it reduced to 0.
 Even though the developer wrote tests, they never used a priority value of 0 and therefore never triggered the bug.
 This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the sometimes subtle semantics of the language.
 

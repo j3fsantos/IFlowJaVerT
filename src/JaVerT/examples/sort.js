@@ -15,7 +15,7 @@
   ### In-parameters: n
   ###
   @pred Node(n, v, t):
-    JSObject(n) *
+    JSObject(n) * types(v : Num) *
     DataProp(n, "value", v) *
     DataProp(n, "next", t);
   
@@ -52,10 +52,10 @@
 /**
 	@id insert
 
-	@pre (JSObject ($lg) * (node == #n) * (value == #v) * SOList(#n, #E) * types(#v: Num) * 
-		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
+	@pre (JSObject ($lg) * (node == #n) * (value == #v) * types(#v : Num) * SOList(#n, #E) * types(#v: Num) * 
+		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, 2, #insert_proto))
 	@post (JSObject ($lg) * (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * types(#ret: Obj) *
-		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
+		 scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, 2, #insert_proto))
 */
 function insert(node, value) {
     if (node === null) {
@@ -74,11 +74,11 @@ function insert(node, value) {
 	@id sort
 
 	@pre (JSObject ($lg) * (head == #h) * NDList(#h, #E) * 
-		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, #sort_len, #sort_proto) * 
-		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
+		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, 1, #sort_proto) * 
+		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, 2, #insert_proto))
 	@post (JSObject ($lg) * SOList(ret, #E) * nullableObject(ret) * 
-		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, #sort_len, #sort_proto) * 
-		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, #insert_len, #insert_proto))
+		  scope(sort: #sort_fun) * JSFunctionObject(#sort_fun, "sort", #sort_sc, 1, #sort_proto) * 
+		  scope(insert: #insert_fun) * JSFunctionObject(#insert_fun, "insert", #insert_sc, 2, #insert_proto))
 */
 function sort(head) {
     var result;

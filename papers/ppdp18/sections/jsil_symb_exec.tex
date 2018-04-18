@@ -493,6 +493,8 @@ consists of designing an instrumented version of the semantics that observes the
 %
 For that, we keep track of not only the properties that are present in a given object, but also the properties that are not present.
 
+\pmax{Nones are there to prevent us from framing on rubbish.}
+
 An instrumented state $\istate$ is a triple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
 a domain table, and a store. 
 %
@@ -691,6 +693,9 @@ $$
 
 \vspace*{-0.2cm}
 \subsection{\jsil Symbolic Semantics}\label{subsec:symb:semantics}
+
+\pmax{What happen with symbsem? This is normal, etc. Symbolic lifting.}
+
 In order to execute \jsil programs symbolically, we introduce typed symbolic variables $\svar \in \svars$: 
 we use $\sstring$, $\snumber$, $\sbool$, and $\sloc$ to denote symbolic strings, numbers, 
 booleans, and locations, respectively. We further introduce symbolic expressions, $\sexpr \in \sexprs$, defined as follows: 
@@ -1071,11 +1076,11 @@ f(\sheap_1 \dunion \sheap_2) \semeq \heap, \hdom
 {
   \hdom =  \left\{ (l, p) \mid 
                      {
-                         \sexprl \in \domain(\sdom) \, \wedge \, l = f(\sexprl)  
-                              \, \wedge \, p \not\in f(\sdom(\sexprl))
+                         \sexprl \in \domain(\sdom) \, \wedge \, l = \shorthand(\sexprl)  
+                              \, \wedge \, p \not\in \shorthand(\sdom(\sexprl))
                      } \right\}
 }{
-\interpret{\symbconc}{\senv}(\sdom) 
+\shorthand(\sdom) 
     \semeq \hdom 
 }
 \and

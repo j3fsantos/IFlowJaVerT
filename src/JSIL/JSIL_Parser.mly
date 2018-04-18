@@ -152,6 +152,7 @@ let copy_and_clear_globals () =
 %token GETFIELDS
 %token ARGUMENTS
 %token METADATA
+%token SETMETADATA
 %token GOTO
 %token WITH
 %token APPLY
@@ -884,6 +885,9 @@ cmd_target:
 (* x := metadata (e) *)
 	| v = VAR; DEFEQ; METADATA; LBRACE; e=expr_target; RBRACE
 	  { SLBasic (MetaData (v, e)) }
+(* setMetadata(e1, e2) *)
+	| SETMETADATA; LBRACE; e1=expr_target; COMMA; e2=expr_target; RBRACE
+		{ SLBasic (SetMetaData (e1, e2)) }
 (*** Other commands ***)
 (* goto i *)
 	| GOTO; i=VAR

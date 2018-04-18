@@ -265,6 +265,7 @@ type jsil_basic_cmd =
 	| SGetFields  of jsil_var * jsil_expr              (** All* fields of an object *)
 	| SArguments  of jsil_var                          (** Arguments of the current function *)
 	| MetaData    of jsil_var * jsil_expr
+	| SetMetaData of jsil_expr * jsil_expr
 	| RAssume     of jsil_expr                          
 	| RAssert     of jsil_expr
 	| STermSucc
@@ -443,7 +444,7 @@ let add_procs_to_ext_prog
 
 	let new_procs_names = List.map (fun proc -> proc.lproc_name) procs in 
 	List.iter (fun proc -> 
-		Printf.printf "updating the prog table\n"; 
+		Printf.printf "updating the prog table with proc %s\n" proc.lproc_name; 
 		Hashtbl.replace prog.procedures proc.lproc_name proc 
 	) procs; 
 	{ prog with procedure_names = new_procs_names @ prog.procedure_names }
