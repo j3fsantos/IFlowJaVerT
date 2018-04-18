@@ -86,13 +86,19 @@ This shows that \cosette is a useful tool for debugging JavaScript code, because
 
 \subsection{Performance}
 
+We evaluate the performance of \cosette as a practical debugging tool by writing comprehensive (100\% line coverage) symbolic tests for all of the data structures in the Buckets.js library.
+Since \cosette discharges assertions by calling the Z3 SMT solver, we not only measure the running time of \cosette but also the solver time.
+
+The results are presented in table~\ref{cosette:res}.
+For each file in the library, we report the total number of JavaScript lines (including whitespace and comments), the number of executable JavaScript lines (lines that include a statement), the number of JSIL lines produced by the translation, the running time of \cosette on the example, as well as the solver time when relevant.
+
 \begin{table}[h]
 {
 \small
 %\begin{center}
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-File Name & JS Lines & JS Exec. lines & JSIL lines & Time (s)\\
+File Name & JS loc & JS Exec. loc & JSIL loc & Time (s) &\\
 \cmidrule{1-5}
 \texttt{arrays.js} & 172 & 44 & 1251 & 0 \\
 \texttt{bag.js} & 227 & 69 & 2041 & 0\\
@@ -110,4 +116,5 @@ File Name & JS Lines & JS Exec. lines & JSIL lines & Time (s)\\
 \end{tabular}
 }
 \caption{Coverage analysis for the Buckets.js library}
+\label{cosette:res}
 \end{table}
