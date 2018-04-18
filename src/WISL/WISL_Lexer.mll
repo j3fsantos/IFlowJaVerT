@@ -39,6 +39,7 @@ rule read =
   | "delete" { DELETE }
   | "function" { FUNCTION }
   | "predicate" { PREDICATE }
+  | "invariant" { INVARIANT }
   | "return" { RETURN }
   | "not"      { NOT }
   | "emp"    { EMP }

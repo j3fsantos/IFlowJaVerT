@@ -13,6 +13,7 @@
 %token RETURN
 %token NULL
 %token PREDICATE
+%token INVARIANT
 
 
 (* punctuation *)
@@ -28,7 +29,7 @@
 %token LBRACK           /* [ */
 %token RBRACK           /* ] */
 
-%left SEMICOLON         /* ; */
+%right  SEMICOLON         /* ; */
 
 (* names *)
 %token <string> IDENTIFIER
@@ -87,9 +88,9 @@
 
 prog:
   | EOF { None }
-  | fcp = definitions; stmt = statement; EOF { 
+  | fcp = definitions; stmts = statement_with_meta_list; EOF { 
     let (fc, preds) = fcp in
-    Some (WISL_Syntax.{ predicates = preds; context=fc; entry_point=(Some stmt) })
+    Some (WISL_Syntax.{ predicates = preds; context=fc; entry_point=(Some stmts) })
   }
   | fcp = definitions; EOF {
     let (fc, preds) = fcp in
@@ -111,18 +112,35 @@ fct:
   | f = fct_only { f }
 
 fct_only:
-  | FUNCTION; f = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE; stmt = statement;
-    SEMICOLON; RETURN; e = expression; RCBRACE;
-    { WISL_Syntax.{name=f; params=params; body=stmt; return_expr=e; spec=None} }
+  | FUNCTION; f = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE;
+    stmtsandret = statement_with_meta_list_and_return; RCBRACE;
+    { let (stmts, e) = stmtsandret in 
+      WISL_Syntax.{name=f; params=params; body=stmts; return_expr=e; spec=None} }
 
 
 var_list:
   vl = separated_list(COMMA, IDENTIFIER) { vl }
 
+
+statement_with_meta_list_and_return:
+  | RETURN; e = expression { ([], e)  }
+  | sm = statement_with_meta; SEMICOLON; sle = statement_with_meta_list_and_return
+    { let (sl, e) = sle in (sm::sl, e) }
+
+statement_with_meta_list:
+  | sl = separated_nonempty_list(SEMICOLON, statement_with_meta) { sl }
+
+statement_with_meta:
+  | inv = option(invariant); s = statement
+    { let metadata = WISL_Syntax.{invariant = inv; precmds = []; postcmds = []; } in
+      (metadata, s) }
+
+invariant:
+  | LCBRACE; INVARIANT; COLON; l = logic_assertion; RCBRACE { l }
+
 statement:
   | SKIP { WISL_Syntax.Skip }
   | x = IDENTIFIER; ASSIGN; e = expression { WISL_Syntax.VarAssign (x, e) }
-  | s1 = statement; SEMICOLON; s2 = statement { WISL_Syntax.Seq (s1, s2) } 
   | x = IDENTIFIER; ASSIGN; NEW; LBRACE; r = record; RBRACE
     { WISL_Syntax.New (x, r) }
   | DELETE; e = expression { WISL_Syntax.Delete e }
@@ -132,13 +150,11 @@ statement:
     { WISL_Syntax.PropUpdate (e1, pn, e2) }
   | x = IDENTIFIER; ASSIGN; f = IDENTIFIER; LBRACE; params = expr_list; RBRACE
     { WISL_Syntax.FunCall (x, f, params) }
-  | WHILE; LBRACE; b = expression; RBRACE; LCBRACE; stmt = statement; RCBRACE
-    { WISL_Syntax.While (b, stmt) }
-  | IF; LBRACE; b = expression; RBRACE; LCBRACE; stmt1 = statement; RCBRACE;
-    ELSE; LCBRACE; stmt2 = statement; RCBRACE
-    { WISL_Syntax.If (b, stmt1, stmt2) }
-
-
+  | WHILE; LBRACE; b = expression; RBRACE; LCBRACE; sl = statement_with_meta_list; RCBRACE
+    { WISL_Syntax.While (b, sl) }
+  | IF; LBRACE; b = expression; RBRACE; LCBRACE; sl1 = statement_with_meta_list; RCBRACE;
+    ELSE; LCBRACE; sl2 = statement_with_meta_list; RCBRACE
+    { WISL_Syntax.If (b, sl1, sl2) }
 
 
 record_field:

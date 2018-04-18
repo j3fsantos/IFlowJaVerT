@@ -73,22 +73,26 @@ let pp_record = pp_list pp_pn_e
 let pp_expr_list = pp_list pp_expr
 let pp_var_list = pp_list (fun fmt s -> fprintf fmt "@[%s@]" s)
 
-let rec pp_stmt fmt = function
+
+let rec pp_stmt_meta_list fmt = (pp_list ~sep:(format_of_string ";@.") pp_stmt_with_metadata) fmt
+and pp_stmt fmt = function
   | Skip -> fprintf fmt "@[%s@]" "skip"
-  | Seq (s1, s2) -> fprintf fmt "@[%a@];@.@[%a@]" pp_stmt s1 pp_stmt s2
   | VarAssign (v, e) -> fprintf fmt "@[%s := %a@]" v pp_expr e
   | New (v, r) -> fprintf fmt "@[%s := new(%a)@]" v pp_record r
   | Delete e -> fprintf fmt "@[delete@ %a@]" pp_expr e
   | PropLookup (v, e, pn) -> fprintf fmt "@[%s := %a.%s@]" v pp_expr e pn
   | PropUpdate (e1, pn, e2) -> fprintf fmt "@[%a.%s := %a@]" pp_expr e1 pn pp_expr e2 
   | FunCall (v, f, el) -> fprintf fmt "@[%s := %s(%a)@]" v f pp_expr_list el 
-  | While (e, s) -> fprintf fmt "@[while(%a) {\n@[<1>%a @]\n}@]" pp_expr e pp_stmt s 
+  | While (e, s) -> fprintf fmt "@[while(%a) {\n@[<1>%a @]\n}@]" pp_expr e pp_stmt_meta_list s 
   | If (e, s1, s2) -> fprintf fmt "@[if(%a) {\n%a\n} else {\n%a\n} @]"
-                         pp_expr e pp_stmt s1 pp_stmt s2
+                         pp_expr e pp_stmt_meta_list s1 pp_stmt_meta_list s2
+and pp_stmt_with_metadata fmt = fun (met, stmt) -> pp_stmt fmt stmt
                          
+
+
 let pp_fct fmt = function f ->
   Format.fprintf fmt "@[function %s(%a) {@.%a;@.return %a@.}@]" f.name
-  pp_var_list f.params pp_stmt f.body pp_expr f.return_expr
+  pp_var_list f.params pp_stmt_meta_list f.body pp_expr f.return_expr
 
 let pp_fct_context = pp_list ~sep:(format_of_string "@.@.") pp_fct
 
@@ -96,4 +100,4 @@ let pp_prog fmt = function prog ->
   match prog.entry_point with
   | None -> Format.fprintf fmt "%a" pp_fct_context prog.context
   | Some stmt -> Format.fprintf fmt "@[%a@.@.%a@]" pp_fct_context prog.context
-  pp_stmt stmt
+  pp_stmt_meta_list stmt

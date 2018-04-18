@@ -8,3 +8,9 @@ let add_spec f pre post =
   let specs = Some { pre; post } in
   let { name; params; body; spec; return_expr } = f in
   { name; params; body; return_expr; spec = specs}
+  
+let empty_metadata = {
+  precmds = [];
+  postcmds = [];
+  invariant = None;
+}

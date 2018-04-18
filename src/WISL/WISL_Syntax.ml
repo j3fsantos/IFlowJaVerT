@@ -50,20 +50,6 @@ type expr =
 
 type record = (prop_name * expr) list
 
-type statement = 
-  | Skip
-  | VarAssign of variable * expr
-  | Seq of statement * statement
-  | New of variable * record
-  | Delete of expr
-  | PropLookup of variable * expr * prop_name
-  | PropUpdate of expr * prop_name * expr
-  | FunCall of variable * function_name * (expr list)
-  | While of expr * statement
-  | If of expr * statement * statement
-
-type var_name_list = variable list
-
 
 (* WISL Logic (subset of JSIL Logic) *)
 
@@ -106,19 +92,39 @@ type logic_predicate = {
   pred_definitions: ((string option) * logic_assertion) list;
 }
 
+type logic_command = | RIEN
+
+type wisl_metadata = {
+  precmds: logic_command list;
+  postcmds: logic_command list;
+  invariant: logic_assertion option;
+}
+
 (* Programs and functions *)
+
+type statement = 
+  | Skip
+  | VarAssign of variable * expr
+  | New of variable * record
+  | Delete of expr
+  | PropLookup of variable * expr * prop_name
+  | PropUpdate of expr * prop_name * expr
+  | FunCall of variable * function_name * (expr list)
+  | While of expr * (statement_with_metadata list)
+  | If of expr * (statement_with_metadata list) * (statement_with_metadata list)
+and statement_with_metadata = (wisl_metadata * statement)
 
 type wisl_fun = {
   name: function_name;
   params: variable list;
-  body: statement;
+  body: statement_with_metadata list;
   spec: specification option;
   return_expr: expr;
 }
 
 type function_context = wisl_fun list
 
-type program = { 
+type program = {
   context: function_context;
   predicates: logic_predicate list;
-  entry_point: statement option}
+  entry_point: (statement_with_metadata list) option}

@@ -99,110 +99,7 @@ let rec compile_expression expr =
       failwith (Format.asprintf "Operator %a should only be used in the logic"
       WISL_Printer.pp_unop u)
   | UnOp (u, e) -> JSIL.UnOp (compile_unop u, compile_expression e)
-            
-  
-(* Then we compile statements *)
-let rec compile_statement stmt =
-  (* To get labels when we know there is one *)
-  let jsil_expr_of_str s = JSIL.Literal (Literal.String s) in
-  let assign_of_rec_field obj_expr recfield =
-    let (pn, wisl_expr) = recfield in
-    let expr_pn = jsil_expr_of_str pn in
-    let comp_expr = compile_expression wisl_expr in
-    JSIL.LBasic (
-      JSIL.Mutation (obj_expr, expr_pn, comp_expr, Some Permission.Mutable)
-      )
-  in
-  (* No metadata here *)
-  let no_metadata =
-    { JSIL.line_offset = None;
-      JSIL.invariant = None;
-      JSIL.pre_logic_cmds = [];
-      JSIL.post_logic_cmds = []
-     }
-  in
-  let meta_lab_cmd_of_cmd cmd =
-    (no_metadata, None, cmd)
-  (* get new unused label *)
-  in let cmdlab = LabelGenerator.get_lab ()
-  in let cmdlabopt = Some cmdlab
-  in
-  match stmt with
-  | Skip -> let cmd = JSIL.LBasic JSIL.Skip
-            in [ (no_metadata, cmdlabopt, cmd) ]
-  | VarAssign (v, e) -> let cmd = JSIL.LBasic
-                          (JSIL.Assignment (v, compile_expression e))
-                        in [ (no_metadata, cmdlabopt, cmd) ]
-  | New (x, r) ->
-    begin
-      let newcmd = JSIL.LBasic (JSIL.New (x, None)) in
-      let newcmd_with_lab = (no_metadata, Some cmdlab, newcmd) in
-      let expr_x = JSIL.Var x in
-      let sealcmd = JSIL.LBasic (JSIL.Seal expr_x) in
-      let sealcmd_with_lab = (no_metadata, None, sealcmd) in
-      let props_mut = List.map (assign_of_rec_field expr_x) r in
-      let props_mut_with_lab = List.map meta_lab_cmd_of_cmd props_mut in
-      (newcmd_with_lab::props_mut_with_lab)@[sealcmd_with_lab]
-    end
-  | Seq (s1, s2) -> let cs1 = compile_statement s1 in
-                    cs1 @ (compile_statement s2)
-  | Delete e -> begin
-                  let comp_e = compile_expression e in
-                  let cmd = JSIL.LBasic (JSIL.DeleteObj comp_e)
-                  in [ (no_metadata, cmdlabopt, cmd) ]
-                end
-  | PropLookup (x, e, pn) ->
-      begin
-        let comp_e = compile_expression e in
-        let exp_pn = jsil_expr_of_str pn in
-        let cmd = JSIL.LBasic (JSIL.Lookup (x, comp_e, exp_pn))
-        in [ (no_metadata, cmdlabopt, cmd) ]
-      end
-  | PropUpdate (e1, pn, e2) ->
-      begin
-        let comp_e1, comp_e2 = (compile_expression e1, compile_expression e2) in
-        let exp_pn = jsil_expr_of_str pn in
-        let cmd = JSIL.LBasic (JSIL.Mutation (comp_e1, exp_pn, comp_e2, None))
-        in [ (no_metadata, cmdlabopt, cmd) ]
-      end
-  | FunCall (x, fn, el) ->
-      begin
-        let expr_fn = jsil_expr_of_str fn in
-        let params = List.map compile_expression el in
-        let cmd = JSIL.LCall (x, expr_fn, params, None)
-        in [ (no_metadata, cmdlabopt, cmd) ]
-      end
-  | While (e, body) ->
-      begin
-        let endlab = LabelGenerator.get_lab ~pre:"end" () in
-        let endlabopt = Some endlab in
-        let guard = compile_expression e in
-        let comp_body = compile_statement body in
-        let (_, bodlabopt, _) = List.hd comp_body in
-        let bodlab = Option.get bodlabopt in
-        let loopheadcmd = JSIL.LGuardedGoto (guard, bodlab, endlab) in
-        let gotoloopcmd = JSIL.LGoto cmdlab in
-        let endcmd = JSIL.LBasic (JSIL.Skip) in
-          ((no_metadata, cmdlabopt, loopheadcmd)::comp_body)@
-          [(no_metadata, None, gotoloopcmd); (no_metadata, endlabopt, endcmd)]
-      end
-  | If (e, s1, s2) ->
-      begin
-        let endlab = LabelGenerator.get_lab ~pre:"end" () in
-        let endlabopt = Some endlab in
-        let guard = compile_expression e in
-        let comp_s1 = compile_statement s1 in
-        let comp_s2 = compile_statement s2 in
-        let (_, thenlabopt, _) = List.hd comp_s1 in
-        let (_, elselabopt, _) =  List.hd comp_s2 in
-        let thenlab, elselab = Option.get thenlabopt, Option.get elselabopt in
-        let ifelsecmd = JSIL.LGuardedGoto (guard, thenlab, elselab) in
-        let gotoendcmd = JSIL.LGoto endlab in
-        let endcmd = JSIL.LBasic JSIL.Skip in
-          ((no_metadata, cmdlabopt, ifelsecmd)::comp_s1)@
-          ((no_metadata, None, gotoendcmd)::comp_s2)@
-          [ (no_metadata, endlabopt, endcmd) ]
-      end
+
 
 let clean_unused_labs lcmdlist =
   let remove_if_unused labset lcmd =
@@ -318,22 +215,6 @@ let compile_spec pre post name params =
 
 
 let compile_predicate pred =
-  let rec is_recursive_assert asst_name asst =
-    let test_rec = is_recursive_assert asst_name in
-    match asst with
-    | LPred (x, _) when String.equal x asst_name -> true
-    | LNot la -> test_rec la
-    | LAnd (la1, la2) -> test_rec la1 || test_rec la2
-    | LOr (la1, la2) -> test_rec la1 || test_rec la2
-    | LStar (la1, la2) -> test_rec la1 || test_rec la2
-    | _ -> false
-  in
-  let is_recursive_id_logic_assert asst_name (_, asst) =
-    is_recursive_assert asst_name asst
-  in
-  let is_recursive_pred pr =
-    List.exists (is_recursive_id_logic_assert pr.pred_name) pr.pred_definitions
-  in
   JSIL.{
     name = pred.pred_name;
     num_params = List.length pred.pred_params;
@@ -345,6 +226,140 @@ let compile_predicate pred =
     previously_normalised_pred = false;
   }
   
+(* TODO: actually implement that *)
+let compile_logic_command _ =
+  JSIL.Assert (JSIL.LTrue)
+
+
+let compile_metadata meta =
+  let invariant = Option.map compile_logic_assertion meta.invariant in
+  let pre_logic_cmds = List.map compile_logic_command meta.precmds in
+  let post_logic_cmds = List.map compile_logic_command meta.postcmds in
+  let line_offset = None in
+  JSIL.{ line_offset; invariant; pre_logic_cmds; post_logic_cmds}
+  
+
+let separate_pre_post_meta meta =
+  let pre = {
+    precmds = meta.precmds;
+    postcmds = [];
+    invariant = meta.invariant;
+  } in
+  let post = {
+    precmds = [];
+    postcmds = meta.postcmds;
+    invariant = None;
+  }
+  in (pre, post)
+
+
+let rec compile_statement_with_meta (meta, stmt) = 
+  let comp_meta = compile_metadata meta in
+  (* To get labels when we know there is one *)
+  let jsil_expr_of_str s = JSIL.Literal (Literal.String s) in
+  let assign_of_rec_field obj_expr recfield =
+    let (pn, wisl_expr) = recfield in
+    let expr_pn = jsil_expr_of_str pn in
+    let comp_expr = compile_expression wisl_expr in
+    JSIL.LBasic (
+      JSIL.Mutation (obj_expr, expr_pn, comp_expr, Some Permission.Mutable)
+      )
+  in
+  let no_metadata =
+  { JSIL.line_offset = None;
+    JSIL.invariant = None;
+    JSIL.pre_logic_cmds = [];
+    JSIL.post_logic_cmds = []
+   } in
+  let meta_lab_cmd_of_cmd cmd = (no_metadata, None, cmd)
+  (* get new unused label *)
+  in let cmdlab = LabelGenerator.get_lab ()
+  in let cmdlabopt = Some cmdlab
+  in
+  match stmt with
+  | Skip -> let cmd = JSIL.LBasic JSIL.Skip
+            in [ (comp_meta, cmdlabopt, cmd) ]
+  | VarAssign (v, e) -> let cmd = JSIL.LBasic
+                          (JSIL.Assignment (v, compile_expression e))
+                        in [ (comp_meta, cmdlabopt, cmd) ]
+  | New (x, r) ->
+    begin
+      let (pre_meta, post_meta) = separate_pre_post_meta meta in
+      let (pre_meta_comp, post_meta_comp) =
+        (compile_metadata pre_meta, compile_metadata post_meta) in
+      let newcmd = JSIL.LBasic (JSIL.New (x, None)) in
+      let newcmd_with_lab = (pre_meta_comp, Some cmdlab, newcmd) in
+      let expr_x = JSIL.Var x in
+      let sealcmd = JSIL.LBasic (JSIL.Seal expr_x) in
+      let sealcmd_with_lab = (post_meta_comp, None, sealcmd) in
+      let props_mut = List.map (assign_of_rec_field expr_x) r in
+      let props_mut_with_lab = List.map meta_lab_cmd_of_cmd props_mut in
+      (newcmd_with_lab::props_mut_with_lab)@[sealcmd_with_lab]
+    end
+  | Delete e -> begin
+                  let comp_e = compile_expression e in
+                  let cmd = JSIL.LBasic (JSIL.DeleteObj comp_e)
+                  in [ (comp_meta, cmdlabopt, cmd) ]
+                end
+  | PropLookup (x, e, pn) ->
+      begin
+        let comp_e = compile_expression e in
+        let exp_pn = jsil_expr_of_str pn in
+        let cmd = JSIL.LBasic (JSIL.Lookup (x, comp_e, exp_pn))
+        in [ (comp_meta, cmdlabopt, cmd) ]
+      end
+  | PropUpdate (e1, pn, e2) ->
+      begin
+        let comp_e1, comp_e2 = (compile_expression e1, compile_expression e2) in
+        let exp_pn = jsil_expr_of_str pn in
+        let cmd = JSIL.LBasic (JSIL.Mutation (comp_e1, exp_pn, comp_e2, None))
+        in [ (comp_meta, cmdlabopt, cmd) ]
+      end
+  | FunCall (x, fn, el) ->
+      begin
+        let expr_fn = jsil_expr_of_str fn in
+        let params = List.map compile_expression el in
+        let cmd = JSIL.LCall (x, expr_fn, params, None)
+        in [ (comp_meta, cmdlabopt, cmd) ]
+      end
+  | While (e, body) ->
+      begin
+        let (pre_meta, post_meta) = separate_pre_post_meta meta in
+        let (pre_meta_comp, post_meta_comp) =
+          (compile_metadata pre_meta, compile_metadata post_meta) in
+        let endlab = LabelGenerator.get_lab ~pre:"end" () in
+        let endlabopt = Some endlab in
+        let guard = compile_expression e in
+        let comp_body = List.flatten (List.map compile_statement_with_meta body) in
+        let (_, bodlabopt, _) = List.hd comp_body in
+        let bodlab = Option.get bodlabopt in
+        let loopheadcmd = JSIL.LGuardedGoto (guard, bodlab, endlab) in
+        let gotoloopcmd = JSIL.LGoto cmdlab in
+        let endcmd = JSIL.LBasic (JSIL.Skip) in
+          ((pre_meta_comp, cmdlabopt, loopheadcmd)::comp_body)@
+          [(no_metadata, None, gotoloopcmd); (post_meta_comp, endlabopt, endcmd)]
+      end
+  | If (e, s1, s2) ->
+      begin
+        let (pre_meta, post_meta) = separate_pre_post_meta meta in
+        let (pre_meta_comp, post_meta_comp) =
+          (compile_metadata pre_meta, compile_metadata post_meta) in
+        let endlab = LabelGenerator.get_lab ~pre:"end" () in
+        let endlabopt = Some endlab in
+        let guard = compile_expression e in
+        let comp_s1 = List.flatten (List.map compile_statement_with_meta s1) in
+        let comp_s2 = List.flatten (List.map compile_statement_with_meta s2) in
+        let (_, thenlabopt, _) = List.hd comp_s1 in
+        let (_, elselabopt, _) =  List.hd comp_s2 in
+        let thenlab, elselab = Option.get thenlabopt, Option.get elselabopt in
+        let ifelsecmd = JSIL.LGuardedGoto (guard, thenlab, elselab) in
+        let gotoendcmd = JSIL.LGoto endlab in
+        let endcmd = JSIL.LBasic JSIL.Skip in
+          ((pre_meta_comp, cmdlabopt, ifelsecmd)::comp_s1)@
+          ((no_metadata, None, gotoendcmd)::comp_s2)@
+          [ (post_meta_comp, endlabopt, endcmd) ]
+      end
+
 
 (* program related stuff *)
 let compile_function func =
@@ -358,7 +373,7 @@ let compile_function func =
   let params = func.params in
   let body = func.body in
   let ret_expr = func.return_expr in
-  let lbodylist = compile_statement body in
+  let lbodylist = List.flatten (List.map compile_statement_with_meta body) in
   let comp_ret_expr = compile_expression ret_expr in
   let clean_lbodylist = clean_unused_labs lbodylist in
   let retassigncmd = JSIL.LBasic (JSIL.Assignment ("x__ret", comp_ret_expr)) in

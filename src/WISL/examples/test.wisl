@@ -4,7 +4,7 @@ predicate list(x, alpha) {
   list(#z, #beta) * (alpha == #v::#beta)
 }
 
-predicate list_seg(x, y, alpha) {
+predicate lseg(x, y, alpha) {
   (x == y) * (alpha == nil);
   ((x, head) -> #v) * ((x, tail) -> #z) *
   list_seg(#z, y, #beta) * (alpha == #v::#beta)
@@ -24,6 +24,8 @@ function lrev(x) {
 function llen(x) {
   y := x;
   n := 0;
+  {invariant: list(x, #alpha) * (n == len #done) * lseg(x, y, #done)
+              * list(y, #rest) * (#alpha == #done @ #rest)}
   while (y != null) {
     y := y.tail;
     n := n + 1
