@@ -367,8 +367,9 @@ $\phantom{xxx}$
    \qquad
    \inferrule[\textsc{Heap Update}]
    { 
-         \istate = (\iheap, \idom, \store) 
-         \quad
+         \istate = (\iheap, \idom, \store) \quad 
+         (\loc, p) \in \domain(\iheap) 
+         \\\\
          \iheap' = \iheap[(\loc, p) \mapsto \ival]
    }{  \hpupdt{\instrumented}(\istate, (\loc, p), \ival) \semeq  (\iheap', \idom, \store) }
    \\
@@ -765,6 +766,514 @@ $\phantom{xxxx}$
 
 \section{Proof --- Section~\ref{sec:jsil:symb:exec}}
 
+\subsection{Instrumented Semantics}
+
+% Frame Proofs
+
+\begin{lemma}[Heap Update - Frame]\label{lemma:frame:heap:update}
+$$
+\begin{array}{l}
+\hpupdt{\instrumented}(\istate, \loc, p, \ival)  = \istate' \implies 
+    \hpupdt{\instrumented}(\istate \dunion \heap_f, \loc, p, \ival) = \istate' \dunion \heap_f
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definition of $\hpupdt{\instrumented}$, 
+noting that $\hpupdt{\instrumented}$ is only defined when $(\loc, p)$ exists in the 
+domain of $\istate.\hpsel$. 
+\end{proof}
+
+
+\begin{lemma}[Store Update - Frame]\label{lemma:frame:store:update}
+$$
+\begin{array}{l}
+ \stupdt{\instrumented}(\istate, \jvar, \val) = \istate'  \implies 
+      \stupdt{\instrumented}(\istate \dunion \iheap_f, \jvar, \val) = \istate' \dunion \iheap_f
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\stupdt{\instrumented}$.
+\end{proof}
+
+
+\begin{lemma}[Assume - Frame]\label{lemma:frame:assume}
+$$
+\begin{array}{l}
+\absassume{\instrumented}(\istate, \jsilexpr) =  \istate' 
+    \implies \absassume{\instrumented}(\istate \dunion \iheap_f, \jsilexpr) =  \istate' \dunion \iheap_f
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definition of $\absassume{\instrumented}$.
+\end{proof}
+
+\begin{lemma}[Check Sat -Frame]\label{lemma:frame:sat}
+$$
+\begin{array}{l}
+      \abssat{\instrumented}(\istate, \jsilexpr) =  \jbool 
+          \implies 
+               \abssat{\instrumented}(\istate \dunion \iheap_f, \jsilexpr) =  \jbool 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definition of $\abssat{\instrumented}$.
+\end{proof}
+
+%%
+%%
+%% Erasure Proofs
+%%
+%%
+\begin{lemma}[Heap Update - Erasure]\label{lemma:erasure:heap:update}
+$$
+\begin{array}{l}
+\jstate = \interpret{\instconc}{}(\istate)  
+   \implies \hpupdt{\concrete}(\jstate, \loc, p, \val) = \interpret{\instconc}{}(\hpupdt{\instrumented}(\istate, \loc, p, \val)) \\[3pt]
+%       
+\jstate = \interpret{\instconc}{}(\istate)
+  \implies \hpupdt{\concrete}(\jstate, \loc, p, \none) = \interpret{\instconc}{}(\hpupdt{\instrumented}(\istate, \loc, p, \none)) 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\hpupdt{\concrete}$ and $\hpupdt{\instrumented}$.
+\end{proof}
+
+
+\begin{lemma}[Store Update - Erasure]\label{lemma:erasure:store:update}
+$$
+\begin{array}{l}
+ \stupdt{\concrete}(\interpret{\instconc}{}(\istate), \jvar, \val) = \interpret{\instconc}{}(\stupdt{\instrumented}(\istate, \jvar, \val)) 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\stupdt{\concrete}$ and $\stupdt{\instrumented}$.
+\end{proof}
+
+\begin{lemma}[Assume - Erasure]\label{lemma:erasure:assume}
+$$
+\begin{array}{l}
+\interpret{\instconc}{}(\absassume{\instrumented}(\istate, \jsilexpr)) = \absassume{\concrete}( \interpret{\instconc}{}(\istate), \jsilexpr) 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\absassume{\concrete}$ and $\absassume{\instrumented}$.
+\end{proof}
+
+\begin{lemma}[Check Sat -Erasure]\label{lemma:erasure:sat}
+$$
+\begin{array}{l}
+      \abssat{\instrumented}(\istate, \jsilexpr) =  \abssat{\concrete}(\interpret{\instconc}{}(\istate), \jsilexpr) 
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Immediate from the definitions of $\abssat{\concrete}$ and $\abssat{\instrumented}$.
+\end{proof}
+
+\begin{lemma}[GetCell - Erasure]\label{erasure:getcell}
+$$
+\begin{array}{l}
+\jstate = \interpret{\instconc}{}(\istate)  \ \wedge \ 
+\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate', (\loc, p, \ival)} \\ \quad \quad
+  \implies \absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate', (\loc, p, \ival)} 
+     \ \wedge \ \jstate' = \interpret{\instconc}{}(\istate')
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+For clarity, we name the hypotheses: $\jstate = \interpret{\instconc}{}(\istate)$ (\hyp{1})
+and $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate', (\loc, p, \ival)}$ (\hyp{2}).
+From \hyp{2}, we conclude that there is a location $\loc$ and a property $p$, such 
+that $\loc = \evalexpr{\concrete}(\store, \jsilexpr_1)$ (\ieq{1}) and 
+$p = \evalexpr{\concrete}(\store, \jsilexpr_2)$ (\ieq{2}). 
+We  proceed by case analysis on the rule used to derive \hyp{2}. 
+ \vspace{3pt} 
+ 
+  \noindent \prooflab{GetCell - Found} 
+   It follows that $\istate.\hpsel = - \, \uplus \, (\loc, p) \mapsto \ival$ (\ieq{2}). 
+   We have two cases to consider: $\ival = \none$ and $\ival \neq \none$. 
+   \begin{itemize}
+        \item Suppose $\ival = \none$ (\ieq{3}). It follows from \hyp{1} and \ieq{3} 
+                 that $(\loc, p) \not\in \domain(\jstate)$ (\ieq{4}). 
+                 We conclude from \ieq{1}, \ieq{2}, and \ieq{4} that 
+                 $$
+                   \absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate, (\loc, p, \none)}
+                 $$ establishing the first claim. 
+        %
+        \item Suppose $\ival \neq \none$ (\ieq{5}). It follows from \hyp{1} and \ieq{3}, 
+                 $\jstate.\hpsel(\loc, p) = \ival$ (\ieq{6}). 
+                  We conclude from \ieq{1}, \ieq{2}, and \ieq{6} that 
+                   $$
+                   \absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate, (\loc, p, \none)}
+                 $$ establishing the first claim.                  
+   \end{itemize}
+   Noticing that in both cases $\istate' = \istate$ and $\jstate' = \jstate$, we conclude the
+   second claim. 
+   \vspace{3pt}
+   
+    \noindent \prooflab{GetCell - Not Found} It follows that $p \not\in \istate.\domsel(\loc)$ (\ieq{7}) and 
+       $\istate' = (\iheap', \idom', \store)$ (\ieq{8}), where: 
+       $\iheap' = \istate.\hpsel \dunion ((\loc, p) \mapsto \none)$ (\ieq{9}) and $\idom' = \istate.\domsel[\loc \mapsto \istate.\domsel(\loc) \cup \jsilset{p}]$ (\ieq{10}). 
+       From \ieq{7}, we conclude that $(\loc, p) \not\in \domain(\istate.\hpsel)$ (\ieq{11}).
+       %
+       From \hyp{1} and \ieq{11}, it follows that $(\loc, p) \not\in \domain(\jstate.\hpsel)$ (\ieq{12}). 
+       From \ieq{1}, \ieq{2}, and \ieq{12}, we conclude that: 
+       $$
+          \absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate, (\loc, p, \none)}
+       $$
+       establishing the first claim of the result. Noticing that $\jstate' = \jstate$ and 
+       $\interpret{\symbconc}{}(\istate') = \interpret{\symbconc}{}(\istate)$, we 
+       establish the second claim of the lemma.
+\end{proof}
+
+
+\begin{lemma}[GetDomain - Erasure]\label{lemma:getdomain:erasure}
+$$
+\jstate = \interpret{\instconc}{}(\istate) \ \wedge \ 
+  \absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \val  
+  \implies \absgetdomainfun{\concrete}(\jstate, \jsilexpr) = \val
+$$
+\end{lemma}
+\begin{proof}
+Suppose that $\jstate = \interpret{\instconc}{}(\istate)$ (\hyp{1}) and 
+$\absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \val$ (\hyp{2}). 
+From \hyp{2}, we conclude that $\loc = \evalexpr{\concrete}(\store, \jsilexpr)$ (\ieq{1}), 
+$\iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m$ (\ieq{2}), 
+$(\loc,-) \notin \domain (\iheap')$ (\ieq{3}), 
+$\jsilset{p_1, ..., p_m} = \idom(\loc)$ (\ieq{4}), 
+$\forall_{0 \leq i \leq n} \, \val_i \neq \none$ (\ieq{5}), and
+$\forall_{n < i \leq m} \, \val_i = \none$ (\ieq{6}), 
+and $\val = \jsilset{p_1, ..., p_n}$ (\ieq{7}), 
+where $\istate =  (\iheap, \idom, \store)$ (\ieq{8}). 
+From \ieq{3}, we conclude that $(\loc,-) \notin \domain (\interpret{\instconc}{}(\iheap'))$ (\ieq{9}).
+From \ieq{2}, \ieq{5}, and \ieq{6}, it follows that 
+$$
+\interpret{\instconc}{}(\big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m)
+   = \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^n \text{ (\ieq{10})}
+$$
+From \ieq{7}, \ieq{9}, and \ieq{10}, we conclude that: 
+$
+\absgetdomainfun{\concrete}(\jstate, \jsilexpr) = \val
+$
+establishing the result. 
+\end{proof}
+
+\begin{lemma}[Basic Commands - Erasure]\label{lemma:erasure:basic:commands}
+$$
+\begin{array}{l}
+\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented} 
+    \, \wedge \, \jstate = \interpret{\instconc}{}(\istate) \\ \quad \quad
+     \implies 
+        \exists \, \jstate' \, . \, \absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete} \, \wedge \, 
+            \jstate' = \interpret{\instconc}{}(\istate')
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Suppose $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\hyp{1}) and 
+$\jstate = \interpret{\instconc}{}(\istate)$ (\hyp{2}).
+We proceed by case analysis on the rule used to derive \hyp{1}. 
+\vspace{3pt}
+
+\noindent \prooflab{Skip} It follows that $\absbsemrule{\istate, \jsilskip}{\istate}{\instrumented}$ (\ieq{1}) and 
+$\absbsemrule{\jstate, \jsilskip}{\jstate}{\concrete}$ (\ieq{2}). 
+From \hyp{1} and \ieq{1}, we conclude that $\istate' = \istate$ (\ieq{3}). 
+From \hyp{2} and \ieq{3}, it follows that $\jstate = \interpret{\instconc}{}(\istate')$ (\ieq{4}). 
+Letting $\jstate' = \jstate$, the result follows from \ieq{2} and \ieq{4}. 
+\vspace{5pt}
+
+
+\noindent \prooflab{Property Collection} From \hyp{1}, it follows that 
+$$
+\absbsemrule{\istate, \jvar := \getfields(\jsilexpr)}{\istate'}{\instrumented} \text{ (\ieq{1})}
+$$ 
+From \ieq{1}, we conclude that there is a value $\val$ such that 
+$\absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \val$ (\ieq{2}) 
+and $\istate' = \stupdt{\symbolic}(\istate, \jvar, \val)$ (\ieq{3}).  
+Applying Lemma~\ref{lemma:getdomain:erasure} to \hyp{2} and \ieq{2}, we conclude that 
+$\absgetdomainfun{\concrete}(\jstate, \jsilexpr) = \val$ (\ieq{4}). 
+Applying Lemma~\ref{lemma:erasure:store:update} to \ieq{4}, it follows that 
+$\interpret{\instconc}{}(\istate') = \stupdt{\concrete}(\jstate, \jvar, \val)$ (\ieq{5}). 
+From \ieq{4} and \ieq{5}, we conclude that $\absbsemrule{\jstate, \jvar := \getfields(\jsilexpr)}{\interpret{\instconc}{}(\istate')}{\concrete}$, 
+establishing the result. 
+\vspace{5pt}
+
+ \noindent \prooflab{Assignment} From \hyp{1}, it follows that $\absbsemrule{\istate, \jvar := \jsilexpr}{\istate'}{\instrumented}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a value $\val$ such that 
+$\val = \evalexpr{\concrete}(\istate.\stosel, \jsilexpr)$ (\ieq{2}) and $\istate' = \stupdt{\concrete}(\istate, \jvar, \val)$ (\ieq{3}). 
+%
+Applying Lemma~\ref{lemma:erasure:store:update} to \ieq{3}, it follows
+that $ \interpret{\instconc}{}(\istate') = \stupdt{\concrete}(\jstate, \jvar, \val)$ (\ieq{4}).
+% 
+Combining \ieq{2} and \ieq{4}, we conclude that 
+$\absbsemrule{\jstate,\jvar := \jsilexpr}{\interpret{\instconc}{}(\istate')}{\concrete}$, establishing the result. 
+\vspace{5pt}
+%
+
+ \noindent \prooflab{Object Creation} From \hyp{1}, it follows that $\absbsemrule{\istate, \jvar := \jsilnew()}{\istate'}{\instrumented}$ (\ieq{1}). 
+From \ieq{1}, we conclude that there is a location $\loc$ such that $(\loc, -) \not\in \domain(\istate.\hpsel)$ (\ieq{2}) and 
+$\istate' = \hpupdt{\instrumented}(\istate'', \loc, \protop, \jnull)$ (\ieq{3}), 
+$\istate'' = \istate[\domsel \mapsto \{ \}]$ (\ieq{4}). 
+From \hyp{2} and \ieq{2}, we conclude that $\loc \not\in \domain(\jstate.\hpsel)$ (\ieq{5}). 
+Noting that $\interpret{\instconc}{}(\istate') = \interpret{\instconc}{}(\istate'')$, 
+we can apply Lemma~\ref{lemma:soundiness:heap:update} to \ieq{3} to conclude that 
+$$\interpret{\instconc}{}(\istate') = \hpupdt{\concrete}(\jstate, \loc, \protop, \jnull) \text{ (\ieq{6})}$$ 
+Combining \ieq{5} and \ieq{6}, the result follows. 
+\vspace{5pt}
+
+\noindent \prooflab{Property Access} From \hyp{1}, it follows that 
+$$\absbsemrule{\istate, \jvar := \jvar := [\jsilexpr_1, \jsilexpr_2]}{\istate'}{\instrumented} \text{ (\ieq{1})}$$
+From \ieq{1}, we conclude that there is a symbolic expression $\val$ and a symbolic state $\istate''$ such that 
+$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (-, -, \val)}$ (\ieq{2}) 
+and $\istate' = \stupdt{\instrumented}(\istate'', \jvar, \val)$ (\ieq{3}). 
+Applying Lemma~\ref{erasure:getcell} to \ieq{2}, we conclude that 
+there is a concrete state $\jstate''$ such that  
+$\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate'', (-, -, \val)}$ (\ieq{4})
+and $\jstate'' = \interpret{\instconc}{}(\istate'')$ (\ieq{5}). 
+Applying Lemma~\ref{lemma:erasure:store:update} to \ieq{3} and \ieq{5}, 
+it follows that 
+$$
+\interpret{\instconc}{}(\istate') = \stupdt{\concrete}(\jstate'', \jvar, \val) \text{ \ieq{6}}
+$$
+Combining \ieq{2} and \ieq{6}, the result follows. 
+\vspace{5pt}
+
+ %
+\noindent \prooflab{Property Assignment}
+From \hyp{1}, it follows that 
+$$\absbsemrule{\istate, [\jsilexpr_1, \jsilexpr_2] := \jsilexpr_3}{\istate'}{\instrumented} \text{ (\ieq{1})}$$
+From \ieq{1}, we conclude that there is a location $\loc$, a property $p$, and an instrumented $\istate''$ such that 
+$$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (\loc, p, -)} \text{ (\ieq{2})}$$
+$\evalexpr{\concrete}(\istate''.\stosel, \jsilexpr_3) = \val$ (\ieq{3}),  
+$\istate' = \hpupdt{\instrumented}(\istate'', \loc, p, \val)$ (\ieq{4}). 
+%
+Applying Lemma~\ref{erasure:getcell} to \ieq{2}, we conclude that
+there is an instrumented state $\istate''$, such that 
+$\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate'', (\loc, p, -)}$ (\ieq{5}) 
+and $\jstate'' = \interpret{\instconc}{}(\istate'')$ (\ieq{6}). 
+%
+Applying Lemma~\ref{lemma:erasure:heap:update} to \ieq{4} and \ieq{6}, we conclude that 
+$\interpret{\instconc}{}(\istate') = \hpupdt{\concrete}(\jstate'', \loc, p, \val)$ (\ieq{7}).
+%
+Combining \ieq{5} and \ieq{7}, the result follows. 
+\vspace{5pt}
+
+
+\noindent \prooflab{Property Deletion}
+From \hyp{1}, it follows that 
+$$\absbsemrule{\istate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\istate'}{\instrumented} \text{ (\ieq{1})}$$
+From \ieq{1}, we conclude that there is a location $\loc$, property $\sexprp$, value $\val$, and instrumented state $\istate''$ such that 
+$$\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate'', (\loc, p, \val)} \text{ (\ieq{2})}$$ 
+and 
+$\istate' = \hpupdt{\instrumented}(\istate'', \loc, p, \none)$ (\ieq{3}). 
+%
+Applying Lemma~\ref{erasure:getcell} to \ieq{2}, we conclude that
+there exists a concrete state $\jstate''$ such that
+$$\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{\jstate'', (\loc, p, \val)} \text{ (\ieq{4})}$$ 
+and 
+$\jstate'' = \interpret{\instconc}{}(\istate'')$ (\ieq{5}). 
+%
+Applying Lemma~\ref{lemma:erasure:heap:update} to \ieq{3} and \ieq{5}, 
+we conclude that $\interpret{\instconc}{}(\istate') = \hpupdt{\concrete}(\jstate'', \loc, p, \none)$ (\ieq{6}). 
+Combining \ieq{4} and \ieq{6}, the result follows. 
+\vspace{5pt} 
+
+The remaining cases are proven analogously. 
+\end{proof}
+
+
+\begin{lemma}[Control Flow Commands - Erasure]\label{erasure:control:flow:cmds}
+$$
+\begin{array}{l} 
+\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} 
+     \, \wedge \, \jstate = \interpret{\symbconc}{}(\istate) \\ \quad \quad
+     \implies 
+        \exists \, \jstate' \, . \, \abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete} 
+         \, \wedge \, 
+            \jstate' = \interpret{\instconc}{}(\istate') 
+ \end{array}
+$$
+\end{lemma}
+\begin{proof}
+Suppose $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ (\hyp{1}) and 
+$\jstate = \interpret{\symbconc}{}(\istate)$ (\hyp{2}).
+We proceed by case analysis on the rule used to derive \hyp{1}. 
+\vspace{3pt}
+
+\noindent \prooflab{Basic Command} 
+From \hyp{1}, it follows that $\abssemrule{\istate, \cs, i}{\istate', \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{1}), 
+$\ccmd[\prog][\cs]{i} = \bcmd$ (\ieq{2}), and $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\ieq{3}). 
+Applying Lemma~\ref{lemma:erasure:basic:commands} to \ieq{3} and \hyp{2}, we conclude that 
+there is a concrete state $\jstate'$ such that: 
+$\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ (\ieq{4}) and $\jstate' = \interpret{\instconc}{}(\istate')$ (\ieq{5}). 
+From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\jstate, \cs, i}{\jstate', \cs, i{+}1}{\top}{\top}{\concrete}$ (\ieq{6}). 
+ Combining \ieq{5} and \ieq{6}, we obtain the result.  
+ \vspace{5pt}
+
+
+\noindent \prooflab{Cond. Goto - True} 
+From \hyp{1}, it follows that $\abssemrule{\istate, \cs, i}{\istate', \cs, j}{\top}{\top}{\instrumented}$ (\ieq{1}), 
+$\ccmd[\prog][\cs]{i} =  \ifgoto{\jsilexpr}{j}{k}$ (\ieq{2}), and 
+$ \istate' = \absassume{\instrumented}(\istate, \jsilexpr)$ (\ieq{3}). 
+Applying Lemma~\ref{lemma:erasure:assume} to \hyp{2} and \ieq{3}, we conclude that 
+$\interpret{\instconc}{}(\istate') = \absassume{\concrete}(\jstate, \jsilexpr)$ (\ieq{4}).  
+From \ieq{2} and \ieq{4}, we conclude that 
+$$\abssemrule{\jstate, \cs, i}{\interpret{\symbconc}{}(\istate'), \cs, i{+}1}{\top}{\top}{\concrete} \text{ (\ieq{5})}$$
+from which the result follows.      
+ \vspace{5pt}
+ 
+ 
+\noindent \prooflab{Cond. Goto - False} Similar to \prooflab{Cond. Goto - True}. 
+\vspace{5pt}
+
+ 
+\noindent \prooflab{Goto} From \hyp{1}, it follows that $\abssemrule{\istate, \cs, i}{\istate, \cs, j}{\top}{\top}{\instrumented}$ (\ieq{1}),   
+where $\ccmd[\prog][\cs]{i} = \goto \, j$ (\ieq{2}). 
+From \ieq{2}, we conclude that 
+$$\abssemrule{\jstate, \cs, i}{\jstate, \cs, j}{\top}{\top}{\concrete} \text{ (\ieq{3})}$$
+Combining \hyp{2} and \ieq{3}, we obtain the result. 
+ \vspace{5pt}
+ 
+ 
+\noindent \prooflab{Normal Return}
+From \hyp{1}, it follows that $\abssemrule{\istate, \cs, \retlab}{\istate', \cs', i}{\top}{\top}{\symbolic}$ (\ieq{1}), 
+$\cs = (-, \store', \jvar, i, -) :: \cs'$ (\ieq{2}), $\store = \istate.\stosel$ (\ieq{3}), 
+and 
+$$\istate' = \stupdt{\instrumented}(\istate[\stosel \mapsto \store'], \jvar, \store(\retvar)) \text{ (\ieq{4})}$$
+From \ieq{3}, we conclude that $\jstate.\stosel = \store$ (\ieq{5}). 
+Applying Lemma~\ref{lemma:erasure:store:update} to \ieq{4} and \ieq{5}, we conclude that 
+$$
+\interpret{\instconc}{}(\istate') = \stupdt{\concrete}(\jstate[\stosel \mapsto \store'], \jvar, \jstate.\stosel(\retvar)) 
+ \text{ (\ieq{6})}
+$$ 
+From \ieq{2} and \ieq{6}, we conclude that 
+$$\abssemrule{\jstate, \cs, \retlab}{\interpret{\instconc}{}(\istate'), \cs', i}{\top}{\top}{\concrete}$$ 
+establishing the result. 
+ \vspace{5pt}
+
+\noindent \prooflab{Error Return}
+Similar to \prooflab{Normal Return}. 
+ \vspace{5pt}
+ 
+ 
+\noindent \prooflab{Procedure Call}
+From \hyp{1}, it follows that $\abssemrule{\istate, \cs, i}{\istate', \cs', 0}{\top}{\top}{\instrumented}$ (\ieq{1}), 
+$\ccmd[\prog][\cs]{i} =\jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i \mid_{i = 0}^{n}}{j}$ (\ieq{2}), 
+$\pid' = \evalexpr{\concrete}(\istate.\stosel, \jsilexpr)$ (\ieq{3}), 
+$\args(\prog, \pid') = \jsillist{\jvar_1, ..., \jvar_{m}}$ (\ieq{4}), 
+$\val_i = \evalexpr{\concrete}(\sstate.\stosel, \jsilexpr_i) \mid_{i = 0}^{n}$ (\ieq{5}), 
+$\val_i = \jundefined \mid_{i = n+1}^{m}$ (\ieq{6}), 
+$\store' = [\jvar_i \mapsto \val_i \mid_{i = 0}^{m}]$ (\ieq{7}),  
+$\cs' = (\pid', \istate.\stosel, \jvar, i{+}1, j) :: \cs$ (\ieq{8}), and 
+$\istate' = \istate[\stosel \mapsto \store']$ (\ieq{9}). 
+From \hyp{2}, we conclude that $\istate.\stosel = \jstate.\stosel$ (\ieq{10}), from 
+which it follows that 
+$\pid' = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr)$ (\ieq{11})
+and 
+$\val_i = \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr_i) \mid_{i = 0}^{n}$ (\ieq{12}). 
+From \ieq{2}, \ieq{11}, \ieq{4}, \ieq{12}, \ieq{6}, \ieq{7}, \ieq{8}, \ieq{10}, we conclude that 
+$$
+ \abssemrule{\jstate, \cs, i}{\jstate[\stosel \mapsto \store'], \cs', 0}{\top}{\top}{\instrumented} \text{ (\ieq{13})}
+$$
+Combining \hyp{2} and \ieq{13}, the result follows. 
+\vspace{5pt}
+
+
+\noindent \prooflab{Assume}
+From \hyp{1}, it follows that $\abssemrule{\istate, \cs, i}{\istate', \cs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
+$\ccmd[\prog][\cs]{i}  = \assume(\jsilexpr)$ (\ieq{2}), and $\istate' = \absassume{\instrumented}(\istate, \jsilexpr)$ (\ieq{3}). 
+Applying Lemma~\ref{lemma:erasure:assume} to 
+\hyp{2} and \ieq{3}, we conclude that 
+$\interpret{\symbconc}{}(\istate') = \absassume{\concrete}(\jstate, \jsilexpr)$ (\ieq{4}). 
+From \ieq{2} and \ieq{4}, we conclude that: 
+ $$\abssemrule{\jstate, \cs, i}{\interpret{\symbconc}{}(\istate'), \cs, i{+}1}{\top}{\top}{\concrete} \text{ (\ieq{5})}$$
+  Combining  \ieq{2} and \ieq{5}, the result follows.
+ \vspace{5pt}
+
+
+\noindent \prooflab{Assert - True}
+From \hyp{1}, it follows that $\abssemrule{\istate, \cs, i}{\istate, \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{1}), 
+$ \ccmd[\prog][\cs]{i}  = \jassert(\jsilexpr)$ (\ieq{2}), and $\abssat{\instrumented}(\istate, \neg \jsilexpr) = \jfalse$ (\ieq{3}). 
+Applying Lemma~\ref{lemma:erasure:sat} to \ieq{3}, we conclude that 
+$\abssat{\concrete}(\jstate, \neg \jsilexpr) = \jfalse$ (\ieq{4}). 
+Combining \ieq{2} and \ieq{4}, the result follows. 
+ \vspace{5pt}
+
+\noindent \prooflab{Assert - False}
+Similar to \prooflab{Assert - True}. 
+\end{proof}
+
+
+\begin{temax}[Transparency for Instrumentation - Theorem~\ref{lemma:instrumented:semantics}]
+$$
+\begin{array}{l} 
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad
+\implies \transabssemrule{\interpret{\instconc}{}(\istate), \cs, i}{\interpret{\instconc}{}(\istate'), \cs', j}{\mode}{\mode'}{\concrete} 
+ \end{array}
+$$
+\end{temax}
+\begin{proof}
+Suppose:
+$$
+\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \text{ (\hyp{1})}
+\quad 
+ \jstate = \interpret{\symbconc}{}(\istate) \text{ (\hyp{2})}
+ $$
+and
+We have to prove that there is a concrete state $\jstate'$,
+such that $\transabssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ and
+$\istate' = \interpret{\instconc}{}(\istate', \cs')$.
+We proceed by induction on the length of the symbolic trace 
+$\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$. 
+Suppose the symbolic trace has length $n$. 
+\vspace{6pt}
+
+\noindent \prooflab{Base Case} $n = 0$. It follows that $\istate' = \istate$, 
+$\cs = \cs'$, and $j = i$. Noting that 
+$\transabssemrule{\jstate, \cs, i}{\jstate, \cs, i}{\mode}{\mode'}{\concrete}$
+and 
+$\jstate = \interpret{\symbconc}{}(\sstate)$ (from \hyp{2}), 
+the result follows. 
+\vspace{6pt}
+
+
+\noindent \prooflab{Inductive Case} $n = m + 1$. It follows that there is an instrumented state 
+$\istate''$, a context $\cs''$, an index $k$, and a mode $\mode''$, such that: 
+$$
+\begin{array}{c}
+\transabssemrule{\istate, \cs, i}{\istate'', \cs'', k}{\mode}{\mode''}{\instrumented} \text{ (\ieq{1})} \\ 
+\abssemrule{\istate'', \cs'', k}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \text{ (\ieq{2})}
+\end{array}
+$$
+From \ieq{1} and \ieq{2}, it follows that $\mode = \mode'' = \top$. 
+Applying the induction hypothesis to \hyp{2} and \ieq{1}, we conclude that 
+there is a concrete state $\jstate''$, such that
+$\transabssemrule{\jstate, \cs, i}{\jstate'', \cs'', k}{\mode}{\mode''}{\concrete}$ (\ieq{3}) and 
+$\jstate'' = \interpret{\symbconc}{}(\jstate'')$ (\ieq{4}).
+Applying Lemma~\ref{erasure:control:flow:cmds} to \ieq{2} and \ieq{4},
+it follows that  
+$\abssemrule{\jstate'', \cs'', k}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ (\ieq{5})
+and 
+$\jstate' = \interpret{\instconc}{}(\istate')$ (\ieq{6}).
+Combining \ieq{3} and \ieq{5}, we conclude that 
+$\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{7}). 
+Combining \ieq{6} and \ieq{7}, we obtain the result. 
+\end{proof}
+
+
+%%%
+%%%
+%%% Symbolic to Instrument
+%%%
+%%%
+%%%
 \subsection{Symbolic Semantics}
 
 \begin{lemma}[Expression Evaluation - Soundness for Symbolic Semantics]\label{symb:eval:expr}
@@ -859,7 +1368,7 @@ $$
 \begin{array}{l}
 \istate = \interpret{\symbinst}{\senv}(\sstate) \, \wedge \, 
    \val = \interpret{\symbconc}{\senv}(\sexprv) \\ \qquad   
-       \implies \stupdt{\symbolic}(\sstate, \jvar, \sexprv) = \interpret{\symbconc}{\senv}(\stupdt{\instrumented}(\istate, \jvar, \val)) 
+       \implies \stupdt{\instrumented}(\istate, \jvar, \val) = \interpret{\symbinst}{\senv}(\stupdt{\symbolic}(\sstate, \jvar, \sexprv)) 
 \end{array}
 $$
 \end{lemma}
@@ -1041,7 +1550,7 @@ $\evalexpr{\concrete}(\istate.\stosel, \jsilexpr_2) = p$ (\ieq{21}).
  \end{proof}
 
 
-\begin{lemma}[GetDomain - Soundiness for Symbolic Semantics]\label{lemma:getdomain:soundiness}
+\begin{lemma}[GetDomain - Soundness for Symbolic Semantics]\label{lemma:getdomain:soundiness}
 $$
 \istate = \interpret{\symbinst}{\senv}(\sstate) \ \wedge \ 
   \absgetdomainfun{\symbolic}(\sstate, \jsilexpr) = \sexpr  
@@ -1181,7 +1690,7 @@ Applying Lemma~\ref{lemma:soundiness:heap:update} to \ieq{3} and \ieq{6}-\ieq{9}
 From \hyp{1}, it follows that 
 $$\absbsemrule{\sstate, \jsildelete(\jsilexpr_1, \jsilexpr_2)}{\sstate'}{\symbolic} \text{ (\ieq{1})}$$
 From \ieq{1}, we conclude that there is a symbolic location $\sloc$, symbolic expressions $\sexprp$ and $\sexprv$, and a symbolic state $\sstate''$ such that 
-$$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, \sexprp)} \text{ (\ieq{2})}$$ 
+$$\absgetcellrule{\symbolic}{\sstate, \jsilexpr_1, \jsilexpr_2}{\sstate'', (\sloc, \sexprp, \sexprv)} \text{ (\ieq{2})}$$ 
 $\sexprp \neq \none$ (\ieq{3}), and  
 $\sstate' = \hpupdt{\symbolic}(\sstate'', \sloc, \sexprp, \none)$ (\ieq{4}). 
 Since, $\hpupdt{\symbolic}$ does not affect the path condition, we conclude, from \hyp{2} and \ieq{4}, that
@@ -1245,7 +1754,7 @@ Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{3}, and \ieq
  Combining \ieq{4} and \ieq{6}, we obtain the result.  
 \end{proof}
 
-\begin{lemma}[Control Flow Commands - Soundiness for Symbolic Semantics]\label{soundiness:control:flow:cmds}
+\begin{lemma}[Control Flow Commands - Bounded Soundness for Symbolic Semantics]\label{soundiness:control:flow:cmds}
 $$
 \begin{array}{l} 
 \abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
@@ -1267,7 +1776,7 @@ We proceed by case analysis on the rule used to derive \hyp{1}.
 \vspace{3pt}
 
 \noindent \prooflab{Basic Command} 
-From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \cs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
+From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \scs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
 $\ccmd[\prog][\scs]{i} = \bcmd$ (\ieq{2}), and $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\ieq{3}). 
 Applying Lemma~\ref{lemma:soundiness:basic:commands} to \ieq{3} and \hyp{2}, we conclude that 
 there is a symbolic environment $\senv'$ and an instrumented state $\istate'$ such that: 
@@ -1349,7 +1858,8 @@ Applying Lemma~\ref{lemma:soundiness:assume} to
 \hyp{2} and \ieq{3}, we conclude that 
 $\absassume{\instrumented}(\istate, \jsilexpr) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
 From \ieq{2} and \ieq{4}, we conclude that 
- $$\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\symbolic} \text{ (\ieq{5})}$$
+ $$\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\instrumented} \text{ (\ieq{5})}$$
+ Combining  \ieq{2} and \ieq{5}, the result follows.
  \vspace{5pt}
 
 \noindent \prooflab{Assert - True}
@@ -1381,7 +1891,7 @@ The proof becomes trivial once we've observed that one step of the symbolic exec
 \end{proof}
 
 
-\begin{lemma}[Soundiness of the \jsil symbolic execution: Symbolic-to-Instrumented (1)]\label{lemma:full:soundiness}
+\begin{lemma}[Bounded Soundness of the \jsil symbolic execution: Symbolic-to-Instrumented (1)]\label{lemma:full:soundiness}
 $$
 \begin{array}{l} 
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \, \wedge \, 
@@ -1397,8 +1907,13 @@ $$
 \end{lemma}
 \begin{proof}
 
-Suppose $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}), 
-$$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \text{ (\hyp{2})}$$ and 
+Suppose:
+$$
+\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \text{ (\hyp{1})}
+\quad 
+ (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \text{ (\hyp{2})}
+ $$
+and
 $\pc \vdash \sstate'.\pcsel$ (\hyp{3}). 
 We have to prove that there is an instrumented state $\istate'$,
 such that $\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$, 
