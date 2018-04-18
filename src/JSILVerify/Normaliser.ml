@@ -833,7 +833,7 @@ let rec initialise_alocs
 	| LEmptyFields (ALoc _, _)    | LEmptyFields (LLit (Loc _), _)    
 	| LMetaData    (ALoc _, _)    | LMetaData    (LLit (Loc _), _)  -> ()  
 
-	| _ -> raise (Failure (Printf.sprintf "initialise_alocs: untreatable assertion: %s" (JSIL_Print.string_of_logic_assertion ass)))
+	| _ -> ()
 
 
 (** -----------------------------------------------------
@@ -1605,6 +1605,7 @@ let create_unification_plan
  					search_for_new_alocs_in_lexpr le_v
  				) (fv_list_c @ fv_list_nc); 
  				Option.may (fun le_domain -> Queue.add (LEmptyFields (le_loc, le_domain)) unification_plan) le_domain;
+ 				Option.may (fun metadata -> search_for_new_alocs_in_lexpr metadata; Queue.add (LMetaData (le_loc, metadata)) unification_plan) metadata;
  				LHeap.remove heap loc; 
  				true) in 
 
