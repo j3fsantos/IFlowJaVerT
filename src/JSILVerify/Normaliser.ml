@@ -809,15 +809,19 @@ let rec initialise_alocs
 	(subst : substitution) (ass : jsil_logic_assertion) : unit =
 	let f = initialise_alocs store gamma subst in
 	match ass with
+	| LEmp -> ()
+
 	| LStar (a_left, a_right) ->
 			f a_left; f a_right
 
 	| LPointsTo (PVar var, _, _)
+	| LMetaData (PVar var, _)
 	| LEmptyFields (PVar var, _) ->
 			if (not (Hashtbl.mem store var))
 			then (Hashtbl.add store var (ALoc (new_abs_loc_name var)); ())
 
 	| LPointsTo (LVar var, _, _)
+	| LMetaData (LVar var, _) 
 	| LEmptyFields (LVar var, _) ->
 			if (not (Hashtbl.mem subst var))
 			then
@@ -825,10 +829,11 @@ let rec initialise_alocs
 					Hashtbl.add subst var (ALoc aloc))
 					(* Hashtbl.remove gamma var) *)
 
-	| LPointsTo (ALoc _, _, _) -> ()
-			(* raise (Failure "Unsupported assertion during normalization") *)
+	| LPointsTo    (ALoc _, _, _) | LPointsTo    (LLit (Loc _), _, _) 
+	| LEmptyFields (ALoc _, _)    | LEmptyFields (LLit (Loc _), _)    
+	| LMetaData    (ALoc _, _)    | LMetaData    (LLit (Loc _), _)  -> ()  
 
-	| _ -> ()
+	| _ -> raise (Failure (Printf.sprintf "initialise_alocs: untreatable assertion: %s" (JSIL_Print.string_of_logic_assertion ass)))
 
 
 (** -----------------------------------------------------
@@ -1249,6 +1254,86 @@ let extend_typing_env_using_assertion_info
 	) a_list
 
 
+(** -----------------------------------------------------
+  * Normalise Metadata
+  * -----------------------------------------------------
+  * -----------------------------------------------------
+**)
+let normalise_metadata
+	(heap : symbolic_heap) (store : symbolic_store)
+	(p_formulae : pure_formulae) (gamma : typing_environment)
+	(subst : substitution) (a : jsil_logic_assertion) : unit =
+
+	let rec get_all_metadata a =
+		let n_lexpr = normalise_lexpr ~store:store ~subst:subst gamma in
+		let f_ac a _ _ ac =
+			match a with
+			| LMetaData (le, md) ->
+				let nle = n_lexpr le in
+				let nmd = n_lexpr md in
+				 (nle, nmd) :: (List.concat ac)
+			| _ -> List.concat ac in
+		let result = assertion_fold None f_ac None None a in
+			print_debug_petar (Printf.sprintf "Normalising metadata:\n\t%s"
+				(String.concat "\n\t" (List.map (fun (le1, le2) -> "(" ^ (JSIL_Print.string_of_logic_expression le1) ^ ", " ^ (JSIL_Print.string_of_logic_expression le2) ^ ")") result)));
+			result in
+	
+	let metadata = get_all_metadata a in
+	
+	let md_hash = Hashtbl.create small_tbl_size in
+	let md_heqs = Hashtbl.create small_tbl_size in
+	let metadata : (string * jsil_logic_expr) list = List.fold_left 
+		(fun ac (l, md) ->
+			let loc = (match l with
+			| ALoc loc
+			| LLit (Loc loc) -> loc
+			| _ -> raise (Failure (Printf.sprintf "Unsupported: metadata for a non-defined object %s." (JSIL_Print.string_of_logic_expression l)))) in
+			(match (Hashtbl.find_opt md_hash loc) with
+			| None -> Hashtbl.add md_hash loc md
+			| Some md' -> Hashtbl.add md_heqs md' md);
+			(loc, md) :: ac
+		) [] metadata in
+	
+	print_debug_petar "Metadata Hash:";
+	Hashtbl.iter (fun loc md -> print_debug_petar (Printf.sprintf "\t%s : %s" loc (JSIL_Print.string_of_logic_expression md))) md_hash;
+	print_debug_petar "MEQ Hash:";
+	Hashtbl.iter (fun md' md -> print_debug_petar (Printf.sprintf "\t%s : %s" (JSIL_Print.string_of_logic_expression md') (JSIL_Print.string_of_logic_expression md))) md_heqs;
+	
+	(** 
+			What should be done? Iterate on the list: (l, md)
+			
+			H1: If l doesn't exist in the heap, we have to create it (with which extensibility?)
+	*)
+	List.iter (fun (loc, md) -> 
+		(match (LHeap.mem heap loc) with
+		| false -> 
+				LHeap.replace heap loc (([], None), Some md)
+		| true  -> 
+				let ((fv_list, domain), _) = LHeap.find heap loc in
+					LHeap.replace heap loc ((fv_list, domain), Some md))
+		) metadata;
+		
+		(* Now, it's time to merge the duplicates *)
+		Hashtbl.iter (fun md_you_stay md_away ->
+			(match md_you_stay, md_away with
+			| ALoc ls, ALoc la -> 
+					print_debug_petar (Printf.sprintf "About to substitute: %s for %s" ls la);
+					let aloc_subst = Hashtbl.create 3 in 
+					Hashtbl.add aloc_subst la md_you_stay;
+					store_substitution_in_place aloc_subst store;
+					pfs_substitution_in_place aloc_subst p_formulae;
+					
+					(* Manual heap merge *)
+					let ((fv_list, domain), md) = heap_get_unsafe heap ls in
+					let ((fv_list', domain'), _) = heap_get_unsafe heap la in
+						heap_remove heap la;
+						let new_domain = Symbolic_State_Utils.merge_domains p_formulae gamma domain domain' in
+						heap_put heap ls (fv_list @ fv_list') new_domain md
+
+			(* More cases to follow... or not *)
+			| _, _ -> ())
+			) md_heqs
+
 (**
   * ---------------------------------------------------------------------------
   * Symbolic state well-formedness checks
@@ -1386,6 +1471,9 @@ let normalise_assertion
 		extend_typing_env_using_assertion_info gamma new_assertions;
 		pfs_merge p_formulae (pfs_of_list new_assertions);
 		normalise_ef_assertions heap store p_formulae gamma subst a;
+
+		(* NEW *)
+		normalise_metadata heap store p_formulae gamma subst a;
 
 		(** Step 6 -- Check if the symbolic state makes sense *)
 		let heap_constraints = get_heap_well_formedness_constraints heap in
@@ -1554,6 +1642,7 @@ let create_unification_plan
 			(Symbolic_State_Print.string_of_unification_plan unification_plan_lst)
 			(Symbolic_State_Print.string_of_symb_heap heap)
 			(Symbolic_State_Print.string_of_symb_state symb_state) in 
+		print_debug_petar msg;
 		raise (Failure msg)) 
 
 
