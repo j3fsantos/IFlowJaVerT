@@ -92,7 +92,13 @@ type logic_predicate = {
   pred_definitions: ((string option) * logic_assertion) list;
 }
 
-type logic_command = | RIEN
+type logic_command =
+  | Fold of logic_assertion
+  | Unfold of logic_assertion 
+  | ApplyLem of string * (logic_expr list)
+  | RecUnfold of string
+  | LogicIf of logic_expr * (logic_command list) * (logic_command list)
+  | Assert of logic_assertion
 
 type wisl_metadata = {
   precmds: logic_command list;

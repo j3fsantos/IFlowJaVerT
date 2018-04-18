@@ -227,8 +227,22 @@ let compile_predicate pred =
   }
   
 (* TODO: actually implement that *)
-let compile_logic_command _ =
-  JSIL.Assert (JSIL.LTrue)
+let rec compile_logic_command lcmd = match lcmd with
+  | Fold la -> let comp_la = compile_logic_assertion la in
+               JSIL.Fold comp_la
+  | Unfold la -> let comp_la = compile_logic_assertion la in
+                 JSIL.Unfold (comp_la, None)
+  | ApplyLem (ln, lel) -> let params = List.map compile_logic_expression lel in
+                          JSIL.ApplyLem (ln, params)
+  | RecUnfold str -> JSIL.RecUnfold str
+  | LogicIf (guard, lc1, lc2) ->
+      let comp_guard = compile_logic_expression guard in
+      let comp_lc1 = List.map compile_logic_command lc1 in
+      let comp_lc2 = List.map compile_logic_command lc2 in
+      JSIL.LogicIf (comp_guard, comp_lc1, comp_lc2)
+  | Assert la -> let comp_la = compile_logic_assertion la in
+                 JSIL.Assert comp_la
+                 
 
 
 let compile_metadata meta =
