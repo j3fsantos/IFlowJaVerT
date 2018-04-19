@@ -41,12 +41,14 @@ assert((i >= 0 && i < len && res) || ((i < 0 || i >= len) && !res));
 
 \subsection{Bug-finding}
 
-Writing tests helps the developer to have more confidence in their code, but it can also reveal bugs.
-With the help of \cosette, we were able to find a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
+%Writing tests helps the developer to have more confidence in their code, but it can also reveal bugs.
+With \cosette, we found a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
 
-\myparagraph{\jsinline{multidictionary}} The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
+\myparagraph{\jsinline{multidictionary}}
+%The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
+The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)}, \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 In the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key is completely removed from the dictionary, or it can be an actual value.
-In that case, the array associated with the key is retrieved, and, if the value is indeed present in the array, it is removed.
+In that case, the array associated with the key \jsinline{s} is retrieved, and, if the value is present in the array, it is removed.
 However, the library does not consider the case where this array is not found; in that case, the library tries to remove an element from \jsinline{undefined}, which raises an error.
 \begin{lstjs}
 multiDict.remove = function (key, value) {
@@ -72,28 +74,25 @@ In this test, we create a new dictionary \jsinline{dict}, and insert two symboli
 However, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store it twice.
 This means that the key in the second call to \jsinline{remove} on line 6 is not in the dictionary any more, which triggers the bug.
 
-When running \cosette on this test, we indeed obtain the counter-model \jsinline{x1 = x2 = 0}, and running the instantiation of the test in Node triggers an error.
+When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0}, and running the instantiation of the test in Node triggers an error.
 Moreover, we were able to easily fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
 
 \myparagraph{\jsinline{queue-pri}} The \jsinline{queue-pri} library implements a priority queue, storing data with an optional priority value.
 The priority value is either an integer (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, which puts the associated element at the end of the queue.
 With symbolic tests of the \jsinline{enqueue} and \jsinline{dequeue} methods of the library, we found that elements enqueued with a priority value of \jsinline{0} were actually being enqueued at the end of the queue, when they should have had the highest priority instead.
 
-We identified the bug to come from the following part of the code: \jsinline!enqueue: function (data, pri) {var payload = { data: data, priority: pri || null }; ... }!
+We identified the bug to come from the following part of the \jsinline{enqueue} function: \jsinline!var payload = { data: data, priority: pri || null }!
 Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer believed that it reduced to 0.
 Even though the developer wrote tests, they never used a priority value of 0 and therefore never triggered the bug.
-This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the sometimes subtle semantics of the language.
+This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the subtle semantics of the language (in this case.
 
 \subsection{Performance}
 
 We evaluate the performance of \cosette as a practical debugging tool by writing comprehensive (100\% line coverage) symbolic tests for all of the data structures in the Buckets.js library.
-Since \cosette discharges assertions by calling the Z3 SMT solver, we not only measure the running time of \cosette but also the solver time.
+We compare the symbolic tests that we wrote with the concrete tests shipped as part of the library.
 
 The results are presented in table~\ref{cosette:res}.
-For each file in the library, we report the total number of JavaScript lines (including whitespace and comments), the number of executable JavaScript lines (lines that include a statement), the number of JSIL lines produced by the translation, the running time of \cosette on the example, as well as the solver time when relevant.
-
-it's slow because running in an interpreted environment, solver times are in most cases 
-negligible
+For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
 
 \begin{table}[h]
 {
@@ -101,7 +100,7 @@ negligible
 %\begin{center}
 \begin{tabular}{lrrrrrr}
 \toprule
-% Name || JS Loc/loc* || JSIL Loc/loc* || #tests || conc/symb loc || conc/symb cov || time
+% Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
 Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time (s)} \\
 \midrule
 \texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/\_ & 20.2 \\
@@ -119,6 +118,9 @@ Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} 
 %\end{center}
 \end{tabular}
 }
+
+By leveraging \cosette's symbolic execution, we were able to divide by 
+
 \caption{Coverage analysis for the Buckets.js library}
 \label{cosette:res}
 \end{table}
