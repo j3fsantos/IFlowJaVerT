@@ -27,7 +27,8 @@ Most of the execution time is spent in \cosette itself, with negligible time spe
 {
 \small
 %\begin{center}
-\begin{tabular}{lrrrrrr}
+\setlength\tabcolsep{4pt}
+\begin{tabular*}{\linewidth}{lrrrrrr}
 \toprule
 % Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
 Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time} \\
@@ -47,7 +48,7 @@ Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} 
 \texttt{queue-pri} & 0/0 & 0/0 & 0/0 & 0/0 & 100/0 & 42.0 \\
 \bottomrule
 %\end{center}
-\end{tabular}
+\end{tabular*}
 }
 \caption{Tests for the Buckets.js and queue-pri libraries}
 \label{cosette:res}
