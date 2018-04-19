@@ -1,50 +1,68 @@
 %!TEX root = ../main.tex
 
-We demonstrate the practical validity of \cosette as a tool for bug-finding in JavaScript.
-We wrote symbolic tests fully covering the code of real-world Node.js libraries, and found several  implementation bugs.
-Moreover, we measured evaluation times, including solver times, to assess the performance of \cosette.
-
-Throughout this section, we will be using the Buckets.js~\cite{buckets} (which has around 65k downloads on npm) data structure library as a running example.
-It implements most common data structures, comes with unit tests, and has no external dependencies, which is necessary for the whole-program analysis of \cosette.
-
-\subsection{Making Concrete Tests Symbolic}
-
-When writing libraries, developers more and more often include extensive test suites, called unit tests, along with actual code (JavaScript has several well-known unit test libraries, such as Jasmine~\cite{jasmine}, Ava~\cite{ava}, or Mocha~\cite{mocha}).
-These test suites allow the developer to have reasonable confidence in the well-behavedness of their code, up to the level of detail of the tests.
-However, being concrete by nature, these tests might miss corner cases or code paths that the developer hasn't reasoned about.
+\myparagraph{Methodology}
+Paragraph about the test262 tests
 
 With \cosette, we can write symbolic tests, in which some of the concrete values of the program are replaced with symbolic values.
 Symbolic tests improve on concrete tests for two main reasons.
-First, symbolic tests are by construction more comprehensive than concrete tests, because they can account for the whole range of values that a variable can take, instead of focusing on a few specific examples.
-Second, when \cosette finds a failing assertion inside a symbolic test, it can concretize the symbolic value into a counter-model that the developer can actually run, in order to make debugging easier.
+First, they are by construction more comprehensive than concrete tests, because symbolic tests can account for the whole range of values that a variable can take, instead of focusing on a few specific examples.
+Second, when \cosette finds a failing assertion inside a symbolic test, it can concretize the symbolic values into a counter-model that the developer can actually run in node, making debugging much easier compared to (the other things that we mention before).
 
-The example code on the right shows the expressiveness of symbolic testing.
-We adapted this code from one of the tests bundled with the array library in Buckets.js.
-The snippet tests the \jsinline{swap} function, which swaps two elements of a JavaScript array, and returns \jsinline{true} if the swap was successful (the two index arguments were within the bounds of the array), or \jsinline{false} if the indices were out of bounds.
-In the original test code, the developer had to write several examples, each reflecting one of these particular cases.
-With the help of symbolic values, we are able to reduce this to a single example which encompasses all possible cases.
-We take \jsinline{ar} to be a JS array with some values, and \jsinline{i} is a symbolic number that we use as an index (for simplicity, we only make one of the two indices symbolic here).
-The assertion on line 7 accurately describes all the possible cases that can happen, \jsinline{i} being either inside the bounds or outside.
-Running \cosette on this code tells us that the assertion always holds, which means that \jsinline{swap} behaves as expected.
+Paragraph about spec-driven debugging
 
-Writing symbolic tests with \cosette therefore allows the developer to reduce the burden of test writing and maintenance, by increasing the expressive power of tests without losing their simplicity.
+\myparagraph{Symbolic testing}
+We used \cosette to analyse the code of two JavaScript data structure libraries: Buckets.js~\cite{buckets}, and queue-pri~\cite{priq}.
+We chose these libraries because reasoning about data structure code requires a precise description of the control flow features of JavaScript, because they come equipped with unit test suites, and because they do not have external dependencies (\cosette is a whole-program analysiso); Buckets.js has over 65k downloads on npm.
+For these two libraries, we wrote symbolic tests with the aim of obtaining 100\% line coverage, in order to compare them with the concrete unit tests that ship with the libraries.
+In both cases, we were able to reduce the length of the tests by up to an average factor of 3, while retaining full coverage; we also discovered one bug in the Buckets.js library, and one in the queue-pri library.
 
-\begin{lstjs}
-var n1 = symb_number(n1); % 0
-var n2 = symb_number(n2);
-var i = symb_number(i);
-var ar = [n1, n1, n2, n2];
-var res = buckets.arrays.swap(ar, 0, i);
-var len = ar.length;
-assert((i >= 0 && i < len && res) || ((i < 0 || i >= len) && !res));
-\end{lstjs}
 
-\subsection{Bug-finding}
+\myparagraph{Results}
+
+The results are presented in table~\ref{cosette:res}.
+For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
+
+\begin{table}[h]
+{
+\small
+%\begin{center}
+\begin{tabular}{lrrrrrr}
+\toprule
+% Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
+Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time (s)} \\
+\midrule
+\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/\_ & 20.2 \\
+\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/\_ & 74.4 \\
+\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/\_ & 327.8 \\
+\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/\_ & 15.6 \\
+\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/\_ & 329.6 \\
+\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/\_ & 24.0 \\
+\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/\_ & 75.3 \\
+\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/\_ & 349.8 \\
+\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/\_ & 20.7 \\
+\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/\_ & 61.9 \\
+\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/\_ & 26.4 \\
+\midrule 
+\texttt{queue-pri} & 0/0 & 0/0 & 0/0 & 0/0 & 100/0 & 42.0 \\
+\bottomrule
+%\end{center}
+\end{tabular}
+}
+\caption{Tests for the Buckets.js and queue-pri libraries}
+\label{cosette:res}
+\end{table}
+
+
+By leveraging \cosette's symbolic execution, we were able to cut the number of lines in the test code by a factor of 2 to 3, while increasing line coverage to 100\% in all cases.
+Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for a limited number of cases).
+
+
+\myparagraph{Bug-finding}
 
 %Writing tests helps the developer to have more confidence in their code, but it can also reveal bugs.
 With \cosette, we found a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
 
-\myparagraph{\jsinline{multidictionary}}
+%\myparagraph{\jsinline{multidictionary}}
 %The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)}, \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 In the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key is completely removed from the dictionary, or it can be an actual value.
@@ -77,50 +95,51 @@ This means that the key in the second call to \jsinline{remove} on line 6 is not
 When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0}, and running the instantiation of the test in Node triggers an error.
 Moreover, we were able to easily fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
 
-\myparagraph{\jsinline{queue-pri}} The \jsinline{queue-pri} library implements a priority queue, storing data with an optional priority value.
+%\myparagraph{\jsinline{queue-pri}}
+The other bug that we found is in the \jsinline{queue-pri} library, which implements a priority queue that stores data with an optional priority value.
 The priority value is either an integer (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, which puts the associated element at the end of the queue.
 With symbolic tests of the \jsinline{enqueue} and \jsinline{dequeue} methods of the library, we found that elements enqueued with a priority value of \jsinline{0} were actually being enqueued at the end of the queue, when they should have had the highest priority instead.
 
 We identified the bug to come from the following part of the \jsinline{enqueue} function: \jsinline!var payload = { data: data, priority: pri || null }!
 Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer believed that it reduced to 0.
 Even though the developer wrote tests, they never used a priority value of 0 and therefore never triggered the bug.
-This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the subtle semantics of the language (in this case.
+This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the subtle semantics of the language (type coercions in this case).
 
-\subsection{Performance}
 
-We evaluate the performance of \cosette as a practical debugging tool by writing comprehensive (100\% line coverage) symbolic tests for all of the data structures in the Buckets.js library.
-We compare the symbolic tests that we wrote with the concrete tests shipped as part of the library.
 
-The results are presented in table~\ref{cosette:res}.
-For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
 
-\begin{table}[h]
-{
-\small
-%\begin{center}
-\begin{tabular}{lrrrrrr}
-\toprule
-% Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
-Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time (s)} \\
-\midrule
-\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/\_ & 20.2 \\
-\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/\_ & 74.4 \\
-\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/\_ & 327.8 \\
-\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/\_ & 15.6 \\
-\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/\_ & 329.6 \\
-\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/\_ & 24.0 \\
-\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/\_ & 75.3 \\
-\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/\_ & 349.8 \\
-\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/\_ & 20.7 \\
-\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/\_ & 61.9 \\
-\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/\_ & 26.4 \\
-\bottomrule
-%\end{center}
-\end{tabular}
-}
 
-By leveraging \cosette's symbolic execution, we were able to divide by 
 
-\caption{Coverage analysis for the Buckets.js library}
-\label{cosette:res}
-\end{table}
+%We demonstrate the practical validity of \cosette as a tool for bug-finding in JavaScript.
+%We wrote symbolic tests fully covering the code of real-world Node.js libraries, and found several  implementation bugs.
+%Moreover, we measured evaluation times, including solver times, to assess the performance of \cosette.
+%
+%Throughout this section, we will be using the Buckets.js~\cite{buckets} (which has around 65k downloads on npm) data structure library as a running example.
+%It implements most common data structures, comes with unit tests, and has no external dependencies, which is necessary for the whole-program analysis of \cosette.
+%
+%\subsection{Making Concrete Tests Symbolic}
+%
+%When writing libraries, developers more and more often include extensive test suites, called unit tests, along with actual code (JavaScript has several well-known unit test libraries, such as Jasmine~\cite{jasmine}, Ava~\cite{ava}, or Mocha~\cite{mocha}).
+%These test suites allow the developer to have reasonable confidence in the well-behavedness of their code, up to the level of detail of the tests.
+%However, being concrete by nature, these tests might miss corner cases or code paths that the developer hasn't reasoned about.
+%
+%The example code on the right shows the expressiveness of symbolic testing.
+%We adapted this code from one of the tests bundled with the array library in Buckets.js.
+%The snippet tests the \jsinline{swap} function, which swaps two elements of a JavaScript array, and returns \jsinline{true} if the swap was successful (the two index arguments were within the bounds of the array), or \jsinline{false} if the indices were out of bounds.
+%In the original test code, the developer had to write several examples, each reflecting one of these particular cases.
+%With the help of symbolic values, we are able to reduce this to a single example which encompasses all possible cases.
+%We take \jsinline{ar} to be a JS array with some values, and \jsinline{i} is a symbolic number that we use as an index (for simplicity, we only make one of the two indices symbolic here).
+%The assertion on line 7 accurately describes all the possible cases that can happen, \jsinline{i} being either inside the bounds or outside.
+%Running \cosette on this code tells us that the assertion always holds, which means that \jsinline{swap} behaves as expected.
+%
+%Writing symbolic tests with \cosette therefore allows the developer to reduce the burden of test writing and maintenance, by increasing the expressive power of tests without losing their simplicity.
+%
+%\begin{lstjs}
+%var n1 = symb_number(n1); % 0
+%var n2 = symb_number(n2);
+%var i = symb_number(i);
+%var ar = [n1, n1, n2, n2];
+%var res = buckets.arrays.swap(ar, 0, i);
+%var len = ar.length;
+%assert((i >= 0 && i < len && res) || ((i < 0 || i >= len) && !res));
+%\end{lstjs}
