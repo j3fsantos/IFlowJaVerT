@@ -80,7 +80,7 @@ The priority value is either an integer (the lower the value, the higher the pri
 With symbolic tests of the \jsinline{enqueue} and \jsinline{dequeue} methods of the library, we found that elements enqueued with a priority value of \jsinline{0} were actually being enqueued at the end of the queue, when they should have had the highest priority instead.
 
 We identified the bug to come from the following part of the code: \jsinline!enqueue: function (data, pri) {var payload = { data: data, priority: pri || null }; ... }!
-Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer thought that it reduced to 0.
+Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer believed that it reduced to 0.
 Even though the developer wrote tests, they never used a priority value of 0 and therefore never triggered the bug.
 This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the sometimes subtle semantics of the language.
 
@@ -95,12 +95,6 @@ For each file in the library, we report the total number of JavaScript lines (in
 it's slow because running in an interpreted environment, solver times are in most cases 
 negligible
 
-4 columns:
-executable lines / exec lines including included files // in JS
-executable lines / exec lines including included files // in JSIL (mention internals in text)
- lines of symb tests / lines of concrete tests
-concrete coverage / symbolic number 
-
 \begin{table}[h]
 {
 \small
@@ -108,19 +102,19 @@ concrete coverage / symbolic number
 \begin{tabular}{lrrrrrr}
 \toprule
 % Name || JS Loc/loc* || JSIL Loc/loc* || #tests || conc/symb loc || conc/symb cov || time
-Name & \makecell{JS loc/ \\ JS loc*} & \makecell{JSIL loc/ \\ JSIL loc*} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time (s)} \\
+Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time (s)} \\
 \midrule
-\texttt{arrays} & 44/70 & 1251/1880 & 9/24 & \_/\_ & 100/\_ & 20.2 \\
-\texttt{bag} & 69/236 & 2041/7132 & 7/18 & \_/\_ & 100/\_ & 74.4 \\
-\texttt{bstree} & 143/325 & 3819/7990 & 11/31 & \_/\_ & 100/\_ & 327.8 \\
-\texttt{dict} & 57/83 & 1683/2312 & 7/14 & \_/\_ & 100/\_ & 15.6 \\
-\texttt{heap} & 57/127 & 2059/3939 & 4/15 & \_/\_ & 100/\_ & 329.6 \\
-\texttt{linkedlist} & 126/152 & 2447/3076 & 9/21 & \_/\_ & 100/\_ & 24.0 \\
-\texttt{multidict} & 56/183 & 1871/5434 & 6/16 & \_/\_ & 100/\_ & 75.3 \\
-\texttt{priqueue} & 26/153 & 1066/5005 & 5/12 & \_/\_ & 100/\_ & 349.8 \\
-\texttt{queue} & 30/182 & 1095/4171 & 6/9 & \_/\_ & 100/\_ & 20.7 \\
-\texttt{set} & 40/123 & 1528/3840 & 6/12 & \_/\_ & 100/\_ & 61.9 \\
-\texttt{stack} & 23/175 & 941/4017 & 4/7 & \_/\_ & 100/\_ & 26.4 \\
+\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/\_ & 20.2 \\
+\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/\_ & 74.4 \\
+\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/\_ & 327.8 \\
+\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/\_ & 15.6 \\
+\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/\_ & 329.6 \\
+\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/\_ & 24.0 \\
+\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/\_ & 75.3 \\
+\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/\_ & 349.8 \\
+\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/\_ & 20.7 \\
+\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/\_ & 61.9 \\
+\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/\_ & 26.4 \\
 \bottomrule
 %\end{center}
 \end{tabular}
