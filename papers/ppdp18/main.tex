@@ -426,7 +426,7 @@ Another difference between bug-finding and verification is that bug-finding tool
 We present \cosette, a trustworthy, compositional symbolic execution framework for JavaScript (ECMAScript 5 Strict~\cite{ecma}) analysis. \cosette precisely follows the ES5 English standard, without introducing simplifications. 
 It aims at the sweet spot between bug-finding and verification, 
 %It is not done directly on JavaScript, but instead on \jsil, an intermediate representation previously introduced for JavaScript verification~\cite{javert}. \jsil comes with a trusted infrastructure that allows us to provably lift the results of symbolic analyses on compiled \jsil code back up to JavaScript. 
-in that it comes with formal correctness guarantees and a result stating the precise conditions under which symbolic execution gives soundness. We create \cosette following a new, general methodology for compositional analysis of dynamic~languages.
+in that it comes with formal correctness guarantees and a \polish{result stating the precise conditions under which symbolic execution gives soundness}. We create \cosette following a new, general methodology for compositional analysis of dynamic~languages.
 
 %Additionally, its compositionality allows us to catch a broader class of bugs than the current symbolic execution tools and also allows us to state the conditions under which the soundiness of \cosette becomes soundness, that is, when the absence of found bugs implies verification.
 
