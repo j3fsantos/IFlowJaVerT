@@ -118,9 +118,10 @@ Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} 
 %\end{center}
 \end{tabular}
 }
-
-By leveraging \cosette's symbolic execution, we were able to divide by 
-
 \caption{Coverage analysis for the Buckets.js library}
 \label{cosette:res}
 \end{table}
+
+
+By leveraging \cosette's symbolic execution, we were able to cut the number of lines in the test code by a factor of 2 to 3, while increasing line coverage to 100\% in all cases.
+Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for a limited number of cases).
