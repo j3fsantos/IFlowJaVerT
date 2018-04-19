@@ -620,6 +620,7 @@ var beforeEach = function() {
 
 // test 9
 //it('isEmpty returns true only if the heap contains no elements', function () {
+beforeEach();
 var i;
 heap.isEmpty();
 createHeap1();
