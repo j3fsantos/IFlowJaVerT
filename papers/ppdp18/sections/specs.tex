@@ -1,5 +1,7 @@
 %!TEX root = ../main.tex
 
+\pmax{Pull up the messages, mention JS.}
+
 We show how to use \cosette for debugging \jsil code annotated with 
 separation logic (SL) specifications. Tools that support SL-reasoning about
 functional correctness properties of programs often require of the user to 
@@ -26,17 +28,16 @@ counter-model that invalidates the corresponding specification (\S\ref{specs:to:
 \vspace{-5pt}
 \subsection{Symbolic Execution with SL-Assertions}\label{subsec:sep:assertions}
 
-\jsil Logic assertions~\cite{javert}
-provide a compositional way of describing \emph{partial} symbolic states. 
+\jsil Logic assertions~\cite{javert} provide a way of describing \emph{partial} symbolic states. 
 They include: boolean operations; the separating conjunction; 
 and assertions for describing heaps. The $\lemp$ assertion describes 
 an empty heap. The cell assertion, $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$,  describes an object 
 at the location denoted by $\lexpr_1$ with a property denoted by $\lexpr_2$ that has the value 
 denoted by $\lexpr_3$. The object domain assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
 the location denoted by $\lexpr_1$ has no properties other than possibly those included in the
-set denoted by $\lexpr_2$. %The syntax of assertions is given below. 
-We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
-and use $\spass$ and $\sqass$ to range over them.
+set denoted by $\lexpr_2$. \pmaxinline{Mention sth about Es being the same.} %The syntax of assertions is given below. 
+%We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
+%and use $\spass$ and $\sqass$ to range over them.
 
 \vspace{2pt}
 \begin{display}{\jsil Logic Assertions}
@@ -44,7 +45,7 @@ and use $\spass$ and $\sqass$ to range over them.
 {\small
 \begin{tabular}{l}
   %%%%
-  $\lexpr \quad \ \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr \quad \quad \quad \quad \quad \quad \quad \ \ $   \text{ Logical Expressions} \\
+  $\lexpr \quad \ \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr \quad \quad \quad \quad \quad \quad \quad \ \ $   \hfill Logical Exprs. \\
   $\rass, \sass \ \triangleq \jtrue \mid \jfalse \mid  \neg \rass \mid \rass \land \sass \mid \rass \lor \sass  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$  \quad \text{\hfill{Pure Asrts.}} \\
   $\pass, \qass \triangleq \sass \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \pass \sep \qass  \mid \emptyfields{\lexpr}{\lexpr} $ \quad \quad \quad \quad \ \  \text{\hfill Asrts.} \\
 \end{tabular}}
@@ -89,9 +90,9 @@ those predicates up to a fixed, user-defined bound. We omit this unfolding mecha
 as it is routine. 
 
 \myparagraph{Asserting SL-Assertions}
-We extend \jsil with a special construct, $\sepassert(P)$, for stating that 
-the assertion $P$ must hold whenever that command is evaluated. 
-The symbolic semantics is given below. 
+We extend \jsil commands with a special construct, $\sepassert(P)$, for stating that 
+ the SL-assertion $P$ must hold whenever that command is evaluated. 
+The corresponding symbolic semantics rules are given below. 
 
 \vspace*{-0.2cm}
 {\footnotesize
@@ -118,18 +119,18 @@ The symbolic semantics is given below.
 \end{mathpar}}
 
 \vspace*{-0.2cm}
-\noindent The rules use a partial decision procedure $\unificationfun(\sstate, \pass)$ for 
+\noindent The rules use a partial decision procedure $\unificationfun(\sstate, \pass)$, for 
 determining if a given symbolic state $\sstate$ satisfies an assertion $P$, 
-undecidable in general \cite{citemeplease}. More concretely, 
+which is undecidable in general \cite{citemeplease}. More concretely, 
 the decision procedure outputs: 
  $\success{\subst, \sstate_f}$ when it finds a substitution $\subst$ and 
 a symbolic state frame $\sstate_f$ such that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))$ holds;\footnote{ 
 We use $\statecompose$ for the composition of two symbolic states.}
 and $\fail{\pc_f}$ when it finds a first-order formula $\pc_f$, such that 
 $\interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset$. 
-Note that every concrete state and heap frame in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are counter models 
+Note that every concrete state and heap frame in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are counter-models 
 for $P$. By requiring that $(\sstate.\pcsel \, \wedge \, \pc_f)$ is satisfiable, 
-the semantics only triggers an assertion failure when it finds a concrete witness for the failure---any instantiation of $(\sstate \, \wedge \, \pc_f)$. 
+the semantics only triggers an assertion failure when it finds a concrete witness for the failure---any instantiation of $(\sstate \, \wedge \, \pc_f)$. \pmaxinline{Make clearer.}
 
 \subsection{The Frame Inference Problem}\label{subsec:fip}
 
