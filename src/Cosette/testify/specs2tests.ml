@@ -79,8 +79,10 @@ let rec unlift_assertion (subst : (string, string) Hashtbl.t) (asrt : jsil_logic
 	| LLessEq (le1, le2)  -> BinOp (fe le1, LessThanEqual, fe le2)
 	| LStrLess (le1, le2) -> BinOp (fe le1, LessThanString, fe le2)
 	| LSetMem (le1, le2)  -> BinOp (fe le1, SetMem, fe le2)      
-	| LSetSub (le1, le2)  -> BinOp (fe le1, SetSub, fe le2)    
-	| _ -> raise (Failure "DEATH. unlift_assertion")
+	| LSetSub (le1, le2)  -> BinOp (fe le1, SetSub, fe le2)
+	
+	| LForAll _ -> Literal (Bool true)
+	| _ -> raise (Failure (Printf.sprintf "DEATH. unlift_assertion: %s" (JSIL_Print.string_of_logic_assertion asrt)))
 
 
 let spec_of_normalised_single_spec 
@@ -686,20 +688,19 @@ let single_spec_to_test
 	let heap_list     = heap_to_list pre_heap in 
 	let heap_commands = 
 		(* TODO: METADATA *)
-		List.concat (List.map (fun (loc, ((fv_list, o_domain), _)) -> 
+		List.concat (List.map (fun (loc, ((fv_list, o_domain), metadata)) -> 
+			let loc = if (JSIL_Syntax.is_lit_loc_name loc) then loc else (try Hashtbl.find subst loc with _ -> raise (Failure "DEATH. single_spec_to_test")) in
+			let meta_cmd = (match metadata with 
+				| None -> [] 
+				| Some metadata -> [ SLBasic (SetMetaData (Literal (Loc loc), f_ue metadata)) ]) in 
 			let o_cmds = 
 				List.map (fun (f_name, f_val) -> 
-					let loc = 
-						if (JSIL_Syntax.is_lit_loc_name loc) then loc else (
-							try Hashtbl.find subst loc with _ -> raise (Failure "DEATH. single_spec_to_test")
-						) in
-
-					let cmd    = match f_val with 
+					let cmd = match f_val with 
 						| LNone -> [] 
 						| le    -> [ (SLBasic (SMutation (Literal (Loc loc), f_ue f_name, f_ue f_val))) ] in 
 					cmd) fv_list in
 
-			List.concat o_cmds 
+			meta_cmd @ (List.concat o_cmds)
 		) heap_list) in 
 
 	let args     = List.map (fun x -> f_ue (store_get pre_store x)) s_params in 
@@ -717,7 +718,7 @@ let single_spec_to_test
 		match s_spec.n_ret_flag with 
 		| Normal -> 
 			let post_asrts = List.map (post_symb_state_to_asrt ret_var proc_ret_var) posts in
-			SLBasic (SepAssert post_asrts) 
+			SLBasic (RAssert (Literal (Bool true))) 
 		| Error  -> SLBasic (RAssert (Literal (Bool false))) in 
 	let normal_ret_cmd = empty_metadata, Some pre_normal_lab, normal_ret_cmd in 
 	let jmp_to_ret_cmd = empty_metadata, None, SLGoto ret_lab in 
@@ -729,7 +730,7 @@ let single_spec_to_test
 		| Normal -> SLBasic (RAssert (Literal (Bool false)))
 		| Error  -> 
 			let post_asrts = List.map (post_symb_state_to_asrt ret_var proc_err_var) posts in
-			SLBasic (SepAssert post_asrts) in 
+			SLBasic (RAssert (Literal (Bool true))) in 
 	let error_ret_cmd = empty_metadata, Some pre_err_lab, error_ret_cmd in 
 
 
@@ -776,11 +777,12 @@ let create_main
 
 	let cmds = List.map label_cmd_trivially cmds in 
 
-	let last_cmd = empty_metadata, Some ret_lab, SLBasic (SSkip) in 
+	let almost_last_cmd = empty_metadata, None, SLBasic STermSucc in 
+	let last_cmd = empty_metadata, Some ret_lab, SLBasic SSkip in 
 
 	{
 		lproc_name   = "main"; 
-		lproc_body   = Array.of_list (cmds @ [ last_cmd ]); 
+		lproc_body   = Array.of_list (cmds @ [ almost_last_cmd; last_cmd ]); 
 		lproc_params = []; 
 		lret_label   = Some ret_lab;
 		lret_var     = Some ret_var;

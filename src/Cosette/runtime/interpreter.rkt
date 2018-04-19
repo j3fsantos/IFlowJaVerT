@@ -11,7 +11,7 @@
 (define failure #f)
 (define print-cmds #t)
 (define call-stack-depth 0)
-(define max-depth 2)
+(define max-depth 10)
 (define seen-instr (make-hasheq '()))
 
 (define goto-limit 10000)
@@ -169,6 +169,7 @@
               ;;(displayln "you called arguments")
               ;;(displayln result) 
               (store (mutate-store store lhs-var result)))
+         (print-info proc-name (format "~v := args : ~v" lhs-var result))
          (cons heap store))] 
       ;;
       ;; ('h-delete e1 e2)
@@ -201,7 +202,19 @@
               (store (mutate-store store lhs-var result)))
          (print-info proc-name (format "~v := metadata(~v)] : ~v" lhs-var loc-val result))
          (cons heap store))]
-      
+
+      ;;
+      ;; ('set-metadata e1 e2)
+      [(eq? cmd-type 'set-metadata)
+       (let* ((loc-expr (second bcmd))
+              (meta-expr (third bcmd))
+              (loc-val (run-expr loc-expr store))
+              (meta-val (run-expr meta-expr store))
+              ;;(println (format "the current heap: ~v" heap))
+              (heap (heap-set-metadata heap loc-val meta-val)))
+         (print-info proc-name (format "set-metadata(~v, ~v)" loc-val meta-val))
+         (cons heap store))]
+
       ;;
       ;; ('success)
       [(eq? cmd-type 'success)
@@ -455,7 +468,7 @@
                 (run-cmds-iter prog heap store ctx else-label cur-index)]
              
              [else
-              (error "ll Conditional Goto Guard")])))]
+              (error "Illegall Conditional Goto Guard")])))]
       ;;
       ;; ('v-phi-assign x v1 v2 ... vn)
          [(eq? cmd-type 'v-phi-assign)

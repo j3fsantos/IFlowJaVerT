@@ -486,11 +486,15 @@
 
     (cons 'is_primitive (lambda (x) (or (number? x) (string? x) (boolean? x) (eq? x jnull) (eq? x jundefined))))
 
-    (cons 'length (lambda (x) (if (is-llist? x) (- (length x) 1) (string-length x))))
+    (cons 'length (lambda (x) (if (is-a-list? x) (- (length x) 1) (string-length x))))
 
-    (cons 'car (lambda (x) (if (is-llist? x) (car (cdr x)) jundefined)))
+    (cons 'car (lambda (x) (if (is-a-list? x) (car (cdr x)) jundefined)))
 
-    (cons 'cdr (lambda (x) (if (is-llist? x) (cons 'jsil-list (cdr (cdr x))) jundefined)))
+    (cons 'cdr (lambda (x) 
+      (begin
+        (if (is-a-list? x) (cons 'jsil-list (cdr (cdr x))) jundefined))
+      )
+    )
 
     (cons 'm_abs (lambda (x) (if (number? x) (abs x) jundefined)))
     
@@ -530,7 +534,7 @@
 
     (cons 's-len (lambda (x) (if (string? x) (string-length x) jundefined)))
     
-    (cons 'l-len (lambda (x) (if (is-llist? x) (- (length x) 1) jundefined)))))
+    (cons 'l-len (lambda (x) (if (is-a-list? x) (- (length x) 1) jundefined)))))
 
 ;; Obtaining the operator
 (define (to-interp-op op)

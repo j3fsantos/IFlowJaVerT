@@ -40,8 +40,8 @@ let string_of_type (t : jsil_type) : string =
 (** JSIL constants *)
 let string_of_constant (c : jsil_constant) : string =
 	match c with
-	| Min_float -> "$$min_value"
-	| Max_float -> "$$max_value"
+	| Min_float -> "$$min_float"
+	| Max_float -> "$$max_float"
 	| Random    -> "$$random"
 	| E         -> "$$e"
 	| Ln10      -> "$$ln10"
@@ -303,6 +303,7 @@ let rec string_of_bcmd (i : int option) (bcmd : jsil_basic_cmd) : string =
 	(* x := args *)
 	| SArguments var -> Printf.sprintf "%s%s := args" str_i var
 	| MetaData (var, e) -> Printf.sprintf "%s%s := metadata (%s)" str_i var (se e)
+	| SetMetaData (e1, e2) -> Printf.sprintf "%ssetMetadata (%s, %s)" str_i (se e1) (se e2)
     (* assume(e) *)
 	| RAssume e -> Printf.sprintf "assume(%s)" (se e)
 	(* assert(e) *)
