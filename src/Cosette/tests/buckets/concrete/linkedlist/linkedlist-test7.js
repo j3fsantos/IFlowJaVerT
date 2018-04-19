@@ -115,6 +115,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
  */
 /* @id base_compareToEquals */
 buckets.compareToEquals = function (compareFunction) {
+    /* @id base_compareToEquals_inner */
     return function (a, b) {
         return compareFunction(a, b) === 0;
     };
