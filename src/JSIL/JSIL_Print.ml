@@ -158,8 +158,8 @@ let rec string_of_lcmd (lcmd : jsil_logic_command) : string =
     		"unfold " ^ (string_of_logic_assertion a) ^ (string_of_unfold_info unfold_info)
   	| ApplyLem (lem_name, lparams) ->
     	  let lparams_str = String.concat ", " (List.map (fun e -> string_of_logic_expression e) lparams) in
-    		let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in
-    		"applyLemma " ^  lem_name ^ "(" ^ lparams_str ^ ")"
+    		(* let lparams_str = if (not (lparams_str = "")) then (", " ^ lparams_str) else "" in *)
+    		"apply " ^  lem_name ^ "(" ^ lparams_str ^ ")"
   	| RecUnfold pred_name -> "unfold* " ^ pred_name
   	| LogicIf (le, then_lcmds, else_lcmds) ->
     		let le_str = string_of_logic_expression le in
@@ -480,7 +480,13 @@ let string_of_ext_program (program : jsil_ext_program) : string =
      		(fun _ spec acc_str -> acc_str ^ "\n" ^ "only " ^ (string_of_jsil_spec spec))
      		program.onlyspecs
      		"")
-  	^
+    ^
+  	(* Onlyspecs *)
+  	(Hashtbl.fold
+     		(fun lemma_name lemma acc_str -> acc_str ^ "\n" ^ (string_of_lemma lemma_name lemma))
+     		program.lemmas
+     		"")
+    ^
   	(* Procedures *)
   	Hashtbl.fold
     		(fun _ proc acc_str -> acc_str ^ "\n" ^ (string_of_ext_procedure proc))
