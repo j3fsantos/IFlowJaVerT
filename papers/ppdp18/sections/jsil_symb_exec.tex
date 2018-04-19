@@ -9,11 +9,9 @@ The methodology has three steps: \dtag{1} designing an instrumented semantics of
 The key innovation is to have the instrumented semantics as a proper interim stage in the design of the analysis, obtaining 
 more modular reasoning and substantially simpler proofs.
 
-For our symbolic analysis, we define a new, abstract semantics for \jsil that is parametric on a \jsil state signature, in the style of~\citet{vanhorn:icfp:2010}.\footnote{We refer to the semantics as \emph{abstract} since it 
-is parametric on a \jsil state signature. We are not doing abstract interpretation.} 
-This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. 
-We obtain the concrete, instrumented, and symbolic semantics by instantiating 
-the abstract semantics with a corresponding state signature. 
+For our symbolic analysis, we define a new, abstract semantics for \jsil,\footnote{We refer to the semantics as \emph{abstract} since it 
+is parametric on a \jsil state signature. We are not doing abstract interpretation.} in the style of~\cite{vanhorn:icfp:2010}. 
+This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. From it, we obtain the concrete, instrumented, and symbolic semantics by instantiation. 
 This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication.
 %
 Our instrumented semantics explicitly keeps track of properties that are not present in a given object, using ideas from~\cite{gardner:popl:2012,javert}. All definitions and proofs are given in full in the Appendix.
@@ -63,9 +61,9 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 \jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, and various unary and binary operators, which, for instance, provide support for sets and lists. 
 
 \jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
-They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and symbolic variable creation. 
+They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check,  property collection, and a new command for symbolic variable creation. 
 %
-\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two special commands, $\assume$ and $\jassert$, essential for symbolic execution, but with trivial concrete semantics.\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
+\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two new commands, $\assume$ and $\jassert$, essential for symbolic execution, but with trivial concrete semantics. %\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
 The two goto commands are straightforward: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th if it evaluates to $\jfalse$. 
 The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ first evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure identifier and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
 If the procedure raises an error, control is transferred to the $j$-th command; otherwise, it follows to the next command. 
@@ -75,60 +73,50 @@ A \jsil program $\prog \in \progs$ is a set of top-level procedures and its entr
 
 
 %
+%\pmax{more modular, factor out. three for symbolic analysis}
 
-\myparagraph{Abstract semantics} The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
-Abstract states are assumed to have a store component $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. 
-%Abstract values must include: \jsil values, $\val$; abstract locations, $\absloc$; abstract property names, $\absprop$; sets of abstract values; and the special value $\none$, used to indicate the absence of a property in an object. 
-In the following, we use the special symbol $\none$ to denote the absence of a property in an object, and we use $\setext{\absvals}{\none}$ for the set $\absvals \cup \{ \none \}$.
+\myparagraph{Abstract semantics} We design the abstract semantics to make the analysis, the proofs, and the implementations as modular as possible. At its core are the GetCell and GetDomain functions, which precisely pinpoint the way in which \jsil interacts with the heap, factoring out the common behaviour of \jsil commands. It also provides support for constructing/reasoning about symbolic values.
+
+The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
+Abstract states are assumed to have a store $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. Stores are accessible via a store selector, $\absstate.\stosel$.
+In the following, we use the special symbol $\none$ (read: none) to denote the absence of a property in an object, and use $\setext{\absvals}{\none}$ for the set $\absvals \cup \{ \none \}$.
 Abstract states expose the following functions and relations: 
 \begin{description}
 \setlength{\itemsep}{0.2em}
-  \item[\jsil Expression Evaluation,] $\evalexpr{} :  (\jvars \partialmap \absvals)  \partialmap \exprs \partialmap \absvals$. 
-  	The expression $\evalexpr{}(\absstore, \jsilexpr)$ evaluates to the value of the \jsil expression $\jsilexpr$ under store $\absstore$. 
+  \item[\jsil Expression Evaluation,] $\evalexpr{}(\absstore, \jsilexpr)$, which evaluates to the value of the \jsil expression $\jsilexpr$ under store $\absstore$. 
 
-  \item[Store Selector,] $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$. The expression $\stosel(\absstate)$ evaluates to the store associated with a given  state $\absstate$. For clarity, we write $\absstate.\stosel$ instead of $\stosel(\absstate)$. 
+  %\item[Store Selector,] $\stosel : \absstates \rightarrow (\jvars \partialmap \absvals)$. The expression $\stosel(\absstate)$ evaluates to the store associated with a given  state $\absstate$. For clarity, we write $\absstate.\stosel$ instead of $\stosel(\absstate)$. 
 
-  \item[Store Update,] $\stupdt{}: \absstates \rightarrow \jvars \rightarrow \absvals \rightarrow \absstates$. 
-             The expression $\stupdt{}(\absstate, \jvar, \absval)$ denotes the state obtained from $\absstate$ 
+  \item[Store Update,] $\stupdt{}(\absstate, \jvar, \absval)$, which denotes the state obtained from $\absstate$ 
              by updating the value corresponding to $\jvar$ in $\absstate.\stosel$ to $\absval$. 
 
-  %\item[Heap Allocation,] $\absalloc{}: \absstates \rightarrow \absvals \times \absstates$.   The expression $\absalloc{}(\absstate)$ evaluates to a pair consistingof a value denoting a fresh location and the new state that keeps track of that allocation. %
+  \item[Heap Allocation,] $\absalloc{}(\absstate)$, which evaluates to a pair consisting of a value denoting a fresh location and the new state that keeps track of that allocation. %
 %             
 
-
-   \item[Heap Update,] $\hpupdt{} : \absstates \rightarrow \absvals \rightarrow \absvals \rightarrow \setext{\absvals}{\none} \rightarrow \absstates$. 
-             The expression $\hpupdt{}(\absstate, \absloc, \absprop, \absval)$ denotes the state obtained from $\absstate$ 
-             by updating the value of property $\absprop$ of the object at location $\absloc$ to $\absval$ or creating that property, in the
+   \item[Heap Update,] $\hpupdt{}(\absstate, \absloc, \absprop, \absval)$, denoting the state obtained from~$\absstate$ by updating the value of property $\absprop$ of the object at location $\absloc$ to $\absval$ or creating that property, in the
              case it does not exist.
 
-  \item[GetCell,] $\getcell \subseteq \absstates \times \exprs \times \exprs \times \absstates \times \absvals \times \absvals \times \setext{\absvals}{\none}$. 
-          We pretty-print $(\absstate, \jsilexpr_1, \jsilexpr_2, \absstate', \absloc, \absprop, \absval) \in \getcell$ as $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$. 
-          GetCell is the core of the abstract semantics. Informally, it retrieves the value associated with a given property of a given object. Formally, if $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
-          then~\dtag{1}~$\absloc$ denotes the location resulting from the evaluation of $\jsilexpr_1$, 
-          \dtag{2}~$\absprop$~denotes the property name resulting from the evaluation of $\jsilexpr_2$, 
-          \dtag{3}~$\absval$~denotes the value of the property $\absprop$ of the object at location $\absloc$, 
-          and \dtag{4}~$\absstate'$ denotes a potential modification of $\absstate$ that allows for the property inspection, discussed shortly. 
-          Note how $\getcell$ is widely used in the abstract semantics of the basic commands (Figure~\ref{abs:sem:cmds:fig}, left).
+  \item[GetCell,] $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$, which retrieves the value associated with a given property of a given object. Formally, if $\absgetcellrule{}{\absstate, \jsilexpr_1, \jsilexpr_2}{\absstate', (\absloc, \absprop, \absval)}$ holds, 
+          then: $\absloc$ denotes the location resulting from the evaluation of $\jsilexpr_1$, 
+          $\absprop$~denotes the property name resulting from the evaluation of $\jsilexpr_2$, 
+          $\absval$~denotes the value of the property $\absprop$ of the object at location $\absloc$, 
+          and $\absstate'$ denotes a potential re-arrangement of $\absstate$ after property inspection (discussed in \S\ref{subsec:instrumented}). 
+          %Observe the wide use of $\getcell$ in the abstract semantics of the basic commands (Figure~\ref{abs:sem:bcmds:fig}).
           %Also, $\getcell$ is non-deterministic and is, therefore, a relation.
             
 
                
              
-  \item[GetDomain,] $\getdomain : \absstates \rightarrow \exprs \partialmap \absvals$. 
-          % We pretty-print $(\absstate, \jsilexpr, \absval) \in \getdomain$ as $\absgetdomainrule{}{\absstate, \jsilexpr}{\absval}$. 
-           If $\absgetdomainfun{}(\absstate, \jsilexpr) = \absval$ holds, then~$\absval$ denotes the 
-           set of property names associated with the object at the location resulting from the evaluation of $\jsilexpr$ 
-           in $\absstate$.
+  \item[GetDomain,] $\absgetdomainfun{}(\absstate, \jsilexpr)$, which denotes the 
+           set of property names associated with the object at location resulting from the evaluation of $\jsilexpr$ 
+           in $\absstate$. It is used in the \textsc{Property Collection} rule.
    
-   \item[Assumption,] $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$. 
-            The expression $\absassume{}(\absstate, \jsilexpr)$ denotes the state obtained from the state $\absstate$ by stating that $\jsilexpr$ is supposed to evaluate to $\jtrue$. 
+   \item[Symbolic Value Creation,] $\absmakesymbolicrule{}{\jtype}$, which evaluates to a fresh  value of type $\jtype$.
+   
+   \item[Assumption,] $\absassume{}(\absstate, \jsilexpr)$, denoting the state obtained from $\absstate$ by stating that $\jsilexpr$ is supposed to evaluate to $\jtrue$. 
   
-   \item[Satisfiability,] $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$. 
-            The expression $\abssat{}(\absstate, \jsilexpr)$ evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is satisfiable in the  
-            state $\absstate$, and $\jfalse$ otherwise.
+   \item[SAT Check,] $\abssat{}(\absstate, \jsilexpr)$, which evaluates to $\jtrue$ if the \jsil expression $\jsilexpr$ is satisfiable in the state~$\absstate$, and to $\jfalse$ otherwise.
              
-   \item[Symbolic Value Creation,] $\absmakesymbolic : \absstates \rightarrow \jtypes \rightarrow \absvals$. 
-            The expression $\absmakesymbolicrule{}{\jtype}$ evaluates to a fresh  value of type $\jtype$.
 \end{description}
 
 \begin{figure}[t!]
@@ -153,8 +141,8 @@ Abstract states expose the following functions and relations:
 \\
 \inferrule[\textsc{Object Creation}]
   { 
-     \loc \text{ fresh} \qquad \absgetcellrule{}{\absstate, \loc, \protop}{\absstate', -} \\\\ \absstate'' = \hpupdt{}(\absstate', \loc, \protop, \jnull)
-       }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\stupdt{}(\absstate'', \jvar, \loc)}{}}
+     \absalloc{}(\absstate) = (\loc, \absstate') \quad \absgetcellrule{}{\absstate', \loc, \protop}{\absstate'', -} \\\\ \absstate''' = \hpupdt{}(\absstate'', \loc, \protop, \jnull)
+       }{\absbsemrule{\absstate, \jvar := \jsilnew()}{\stupdt{}(\absstate''', \jvar, \loc)}{}}
 \qquad  
 \inferrule[\textsc{Property Access}]
   { 
@@ -194,7 +182,7 @@ Abstract states expose the following functions and relations:
   }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
 \end{mathpar}}
 \vspace*{-0.4cm}
-\caption{Abstract semantics of basic commands: {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}\label{abs:sem:bcmds:fig}
+\caption{Abstract semantics, basic commands: {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}\label{abs:sem:bcmds:fig}
 \vspace*{-0.53cm}
 \end{figure}
 
@@ -211,13 +199,13 @@ $\absstore$~is the store of the procedure that called~$\pid$;
 $\jvar$~is the variable that will hold the return value of $\pid$ in~$\absstore$; 
 $i$ is the command index to which the control jumps after $\pid$ terminates normally; 
 and $j$ is the command index to which it jumps in case of an error. 
-Transitions for  commands have the form  $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$, 
+Transitions for  commands have the form  $\prog: \abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$, 
 meaning that, given a program~$\prog$, state~$\absstate$ and execution mode~$\mode$, the evaluation of the $i$-th command of the first procedure in the 
 call stack~$\abscs$ generates 
 the state~$\absstate'$, call stack $\abscs'$,  and the next command to be evaluated is the $j$-th command of the first procedure 
 of $\abscs'$, in execution mode~$\mode'$ (Fig.~\ref{abs:sem:cmds:fig}). 
-For clarity, we keep the program implicit and use a function $\ccmd{\prog, \cs, i}$, which 
-returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$ when $\prog$ and $\ctx$ are implicit.
+For clarity, we keep the program implicit. We also use a function $\ccmd{\prog, \cs, i}$, which 
+returns the $i$-th command of the first procedure of $\cs$. We write $\ccmd{i}$ when $\prog$ and $\abscs$ are implicit.
 
 \begin{table*}[t!]
 \centering 
@@ -346,7 +334,7 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
  \end{mathpar}}
  \vspace*{-0.5cm}
  \captionsetup{format=nastyCaption}
-\caption{Abstract semantics of commands: \\{\small $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}\label{abs:sem:cmds:fig}
+\caption{Abstract semantics, commands: {\small $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}\label{abs:sem:cmds:fig}
 \vspace*{-0.7cm}
 \end{figure}
 
@@ -354,18 +342,18 @@ returns the $i$-th command of the first procedure of $\cs$. %We write $\ccmd{i}$
 \subsection{\jsil Concrete Semantics}
 \label{subsec:concr}
 A \jsil concrete state $\jstate$ is a pair $(\heap, \store)$ consisting of a heap and a store. 
-A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to values,
-whereas a store, $\store \in \stores$, maps program variables to values. 
-Given a heap~$\heap$, we denote: the empty heap by $\hemp$; heap lookup by $\heap(\loc, \jstring)$; 
-a heap cell by $\hcell{\loc}{\jstring}{\val}$, meaning that  $\heap(\loc,\jstring) = \val$; 
-heap update by $\heap[(\loc, p) \mapsto \val]$, denoting the heap $\heap$ extended with $\heap(\loc,\jstring) = \val$;
+A heap, $\heap \in \heaps$, is a partial function mapping pairs of  object locations and property names (strings) to \jsil values.
+A store, $\store \in \stores$, maps program variables to \jsil values. 
+We denote: the empty heap by~$\hemp$; heap lookup by $\heap(\loc, \jstring)$; 
+a heap cell by $\hcell{\loc}{\jstring}{\val}$; %, meaning that  $\heap(\loc,\jstring) = \val$; 
+heap update by $\heap[(\loc, p) \mapsto \val]$; %, denoting the heap $\heap$ extended with $\heap(\loc,\jstring) = \val$;
 and the union of two disjoint heaps by $\heap_1 \dunion \heap_2$.
 We instantiate the abstract semantics for the concrete case by providing the appropriate definitions 
-for the required abstract functions/relations below.
+for the required abstractions below.
 %, noting that abstract values are instantiated to\jsil values extended with the property absence indicator $\none$.
 We write $\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ for the concrete semantic 
-judgement for basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
-for control flow commands. 
+judgement for \jsil basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
+for \jsil commands. 
 
 \begin{display}{Selected Concrete Semantics Rules}
 \text{
@@ -1141,30 +1129,30 @@ $$
 $$
 \end{corollary}
 
-Finally, the \emph{verification} corollary (Corollary~\ref{corollary:verification})
-states that if we have symbolically explored all possible execution paths
-starting from a given symbolic state and call stack $(\sstate, \scs)$,  
-then the execution of the program starting from any concrete state in the models 
-of the initial symbolic state (under the initial path condition) will result in a final concrete state
-in the models of one of the final symbolic states (under its associated path condition).  
-As \cosette does not infer loop invariants, if a program contains loops that cannot be unrolled statically, we will never be in the case of the verification~corollary. 
-
-\vspace*{-0.1cm}
-\begin{corollary}[Verification]\label{corollary:verification}
-$$
-\begin{array}{l}
-\wedge_{k=1}^n \, \big( \transabssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
-    \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big)  \\  \quad
-    \, \wedge \, (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs)
-    \\ \qquad 
+%Finally, the \emph{verification} corollary (Corollary~\ref{corollary:verification})
+%states that if we have symbolically explored all possible execution paths
+%starting from a given symbolic state and call stack $(\sstate, \scs)$,  
+%then the execution of the program starting from any concrete state in the models 
+%of the initial symbolic state (under the initial path condition) will result in a final concrete state
+%in the models of one of the final symbolic states (under its associated path condition).  
+%As \cosette does not infer loop invariants, if a program contains loops that cannot be unrolled statically, we will never be in the case of the verification~corollary. 
 %
-      \ \implies \ \exists l \in \overline{1, n}, \senv', \jstate', \cs' \, . \, 
-           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete} \\ \qquad \qquad \qquad
-           \, \wedge \, 
-           (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate_l, \scs_l)
-\end{array}
-$$
-\end{corollary}
+%\vspace*{-0.1cm}
+%\begin{corollary}[Verification]\label{corollary:verification}
+%$$
+%\begin{array}{l}
+%\wedge_{k=1}^n \, \big( \transabssemrule{\sstate, \scs, i}{\sstate_k, \scs_k, j_k}{\mode}{\mode_k}{\symbolic}  \big)
+%    \, \wedge \, \big( \sstate.\pcsel \vdash \vee_{k=1}^n \sstate_k.\pcsel \big)  \\  \quad
+%    \, \wedge \, (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate, \scs)
+%    \\ \qquad 
+%%
+%      \ \implies \ \exists l \in \overline{1, n}, \senv', \jstate', \cs' \, . \, 
+%           \transabssemrule{\jstate, \cs, i}{\jstate', \cs', j_l}{\mode}{\mode_l}{\concrete} \\ \qquad \qquad \qquad
+%           \, \wedge \, 
+%           (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate_l, \scs_l)
+%\end{array}
+%$$
+%\end{corollary}
 
 %
 %The {\bf proofs} of all the results in this section, as well as all the complete definitions, are given in the Appendix.
@@ -1191,8 +1179,8 @@ $$
 Our three semantics for \jsil (\S\ref{subsec:concr}--\S\ref{subsec:symb:semantics}) are specifically designed with implementation in mind. To implement any of them, one only needs to follow the rules, which are written operationally, modularly, and are syntax-directed. \polish{Contrast with related work.}
 
 However, implementing the entailment engine required by the symbolic semantics and practically handling potential combinatorial explosions is a more challenging task. For this reason, our proof-of-concept, prototype version of \cosette leverages on 
-\rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine enabling the development of solver-aided languages. \rosette extends Racket~\cite{racket} with symbolic values and first-order assertions over these values, and languages implemented in \rosette can make use of its solver-aided facilities. We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify an upper bound on the number of allowed branchings on symbolic values. Once that bound is reached, the symbolic execution stops.
-
+\rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine enabling the development of solver-aided languages. \rosette extends Racket~\cite{racket} with symbolic values and first-order assertions over these values, and languages implemented in \rosette can make use of its solver-aided facilities. 
 
 We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
 
+We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution stops.
