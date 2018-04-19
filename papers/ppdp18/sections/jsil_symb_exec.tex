@@ -546,14 +546,16 @@ for~commands.
  % 
      \inferrule[\textsc{GetCell - Not Found}]
    { 
-   		\istate = (\iheap, \idom, \store) 
-		\quad
          \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
         \quad 
          \evalexpr{\concrete}(\store, \jsilexpr_2) = p
          \quad
-       p \not\in \idom(\loc) 
-            }{  \absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{(\iheap \dunion (\loc, p) \mapsto \none, \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}], \store), (\loc, p, \none)}}
+         p \not\in \idom(\loc) 
+         \quad
+         \iheap' = \iheap \dunion (\loc, p) \mapsto \none
+         \quad
+         \idom' = \idom[\loc \mapsto \idom(\loc) \cup \jsilset{p}]
+            }{  \absgetcellrule{\instrumented}{(\iheap, \idom, \store), \jsilexpr_1, \jsilexpr_2}{(\iheap', \idom', \store), (\loc, p, \none)}}
   %
   \\
   \inferrule[\textsc{GetDomain}]
@@ -611,10 +613,10 @@ only means that this property does not exist in the current heap. Also, note how
 \begin{wrapfigure}{R}{0.12\textwidth}
 \vspace*{+0.05cm}
 {\small
-\hspace*{-0.5cm} $\mathtt{0\quad o := \jsilnew ()}$ \\[-0.06cm]
-\hspace*{-0.5cm} $\mathtt{1\quad [o, "foo"] := 42}$ \\[-0.06cm]
-\hspace*{-0.5cm} $\mathtt{2\quad \jsildelete(o, "foo")}$ \\ [-0.06cm]
-\hspace*{-0.5cm} $\mathtt{3\quad [o, "foo"] := 37}$ 
+\hspace*{-0.5cm} $\mathtt{1\quad o := \jsilnew ()}$ \\[-0.06cm]
+\hspace*{-0.5cm} $\mathtt{2\quad [o, "foo"] := 42}$ \\[-0.06cm]
+\hspace*{-0.5cm} $\mathtt{3\quad \jsildelete(o, "foo")}$ \\ [-0.06cm]
+\hspace*{-0.5cm} $\mathtt{4\quad [o, "foo"] := 37}$ 
 }
 \vspace*{-0.25cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
@@ -800,14 +802,10 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
         \quad 
         \evalexpr{\symbolic}(\sstore, \jsilexpr_2) = \sexprp
       \quad
-       \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
-      \\\\
-       (\sloc,-) \notin \domain (\sheap'')
-        \quad 
         \sheap' = \sheap \dunion ((\sloc, \sexprp) \mapsto \none)
        \quad
        \sdom' = \sdom[\sloc \mapsto \sdom(\sloc) \cup \jsilset{\sexprp}]
-   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr_1, \jsilexpr_2}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \, \sexprp \not\in (\sdom(\sloc) \cup \jsilset{\sexprp_i \mid_{i=0}^m}})), (\sloc, \sexprp, \none)}}
+   }{  \absgetcellrule{\symbolic}{(\sheap, \sdom, \sstore, \pc), \jsilexpr_1, \jsilexpr_2}{(\sheap', \sdom', \sstore,  {\color{blue}\pc \, \wedge \, \sexprp \not\in \sdom(\sloc)}), (\sloc, \sexprp, \none)}}
   %
   \\
   %
@@ -848,55 +846,51 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
 %      \inferrule[\textsc{Store Selector}]
 %   {}{  \stosel((-, -, \sstore, -)) =  \sstore}
    \quad 
-         \inferrule[\textsc{Symbolic Value Creation}]
-   {\svar \in \svars \text{ is of type } \jtype
-     \quad 
-     \svar \not\in \fv(\sstate)
-    }{\absmakesymbolicrule{\symbolic}{\sstate, \jtype} = \svar}
-   \\
        \inferrule[\textsc{Assume}]
    {  
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
    }{  \absassume{\symbolic}(\sstate, \jsilexpr) =  \sstate \, \wedge \, \sexprb }
-   \qquad
+   \\
     \inferrule[\textsc{Check Sat - True}]
    { 
    	\sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
-         \\\\
+         \quad
          (\sstate.\pcsel \wedge \sexprb) \text{ SAT}
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue}
  \qquad 
     \inferrule[\textsc{Check Sat - False}]
    { 
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
-         \\\\
+         \quad
          (\sstate.\pcsel \wedge \sexprb) \text{ UNSAT}
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jfalse} 
  \end{mathpar}}}
  \end{display}
 
 \noindent Symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. As they carry meaning only in the symbolic semantics, their evaluation is not supported by the concrete and instrumented semantics (cf. Appendix). 
-GetCell extends its instrumented counterpart by recording relevant information in the path condition (highlighted in blue): if a symbolic property is found, we record the appropriate equality; if it is not found, we record that it is different from all of the properties. We note that the evaluation of a symbolic variable $\svar$ returns $\svar$ itself.
+GetCell extends its instrumented counterpart by recording relevant information in the path condition (highlighted in blue): if a symbolic property is found, we record the appropriate equality; if it is not found, we record that it is different from all of the properties. 
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.2cm}
+\vspace*{-0.3cm}
 {\footnotesize
-\hspace*{-0.55cm} $\mathtt{0\quad s := symb\ (String)}$ \\
-\hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\
-\hspace*{-0.55cm} $\mathtt{2\quad o[s] := 42};$ \\
-\hspace*{-0.55cm} $\mathtt{3\quad x := getProps(o);}$ \\
+\hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\[-0.06cm]
+\hspace*{-0.55cm} $\mathtt{2\quad o[\hat{s}] := 42};$ \\[-0.06cm]
+\hspace*{-0.55cm} $\mathtt{3\quad x := getProps(o);}$ \\[-0.06cm]
 \hspace*{-0.55cm} $\mathtt{4\quad assert\ (card \ x = 2)}$
 }
-\vspace*{-0.2cm}
+\vspace*{-0.35cm}
 \end{wrapfigure}
 
-\pmax{Non-determinism! Abstract not deterministic - concrete/instruments - object allocation, here real non-determinism.}
+\myparagraph{Non-determinism} The symbolic semantics is highly non-determi-nistic. 
+This is evident in the definition of GetCell, where the property $\sexprp$ is non-deterministically
+chosen to be equal to any of the properties of the object at location $\sexprl$ (\textsc{GetCell - Found}), but also to be different from all of them (\textsc{GetCell - Not Found}).
+This is in contrast to the concrete and instrumented semantics, where the only source of non-determinism is object allocation. 
 
 \myparagraph{Example: Symbolic Branching}
 To get a better intuition of the symbolic execution, observe the code snippet on the right and its symbolic execution in Fig.~\ref{fig:sexecexample} (right). 
 This code: 
-        \dtag{0-1}~creates a new symbolic string \jsinline|s| and a new object~\jsinline|o|;
-	\dtag{2}~assigns 42 to the property \jsinline|s| of~\jsinline|o|; 
+        \dtag{1}~creates a new object~\jsinline|o|;
+	\dtag{2}~assigns 42 to the symbolic property $\hat{\mathtt{s}}$ of~\jsinline|o|; 
 	\dtag{3}~collects all the properties of $\mathtt{o}$; and
 	\dtag{4}~asserts that $\mathtt{o}$ has two properties in the end. 
 	     The last assertion will produce a failing symbolic execution.
