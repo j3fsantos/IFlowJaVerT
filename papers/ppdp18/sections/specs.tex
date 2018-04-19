@@ -149,7 +149,6 @@ introduce \emph{unification plans} (Def.~\ref{def:up}).
 Informally, a unification plan is an ordering of the simple assertions in $\pass$ that 
 guarantees that the unification algorithm does not have to backtrack at unification~time. 
 
-\vspace{-0.2cm}
 \begin{table}[!h]
 {\small \begin{tabular}{@{}c@{}ccc@{}c@{}}\toprule
 \emph{Argument} & & \textbf{IN}  & & \textbf{OUT}  \\
@@ -171,7 +170,6 @@ $\sass$                                                    & & $\fv(\sass)$     
 \end{tabular}}
 %\caption{\emph{in} and \emph{out} sets for assertions and logical expressions}
 %\label{tab:insouts}
-\vspace{-0.3cm}
 \end{table}
 
 To construct unification plans, we define an \emph{in} set and an \emph{out} set for each assertion and logical expression, illustrated above. These 
@@ -264,7 +262,6 @@ Algorithm~\ref{fip:symb:states} makes use of the following auxiliary functions:
 \end{algorithmic}
 \end{algorithm}}
 
-\vspace*{-0.8cm}
 We give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\GetDomainV{\sstate, \sloc}$, analogous to those in \S\ref{subsec:symb:semantics}, except that they return a new symbolic state 
 from which the matched resource is removed and their corresponding constraints are lifted to the premise (highlighted in blue). Also, in case of failure, all auxiliary functions return a constraint $\pc_f$ under which the unification is not possible (highlighted in red). 
 

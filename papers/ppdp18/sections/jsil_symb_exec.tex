@@ -57,9 +57,9 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 
 \vspace{5pt}
 \noindent \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jundefined$, $\jnull$, and $\jempty$, object locations~$\loc$, types~$\jtype$, and procedure identifiers $\pid$.
-\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, typed symbolic variables $\svar$, and various unary and binary operators (e.g.~for supporting sets and lists).  
+\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, typed symbolic variables $\svar$, and various unary and binary operators (e.g.~for supporting sets and~lists). Symbolic variables range over symbolic strings, numbers, booleans, and locations, denoted respectively by $\sstring$, $\snumber$, $\sbool$, and~$\sloc$.
+
 %
-For the typed symbolic variables, we use $\sstring$, $\snumber$, $\sbool$, and $\sloc$ to denote symbolic strings, numbers, booleans, and locations, respectively.
 
 \jsil \emph{basic commands} enable the manipulation of extensible objects and do not affect control flow. 
 They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check, and property collection.
@@ -189,11 +189,13 @@ Abstract states expose the following functions and relations:
 %     \absval = \absmakesymbolicrule{}{\absstate, \jtype}
 %  }{\absbsemrule{\absstate, \jvar := \makesymbolic(\jtype)}{\stupdt{}(\absstate, \jvar, \absval)}{}}
 \end{mathpar}}
-\vspace*{-0.5cm}
+\vspace*{-0.55cm}
  \captionsetup{format=nastyCaption}
 \caption*{{\small Figure 3. Abstract semantics, basic commands: $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}\label{abs:sem:bcmds:fig}
-\vspace*{-0.5cm}
+\vspace*{-0.4cm}
 \end{figure}
+
+%Assumption and the satisfiability check have trivial concrete semantic.
 
 Transitions for
 basic commands have the form 
@@ -407,7 +409,11 @@ for \jsil commands.
        }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_m}}
   %
  %
- \qquad 
+ \quad 
+    \inferrule[\textsc{Heap Alloc.}]
+   { \loc \text{ fresh } }{
+   \absalloc{c}(\absstate) =  (\loc, \jstate)}
+   \quad
    \inferrule[\textsc{Store Update}]
    { 
          \store' = \store[\jvar \mapsto \val]
@@ -425,9 +431,11 @@ for \jsil commands.
          \heap = \heap' \dunion (\loc, p) \mapsto -
    }{  \hpupdt{\concrete}((\heap, \store), \loc, p, \none) \semeq  (\heap', \store)}
 %   \\\\
-%      \inferrule[\textsc{Symbolic Value}]
-%   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
-%     \and 
+%      \inferrule[\textsc{Expr - SymbVar}]
+%   {\svar \in \svars \text{ is of type } \jtype \\\\
+%   \val \in \vals \text{ is of type } \jtype
+%   }{\evalexpr{\concrete}(-, \svar) \semeq \val}
+    
 %  \inferrule[\textsc{Assume}]
 %   {
 %       \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
@@ -445,6 +453,7 @@ The instantiation of the \jsil abstract semantics to the concrete case is straig
 heap allocation returns a fresh object location without changing the state;
 the rules for store update and positive heap update are standard; and 
 the negative heap update removes the given property of a given object from the heap.
+
 %The remaining rules can be seen in the Appendix.
 
 %\jfs{
@@ -456,15 +465,15 @@ the negative heap update removes the given property of a given object from the h
 %}
 
 
-\begin{wrapfigure}{R}{0.14\textwidth}
-\vspace*{-0.25cm}
-{\small
-\hspace*{-0.5cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\
-\hspace*{-0.5cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\
-\hspace*{-0.5cm} $\mathtt{2\quad x := [x, \litstring{\protop}] }$ \\ 
-\hspace*{-0.5cm} $\mathtt{3\quad \ifgoto{x = \jnull}{\errlab}{0}}$ \\
-\hspace*{-0.5cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\
-\hspace*{-0.5cm} $\mathtt{5\quad \jsilcall{z}{y}{}{\errlab}}$ 
+\begin{wrapfigure}{R}{0.13\textwidth}
+\vspace*{-0.2cm}
+{\footnotesize
+\hspace*{-0.47cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{2\quad x := [x, \litstring{\protop}] }$ \\ [-0.08cm]
+\hspace*{-0.47cm} $\mathtt{3\quad \ifgoto{x = \jnull}{\errlab}{0}}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{5\quad \jsilcall{z}{y}{}{\errlab}}$ 
 }
 \vspace*{-0.2cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
@@ -476,7 +485,7 @@ the negative heap update removes the given property of a given object from the h
 \myparagraph{Example: Frame}
 The \jsil concrete semantics does not have the frame property. 
 We illustrate this with the program on the right, which 
-looks for the object that has the property $\litstring{get}$ in the 
+looks for the property $\litstring{get}$ in the 
 prototype chain of the object bound to $\mathtt{x}$, reads the value of that 
 property, and calls the procedure whose identifier is bound to that value. 
 The program terminates successfully when run from the state 
@@ -487,21 +496,21 @@ call fails, as $42$ is not a procedure identifier.
 \vspace*{-0.2cm}
 \subsection{\jsil Instrumented Semantics}\label{subsec:instrumented}
 
-Compositional analyses need to be able to reason about programs given partial state information,
+Compositional analyses reason about programs given partial state information,
 which is challenging for languages that do not observe the frame property.
-We approach this problem by designing an instrumented version of the language semantics that \emph{does} 
-observe the frame property. To achieve this, we keep track of not only the properties that are present in a given object, but also the properties that are not present.
+We approach this problem by first designing an instrumented version of the language semantics that \emph{does} 
+observe the frame property. To achieve this, we keep track of both the present \emph{and the absent} properties of a given object.
 
 An instrumented state $\istate$ is a triple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
 a domain table, and a store. 
 %
 An instrumented heap, $\iheap \in \iheaps : \locs \partialmap \strings \partialmap \setext{\vals}{\none}$, 
 differs from a concrete heap in that it can map object properties to $\none$, explicitly declaring their absence. 
-
+%
 A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding object may have, whereas all other properties are \emph{known to be} absent. 
 If $\idom(\loc)$ is defined and $p \not\in \idom(\loc)$, then we know that the object at $\loc$ \emph{does not have} the property~$p$, and that that property \emph{cannot} be framed on. 
-Furthermore, if $(\loc, p) \in \domain(\iheap)$, then $p$ must be in $\idom(\loc)$.
-If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} framed~on. Also, all properties in $\idom(\loc)$ that are not in the heap can be safely framed on, as there is effectively no information about them.
+Moreover, if $\idom(\loc)$ is defined and $(\loc, p) \in \domain(\iheap)$, then $p \in \idom(\loc)$.
+If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on. Also, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on, as there is no information about them.
 
 %We also know that all of the 
 %properties of that object that are in the heap are also in $\idom(\loc)$.
@@ -567,7 +576,9 @@ for~commands.
  \end{mathpar}}}
  \end{display}
  
- \begin{figure*}[!t]
+ 
+\setcounter{figure}{4}   
+\begin{figure*}[!t]
 \centering
 \begin{tabular}{c||c}
 \includegraphics[width=0.28\textwidth]{figures/domaintable.png} \ & \ \includegraphics[width=0.59\textwidth]{figures/symbSemEx.png}
@@ -582,7 +593,7 @@ for~commands.
 In particular, while the expression $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 means that one is certain that the object denoted by $\jsilexpr_1$ does not have the property 
 denoted by $\jsilexpr_2$, the expression $\absgetcellrule{\concrete}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
-only means that this property does not exist in the current heap. Also, note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table.
+only means that this property does not exist in the current heap. Also, note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table. %We note that the instrumented semantics does not evaluate symbolic variables.
 
  
  %As we inspect properties using GetCell, they .
@@ -598,22 +609,21 @@ only means that this property does not exist in the current heap. Also, note how
  the instrumented execution will get stuck in the execution of line~$0$. 
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.27cm}
+\vspace*{+0.05cm}
 {\small
-\hspace*{-0.5cm} $\mathtt{0\quad o := \jsilnew ()}$ \\
-\hspace*{-0.5cm} $\mathtt{1\quad [o, "foo"] := 42}$ \\
-\hspace*{-0.5cm} $\mathtt{2\quad \jsildelete(o, "foo")}$ \\ 
+\hspace*{-0.5cm} $\mathtt{0\quad o := \jsilnew ()}$ \\[-0.06cm]
+\hspace*{-0.5cm} $\mathtt{1\quad [o, "foo"] := 42}$ \\[-0.06cm]
+\hspace*{-0.5cm} $\mathtt{2\quad \jsildelete(o, "foo")}$ \\ [-0.06cm]
 \hspace*{-0.5cm} $\mathtt{3\quad [o, "foo"] := 37}$ 
 }
-\vspace*{-0.2cm}
+\vspace*{-0.25cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
 \end{wrapfigure}
 
-
-
-
 \myparagraph{Example: Instrumented GetCell}
-To better understand the interaction between GetCell, the heap, and the domain table, consider the program on the right and its execution trace in Figure~\ref{fig:sexecexample} (left). When executing the first assignment, following the abstract \textsc{Property Assignment} rule, we must call $\getcell(\mathtt{o, "foo"})$ to obtain the current value of the property. As the property is not in the heap, we are in the \textsc{Not Found} case of GetCell. The domain is extended with $\mathtt{"foo"}$, and the heap is extended with the none-cell $\mathtt{(\loc_o, "foo")} \mapsto \none$, whose value is then updated to 42 by the heap update. After the deletion, its value is reset to $\none$. The following assignment will again call $\getcell(\mathtt{o, "foo"})$, but this time, we will be in the \textsc{Found} case of GetCell, as the property is in the heap.
+To better understand the interaction between GetCell, the heap, and the domain table,~consider~the 
+
+\noindent program on the right and its execution trace in Figure~\ref{fig:sexecexample} (left). When executing the first assignment, following the abstract \textsc{Property Assignment} rule, we must call $\getcell(\mathtt{o, "foo"})$ to obtain the current value of the property. As the property is not in the heap, we are in the \textsc{Not Found} case of GetCell. The domain is extended with $\mathtt{"foo"}$, and the heap is extended with the none-cell $\mathtt{(\loc_o, "foo")} \mapsto \none$, whose value is then updated to 42 by the heap update. After the deletion, its value is reset to $\none$. The following assignment will again call $\getcell(\mathtt{o, "foo"})$, but this time, we will be in the \textsc{Found} case of GetCell, as the property is in the heap.
 In a nutshell, GetCell ensures that all inspected properties, both present and absent, are represented in the heap.
 
 %\jfs{
@@ -689,11 +699,11 @@ $$
 \vspace*{-0.2cm}
 \subsection{\jsil Symbolic Semantics}\label{subsec:symb:semantics}
 
-\pmax{What happen with symbsem? This is normal, etc. Symbolic lifting. Mention frame. Mention d can be undefined}
+We obtain the \jsil symbolic semantics by lifting the \jsil instrumented semantics to the symbolic level, following standard approaches~\cite{Rosette1,citemeplease,citememore}.
+This lifting, however, is easier for us to achieve because we only need to instantiate the abstract semantics, rather than re-examine every command of the language.
 
- We further introduce symbolic expressions, $\sexpr \in \sexprs$, defined as follows: 
+We instantiate the abstract values to \emph{symbolic expressions}, $\sexpr \in \sexprs$, defined as follows: 
 $\sexpr \triangleq \val \mid \svar \mid \unoper\ \sexpr \mid \sexpr \binoper \sexpr$. 
-Intuitively, the evaluation of a \jsil expression in a symbolic state results in a symbolic expression. 
 For clarity, we use $\sexprp$ for symbolic expressions denoting property names, and $\sexprv$ for symbolic
 expressions denoting arbitrary values. 
 
@@ -717,12 +727,12 @@ operators with the boolean logical operators.
 %Alternatively, we could have \jsil logical expressions and logical expressions separately, together with a lifting function for converting the former to the latter. 
 %simplifying both reasoning and~presentation. %, as a path condition is simply a \jsil symbolic boolean expression. 
 
-We instantiate the abstract semantics for the symbolic case, 
+We instantiate the abstract semantics for the symbolic case.  
 %by providing the appropriate definitions for the required abstract functions, 
-focussing on the relevant definitions below. % (we omit those that coincide with the instrumented case). 
+%focussing on the relevant definitions below. % (we omit those that coincide with the instrumented case). 
 We write $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ for the symbolic semantic 
 judgement for basic commands and $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ 
-for commands. $\scs$ denotes symbolic call stacks, which contain symbolic stores.
+for commands. Symbolic call stacks, $\scs$, differ from concrete stacks in that they contain symbolic stores.
 For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$ to denote $(\sheap, \sdom, \sstore, \pc \wedge \sexprb)$ and $\sstate.\pcsel\!$ to denote $\pc$.
 
 %Furthermore, we redefine \jsil expressions, $\pvsexpr \in \pvsexprs$ to take into account symbolic values
@@ -865,7 +875,8 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
  \end{mathpar}}}
  \end{display}
 
-GetCell extends its instrumented counterpart by recording relevant information in the path condition (highlighted): if a symbolic property is found, we record the appropriate equality; if it is not found, we record that it is different from all of the properties.
+\noindent Symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. As they carry meaning only in the symbolic semantics, their evaluation is not supported by the concrete and instrumented semantics (cf. Appendix). 
+GetCell extends its instrumented counterpart by recording relevant information in the path condition (highlighted in blue): if a symbolic property is found, we record the appropriate equality; if it is not found, we record that it is different from all of the properties. We note that the evaluation of a symbolic variable $\svar$ returns $\svar$ itself.
 
 \begin{wrapfigure}{R}{0.12\textwidth}
 \vspace*{-0.2cm}
@@ -879,7 +890,7 @@ GetCell extends its instrumented counterpart by recording relevant information i
 \vspace*{-0.2cm}
 \end{wrapfigure}
 
-\pmax{Mention symbolic branching}
+\pmax{Non-determinism! Abstract not deterministic - concrete/instruments - object allocation, here real non-determinism.}
 
 \myparagraph{Example: Symbolic Branching}
 To get a better intuition of the symbolic execution, observe the code snippet on the right and its symbolic execution in Fig.~\ref{fig:sexecexample} (right). 
