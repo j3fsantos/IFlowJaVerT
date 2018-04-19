@@ -115,6 +115,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
  */
 /* @id base_compareToEquals */
 buckets.compareToEquals = function (compareFunction) {
+    /* @id base_compareToEquals_inner */
     return function (a, b) {
         return compareFunction(a, b) === 0;
     };
@@ -620,6 +621,7 @@ var beforeEach = function() {
 
 // test 9
 //it('isEmpty returns true only if the heap contains no elements', function () {
+beforeEach();
 var i;
 heap.isEmpty();
 createHeap1();
