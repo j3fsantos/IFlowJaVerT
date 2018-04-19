@@ -18,9 +18,10 @@ In both cases, we were able to reduce the length of the tests by up to an averag
 
 
 \myparagraph{Results}
-
 The results are presented in table~\ref{cosette:res}.
 For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
+Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for a limited number of cases).
+
 
 \begin{table}[h]
 {
@@ -29,19 +30,19 @@ For each file in the library, we report the number of JS executable lines in the
 \begin{tabular}{lrrrrrr}
 \toprule
 % Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
-Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time (s)} \\
+Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time} \\
 \midrule
-\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/\_ & 20.2 \\
-\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/\_ & 74.4 \\
-\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/\_ & 327.8 \\
-\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/\_ & 15.6 \\
-\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/\_ & 329.6 \\
-\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/\_ & 24.0 \\
-\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/\_ & 75.3 \\
-\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/\_ & 349.8 \\
-\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/\_ & 20.7 \\
-\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/\_ & 61.9 \\
-\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/\_ & 26.4 \\
+\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/\_ & 20.2s \\
+\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/\_ & 1m14s \\
+\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/\_ & 5m27s \\
+\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/\_ & 15.6s \\
+\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/\_ & 5m29s \\
+\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/\_ & 24.0s \\
+\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/\_ & 1m15s \\
+\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/\_ & 5m49s \\
+\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/\_ & 20.7s \\
+\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/\_ & 1m02s \\
+\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/\_ & 26.4s \\
 \midrule 
 \texttt{queue-pri} & 0/0 & 0/0 & 0/0 & 0/0 & 100/0 & 42.0 \\
 \bottomrule
@@ -53,13 +54,7 @@ Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} 
 \end{table}
 
 
-By leveraging \cosette's symbolic execution, we were able to cut the number of lines in the test code by a factor of 2 to 3, while increasing line coverage to 100\% in all cases.
-Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for a limited number of cases).
-
-
 \myparagraph{Bug-finding}
-
-%Writing tests helps the developer to have more confidence in their code, but it can also reveal bugs.
 With \cosette, we found a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
 
 %\myparagraph{\jsinline{multidictionary}}
