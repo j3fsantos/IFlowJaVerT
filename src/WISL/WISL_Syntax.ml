@@ -61,6 +61,7 @@ type logic_expr =
   | PVar of variable
   | LBinOp of logic_expr * binop * logic_expr
   | LUnOp of unop * logic_expr
+  | LEList of logic_expr list
 
 
 type logic_assertion =
@@ -106,6 +107,15 @@ type wisl_metadata = {
   invariant: logic_assertion option;
 }
 
+type wisl_lemma =  {
+  lemma_name: string;
+  lemma_params: variable list;
+  proof: (logic_command list) option;
+  variant: expr option;
+  hypothesis: logic_assertion;
+  conclusions: logic_assertion list;
+}
+
 (* Programs and functions *)
 
 type statement = 
@@ -133,4 +143,6 @@ type function_context = wisl_fun list
 type program = {
   context: function_context;
   predicates: logic_predicate list;
-  entry_point: (statement_with_metadata list) option}
+  lemmas: wisl_lemma list;
+  entry_point: (statement_with_metadata list) option
+}

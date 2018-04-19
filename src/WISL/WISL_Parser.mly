@@ -21,6 +21,11 @@
 %token ASSERT
 %token PRE
 %token POST
+%token VARIANT
+%token HYPOTHESIS
+%token CONCLUSIONS
+%token PROOF
+%token LEMMA
 
 
 (* punctuation *)
@@ -35,6 +40,7 @@
 %token RBRACE           /* ) */
 %token LBRACK           /* [ */
 %token RBRACK           /* ] */
+
 
 %right  SEMICOLON         /* ; */
 
@@ -96,21 +102,24 @@
 prog:
   | EOF { None }
   | fcp = definitions; stmts = statement_with_meta_list; EOF { 
-    let (fc, preds) = fcp in
-    Some (WISL_Syntax.{ predicates = preds; context=fc; entry_point=(Some stmts) })
+    let (fc, preds, lemmas) = fcp in
+    Some (WISL_Syntax.{ lemmas = lemmas; predicates = preds; context=fc; entry_point=(Some stmts) })
   }
   | fcp = definitions; EOF {
-    let (fc, preds) = fcp in
-    Some (WISL_Syntax.{ predicates = preds; context = fc; WISL_Syntax.entry_point = None })}
+    let (fc, preds, lemmas) = fcp in
+    Some (WISL_Syntax.{ lemmas = lemmas; predicates = preds; context = fc; WISL_Syntax.entry_point = None })}
 
 definitions:
-  | (* empty *) { ([], []) }
+  | (* empty *) { ([], [], []) }
   | fpdcl = definitions; p = predicate
-    { let (fs, ps) = fpdcl in
-      (fs, p::ps) }
+    { let (fs, ps,ls) = fpdcl in
+      (fs, p::ps, ls) }
+  | fpdcl = definitions; l = lemma
+    { let (fs, ps, ls) = fpdcl in
+      (fs, ps, l::ls) }
   | fpdcl = definitions; f = fct
-    { let (fs, ps) = fpdcl in
-      (f::fs, ps) }
+    { let (fs, ps, ls) = fpdcl in
+      (f::fs, ps, ls) }
 
 
 fct:
@@ -149,14 +158,12 @@ statement_with_meta:
       (metadata, s) }
 
 invariant:
-  | LCBRACE; INVARIANT; COLON; l = logic_assertion ; RCBRACE { l }
+  | INVARIANT; l = logic_assertion ; RCBRACE { l }
 
 pre_logic_cmds:
-  | LCBRACE; PRE; COLON; lcmds = separated_list(SEMICOLON, logic_command);
-    RCBRACE { lcmds }
+  | PRE; lcmds = separated_list(SEMICOLON, logic_command); RCBRACE { lcmds }
 post_logic_cmds:
-  | LCBRACE; POST; COLON; lcmds = separated_list(SEMICOLON, logic_command);
-    RCBRACE { lcmds }
+  | POST; lcmds = separated_list(SEMICOLON, logic_command); RCBRACE { lcmds }
 
 statement:
   | SKIP { WISL_Syntax.Skip }
@@ -227,6 +234,27 @@ value:
 
 (* Logic stuff *)
 
+lemma:
+  | LEMMA; name = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE;
+    vari = option(variant_def); hypo = hypo_def; concls = concls_def;
+    proof = option(proof_def); RCBRACE
+    { WISL_Syntax.{ lemma_name = name; lemma_params = params; proof = proof;
+      variant = vari; hypothesis = hypo; conclusions = concls } }
+
+variant_def:
+  | VARIANT; COLON; e = expression { e }
+
+hypo_def:
+  | HYPOTHESIS; COLON; la = logic_assertion { la }
+
+concls_def:
+  | CONCLUSIONS; COLON; las = separated_nonempty_list(SEMICOLON, logic_assertion)
+    { las }
+
+proof_def:
+  | PROOF; COLON; pr = separated_nonempty_list(SEMICOLON, logic_command)
+    { pr }
+
 predicate:
   | PREDICATE; p = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE;
     defs = separated_nonempty_list(SEMICOLON, named_logic_assertion); RCBRACE;
@@ -254,6 +282,7 @@ logic_command:
   | IF; LBRACE; g = logic_expression; RBRACE; LCBRACE;
     thencmds = separated_list(SEMICOLON, logic_command); RCBRACE;
     { WISL_Syntax.LogicIf (g, thencmds, [])}
+  | ASSERT; a = logic_assertion { WISL_Syntax.Assert a }
 
 
 logic_assertion:
@@ -282,6 +311,8 @@ logic_expression:
   | lx = LVAR { WISL_Syntax.LVar lx }
   | e1 = logic_expression; b = logic_binop; e2 = logic_expression { WISL_Syntax.LBinOp (e1, b, e2) }
   | u = unop; e = logic_expression{ WISL_Syntax.LUnOp (u, e) }
+  | LBRACK; l = separated_list(COMMA, logic_expression); RBRACK
+    { WISL_Syntax.LEList l }
   
 
 (* We also have lists in the logic *)

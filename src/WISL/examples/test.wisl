@@ -10,6 +10,36 @@ predicate lseg(x, y, alpha) {
   list_seg(#z, y, #beta) * (alpha == #v::#beta)
 }
 
+lemma lseg_to_list(x, alpha) {
+  hypothesis: (x == #x) * lseg(#x, null, #alpha)
+  conclusions: list(#x, #alpha)
+  proof: unfold(lseg(#x, null, #alpha));
+          if (not (#x = null)) {
+            assert lseg(#next, null, #beta);
+            apply lseg_to_list(#next, #beta);
+            fold list(#x, #alpha)
+          } else {
+            fold list(#x, #alpha)
+          }
+}
+
+lemma lseg_append(x, y, alpha, yval, ynext) {
+  variant: len alpha
+  hypothesis: (x == #x) * (y == #y) * (alpha == #alpha) *
+              (yval == #yval) * (ynext == #ynext) *
+              lseg(#x, #y, #alpha) * ((#y, head) -> #yval)
+              * ((#y, tail) -> #ynext)
+  conclusions: lseg(#x, #ynext, #alpha@([#yval]))
+  proof: unfold(lseg(#x, #y, #alpha));
+         if (not (#alpha = nil)) {
+           assert lseg(#next, #y, #beta);
+           apply lseg_append(#next, #y, #beta, yval, ynext); 
+           fold(lseg(#x, #ynext, #alpha @ [#yval]))
+         } else {
+           fold(lseg(#x, #ynext, #alpha @ [#yval]))
+         }
+}
+
 function lrev(x) {
   y := null;
   while (x != null) {
@@ -21,18 +51,21 @@ function lrev(x) {
   return y
 }
 
-{ list(x, #alpha) }
+{ (x == #x) * list(x, #alpha) }
 function llen(x) {
+  { pre: fold lseg(#x, #x, nil)}
   y := x;
   n := 0;
-  {invariant: list(x, #alpha) * (n == len #done) * lseg(x, y, #done)
+  { invariant: list(x, #alpha) * (n == len #done) * lseg(x, y, #done)
               * list(y, #rest) * (#alpha == #done @ #rest) }
   { pre: unfold list(x, #alpha) }
   while (y != null) {
+    { pre: assert y == #z}
     y := y.tail;
+    { pre: apply lseg_append(#x, x, #done, #z, y) }
     n := n + 1
   }
-  {post: fold list(x, #alpha) };
+  {post: apply lseg_to_list(x, #alpha) };
   return n
 }
 { list(x, #alpha) * (ret == len #alpha) }

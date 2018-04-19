@@ -46,7 +46,7 @@ let rec compile_value v = match v with
   | VList l -> Literal.LList (List.map compile_value l)
 
 
-let rec compile_expression expr =
+let rec compile_expression ?(in_lemma = false) expr =
   let is_special_binop b = match b with
     | NEQ | GREATERTHAN | GREATEREQUAL -> true
     | _ -> false
@@ -82,19 +82,19 @@ let rec compile_expression expr =
       "Operator %a is not a special operator" WISL_Printer.pp_binop b)
   in
   match expr with
-  | Val (VList vl) -> failwith "lists can only be used in the logic"
+  | Val (VList vl) when not in_lemma -> failwith "lists can only be used in the logic"
   | Val v -> JSIL.Literal (compile_value v)
   | Var "ret" -> failwith "ret is the special name used for the return
                            value in the logic. It cannot be a variable name"
   | Var x -> JSIL.Var x
-  | BinOp (e1, b, e2) when is_logic_only_binop b ->
+  | BinOp (e1, b, e2) when not (in_lemma) && (is_logic_only_binop b) ->
       failwith (Format.asprintf "Operator %a should only be used in the logic"
       WISL_Printer.pp_binop b)
   | BinOp (e1, b, e2) when is_special_binop b ->
     compile_special_binop (e1, b, e2)
   | BinOp (e1, b, e2) -> JSIL.BinOp (compile_expression e1,
                          compile_binop b, compile_expression e2)
-  | UnOp (u, e) when is_logic_only_unop u 
+  | UnOp (u, e) when (not in_lemma) && (is_logic_only_unop u) 
   ->
       failwith (Format.asprintf "Operator %a should only be used in the logic"
       WISL_Printer.pp_unop u)
@@ -159,7 +159,7 @@ let rec compile_logic_expression lexpr =
                    compile_logic_expression le2)
   | LUnOp (u, le) ->
       JSIL.LUnOp (compile_unop u, compile_logic_expression le)
-  (* | LEList lel -> JSIL.LEList (List.map compile_logic_expression lel) *)
+  | LEList lel -> JSIL.LEList (List.map compile_logic_expression lel)
 
 
 let rec compile_logic_assertion asser = match asser with
@@ -375,6 +375,23 @@ let rec compile_statement_with_meta (meta, stmt) =
       end
 
 
+let compile_lemma lemma =
+  let { lemma_name; lemma_params; proof; variant; hypothesis; conclusions } = lemma in
+  let lemma_proof = Option.map (List.map compile_logic_command) proof in
+  let lemma_variant = Option.map (compile_expression ~in_lemma:true) variant in
+  let single_spec = JSIL.{
+    pre = compile_logic_assertion hypothesis;
+    post = List.map compile_logic_assertion conclusions;
+    ret_flag = JSIL.Normal;
+  } in
+  let lemma_spec = JSIL.{
+    spec_name = lemma_name;
+    spec_params = lemma_params;
+    proc_specs = [single_spec];
+    previously_normalised = false;
+  } in
+  JSIL.{ lemma_name; lemma_spec; lemma_proof; lemma_variant }
+
 (* program related stuff *)
 let compile_function func =
   let no_metadata =
@@ -429,6 +446,13 @@ let compile_program prog =
       predlist;
     pred_hash
   in
+  let hashtbl_of_lemmas lemmalist =
+    let lemma_hash = Hashtbl.create (List.length lemmalist) in
+    List.iter
+      (fun lemma -> Hashtbl.add lemma_hash lemma.JSIL.lemma_name lemma)
+      lemmalist;
+    lemma_hash
+  in
   let main_of_stmt stmt = compile_function ({
     name="main";
     params=[];
@@ -439,18 +463,21 @@ let compile_program prog =
   let stmtopt = prog.entry_point in
   let context = prog.context in
   let preds = prog.predicates in
+  let lemmas = prog.lemmas in
   let comp_context = List.map compile_function context in
   let comp_mainfun = Option.map main_of_stmt stmtopt in
   let comp_preds = List.map compile_predicate preds in
+  let comp_lemmas = List.map compile_lemma lemmas in
   let all_procs = if Option.is_none comp_mainfun
                  then comp_context
                  else (Option.get comp_mainfun)::comp_context
   in let proc_names = get_proc_names all_procs in
   let procs = hashtbl_of_procs all_procs in
   let jsil_preds = hashtbl_of_preds comp_preds in
+  let jsil_lemmas = hashtbl_of_lemmas comp_lemmas in
   {
     JSIL.imports = [];
-  	JSIL.lemmas = Hashtbl.create 1;
+  	JSIL.lemmas = jsil_lemmas;
   	JSIL.predicates = jsil_preds;
   	JSIL.onlyspecs = Hashtbl.create 1;
   	JSIL.procedures = procs;

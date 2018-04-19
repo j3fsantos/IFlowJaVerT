@@ -16,8 +16,10 @@ let int = digit+
 let float = digit+ '.' digit*
 let loc = "$l" (letter|digit|'_')*
 let white = [' ' '\t']+
+let pre = "{" white* "pre" white* ":"
+let post = "{" white* "post" white* ":"
+let invariant = "{" white* "invariant" white* ":"
 let newline = '\r' | '\n' | "\r\n"
-
 
 rule read =
   parse
@@ -39,15 +41,20 @@ rule read =
   | "delete" { DELETE }
   | "function" { FUNCTION }
   | "predicate" { PREDICATE }
-  | "invariant" { INVARIANT }
+  | invariant { INVARIANT }
   | "return" { RETURN }
   | "fold"   { FOLD }
   | "unfold*" { RECUNFOLD }
   | "unfold" { UNFOLD }
   | "apply"  { APPLY }
   | "assert" { ASSERT }
-  | "pre"    { PRE }
-  | "post"   { POST }
+  | pre      { PRE }
+  | post     { POST }
+  | "variant" { VARIANT }
+  | "hypothesis" { HYPOTHESIS }
+  | "conclusions" { CONCLUSIONS }
+  | "proof"  { PROOF }
+  | "lemma"  { LEMMA }
   | "not"    { NOT }
   | "emp"    { EMP }
   | "len"    { LEN }
