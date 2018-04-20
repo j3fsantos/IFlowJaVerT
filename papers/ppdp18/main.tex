@@ -761,7 +761,7 @@ Because it is trustworthy, \cosette can be used both as a basis for building oth
 as a testing oracle for other symbolic execution tools for JavaScript that purposely 
 ignore some corner cases of the language semantics. 
 \polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
-None of them can be used to test specs.}
+None of them can be used to test JS specs.}
 
 
 \begin{itemize}
@@ -781,8 +781,8 @@ There is a long line of work on specification driven test synthesis, dating back
 translate Haskell type declarations into comprehensive test-suites. 
 Recently, Seidel et al~\cite{seidel:esop:2015} proposed \emph{Target}, a test generation tool 
 that advances the agenda of \emph{Quickcheck} by supporting precise refinement types. 
-The key insight of \emph{Target} is to combine the approach of \emph{Quickcheck} 
-with the use of an SMT solver for finding satisfying models for the supported type refinements. 
+The key insight of \emph{Target} is to use%combine the approach of \emph{Quickcheck} with the use of
+an SMT solver for finding satisfying models for the supported type refinements. 
 Specification-driven test generation has also been successfully applied to Java.
 \emph{Korat}~\cite{boyapati:issta:2002,milicevic:icse:2007} generates test cases for Java classes annotated with
 JML specifications~\cite{}, but it requires the class code to include 
@@ -791,7 +791,12 @@ More recently, Dolby et al. \cite{dolby:fse:2007} proposed a method for generati
 tests for Java code annotated with relational logic specifications. 
  %
  To the best of our knowledge, there is no tool for automatic test generation 
- based on Separation Logic specifications. 
+ based on Separation Logic specifications.
+ % 
+ \polish{With \cosette, one could easily concretise the resulting symbolic tests, effectively 
+ obtaining a concrete test generation tool. 
+ %
+ However, the resulting tests would be less effective from the point of view of bug finding; thus, we chose not to do it. }
 
 
 \begin{itemize}
