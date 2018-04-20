@@ -3,22 +3,21 @@
 \myparagraph{Methodology}
 Paragraph about the test262 tests
 
-With \cosette, we can write symbolic tests, in which some of the concrete values of the program are replaced with symbolic values.
-Symbolic tests improve on concrete tests for two main reasons.
-First, they are by construction more comprehensive than concrete tests, because symbolic tests can account for the whole range of values that a variable can take, instead of focusing on a few specific examples.
-Second, when \cosette finds a failing assertion inside a symbolic test, it can concretize the symbolic values into a counter-model that the developer can actually run in node, making debugging much easier compared to (the other things that we mention before).
+%With \cosette, we can write symbolic tests, in which some of the concrete values of the program are replaced with symbolic values.
+%Symbolic tests improve on concrete tests for two main reasons.
+%First, they are by construction more comprehensive than concrete tests, because symbolic tests can account for the whole range of values that a variable can take, instead of focusing on a few specific examples.
+%Second, when \cosette finds a failing assertion inside a symbolic test, it can concretize the symbolic values into a counter-model that the developer can actually run in node, making debugging much easier compared to (the other things that we mention before).
 
 Paragraph about spec-driven debugging
 
-\myparagraph{Symbolic testing}
+\myparagraph{Whole-program Symbolic Testing}
 We used \cosette to analyse the code of two JavaScript data structure libraries: Buckets.js~\cite{buckets}, and queue-pri~\cite{priq}.
-We chose these libraries because reasoning about data structure code requires a precise description of the control flow features of JavaScript, because they come equipped with unit test suites, and because they do not have external dependencies (\cosette is a whole-program analysiso); Buckets.js has over 65k downloads on npm.
+We chose these libraries because reasoning about data structure code requires a precise description of the control flow features of JavaScript, because they come equipped with unit test suites, and because they do not have external dependencies (\cosette is a whole-program analysis); Buckets.js has over 65k downloads on npm.
 For these two libraries, we wrote symbolic tests with the aim of obtaining 100\% line coverage, in order to compare them with the concrete unit tests that ship with the libraries.
 In both cases, we were able to reduce the length of the tests by up to an average factor of 3, while increasing line coverage from around 90\% to a full 100\%.
 We also discovered one bug in the Buckets.js library, as well as one in the queue-pri library.
 
 
-\myparagraph{Results}
 The results are presented in table~\ref{cosette:res}.
 For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
 We used a MacBookPro with ... GHz to run the tests and measured the time of 1 execution for each symbolic test, and took for each file the average of the run times of the symbolic tests for that file.
@@ -33,7 +32,7 @@ Most of the execution time is spent in \cosette itself, with negligible time spe
 \begin{tabular*}{\linewidth}{lrrrrrr}
 \toprule
 % Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
-Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time} \\
+Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test lines} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time} \\
 \midrule
 \texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/100 & 20.2 \\
 \texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/76.8 & 74.4 \\
@@ -57,8 +56,7 @@ Name & \makecell{JS loc} & \makecell{JSIL loc} & \# Tests & \makecell{Test loc} 
 \end{table}
 
 
-\myparagraph{Bug-finding}
-With \cosette, we found a bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), as well as a bug in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
+We found one bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), and one in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
 
 %\myparagraph{\jsinline{multidictionary}}
 %The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
@@ -67,23 +65,23 @@ In the \jsinline{remove} function, the \jsinline{value} argument can either be \
 In that case, the array associated with the key \jsinline{s} is retrieved, and, if the value is present in the array, it is removed.
 However, the library does not consider the case where this array is not found; in that case, the library tries to remove an element from \jsinline{undefined}, which raises an error.
 \begin{lstjs}
-multiDict.remove = function (key, value) {
+multidict.remove = function (key, value) {
     if (value === undefined) { ... }
     var array = parent.get(key);
-    if (buckets.arrays.remove(array, value, equalsF)) { ... }
+    if (arrays.remove(array, value, equalsF)) { ... }
     return false;
 }
 \end{lstjs}
 We were able to expose this behavior with the following symbolic test:
 
 \begin{lstjs}
-var dict = new buckets.MultiDictionary()
+var dict = new buckets.multidict()
 var s = symb_string(s);
 var x1 = symb_number(x1), x2 = symb_number(x2);
 dict.set(s, x1); dict.set(s, x2);
 dict.remove(s, x1);
-var res = dict.remove(s, x2);
-assert((x1 != x2 && res) || (x1 == x2 && !res));
+var didRemove = dict.remove(s, x2);
+assert((x1 != x2 && didRemove) || (x1 == x2 && !didRemove));
 \end{lstjs}
 
 In this test, we create a new dictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
