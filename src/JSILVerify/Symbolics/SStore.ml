@@ -100,16 +100,8 @@ let substitution (subst : substitution) (partial : bool) (x : t) : t =
 (** Updates --store-- to subst(store) *)
 let substitution_in_place (subst : substitution) (x : t) : unit =
 
-	(* Do not substitute spec vars for spec vars *)
-	let store_subst = copy_substitution subst in 
-	Hashtbl.filter_map_inplace (fun v le -> 
-		match (is_spec_var_name v), le with 
-		| false, _ -> Some le
-		| true, LVar w -> Some (LVar v)
-		| _, _ -> Some le) store_subst;
-	
 	iter x (fun v le ->
-		let s_le = lexpr_substitution store_subst true le in
+		let s_le = lexpr_substitution subst true le in
 		let s_le = if (le <> s_le) then Reduction.reduce_lexpr s_le else s_le in
 		if (le <> s_le) then put x v s_le)
 

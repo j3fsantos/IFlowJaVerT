@@ -349,12 +349,12 @@ let ss_substitution
 	(s_heap, s_store, s_pf, s_gamma, s_preds)
 
 let ss_substitution_in_place_no_gamma
-		(subst : substitution) (symb_state : symbolic_state) : unit =
+	(subst : substitution) (symb_state : symbolic_state) : unit =
 	let heap, store, pfs, gamma, preds = symb_state in
-	SHeap.substitution_in_place subst heap;		
+	SHeap.substitution_in_place  subst heap;		
 	SStore.substitution_in_place subst store;
-	pfs_substitution_in_place   subst pfs;	
-	preds_substitution_in_place subst preds
+	pfs_substitution_in_place    subst pfs;	
+	preds_substitution_in_place  subst preds
 
 (** Return the set containing all the lvars occurring in --symb_state-- *)
 let ss_lvars (symb_state : symbolic_state) : SS.t =

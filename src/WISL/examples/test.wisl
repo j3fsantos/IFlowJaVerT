@@ -1,16 +1,11 @@
 predicate list(+x, alpha) {
-  (x == #x) * (alpha == #alpha) * (#x == null) * (alpha == nil);
-  (x == #x) * (alpha == #alpha) *
-  ((#x, head) -> #v) * ((#x, tail) -> #z) *
-  list(#z, #beta) * (#alpha == #v::#beta)
+  (x == null) * (alpha == nil);
+  ((x, head) -> #v) * ((x, tail) -> #z) * list(#z, #beta) * (alpha == #v::#beta)
 }
 
 predicate lseg(+x, +y, alpha) {
-  (x == #x) * (y == #y) *
-  (#x == #y) * (alpha == #alpha) * (#alpha == nil);
-  (x == #x) * (y == #y) * (alpha == #alpha) *
-  ((#x, head) -> #v) * ((#x, tail) -> #z) *
-  lseg(#z, #y, #beta) * (#alpha == #v::#beta)
+  (x == y) * (alpha == nil);
+  ((x, head) -> #v) * ((x, tail) -> #z) * lseg(#z, y, #beta) * (alpha == #v::#beta)
 }
 
 lemma lseg_to_list(x, alpha) {
@@ -49,17 +44,17 @@ function llen(x) {
   { pre: fold lseg(#x, #x, nil)}
   y := x;
   n := 0;
-  { invariant: list(#x, #alpha) * (n == len #done) * lseg(#x, y, #done)
+  { invariant: (n == len #done) * lseg(#x, y, #done)
               * list(y, #rest) * (#alpha == #done @ #rest) }
   { pre: unfold list(y, #rest) }
   while (y != null) {
-    { pre: assert y == #z}
+    { pre: assert y == #oldy}
     y := y.tail;
-    { pre: assert ((y, head) -> #yval) * ((y, tail) -> #ytail);
-           apply lseg_append(#x, #z, #done, #yval, #ytail) }
+    { pre: assert ((#oldy, head) -> #yval) * ((#oldy, tail) -> #ytail);
+           apply lseg_append(#x, #oldy, #done, #yval, #ytail) }
     n := n + 1
-    { post: apply lseg_to_list(#x, #alpha) }
-  };
+  }
+  { post: apply lseg_to_list(#x, #alpha) };
   return n
 }
 { list(x, #alpha) * (ret == len #alpha) }
