@@ -466,12 +466,12 @@ the negative heap update removes the given property of a given object from the h
 \begin{wrapfigure}{R}{0.13\textwidth}
 \vspace*{-0.2cm}
 {\footnotesize
-\hspace*{-0.47cm} $\mathtt{0\quad w := \hasfield(x, \litstring{get})}$ \\[-0.08cm]
-\hspace*{-0.47cm} $\mathtt{1\quad \ifgoto{w}{4}{2}}$ \\[-0.08cm]
-\hspace*{-0.47cm} $\mathtt{2\quad x := [x, \litstring{\protop}] }$ \\ [-0.08cm]
-\hspace*{-0.47cm} $\mathtt{3\quad \ifgoto{x = \jnull}{\errlab}{0}}$ \\[-0.08cm]
-\hspace*{-0.47cm} $\mathtt{4\quad y := [x, \litstring{get}]}$ \\[-0.08cm]
-\hspace*{-0.47cm} $\mathtt{5\quad \jsilcall{z}{y}{}{\errlab}}$ 
+\hspace*{-0.47cm} $\mathtt{1\quad w := \hasfield(x, \litstring{get})}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{2\quad \ifgoto{w}{5}{3}}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{3\quad x := [x, \litstring{\protop}] }$ \\ [-0.08cm]
+\hspace*{-0.47cm} $\mathtt{4\quad \ifgoto{x = \jnull}{\errlab}{1}}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{5\quad y := [x, \litstring{get}]}$ \\[-0.08cm]
+\hspace*{-0.47cm} $\mathtt{6\quad \jsilcall{z}{y}{}{\errlab}}$ 
 }
 \vspace*{-0.2cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
@@ -711,9 +711,9 @@ expressions denoting arbitrary values.
 
 
 A \emph{symbolic state}, $\sstate = (\sheap, \sdom, \sstore, \pc)$, consists of a 
-symbolic heap $\sheap$, a symbolic domain $\sdom$, a symbolic store $\sstore$, and a path condition $\pc$. 
+symbolic heap~$\sheap$, a symbolic domain $\sdom$, a symbolic store $\sstore$, and a path condition~$\pc$. 
 The symbolic heap, symbolic domain, and symbolic store are obtained from their instrumented 
-counterparts of~\S\ref{subsec:instrumented}, by replacing concrete values with symbolic expressions: e.g.,~a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
+counterparts of~\S\ref{subsec:instrumented}, by replacing concrete values with symbolic expressions: for example,~a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
  maps pairs of object locations and symbolic expressions to symbolic expressions
 extended with $\none$. 
 %A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
@@ -724,7 +724,7 @@ extended with $\none$.
 A \emph{path condition}~\cite{symb:exec:survey} is a first-order quantifier-free formula which
  accumulates constraints on the symbolic variables that direct 
 the execution to the current symbolic state.
-For clarity of presentation, we conflate \jsil logical values and logical values, as well as the \jsil logical operators with boolean logical operators.
+For clarity of presentation, we conflate \jsil logical values and logical values, as well as the \jsil logical operators and boolean logical operators.
 %Alternatively, we could have \jsil logical expressions and logical expressions separately, together with a lifting function for converting the former to the latter. 
 %simplifying both reasoning and~presentation. %, as a path condition is simply a \jsil symbolic boolean expression. 
 
@@ -866,8 +866,9 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
  \end{mathpar}}}
  \end{display}
 
-\noindent Symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. As they have meaning only in the symbolic semantics, their evaluation is not supported by the concrete and instrumented semantics (cf. Appendix). 
-The GetCell of the symbolic semantics non-deterministically branches on the inspected property $\sexprp$ being equal to any of the properties of the object at location $\sexprl$ (\textsc{GetCell - Found}), and also on it \emph{not being} in the domain of the object, meaning that it is different from all of its properties (\textsc{GetCell - Not Found}). In all cases, the relevant information is recorded in the path condition (highlighted in blue). This extent of non-determinism contrasts with the concrete and instrumented semantics, 
+\noindent We note that symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. 
+As they have meaning only in the symbolic semantics, their evaluation is not supported by the concrete and instrumented semantics (cf. Appendix). 
+The GetCell of the symbolic semantics non-deterministically branches on the inspected property $\sexprp$ being equal to any of the properties of the object at location $\sexprl$ (\textsc{GetCell - Found}), and also on it \emph{not being} in the domain of the object, meaning that it is different from all of its properties (\textsc{GetCell - Not Found}). In all cases, the relevant information (highlighted in blue) is recorded in the path condition. This extent of non-determinism contrasts with the concrete and instrumented semantics, 
 where non-determinism arises only due to object~allocation.
 
  
@@ -980,20 +981,26 @@ Therefore, the assert command fails in the left branch and the symbolic executio
 %\end{mathpar}}
 %\end{display}
 
+\newcommand{\shorthand}{\sortstyle{I}_\senv}
+
 \myparagraph{Formal Guarantees}
 We relate the symbolic semantics to the instrumented semantics using 
 \emph{symbolic environments}, $\senv : \svars \rightharpoonup \vals$, mapping 
-symbolic values to concrete values. 
-A symbolic environment is \emph{well-formed} if it maps symbolic 
-values to concrete values of the appropriate type (e.g.~symbolic strings are mapped to strings). In the following, we  
+symbolic variables to concrete values. 
+A symbolic environment is \emph{well-formed} if it preserves types (e.g.~symbolic strings are mapped to strings). In the following, we  
 assume well-formed symbolic environments. 
 %
-Given a symbolic environment $\senv$, we use $\interpret{\symbinst}{\senv}(\sstate)$ to 
-denote the instrumented state obtained by interpreting $\sstate$ under $\senv$, and similarly
-for symbolic heaps, domain tables, stores, call stacks, and programs. 
+Given a symbolic environment $\senv$, we use $\shorthand(\sexpr)$ to denote the
+interpretation of the symbolic expression $\sexpr$ under $\senv$, with the key case
+being the one for symbolic variables: $\shorthand(\svar) = \senv(\svar)$. In the
+standard way, we extend
+$\shorthand$ to symbolic heaps, symbolic domains, symbolic stores, symbolic call stacks,
+as well as programs. We use $\interpret{\symbinst}{\senv}(\sstate)$ to 
+denote the instrumented state obtained by interpreting $\sstate$ under $\senv$:
+$\interpret{\symbinst}{\senv}((\sheap, \sdom, \sstore, \pc)) = (\shorthand(\sheap), \shorthand(\sdom), \shorthand(\sstore))$ if $\shorthand(\pc) = \jtrue$; and is undefined otherwise.
 
 Theorem~\ref{lemma:soundness:jsil:symb:exe:instrumented:instrumented} states 
-that if we have a symbolic trace $\prog \vdash \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$
+that if we have a symbolic trace, $\prog : \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$,
  and an instrumented state in the interpretation of $\sstate$ \emph{filtered by the final 
  path condition}, then there is an instrumented trace that will produce a final instrumented state 
  in the interpretation of the final symbolic state. 
@@ -1014,10 +1021,9 @@ the instrumented execution follows the same path as the symbolic execution.
 \vspace*{-0.1cm}
 $$
 \begin{array}{l}
-\prog \vdash \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  \ \wedge \ (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
-    \ \implies \ \exists \, \istate', \cs' \, . \, 
-        \interpret{\symbinst}{\senv}(\prog) \vdash \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad \quad \quad  \quad \quad \quad \quad  \quad \quad
-             \ \wedge \ (\istate', \cs') = \interpret{\symbinst}{\senv}(\sstate', \scs')
+\prog : \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \ \wedge \ \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel) \\ \quad \ \wedge \ \cs = \shorthand(\scs) \ \Rightarrow \ \exists \, \istate', \cs' \, . \, 
+        \shorthand(\prog) : \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad \quad \quad  \quad \quad \quad \quad  \quad \quad
+             \ \wedge \ \istate' = \interpret{\symbinst}{\senv}(\sstate')  \ \wedge \ \cs' = \shorthand(\scs')
 \end{array}
 $$
 \end{theorem}
@@ -1033,17 +1039,15 @@ In other words, the interpretation of symbolic states needs to describe both the
 Below, we give the formal interpretation of symbolic states, 
 $\interpret{\symbconc}{\senv}(\sstate)$. This interpretation denotes a set of pairs of the form $(\jstate, \heap_f)$,
 where $\jstate$ is the concrete state obtained from $\sstate$ using $\senv$, and $\heap_f$ is
-a concrete heap frame that can be safely added to $\jstate$, meaning that it does not overlap with either the positive or the negative resource captured by~$\sstate$. The positive resource is collected by $\interpret{\symbconc}{\senv}(\sheap)$ (in its first component), whereas the negative resource is collected by $\interpret{\symbconc}{\senv}(\sheap)$ (in its second component) and also by $\interpret{\symbconc}{\senv}(\sdom)$. The interpretation for symbolic stores and the path condition simply evaluates the symbolic variables w.r.t.~the logical environment $\senv$.
-
-\newcommand{\shorthand}{\sortstyle{I}_\senv}
+a concrete heap frame that can be safely added to $\jstate$, meaning that it does not overlap with either the positive or the negative resource captured by~$\sstate$. The positive resource is collected by $\interpret{\symbconc}{\senv}(\sheap)$ (its first component), whereas the negative resource is collected by $\interpret{\symbconc}{\senv}(\sheap)$ (its second component) and by $\interpret{\symbconc}{\senv}(\sdom)$. 
 
 \smallskip
- \begin{display}{Symbolic State Interpretation $(\shorthand = \interpret{\symbconc}{\senv})$}
+ \begin{display}{Symbolic State Interpretation}
 {\scriptsize 
 \begin{mathpar}
 %
 \inferrule[Empty Heap]{}{
-\shorthand(\hemp) \semeq \hemp, \emptyset
+\interpret{\symbconc}{\senv}(\hemp) \semeq \hemp, \emptyset
 }
 \qquad
 \inferrule[Non-none Cell]{
@@ -1052,7 +1056,7 @@ a concrete heap frame that can be safely added to $\jstate$, meaning that it doe
 %    v =  \interpret{\symbconc}{\senv}(\sexprv)  \quad 
     \heap = \hcell{\shorthand(\sexprl)}{\shorthand(\sexprp)}{\shorthand(\sexprv)}
 }{
-\shorthand(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  (\heap, \emptyset)
+\interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\sexprv}) \semeq  (\heap, \emptyset)
 }
 \qquad
 \inferrule[None Cell]{
@@ -1060,13 +1064,13 @@ a concrete heap frame that can be safely added to $\jstate$, meaning that it doe
 %   p = \interpret{\symbconc}{\senv}(\sexprp)  \\\\
    \hdom = \jsilset{ (\shorthand(\sexprl), \shorthand(\sexprp) }
 }{
-  \shorthand(\hcell{\sexprl}{\sexprp}{\none}) \semeq (\hemp, \hdom)
+  \interpret{\symbconc}{\senv}(\hcell{\sexprl}{\sexprp}{\none}) \semeq (\hemp, \hdom)
 }
 \\
 \inferrule[Heap Composition]{
 %   \interpret{\symbconc}{\senv}(\sheap_i) = h_i, \hdom_i \mid_{i =1,2} \\\\
-   \heap = \shorthand(h_1) \dunion \shorthand(h_2) \\\\
-   \hdom = \shorthand(\hdom_1) \dunion \shorthand(\hdom_2)
+   \heap = \interpret{\symbconc}{\senv}(h_1) \dunion \interpret{\symbconc}{\senv}(h_2) \\\\
+   \hdom = \interpret{\symbconc}{\senv}(\hdom_1) \dunion \interpret{\symbconc}{\senv}(\hdom_2)
 }{
 f(\sheap_1 \dunion \sheap_2) \semeq (\heap, \hdom)
 }
@@ -1079,22 +1083,22 @@ f(\sheap_1 \dunion \sheap_2) \semeq (\heap, \hdom)
                               \, \wedge \, p \not\in \shorthand(\sdom(\sexprl))
                      } \right\}
 }{
-\shorthand(\sdom) 
+\interpret{\symbconc}{\senv}(\sdom) 
     \semeq \hdom 
 }
 \and
 \inferrule[Symbolic States]{
     \sstate = (\sheap, \sdom, \sstore, \pc) 
     \quad 
-   \shorthand(\sheap) = \heap, \hdom_1
+   \interpret{\symbconc}{\senv}(\sheap) = \heap, \hdom_1
    \quad
-   \shorthand(\sdom) = \hdom_2
+   \interpret{\symbconc}{\senv}(\sdom) = \hdom_2
    \quad
    \shorthand(\sstore) = \store
     \quad 
     \shorthand(\pc) = \jtrue 
 }{
-\shorthand(\sstate) \semeq \{ ((\heap, \store), \heap_f) \mid \domain(\heap_f) \cap (\domain(h) \cup \hdom_1 \cup \hdom_2) = \emptyset \} 
+\interpret{\symbconc}{\senv}(\sstate) \semeq \{ ((\heap, \store), \heap_f) \mid \domain(\heap_f) \cap (\domain(h) \cup \hdom_1 \cup \hdom_2) = \emptyset \} 
 }
 \end{mathpar}}
 \end{display}
@@ -1107,14 +1111,14 @@ frames, which is not the case for standard results  in symbolic execution.
 \pmax{Mention related work stronger.}
 
 \vspace*{-0.1cm}
-\begin{theorem}[Bounded Soundess + Frame Resilience]\label{teo:soundness:jsil:symb:exe}
+\begin{theorem}[Bounded Soundness + Frame Resilience]\label{teo:soundness:jsil:symb:exe}
 $$
 \begin{array}{l}
-\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
-    \ \wedge \ (\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs) \\ \quad \quad 
-    \ \implies \ \exists \, \senv', \jstate', \cs' \, . \, 
-        \transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\concrete} \\ \quad \quad \quad \quad \quad \quad \quad \quad \quad \quad 
-               \ \wedge \ (\jstate', \cs', \heap_f) \in \interpret{\symbconc}{\senv'}(\sstate', \scs')
+\prog : \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
+    \\ \quad \wedge \ (\jstate, \cs) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel) \ \wedge \ \cs = \shorthand(\scs) \\ \qquad \implies \exists \, \jstate', \cs' \, . \,
+        \shorthand(\prog) : \transabssemrule{\jstate \dunion \heap_f, \cs, i}{\jstate' \dunion \heap_f, \cs', j}{\mode}{\mode'}{\concrete} \\ \qquad \qquad \quad
+               \wedge \ (\jstate', \heap_f) \in \interpret{\symbconc}{\senv}(\sstate')
+               \ \wedge \ \cs' = \shorthand(\scs')
 \end{array}
 $$
 \end{theorem}

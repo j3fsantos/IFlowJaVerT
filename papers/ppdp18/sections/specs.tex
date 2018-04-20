@@ -2,7 +2,7 @@
 
 \pmax{Pull up the messages, mention JS.}
 
-We show how to use \cosette for debugging \jsil code annotated with 
+\noindent We show how to use \cosette for debugging \jsil code annotated with 
 separation logic (SL) specifications. Tools that support SL-reasoning about
 functional correctness properties of programs often require of the user to 
 analyse long, complex proof traces whenever
@@ -28,14 +28,14 @@ counter-model that invalidates the corresponding specification (\S\ref{specs:to:
 \vspace{-5pt}
 \subsection{Symbolic Execution with SL-Assertions}\label{subsec:sep:assertions}
 
-\jsil Logic assertions~\cite{javert} provide a way of describing \emph{partial} symbolic states. 
-They include: boolean operations; the separating conjunction; 
+\jsil Logic assertions~\cite{javert} provide a way of describing \emph{partial} symbolic states.
+They are built on top of \jsil expressions, and include boolean operations; the separating conjunction; 
 and assertions for describing heaps. The $\lemp$ assertion describes 
-an empty heap. The cell assertion, $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$,  describes an object 
-at the location denoted by $\lexpr_1$ with a property denoted by $\lexpr_2$ that has the value 
-denoted by $\lexpr_3$. The object domain assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
-the location denoted by $\lexpr_1$ has no properties other than possibly those included in the
-set denoted by $\lexpr_2$. \pmaxinline{Mention sth about Es being the same.} %The syntax of assertions is given below. 
+an empty heap. The cell assertion, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexpr_3$,  describes an object 
+at the location denoted by $\jsilexpr_1$ with a property denoted by $\jsilexpr_2$ that has the value 
+denoted by $\jsilexpr_3$. The object domain assertion $\emptyfields{\jsilexpr_1}{\jsilexpr_2}$ states that the object at 
+the location denoted by $\jsilexpr_1$ has no properties other than possibly those included in the
+set denoted by $\jsilexpr_2$. %\pmaxinline{Mention sth about Es being the same.} %The syntax of assertions is given below. 
 %We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
 %and use $\spass$ and $\sqass$ to range over them.
 
@@ -43,17 +43,17 @@ set denoted by $\lexpr_2$. \pmaxinline{Mention sth about Es being the same.} %Th
 \begin{display}{\jsil Logic Assertions}
 %
 {\small
-\begin{tabular}{l}
+\begin{tabular}{r@{\ }c@{\ }lr}
   %%%%
-  $\lexpr \quad \ \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr \quad \quad \quad \quad \quad \quad \quad \ \ $   \hfill Logical Exprs. \\
-  $\rass, \sass \ \triangleq \jtrue \mid \jfalse \mid  \neg \rass \mid \rass \land \sass \mid \rass \lor \sass  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$  \quad \text{\hfill{Pure Asrts.}} \\
-  $\pass, \qass \triangleq \sass \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \pass \sep \qass  \mid \emptyfields{\lexpr}{\lexpr} $ \quad \quad \quad \quad \ \  \text{\hfill Asrts.} \\
+  %$\lexpr$ & $\triangleq$ & $\val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ & Logical Exprs. \\
+  $\rass, \sass$ & $\triangleq$ & $\jtrue \mid \jfalse \mid  \neg \rass \mid \rass \land \sass \mid \rass \lor \sass \mid \lexpr = \jsilexpr \mid \jsilexpr \leq \jsilexpr$ & Pure Asrts. \\
+  $\pass, \qass$ & $\triangleq$ & $\sass \mid \lemp \mid (\jsilexpr, \jsilexpr)\pointsto \jsilexpr \mid \pass \sep \qass  \mid \emptyfields{\jsilexpr}{\jsilexpr}$ & Asrts. \\
 \end{tabular}}
 \end{display}
 
 \noindent Without loss of generality, we implicitly assume that different symbolic locations 
 denote different concrete locations.\footnote{To express aliasing, the user has to write multiple assertions.}
- Furthermore, given a cell assertion $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$, we always assume 
+ Furthermore, given a cell assertion $(\jsilexpr,\jsilexpr) \pointsto \jsilexpr$, we always assume 
  $\lexpr_1$ to be either a concrete location $\loc$ or a symbolic location $\sloc$. 
 %
 Note that 
@@ -67,7 +67,7 @@ a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the as
 \end{array}}
 \end{equation*}
 
-\noindent where $\varoast$ denotes the iterated separating conjunction~\cite{}. 
+\noindent where $\varoast$ denotes the iterated separating conjunction~\cite{citeme}. 
 Analogously, an assertion can be normalised into a symbolic state: 
  cell assertions form the heap; 
 object domain assertions form the domain table;
@@ -400,17 +400,17 @@ $$
 {\footnotesize
 $$
 \begin{array}{lll}
-\testify{}(\specsig{P}{\pid(\jvar_1, ..., \jvar_n)}{Q}{\flag}) \ \semeq                           &  \testify{\fnormal}(\pid, \svar_i\mid_{i=0}^n, Q) \ \semeq \\
+\testify{}(\specsig{P}{\pid(\jvar_0, ..., \jvar_n)}{Q}{\flag}) \ \semeq                           &  \testify{\fnormal}(\pid, \svar_i|_{i=0}^n, Q) \ \semeq \\
 %
-\ \  \mathbf{let} \ \sstore =  [ \jvar_i \mapsto \svar_i \mid_{i=0}^n] \ \mathbf{in}        &  \ \  \darkmath{\sf proc} \jsilmain () \{    \\
+\quad  \mathbf{let} \ \sstore =  [ \jvar_i \mapsto \svar_i|_{i=0}^n] \ \mathbf{in}        &  \quad \darkmath{\sf proc} \jsilmain () \{    \\
 %
- \ \  \mathbf{let} \ \sstate = \normaliser(\sstore(P)) \ \mathbf{in}                               &   \ \ \ \ 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab} \\
+\quad  \mathbf{let} \ \sstate = \normaliser(\sstore(P)) \ \mathbf{in}                               &   \qquad 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab} \\
  %
-\ \  \mathbf{let} \ Q' = \sstore(Q) \ \mathbf{in}                                                           &    \ \ \ \ \retlab \, : \sepassert(Q[\jvar/\retvar])  \\
+\quad  \mathbf{let} \ Q' = \sstore(Q) \ \mathbf{in}                                                           &  \qquad \retlab \, : \sepassert(Q[\jvar/\retvar])  \\
  %
- \ \  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i\mid_{i=0}^n, Q')  \ \mathbf{in}  &    \ \ \ \ \errlab \, \, \, : \jassert(\jfalse)   \\
+\quad  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i|_{i=0}^n, Q')  \ \mathbf{in}  &    \qquad \errlab \, \, \, : \jassert(\jfalse)   \\
  %
- \ \ \ \ (\proc, \sstate)                                                                                                 &    \ \ \}  
+\qquad (\proc, \sstate)                                                                                                 &  \quad \}  
 \end{array}
 $$}
 \vspace*{-0.4cm}
@@ -444,7 +444,7 @@ $$
          \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
 \end{array}
 $$
-\noindent where:  $\csmain = [ (\jsilmain, -, -, -) ]$ 
+\noindent where  $\csmain = [ (\jsilmain, -, -, -, -) ]$ 
 and $\prog' = \prog[\jsilmain \mapsto \proc]$.
 \end{theorem}
 

@@ -1832,6 +1832,7 @@ Computing Machinery]
       \fi
       \parbox[t]{\@ACM@title@width}{\centering\@titlefont
         \@title
+        \vspace*{-0.65mm}
         \ifx\@subtitle\@empty\else
           \par\noindent{\@subtitlefont\@subtitle}
         \fi
@@ -1843,8 +1844,7 @@ Computing Machinery]
             \raisebox{-.5\baselineskip}[\z@][\z@]{\href{\@acmBadgeR@url}{%
                 \includegraphics[width=\@ACM@badge@width]{\@acmBadgeR@image}}}%
           \fi}%
-      \fi
-      \par\bigskip}}%
+      \fi}}%
 \def\@mktitle@iv{\hsize=\textwidth
     \setbox\mktitle@bx=\vbox{\raggedright\leftskip5pc\@titlefont
       \noindent\leavevmode\leaders\hrule height 2pt\hfill\kern0pt\par
@@ -1915,8 +1915,8 @@ Computing Machinery]
   \def\@authorfont{\LARGE\sffamily}
   \def\@affiliationfont{\large}
 \or % sigconf
-  \def\@authorfont{\LARGE}
-  \def\@affiliationfont{\large}
+  \def\@authorfont{\Large}
+  \def\@affiliationfont{\normalsize}
 \or % siggraph
   \def\@authorfont{\normalsize\normalfont}
   \def\@affiliationfont{\normalsize\normalfont}
@@ -2027,7 +2027,7 @@ Computing Machinery]
   \global\setbox\mktitle@bx=\vbox{\noindent
     \box\mktitle@bx\par\medskip\leavevmode
     \lineskip=1pc\relax\centering\hspace*{-1em}%
-    \addresses\let\and\@typeset@author@bx\and\par\bigskip}}
+    \addresses\let\and\@typeset@author@bx\and\par\medskip}}
 \def\@mkauthors@iv{%
   \author@bx@wd=\columnwidth\relax
   \advance\author@bx@wd by -\author@bx@sep\relax
