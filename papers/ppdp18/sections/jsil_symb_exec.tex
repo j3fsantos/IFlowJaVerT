@@ -38,10 +38,10 @@ Our instrumented semantics explicitly keeps track of properties that are not pre
 	% $\jnumber \in \numbers$ \jspc  $\jbool \in \bools$ \jspc $\jstring \in \strings$  \jspc 
 	% $\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
 	 %
-$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$
+$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid \! \mid \! \overline{\val} \! \mid \! \{ \val \}$
    \\[0.1cm]
  %
-  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \svar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
+  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \svar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr \mid \overline{\jsilexpr} \mid \{ \jsilexpr \}$
  \\[0.1cm]
 %
 $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr $ \\
@@ -56,8 +56,8 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 \end{display}
 
 \vspace{5pt}
-\noindent \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jundefined$, $\jnull$, and $\jempty$, object locations~$\loc$, types~$\jtype$, and procedure identifiers $\pid$.
-\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, typed symbolic variables $\svar$, and various unary and binary operators (e.g.~for supporting sets and~lists). Symbolic variables range over symbolic strings, numbers, booleans, and locations, denoted respectively by $\sstring$, $\snumber$, $\sbool$, and~$\sloc$.
+\noindent \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jundefined$, $\jnull$, and $\jempty$, object locations~$\loc$, types~$\jtype$, procedure identifiers $\pid$, and lists and sets of values.
+\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, symbolic variables $\svar$, various unary/binary operators, and lists and sets of expressions. Symbolic variables range over symbolic strings, numbers, booleans, and locations, denoted respectively by $\sstring$, $\snumber$, $\sbool$, and~$\sloc$.
 
 %
 
@@ -77,7 +77,7 @@ A \jsil program $\prog \in \progs$ is a set of top-level procedures and its entr
 %
 %\pmax{more modular, factor out. three for symbolic analysis}
 
-\myparagraph{Abstract semantics} We design the abstract semantics to make the analysis, the proofs, and the implementations as modular as possible. At its core are the GetCell and GetDomain functions, which precisely pinpoint the way in which \jsil interacts with the heap, factoring out the common behaviour of \jsil commands. It also provides constructs for standard reasoning about symbolic values, whose concrete and instrumented semantics are trivial.
+\myparagraph{Abstract semantics} We design the abstract semantics to make the analysis, the proofs, and the implementations as modular as possible. At its core are the GetCell and GetDomain functions, which precisely pinpoint the way in which \jsil interacts with the heap, factoring out the common behaviour of \jsil commands. It also provides standard constructs for reasoning about symbolic values, whose concrete and instrumented semantics are trivial.
 
 The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval \in \absvals$.
 Abstract states are assumed to have a store $\absstore: \jvars \partialmap \absvals$, mapping program variables $\jvar \in \jvars$ to abstract values. Stores are accessible via a store selector, $\absstate.\stosel$.
