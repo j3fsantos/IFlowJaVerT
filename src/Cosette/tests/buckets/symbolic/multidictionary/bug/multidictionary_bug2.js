@@ -115,6 +115,7 @@ buckets.reverseCompareFunction = function (compareFunction) {
  */
 /* @id base_compareToEquals */
 buckets.compareToEquals = function (compareFunction) {
+    /* @id base_compareToEquals_inner */
     return function (a, b) {
         return compareFunction(a, b) === 0;
     };
@@ -745,17 +746,13 @@ buckets.MultiDictionary = function (toStrFunction, valuesEqualsFunction) {
 
 var dict = new buckets.MultiDictionary()
 
-var s1 = symb_string(s1);
-var s2 = symb_string(s2);
+var s = symb_string(s);
 var x1 = symb_number(x1);
 var x2 = symb_number(x2);
 
-Assume(not (x1 = x2));
+dict.set(s, x1);
+dict.set(s, x2);
 
-dict.set(s1, x1);
-dict.set(s2, x2);
-
-var res1 = dict.remove(s1, x1);
-Assert(res1);
-var res2 = dict.remove(s1, x2);
-Assert(((s1 = s2) and (not (x1 = x2)) and res2) or (((not (s1 = s2)) or ((s1 = s2) and (x1 = x2))) and (not res2)));
+dict.remove(s, x1);
+var res = dict.remove(s, x2);
+Assert(((not (x1 = x2)) and res) or ((x1 = x2) and (not res)));
