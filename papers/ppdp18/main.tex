@@ -742,25 +742,68 @@ The existing literature covers a wide range of analysis techniques for JavaScrip
 type systems~\cite{thiemann:esop:2005,anderson:ecoop:2005,jensen:sas:2009,typescript:toot:2014,feldthaus:oopsla:2014,bierman:ecoop:2014,rastogi:popl:2015},
 control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang2009points,sridharan:ecoop:12} and abstract
 interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
-Here, we focus on the existing work on logic-based analysis and symbolic execution for JavaScript. 
+Here, we focus on the existing work on symbolic execution and  
+logic-based analysis for JavaScript and we further discuss techniques for specification-driven 
+test generation in general.  
 
 \myparagraph{Symbolic Execution for JS}
+The majority of the existing bug-finding symbolic execution tools for JavaScript target specific bug patterns, 
+such as: security vulnerabilities related to the misuse of strings~\cite{saxena:sp:2010} 
+(e.g. absence of sanitisation before security critical operations), malformed Web API requests~\cite{wittern:icse:2018}, and
+DOM API specific bugs~\cite{li:fse:2014}. They are fully automatic and aim at code in 
+the large, primarily focusing on scalability and coverage issues. \cosette has a different 
+purpose: it is not designed to be fully automatic, but to \emph{assist} developers in 
+testing their code. 
+Furthermore, unlike previous bug-finding tools, \cosette is trustworthy: it models the semantics of 
+JavaScript precisely and its theoretical underpinnings are formalised and proven sound. 
+Because it is trustworthy, \cosette can be used both as a basis for building other more specific analysis 
+\polish{(I can talk about the analysis that Peter Thieman wants to write)} and 
+as a testing oracle for other symbolic execution tools for JavaScript that purposely 
+ignore some corner cases of the language semantics. 
+\polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
+None of them can be used to test JS specs.}
+
+
 \begin{itemize}
    \item \cite{saxena:sp:2010} - Kudzu
    \item \cite{li:fse:2014} - Toshiba guys
-   \item \cite{koushik:fse:2015} - jalangi
+   \item \polish{\cite{koushik:fse:2015} - jalangi} Jalangi~\cite{koushik:fse:2015} is the closest 
+            to ours in spirit. It is a general analysis. It does not model the JavaScript semantics 
+            precisely. 
    \item \cite{wittern:icse:2018} -  Julian 
 \end{itemize}
 
 
-There 
 
-\myparagraph{Specification-directed Testing}
+\myparagraph{Specification-driven Testing}
+There is a long line of work on specification driven test synthesis, dating back to 
+\emph{Quickcheck}~\cite{claessen:icfp:2000}. \emph{Quickcheck} and its followers~\cite{}
+translate Haskell type declarations into comprehensive test-suites. 
+Recently, Seidel et al~\cite{seidel:esop:2015} proposed \emph{Target}, a test generation tool 
+that advances the agenda of \emph{Quickcheck} by supporting precise refinement types. 
+The key insight of \emph{Target} is to use%combine the approach of \emph{Quickcheck} with the use of
+an SMT solver for finding satisfying models for the supported type refinements. 
+Specification-driven test generation has also been successfully applied to Java.
+\emph{Korat}~\cite{boyapati:issta:2002,milicevic:icse:2007} generates test cases for Java classes annotated with
+JML specifications~\cite{}, but it requires the class code to include 
+a special Java method for checking if the class invariants hold. 
+More recently, Dolby et al. \cite{dolby:fse:2007} proposed a method for generating 
+tests for Java code annotated with relational logic specifications. 
+ %
+ To the best of our knowledge, there is no tool for automatic test generation 
+ based on Separation Logic specifications.
+ % 
+ \polish{With \cosette, one could easily concretise the resulting symbolic tests, effectively 
+ obtaining a concrete test generation tool. 
+ %
+ However, the resulting tests would be less effective from the point of view of bug finding; thus, we chose not to do it. }
+
+
 \begin{itemize}
    \item \cite{dolby:fse:2007} - Julian 
    \item \cite{milicevic:icse:2007} \cite{boyapati:issta:2002} - Korat
    \item \cite{seidel:esop:2015} - Target
-   \item \cite{claessen:icfp:2000} - QuickCheck
+   \item \cite{claessen:icfp:2000} - QuickCheck. but also: FLOPS 2014 - Generating constrained random data with uniform distribution
 \end{itemize}
 
 
@@ -772,10 +815,10 @@ There
    \item \cite{javert} - javert \polish{Not syntax-directed, no implementation insights}
 \end{itemize}
 
-\myparagraph{Entailment in Separation Logic and Countermodels}
-\begin{itemize}
-   \item 
-\end{itemize}
+%\myparagraph{Entailment in Separation Logic and Countermodels}
+%\begin{itemize}
+%   \item 
+%\end{itemize}
 
 
 
