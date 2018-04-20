@@ -308,7 +308,8 @@ let find_recursive_preds (preds : (string, unfolded_predicate) Hashtbl.t) =
 				incr count;
 				Hashtbl.add visited pred_name index;
 				Hashtbl.add open_pred pred_name true;
-				assert (Hashtbl.mem preds pred_name);
+				if not (Hashtbl.mem preds pred_name)
+				then failwith (Printf.sprintf "Predicate %s is undefined" pred_name);
 				(* make sure that the hash table is well-formed *)
 				let pred = Hashtbl.find preds pred_name in
 				let neighbours = (* Find the names of all predicates that the current predicate uses *)
