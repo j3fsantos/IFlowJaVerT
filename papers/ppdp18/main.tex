@@ -1,4 +1,4 @@
-\documentclass[sigconf, anonymous, review]{acmart}
+\documentclass[sigconf, review]{acmart}
 
 
 \usepackage{enumitem}
@@ -289,6 +289,9 @@ separation logic specifications of JS programs.
 
 \title[\cosette:~Symbolic Execution for JavaScript]{\cosette:~Symbolic Execution for JavaScript}       
 
+\author[J. Fragoso Santos, P. Maksimovi\'c, T. Grohens, P. Gardner, J. Dolby]{Jos\'e Fragoso Santos, Petar Maksimovi\'c, Th\'eotime Grohens, Philippa Gardner, Julian Dolby}
+\affiliation{Imperial College London, ENS Paris, IBM New York}
+
 
 \begin{document}
 %
@@ -470,7 +473,7 @@ However, designing a compositional analysis for dynamic languages, such as JavaS
 %
 We achieve compositionality by explicitly keeping track of properties that must {\em not be present} in a given object in order for the program to behave correctly.
 %Because JavaScript does not observe the frame property, such conditions need to refer to positive resources, object properties that need to be present with certain properties, as well as negative resources, object properties that must not be present. 
-Compositionality also allows us to state a verification result for \cosette, precisely capturing the conditions under which our symbolic execution is sound.
+%Compositionality also allows us to state a verification result for \cosette, precisely capturing the conditions under which our symbolic execution is sound.
 To our knowledge, \cosette is the first compositional symbolic execution tool for dynamic languages.
 
 
@@ -723,9 +726,9 @@ both specifications and code.
 \section{Specification-Driven Bug-Finding}\label{sec:specs}
 \input{sections/specs}
 
-\newpage
-\section{From \jsil to JavaScript}\label{sec:lifting}
-\input{sections/lifting}
+%\newpage
+%\section{From \jsil to JavaScript}\label{sec:lifting}
+%\input{sections/lifting}
 
 \newpage
 \section{Evaluation}\label{sec:evaluation}
@@ -799,6 +802,7 @@ There
 \appendix
 
 \input{sections/appendix}
+\input{sections/appendix-unification}
 \input{sections/appendix_eval}
 
 \end{document}

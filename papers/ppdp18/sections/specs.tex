@@ -1,6 +1,8 @@
 %!TEX root = ../main.tex
 
-We show how to use \cosette for debugging \jsil code annotated with 
+\pmax{Pull up the messages, mention JS.}
+
+\noindent We show how to use \cosette for debugging \jsil code annotated with 
 separation logic (SL) specifications. Tools that support SL-reasoning about
 functional correctness properties of programs often require of the user to 
 analyse long, complex proof traces whenever
@@ -26,33 +28,32 @@ counter-model that invalidates the corresponding specification (\S\ref{specs:to:
 \vspace{-5pt}
 \subsection{Symbolic Execution with SL-Assertions}\label{subsec:sep:assertions}
 
-\jsil Logic assertions~\cite{javert}
-provide a compositional way of describing \emph{partial} symbolic states. 
-They include: boolean operations; the separating conjunction; 
+\jsil Logic assertions~\cite{javert} provide a way of describing \emph{partial} symbolic states.
+They are built on top of \jsil expressions, and include boolean operations; the separating conjunction; 
 and assertions for describing heaps. The $\lemp$ assertion describes 
-an empty heap. The cell assertion, $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$,  describes an object 
-at the location denoted by $\lexpr_1$ with a property denoted by $\lexpr_2$ that has the value 
-denoted by $\lexpr_3$. The object domain assertion $\emptyfields{\lexpr_1}{\lexpr_2}$ states that the object at 
-the location denoted by $\lexpr_1$ has no properties other than possibly those included in the
-set denoted by $\lexpr_2$. %The syntax of assertions is given below. 
-We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
-and use $\spass$ and $\sqass$ to range over them.
+an empty heap. The cell assertion, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexpr_3$,  describes an object 
+at the location denoted by $\jsilexpr_1$ with a property denoted by $\jsilexpr_2$ that has the value 
+denoted by $\jsilexpr_3$. The object domain assertion $\emptyfields{\jsilexpr_1}{\jsilexpr_2}$ states that the object at 
+the location denoted by $\jsilexpr_1$ has no properties other than possibly those included in the
+set denoted by $\jsilexpr_2$. %\pmaxinline{Mention sth about Es being the same.} %The syntax of assertions is given below. 
+%We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
+%and use $\spass$ and $\sqass$ to range over them.
 
 \vspace{2pt}
 \begin{display}{\jsil Logic Assertions}
 %
 {\small
-\begin{tabular}{l}
+\begin{tabular}{r@{\ }c@{\ }lr}
   %%%%
-  $\lexpr \quad \ \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr \quad \quad \quad \quad \quad \quad \quad \ \ $   \text{ Logical Expressions} \\
-  $\rass, \sass \ \triangleq \jtrue \mid \jfalse \mid  \neg \rass \mid \rass \land \sass \mid \rass \lor \sass  \mid \lexpr = \lexpr \mid \lexpr \leq \lexpr$  \quad \text{\hfill{Pure Asrts.}} \\
-  $\pass, \qass \triangleq \sass \mid \lemp \mid (\lexpr, \lexpr)\pointsto \lexpr \mid \pass \sep \qass  \mid \emptyfields{\lexpr}{\lexpr} $ \quad \quad \quad \quad \ \  \text{\hfill Asrts.} \\
+  %$\lexpr$ & $\triangleq$ & $\val \mid \jvar \mid \svar \mid \unoper\ \lexpr \mid \lexpr \binoper \lexpr$ & Logical Exprs. \\
+  $\rass, \sass$ & $\triangleq$ & $\jtrue \mid \jfalse \mid  \neg \rass \mid \rass \land \sass \mid \rass \lor \sass \mid \lexpr = \jsilexpr \mid \jsilexpr \leq \jsilexpr$ & Pure Asrts. \\
+  $\pass, \qass$ & $\triangleq$ & $\sass \mid \lemp \mid (\jsilexpr, \jsilexpr)\pointsto \jsilexpr \mid \pass \sep \qass  \mid \emptyfields{\jsilexpr}{\jsilexpr}$ & Asrts. \\
 \end{tabular}}
 \end{display}
 
 \noindent Without loss of generality, we implicitly assume that different symbolic locations 
 denote different concrete locations.\footnote{To express aliasing, the user has to write multiple assertions.}
- Furthermore, given a cell assertion $(\lexpr_1,\lexpr_2) \pointsto \lexpr_3$, we always assume 
+ Furthermore, given a cell assertion $(\jsilexpr,\jsilexpr) \pointsto \jsilexpr$, we always assume 
  $\lexpr_1$ to be either a concrete location $\loc$ or a symbolic location $\sloc$. 
 %
 Note that 
@@ -66,7 +67,7 @@ a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the as
 \end{array}}
 \end{equation*}
 
-\noindent where $\varoast$ denotes the iterated separating conjunction~\cite{}. 
+\noindent where $\varoast$ denotes the iterated separating conjunction~\cite{citeme}. 
 Analogously, an assertion can be normalised into a symbolic state: 
  cell assertions form the heap; 
 object domain assertions form the domain table;
@@ -89,9 +90,9 @@ those predicates up to a fixed, user-defined bound. We omit this unfolding mecha
 as it is routine. 
 
 \myparagraph{Asserting SL-Assertions}
-We extend \jsil with a special construct, $\sepassert(P)$, for stating that 
-the assertion $P$ must hold whenever that command is evaluated. 
-The symbolic semantics is given below. 
+We extend \jsil commands with a special construct, $\sepassert(P)$, for stating that 
+ the SL-assertion $P$ must hold whenever that command is evaluated. 
+The corresponding symbolic semantics rules are given below. 
 
 \vspace*{-0.2cm}
 {\footnotesize
@@ -118,20 +119,49 @@ The symbolic semantics is given below.
 \end{mathpar}}
 
 \vspace*{-0.2cm}
-\noindent The rules use a partial decision procedure $\unificationfun(\sstate, \pass)$ for 
+\noindent The rules use a partial decision procedure $\unificationfun(\sstate, \pass)$, for 
 determining if a given symbolic state $\sstate$ satisfies an assertion $P$, 
-undecidable in general \cite{citemeplease}. More concretely, 
+which is undecidable in general \cite{citemeplease}. More concretely, 
 the decision procedure outputs: 
  $\success{\subst, \sstate_f}$ when it finds a substitution $\subst$ and 
 a symbolic state frame $\sstate_f$ such that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))$ holds;\footnote{ 
 We use $\statecompose$ for the composition of two symbolic states.}
 and $\fail{\pc_f}$ when it finds a first-order formula $\pc_f$, such that 
 $\interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset$. 
-Note that every concrete state and heap frame in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are counter models 
+Note that every concrete state and heap frame in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are counter-models 
 for $P$. By requiring that $(\sstate.\pcsel \, \wedge \, \pc_f)$ is satisfiable, 
-the semantics only triggers an assertion failure when it finds a concrete witness for the failure---any instantiation of $(\sstate \, \wedge \, \pc_f)$. 
+the semantics only triggers an assertion failure when it finds a concrete witness for the failure---any instantiation of $(\sstate \, \wedge \, \pc_f)$. \pmaxinline{Make clearer.}
 
 \subsection{The Frame Inference Problem}\label{subsec:fip}
+
+{\footnotesize \begin{algorithm}[t!]
+\algblock[Name]{match}{end}
+\caption{Frame Inference for Symbolic States}\label{fip:symb:states}
+\begin{algorithmic}[1]
+\Function{Unification}{$\sstate$, $\jvec{\spass}$}
+    \State $\textbf{match}$ $\jvec{\spass}$ $\textbf{with}$
+    \State $\mid~\lstemp:$ \Return $\success{\sstate}$
+   % Cell ASS
+    \State $\mid~(\sloc, \sexprp) \pointsto \sexprv \lstcons \jvec{\sqass} :$ 
+    \State $\qquad \textbf{match} \ \GetCellV{\sstate, \sloc, \sexprp}$ $\textbf{with}$
+    \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv = \sexprv')$
+     \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return  \Call{Unification}{$\sstate'$, $\jvec{\sqass}$}
+     \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv \neq \sexprv'}$
+      \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
+      % EF ASS
+     \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \jvec{\sqass} :$  
+       \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \sloc}$ $\textbf{with}$
+       \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv \backslash \sexprv' = \{ \sexprp_1, ..., \sexprp_n \})$
+        \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return \Call{Unification}{$\sstate' \dunion (\sloc, \sexprp_i) \pointsto \none \mid_{i = 1}^n$, $\jvec{\sqass}$}
+       \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv' \not\subseteq \sexprv }$
+       \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
+     % OTHER PURE ASS
+     \State $\mid~\sass \lstcons \jvec{\sqass} :$  $ \textbf{if} \,(\sstate.\pcsel \vdash \sass)$
+       \State $\qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\jvec{\sqass}$}
+      \State $\qquad \qquad \textbf{else}$  \Return $\fail{\neg \sass}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}}
 
 We describe a partial decision procedure, which we  
 implement as part of the \jsil symbolic interpreter, for proving entailments 
@@ -141,72 +171,19 @@ As it is customary~\cite{javert,jacobs2011verifast,sepwithsmt}, the decision pro
 on the spatial part of the symbolic state, and then discharging the pure part of the 
 entailment to an external constraint solver (in our case, \rosette). 
 
-\myparagraph{Unification Plan}
 When solving $\unificationfun(\sstate, \pass)$, the symbolic variables of $\pass$ that are not 
 in $\sstate$ are assumed to be existentially quantified. 
-To find the appropriate bindings for these variables, we 
-introduce \emph{unification plans} (Def.~\ref{def:up}).
-Informally, a unification plan is an ordering of the simple assertions in $\pass$ that 
-guarantees that the unification algorithm does not have to backtrack at unification~time. 
+As in~\cite{nguyen:vmcai:2008}, we make 
+use of a topological ordering of the simple assertions in $\pass$ to find the appropriate bindings 
+for existentially quantified variables. Here, for lack of space, we describe the frame inference 
+algorithm for the setting in which there are no existentially quantified variables. 
+The full version of the algorithm is given in the appendix.  
 
-\begin{table}[!h]
-{\small \begin{tabular}{@{}c@{}ccc@{}c@{}}\toprule
-\emph{Argument} & & \textbf{IN}  & & \textbf{OUT}  \\
-\cmidrule{1-1} \cmidrule{3-3} \cmidrule{5-5}
-
-$\svar$                                                       & & $\{ \svar \}$                                                          & & $\{ \svar \}$    \\
-$\jsillist{\lexpr_1, ..., \lexpr_n}$                     & & $\upin(\lexpr_1) \cup ... \cup \upin(\lexpr_n)$      & & $\upout(\lexpr_1) \cup ... \cup \upout(\lexpr_n)$ \\
-$\lexpr_1 + \lexpr_2$                                    & & $\upin(\lexpr_1) \cup \upin(\lexpr_2)$                  & & $\emptyset$ \\
-$\cdots$ & & $\cdots$ & & $\cdots$ \\[1pt]
-%%
-$(\lexpr_1, \lexpr_2)\pointsto \lexpr_3$   & & $\upin(\lexpr_1) \cup \upin(\lexpr_2)$ & & $\upout(\lexpr_3)$  \\
-%
-$\emptyfields{\lexpr_1}{\lexpr_2}$           &  & $\upin(\lexpr_1) \cup \upin(\lexpr_2)$ & & $\emptyset$ \\
-%
-$\lexpr_1 = \lexpr_2$                               & & $\upin(\lexpr_1)$/$\upin(\lexpr_2)$      & & $\upout(\lexpr_2)$/$\upout(\lexpr_1)$ \\
-%
-$\sass$                                                    & & $\fv(\sass)$                                           & & $\emptyset$ \\
-\bottomrule
-\end{tabular}}
-%\caption{\emph{in} and \emph{out} sets for assertions and logical expressions}
-%\label{tab:insouts}
-\end{table}
-
-To construct unification plans, we define an \emph{in} set and an \emph{out} set for each assertion and logical expression, illustrated above. These 
-sets are reminiscent of the predicate parameter modes in~\cite{nguyen:vmcai:2008}).
-Intuitively, the variables in the \emph{out} set of an assertion are those that can be computed 
-using the variables in the \emph{in} set, together with the current state (e.g.~given the assertion $(\svar_1, \svar_2) \pointsto \svar_3$, if we know the bindings
-for $\svar_1$ and $\svar_2$, we can compute the bindings for $\svar_3$, given 
-the current symbolic state). 
-%
-For logical expressions, the variables in the \emph{out} set are those that can be computed
-given the value of the whole expression, whereas the variables in the \emph{in} set 
-are those that we need to know to compute the value of the whole expression.  
-Finally, the definition of a unification plan is given below. 
-
-\begin{definition}[Unification Plan]\label{def:up}
-A \emph{unification plan} $\up$ is a sequence of simple assertions $\sqass_i \mid_{i=0}^n$ such that
-for all $0 \leq i \leq n$, it holds that:
-$
- \upin(\sqass_i) \subseteq \big(\cup_{j = 0}^{i-1} \upout(\sqass_j)\big) \cup \upin_0
-$,
-where $\upin_0$ is the set of \underline{non}-existentially quantified logical variables. 
-\end{definition}
-
-\vspace{-3pt}
-\noindent It is not always possible to generate a unification plan for an SL-assertion. We only 
-consider assertions that admit a unification plan. 
-
-\myparagraph{Unification Algorithm}
-Given a symbolic state $\sstate$ and an assertion $\pass$, $\unificationfun(\sstate, \pass)$: 
-\dtag{1} replaces all occurrences of program variables in $\pass$ with their bindings 
-given by $\sstate.\stosel$;
-\dtag{2} computes an initial substitution $\subst_0$, mapping all the non-existentially quantified symbolic 
-variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate) \cap \fv(\pass)}$); 
-\dtag{3} creates a unification plan $\up$ for $\pass$; and, 
-\dtag{4} calls Algorithm~\ref{fip:symb:states}. 
-%
-Algorithm~\ref{fip:symb:states} makes use of the following auxiliary functions: 
+Given a symbolic state $\sstate$ and an assertion $\pass$, $\unificationfun(\sstate, \pass)$ 
+ replaces all occurrences of program variables in $\pass$ with their bindings 
+given by $\sstate.\stosel$ and then calls Algorithm~\ref{fip:symb:states} 
+on a list containing all the simple assertions in $\pass$. The algorithm makes use of the
+functions: 
 
 \begin{description}
 \setlength{\itemsep}{0.2em}
@@ -220,50 +197,52 @@ Algorithm~\ref{fip:symb:states} makes use of the following auxiliary functions:
           of the object at location $\sloc$ in $\sstate$, \underline{and} 
           the state obtained by removing all the negative resource associated with 
           $\sloc$ from $\sstate$.  
-  
-  \item[Expression Unification.]  In case of success, $\unifylexpr(\sexprv, \sexprv', \subst, \pc)$ 
-          returns a substitution $\subst'$ that extends $\subst$ such that $\pc \vdash \sexprv = \subst'(\sexprv')$. 
+%  
+%  \item[Expression Unification.]  In case of success, $\unifylexpr(\sexprv, \sexprv', \subst, \pc)$ 
+%          returns a substitution $\subst'$ that extends $\subst$ such that $\pc \vdash \sexprv = \subst'(\sexprv')$. 
 \end{description}
 
-{\footnotesize \begin{algorithm}[t!]
-\algblock[Name]{match}{end}
-\caption{Frame Inference for Symbolic States}\label{fip:symb:states}
-\begin{algorithmic}[1]
-\Function{Unification}{$\sstate$, $\up$, $\subst$}
-    \State $\textbf{match}$ $\up$ $\textbf{with}$
-    \State $\mid~\lstemp:$ \Return $\success{\subst, \sstate}$
-   % Cell ASS
-    \State $\mid~(\sloc, \sexprp) \pointsto \sexprv \lstcons \up' :$ 
-    \State $\qquad \textbf{match} \ \GetCellV{\sstate, \subst(\sloc), \subst(\sexprp)}$ $\textbf{with}$
-    \State $\qquad \mid~\success{\sexprv', \sstate'}:$
-    \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
-     \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
-      \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
-      \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
-      % EF ASS
-     \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \up' :$  
-       \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \subst(\sloc)}$ $\textbf{with}$
-       \State $\qquad \mid~\success{\sexprv', \sstate'}:$
-         \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
-       \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
-       \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
-       \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
-     % Logical Equality  
-     \State $\mid~(\sexprv = \sexprv') \lstcons \up' :$  
-        \State $\qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
-         \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate$, $\up'$, $\subst'$}
-       \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
-     % OTHER PURE ASS
-     \State $\mid~\sass \lstcons \up' :$   
-      \State $\qquad \textbf{if} \,(\sstate.\pcsel \vdash \subst(\sass))$
-       \State $\qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\up'$, $\subst$}
-      \State $\qquad \qquad \textbf{else}$  \Return $\fail{\subst(\sass)}$
-\EndFunction
-\end{algorithmic}
-\end{algorithm}}
 
-We give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\GetDomainV{\sstate, \sloc}$, analogous to those in \S\ref{subsec:symb:semantics}, except that they return a new symbolic state 
-from which the matched resource is removed and their corresponding constraints are lifted to the premise (highlighted in blue). Also, in case of failure, all auxiliary functions return a constraint $\pc_f$ under which the unification is not possible (highlighted in red). 
+Algorithm~\ref{fip:symb:states} has four cases: 
+\begin{itemize}
+   \item $\jvec{\spass}=\lstemp$ --- there is nothing left to unify; the algorithm 
+            returns the current symbolic state, which constitutes the frame. 
+   
+   \item $\jvec{\spass} = (\sloc, \sexprp) \pointsto \sexprv \lstcons \jvec{\sqass}$ ---
+            the algorithm uses $\GetCellVFun$ to obtain the symbolic value 
+            $\sexprv'$ associated with $(\sloc, \sexprp)$ in the current symbolic state and
+            checks that $\sexprv' = \sexprv$ under the current path condition. 
+            If the entailment holds, the unification proceeds. If not, the algorithm generates 
+            the \emph{failing constraint} $\sexprv' \neq \sexprv$. 
+  
+   \item $\emptyfields{\sloc}{\sexprv} \lstcons \jvec{\sqass}$ ---
+            the algorithm uses $\GetDomainVFun$ to obtain the domain $\sexprv'$
+            of $\sloc$ in the current symbolic state and 
+            checks that $\sexprv' \subseteq \sexprv$ under the current path condition. 
+            \polish{
+              For instance, 
+              the assertion $\emptyfields{\sloc}{\jsilset{p_1, p_2}}$ states that $\sloc$ has \emph{at most}
+              the properties $p_1$ and $p_2$. It might only have one of them, or none at all. 
+              But it cannot have more.
+            }
+            If the entailment holds, the algorithm extends the current symbolic state with the negative 
+            resource in $\sloc$ not captured by $\emptyfields{\sloc}{\sexprv}$ and the unification proceeds. 
+            If not, the algorithm generates the \emph{failing constraint} $\sexprv' \not\subseteq \sexprv$. 
+            
+   \item $\jvec{\spass} = \sass \lstcons \jvec{\sqass}$ --- 
+            the algorithm checks that $\sass$ is entailed by the current path condition. 
+             If it is, the unification proceeds. If not, the algorithm generates 
+             the \emph{failing constraint} $\neg \sass$. 
+\end{itemize}
+
+
+%\vspace*{-0.8cm}
+We give selected rules for $\GetCellV{\sstate, \sloc, \sexprp}$ and $\GetDomainV{\sstate, \sloc}$. 
+There rules are analogous to those in \S\ref{subsec:symb:semantics}, except that: \dtag{1} they return a new symbolic state 
+from which the matched resource is removed and \dtag{2} their corresponding constraints are lifted to the premise (highlighted in blue). 
+Also, in case of failure, all auxiliary functions return a constraint $\pc_f$ under which the inspected resource is guaranteed not 
+to exist (highlighted in red). 
+
 
 \vspace{2pt}
 \begin{display}{Selected FIP Rules}
@@ -335,7 +314,7 @@ from which the matched resource is removed and their corresponding constraints a
 \myparagraph{Formal Guarantees}
 The unification algorithm is sound: 
 given an SL-assertion $\pass$ and a symbolic state $\sstate$, if
-$\unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}$, then there is a symbolic state
+$\unificationfun(\sstate, \pass) = \success{\sstate_f}$, then there is a symbolic state
 $\sstate'$ such that $\sstate = \sstate' \statecompose \sstate_f$ and $\sstate'$ satisfies $\pass$ (Theorem~\ref{teo:fip:soundness}). 
 The bug-finding theorem, Theorem~\ref{teo:fip:bugfinding}, is more subtle. It states that, 
 in case of failure, to find a counter-model for $\pass$, one has to pick a concretisation of the 
@@ -345,9 +324,9 @@ symbolic state consistent with the failing constraint generated by the unificati
 \begin{theorem}[Soundness of FIP]\label{teo:fip:soundness}
 $$
 \begin{array}{l}
-	\unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}
+	\unificationfun(\sstate, \pass) = \success{\sstate_f}
         \implies 
-        \interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))
+        \interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\pass))
 \end{array}
 $$ 
 \end{theorem}
@@ -399,17 +378,17 @@ $$
 {\footnotesize
 $$
 \begin{array}{lll}
-\testify{}(\specsig{P}{\pid(\jvar_1, ..., \jvar_n)}{Q}{\flag}) \ \semeq                           &  \testify{\fnormal}(\pid, \svar_i\mid_{i=0}^n, Q) \ \semeq \\
+\testify{}(\specsig{P}{\pid(\jvar_0, ..., \jvar_n)}{Q}{\flag}) \ \semeq                           &  \testify{\fnormal}(\pid, \svar_i|_{i=0}^n, Q) \ \semeq \\
 %
-\ \  \mathbf{let} \ \sstore =  [ \jvar_i \mapsto \svar_i \mid_{i=0}^n] \ \mathbf{in}        &  \ \  \darkmath{\sf proc} \jsilmain () \{    \\
+\quad  \mathbf{let} \ \sstore =  [ \jvar_i \mapsto \svar_i|_{i=0}^n] \ \mathbf{in}        &  \quad \darkmath{\sf proc} \jsilmain () \{    \\
 %
- \ \  \mathbf{let} \ \sstate = \normaliser(\sstore(P)) \ \mathbf{in}                               &   \ \ \ \ 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab} \\
+\quad  \mathbf{let} \ \sstate = \normaliser(\sstore(P)) \ \mathbf{in}                               &   \qquad 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab} \\
  %
-\ \  \mathbf{let} \ Q' = \sstore(Q) \ \mathbf{in}                                                           &    \ \ \ \ \retlab \, : \sepassert(Q[\jvar/\retvar])  \\
+\quad  \mathbf{let} \ Q' = \sstore(Q) \ \mathbf{in}                                                           &  \qquad \retlab \, : \sepassert(Q[\jvar/\retvar])  \\
  %
- \ \  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i\mid_{i=0}^n, Q')  \ \mathbf{in}  &    \ \ \ \ \errlab \, \, \, : \jassert(\jfalse)   \\
+\quad  \mathbf{let} \ \proc = \testify{\flag}(\pid, \svar_i|_{i=0}^n, Q')  \ \mathbf{in}  &    \qquad \errlab \, \, \, : \jassert(\jfalse)   \\
  %
- \ \ \ \ (\proc, \sstate)                                                                                                 &    \ \ \}  
+\qquad (\proc, \sstate)                                                                                                 &  \quad \}  
 \end{array}
 $$}
 \vspace*{-0.4cm}
@@ -443,7 +422,7 @@ $$
          \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
 \end{array}
 $$
-\noindent where:  $\csmain = [ (\jsilmain, -, -, -) ]$ 
+\noindent where  $\csmain = [ (\jsilmain, -, -, -, -) ]$ 
 and $\prog' = \prog[\jsilmain \mapsto \proc]$.
 \end{theorem}
 

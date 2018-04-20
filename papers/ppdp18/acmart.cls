@@ -1832,6 +1832,7 @@ Computing Machinery]
       \fi
       \parbox[t]{\@ACM@title@width}{\centering\@titlefont
         \@title
+        \vspace*{-0.2cm}
         \ifx\@subtitle\@empty\else
           \par\noindent{\@subtitlefont\@subtitle}
         \fi
@@ -1843,8 +1844,7 @@ Computing Machinery]
             \raisebox{-.5\baselineskip}[\z@][\z@]{\href{\@acmBadgeR@url}{%
                 \includegraphics[width=\@ACM@badge@width]{\@acmBadgeR@image}}}%
           \fi}%
-      \fi
-      \par\bigskip}}%
+      \fi}}%
 \def\@mktitle@iv{\hsize=\textwidth
     \setbox\mktitle@bx=\vbox{\raggedright\leftskip5pc\@titlefont
       \noindent\leavevmode\leaders\hrule height 2pt\hfill\kern0pt\par
@@ -1915,7 +1915,7 @@ Computing Machinery]
   \def\@authorfont{\LARGE\sffamily}
   \def\@affiliationfont{\large}
 \or % sigconf
-  \def\@authorfont{\LARGE}
+  \def\@authorfont{\Large}
   \def\@affiliationfont{\large}
 \or % siggraph
   \def\@authorfont{\normalsize\normalfont}
