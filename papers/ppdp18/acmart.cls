@@ -1832,7 +1832,7 @@ Computing Machinery]
       \fi
       \parbox[t]{\@ACM@title@width}{\centering\@titlefont
         \@title
-        \vspace*{-0.65mm}
+        \vspace*{-0.2cm}
         \ifx\@subtitle\@empty\else
           \par\noindent{\@subtitlefont\@subtitle}
         \fi
@@ -1916,7 +1916,7 @@ Computing Machinery]
   \def\@affiliationfont{\large}
 \or % sigconf
   \def\@authorfont{\Large}
-  \def\@affiliationfont{\normalsize}
+  \def\@affiliationfont{\large}
 \or % siggraph
   \def\@authorfont{\normalsize\normalfont}
   \def\@affiliationfont{\normalsize\normalfont}
@@ -2027,7 +2027,7 @@ Computing Machinery]
   \global\setbox\mktitle@bx=\vbox{\noindent
     \box\mktitle@bx\par\medskip\leavevmode
     \lineskip=1pc\relax\centering\hspace*{-1em}%
-    \addresses\let\and\@typeset@author@bx\and\par\medskip}}
+    \addresses\let\and\@typeset@author@bx\and\par\bigskip}}
 \def\@mkauthors@iv{%
   \author@bx@wd=\columnwidth\relax
   \advance\author@bx@wd by -\author@bx@sep\relax
