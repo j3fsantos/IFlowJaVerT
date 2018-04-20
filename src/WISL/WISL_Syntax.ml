@@ -91,6 +91,7 @@ type logic_predicate = {
   pred_name: string;
   pred_params: variable list;
   pred_definitions: ((string option) * logic_assertion) list;
+  ins: int list;
 }
 
 type logic_command =

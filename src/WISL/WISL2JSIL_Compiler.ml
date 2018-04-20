@@ -219,7 +219,7 @@ let compile_predicate pred =
     name = pred.pred_name;
     num_params = List.length pred.pred_params;
     params = List.map (fun str -> (str, None)) pred.pred_params;
-    ins = [];
+    ins = pred.ins;
     definitions = List.map 
                   (fun (stopt, asst) -> (stopt, compile_logic_assertion asst))
                   pred.pred_definitions;

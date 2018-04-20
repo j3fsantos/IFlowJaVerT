@@ -1,13 +1,13 @@
-predicate list(x, alpha) {
+predicate list(+x, alpha) {
   (x == null) * (alpha == nil);
   ((x, head) -> #v) * ((x, tail) -> #z) *
   list(#z, #beta) * (alpha == #v::#beta)
 }
 
-predicate lseg(x, y, alpha) {
+predicate lseg(+x, +y, alpha) {
   (x == y) * (alpha == nil);
   ((x, head) -> #v) * ((x, tail) -> #z) *
-  list_seg(#z, y, #beta) * (alpha == #v::#beta)
+  lseg(#z, y, #beta) * (alpha == #v::#beta)
 }
 
 lemma lseg_to_list(x, alpha) {

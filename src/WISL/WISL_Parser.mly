@@ -256,10 +256,18 @@ proof_def:
     { pr }
 
 predicate:
-  | PREDICATE; p = IDENTIFIER; LBRACE; params = var_list; RBRACE; LCBRACE;
+  | PREDICATE; p = IDENTIFIER; LBRACE; params_ins = separated_list(COMMA, pred_param); RBRACE; LCBRACE;
     defs = separated_nonempty_list(SEMICOLON, named_logic_assertion); RCBRACE;
-    { WISL_Syntax.{pred_name=p; pred_params=params; pred_definitions=defs} }
+    { let(params, ins) = List.split params_ins in
+      let ins = List.map Option.get (List.filter (fun x -> x <> None) (List.mapi (fun i is_in -> if is_in then Some i else None) ins)) in
+  		let ins = if (List.length ins > 0) then ins else (List.mapi (fun i _ -> i) params) in 
+      WISL_Syntax.{pred_name=p; pred_params=params; pred_definitions=defs; ins=ins} }
 
+pred_param:
+  | inp = option(PLUS); x = IDENTIFIER
+    { let isin = Option.map_default (fun _ -> true) false inp in
+      (x, isin) }
+  
 named_logic_assertion:
   | id = option(assertion_id); a = logic_assertion
     { (id, a) }
