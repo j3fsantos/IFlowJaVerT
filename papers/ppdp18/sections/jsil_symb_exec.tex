@@ -41,7 +41,7 @@ Our instrumented semantics explicitly keeps track of properties that are not pre
 $\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid \! \mid \! \overline{\val} \! \mid \! \{ \val \}$
    \\[0.1cm]
  %
-  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \svar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr \mid \overline{\jsilexpr} \mid \{ \jsilexpr \}$
+  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \svar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
  \\[0.1cm]
 %
 $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr] \mid [\jsilexpr, \jsilexpr] := \jsilexpr $ \\
@@ -57,7 +57,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 
 \vspace{5pt}
 \noindent \jsil \emph{values}, $\val \in \vals$, include numbers, booleans, strings, the special values $\jundefined$, $\jnull$, and $\jempty$, object locations~$\loc$, types~$\jtype$, procedure identifiers $\pid$, and lists and sets of values.
-\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, symbolic variables $\svar$, various unary/binary operators, and lists and sets of expressions. Symbolic variables range over symbolic strings, numbers, booleans, and locations, denoted respectively by $\sstring$, $\snumber$, $\sbool$, and~$\sloc$.
+\jsil~\emph{expressions}, $\jsilexpr \in \exprs$, include \jsil values, \jsil program variables $\jvar$, various unary and binary operators, and symbolic variables $\svar$, introduced in this paper. Symbolic variables range over symbolic strings, numbers, booleans, and locations, denoted respectively by $\sstring$, $\snumber$, $\sbool$, and~$\sloc$.
 
 %
 
@@ -65,7 +65,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 They include $\jsilskip$, variable assignment, object creation, property access, property assignment, property deletion, membership check, and property collection.
 %, and a new command for symbolic variable creation. 
 %
-\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two commands for symbolic reasoning, $\assume$ and $\jassert$.  %\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
+\jsil \emph{commands} include \jsil basic commands and control flow commands: conditional and unconditional gotos, dynamic procedure calls, and two new commands for symbolic reasoning, $\assume$ and $\jassert$.  %\footnote{\jsil also has a $\phi$-node assignment (cf.~\cite{javert}), supporting Static-Single-Assignment (SSA) \cite{SSA}. To avoid clutter, we omit it as it does not impact the reasoning.} 
 The goto commands are intuitive: $\goto \ i$ jumps to the $i$-th command of the active procedure, and $\ifgoto{\jsilexpr}{i}{j}$ jumps to the $i$-th command if $\jsilexpr$ evaluates to $\jtrue$, and to the $j$-th otherwise. 
 The dynamic procedure call $\jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ evaluates  $\jsilexpr$ and $\jvec{\jsilexpr}$ to obtain the procedure identifier and arguments, respectively, executes the appropriate procedure with these arguments, and, in the end, assigns its return value to $\jvar$.
 If the procedure raises an error, control is transferred to the $j$-th command; otherwise, it follows to the next command. 
@@ -481,7 +481,7 @@ the negative heap update removes the given property of a given object from the h
 
 
 \myparagraph{Example: Frame}
-The \jsil concrete semantics does not have the frame property. 
+The \jsil concrete semantics does not satisfy the frame property. 
 We illustrate this with the program on the right, which 
 looks for the property $\litstring{get}$ in the 
 prototype chain of the object bound to $\mathtt{x}$, reads the value of that 
@@ -866,15 +866,15 @@ For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$
  \end{mathpar}}}
  \end{display}
 
-\noindent We note that symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. 
-As they have meaning only in the symbolic semantics, their evaluation is not supported by the concrete and instrumented semantics (cf. Appendix). 
-The GetCell of the symbolic semantics non-deterministically branches on the inspected property $\sexprp$ being equal to any of the properties of the object at location $\sexprl$ (\textsc{GetCell - Found}), and also on it \emph{not being} in the domain of the object, meaning that it is different from all of its properties (\textsc{GetCell - Not Found}). In all cases, the relevant information (highlighted in blue) is recorded in the path condition. This extent of non-determinism contrasts with the concrete and instrumented semantics, 
-where non-determinism arises only due to object~allocation.
+\noindent Symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. 
+As they have meaning only in the symbolic semantics, they cannot be evaluated in the concrete/instrumented semantics (cf. Appendix). 
+The GetCell of the symbolic semantics non-deterministically branches on the inspected property $\sexprp$ being equal to any of the properties of the object at location $\sexprl$ (\textsc{GetCell - Found}), and also on it \emph{not being} in the domain of the object, i.e.~being different from all of its properties (\textsc{GetCell - Not Found}). In all cases, the relevant information (highlighted in blue) is recorded in the path condition. This non-determinism contrasts with the concrete/instrumented semantics, where non-determinism occurs only in object~allocation. 
+The \textsc{Assume} rule strengthens the path condition with the symbolic expression we are assuming to hold. The two SAT-check rules check satisfiability of a given expression under the current path condition. 
 
  
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{0.1cm}
+\vspace*{-0.3cm}
 {\footnotesize
 \hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\[-0.06cm]
 \hspace*{-0.55cm} $\mathtt{2\quad o[\hat{s}] := 42};$ \\[-0.06cm]
