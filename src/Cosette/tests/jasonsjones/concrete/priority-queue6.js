@@ -6,6 +6,7 @@
  
 // ------------------------------- isEqual -----------------------------------
 
+/* @id base_isEqual */
 function isEqual(x, y) {
 	return x === y;
 };
@@ -43,6 +44,7 @@ function isEqual(x, y) {
  * @constructor
  * @param {object} theList the linked list to iterate over
  */
+/* @id iter_constr */
 function Iterator(theList) {
     this.list = theList || null;
 
@@ -62,6 +64,7 @@ Iterator.prototype = {
      *
      * @returns {object} the next node in the iteration.
      */
+    /* @id iter_next */
     next: function() {
         var current = this.currentNode;
         // a check to prevent error if randomly calling next() when
@@ -83,6 +86,7 @@ Iterator.prototype = {
      *
      * @returns true if the iterator has a node to return, false otherwise
      */
+    /* @id iter_hasNext */
     hasNext: function() {
         return this.currentNode !== null;
     },
@@ -90,6 +94,7 @@ Iterator.prototype = {
     /**
      * Resets the iterator to the beginning of the list.
      */
+    /* @id iter_reset */
     reset: function() {
         this.currentNode = this.list.getHeadNode();
     },
@@ -100,6 +105,7 @@ Iterator.prototype = {
      *
      * @returns the first node in the list
      */
+    /* @id iter_first */
     first: function() {
         this.reset();
         return this.next();
@@ -110,6 +116,7 @@ Iterator.prototype = {
      *
      * @param {object} theList the linked list to iterate over
      */
+    /* @id iter_setList */
     setList: function(theList) {
         this.list = theList;
         this.reset();
@@ -122,6 +129,7 @@ Iterator.prototype = {
      * @param {function} callback the callback function to be called with
      *                   each node of the list as an arg
      */
+    /* @id iter_each */
     each: function(callback) {
         this.reset();
         var el;
@@ -156,6 +164,7 @@ Iterator.prototype = {
  * @constructor
  * @param {object|number|string} data The data to initialize with the node
  */
+/* @id node_constr */
 function Node(data) {
     this.data = data || null;
     this.next = null;
@@ -174,6 +183,7 @@ Node.prototype = {
      *
      * @returns {boolean} true if there is a next node; false otherwise
      */
+    /* @id node_hasNext */
     hasNext: function() {
         return (this.next !== null);
     },
@@ -183,6 +193,7 @@ Node.prototype = {
      *
      * @returns {boolean} true if there is a previous node; false otherwise
      */
+    /* @id node_hasPrev */
     hasPrev: function() {
         return (this.prev !== null);
     },
@@ -192,6 +203,7 @@ Node.prototype = {
      *
      * @returns {object|string|number} the data of the node
      */
+    /* @id node_getData */
     getData: function() {
         return this.data;
     },
@@ -203,6 +215,7 @@ Node.prototype = {
      *
      * @return {string} the string represenation of the node data
      */
+    /* @id node_toString */
     toString: function() {
         if (typeof this.data === 'object') {
             return JSON.stringify(this.data);
@@ -239,6 +252,7 @@ Node.prototype = {
  *
  * @constructor
  */
+/* @id dll_constr */
 function DoublyLinkedList() {
     this.head = null;
     this.tail = null;
@@ -266,6 +280,7 @@ DoublyLinkedList.prototype = {
      *                                    node
      * @returns {object} Node object intialized with 'data'
      */
+    /* @id dll_createNewNode */
     createNewNode: function(data) {
         return new Node(data);
     },
@@ -276,6 +291,7 @@ DoublyLinkedList.prototype = {
      *
      * @returns {object} the head node of the list
      */
+    /* @id dll_getHeadNode */
     getHeadNode: function() {
         return this.head;
     },
@@ -286,6 +302,7 @@ DoublyLinkedList.prototype = {
      *
      * @returns {object} the tail node of the list
      */
+    /* @id dll_getTailNode */
     getTailNode: function() {
         return this.tail;
     },
@@ -295,6 +312,7 @@ DoublyLinkedList.prototype = {
      *
      * @returns {boolean} true if the list is empty, false otherwise
      */
+    /* @id dll_isEmpty */
     isEmpty: function() {
         return (this.size === 0);
     },
@@ -304,6 +322,7 @@ DoublyLinkedList.prototype = {
      *
      * @returns {number} the number of nodes in the list
      */
+    /* @id dll_getSize */
     getSize: function() {
         return this.size;
     },
@@ -311,6 +330,7 @@ DoublyLinkedList.prototype = {
     /**
      * Clears the list of all nodes/data
      */
+    /* @id dll_clear */
     clear: function () {
         while (!this.isEmpty()) {
             this.remove();
@@ -326,6 +346,7 @@ DoublyLinkedList.prototype = {
      *                                    node
      * @returns {boolean} true if insert operation was successful
      */
+    /* @id dll_insert */
     insert: function(data) {
         var newNode = this.createNewNode(data);
         if (this.isEmpty()) {
@@ -347,6 +368,7 @@ DoublyLinkedList.prototype = {
      *                                    node
      * @returns {boolean} true if insert operation was successful
      */
+    /* @id dll_insertFirst */
     insertFirst: function(data) {
         if (this.isEmpty()) {
             this.insert(data);
@@ -369,6 +391,7 @@ DoublyLinkedList.prototype = {
      * @param {number} index The index in the list to insert the new node
      * @param {object|string|number} data The data to initialize with the node
      */
+    /* @id dll_insertAt */
     insertAt: function (index, data) {
         var current = this.getHeadNode(),
             newNode = this.createNewNode(data),
@@ -410,6 +433,7 @@ DoublyLinkedList.prototype = {
      * @param {object|string|number} dataToInsert The data to initialize with the node
      * @returns {boolean} true if insert operation was successful
      */
+    /* @id dll_insertBefore */
     insertBefore: function (nodeData, dataToInsert) {
         var index = this.indexOf(nodeData);
         return this.insertAt(index, dataToInsert);
@@ -423,6 +447,7 @@ DoublyLinkedList.prototype = {
      * @param {object|string|number} dataToInsert The data to initialize with the node
      * @returns {boolean} true if insert operation was successful
      */
+    /* @id dll_insertAfter */
     insertAfter: function (nodeData, dataToInsert) {
         var index = this.indexOf(nodeData);
         var size = this.getSize();
@@ -452,6 +477,7 @@ DoublyLinkedList.prototype = {
      *
      * @returns the node that was removed
      */
+    /* @id dll_remove */
     remove: function() {
         if (this.isEmpty()) {
             return null;
@@ -481,6 +507,7 @@ DoublyLinkedList.prototype = {
      *
      * @returns the node that was removed
      */
+    /* @id dll_removeFirst */
     removeFirst: function() {
         if (this.isEmpty()) {
             return null;
@@ -506,6 +533,7 @@ DoublyLinkedList.prototype = {
      * @param {number} index The index of the node to remove
      * @returns the node that was removed
      */
+    /* @id dll_removeAt */
     removeAt: function (index) {
         var nodeToRemove = this.findAt(index);
 
@@ -540,6 +568,7 @@ DoublyLinkedList.prototype = {
      * @param {object|string|number} nodeData The data of the node to remove
      * @returns the node that was removed
      */
+    /* @id dll_removeNode */
     removeNode: function (nodeData) {
         var index = this.indexOf(nodeData);
         return this.removeAt(index);
@@ -554,6 +583,7 @@ DoublyLinkedList.prototype = {
      * @param {object|string|number} nodeData The data of the node to find
      * @returns the index of the node if found, -1 otherwise
      */
+    /* @id dll_indexOf */
     indexOf: function(nodeData) {
         this.iterator.reset();
         var current;
@@ -581,6 +611,7 @@ DoublyLinkedList.prototype = {
      * @param {object|string|number} nodeData The data of the node to find
      * @returns the node if found, -1 otherwise
      */
+    /* @id dll_find */
     find: function(nodeData) {
         // start at the head of the list
         this.iterator.reset();
@@ -605,6 +636,7 @@ DoublyLinkedList.prototype = {
      * @param {number} index The index of the node to return
      * @returns the node located at the index provided.
      */
+    /* @id dll_findAt */
     findAt: function(index) {
         // if idx is out of bounds or fn called on empty list, return -1
         if (this.isEmpty() || index > this.getSize() - 1) {
@@ -631,6 +663,7 @@ DoublyLinkedList.prototype = {
      *        contains
      * @returns the true if the list contains nodeData, false otherwise
      */
+    /* @id dll_contains */
     contains: function (nodeData) {
          if (this.indexOf(nodeData) > -1) {
              return true;
@@ -647,6 +680,7 @@ DoublyLinkedList.prototype = {
      *
      * param {object} fn The function to call on each node of the list
      */
+    /* @id dll_forEach */
     forEach: function(fn) {
         this.iterator.reset();
         this.iterator.each(fn);
@@ -657,8 +691,10 @@ DoublyLinkedList.prototype = {
      *
      * @returns {array} the array of all the data from the list
      */
+    /* @id dll_toArray */
     toArray: function() {
         var listArray = [];
+        /* @id dll_toArray_inner */
         this.forEach(function(node) {
             listArray.push(node.getData());
         });
@@ -681,6 +717,7 @@ var LinkedList = DoublyLinkedList;
  *
  * @constructor
  */
+/* @id pqueue_constr */
 var PriorityQueue = function() {
     this._list = new LinkedList();
 };
@@ -697,6 +734,7 @@ PriorityQueue.prototype = {
      *
      * @returns {boolean} true if the queue is empty, false otherwise
      */
+    /* @id pqueue_isEmpty */
     isEmpty: function() {
         return this._list.isEmpty();
     },
@@ -706,6 +744,7 @@ PriorityQueue.prototype = {
      *
      * @returns {number} the number of items in the queue
      */
+    /* @id pqueue_size */
     size: function() {
         return this._list.getSize();
     },
@@ -713,6 +752,7 @@ PriorityQueue.prototype = {
     /**
      * Clears the queue of all data
      */
+    /* @id pqueue_clear */
     clear: function () {
         return this._list.clear();
     },
@@ -734,13 +774,14 @@ PriorityQueue.prototype = {
      *                 the higher the priority. Defaults to null if not
      *                 provided
      */
+    /* @id pqueue_enqueue */
     enqueue: function (data, pri) {
 
         // build the payload obj to add to the underlying
         // data structure
         var payload = {
             data: data,
-            priority: pri || null
+            priority: pri || ((pri === 0) ? 0 : null) 
         };
 
         // if the queue is empty, just add the payload
@@ -776,6 +817,7 @@ PriorityQueue.prototype = {
      *
      * @returns {object} the item, or data, from the front of the queue
      */
+    /* @id pqueue_dequeue */
     dequeue: function () {
         return this._list.removeFirst().getData();
     },
@@ -786,6 +828,7 @@ PriorityQueue.prototype = {
      *
      * @returns {object} the item, or data, from the front of the queue
      */
+    /* @id pqueue_peek */
     peek: function () {
         return this._list.getHeadNode().getData();
     }
@@ -793,39 +836,17 @@ PriorityQueue.prototype = {
 };
 
 
-var queue = new PriorityQueue();
+var queue;
 
-/* note that this library returns the lowest priority first,
- * ___unlike___ the other! */
+var beforeEach = function () {
+    queue = new PriorityQueue();
+};
 
+// test 6
+//it('should queue up data with the same priority at the back of queue', function () {
+beforeEach();
+queue.enqueue('some test data', 1);
+queue.enqueue('some more test data', 1);
+queue.enqueue('and yet some more...', 1);
+queue.size();
 
-// concrete test
-// 
-// var x1 = 1;
-// var x2 = 0;
-// var s1 = "foo";
-// var s2 = "bar";
-// 
-// queue.enqueue(s1, x1);
-// queue.enqueue(s2, x2);
-// 
-// var y1 = queue.dequeue();
-// var y2 = queue.dequeue();
-// 
-// console.log(y1); // "bar"
-// console.log(y2); // "foo"
-
-// symbolic test 
-
-var x1 = symb_number(x1); // 2
-var x2 = symb_number(x2); // 1
-var s1 = symb_string(s1); // "foo"
-var s2 = symb_string(s2); // "bar"
-
-queue.enqueue(s1, x1);
-queue.enqueue(s2, x2);
-
-var y1 = queue.dequeue().data;
-var y2 = queue.dequeue().data;
-
-Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) or ((x1 = x2) and (y1 = s1) and (y2 = s2)) or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
