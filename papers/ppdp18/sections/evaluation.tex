@@ -13,16 +13,18 @@ Paragraph about spec-driven debugging
 \myparagraph{Whole-program Symbolic Testing}
 We used \cosette to analyse the code of two JavaScript data structure libraries: Buckets.js~\cite{buckets}, and queue-pri~\cite{priq}.
 We chose these libraries because reasoning about data structure code requires a precise description of the control flow features of JavaScript, because they come equipped with unit test suites, and because they do not have external dependencies (\cosette is a whole-program analysis); Buckets.js has over 65k downloads on npm.
-For these two libraries, we wrote symbolic tests with the aim of obtaining 100\% line coverage, in order to compare them with the concrete unit tests that ship with the libraries.
+For these two libraries, we wrote symbolic tests with the aim of obtaining a line coverage of 100\%, in order to compare them with the concrete unit tests that ship with the libraries.
 In both cases, we were able to reduce the length of the tests by up to an average factor of 3, while increasing line coverage from around 90\% to a full 100\%.
 We also discovered one bug in the Buckets.js library, as well as one in the queue-pri library.
 
 
 The results are presented in table~\ref{cosette:res}.
-For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
-We used a MacBookPro with ... GHz to run the tests and measured the time of 1 execution for each symbolic test, and took for each file the average of the run times of the symbolic tests for that file.
-Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for a limited number of cases).
+For each file in the library, we report the number of JS executable lines in the code itself and including dependencies (slash-separated), the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
+The files in Buckets.js are separated by a line from the unique file in queue-pri.
 
+We used a MacBookPro with ... GHz to run the tests and measured the time of 1 execution for each symbolic test, and took for each file the average of the run times of the symbolic tests for that file.
+Execution times are rather poor for JavaScript, but tractable for a proof-of-concept tool being run on real-world code.
+\cosette is currently implemented using Rosette~\cite{Rosette1}, an off-the-shelf symbolic execution engine; we aim at implementing our own symbolic execution tool in the future, which should drastically reduce execution times.
 
 \begin{table}[h]
 {
@@ -56,19 +58,22 @@ Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test l
 \end{table}
 
 
-We found one bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key might hold several values), and one in \jsinline{queue-pri}, a JS priority queue implementation~(\cite{priq}). 
+We found one bug in the implementation of the Buckets.js \jsinline{multidictionary} (a key-value map in which a single key holds an array of distinct values), and one in \jsinline{queue-pri}, a JS priority queue implementation. 
 
 %\myparagraph{\jsinline{multidictionary}}
 %The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)}, \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
-In the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key is completely removed from the dictionary, or it can be an actual value.
-In that case, the array associated with the key \jsinline{s} is retrieved, and, if the value is present in the array, it is removed.
-However, the library does not consider the case where this array is not found; in that case, the library tries to remove an element from \jsinline{undefined}, which raises an error.
+Both \jsinline{set} and \jsinline{remove} either add or remove a single value from the array held by the key, and \jsinline{get} returns this array.
+More precisely, in the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key and associated array are completely removed from the dictionary, or it can be an actual value, in which case it is removed from the array if present.
+However, the library does not consider the case where the array is not found (for example, if all elements associated with the key have already been removed); in that case, the library tries to remove an element from \jsinline{undefined}, which raises an error.
+A simplified version of the failing code is shown below:
+
 \begin{lstjs}
 multidict.remove = function (key, value) {
     if (value === undefined) { ... }
+    // parent is an internal dictionary that maps keys to arrays
     var array = parent.get(key);
-    if (arrays.remove(array, value, equalsF)) { ... }
+    if (arrays.remove(array, value)) { ... }
     return false;
 }
 \end{lstjs}
@@ -88,8 +93,9 @@ In this test, we create a new dictionary \jsinline{dict}, and insert two symboli
 However, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store it twice.
 This means that the key in the second call to \jsinline{remove} on line 6 is not in the dictionary any more, which triggers the bug.
 
-When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0}, and running the instantiation of the test in Node triggers an error.
-Moreover, we were able to easily fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
+When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the instantiation of the test in Node raises an error.
+We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}\footnote{We submitted a pull request with a fix to the author of the library on GitHub, who hasn't responded yet.}, after which \cosette was successfully able to discharge the assertion.
+
 
 %\myparagraph{\jsinline{queue-pri}}
 The other bug that we found is in the \jsinline{queue-pri} library, which implements a priority queue that stores data with an optional priority value.
@@ -97,6 +103,7 @@ The priority value is either an integer (the lower the value, the higher the pri
 With symbolic tests of the \jsinline{enqueue} and \jsinline{dequeue} methods of the library, we found that elements enqueued with a priority value of \jsinline{0} were actually being enqueued at the end of the queue, when they should have had the highest priority instead.
 
 We identified the bug to come from the following part of the \jsinline{enqueue} function: \jsinline!var payload = { data: data, priority: pri || null }!
-Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, whereas the developer believed that it reduced to 0.
-Even though the developer wrote tests, they never used a priority value of 0 and therefore never triggered the bug.
-This shows that \cosette is a useful tool for debugging JavaScript code, because it analyses all possible code paths, and does not make any assumptions about the subtle semantics of the language (type coercions in this case).
+Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, and not to 0.
+This shows that symbolic execution with \cosette is a useful tool for testing, because symbolic tests are more comprehensive by construction and can analyse all possible code paths, even the ones that the developer has not considered.
+In this case, even though the developer wrote concrete tests for the library, they never used a priority value of 0 when inserting values.
+They therefore never triggered the bug, which we were able to find with a simple symbolic test.
