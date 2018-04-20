@@ -21,7 +21,8 @@ We also discovered one bug in the Buckets.js library, as well as one in the queu
 \myparagraph{Results}
 The results are presented in table~\ref{cosette:res}.
 For each file in the library, we report the number of JS executable lines in the code itself / including dependencies, the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
-Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for in limited number of cases).
+We used a MacBookPro with ... GHz to run the tests and measured the time of 1 execution for each symbolic test, and took for each file the average of the run times of the symbolic tests for that file.
+Most of the execution time is spent in \cosette itself, with negligible time spent in solver calls (except for a limited number of cases).
 
 
 \begin{table}[h]
