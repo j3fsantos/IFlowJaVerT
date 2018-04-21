@@ -1,16 +1,19 @@
 %!TEX root = ../main.tex
 
-\myparagraph{Methodology}
-Paragraph about the test262 tests
+\myparagraph{Trustworthiness: Instrumented Interpreter}
+To ensure that Co-sette is faithful to the semantics of JavaScript, we test \JSComp and our instrumented \jsil interpreter implemented in Rosette using Test262, the JavaScript official test suite~\cite{test262}. 
+Out of the 10469 tests for ES5 Strict, we have identified 8330 tests appropriate for our coverage, of which we pass 100\%.
+
+\myparagraph{Trustworthiness: Symbolic Interpreter}
 
 %With \cosette, we can write symbolic tests, in which some of the concrete values of the program are replaced with symbolic values.
 %Symbolic tests improve on concrete tests for two main reasons.
 %First, they are by construction more comprehensive than concrete tests, because symbolic tests can account for the whole range of values that a variable can take, instead of focusing on a few specific examples.
 %Second, when \cosette finds a failing assertion inside a symbolic test, it can concretize the symbolic values into a counter-model that the developer can actually run in node, making debugging much easier compared to (the other things that we mention before).
 
-Paragraph about spec-driven debugging
+\myparagraph{Whole-program Symbolic Testing: JS-Specific Features}
 
-\myparagraph{Whole-program Symbolic Testing}
+\myparagraph{Whole-program Symbolic Testing: Real-World Libraries}
 We used \cosette to analyse the code of two JavaScript data structure libraries: Buckets.js~\cite{buckets}, and queue-pri~\cite{priq}.
 We chose these libraries because reasoning about data structure code requires a precise description of the control flow features of JavaScript, because they come equipped with unit test suites, and because they do not have external dependencies (\cosette is a whole-program analysis); Buckets.js has over 65k downloads on npm.
 For these two libraries, we wrote symbolic tests with the aim of obtaining a line coverage of 100\%, in order to compare them with the concrete unit tests that ship with the libraries.
@@ -31,22 +34,22 @@ Execution times are rather poor for JavaScript, but tractable for a proof-of-con
 \small
 %\begin{center}
 \setlength\tabcolsep{4pt}
-\begin{tabular*}{\linewidth}{lrrrrrr}
+\begin{tabular*}{\linewidth}{l@{\;\;}rrrrrr}
 \toprule
 % Name || JS Loc/loc* || JSIL Loc/loc* || #tests || symb/conc loc || symb/conc cov || time
-Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test lines} & \makecell{Line\\cov. (\%)} & \makecell{Avg.\\time} \\
+Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test lines} & \makecell{Line\\Cov.~(\%)} & \makecell{Avg.\\time} \\
 \midrule
-\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/100 & 20.2 \\
-\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/76.8 & 74.4 \\
-\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/98.6 & 327.8 \\
-\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/80.7 & 15.6 \\
-\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/96.5 & 329.6 \\
-\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/94.4 & 24.0 \\
-\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/74.1 & 75.3 \\
-\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/96.2 & 349.8 \\
-\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/96.7 & 20.7 \\
-\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/70.0 & 61.9 \\
-\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/87.0 & 26.4 \\
+\texttt{arrays} & 44/71 & 1251/1942 & 9/24 & 166/329 & 100/100 & 20s \\
+\texttt{bag} & 69/237 & 2041/7194 & 7/18 & 78/265 & 100/76.8 & 74s \\
+\texttt{bstree} & 143/326 & 3819/8052 & 11/31 & 216/759 & 100/98.6 & 5m27s \\
+\texttt{dict} & 57/84 & 1683/2374 & 7/14 & 116/170 & 100/80.7 & 15s \\
+\texttt{heap} & 57/128 & 2059/4001 & 4/15 & 92/626 & 100/96.5 & 5m29s \\
+\texttt{llist} & 126/153 & 2447/3138 & 9/21 & 149/370 & 100/94.4 & 24s \\
+\texttt{multidict} & 56/184 & 1871/5496 & 6/16 & 118/189 & 100/74.1 & 1m15s \\
+\texttt{pqueue} & 26/154 & 1066/5067 & 5/12 & 70/283 & 100/96.2 & 5m49s \\
+\texttt{queue} & 30/183 & 1095/4233 & 6/9 & 111/146 & 100/96.7 & 20s \\
+\texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/70.0 & 1m01s \\
+\texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/87.0 & 26s \\
 \midrule 
 \texttt{queue-pri} & 19/164 & 872/5086 & 2/9 & 26/80 & 100/100 & xy.z \\
 \bottomrule
@@ -107,3 +110,5 @@ Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to
 This shows that symbolic execution with \cosette is a useful tool for testing, because symbolic tests are more comprehensive by construction and can analyse all possible code paths, even the ones that the developer has not considered.
 In this case, even though the developer wrote concrete tests for the library, they never used a priority value of 0 when inserting values.
 They therefore never triggered the bug, which we were able to find with a simple symbolic test.
+
+\myparagraph{Specification-directed Bug-finding}
