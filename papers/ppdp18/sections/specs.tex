@@ -36,7 +36,9 @@ an empty heap. The cell assertion, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexp
 at the location denoted by $\jsilexpr_1$ has the property denoted by $\jsilexpr_2$ with value 
 denoted by $\jsilexpr_3$. The object domain assertion $\emptyfields{\jsilexpr_1}{\jsilexpr_2}$ states that the object at 
 the location denoted by $\jsilexpr_1$ has no properties other than possibly those included in the
-set denoted by $\jsilexpr_2$. Additionally, we refer to assertions that do not contain $\lemp$ or the separating conjunction as \emph{simple assertions}, and range over them by $\spass$, $\sqass$.
+set denoted by $\jsilexpr_2$. Additionally, we refer to assertions that do not contain $\lemp$ or 
+the separating conjunction as \emph{simple assertions}, and use $\spass$, $\sqass$ 
+to range over them.
 
 %\pmaxinline{Mention sth about Es being the same.} %The syntax of assertions is given below. 
 %We refer to assertions different from $- \sep -$ and $\lemp$ as \emph{simple assertions}
@@ -128,7 +130,7 @@ The corresponding symbolic semantics rules are given below.
 \noindent The rules use a partial decision procedure (PDP), $\unificationfun(\sstate, \pass)$, for 
 determining if a given symbolic state $\sstate$ satisfies an assertion $P$, 
 which is undecidable in general \cite{citemeplease}. 
-There are two important criteria that $\unificationfun(\sstate, \pass)$ should satisfy:
+There are two important criteria that $\unificationfun(\sstate, \pass)$ must satisfy:
 \begin{enumerate}[leftmargin=*]
 \setlength{\itemsep}{0.1cm}
 %
@@ -311,7 +313,7 @@ The Frame Inference Algorithm has four possible cases:
 %\end{algorithm}}
 
 \begin{figure}
-\includegraphics[width=0.48\textwidth]{figures/algorithm.png}
+%\includegraphics[width=0.48\textwidth]{figures/algorithm.png}
 \vspace*{-1cm}
 \end{figure}
 
@@ -407,6 +409,63 @@ $$
 $$
 \noindent where  $\csmain = [ \jsilmain, -, -, -, - ]$.
 \end{theorem}
+
+
+\subsection{Lifting the results to JavaScript}
+
+\javert specifications of JS functions are analogous to \jsil specifications of \jsil procedures.
+%, and are of the form $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$. 
+As for \jsil, a \javert~\cite{javert} specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
+is valid for a JavaScript program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$, 
+if and only if $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
+if it terminates, it does so in a state satisfying $Q_\jssubscript$, with return mode $\flag$''. 
+%The assertion language used by \javert is very similar to the assertion language of \jsil and is described in detail in~\cite{javert}.
+\javert comes with a proven correct compiler from \javert specifications to \jsil specifications, denoted by $\jsspeccomp$. 
+
+\myparagraph{Testing \javert Specifications}
+We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. 
+First, we convert the JavaScript program and its \javert specifications to a \jsil program with its \jsil specifications, 
+using \jstojsil and $\jsspeccomp$. Next, we generate a set of symbolic tests from the obtained 
+\jsil program and \jsil specifications, as described in \S\ref{specs:to:symbolic:tests}. 
+Finally, we run the generated \jsil symbolic tests using the \jsil symbolic semantics described on \S\ref{subsec:symb:semantics}. 
+If \cosette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
+
+\myparagraph{Formal Guarantees}
+The correctness proof ensures that the verification of \jsil programs can be lifted to the verification of JavaScript programs.
+%
+More concretely, a \javert  specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
+is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
+$\jsspeccomp(\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag})$ is valid 
+for the compilation of $\jstmt$ by a correct compiler $\compile$. 
+
+
+
+%Put formally:  
+%\begin{equation}
+%   \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
+%      \iff
+%           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}).
+%\end{equation}
+
+
+
+%if and only if $\jstmt$ contains a function literal with identifier $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P_\jssuffix$, then, 
+%if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mode $\flag$''. The assertion language used by \javert is very similar to the assertion language of \jsil Logic and is described in detail in~\cite{javert}.
+%There, the authors present 
+%a compiler from \javert specifications to \jsil Logic specifications, denoted by $\ltr$, and prove the soundness 
+%of that compiler, assuming a correct compiler $\compile$ from JavaScript to~\jsil.
+%This theoretical result ensures that the verification of \jsil programs can be lifted to   the verification of JavaScript programs. More concretely, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+%is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
+%$\ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag})$ is valid for the compilation 
+%of $\jstmt$ by a correct compiler $\compile$. Put formally:  
+%\begin{equation}
+%   \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
+%      \iff
+%           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}).
+%\end{equation}
+%
+%
+%
 
 
 
