@@ -23,7 +23,8 @@ in the context of symbolic execution (\S\ref{subsec:fip}).
 We present an algorithm  
 for generating symbolic tests from SL-specifications, which guarantees 
 that whenever a symbolic test fails, \cosette produces a concrete 
-counter-model that invalidates the corresponding specification (\S\ref{specs:to:symbolic:tests}).
+counter-model that invalidates the corresponding specification (\S\ref{specs:to:symbolic:tests}). 
+All definitions and proofs are given in full in the Appendix.
 
 \vspace{-5pt}
 \subsection{Symbolic Execution with SL-Assertions}\label{subsec:sep:assertions}
@@ -238,7 +239,6 @@ Also, in case of failure, both functions return a constraint $\pc_f$, under whic
           { \color{blue} \pc \not\vdash \sexprp = \sexprp_i \mid_{i=0}^m}
    }{  \GetCellV{(\sheap, \sdom, \sstore, \pc), \sloc, \sexprp} \semeq \fail{{\color{red} (\sexprp \in \sdom(\sloc)) \, \wedge \, (\wedge_{i=0}^m (\sexprp_i \neq \sexprp))}}}
  \\
- \\
      \inferrule[\textsc{GetCell - Fail without Domain Info}]
    { 
        \sheap = \sheap'' \, \uplus \, \big((\sloc, \sexprp_i) \mapsto \sexprv_i \big)\mid_{i = 0}^m
@@ -281,40 +281,44 @@ The Frame Inference Algorithm has four possible cases:
              the \emph{failing constraint} $\neg \sass$. 
 \end{itemize}
 
-{\footnotesize \begin{algorithm}[t!]
-\algblock[Name]{match}{end}
-\caption{Frame Inference for Symbolic States}\label{fip:symb:states}
-\begin{algorithmic}[1]
-\Function{Unification}{$\sstate$, $\jvec{\spass}$}
-    \State $\textbf{match}$ $\jvec{\spass}$ $\textbf{with}$
-    \State $\mid~\lstemp:$ \Return $\success{\sstate}$
-   % Cell ASS
-    \State $\mid~(\sloc, \sexprp) \pointsto \sexprv \lstcons \jvec{\sqass} :$ 
-    \State $\qquad \textbf{match} \ \GetCellV{\sstate, \sloc, \sexprp}$ $\textbf{with}$
-    \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv = \sexprv')$
-     \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return  \Call{Unification}{$\sstate'$, $\jvec{\sqass}$}
-     \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv \neq \sexprv'}$
-      \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
-      % EF ASS
-     \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \jvec{\sqass} :$  
-       \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \sloc}$ $\textbf{with}$
-       \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv \backslash \sexprv' = \{ \sexprp_1, ..., \sexprp_n \})$
-        \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return \Call{Unification}{$\sstate' \dunion (\sloc, \sexprp_i) \pointsto \none \mid_{i = 1}^n$, $\jvec{\sqass}$}
-       \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv' \not\subseteq \sexprv }$
-       \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
-     % OTHER PURE ASS
-     \State $\mid~\sass \lstcons \jvec{\sqass} :$  $ \textbf{if} \,(\sstate.\pcsel \vdash \sass)$
-       \State $\qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\jvec{\sqass}$}
-      \State $\qquad \qquad \textbf{else}$  \Return $\fail{\neg \sass}$
-\EndFunction
-\end{algorithmic}
-\end{algorithm}}
+%{\footnotesize \begin{algorithm}[t!]
+%\algblock[Name]{match}{end}
+%\caption{Frame Inference for Symbolic States}\label{fip:symb:states}
+%\begin{algorithmic}[1]
+%\Function{Unification}{$\sstate$, $\jvec{\spass}$}
+%    \State $\textbf{match}$ $\jvec{\spass}$ $\textbf{with}$
+%    \State $\mid~\lstemp:$ \Return $\success{\sstate}$
+%   % Cell ASS
+%    \State $\mid~(\sloc, \sexprp) \pointsto \sexprv \lstcons \jvec{\sqass} :$ 
+%    \State $\qquad \textbf{match} \ \GetCellV{\sstate, \sloc, \sexprp}$ $\textbf{with}$
+%    \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv = \sexprv')$
+%     \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return  \Call{Unification}{$\sstate'$, $\jvec{\sqass}$}
+%     \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv \neq \sexprv'}$
+%      \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
+%      % EF ASS
+%     \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \jvec{\sqass} :$  
+%       \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \sloc}$ $\textbf{with}$
+%       \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv \backslash \sexprv' = \{ \sexprp_1, ..., \sexprp_n \})$
+%        \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return \Call{Unification}{$\sstate' \dunion (\sloc, \sexprp_i) \pointsto \none \mid_{i = 1}^n$, $\jvec{\sqass}$}
+%       \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv' \not\subseteq \sexprv }$
+%       \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
+%     % OTHER PURE ASS
+%     \State $\mid~\sass \lstcons \jvec{\sqass} :$  $ \textbf{if} \,(\sstate.\pcsel \vdash \sass)$
+%       \State $\qquad \qquad \textbf{then}$ \Return  \Call{Unification}{$\sstate$, $\jvec{\sqass}$}
+%      \State $\qquad \qquad \textbf{else}$  \Return $\fail{\neg \sass}$
+%\EndFunction
+%\end{algorithmic}
+%\end{algorithm}}
+
+\begin{figure}
+\includegraphics[width=0.48\textwidth]{figures/algorithm.png}
+\vspace*{-1cm}
+\end{figure}
 
 %\vspace*{-0.8cm}
 
 
-\myparagraph{Formal Guarantees} Our $\unificationfun(\sstate, \pass)$ partial decision procedure satisfies the criteria outlined in \S\ref{subsec:sep:assertions}. The proof is  in the Appendix.
-
+\myparagraph{Formal Guarantees} Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
 
 
 \subsection{From Specifications to Symbolic Tests}\label{specs:to:symbolic:tests}
@@ -328,25 +332,26 @@ Each specification is associated with a return mode $\flag \in \{ \fnormal, \fer
  Intuitively, a specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is 
 valid for a given \jsil program $\prog$, if $\prog$ contains a procedure with identifier 
 $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P$, then, 
-if it terminates, it does so in a state satisfying $Q$, with return mode $\flag$''.
+if it terminates, it does so in a state satisfying $Q$, with return mode~$\flag$''.
 The formal definition is given below. 
 
 
 \begin{definition}[Validity of \jsil Logic Specifications]
-A \jsil logic specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is valid with respect to a program 
-$\prog$, written $\prog \satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$, if and only if, for all logical 
-contexts $(\iheap, \store, \senv)$, heaps $\heap_f$, stores $\store_f$, and flags $\flag'$, it holds that: 
+A \jsil logic specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is valid w.r.t.~a program 
+$\prog$, written $\prog \satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$, if and only if it holds that: 
 $$
 \begin{array}{l}
-   (\jstate, \heap_f, \cs) \in \interpret{}{}(P) 
+   (\jstate, \heap_f) \in \interpret{}{}(P) 
    \ \wedge \ 
-    \abssemrule{\jstate \dunion \heap_f, \cs, 0}{\jstate', \cs', i_{\flag'}}{\top}{\top}{\concrete} \\ \quad \
+    \abssemrule{\jstate \dunion \heap_f, \polish{\cs}, 0}{\jstate', \polish{\cs'}, i_{\flag'}}{\top}{\top}{\concrete} \\ \quad \
    \implies
       \flag' = \flag \ \wedge \ \exists \jstate'' \, . \, \jstate' = \jstate'' \dunion \heap_f
-          \ \wedge \   (\jstate'', \heap_f, \cs') \in \interpret{}{}(Q) 
+          \ \wedge \   (\jstate'', \heap_f) \in \interpret{}{}(Q) 
 \end{array}
 $$
 \end{definition}
+
+\pmax{Should that concrete transition have a star?}
 
 \begin{figure}
 {\footnotesize
@@ -366,38 +371,41 @@ $$
 \end{array}
 $$}
 \vspace*{-0.4cm}
-\caption{Symbolic Test Generation Algorithm~\label{fig:test:generation}}
+\caption{\small Symbolic Test Generation Algorithm~\label{fig:test:generation}}
 \vspace*{-0.2cm}
 \end{figure}
 
-Given a \jsil program $\prog$ containing a procedure $\pid$ with spec {\small $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$}, 
-our goal is to construct a symbolic test for checking whether or not $\pid$ behaves as its specification mandates.
+Given a \jsil program $\prog$ containing a procedure $\pid$ with specification {\small $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$}, 
+our goal is to construct a symbolic test for checking if $\pid$ behaves as its specification mandates.
 A symbolic test is a pair $(\proc, \sheap)$ consisting of a \jsil procedure with the code of the test and the initial 
 symbolic heap on which to execute the test. 
 %
-Figure~\ref{fig:test:generation} presents the test generation procedure. Intuitively, $\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})$ 
-returns the symbolic test for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$. The test generation function $\testifyfun{} \ $ is defined in terms 
+Figure~\ref{fig:test:generation} presents the test generation procedure. 
+%Intuitively, $\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})$ 
+%returns the symbolic test for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$. 
+The test generation function $\testifyfun{} \ $ is defined in terms 
 of two auxiliary functions, $\testifyfun{\fnormal}$ and $\testifyfun{\ferror}$, for generating tests for $\fnormal$-mode and 
 $\ferror$-mode specifications, respectively. 
 For space reasons, we only present $\testifyfun{\fnormal}$ ($\testifyfun{\ferror}$ is equivalent). 
 The test program $\prog'$, denoted by $\prog[\jsilmain \mapsto \proc]$, is obtained from the original program $\prog$ and the test procedure $\proc$ by replacing the 
 $\jsilmain$ of $\prog$ with the new test procedure, $\proc$. 
 
-Finally, Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the 
+\myparagraph{Formal Guarantees}
+Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the 
 test generated for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ finds a bug, then the specification 
 is not~valid.
 
 \begin{theorem}[Bug-finding for SL Specifications]\label{teo:bug:finding:sl}
 $$
 \begin{array}{l}
-\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sstate) \, \wedge \, 
-  \prog' :  \transabssemrule{\sstate, \csmain, 0}{-}{\top}{\bot}{\symbolic} \\ \quad \quad 
+\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sstate) \, \wedge \\
+\quad
+  \prog[\jsilmain \mapsto \proc] :  \transabssemrule{\sstate, \csmain, 0}{-, -, -}{\top}{\bot}{\symbolic} \\ \quad \qquad 
     \implies  
          \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
 \end{array}
 $$
-\noindent where  $\csmain = [ (\jsilmain, -, -, -, -) ]$ 
-and $\prog' = \prog[\jsilmain \mapsto \proc]$.
+\noindent where  $\csmain = [ \jsilmain, -, -, -, - ]$.
 \end{theorem}
 
 
