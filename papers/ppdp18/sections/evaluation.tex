@@ -34,7 +34,7 @@ We used a MacBookPro with ... GHz to run the tests and measured the time of 1 ex
 Execution times are rather poor for JavaScript, but tractable for a proof-of-concept tool being run on real-world code.
 \cosette is currently implemented using Rosette~\cite{Rosette1}, an off-the-shelf symbolic execution engine; we aim at implementing our own symbolic execution tool in the future, which should drastically reduce execution times.
 
-\begin{table}[h]
+\begin{table}[!t]
 {
 \small
 %\begin{center}
@@ -66,7 +66,7 @@ Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test l
 \label{cosette:res}
 \end{table}
 
-\pmax{Say something about how bugs work - sometimes coverage, sometimes semantics.}
+%\pmax{Say something about how bugs work - sometimes coverage, sometimes semantics.}
 
 \smallskip
 \noindent \emph{Bug: MultiDictionary in Buckets.js.}
@@ -81,17 +81,7 @@ we have fixed it and submitted an appropriate pull request.
 
 
 \smallskip
-\noindent \emph{Bug: queue-pri.}
-
-%\myparagraph{\jsinline{queue-pri}}
-The other bug that we found is in the \jsinline{queue-pri} library, which implements a priority queue that stores data with an optional priority value.
-The priority value is either an integer (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, which puts the associated element at the end of the queue.
-With symbolic tests of the \jsinline{enqueue} and \jsinline{dequeue} methods of the library, we found that elements enqueued with a priority value of \jsinline{0} were actually being enqueued at the end of the queue, when they should have had the highest priority instead.
-
-We identified the bug to come from the following part of the \jsinline{enqueue} function: \jsinline!var payload = { data: data, priority: pri || null }!
-Indeed, in JavaScript, the expression \jsinline{0 || null} actually evaluates to \jsinline{null}, and not to 0.
-This shows that symbolic execution with \cosette is a useful tool for testing, because symbolic tests are more comprehensive by construction and can analyse all possible code paths, even the ones that the developer has not considered.
-In this case, even though the developer wrote concrete tests for the library, they never used a priority value of 0 when inserting values.
-They therefore never triggered the bug, which we were able to find with a simple symbolic test.
+\noindent \emph{Bug: queue-pri.} This library implements a priority queue that stores data with an optional priority value.
+The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose the corner cases that a developer may not be aware of.
 
 \myparagraph{Specification-directed Bug-finding}

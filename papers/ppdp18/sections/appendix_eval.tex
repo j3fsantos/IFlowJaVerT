@@ -15,12 +15,12 @@ var o = Object.create(null);
 o.plusOne = function(x) { return x + 1 };
 o.minusOne = function(x) { return x - 1 };
 
-var s1 = symb_string(s1), s2 = symb_string(s2);
-var n1 = symb_number(n1), n2 = symb_number(n2);
+var s1 = symb_string(), s2 = symb_string();
+var n1 = symb_number(), n2 = symb_number();
 
 Assume(not (n1 = n2));
 
-var total1 = o[s1](n1);
+var total1 = o[s1](n1)
 var total2 = o[s2](n2);
 
 Assert(total1 = total2);
@@ -30,11 +30,11 @@ In this example, we create an object \jsinline{o} that contains two functions, \
 We create two symbolic strings \jsinline{s1} and \jsinline{s2}, and two distinct symbolic numbers \jsinline{n1} and {n2}.
 Then, we compute the result of applying function \jsinline{o[s1]} to \jsinline{n1}, and \jsinline{o[s2]} to \jsinline{n2}, stating with the \jsinline{Assert} statement that we want both these values to be equal.
 
-According to the different values that the strings \jsinline{s1} and \jsinline{s2} take, quite different things can happen.
+According to the different values that the strings \jsinline{s1} and \jsinline{s2} take,  different outcomes can happen.
 If \jsinline{s1} (or \jsinline{s2}) is not a valid property name of \jsinline{o}, the program will give a runtime error, because \jsinline{o[s1]} (or \jsinline{o[s2]}) evaluates to \jsinline{undefined}, which is not a function, and cannot be applied; when running the program with \cosette, we indeed get a concrete model for this failing case.
 
 If both \jsinline{s1} and \jsinline{s2} are valid property names for \jsinline{o}, the program is always executed until its end.
-In that case, \cosette is able to present us with a model for the final assertion to hold (for example, \jsinline{s1 = "minusOne", s2 = "plusOne", n1 = 0}, and \jsinline{n2 = -2}), as well as a model that invalidates the final assertion (for example, \jsinline{s1 = "minusOne", s2 = "minusOne", n1 = 0} and \jsinline{n2 = 1}).
+In that case, \cosette is able to present us with a model for the final assertion to hold (for example, \jsinline{s1 = "minusOne", s2 = "plusOne", n1 = 0}, and \jsinline{n2 = -2}), as well as a model that invalidates the final assertion (e.g.~\jsinline{s1 = "minusOne"}, \jsinline{s2 = "minusOne", n1 = 0} and \jsinline{n2 = 1}).
 
 This example demonstrates that \cosette has a fine understanding of the mechanics that underly the dynamic dispatch system in JavaScript, and is able to not only infer possible dynamic function names for a property function call to work, but is also able to relate the dynamic name to the function output.
 
@@ -43,20 +43,17 @@ This example demonstrates that \cosette has a fine understanding of the mechanic
 The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties of JavaScript objects.
 
 \begin{lstjs}
-
 function nbProp(o) {
   var count = 0;
-  for (var p in o) {
-    count += 1;
-  }
+  for (var p in o) { count++ }
   return count;
 }
 
 var o = {a: 1, b: 2, c: 3};
 
-var s1 = symb_string(s1);
+var s = symb_string();
 
-o[s1] = 4;
+o[s] = 4;
 var res = nbProp(o);
 var expectedRes = 3;
 
@@ -64,13 +61,13 @@ Assert(res = expectedRes);
 \end{lstjs}
 
 In this example, we create a JavaScript object \jsinline{o} that has three properties \jsinline{a, b}, and \jsinline{c}.
-Then, we create a symbolic string \jsinline{s1} and assign a value to the property of \jsinline{o} corresponding to {s1}.
+Then, we create a symbolic string \jsinline{s} and assign a value to the property of \jsinline{o} corresponding to {s}.
 Finally, we count the actual number of properties in \jsinline{o}.
-There are two possible cases here: either \jsinline{s1} is equal to one of the concrete property names of \jsinline{o}, and the assignment actually overwrites the value associated with that property, or \jsinline{s1} is a fresh string and the assignment creates a new concrete property.
+There are two possible cases here: either \jsinline{s} is equal to one of the concrete property names of \jsinline{o}, and the assignment actually overwrites the value associated with that property, or \jsinline{s} is a fresh string and the assignment creates a new concrete property.
 
 \cosette is able to reason about both cases, and finds a model for the assertion; either shadowing the property if \jsinline{expectedRes = 3}, giving a fresh string if \jsinline{expectedRes = 4}, or saying that the assertiong is unsatisfiable if \jsinline{expectedRes} is different from these two values.
 
-This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
+%This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
  
 \subsection{Bug: Multidictionary in Buckets.js}
 We found one bug in the implementation of the Buckets.js multi-dictionary (a key-value map in which a single key holds an array of distinct values). 
@@ -91,12 +88,11 @@ multidict.remove = function (key, value) {
     return false;
 }
 \end{lstjs}
-We were able to expose this behavior with the following symbolic test:
+We were able to expose this bug with the following symbolic test:
 
 \begin{lstjs}
 var dict = new buckets.multidict()
-var s = symb_string(s);
-var x1 = symb_number(x1), x2 = symb_number(x2);
+var s = symb_string(), x1 = symb_number(), x2 = symb_number();
 dict.set(s, x1); dict.set(s, x2);
 dict.remove(s, x1);
 var didRemove = dict.remove(s, x2);
@@ -108,6 +104,6 @@ However, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation
 This means that the key in the second call to \jsinline{remove} on line 6 is not in the dictionary any more, which triggers the bug.
 
 When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the instantiation of the test in Node raises an error.
-We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}\footnote{We submitted a pull request with a fix to the author of the library on GitHub, who hasn't responded yet.}, after which \cosette was successfully able to discharge the assertion.
+We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
 
 
