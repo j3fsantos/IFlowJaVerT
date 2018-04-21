@@ -29,8 +29,11 @@ let rec pp_value fmt = function
   | Num n -> fprintf fmt "@[%a@]" pp_number n
   | Str s -> fprintf fmt "@[%s@]" s
   | Null -> fprintf fmt "@[%s@]" "null"
-  | VList l -> pp_list pp_value fmt l
-  
+  | VList l -> pp_list 
+               ~pre:(format_of_string "@[[")
+               ~suf:(format_of_string "]@]")
+               ~empty:(format_of_string "@[nil@]")
+               pp_value fmt l
     
 let pp_binop fmt = 
   let s = fprintf fmt "@[%s@]" in 
@@ -88,7 +91,61 @@ and pp_stmt fmt = function
                          pp_expr e pp_stmt_meta_list s1 pp_stmt_meta_list s2
 and pp_stmt_with_metadata fmt = fun (met, stmt) -> pp_stmt fmt stmt
                          
+let pp_wisl_type fmt = fun t ->
+  let s = fprintf fmt "@[%s@]" in
+  match t with
+  | WList -> s "List"
+  | WNull -> s "NullType"
+  | WBool -> s "Bool"
+  | WString -> s "String"
+  | WObj -> s "Object"
+  | WNum -> s "Num"
 
+let rec pp_logic_expr fmt expr =
+  match expr with
+  | LVal v -> pp_value fmt v
+  | LVar lx -> fprintf fmt "@[%s@]" lx
+  | PVar x -> fprintf fmt "@[%s@]" x
+  | LBinOp (le1, b, le2) -> fprintf fmt "@[(%a %a %a)@]"
+                            pp_logic_expr le1 pp_binop b
+                            pp_logic_expr le2
+  | LUnOp (u, le) -> fprintf fmt "@[(%a %a)@]" pp_unop u pp_logic_expr le
+  | LEList lel -> pp_list
+                  ~pre:(format_of_string "@[[")
+                  ~suf:(format_of_string "]@]")
+                  ~empty:(format_of_string "@[nil@]")
+                  pp_logic_expr fmt lel
+                          
+
+let rec pp_logic_assert fmt asser =
+  let pp_params = pp_list pp_logic_expr in
+  match asser with
+  | LTrue -> pp_print_string fmt "True"
+  | LFalse -> pp_print_string fmt "False"
+  | LNot a -> fprintf fmt "@[!(%a)@]" pp_logic_assert a
+  | LAnd (a1, a2) -> fprintf fmt "@[(%a) /\\ (%a)@]"
+              pp_logic_assert a1 pp_logic_assert a2
+  | LOr (a1, a2) -> fprintf fmt "@[(%a) \\/ (%a)@]"
+                    pp_logic_assert a1 pp_logic_assert a2
+  | LEmp -> pp_print_string fmt "emp"
+  | LStar (a1, a2) -> fprintf fmt "@[(%a) * (%a)@]"
+                    pp_logic_assert a1 pp_logic_assert a2
+  | LPred (pname, lel) -> fprintf fmt "@[%s(%a)@]" pname
+                          pp_params lel
+  | LPointsTo (le1, pn, le2) -> fprintf fmt "@[(%a, %s) -> %a@]"
+                              pp_logic_expr le1 pn pp_logic_expr le2
+  | LEq (le1, le2) -> fprintf fmt "@[(%a) == (%a)@]" pp_logic_expr le1
+                      pp_logic_expr le2
+  | LLess (le1, le2) -> fprintf fmt "@[(%a) <# (%a)@]" pp_logic_expr le1
+                      pp_logic_expr le2
+  | LGreater (le1, le2) -> fprintf fmt "@[(%a) ># (%a)@]" pp_logic_expr le1
+                      pp_logic_expr le2
+  | LLessEq (le1, le2) -> fprintf fmt "@[(%a) <=# (%a)@]" pp_logic_expr le1
+                      pp_logic_expr le2
+  | LGreaterEq (le1, le2) -> fprintf fmt "@[(%a) >=# (%a)@]" pp_logic_expr le1
+                      pp_logic_expr le2
+            
+                          
 
 let pp_fct fmt = function f ->
   Format.fprintf fmt "@[function %s(%a) {@.%a;@.return %a@.}@]" f.name

@@ -14,6 +14,9 @@ module LabelGenerator = struct
   end 
 
 
+
+
+
 (* WISL Compiler *)
 let compile_binop b = match b with
   | EQUAL -> BinOp.Equal
@@ -213,12 +216,25 @@ let compile_spec pre post name params =
     previously_normalised = false;
   }
 
+let compile_type t = match t with
+  | WList -> Type.ListType
+  | WNull -> Type.NullType
+  | WBool -> Type.BooleanType
+  | WString -> Type.StringType
+  | WObj -> Type.ObjectType
+  | WNum -> Type.NumberType
 
 let compile_predicate pred =
+  let _, logic_asserts = List.split pred.pred_definitions in
+  let types = WISL_Utils.infer_types_pred logic_asserts in
+  let getWISLTypes = fun str -> (str, WISL_Utils.TypeMap.find_opt (PVar str) types) in
+  let paramsWISLType = List.map getWISLTypes pred.pred_params in
+  let getJSILTypes = fun (str, t) -> (str, Option.map compile_type t) in
+  let params = List.map getJSILTypes paramsWISLType in
   JSIL.{
     name = pred.pred_name;
     num_params = List.length pred.pred_params;
-    params = List.map (fun str -> (str, None)) pred.pred_params;
+    params = params;
     ins = pred.ins;
     definitions = List.map 
                   (fun (stopt, asst) -> (stopt, compile_logic_assertion asst))

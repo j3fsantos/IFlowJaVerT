@@ -1,5 +1,14 @@
 (* WISL Syntax *)
 
+type wisl_type = (* Used only for type inference *)
+  | WList
+  | WNull
+  | WBool
+  | WString
+  | WObj
+  | WNum
+
+
 type unop =
   | NOT
   (* Lists are only for the logic *)
