@@ -354,6 +354,8 @@ let rec compile_statement_with_meta (meta, stmt) =
       end
   | While (e, body) ->
       begin
+        if Option.is_none meta.invariant then
+          Format.printf "Every while statement has to be preceded by an invariant, analysis will fail.@.@.";
         let (pre_meta, post_meta) = separate_pre_post_meta meta in
         let (pre_meta_comp, post_meta_comp) =
           (compile_metadata pre_meta, compile_metadata post_meta) in

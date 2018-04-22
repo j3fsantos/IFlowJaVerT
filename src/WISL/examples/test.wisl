@@ -8,6 +8,12 @@ predicate lseg(+x, +y, alpha) {
   ((x, head) -> #v) * ((x, tail) -> #z) * lseg(#z, y, #beta) * (alpha == #v::#beta)
 }
 
+predicate linv(+alpha, beta) {
+  (alpha == nil) * (beta == nil);
+  (alpha == #a::#arest) * (beta == #brest@[#a]) *
+  linv(#arest, #brest)
+}
+
 lemma lseg_to_list(x, alpha) {
   hypothesis: (x == #x) * (alpha == #alpha) * lseg(#x, null, #alpha)
   conclusions: list(#x, #alpha)
@@ -60,17 +66,24 @@ function llen(x) {
 { list(x, #alpha) * (ret == len #alpha) }
 
 
-
+{ (x == #x) * list(#x, #alpha) }
 function lrev(x) {
-  y := null;
+  y := null
+  { post: fold list(y, nil) };
+  { invariant: list(x, #rest) * list(y, #beta) * linv(#alpha, #restinv @ #beta) 
+    * linv(#restinv, #rest) }
   while (x != null) {
+    {pre: unfold list(x, #rest)}
     z := x.tail;
     x.tail := y;
-    y := x;
+    y := x
+    {post: fold list(y, #v::#beta)};
     x := z
   };
   return y
 }
+{ list(ret, #beta) * linv(#beta, #alpha) }
+
 
 function lcopy(x) {
   t := x;
@@ -90,6 +103,7 @@ function lcopy(x) {
   };
   return y
 }
+
 
 function lconcat(x, y) {
   if (x = null) {
@@ -124,13 +138,3 @@ function lappend(x, v) {
   };
   return z
 }
-
-a := null;
-a := lappend(a, 0);
-a := lappend(a, 1);
-b := null;
-b := lappend(b, 2);
-b := lappend(b, 3);
-c := lconcat(a, b);
-d := lcopy(c);
-n := llen(d)
