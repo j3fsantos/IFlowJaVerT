@@ -13,7 +13,7 @@ Our running example is a \emph{key-value map} implementation, given in Figure~\r
  \begin{subfigure}[b]{0.33\textwidth}
  {\lstset{language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}
  \begin{lstlisting}
-function Map () { this._contents = {}}
+function Map () { this._contents = {} }
 
 Map.prototype.get = function (k) {
   var c = this._contents;
@@ -148,7 +148,7 @@ Much like symbolic tests generalise concrete tests, specifications generalise sy
  Map (m, mp, kvs) := JSObjectWithProto(m, mp) * 
    DataProp(m, "_contents", c) * JSObject(c) * KVPairs(c, kvs) * 
      \textcolor{red}{NoProp(m, "get")} * \textcolor{red}{NoProp(m, "put")} * \textcolor{red}{NoProp(m, "validKey")} * 
-       \textcolor{blue}{NoProps(c, First(keys))}
+       \textcolor{blue}{NoProps(c, FProj(kvs))}
 \end{Verbatim}
 \begin{Verbatim}[fontsize=\footnotesize,commandchars=\\\{\}]
   KVPairs (c, kvs) := (kvs = \{ \}),
@@ -176,7 +176,7 @@ $
 \begin{array}{c}
 \left\{ {\begin{array}{c}
  \text{\texttt{Map(m, mp, kvs) * MapProto(mp) *}} \\
- \text{\texttt{ValidKey(k) * (k $\notin$ First(kvs)) *}} \\
+ \text{\texttt{ValidKey(k) * (k $\notin$ FProj(kvs)) *}} \\
  \text{\textcolor{blue}{\texttt{Writable(Object.prototype, k)}}}
 \end{array}} \right\} \\
 %
