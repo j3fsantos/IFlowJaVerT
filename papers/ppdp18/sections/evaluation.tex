@@ -30,9 +30,7 @@ The results are presented in table~\ref{cosette:res}.
 For each file in the library, we report the number of JS executable lines in the code itself and including dependencies (slash-separated), the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
 The files in Buckets.js are separated by a line from the unique file in queue-pri.
 
-We used a MacBookPro with ... GHz to run the tests and measured the time of 1 execution for each symbolic test, and took for each file the average of the run times of the symbolic tests for that file.
-Execution times are rather poor for JavaScript, but tractable for a proof-of-concept tool being run on real-world code.
-\cosette is currently implemented using Rosette~\cite{Rosette1}, an off-the-shelf symbolic execution engine; we aim at implementing our own symbolic execution tool in the future, which should drastically reduce execution times.
+For the testing, we used a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB. We measured the execution time of each symbolic test and averaged the times across tests for each library file. The times that we obtained reflect the fact that Rosette code is interpreted, rather than being run natively. We aim at implementing our own symbolic execution tool from scratch in the future, which, given our experience with JaVerT, should reduce execution times by at least an order of magnitude.
 
 \begin{table}[!t]
 {
@@ -82,6 +80,8 @@ we have fixed it and submitted an appropriate pull request.
 
 \smallskip
 \noindent \emph{Bug: queue-pri.} This library implements a priority queue that stores data with an optional priority value.
-The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose the corner cases that a developer may not be aware of.
+The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
 
-\myparagraph{Specification-directed Bug-finding}
+\myparagraph{Specification-directed Bug-finding} 
+
+\pmax{JaVerT examples - testing the unfolding, introducing bugs}
