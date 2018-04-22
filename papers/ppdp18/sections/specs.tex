@@ -397,7 +397,7 @@ Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the
 test generated for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ finds a bug, then the specification 
 is not~valid.
 
-\begin{theorem}[Bug-finding for SL Specifications]\label{teo:bug:finding:sl}
+\begin{theorem}[Bug-finding for \jsil SL Specifications]\label{teo:bug:finding:sl}
 $$
 \begin{array}{l}
 \testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sstate) \, \wedge \\
@@ -431,12 +431,25 @@ Finally, we run the generated \jsil symbolic tests using the \jsil symbolic sema
 If \cosette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
 
 \myparagraph{Formal Guarantees}
-The correctness proof ensures that the verification of \jsil programs can be lifted to the verification of JavaScript programs.
+The correctness $\jsspeccomp$ ensures that 
+%the analysis of \jsil programs can be lifted to JavaScript programs. More concretely,
 %
-More concretely, a \javert  specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
+ a \javert  specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
 is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
 $\jsspeccomp(\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag})$ is valid 
 for the compilation of $\jstmt$ by a correct compiler $\compile$. 
+
+\begin{corollary}[Bug-finding for \javert Specifications]\label{teo:bug:finding:sl:javert}
+$$
+\begin{array}{l}
+\testify{}(\jsspeccomp(\specsig{\pass_\jssubscript}{\pid(\jvec{x})}{\qass_\jssubscript}{\flag}))  = (\proc, \sstate) \, \wedge \\
+\quad
+  \compile(\jstmt)[\jsilmain \mapsto \proc] :  \transabssemrule{\sstate, \csmain, 0}{-, -, -}{\top}{\bot}{\symbolic} \\ \quad \qquad 
+    \implies  
+         \jstmt \not\satisfies \specsig{\pass_\jssubscript}{\pid(\jvec{x})}{\qass_\jssubscript}{\flag}
+\end{array}
+$$
+\end{corollary}
 
 
 

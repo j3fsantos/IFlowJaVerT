@@ -278,7 +278,7 @@ $\phantom{xxx}$
  %
      \inferrule[\textsc{Allocation}]
    { 
-         (\loc, -) \in \domain(\jstate.\hpsel)
+         (\loc, -) \not\in \domain(\jstate.\hpsel)
    }{  \absalloc{\concrete}(\jstate) \semeq (\jstate, \loc) }
  \quad
        \inferrule[\textsc{Store Selector}]
