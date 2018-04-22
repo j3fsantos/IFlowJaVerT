@@ -3,6 +3,9 @@
 We discuss the trustworthiness of \cosette and demonstrate that~our implementation, despite being  a proof-of-concept, has already proven useful for the debugging of real-world JavaScript code.
 We elaborate on the results presented below in more detail in the Appendix. 
 
+
+\pmax{We need to talk about JS-2-JSIL coverage somewhere.}
+
 \myparagraph{Trustworthiness: JavaScript Semantics}
 To ensure that Cosette follows the semantics of JavaScript without any simplifications, we tested \JSComp and our instrumented \jsil interpreter implemented in Rosette using Test262, the JavaScript official test suite~\cite{test262}. 
 Out of the 10469 tests for ES5 Strict, we have identified 8330 tests appropriate for our coverage, of which we pass 100\%.
@@ -53,7 +56,7 @@ Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test l
 \texttt{set} & 40/124 & 1528/3902 & 6/12 & 86/271 & 100/70.0 & 1m01s \\
 \texttt{stack} & 23/176 & 941/4079 & 4/7 & 91/104 & 100/87.0 & 26s \\
 \midrule 
-\texttt{queue-pri} & 19/164 & 872/5086 & 2/9 & 26/80 & 100/100 & xy.z \\
+\texttt{queue-pri} & 19/164 & 872/5086 & 2/9 & 26/80 & 100/100 & 1m18s \\
 \bottomrule
 %\end{center}
 \end{tabular*}
@@ -81,4 +84,10 @@ we have fixed it and submitted an appropriate pull request.
 \noindent \emph{Bug: queue-pri.} This library implements a priority queue that stores data with an optional priority value.
 The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library, even though their line coverage was 100\%, because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
 
-\myparagraph{Specification-directed Bug-finding} For this part of the evaluation, we revisited the full functional correctness specifications of data structure libraries (key-value maps, priority queues, binary search trees, and sorted lists) previously done for \javert~\cite{javert}. We observed that we achieve full code coverage with only a few unfoldings of the recursive predicates describing the structures. Furthermore, to test the compositionality of \cosette, we introduced frame-related bugs\footnote{An example of such bugs was given for key-value maps in~\S\ref{subsec:sdbf}.} into these specifications, which \cosette was able to detect.
+\myparagraph{Specification-directed Bug-finding} For this part of the evaluation, we required  JavaScript code that is specified. As \cosette does not infer specifications, we revisited the JaVerT full functional correctness specifications of simple data structure libraries: key-value maps (cf.~\S\ref{subsec:sdbf}); priority queues; binary search trees (BSTs), and sorted lists~\cite{javert}. Expectedly, these libraries are substantially smaller than real-world JS libraries; their code is given in the Appendix.
+
+For these libraries, we first investigated the relationship between the unfolding depth for recursive predicates and the code coverage of the resulting symbolic tests. We have observed that very few unfoldings are sufficient for achieving full coverage. In particular, the tests generated for the key-value map, priority queue, and the sorted list have full coverage already for unfold depth set to 1, while those for the BST reach full coverage for unfold depth set to 2. 
+
+\pmax{This unfolding bit is not worth a table. What it shows is that BST is somehow "more recursive" than the others---is there an official way of saying that?}
+
+To test the compositionality of \cosette, we crippled the specifications of the key-value map and the priority queue, exposing various frame-related bugs, such as the ones shown in~\S\ref{subsec:sdbf}. \cosette was able to detect all bugs already with the unfold depth set to 1, showing that it can successfully reason given partial state information, in contrast to standard symbolic execution tools for JavaScript.
