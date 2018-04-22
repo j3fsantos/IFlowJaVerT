@@ -5,6 +5,18 @@ open WISL_Syntax
 open Format
 open WISL2JSIL_Compiler
 
+let file = ref "test.wisl"
+
+let arguments () =
+  let usage_msg="Usage: -file <path>" in
+  Arg.parse
+    [
+			(* file containing the program to symbolically execute *)
+			"-file",   Arg.String(fun f -> file := f), "file to run";
+	  ]
+    (fun s -> Format.eprintf "WARNING: Ignored argument %s.@." s)
+    usage_msg
+
 
 let burn_to_disk path data =
 	let oc = open_out path in
@@ -31,7 +43,9 @@ let rec parse_and_compile lexbuf =
   | Some value -> begin
                    let cprog = compile_program value in
                     let str = JSIL_Print.string_of_ext_program cprog in
-                    burn_to_disk "test.jsil" str
+										let ofilenoext = List.hd (String.split_on_char '.' !file) in
+										let ofile = String.concat "." [ofilenoext; "jsil"] in
+                    burn_to_disk ofile str
                   end
   | None -> Printf.fprintf stdout "No program"
 
@@ -42,5 +56,9 @@ let loop filename =
   parse_and_compile lexbuf;
   close_in inx
 
+let main () =
+	arguments ();
+	loop !file
+
 (* part 2: this needs to parse *)
-let _ = loop "test.wisl"
+let _ = main ()
