@@ -1188,10 +1188,11 @@ $$
 
 Our three semantics for \jsil (\S\ref{subsec:concr}--\S\ref{subsec:symb:semantics}) are specifically designed with implementation in mind: one only needs to follow the rules, which are written operationally, modularly, and are syntax-directed. 
 
-However, implementing the entailment engine required by the symbolic semantics and practically handling the state  explosion problem~\cite{citemeimaturingawardwinner} is a challenging task. For this reason, we develop the first, proof-of-concept version of \cosette leveraging on 
+However, implementing the entailment engine required by the symbolic semantics and practically handling the state explosion problem~\cite{citemeimaturingawardwinner} is a challenging task. For this reason, we develop the first, proof-of-concept version of \cosette leveraging on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine that enables the development of solver-aided languages. \rosette extends Racket~\cite{racket} with symbolic values and first-order assertions over these values, and languages implemented in \rosette can make use of its solver-aided facilities. 
 
-We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
+We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. We discuss its validation with respect to the symbolic semantics given in \S\ref{subsec:symb:semantics} in~\S\ref{sec:evaluation}.
+%To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
 
 We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution stops.
 
