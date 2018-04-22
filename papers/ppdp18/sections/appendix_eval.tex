@@ -310,7 +310,7 @@ var PriorityQueue = (function () {
 })();
 \end{lstjshere}
 
-\noindent{\bfseries E.3.2. Binary Search Trees}
+\noindent{\bfseries E.3.2. Binary Search Tree}
 
 \begin{lstjshere}
 /**
@@ -389,15 +389,12 @@ function insert(v, t)
 */
 function find (v, t)
 {
-	var result;
+  var result;
 
-	if (t === null) { return false }
-	else if (v === t.value) { return true }
-	     else if (v < t.value) { return find(v, t.left) }
-		      else { return find(v, t.right) }
-}
-	
-	return result;
+  if (t === null) { return false }
+  else if (v === t.value) { return true }
+       else if (v < t.value) { return find(v, t.left) }
+            else { return find(v, t.right) }
 }
 
 /**
@@ -458,17 +455,17 @@ function remove(v, t)
       t.value = min;
     }
   }
-	else if (v < t.value)
-		t.left = remove(v, t.left);
-	else
-		t.right = remove(v, t.right);	
-
-  	return t;
+  else if (v < t.value)
+    t.left = remove(v, t.left);
+  else
+    t.right = remove(v, t.right);	
+  
+  return t;
 }
 \end{lstjshere}
 
 
-\noindent{\bfseries E.3.3. Sorted Lists}
+\noindent{\bfseries E.3.3. Sorted List}
 
 \begin{lstjshere}
 /**
