@@ -1194,3 +1194,36 @@ However, implementing the entailment engine required by the symbolic semantics a
 We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
 
 We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution stops.
+
+
+\subsection{Lifting the results to JavaScript}
+
+All the results presented in this section lift to JavaScript in a straightforward way.
+One simply has to: 
+\dtag{1} extend JavaScript with constructs for creating symbolic values and 
+asserting and assuming first order formulae; 
+\dtag{2} compile JavaScript to \jsil using a correct compiler. 
+Here, we make use of \jstojsil~\cite{javert}, a thoroughly tested and formally validated compiler from 
+JavaScript to \jsil.
+ 
+%
+%To make use of the symbolic execution tool for \jsil, one needs to compile 
+%
+%
+%
+%We extend the syntax of JavaScript with 
+%
+%
+%asserting and assuming first order propositional formulae. 
+%
+%and the following constructs: %(corresponding to JavaScript normal expressions): 
+%\dtag{1} $\jsassert(\jslexpr)$, stating that whenever the \emph{assert} is reached, 
+%$\jslexpr$ must evaluate to $\jtrue$; 
+%\dtag{2} $\jsassume(\jslexpr)$, stating that we \emph{assume} $\jslexpr$ to hold along the
+%current program path; 
+%\dtag{3} $\jssymbstring()$, for creating a fresh symbolic string; and
+%\dtag{4} $\jssymbnumber()$, for creating a fresh symbolic number. 
+%The \emph{assert} and \emph{assume} constructs expect as an argument 
+%a logical expression. 
+
+
