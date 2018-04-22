@@ -66,10 +66,10 @@ function llen(x) {
 { list(x, #alpha) * (ret == len #alpha) }
 
 
-{ (x == #x) * list(#x, #alpha) * lrev(#alpha, #beta) * lrev(#alpha, beta)}
+{ (x == #x) * list(#x, #alpha) * lrev(#alpha, #beta) * lrev(#alpha, #beta)}
 function lrev(x) {
   y := null
-  { post: fold list(y, nil) };
+  { post: unfold list(x, #rest); fold list(x, #rest); fold list(y, []) };
   { invariant: list(x, #rest) * list(y, #beta) * lrev(#alpha, #restinv @ #beta) * lrev(#rest, #restinv) }
   while (x != null) {
     {pre: unfold list(x, #rest)}
