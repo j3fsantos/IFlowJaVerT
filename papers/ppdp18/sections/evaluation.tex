@@ -19,16 +19,15 @@ We created a number of symbolic tests to demonstrate that Cosette can reason abo
 
 \myparagraph{Whole-program Symbolic Testing: Real-World Libraries}
 We used \cosette to analyse the code of two JavaScript data structure libraries: Buckets.js~\cite{buckets}, and queue-pri~\cite{priq}.
-We chose these libraries because reasoning about data structure code requires a precise description of the control flow features of JavaScript, because they come equipped with unit test suites, and because they do not have external dependencies (\cosette is a whole-program analysis); Buckets.js has over 65k downloads on npm.
+We chose these two libraries because they exercise many essential JavaScript features, because they come equipped with unit test suites, and because they do not have external dependencies. In addition, Buckets.js is widely used by developers, having over 65k downloads on npm.
 
-For these two libraries, we wrote symbolic tests with the aim of obtaining a line coverage of 100\%, in order to compare them with the concrete unit tests that ship with the libraries.
-In both cases, we were able to reduce the length of the tests by up to an average factor of 3, while increasing line coverage from around 90\% to a full 100\%.
-We also discovered one bug in the Buckets.js library, as well as one in the queue-pri library.
+For both libraries, we wrote comprehensive symbolic unit tests for all functions and compared them with the concrete unit tests that ship with the libraries. The results are presented in Table~\ref{cosette:res}.
+For each file in the libraries, we report the number of JS executable lines in the code itself and including dependencies (slash-separated), the corresponding numbers of JSIL lines, the number of symbolic unit tests created by us and the number of concrete unit tests created by the library developers, the number of JS lines in the symbolic and concrete tests, their coverage measured as percentage of lines, and the average \cosette run time for the symbolic tests.
+%The files in Buckets.js are separated by a line from the unique file in queue-pri.
 
+The obtained results clearly demonstrate the benefits of symbolic testing using \cosette. In both cases, we were able to \emph{obtain 100\% line coverage}, improving the coverage of the Buckets.js library by 12\%. This we achieved using \emph{60\% fewer tests} in total that had \emph{10\% fewer lines of code per test} on average.
+We also discovered one bug in the Buckets.js library, as well as one in the queue-pri library. 
 
-The results are presented in table~\ref{cosette:res}.
-For each file in the library, we report the number of JS executable lines in the code itself and including dependencies (slash-separated), the corresponding numbers of JSIL lines, the number of symbolic and concrete test cases, the number of JS lines in the symbolic and concrete tests, the coverage measured as percentage of lines and the average \cosette run time for the symbolic tests.
-The files in Buckets.js are separated by a line from the unique file in queue-pri.
 
 For the testing, we used a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB. We measured the execution time of each symbolic test and averaged the times across tests for each library file. The times that we obtained reflect the fact that Rosette code is interpreted, rather than being run natively. We aim at implementing our own symbolic execution tool from scratch in the future, which, given our experience with JaVerT, should reduce execution times by at least an order of magnitude.
 
@@ -80,7 +79,7 @@ we have fixed it and submitted an appropriate pull request.
 
 \smallskip
 \noindent \emph{Bug: queue-pri.} This library implements a priority queue that stores data with an optional priority value.
-The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
+The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library, even though their line coverage was 100\%, because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
 
 \myparagraph{Specification-directed Bug-finding} 
 
