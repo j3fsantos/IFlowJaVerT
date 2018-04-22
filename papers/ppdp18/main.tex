@@ -928,6 +928,7 @@ as a testing oracle for other symbolic execution tools for JavaScript that purpo
 ignore some corner cases of the language semantics. 
 \polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
 None of them can be used to test JS specs.}
+\pmax{None offer insights into implementation either.}
 
 
 \begin{itemize}
@@ -974,12 +975,21 @@ tests for Java code annotated with relational logic specifications.
 
 
 \myparagraph{Logic-based Analysis for JS} 
-\begin{itemize}
-   \item \cite{gardner:popl:2012} - JS logic
-   \item \cite{swamy:pldi:2013} - dijkstra monad
-   \item \cite{stefanescu:oopsla:2016} - K framework
-   \item \cite{javert} - javert \polish{Not syntax-directed, no implementation insights}
-\end{itemize}
+There is little work on logic-based analyses for JavaScript.
+\citet{gardner:popl:2012} have developed JS Logic---a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
+This logic has proven difficult to automate and is not extensible to the entire language. 
+
+\citet{swamy:pldi:2013} prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JavaScript programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3.
+
+\citet{stefanescu:oopsla:2016} have developed KJS, a symbolic verification tool for JavaScript (ES5 core + small part of the built-in libraries) by instantiating their general $\mathbb{K}$ framework with a $\mathbb{K}$-interpretation of JavaScript~\cite{Park:2015}. Using this tool, they verify functional correctness properties of small data structure libraries. 
+Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals.
+
+The work closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; the re-designed symbolic \jsil semantics of \cosette is syntax-directed and is specifically designed to facilitate implementation.
+
+The above-mentioned verification tools provide strong correctness guarantees, but have scalability limitations, as they require loop invariants. For instance, the Buckets.js library would be out of their reach. As a bug-finding tool, Cosette does not require loop invariants. The advantage is that it can be used for analysing larger, more complex codebases, but the price paid is it can provide only bounded correctness guarantees in case a bug has not been found.
+
+
+
 
 %\myparagraph{Entailment in Separation Logic and Countermodels}
 %\begin{itemize}
