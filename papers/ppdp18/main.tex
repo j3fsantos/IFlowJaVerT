@@ -202,11 +202,12 @@
 
 % COMMENTS
 
-\newcommand{\pginline}[1]{ {\color{red} *** PG : #1 ***} }
-\newcommand{\pgmaxinline}[1]{ {\color{blue} *** PM : #1 ***} }
+\newcommand{\pginline}[1]{ {\color{purple} *** PG : #1 ***} }
+\newcommand{\pgmaxinline}[1]{ {\color{purple} *** PG : #1 ***} }
 \newcommand{\pmaxinline}[1]{ {\color{blue} *** PM : #1 ***} }
+\newcommand{\pinline}[1]{ {\color{blue} *** PM : #1 ***} }
 \newcommand{\jfsinline}[1]{ {\color{green} *** JFS : #1 ***} }
-\newcommand{\jdinline}[1]{ {\color{purple} *** JD : #1 ***} }
+\newcommand{\jdinline}[1]{ {\color{green} *** JD : #1 ***} }
 
 \newif\ifComments
 \Commentstrue
@@ -303,6 +304,7 @@ P. Gardner]{Jos\'e Fragoso Santos, Petar Maksimovi\'c, Th\'eotime
 
 \maketitle 
 
+\pgmaxinline{What's a framework, what's a toolchain, what's a tool}
 
 \section{Introduction}
 
@@ -327,86 +329,103 @@ P. Gardner]{Jos\'e Fragoso Santos, Petar Maksimovi\'c, Th\'eotime
 %%%symbolic execution is...
 %
 
-%%JS and symbolic execution, the state of the art
+%%JS and symbolic execution, a gap 
 
-JavaScript is one of the most widespread dynamic languages: it is the
-de facto language for client-side Web applications; it is used for
-server-side scripting via Node.js; and it is even run on small
-embedded devices with limited memory. It is used by 94.8\% of
-websites~\cite{.}, and is the most active language in both
-GitHub~\cite{.}  and StackOverflow~\cite{.}. Standardised by the
-ECMAScript committee and natively supported by all major browsers,
-JavaScript is a complex and evolving language.  
-
-%% the gap 
-
-The dynamic nature of JavaScript and its complex semantics make it a
-dificult target for symbolic execution.  Recent symbolic execution
-tools for JavaScript have made significant progress. They are being
-used, for example, to find security vulnerabilities related to the
+JavaScript is the most widespread dynamic language, used by 94.8\% of 
+websites\footnote{See {\tiny  \texttt{w3techs.com/technologies/details/cp-javascript/all/all}}.}.
+The dynamic, complex  nature of JavaScript  makes  it a
+difficult target for symbolic execution.  Recent symbolic execution
+tools for JavaScript have made significant progress. These  tools focus
+on specific bug
+patterns for finding, for example, 
+security vulnerabilities related to the
 misuse of strings~\cite{saxena:sp:2010},
 % (e.g. absence of sanitisation before security critical operations)
-malformed Web API requests~\cite{wittern:icse:2018}, and DOM API
-specific bugs~\cite{li:fse:2014}. These  tools focus
-on specific bug
-patterns and are fully automatic. They aim at code in the large,
+malformed Web API requests~\cite{wittern:icse:2018}, and bugs
+arising from the  DOM API~\cite{li:fse:2014}. They are 
+fully automatic, aiming at code in the large and 
 primarily focusing on scalability and coverage issues. They have not
 been developed with the goal to provide general-purpose symbolic
 analysis to {\em assist} the developer in the testing of their code.
 
 %% another gap
 
-To provide such a tool for assisting the developer, it is important to
+In order to provide such a tool, it is important to
 be able to analyse incomplete code in a compositional manner. Such
 compositional analysis is especially important for JavaScript
 applications which are commonly run in highly dynamic execution
 environments: for example, client-side programs dynamically load and
 execute third-party code as a matter of course.  The design of
-compositional analyses for dynamic languages, such as JavaScript and
-\jsil, is a non-trivial task. This is because, unlike static languages
+compositional analyses for dynamic languages such as JavaScript 
+is a non-trivial task. This is because, unlike static languages
 such as C, C++ and Java, dynamic languages do not observe the
-\emph{frame property}~\cite{?}, which is essential for
+\emph{frame property}~\cite{?}, essential for
 compositionality. Intuitively, the frame property means that the
 output of a program cannot change if the state in which is run is
-extended. In JavaScript and \jsil, it is possible to introduce bugs
+extended. In JavaScript,  it is possible to introduce bugs
 extending the state in which a program is run. To our knowledge, 
 there has been no previous work on symbolic execution tools for
 JavaScript that achieve compositional analysis.
 
 %%what we do
 
-We introduce \cosette, a compositional symbolic execution toolchain to
-assist with the development of JavaScript code (ECMAScript 5
-Strict~\cite{ecma} code\footnote{It is straightforward to extend this
+We introduce \cosette, a compositional symbolic execution toolchain 
+for JavaScript  (ECMAScript 5
+Strict~\cite{ecma} \footnote{It is straightforward to extend this
   work to the non-strict case. Later extensions and revisions contain
-  ECMAScript 5 as a common core.}).  
+  ECMAScript 5 as a common core.}).  The architecture of \cosette is
+shown on the right. It comprises  an extension of the
+\JSComp
+compiler~\cite{.}  from JavaScript to the intermediate language JSIL,
+to account for symbolic values and assertions, and a symbolic
+interpreter for JSIL,  implemented using
+Rosette~\cite{Rosette2,Rosette1}.  The JSIL symbolic interpreter either outputs a
+concrete counter-model for the given assertions, or guarantees
+correctness up to a given bound for unfolding loops and
+predicates.  %\pmaxinline{This is the first time
+                                %we mention `bound'.}
 
 
-NEED TO EXPLAIN THE BASICS OF COSETTE HERE TO INTRODUCE JSIL
 
 
-COMPOSITIONALITY 
 
-Cosette is based on a new methodology for designing compositional
-program analyses for languages that do not exhibit the frame property
-and apply this methodology to obtain a compositional symbolic
-execution engine for \jsil, an intermediate representation for
-JavaScript analysis~\cite{javert}.
+
+
+%We extend the syntax of JavaScript with constructs
+%for creating and reasoning about symbolic values, which allow the
+%developer to easily write assertions about the behaviour of their
+%program. Using \JSComp, we compile the extended JS program to an
+%extended \jsil program. The core of \cosette is a symbolic interpreter
+%for \jsil, 
+
+
+
+%%how do we do it
+
+
+Cosette depends on a new methodology, presented here, for designing compositional
+program analyses for languages that do not exhibit the frame property.
+%
+For Cosette, the methodology is applied to JSIL, which like JavaScript
+does not satisfy the frame property. It can be described in three
+steps: \dtag{1} design an JSIL instrumented  semantics that exhibits the
+frame property by explicitly keeping track of properties that must
+{\em not be present} in a given object in order for the program to
+behave correctly; \dtag{2} define the JSIL symbolic semantics by
+lifting the JSIL instrumented semantics; and \dtag{3} link the 
+JSIL symbolic semantics to the  concrete JSIL semantics by describing the
+frames that can be safely added to the initial state.
 %
 %Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
-%
-The methodology has three steps: \dtag{1} designing an instrumented
-semantics of the language that exhibits the frame property, \dtag{2}
-designing the program analysis on the instrumented semantics, and
-\dtag{3} linking the program analysis to the concrete semantics by
-describing the frames that can be safely added to the initial state.
-%
 The key innovation is to have the instrumented semantics as a proper
 interim stage in the design of the analysis, obtaining more modular
 reasoning and substantially simpler proofs.
 
 
-
+\pgmaxinline{In section 3, just mention methodology, then immediately get on to
+  the abstract semantics, which is the key additional technical point
+  that I'm not mentioning in the introduction. Basically, most of para
+1 is out because given here.} 
 
 
 
@@ -418,51 +437,48 @@ reasoning and substantially simpler proofs.
 %in that it comes with formal correctness guarantees and a \polish{result stating the precise conditions under which symbolic execution gives soundness}. 
 
 
+An essential goal for us is to establish trust in Cosette
+toolchain. The symbolic interpreter for JSIL comprises a concrete
+implementation of the instrumented JSIL semantics, which is
+automatically lifted to an implementation of the JSIL symbolic
+semantics using Rosette. The formal JSIL instrumented semantics and
+its lifting are carefully designed to mirror the implementation. To
+provide further corroboration of the JSIL symbolic interpreter, we
+systematically constructed and successfully ran symbolic tests for
+each JSIL command, assuming the premises and asserting the conclusion
+of the appropriate rule of the symbolic semantics.  To ensure that
+Cosette precisely follows the semantics of JavaScript, we tested
+JS-2-JSIL and our instrumented JSIL interpreter implemented in Rosette
+using Test262, the JavaScript official test suite [? ]. Out of the
+10469 tests for ES5 Strict, we have identified 8330 tests appropriate
+for our coverage, of which we pass 100\%.  We also created a number of
+symbolic tests specifically to demonstrate that Cosette can reason
+about essential JavaScript features, such as prototype inheritance,
+function closures, arrays, strings, as well as the substantially more
+challenging for-in statement and dynamic dispatch.
 
 
-TRUST IN THE TOOL
-
-
-
-\pmax{We need to talk about JS-2-JSIL coverage somewhere.}
-
-\cosette precisely follows the ES5 English standard, without
-introducing simplifications. 
-
-
-
-An essential part of our approach is to establish trust in Cosette. 
-
-
-\myparagraph{Architecture} The architecture of \cosette is shown on the right. We extend the syntax of JavaScript with constructs for creating and reasoning about symbolic values, which allow the developer to easily write assertions about the behaviour of their program. Using \JSComp, we compile the extended JS program to an extended \jsil program. The core of \cosette is a symbolic interpreter for
-\jsil, whose current, proof-of-concept implementation, is done using
-Rosette~\cite{Rosette2,Rosette1}, a framework for the creation of
-symbolic interpreters. The symbolic interpreter either outputs a
-concrete counter-model for the given assertions, or guarantees
-correctness up to a given bound. %\pmaxinline{This is the first time
-                                %we mention `bound'.}
-
-
-
-Cosette is trustworthy: it models the semantics of 
-JavaScript precisely and its theoretical underpinnings are formalised
-and proven sound. 
-Because it is trustworthy, \cosette can be used both as a basis for building other more specific analysis 
-\polish{(I can talk about the analysis that Peter Thieman wants to write)} and 
-as a testing oracle for other symbolic execution tools for JavaScript that purposely 
-ignore some corner cases of the language semantics. 
-\polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
-None of them can be used to test JS specs.}
-
-
+\pgmaxinline{Not finished trust, next bits might be useful.} 
 
 %The main issue with most bug-finding tools is not that they are not sound, but that they are not \emph{trustworthy}: the extent of their soundness and precision is not formally characterised. They are usually not justified with respect to the semantics of the targeted language, often relying on unstated simplifying assumptions, if not explicitly departing from the semantics. Consequently, the fact that a bug-finding tool cannot find a bug carries no guarantees whatsoever with respect to the correctness of the input program. We trust these tools because they appear to work empirically. 
 
+The current approaches~\cite{.} normally do not give a formal account
+of the analysis and/or simplify the language semantics. Our approach
+to designing \cosette is grounded on adherence to the standard and
+establishing trust. 
 
-\myparagraph{Trustworthiness} Designing a trustworthy symbolic analysis for JavaScript and providing the appropriate correctness results is difficult, due to its complexity. The current approaches~\cite{.} normally do not give a formal account of the analysis and/or simplify the language semantics. Our approach to designing \cosette is grounded on adherence to the standard and establishing trust. 
-We move the analysis to \jsil, an intermediate representation for logic-based analysis of JavaScript, which comes with a trusted compiler, \JSComp~\cite{javert}.
+
+
+
+%We move the analysis to \jsil, an intermediate representation for logic-based analysis of JavaScript, which comes with a trusted compiler, \JSComp~\cite{javert}.
 %, which has been extensively tested against the official test suite, Test262.\footnote{\url{https://github.com/tc39/test262}} 
-%and produces \jsil code that corresponds line-by-line to the standard. 
+%and produces \jsil code that corresponds line-by-line to the
+%standard. 
+
+
+
+
+
 In \S\ref{sec:jsil:symb:exec}, we give a novel abstract semantics for \jsil, which we instantiate to obtain the concrete and symbolic semantics, connected via a {\em bounded soundness result}. Moreover, we prove that \cosette is precise, meaning that it never produces false positive bug reports. 
 These theoretical results %, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, 
 allow us to  provably lift the results of analyses done on compiled
@@ -475,13 +491,16 @@ allow us to  provably lift the results of analyses done on compiled
                                 %semantics of the language.
 
 
-
-Traditional symbolic execution tools analyse whole programs. 
-
+\pgmaxinline{The bit on trustworthyness in section 5 can be
+  shortened. Readers need to be reminded what was said in intro,
+  that's all. I do think there should be a proper evaluation of
+  Cosette coverage in evaluation. We can do whole-program analysis up
+  to the coverage point.} 
 
 
 \pgmaxinline{This next bit can be shortened, to dovetail with section
-  2 which is also on application.} 
+  2 which is also on application. For each applciation, update the
+  evaluation to match what you do in 5} 
 
 
 
@@ -527,6 +546,20 @@ code to be verified does not satisfy its specification.  More
 importantly, \cosette then generates a concrete witness that
 invalidates the specification. This information greatly simplifies the
 debugging of both specifications and code.
+
+
+
+\pgmaxinline{Next para probably in conclusions, it's all about next
+  steps.} 
+
+
+Because it is trustworthy, \cosette can be used both as a basis for building other more specific analysis 
+\polish{(I can talk about the analysis that Peter Thieman wants to write)} and 
+as a testing oracle for other symbolic execution tools for JavaScript that purposely 
+ignore some corner cases of the language semantics. 
+\polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
+None of them can be used to test JS specs.}
+
 
 
 %

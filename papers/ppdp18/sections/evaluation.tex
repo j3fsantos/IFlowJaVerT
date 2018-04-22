@@ -3,6 +3,9 @@
 We discuss the trustworthiness of \cosette and demonstrate that~our implementation, despite being  a proof-of-concept, has already proven useful for the debugging of real-world JavaScript code.
 We elaborate on the results presented below in more detail in the Appendix. 
 
+
+\pmax{We need to talk about JS-2-JSIL coverage somewhere.}
+
 \myparagraph{Trustworthiness: JavaScript Semantics}
 To ensure that Cosette follows the semantics of JavaScript without any simplifications, we tested \JSComp and our instrumented \jsil interpreter implemented in Rosette using Test262, the JavaScript official test suite~\cite{test262}. 
 Out of the 10469 tests for ES5 Strict, we have identified 8330 tests appropriate for our coverage, of which we pass 100\%.
