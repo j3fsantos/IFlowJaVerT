@@ -1072,13 +1072,32 @@ for testing Java code annotated with relational logic specifications.
 
 \section{Conclusions}
 
-We have presented \cosette, a new symbolic execution tool for JavaScript that advances the 
-state of the art by: 
-\dtag{1} precisely modelling the semantics of the language and 
-\dtag{2} providing formal frame resilience guarantees. 
-We have used \cosette for whole-program symbolic testing and for specification-driven test generation. 
-We have evaluated the first use case on real world JavaScript libraries and the second use case 
-on JavaScript code annotated with state-of-the-art separation logic specifications.  
+We have presented \cosette, a trustworthy, compositional symbolic execution
+framework for JavaScript, combining the JS-2-JSIL compiler~\cite{.}
+and our JSIL symbolic interpreter written in Rosette~\cite{.}. We
+have applied Cosette to whole-program symbolic testing of real-world
+JavaScript libraries and compositional debugging of separation logic
+specifications of JavaScript programs.
+
+We have developed the methodology for designing compositional program
+analyses for dynamic languages in general, and symbolic execution for
+JSIL in particular. We achieved this by introducing a new, abstract
+semantics for JSIL, which we instantiate to obtain concrete,
+instrumented, and symbolic semantics. This abstract semantics is the
+bedrock for both the theoretical results and the implementation of the
+analysis. We prove that the symbolic execution underpinning Cosette is
+sound, frame resiliant and does not generate false positives. We
+establish additional trust by using the theory to precisely guide the
+implementation and by thorough testing.
+
+Our JSIL symbolic interpreter was written in Rosette, a good first
+choice in the development of Cosette. We have applied Cosette to real-world code, but have now hit a
+bottleneck due to the performance of Rosette. This is because the
+Rosette code is interpreted rather than run natively. In future, we
+will implement our own symbolic execution tool from scratch, using the
+abstract semantics for JSIL presented here.
+
+
 
 \cosette brings ideas from current separation logic research to the well-established 
 setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. Hence, 
