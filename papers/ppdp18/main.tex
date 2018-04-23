@@ -966,23 +966,50 @@ testing their code.
 Furthermore, unlike previous bug-finding tools, \cosette is trustworthy: it models the semantics of 
 JavaScript precisely and its theoretical underpinnings are formalised and proven sound. 
 Because it is trustworthy, \cosette can be used both as a basis for building other more specific analysis 
-\polish{(I can talk about the analysis that Peter Thieman wants to write)} and 
+(e.g. combining symbolic analysis with a type-based analysis to increase the precision of the latter) and 
 as a testing oracle for other symbolic execution tools for JavaScript that purposely 
-ignore some corner cases of the language semantics. 
-\polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
-None of them can be used to test JS specs. None offer insights into implementation either.}
+ignore some corner cases of the JavaScript semantics. 
+Furthermore, \cosette is the first symbolic execution tool for JavaScript that provides 
+\polish{frame resilience guarantees}, which are essential for generating tests from specifications. 
+%None of them can be used to test JS specs. 
+%None offer insights into implementation either.
 
-
-\begin{itemize}
-   %\item \cite{saxena:sp:2010} - Kudzu
-  % \item \cite{li:fse:2014} - Toshiba guys
-   \item \polish{\cite{koushik:fse:2015} - jalangi} Jalangi~\cite{koushik:fse:2015} is the closest 
-            to ours in spirit. It is a general analysis. It does not model the JavaScript semantics 
-            precisely. 
-   %\item \cite{wittern:icse:2018} -  Julian 
-\end{itemize}
+%
+%\begin{itemize}
+%   %\item \cite{saxena:sp:2010} - Kudzu
+%  % \item \cite{li:fse:2014} - Toshiba guys
+%   \item \polish{\cite{koushik:fse:2015} - jalangi} Jalangi~\cite{koushik:fse:2015} is the closest 
+%            to ours in spirit. It is a general analysis. It does not model the JavaScript semantics 
+%            precisely. 
+%   %\item \cite{wittern:icse:2018} -  Julian 
+%\end{itemize}
 
 % \cite{saxena:sp:2010,li:fse:2014,koushik:fse:2015,wittern:icse:2018}
+
+
+%\begin{itemize}
+%   \item \cite{dolby:fse:2007} - Julian 
+%   \item \cite{milicevic:icse:2007} \cite{boyapati:issta:2002} - Korat
+%   \item \cite{seidel:esop:2015} - Target
+%   \item \cite{claessen:icfp:2000} - QuickCheck. but also: FLOPS 2014 - Generating constrained random data with uniform distribution
+%\end{itemize}
+
+
+\myparagraph{Logic-based Analysis for JS} 
+There is little work on logic-based analyses for JavaScript.
+\citet{gardner:popl:2012} have developed JS Logic---a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
+This logic has proven difficult to automate and is not extensible to the entire language. 
+
+\citet{swamy:pldi:2013} prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JavaScript programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3.
+
+\citet{stefanescu:oopsla:2016} have developed KJS, a symbolic verification tool for JavaScript (ES5 core + small part of the built-in libraries) by instantiating their general $\mathbb{K}$ framework with a $\mathbb{K}$-interpretation of JavaScript~\cite{Park:2015}. Using this tool, they verify functional correctness properties of toy data structure libraries. 
+Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals. Moreover, the KJS framework is not fully compositional.
+
+The work closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of small data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; our novel symbolic semantics for \jsil is syntax-directed and is specifically designed to guide  implementations.
+
+The above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and abstractions for the recursive structures used. For instance, the Buckets.js library would be out of their reach, as none of the existing tools comes with abstractions to accurately describe: JavaScript arrays, for-in loop invariants, and higher-order functions.  As a bug-finding tool, Cosette does not require any such abstractions, and, therefore, can be used for analysing substantially larger, more complex codebases.
+% but the price paid is it can provide only bounded correctness guarantees when a bug has not been~found.
+
 
 
 \myparagraph{Specification-driven Testing}
@@ -1007,29 +1034,6 @@ tests for Java code annotated with relational logic specifications.
  obtaining a concrete test generation tool.
  %
  However, the resulting tests would be less effective from the point of view of bug finding; therefore, we opted not to do this. 
-
-
-%\begin{itemize}
-%   \item \cite{dolby:fse:2007} - Julian 
-%   \item \cite{milicevic:icse:2007} \cite{boyapati:issta:2002} - Korat
-%   \item \cite{seidel:esop:2015} - Target
-%   \item \cite{claessen:icfp:2000} - QuickCheck. but also: FLOPS 2014 - Generating constrained random data with uniform distribution
-%\end{itemize}
-
-
-\myparagraph{Logic-based Analysis for JS} 
-There is little work on logic-based analyses for JavaScript.
-\citet{gardner:popl:2012} have developed JS Logic---a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
-This logic has proven difficult to automate and is not extensible to the entire language. 
-
-\citet{swamy:pldi:2013} prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JavaScript programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3.
-
-\citet{stefanescu:oopsla:2016} have developed KJS, a symbolic verification tool for JavaScript (ES5 core + small part of the built-in libraries) by instantiating their general $\mathbb{K}$ framework with a $\mathbb{K}$-interpretation of JavaScript~\cite{Park:2015}. Using this tool, they verify functional correctness properties of toy data structure libraries. 
-Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals. Moreover, the KJS framework is not fully compositional.
-
-The work closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of small data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; the re-designed symbolic \jsil semantics of \cosette is syntax-directed and is specifically designed to facilitate implementation.
-
-The above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and abstractions for the recursive structures used. For instance, the Buckets.js library would be out of their reach. As a bug-finding tool, Cosette does not require loop invariants or abstractions. The advantage is that it can be used for analysing larger, more complex codebases, but the price paid is it can provide only bounded correctness guarantees when a bug has not been~found.
 
 \section{Conclusions}
 
