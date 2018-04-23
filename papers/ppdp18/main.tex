@@ -334,7 +334,7 @@ P. Gardner]{Jos\'e Fragoso Santos, Petar Maksimovi\'c, Th\'eotime
   related work.}
 
 JavaScript is the most widespread dynamic language, used by 94.8\% of 
-websites\footnote{See {\tiny  \texttt{w3techs.com/technologies/details/cp-javascript/all/all}}.}.
+websites.\footnote{\url{w3techs.com/technologies/details/cp-javascript/all/all}.}
 The dynamic, complex  nature of JavaScript  makes  it a
 difficult target for symbolic execution.  Recent symbolic execution
 tools for JavaScript have made significant progress. These  tools focus
@@ -375,9 +375,10 @@ JavaScript that achieve compositional analysis.
   points, it needs to be kerpow, in one paragraph this is summary of
   what we've done. }
 
-  We introduce \cosette, a symbolic execution toolchain for JavaScript
-  (ECMAScript 5 Strict~\cite{ecma} \footnote{It is straightforward to
-    extend this work to the non-strict case. Later extensions and
+  We introduce \cosette, a framework for trusted, compositional 
+  symbolic execution of JavaScript
+  (ECMAScript 5 Strict~\cite{ecma}\footnote{It is straightforward to
+    extend this work to the non-strict mode of the language. Later extensions and
     revisions contain ECMAScript 5 as a common core.}).  We present a
   new methodology for developing {\em compositional} analysis for dynamic
   languages that do not satisfy the frame property, and apply it to
@@ -936,7 +937,7 @@ type systems~\cite{thiemann:esop:2005,anderson:ecoop:2005,jensen:sas:2009,typesc
 control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang2009points,sridharan:ecoop:12} and abstract
 interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
 Here, we focus on the existing work on symbolic execution and  
-logic-based analysis for JavaScript and we further discuss techniques for specification-driven 
+logic-based analysis for JavaScript and further discuss techniques for specification-driven 
 test generation in general.  
 
 \myparagraph{Symbolic Execution for JS}
@@ -954,24 +955,23 @@ Because it is trustworthy, \cosette can be used both as a basis for building oth
 as a testing oracle for other symbolic execution tools for JavaScript that purposely 
 ignore some corner cases of the language semantics. 
 \polish{No previous symbolic execution tool for JavaScript came with the frame resilience result. 
-None of them can be used to test JS specs.}
-\pmax{None offer insights into implementation either.}
+None of them can be used to test JS specs. None offer insights into implementation either.}
 
 
 \begin{itemize}
-   \item \cite{saxena:sp:2010} - Kudzu
-   \item \cite{li:fse:2014} - Toshiba guys
+   %\item \cite{saxena:sp:2010} - Kudzu
+  % \item \cite{li:fse:2014} - Toshiba guys
    \item \polish{\cite{koushik:fse:2015} - jalangi} Jalangi~\cite{koushik:fse:2015} is the closest 
             to ours in spirit. It is a general analysis. It does not model the JavaScript semantics 
             precisely. 
-   \item \cite{wittern:icse:2018} -  Julian 
+   %\item \cite{wittern:icse:2018} -  Julian 
 \end{itemize}
 
 
 
 \myparagraph{Specification-driven Testing}
-There is a long line of work on specification driven test synthesis, dating back to 
-\emph{Quickcheck}~\cite{claessen:icfp:2000}. \emph{Quickcheck} and its followers~\cite{}
+There is a long line of work on specification-driven test synthesis, dating back to 
+\emph{Quickcheck}~\cite{claessen:icfp:2000}. \emph{Quickcheck} and its followers~\polish{\cite{CITE}}
 translate Haskell type declarations into comprehensive test-suites. 
 Recently, Seidel et al~\cite{seidel:esop:2015} proposed \emph{Target}, a test generation tool 
 that advances the agenda of \emph{Quickcheck} by supporting precise refinement types. 
@@ -979,26 +979,26 @@ The key insight of \emph{Target} is to use %combine the approach of \emph{Quickc
 an SMT solver for finding satisfying models for the supported type refinements. 
 Specification-driven test generation has also been successfully applied to Java.
 \emph{Korat}~\cite{boyapati:issta:2002,milicevic:icse:2007} generates test cases for Java classes annotated with
-JML specifications~\cite{}, but it requires the class code to include 
+JML specifications~\polish{\cite{CITE}}, but it requires the class code to include 
 a special Java method for checking if the class invariants hold. 
 More recently, Dolby et al. \cite{dolby:fse:2007} proposed a method for generating 
 tests for Java code annotated with relational logic specifications. 
  %
  To the best of our knowledge, there is no tool for automatic test generation 
- based on Separation Logic specifications.
+ based on separation logic specifications.
  % 
- \polish{With \cosette, one could easily concretise the resulting symbolic tests, effectively 
- obtaining a concrete test generation tool. 
+ With \cosette, one could easily concretise the resulting symbolic tests, effectively 
+ obtaining a concrete test generation tool.
  %
- However, the resulting tests would be less effective from the point of view of bug finding; thus, we chose not to do it. }
+ However, the resulting tests would be less effective from the point of view of bug finding; therefore, we opted not to do this. 
 
 
-\begin{itemize}
-   \item \cite{dolby:fse:2007} - Julian 
-   \item \cite{milicevic:icse:2007} \cite{boyapati:issta:2002} - Korat
-   \item \cite{seidel:esop:2015} - Target
-   \item \cite{claessen:icfp:2000} - QuickCheck. but also: FLOPS 2014 - Generating constrained random data with uniform distribution
-\end{itemize}
+%\begin{itemize}
+%   \item \cite{dolby:fse:2007} - Julian 
+%   \item \cite{milicevic:icse:2007} \cite{boyapati:issta:2002} - Korat
+%   \item \cite{seidel:esop:2015} - Target
+%   \item \cite{claessen:icfp:2000} - QuickCheck. but also: FLOPS 2014 - Generating constrained random data with uniform distribution
+%\end{itemize}
 
 
 \myparagraph{Logic-based Analysis for JS} 
@@ -1009,11 +1009,11 @@ This logic has proven difficult to automate and is not extensible to the entire 
 \citet{swamy:pldi:2013} prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JavaScript programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3.
 
 \citet{stefanescu:oopsla:2016} have developed KJS, a symbolic verification tool for JavaScript (ES5 core + small part of the built-in libraries) by instantiating their general $\mathbb{K}$ framework with a $\mathbb{K}$-interpretation of JavaScript~\cite{Park:2015}. Using this tool, they verify functional correctness properties of toy data structure libraries. 
-Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals. Moreover, the KJS framework is not compositional.
+Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals. Moreover, the KJS framework is not fully compositional.
 
 The work closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of small data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; the re-designed symbolic \jsil semantics of \cosette is syntax-directed and is specifically designed to facilitate implementation.
 
-The above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and predicates describing the recursive structures used. For instance, the Buckets.js library would be out of their reach. As a bug-finding tool, Cosette does not require loop invariants. The advantage is that it can be used for analysing larger, more complex codebases, but the price paid is it can provide only bounded correctness guarantees in case a bug has not been found.
+The above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and abstractions for the recursive structures used. For instance, the Buckets.js library would be out of their reach. As a bug-finding tool, Cosette does not require loop invariants or abstractions. The advantage is that it can be used for analysing larger, more complex codebases, but the price paid is it can provide only bounded correctness guarantees when a bug has not been~found.
 
 
 
