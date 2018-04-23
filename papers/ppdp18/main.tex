@@ -450,12 +450,12 @@ keeping track of object properties that we know are {\em not present};
 \dtag{2}~we define
 the JSIL symbolic semantics by lifting the JSIL instrumented
 semantics; and \dtag{3}~we link the JSIL symbolic semantics to the
-concrete JSIL semantics by describing the frames that can be safely
+JSIL concrete  semantics by describing the frames that can be safely
 added to the initial state.
 %
 %Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
 The key innovation is to have the instrumented semantics as a proper
-interim stage in the design of the analysis, obtaining more modular
+interim stage in the design of the symbolic execution, obtaining more modular
 reasoning and substantially simpler proofs. We present this methodology in detail in~\S\ref{sec:jsil:symb:exec}. 
 
 
@@ -501,18 +501,25 @@ reasoning and substantially simpler proofs. We present this methodology in detai
 %in that it comes with formal correctness guarantees and a \polish{result stating the precise conditions under which symbolic execution gives soundness}. 
 
 
-An essential goal for us was to establish trust in Cosette. In \S\ref{sex:formal:guarantees}, we give a {\em bounded soundness result} for the \jsil symbolic semantics and prove that \cosette never produces false positive bug reports. These theoretical results, combined with the correctness of \JSComp and the fact that the memory models of JavaScript and \jsil are the same by design, 
-allow us to lift the results of analyses done on compiled
-\jsil code back to JavaScript (cf.~\S\ref{subsec:liftmejs1}, \S\ref{subsec:liftmejs2}).
-Further, we implement the instrumented JSIL interpreter following the \jsil 
+An essential goal for us was to establish trust in Cosette. In
+\S\ref{sex:formal:guarantees}, we give a {\em bounded soundness
+  result} for the \jsil symbolic semantics and prove that \cosette
+never produces false positive bug reports. These theoretical results,
+combined with the assumed correctness of the \JSComp complier~\cite{.}
+and the fact that the memory models of JavaScript and \jsil are the
+same by design, enable us to lift the results of analyses done on
+compiled \jsil code back to the original JavaScript code
+(cf.~\S\ref{subsec:liftmejs1}, \S\ref{subsec:liftmejs2}). We must also
+establish trust in the Cosette implementation. 
+We  implement the \jsil  instrumented interpreter following the \jsil 
 instrumented semantics of \S\ref{subsec:instrumented} to the letter.
-To ensure that Cosette follows the semantics of JavaScript, we test
-JS-2-JSIL and the instrumented JSIL interpreter using Test262, 
-the JavaScript official test suite~\cite{test262}. Out of the
+We test the combination of the 
+JS-2-JSIL compiler and the \jsil instrumented  interpreter using Test262, 
+the official ECMAScript test suite~\cite{test262}. Out of the
 10469 tests for ES5 Strict, we identify 8330 tests appropriate
 for our coverage, of which we pass 100\%.
-Finally, we ensure that the symbolic \jsil interpreter obtained by the 
-Rosette lifting of the instrumented interpreter is consistent 
+Finally, we ensure that the \jsil symbolic interpreter obtained by the 
+Rosette lifting of the \jsil instrumented interpreter is consistent 
 with the symbolic semantics of \S\ref{subsec:symb:semantics}
 by systematically constructing symbolic unit tests for each \jsil command,
 assuming the premises and asserting the conclusion of the 
@@ -561,17 +568,17 @@ appropriate rule of the symbolic~semantics.
 
 
 
-\myparagraph{Application: Whole-Program Symbolic Testing} 
+We apply Cosette to whole-program symbolic testing. 
 A general developer can use \cosette for symbolic testing of
 their code by having symbolic inputs instead of concrete
 inputs and stating the constraints that the output needs to satisfy as
 simple, intuitive first-order assertions over these inputs. If
-a test fails, \cosette provides the concrete inputs that cause it to
+a test fails, \cosette provides the concrete input that causes it to
 fail, exposing bugs in the tested code. In \S\ref{sec:evaluation}, 
 we evaluate \cosette on two real-world JavaScript data structure libraries,
 where, using fewer tests, we achieve better coverage (100\%) than
-the concrete unit test suites shipped with the libraries, 
-and also discover bugs in each of the libraries.
+the concrete unit test suites shipped with the libraries.
+We discovered a surprising bug in both these libraries.
 
 
 %: Buckets.js [? ] with 65k downloads on
@@ -586,19 +593,21 @@ and also discover bugs in each of the libraries.
 %real-world examples that showcase JS-specific features, as well as on real-world Node.js libraries, in which we discover several~bugs. 
 
 
-\myparagraph{Application: Specification-driven Bug-finding} 
+We also apply Cosette to specification-driven bug-finding. 
 %\pmaxinline{Feeling stuck here.} 
 %Due to the complexity of JavaScript semantics, 
 Full functional correctness 
-specifications of JavaScript programs are highly intricate, with only a few tools (e.g.,~\javert~\cite{javert} and KJS~\cite{Park:2015,stefanescu:oopsla:2016}) supporting such expressivity. 
+specifications of JavaScript programs are highly intricate, with only
+a few tools (mainly, \javert~\cite{javert} and KJS~\cite{Park:2015,stefanescu:oopsla:2016}) supporting such expressivity. 
 %They target the specialist developer wanting rich, mechanically verified specifications of critical JavaScript code.
 When these tools cannot prove that a given function satisfies
-a specification, to discover the error, the developer needs to
-understand in detail a complicated proof trace. 
+a specification, the specialist developer needs to
+understand in detail a complicated proof trace to discover the error. 
 % (\javert), or act with essentially no feedback~(KJS). 
 In \S\ref{subsec:sdbf}, we show how
 \cosette can be used as an auxiliary mechanism for debugging
-separation logic specifications of JavaScript programs in \javert, due
+separation logic specifications of JavaScript programs in \javert.
+This application of Cosette is possible due 
 to its compositionality.
 Our approach, described in detail in \S\ref{sec:specs}, consists of
 translating the separation logic specifications into symbolic tests
