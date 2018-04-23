@@ -2,11 +2,6 @@
 
 We illustrate how \cosette can be used both for whole-program and compositional symbolic testing of JavaScript programs. We demonstrate how \cosette  explicitly exposes the resilience of JavaScript programs to the environment, not considered by standard symbolic execution tools, but essential for compositional analysis.
 
-Our running example is a \emph{key-value map} implementation, given in Figure~\ref{fig:2a}. It contains four functions: 
-\jsinline|Map|, for constructing an empty map;
-\jsinline|get|, for retrieving the value associated with a given key;
-\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding whether or not a key is valid.
-
  \begin{figure*}[t]
  \centering
  %
@@ -65,7 +60,10 @@ assert(result = v)
  \vspace*{-0.4cm}
 \end{figure*}
 
-\myparagraph{Description of the example}
+Our running example is a \emph{key-value map} implementation, given in Figure~\ref{fig:2a}. It contains four functions: 
+\jsinline|Map|, for constructing an empty map;
+\jsinline|get|, for retrieving the value associated with a given key;
+\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding whether or not a key is valid.
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are shared between all map 
