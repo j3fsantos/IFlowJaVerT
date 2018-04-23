@@ -252,13 +252,13 @@
 %\pginline{Not touched.}
 We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript (JS) programs.
 %\cosette is the first symbolic analysis tool for JavaScript that precisely models the semantics of the language.
-Its aim is to assist the general programmer in debugging their code: the programmer writes symbolic tests for which \cosette provides concrete counter-models.
+Its aim is to assist the general developer in debugging their code: the developer writes symbolic tests for which \cosette provides concrete counter-models.
 We create \cosette following a new, general methodology for designing compositional program analyses for dynamic languages.
-We prove that the symbolic execution underpinning \cosette is sound and that it does not generate false positives. Moreover, its compositionality allows us to use \cosette to find bugs specifications of JS programs that are not detectable by standard symbolic execution techniques.
+We prove that the symbolic execution underpinning \cosette is sound and does not generate false positives. Moreover, its compositionality allows us to use \cosette to find bugs in specifications of JS programs that are not detectable by standard symbolic execution techniques.
 %\pmaxinline{Now compositionality.}
 %
-We evaluate \cosette on challenging examples that showcase JS-specific features, as well as on real-world Node.js libraries. %These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. 
-We highlight the range of \cosette by using it to find bugs in a number of %non-trivial 
+We evaluate \cosette on challenging examples that showcase JS-specific features, as well as on real-world Node.js libraries, in which we detect several bugs. %These examples involve JavaScript-specific features, such as prototype inheritance, function closures, the for-in statement, and dynamic dispatch. 
+We highlight the range of \cosette by using it to debug %non-trivial 
 separation logic specifications of JS programs. 
 %
 %It works by compiling JavaScript programs to \jsil using \JSComp, a well-tested, standard-compliant compiler from JavaScript to \jsil, and then symbolically executing the obtained \jsil code using a novel symbolic interpreter for \jsil. We prove that the \jsil symbolic interpreter is \emph{sound} and that it does not generate false positives.
@@ -294,7 +294,7 @@ separation logic specifications of JS programs.
 
 \author[J. Fragoso Santos, P. Maksimovi\'c, T. Grohens, J. Dolby, P. Gardner]{Jos\'e Fragoso Santos$^1$, Petar Maksimovi\'c$^1$, Th\'eotime
   Grohens$^2$, Julian Dolby$^3$, Philippa Gardner$^1$}
-\affiliation{$^1\ $Imperial College London, $^2\ $ENS Paris, $^3\ $IBM New York}
+\affiliation{$^1\ $Imperial College London, $^2\ $ENS Paris, $^3\ $IBM Research}
 
 
 \begin{document}
@@ -341,7 +341,7 @@ They are fully automatic, aim at code in the large, and primarily focus on scala
 Whole-program analysis is not sufficient for JavaScript applications, 
 which are commonly run in highly dynamic execution
 environments: for example, client-side programs dynamically load and
-execute third-party code as a matter of course. Instead, one
+execute third-party code as a matter of course. One also
 needs to be able to analyse incomplete code in a compositional manner.
 Designing compositional analyses for dynamic languages such as JavaScript, 
 however, is non-trivial. This is because, unlike static languages
