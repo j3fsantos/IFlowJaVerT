@@ -41,7 +41,7 @@ Full definitions and proofs are given in the~Appendix.
 	% $\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
 	 %
 $\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid \! 
-         \mid \! \jsillist{\val_i \mid_{i=0}^n} \! \mid \! \jsilset{\val_i \mid_{i=0}^n}$
+         \mid \! \jsillist{\val_i \mid_{i=0}^n} \! \mid \! \jsilset{\val_i \!\mid_{i=0}^n}$
    \\[0.1cm]
  %
   $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \svar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
@@ -51,7 +51,7 @@ $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \js
 %
 \hspace{0.02cm} $\mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr)$ \\[0.1cm]
 % Commands
-$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
+$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i\!\mid_{i=0}^n}{j}$ \\
 \hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \jassert(\jsilexpr)$ \\[0.1cm]
 %
 $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
