@@ -1073,31 +1073,29 @@ for testing Java code annotated with relational logic specifications.
 \section{Conclusions}
 
 We have presented \cosette, a trustworthy, compositional symbolic execution
-framework for JavaScript, combining the JS-2-JSIL compiler~\cite{.}
-and our JSIL symbolic interpreter written in Rosette~\cite{.}. We
+framework for JavaScript, combining the JS-2-JSIL compiler
+and our JSIL symbolic interpreter written in Rosette. We
 have applied Cosette to whole-program symbolic testing of real-world
 JavaScript libraries and compositional debugging of separation logic
 specifications of JavaScript programs.
 
-We have developed the methodology for designing compositional program
+We have developed a methodology for designing compositional program
 analyses for dynamic languages in general, and symbolic execution for
 JSIL in particular. We achieved this by introducing a new, abstract
-semantics for JSIL, which we instantiate to obtain concrete,
+semantics for JSIL, which we instantiated to obtain the concrete,
 instrumented, and symbolic semantics. 
-Our  abstract semantics is the
-bedrock for both the theoretical results and the implementation of the
-analysis.  We prove that the symbolic execution underpinning Cosette is
-sound, frame resiliant and does not generate false positives. We
+This abstract semantics is the bedrock for both the theoretical results 
+and the implementation of the analysis. We prove that the \jsil symbolic 
+execution of Cosette is
+sound, frame-resilient and does not generate false positives. We
 establish additional trust by using the theory to precisely guide the
-implementation and by thorough testing.
+implementation and by thorough~testing.
 
 \cosette brings ideas from current separation logic research to the well-established 
-setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. Hence, 
+setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. We believe that 
 it is a stepping stone towards a {\em fully automatic} compositional symbolic execution 
-tool for JavaScript in the style of
-Infer~\cite{calcagno:nasa:2011}. In future, we will implement such a
-tool, using the 
-abstract semantics for JSIL presented here.
+tool for JavaScript in the style of Infer~\cite{calcagno:nasa:2011}. In future, 
+our goal is to implement such a tool, using the \jsil abstract semantics presented here.
 
 
 %\myparagraph{Entailment in Separation Logic and Countermodels}
