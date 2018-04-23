@@ -13,11 +13,16 @@ We elaborate on the results presented below in more detail in the Appendix.
 %First, they are by construction more comprehensive than concrete tests, because symbolic tests can account for the whole range of values that a variable can take, instead of focusing on a few specific examples.
 %Second, when \cosette finds a failing assertion inside a symbolic test, it can concretize the symbolic values into a counter-model that the developer can actually run in node, making debugging much easier compared to (the other things that we mention before).
 
-\myparagraph{Coverage of \JSComp} It is straightforward to
-    extend \JSComp to the non-strict mode of the language. Later extensions and
-    revisions contain ECMAScript 5 as a common core.
+\myparagraph{Coverage} The coverage of \cosette is dependent on the coverage 
+of \JSComp. Currently, \JSComp covers the entire core of ES5 Strict and the  
+majority of built-in libraries. Several libraries orthogonal to the core, such 
+as the Date, RegExp, and JSON libraries, are unsupported. 
+Extending \JSComp to the non-strict mode of the language and implementing 
+the remaining built-in libraries is straightforward and is a technical exercise. 
+A more substantial effort is required for moving to the later extensions and
+revisions of the standard, but contain ECMAScript 5 as a common core.
     
-    \pmax{Make sure you remember everything: for-in, higher-order, blah..., what's the real limitation.}
+\pmax{Make sure you remember everything: for-in, higher-order, blah..., what's the real limitation.}
 
 \myparagraph{Whole-program Symbolic Testing: JS-Specific Features}
 We created a number of symbolic tests to demonstrate that Cosette can reason about essential JavaScript features, such as prototype inheritance, function closures, arrays, strings, as well as the substantially more challenging for-in statement and dynamic dispatch. 
@@ -86,12 +91,13 @@ we have fixed it and submitted an appropriate pull request.
 
 \smallskip
 \noindent \emph{Bug: queue-pri.} This library implements a priority queue that stores data with an optional priority value.
-The priority can either be a number (the lower the value, the higher the priority) or the default \jsinline{null} value if no priority is provided, in which case the associated element is put at the end of the queue. Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library, even though their line coverage was 100\%, because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
+This priority can either be a number (the lower the value, the higher the priority) or a default value of \jsinline{null} if no priority is provided, in which case the associated element is put at the end of the queue.
+Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library, even though their line coverage was 100\%, because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
 
 \myparagraph{Specification-directed Bug-finding} For this part of the evaluation, we required  JavaScript code that is specified. As \cosette does not infer specifications, we revisited the JaVerT full functional correctness specifications of simple data structure libraries: key-value maps (cf.~\S\ref{subsec:sdbf}); priority queues; binary search trees (BSTs), and sorted lists~\cite{javert}. Expectedly, these libraries are substantially smaller than real-world JS libraries; their code is given in the Appendix.
 
 For these libraries, we first investigated the relationship between the unfolding depth for recursive predicates and the code coverage of the resulting symbolic tests. We have observed that very few unfoldings are sufficient for achieving full coverage. In particular, the tests generated for the key-value map, priority queue, and the sorted list have full coverage already for unfold depth set to 1, while those for the BST reach full coverage for unfold depth set to 2. 
 
-\pmax{This unfolding bit is not worth a table. What it shows is that BST is somehow "more recursive" than the others---is there an official way of saying that?}
+%\pmax{This unfolding bit is not worth a table. What it shows is that BST is somehow "more recursive" than the others---is there an official way of saying that?}
 
 To test the compositionality of \cosette, we crippled the specifications of the key-value map and the priority queue, exposing various frame-related bugs, such as the ones shown in~\S\ref{subsec:sdbf}. \cosette was able to detect all bugs already with the unfold depth set to 1, showing that it can successfully reason given partial state information, in contrast to standard symbolic execution tools for JavaScript.
