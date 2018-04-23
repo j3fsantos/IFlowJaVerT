@@ -4,14 +4,14 @@
 
 \section{Evaluation}
 
-\subsection{Challenging JavaScript tests}
+\subsection{Challenging JavaScript Features}
 
 \cosette is able to verify JavaScript programs that use nontrivial parts of the JavaScript semantics, such as dynamic dispatch and property enumeration (via \jsinline{for-in} loops), in the symbolic world.
 
 \myparagraph{Dynamic dispatch}
 The following example demonstrates that \cosette is able to bring together complex symbolic string and mathematical reasoning with JavaScript's memory model.
 
-\begin{lstjs}
+\begin{lstjshere}
 var o = Object.create(null);
 
 o.plusOne = function(x) { return x + 1 };
@@ -26,7 +26,7 @@ var total1 = o[s1](n1)
 var total2 = o[s2](n2);
 
 Assert(total1 = total2);
-\end{lstjs}
+\end{lstjshere}
 
 In this example, we create an object \jsinline{o} that contains two functions, \jsinline{o.plusOne} and \jsinline{o.minusOne}, which respectively add and subtract $1$ from their argument.
 We create two symbolic strings \jsinline{s1} and \jsinline{s2}, and two distinct symbolic numbers \jsinline{n1} and {n2}.
@@ -44,7 +44,7 @@ This example demonstrates that \cosette has a fine understanding of the mechanic
 \myparagraph{Property enumeration}
 The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties of JavaScript objects.
 
-\begin{lstjs}
+\begin{lstjshere}
 function nbProp(o) {
   var count = 0;
   for (var p in o) { count++ }
@@ -60,7 +60,7 @@ var res = nbProp(o);
 var expectedRes = 3;
 
 Assert(res = expectedRes);
-\end{lstjs}
+\end{lstjshere}
 
 In this example, we create a JavaScript object \jsinline{o} that has three properties \jsinline{a, b}, and \jsinline{c}.
 Then, we create a symbolic string \jsinline{s} and assign a value to the property of \jsinline{o} corresponding to {s}.
@@ -79,16 +79,16 @@ First, we create a new empty object \jsinline{o}.
 Then, we assign symbolic values \jsinline{n1} and \jsinline{n2} to properties \jsinline{s1} and \jsinline{s2} respectively, which we assume to be different in order to avoid aliasing.
 Finally, we read property \jsinline{s3} of \jsinline{o}, which we assume to be either \jsinline{s1} or \jsinline{s2}, and we assert that, in each case, the corresponding value was read.
 
-\begin{lstjs}
+\begin{lstjshere}
 proc main () {
     (* Setup properties *)
-    s1 := make-symbol-string(s1);
-    s2 := make-symbol-string(s2);
-    s3 := make-symbol-string(s3);
+    s1 := symb_string();
+    s2 := symb_string();
+    s3 := symb_string();
 
     (* Setup values *)
-    n1 := make-symbol-number(n1);
-    n2 := make-symbol-number(n2);
+    n1 := symb_number();
+    n2 := symb_number();
 
     (* Initial assumption *)
     assume(not (s1 = s2));
@@ -99,7 +99,6 @@ proc main () {
     [o, s1] := n1;
     [o, s2] := n2;
 
-
     (* RULE: Property Access *)
     ret1 := [o, s3];
 
@@ -108,14 +107,13 @@ proc main () {
         ((s3 = s2) and (ret1 = n2))
     );
 
-    success;
     rlab:    xret := $$t
 }
 with
 {
     ret:    xret, rlab;
 };
-\end{lstjs}
+\end{lstjshere}
 
 
 \myparagraph{Delete}
@@ -124,15 +122,15 @@ As before, we begin by creating a new empty object \jsinline{o}, and assign valu
 Then, we delete property \jsinline{s1} from \jsinline{o}.
 Finally, we call the \jsinline{hasField} primitive on both properties, and we assert that \jsinline{s1} is not present anymore while \jsinline{s2} still is.
 
-\begin{lstjs}
+\begin{lstjshere}
 proc main () {
     (* Setup properties *)
-    s1 := make-symbol-string(s1);
-    s2 := make-symbol-string(s2);
+    s1 := symb_string();
+    s2 := symb_string();
 
     (* Setup values *)
-    n1 := make-symbol-number(n1);
-    n2 := make-symbol-number(n2);
+    n1 := symb_number();
+    n2 := symb_number();
 
     (* Initial assumption *)
     assume(not (s1 = s2));
@@ -153,14 +151,13 @@ proc main () {
         (ret1 = $$f) and (ret2 = $$t)
     );
 
-    success;
     rlab:   xret := $$t
 }
 with
 {
     ret:    xret, rlab;
 };
-\end{lstjs}
+\end{lstjshere}
  
 \subsection{Bug: Multidictionary in Buckets.js}
 
@@ -178,17 +175,17 @@ A simplified version of the failing code is shown below.
 The \jsinline{parent} variable is an internal variable of the \jsinline{multidict} object that holds a Buckets.js dictionary from keys to arrays of values.
 The \jsinline{arrays.remove} function is part of the Buckets.js array manipulation library, and removes a given value from a JavaScript array.
 
-\begin{lstjs}
+\begin{lstjshere}
 multidict.remove = function (key, value) {
     if (value === undefined) { ... }
     var array = parent.get(key);
     if (arrays.remove(array, value)) { ... }
     return false;
 }
-\end{lstjs}
+\end{lstjshere}
 We were able to expose the bug with the following symbolic test:
 
-\begin{lstjs}
+\begin{lstjshere}
 var dict = new buckets.multidict();
 var s = symb_string();
 var x1 = symb_number();
@@ -199,7 +196,7 @@ dict.set(s, x2);
 dict.remove(s, x1);
 var didRemove = dict.remove(s, x2);
 assert((x1 != x2 && didRemove) || (x1 == x2 && !didRemove));
-\end{lstjs}
+\end{lstjshere}
 
 In this test, we create a new multidictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
 Note that, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store this value two times in the array.
@@ -216,7 +213,7 @@ This priority can either be a number (the lower the value, the higher the priori
 The relevant part of the code of the \jsinline{enqueue} function is as follows.
 It creates a \jsinline{payload} objects holding the data along with its priority, and inserts it at the right place (according to its priority) in an internal linked list.
 
-\begin{lstjs}
+\begin{lstjshere}
 PriorityQueue.prototype = {
     enqueue: function (data, pri) {
         var payload = {
@@ -226,11 +223,11 @@ PriorityQueue.prototype = {
         ...
     };
 };
-\end{lstjs}
+\end{lstjshere}
 
 Again, we were able to expose the bug with the following symbolic example:
 
-\begin{lstjs}
+\begin{lstjshere}
 var x1 = symb_number(x1), x2 = symb_number(x2);
 var s1 = symb_string(s1), s2 = symb_string(s2);
 
@@ -243,7 +240,7 @@ var y2 = queue.dequeue().data;
 assert((x1 <  x2 && y1 == s1 && y2 == s2) 
     || (x1 == x2 && y1 == s1 && y2 == s2)
     || (x1 >  x2 && y1 == s2 && y2 == s1));
-\end{lstjs}
+\end{lstjshere}
 
 We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent their priority values.
 Then, we first enqueue string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
