@@ -61,7 +61,7 @@ to range over them.
 \end{display}
 
 \noindent Without loss of generality, we implicitly assume that different symbolic locations 
-denote different concrete locations.\footnote{To express aliasing, the user has to write multiple assertions.}
+denote different concrete locations. %\footnote{To express aliasing, the user has to write multiple assertions.}
  Furthermore, given a cell assertion $(\jsilexpr,-) \pointsto -$, we always assume 
  $\jsilexpr$ to be either a concrete location $\loc$ or a symbolic location $\sloc$. 
 %
@@ -322,9 +322,7 @@ The Frame Inference Algorithm has four possible cases:
 %\vspace*{-0.8cm}
 
 \myparagraph{Example: Unification Algorithm}
-Let $\sstate=(\storeemp, \sheap, \sdom, \jtrue)$, where $\sheap = [\hcell{\sloc}{\sexprp_1}{\sexprv}]$ and $\sdom = [ \sloc \mapsto \{ \sexprp_1 \}]$. If the next assertion to be unified is $\emptyfields{\loc}{\{ \sexprp_1 \}}$, the unification will succeed due to the \prooflab{GetDomain} rule. The heap of the resulting symbolic state will be equal to $\sheap$ and the domain table will be empty. On the other hand, if the next assertion is $\emptyfields{\loc}{\{ \sexprp_2 \}}$, the unification will fail. The \prooflab{GetDomain} rule will return $\sexprv' = \{ p_1 \}$.
-
- due to the \prooflab{GetCell - Fail with Domain Info} rule (since $\sexprp_2$ is not equal to $\sexprp_1$ under $\pc$), and the algorithm will return the failing constraint $\sexprp_1 \neq \sexprp_2$.
+Let $\sstate=(\storeemp, \sheap, \sdom, \jtrue)$, where $\sheap = [\hcell{\sloc}{\sexprp_1}{\sexprv}]$ and $\sdom = [ \sloc \mapsto \{ \sexprp_1 \}]$. If the next assertion to be unified is $\emptyfields{\loc}{\{ \sexprp_1 \}}$, the unification will succeed due to the \prooflab{GetDomain} rule. The heap of the resulting symbolic state will be equal to $\sheap$ and the domain table will be empty. On the other hand, if the next assertion is $\emptyfields{\loc}{\{ \sexprp_2 \}}$, the unification will fail. The \prooflab{GetDomain} rule will return $\sexprv' = \{ \sexprp_1 \}$, but since we have no information on $\sexprp_2$, we will not be able to determine the set difference $\sexprv'\backslash\sexprv$ and will fail with the failing constraint $\{ \sexprp_2 \} \subsetneq \{ \sexprp_1 \}$.
 
 \myparagraph{Formal Guarantees} 
 %Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
