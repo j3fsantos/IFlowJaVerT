@@ -2,11 +2,6 @@
 
 We illustrate how \cosette can be used both for whole-program and compositional symbolic testing of JavaScript programs. We demonstrate how \cosette  explicitly exposes the resilience of JavaScript programs to the environment, not considered by standard symbolic execution tools, but essential for compositional analysis.
 
-Our running example is a \emph{key-value map} implementation, given in Figure~\ref{fig:2a}. It contains four functions: 
-\jsinline|Map|, for constructing an empty map;
-\jsinline|get|, for retrieving the value associated with a given key;
-\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding whether or not a key is valid.
-
  \begin{figure*}[t]
  \centering
  %
@@ -17,13 +12,13 @@ function Map () { this._contents = {} }
 
 Map.prototype.get = function (k) {
   var c = this._contents;
-  if this.validKey(k) {
+  if (this.validKey(k)) {
     return (c.hasOwnProperty(k) ? c[k] : null)
   } else throw new Error("Invalid Key");
 }
 
 Map.prototype.put = function (k, v) {
-  if this.validKey(k) {  
+  if (this.validKey(k)) {  
     this._contents[k] = v   
   } else throw new Error("Invalid Key");
 } 
@@ -65,7 +60,10 @@ assert(result = v)
  \vspace*{-0.4cm}
 \end{figure*}
 
-\myparagraph{Description of the example}
+Our running example is a \emph{key-value map} implementation, given in Figure~\ref{fig:2a}. It contains four functions: 
+\jsinline|Map|, for constructing an empty map;
+\jsinline|get|, for retrieving the value associated with a given key;
+\jsinline|put|, for inserting/updating key-value pairs; and \jsinline|validKey|, for deciding whether or not a key is valid.
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are shared between all map 
@@ -109,7 +107,7 @@ Developers are used to writing unit tests for their code---verifying that, given
 
 % 
 When running \cosette on this test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}
-we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap and the implementation of \jsinline|get| from Figure~\ref{fig:two}. We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the contents object (Figure~\ref{fig:2c}, below).
+we will obtain the counter-model \jsinline|k = "hasOwnProperty"|. To understand this error, recall the heap and the implementation of \jsinline|get| from Figure~\ref{fig:two}. We can see that, if we were to put the key \jsinline|"hasOwnProperty"| into the contents object of a map, then the lookup of \jsinline|c.hasOwnProperty| done by \jsinline|get| will not reach \jsinline|Object.prototype| as intended, resolving instead to the \jsinline|hasOwnProperty| property of the \jsinline|contents| object (Figure~\ref{fig:2c}, below).
 
 This example highlights how \cosette does not require specialist knowledge and can 
 be used as a testing tool by a general JavaScript developer. The annotations amount to the creation of 
@@ -130,7 +128,7 @@ symbolic variables and the writing of assumptions and assertions, remaining mini
 %\end{itemize}
 %}
 
-As well as for whole-program analysis, \cosette can be used for compositional symbolic analysis of JavaScript functions in isolation, where the user specifies the functions in terms of its pre- and post-conditions. These specifications may account for only the parts of the heap required for running the function and can involve predicates, both recursive and non-recursive. We deal with recursive predicates by unfolding them to a  bound specified by the user.
+As well as for whole-program analysis, \cosette can be used for compositional symbolic analysis of JavaScript functions in isolation, where the user specifies the functions in terms of their pre- and post-conditions. These specifications may account for only the parts of the heap required for running the function and can involve predicates, both recursive and non-recursive. We deal with recursive predicates by unfolding them to a  bound specified by the user.
 
 Much like symbolic tests generalise concrete tests, specifications generalise symbolic tests. Given a JavaScript function, its specification, and the unfold depth for predicates, \cosette generates symbolic tests to verify that the function conforms to the specification up to that given depth. If this is not the case, \cosette will return a concrete counter-model that invalidates the specification. Unlike whole-program analysis tools, \cosette also tests if the given specification is compositional, that is, if it is resilient against all possible contexts in which the function can be run, and reports back to the user any found sources of non-compositionality.
 
