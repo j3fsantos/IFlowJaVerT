@@ -106,4 +106,435 @@ This means that the key in the second call to \jsinline{remove} on line 6 is not
 When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the instantiation of the test in Node raises an error.
 We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
 
+\subsection{Specification-Directed Bug-Finding: JaVerT Data-Structure Libraries}
 
+\lstnewenvironment{lstjshere}{\lstset{language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}}{}
+
+\noindent{\bfseries E.3.1. Priority Queue}
+
+\begin{lstjshere}
+/**
+  @pred Node(+n, pri, val, next, np) :
+      JSObjWithProto(n, np) * DataProp(n, "pri",  pri) * 
+      (0 <# pri) * DataProp(n, "val",  val) *
+      DataProp(n, "next", next) * ((n, "insert") -> none);
+	
+  @pred NodePrototype(np) :
+      JSObject(np) * DataProp(np, "insert", #insert_loc) *
+      JSFunctionObject(#insert_loc, "insert", _, _, _) *
+      ((np, "pri") -> none) * ((np, "val") -> none) * 
+      ((np, "next") -> none);
+	
+  @pred NodeList(+nl, np, max_pri, length) :
+      (nl == null) * (max_pri == 0) * (length == 0),
+      
+      Node(nl, max_pri, #val, #next, np) * (0 <# max_pri) *
+      NodeList(#next, np, #pri, #len_nl) * (#pri <=# max_pri) *
+      (length == #len_nl + 1);
+	
+	
+  @pred Queue(+pq, qp, np, max_pri : Num, length : Num) :
+      JSObjWithProto(pq, qp) * DataProp(pq, "_head",  #head) *
+      NodeList(#head, np, max_pri, length) * 
+      ((pq, "enqueue") -> none) * ((pq, "dequeue") -> none);
+	
+	
+  @pred QueuePrototype(+qp, np, c : Num, enq_sc):
+      JSObject(qp) * DataProp(qp, "enqueue", #enqueue_loc) * 
+      JSFunctionObject(#enqueue_loc, "enqueue", enq_sc, _, _) *
+      DataProp(qp, "dequeue", #dequeue_loc) * 
+      JSFunctionObject(#dequeue_loc, "dequeue", #dequeue_sc, _, _) *
+      JSFunctionObject(#n, "Node", #node_sc, _, np)
+      ((qp, "_head") -> none) * NodePrototype(np) * 
+      closure(Node : #n, counter : c; Node : #node_sc, 
+        enqueue: enq_sc, dequeue: #dequeue_sc, PQLib: #pq_sc);
+	
+  @pred PriorityQueueModule(pq) :
+      QueuePrototype(#pqp, #np, 0, #sc) *
+      JSFunctionObject(pq, "PriorityQueue", #pq_sc, _, #pqp) *
+      o_chains(PriorityQueue: #pq_sc, enqueue: #sc);
+*/
+
+/** 
+  @id PQLib
+  @pre  ObjectPrototype()
+  @post ObjectPrototype() * PriorityQueueModule (ret)
+*/
+var PriorityQueue = (function () {
+
+  var counter = 0;
+
+  /**
+    @id  Node
+
+    @pre (
+      (pri == #pri) * (0 <# #pri) * (val == #val) *
+      ((this, "pri")  -> none) * ((this, "val")    -> none) * 
+      ((this, "next") -> none) * ((this, "insert") -> none) *
+      JSObjWithProto(this, #np) * NodePrototype(#np) *
+      scope(counter : #c) * types(#c : Num) * ObjectPrototype()
+    )
+    @post (
+      Node(this, #pri, #val, null, #np) * NodePrototype(#np) * 
+      scope(counter : #c + 1) * ObjectPrototype()
+    )
+  */
+  var Node = function (pri, val) {
+      this.pri = pri; this.val = val; this.next = null;	counter++
+  }
+
+  /**
+    @id insert
+		
+    @pre (
+      (nl == #nl) * NodeList(#nl, #np, #pri_nl, #length) *
+      Node(this, #npri, #nval, null, #np) * NodePrototype(#np) *
+      (#pri_nl <# #npri)
+    )
+    @post (
+      NodeList(this, #np, #npri, #length + 1) *
+      NodePrototype(#np) * (ret == this)
+    )
+
+    @pre (
+      (nl == #nl) * NodeList(#nl, #np, #pri_nl, #length) *
+      Node(this, #npri, #nval, null, #np) * NodePrototype(#np) *
+      (#npri <=# #pri_nl)
+    )
+    @post (
+      types(#nl : Obj) * NodeList(#nl, #np, #pri_nl, #length + 1) *
+      NodePrototype(#np) * (ret == #nl) 
+    )
+  */
+  Node.prototype.insert = function (nl) {
+    if (nl === null) { return this }
+    
+    if (this.pri > nl.pri) { this.next = nl; return this }
+    
+    var tmp = this.insert (nl.next);
+    nl.next = tmp;
+    return nl
+  }
+
+  /**
+    @id  PriorityQueue
+	
+    @pre (
+      ObjectPrototype() * ((this, "_head") -> none) *
+      ((this, "enqueue") -> none) * ((this, "dequeue") -> none) *
+      JSObjWithProto(this, #pqp) * QueuePrototype(#pqp, #np, #c, #sc) *
+      o_chains(enqueue: #sc, PQLib: $$scope) 
+    )
+    @post (
+      Queue(this, #pqp, #np, 0, 0) *
+      QueuePrototype(#pqp, #np, #c, #sc) * ObjectPrototype()
+    )
+  */
+  var PQ = function () {
+    this._head = null;
+  };
+
+  /**
+    @id enqueue
+				
+    @pre (
+      (pri == #pri) * (0 <# #pri) * (val == #val) * 
+      Queue(this, #pqp, #np, #pri_q, #length) *
+      QueuePrototype(#pqp, #np, #c, #sc) *
+      o_chains(enqueue: #sc, PQLib: $$scope) *
+      (#pri <=# #pri_q) * ObjectPrototype()
+    )
+    @post (
+      Queue(this, #pqp, #np, #pri_q, #length + 1) *
+      QueuePrototype(#pqp, #np, #c + 1, #sc) * ObjectPrototype()
+    )
+		
+    @pre (
+      (pri == #pri) * (0 <# #pri) * (val == #val) * 
+      Queue(this, #pqp, #np, #pri_q, #length) *
+      QueuePrototype(#pqp, #np, #c, #sc) *
+      o_chains(enqueue: #sc, PQLib: $$scope) *
+      (#pri_q <# #pri) * ObjectPrototype()
+    )
+    @post (
+      Queue(this, #pqp, #np, #pri, #length + 1) *
+      QueuePrototype(#pqp, #np, #c + 1, #sc) *
+      ObjectPrototype()
+    )
+  */
+  PQ.prototype.enqueue = function(pri, val) {
+    var n = new Node(pri, val);
+    this._head = n.insert(this._head);
+  };
+
+  /**
+    @id dequeue
+     
+    @pre (
+      Queue(this, #pqp, #np, #pri_q, #length) * 
+      QueuePrototype(#pqp, #np, #c, #sc) *
+      o_chains(enqueue: #sc, dequeue: $$scope) * (0 <# #length)
+    )
+    @post (
+      Queue(this, #pqp, #np, #new_pri_q, #length - 1) *
+      QueuePrototype(#pqp, #np, #c - 1, #sc) *
+      (ret == #r) * JSObject(#r) * 
+      DataProp(#r, "pri", #pri_q) * DataProp(#r, "val", #some_val)
+    )
+     
+    @pre (
+      Queue(this, #pqp, #np, 0, 0) *
+      QueuePrototype(#pqp, #np, #c, #sc) *
+      o_chains(enqueue: #sc, dequeue: $$scope) *
+      GlobalObject() * BI_ErrorObject()
+    )
+    @posterr (
+      Queue(this, #pqp, #np, 0, 0) *
+      QueuePrototype(#pqp, #np, #c, #sc) *
+      (err == #e) * ErrorObjectWithMessage(#e, "Queue is empty") *
+      GlobalObject() * BI_ErrorObject()
+    )
+  */
+  PQ.prototype.dequeue = function () {
+    if (this._head === null) {
+      throw new Error("Queue is empty");
+    }
+
+    counter--;
+    var first = this._head;
+    this._head = this._head.next;
+    return {pri: first.pri, val: first.val};
+  };
+
+  return PQ;
+})();
+\end{lstjshere}
+
+\noindent{\bfseries E.3.2. Binary Search Tree}
+
+\begin{lstjshere}
+/**
+  @pred NullableObject(o) :  types(o : Obj), types (o : Null);
+  
+  @pred Node(+n : Obj, val : Num, left, right) :
+    JSObject(n) * DataProp(n, "value", val) * 
+    DataProp(n, "left",  left) * DataProp(n, "right", right);
+
+  @pred BST(+n, K : Set) :
+    (n == null) * (K == -{ }-) * types (n : Null, K : Set),
+    
+    Node(n, #val, #left, #right) * BST(#left, #KL) * BST(#right, #KR) * 
+    (K == -u- (#KL, -{ #val }-, #KR)) *
+    (forall #x : Num. ((! (#x --e-- #KL)) \/ (#x <# #val))) *
+    (forall #x : Num. ((! (#x --e-- #KR)) \/ (#val <# #x))) *
+    types(#val : Num, #KL : Set, #KR : Set);
+*/
+
+/**
+  @id makeNode
+  
+  @pre (
+    (v == #v) * types (#v : Num)
+  )		
+  @post (
+    Node(#r, #v, null, null) * types (#r : Obj) * (ret == #r)
+  )
+*/
+function make_node(v) {
+  return { value : v, left  : null, right : null }
+}
+
+/**
+  @id insert
+  
+  @pre (
+    GlobalObject() * ObjectPrototype() * (t == #t) * BST(#t, #K) * 
+    (v == #v) * types (#v : Num) * scope(make_node : #makeNode) *
+    JSFunctionObject(#makeNode, "makeNode", _, _, _) *
+    scope(insert : #insert) * JSFunctionObject(#insert, "insert", _, _, _)
+  )	
+  @post 
+    GlobalObject() * ObjectPrototype() * BST(#t_new, -u- (#K, -{ #v }-)) * 
+    (ret == #t_new) * types (#t_new : Obj) * 
+    scope(make_node : #makeNode) * scope(insert : #insert) * 
+    JSFunctionObject(#makeNode, "makeNode", _, _, _) *
+    JSFunctionObject(#insert, "insert", _, _, _)
+  )
+*/
+function insert(v, t)
+{  
+  if (t === null) { return make_node(v) }
+
+  if (v < t.value)
+    t.left = insert(v, t.left);
+  else if (v > t.value) 
+    t.right = insert(v, t.right);
+
+  return t;
+}
+
+/**
+  @id find
+  
+  @pre (
+    (t == #t) * BST(#t, #K) * (v == #v) * types (#v : Num) * 
+    scope(find : #find) * JSFunctionObject(#find, "find", _, _, _) *
+    GlobalObject() * ObjectPrototype()
+  )
+  @post (
+    BST(#t, #K) * (ret == (#v -e- #K)) * types(#r : Bool) *
+    scope(find : #find) * JSFunctionObject(#find, "find", _, _, _) * 
+    GlobalObject() * ObjectPrototype()
+  )
+*/
+function find (v, t)
+{
+  var result;
+
+  if (t === null) { return false }
+  else if (v === t.value) { return true }
+       else if (v < t.value) { return find(v, t.left) }
+            else { return find(v, t.right) }
+}
+
+/**
+  @id findMin
+	
+  @pre (
+    initialHeapPostWeak() * (t == #t) * BST(#t, #K) * 
+    types(#t : Obj) * scope(find_min : #findMin) * 
+    JSFunctionObject(#findMin, "findMin", _, _, _)
+  )
+  @post (
+    initialHeapPostWeak() * BST(#t, #K) * (ret == #r) * 
+    types(#r : Num) * (#r --e-- #K) * scope(find_min : #findMin) *
+    (forall #x : Num. ((! (#x --e-- #K)) \/ (#r <=# #x))) *
+    JSFunctionObject(#findMin, "findMin", _, _, _)
+  )
+*/
+function find_min(t)
+{
+  var result;
+  
+  if (t.left === null) { return t.value }
+	else { return find_min(t.left) }
+}
+
+/**
+  @id remove
+  
+  @pre (
+    initialHeapPostWeak() * 
+    (t == #t) * BST(#t, #K) * (v == #v) * types (#v : Num) *
+    scope(remove : #remove) * scope(find_min : #findMin) *
+    JSFunctionObject(#remove, "remove", _, _, _) *
+    JSFunctionObject(#findMin, "findMin", _, _, _)
+  )
+  @post (
+    initialHeapPostWeak() * 
+    (ret == #t_new) * BST(#t_new, #K_new) * 
+    (#K_new == #K -d- -{ #v }-) * NullableObject(#t_new) *
+    scope(remove : #remove) * scope(find_min : #findMin) * 
+    JSFunctionObject(#remove, "remove", _, _, _) *
+    JSFunctionObject(#findMin, "findMin", _, _, _)
+  )
+*/
+function remove(v, t)
+{
+  if (t === null) return null;
+
+  if (v === t.value) {
+    /* The branching on t.left is the 
+       reason why we need two unfoldings
+       to get full coverage */
+    if (t.left === null) { return t.right }
+    else if (t.right === null) { return t.left }
+    else {
+      var min = find_min(t.right);
+      t.right = remove(min, t.right);
+      t.value = min;
+    }
+  }
+  else if (v < t.value)
+    t.left = remove(v, t.left);
+  else
+    t.right = remove(v, t.right);	
+  
+  return t;
+}
+\end{lstjshere}
+
+
+\noindent{\bfseries E.3.3. Sorted List}
+
+\begin{lstjshere}
+/**
+  @pred nullableObject(o) : types(o : Obj), (o == null);
+
+  @pred Node(+n:Obj, v:Num, t):
+    JSObject(n) * DataProp(n, "value", v) * DataProp(n, "next", t);
+  
+  @pred NDList(+nl, E:Set):
+    (l == null) * (E == -{ }-),
+
+    Node(nl, #v, #t) * NDList(#t, #tE) *
+    (E == -u- (#tE, -{ #v }-)) * (! (#v --e-- #tE));
+
+  @pred SOList(+nl, E:Set):
+    (nl == null) * (E == -{ }-),
+
+    Node(nl, #v, #t) * SOList(#t, #tE) * (E == -u- (#tE, -{ #v }-)) *
+    (forall #x:Num. ((! (#x --e-- #tE)) \/ (#v <# #x)));
+*/
+ 
+/**
+  @id insert
+
+  @pre (
+    JSObject($lg) * (node == #n) * (value == #v) * 
+    SOList(#n, #E) * types(#v: Num) * scope(insert: #insert_fun) * 
+    JSFunctionObject(#insert_fun, "insert", #insert_sc, _, _)
+  )
+  @post (
+    JSObject ($lg) * (ret == #ret) * SOList(#ret, -u- (-{ #v }-, #E)) * 
+    types(#ret: Obj) * scope(insert: #insert_fun) * 
+    JSFunctionObject(#insert_fun, "insert", #insert_sc, _, #_)
+  )
+*/
+function insert(node, value) {
+  if (node === null) {
+      return { next: null, value: value }
+  } else if (node.value === value) {
+      return node;
+  } else if (node.value < value) {
+      var rec = insert(node.next, value);
+      return { next: rec, value: node.value }
+  } else {
+      return { next: node, value: value }
+  }
+}
+
+/**
+  @id sort
+
+  @pre (
+    JSObject($lg) * (head == #h) * NDList(#h, #E) * 
+    scope(sort: #sort_fun) * scope(insert: #insert_fun) *
+    JSFunctionObject(#sort_fun, "sort", #sort_sc, _, _) * 
+    JSFunctionObject(#insert_fun, "insert", #insert_sc, _, _)
+  )
+  @post (
+    JSObject($lg) * SOList(ret, #E) * nullableObject(ret) * 
+    scope(sort: #sort_fun) * scope(insert: #insert_fun) * 
+    JSFunctionObject(#sort_fun, "sort", #sort_sc, _, _) * 
+    JSFunctionObject(#insert_fun, "insert", #insert_sc, _, _)
+  )
+*/
+function sort(head) {
+  if (head === null) { return null }
+  else {
+    var rec = sort(head.next);
+    return insert(rec, head.value)
+  }
+}
+\end{lstjshere}
