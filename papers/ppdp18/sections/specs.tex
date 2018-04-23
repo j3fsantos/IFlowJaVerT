@@ -415,38 +415,34 @@ $$
 
 \javert specifications of JS functions are analogous to \jsil specifications of \jsil procedures.
 %, and are of the form $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$. 
-As for \jsil, a \javert~\cite{javert} specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
-is valid for a JavaScript program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$, 
-if and only if $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
+A \javert specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
+is valid for a JS program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$, 
+\emph{iff} $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
 if it terminates, it does so in a state satisfying $Q_\jssubscript$, with return mode $\flag$''. 
 %The assertion language used by \javert is very similar to the assertion language of \jsil and is described in detail in~\cite{javert}.
-\javert comes with a proven correct compiler from \javert specifications to \jsil specifications, denoted by $\jsspeccomp$. 
+The \JSComp compiler is proven to correctly compile \javert to \jsil specifications~\cite{javert}.
 
 \myparagraph{Testing \javert Specifications}
-We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. 
-First, we convert the JavaScript program and its \javert specifications to a \jsil program with \jsil specifications, 
-using \jstojsil and $\jsspeccomp$. Next, we generate a set of symbolic tests from the obtained 
-\jsil program and \jsil specifications, as described in \S\ref{specs:to:symbolic:tests}. 
-Finally, we run the generated \jsil symbolic tests using the \jsil symbolic semantics described on \S\ref{subsec:symb:semantics}. 
-If \cosette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
+We generate symbolic tests from a JS program and its \javert specifications by: converting them to a \jsil program with \jsil specifications, using \jstojsil; generating a set of symbolic tests from the obtained \jsil program and \jsil specifications, as described in \S\ref{specs:to:symbolic:tests}; and running the generated \jsil symbolic tests using the \jsil symbolic semantics described in \S\ref{subsec:symb:semantics}. 
+If \cosette finds a bug while running the tests, we will obtain a concrete counter-example triggering that bug.
 
 \myparagraph{Formal Guarantees}
-The correctness $\jsspeccomp$ ensures that 
+The correctness of \JSComp ensures that 
 %the analysis of \jsil programs can be lifted to JavaScript programs. More concretely,
 %
  a \javert  specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
-is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
-$\jsspeccomp(\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag})$ is valid 
-for the compilation of $\jstmt$ by a correct compiler $\compile$. 
+is valid for a given JS program $\jstmt$ \emph{iff} the translated specification 
+$\compile(\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag})$ is valid 
+for the compilation of $\jstmt$.
 
 \begin{corollary}[Bug-finding for \javert Specifications]\label{teo:bug:finding:sl:javert}
 $$
 \begin{array}{l}
-\testify{}(\jsspeccomp(\specsig{\pass_\jssubscript}{\pid(\jvec{x})}{\qass_\jssubscript}{\flag}))  = (\proc, \sstate) \, \wedge \\
+\testify{}(\compile(\specsig{\pass_\jssubscript}{\pid(\jvec{x})}{\qass_\jssubscript}{\flag}))  = (\proc, \sstate) \, \wedge \\
 \quad
   \compile(\jstmt)[\jsilmain \mapsto \proc] :  \transabssemrule{\sstate, \csmain, 0}{-, -, -}{\top}{\bot}{\symbolic} \\ \quad \qquad 
     \implies  
-         \jstmt \not\satisfies \specsig{\pass_\jssubscript}{\pid(\jvec{x})}{\qass_\jssubscript}{\flag}
+         \jstmt \not\satisfies \specsig{\pass_\jssubscript}{\pid(\jvec{x})}{\qass_\jssubscript}{\flag}.
 \end{array}
 $$
 \end{corollary}

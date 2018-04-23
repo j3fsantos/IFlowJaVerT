@@ -303,10 +303,7 @@ P. Gardner]{Jos\'e Fragoso Santos, Petar Maksimovi\'c, Th\'eotime
 
 \maketitle 
 
-\pgmaxinline{What's a framework, what's a toolchain, what's a tool}
-
-\pmax{Something is a framework when we don't want to keep using toolchain across papers.
-Something else is a toolchain because we need the T in the acronym to make sense.}
+\pgmaxinline{Addresses in title are a bit weird.}
 
 \section{Introduction}
 
@@ -332,6 +329,9 @@ Something else is a toolchain because we need the T in the acronym to make sense
 %
 
 %%JS and symbolic execution, a gap 
+
+\pgmaxinline{Maybe can summarise the bug patterns, I jsut lifted from
+  related work.}
 
 JavaScript is the most widespread dynamic language, used by 94.8\% of 
 websites\footnote{See {\tiny  \texttt{w3techs.com/technologies/details/cp-javascript/all/all}}.}.
@@ -364,28 +364,57 @@ such as C, C++ and Java, dynamic languages do not observe the
 \emph{frame property}~\cite{?}, essential for
 compositionality. Intuitively, the frame property means that the
 output of a program cannot change if the state in which is run is
-extended. In JavaScript,  it is possible to introduce bugs
+extended. In JavaScript,  it is possible to introduce bugs by 
 extending the state in which a program is run. To our knowledge, 
 there has been no previous work on symbolic execution tools for
 JavaScript that achieve compositional analysis.
 
-%%what we do
+%%what we do and what are our contributions
 
-We introduce \cosette, a compositional symbolic execution toolchain 
-for JavaScript  (ECMAScript 5
-Strict~\cite{ecma} \footnote{It is straightforward to extend this
-  work to the non-strict case. Later extensions and revisions contain
-  ECMAScript 5 as a common core.}).  The architecture of \cosette is
-shown on the right. It comprises  an extension of the
-\JSComp
-compiler~\cite{.}  from JavaScript to the intermediate language JSIL,
-to account for symbolic values and assertions, and a symbolic
-interpreter for JSIL,  implemented using
-Rosette~\cite{Rosette2,Rosette1}.  The JSIL symbolic interpreter either outputs a
-concrete counter-model for the given assertions, or guarantees
-correctness up to a given bound for unfolding loops and
+\pgmaxinline{This next paragraph is very clunky, but says the main
+  points, it needs to be kerpow, in one paragraph this is summary of
+  what we've done. }
+
+  We introduce \cosette, a symbolic execution toolchain for JavaScript
+  (ECMAScript 5 Strict~\cite{ecma} \footnote{It is straightforward to
+    extend this work to the non-strict case. Later extensions and
+    revisions contain ECMAScript 5 as a common core.}).  We present a
+  new methodology for developing {\em compositional} analysis for dynamic
+  languages that do not satisfy the frame property, and apply it to
+  {compositional} symbolic execution inside Cosette.  We design
+  Cosette so that it can be {\em trusted}, with proper integration
+  between the semantics and tool development. This integration is not
+  present in other symbolic execution tools for JavaScript, since the
+  goal is usually to focus on specific bug-finding patterns rather
+  than general-purpose symbolic execution.  We apply Cosette to
+  whole-program symbolic testing and specification-driven bug finding.
+
+
+The architecture of the \cosette tool  is shown on the right. It comprises a
+simple extension of the \JSComp compiler~\cite{.}  from JavaScript to the
+intermediate language JSIL, to account for symbolic values and
+assertions, and the new  symbolic interpreter for JSIL, implemented using
+Rosette~\cite{Rosette2,Rosette1}.  
+The JSIL symbolic interpreter 
+either outputs a concrete counter-model for the given assertions, or
+guarantees correctness up to a given bound for unfolding loops and
 predicates.  %\pmaxinline{This is the first time
                                 %we mention `bound'.}
+The theoretical underpinnings of the compositional JSIL symbolic
+interpreter can be described in three steps: \dtag{1} design an JSIL
+instrumented semantics that exhibits the frame property by explicitly
+keeping track of properties that must {\em not be present} in a given
+object in order for the program to behave correctly; \dtag{2} define
+the JSIL symbolic semantics by lifting the JSIL instrumented
+semantics; and \dtag{3} link the JSIL symbolic semantics to the
+concrete JSIL semantics by describing the frames that can be safely
+added to the initial state.
+%
+%Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
+The key innovation is to have the instrumented semantics as a proper
+interim stage in the design of the analysis, obtaining more modular
+reasoning and substantially simpler proofs.
+
 
 
 
@@ -405,23 +434,13 @@ predicates.  %\pmaxinline{This is the first time
 %%how do we do it
 
 
-Cosette depends on a new methodology, presented here, for designing compositional
-program analyses for languages that do not exhibit the frame property.
+%Cosette depends on a new methodology, presented here, for designing compositional
+%program analyses for languages that do not exhibit the frame property.
 %
-For Cosette, the methodology is applied to JSIL, which like JavaScript
-does not satisfy the frame property. It can be described in three
-steps: \dtag{1} design an JSIL instrumented  semantics that exhibits the
-frame property by explicitly keeping track of properties that must
-{\em not be present} in a given object in order for the program to
-behave correctly; \dtag{2} define the JSIL symbolic semantics by
-lifting the JSIL instrumented semantics; and \dtag{3} link the 
-JSIL symbolic semantics to the  concrete JSIL semantics by describing the
-frames that can be safely added to the initial state.
-%
-%Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
-The key innovation is to have the instrumented semantics as a proper
-interim stage in the design of the analysis, obtaining more modular
-reasoning and substantially simpler proofs.
+%For Cosette, the methodology is applied to JSIL, which like JavaScript
+%does not satisfy the frame property. 
+
+
 
 
 \pgmaxinline{In section 3, just mention methodology, then immediately get on to
@@ -439,16 +458,19 @@ reasoning and substantially simpler proofs.
 %in that it comes with formal correctness guarantees and a \polish{result stating the precise conditions under which symbolic execution gives soundness}. 
 
 
-An essential goal for us is to establish trust in Cosette
-toolchain. The symbolic interpreter for JSIL comprises a concrete
-implementation of the instrumented JSIL semantics, which is
-automatically lifted to an implementation of the JSIL symbolic
-semantics using Rosette. The formal JSIL instrumented semantics and
-its lifting are carefully designed to mirror the implementation. To
-provide further corroboration of the JSIL symbolic interpreter, we
-systematically constructed and successfully ran symbolic tests for
-each JSIL command, assuming the premises and asserting the conclusion
-of the appropriate rule of the symbolic semantics.  To ensure that
+An essential goal for us is to establish trust in Cosette toolchain.
+The implementation of the JSIL symbolic interpreter comprises a quite
+tricky concrete implementation of the instrumented JSIL semantics in
+Racket, which then is automatically lifted to an implementation of the
+JSIL symbolic semantics using Rosette. These implementations directly
+mirror the definitions of the JSIL instrumented semantics and lifting
+described formally in this paper.  Further trust in the JSIL symbolic
+interpreter is obtained by systematically constructing and
+successfully running symbolic tests for each JSIL command, assuming
+the premises and asserting the conclusion of the appropriate rule of
+the symbolic semantics. 
+.....
+To ensure that
 Cosette precisely follows the semantics of JavaScript, we tested
 JS-2-JSIL and our instrumented JSIL interpreter implemented in Rosette
 using Test262, the JavaScript official test suite [? ]. Out of the
@@ -506,23 +528,25 @@ allow us to  provably lift the results of analyses done on compiled
 
 
 
-\myparagraph{Application: Symbolic Testing} JavaScript developers
-commonly obtain trust in their code by running it against ad hoc
-concrete test suites.  The main drawback of this approach is that such
-test suites often have a high degree of uncharacterised
-incompleteness. % we also cant guarantee exhaustiveness
-In~\S\ref{subsec:st}, we show how \cosette can be used for systematic
-symbolic testing, where developers use symbolic inputs instead of
-concrete inputs and state the constraints that the output needs to
-satisfy as simple, intuitive first-order
-assertions. % over these inputs.
-Then, if a test fails, \cosette provides the concrete inputs that
-cause it to fail, exposing bugs in the tested code.
-%We give a {\em proof} that \cosette does not produce false positives. 
-%Moreover, the compositionality of \cosette allows us to catch bugs that are not reachable by standard symbolic execution tools.
-In \S\ref{sec:evaluation}, we evaluate \cosette on challenging
-examples that showcase JS-specific features, as well as on real-world
-Node.js libraries, in which we discover several~bugs. 
+
+
+
+and apply it to symbolic testing and specification-driven bug
+finding. With symbolic testing instead of concrete unit testing, a
+general developer works with symbolic inputs instead of concrete
+inputs and state the constraints that the output needs to satisfy as
+simple, intuitive first-order assertions over these inputs.  If
+a test fails, \cosette provides the concrete inputs that cause it to
+fail, exposing bugs in the tested code.  The advantage of symbolic
+testing is that it can provide larger coverage with fewer tests. We
+demonstrate this with Cosette, analysing two real-world JavaScript
+data structure libraries: Buckets.js [? ] with 65k downloads on
+npm~\cite{.}, and queue-pri [? ]. We found a significant bug in both
+libraries, and obtained 100\% coverage with fewer symbolic tests.
+
+
+
+
 
 %In \S\ref{sec:evaluation}, we evaluate \cosette on challenging
 %real-world examples that showcase JS-specific features, as well as on real-world Node.js libraries, in which we discover several~bugs. 
@@ -549,6 +573,7 @@ importantly, \cosette then generates a concrete witness that
 invalidates the specification. This information greatly simplifies the
 debugging of both specifications and code.
 
+%%how we do it
 
 
 \pgmaxinline{Next para probably in conclusions, it's all about next
