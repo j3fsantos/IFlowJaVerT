@@ -1083,27 +1083,21 @@ We have developed the methodology for designing compositional program
 analyses for dynamic languages in general, and symbolic execution for
 JSIL in particular. We achieved this by introducing a new, abstract
 semantics for JSIL, which we instantiate to obtain concrete,
-instrumented, and symbolic semantics. This abstract semantics is the
+instrumented, and symbolic semantics. 
+Our  abstract semantics is the
 bedrock for both the theoretical results and the implementation of the
-analysis. We prove that the symbolic execution underpinning Cosette is
+analysis.  We prove that the symbolic execution underpinning Cosette is
 sound, frame resiliant and does not generate false positives. We
 establish additional trust by using the theory to precisely guide the
 implementation and by thorough testing.
 
-Our JSIL symbolic interpreter was written in Rosette, a good first
-choice in the development of Cosette. We have applied Cosette to real-world code, but have now hit a
-bottleneck due to the performance of Rosette. This is because the
-Rosette code is interpreted rather than run natively. In future, we
-will implement our own symbolic execution tool from scratch, using the
-abstract semantics for JSIL presented here.
-
-
-
 \cosette brings ideas from current separation logic research to the well-established 
 setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. Hence, 
-we believe it is a stepping stone towards a fully automatic compositional symbolic execution 
-tool for JavaScript in the style of Infer~\cite{calcagno:nasa:2011}. 
-
+it is a stepping stone towards a {\em fully automatic} compositional symbolic execution 
+tool for JavaScript in the style of
+Infer~\cite{calcagno:nasa:2011}. In future, we will implement such a
+tool, using the 
+abstract semantics for JSIL presented here.
 
 
 %\myparagraph{Entailment in Separation Logic and Countermodels}
