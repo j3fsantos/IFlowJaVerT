@@ -384,6 +384,7 @@ the rules for store update and positive heap update are standard; and
 the negative heap update removes the given property of a given object from the heap.
 Note that the positive and negative heap update rules are not applicable at the same time, as $\val$ cannot be equal to $\none$. 
 
+\smallskip
 \begin{display}{Selected Concrete Semantics Rules}
 \text{
 {\scriptsize
@@ -497,7 +498,7 @@ Note that the positive and negative heap update rules are not applicable at the 
 
 
 
-
+\smallskip
 \myparagraph{Example: Frame}
 The \jsil concrete semantics does not satisfy the frame property. 
 We illustrate this with the program on the right, which 
@@ -528,12 +529,10 @@ a domain table, and a store.
 %
 An instrumented heap, $\iheap \in \iheaps : \locs \partialmap \strings \partialmap \setext{\vals}{\none}$, 
 differs from a concrete heap in that it can map object properties to $\none$, explicitly declaring their absence. 
-We refer to those cells as \emph{$\none$-cells}. 
+We refer to those cells as \emph{$\none$-cells} (read: none-cells). 
 %
-A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding objects may have, whereas all other properties are \emph{known to be} absent. 
-If $\idom(\loc)$ is defined and $p \not\in \idom(\loc)$, then we know that the object at $\loc$ \emph{does not have} the property~$p$, and that that property \emph{cannot} be framed on. 
-Moreover, if $\idom(\loc)$ is defined and $(\loc, p) \in \domain(\iheap)$, then $p \in \idom(\loc)$.
-\polish{If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on. Also, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on.}%, as nothing is stated about them.
+A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding objects may have, whereas all other properties are \emph{known to be} absent. If $\idom(\loc)$ is defined and if $p \not\in \idom(\loc)$, then we know that the object at $\loc$ \emph{does not have} the property~$p$, and that that property \emph{cannot} be framed on. In contrast, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on. Also, if we have that $(\loc, p) \in \domain(\iheap)$, then it holds that $p \in \idom(\loc)$.
+On the other hand, if $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on.
 
 %We also know that all of the 
 %properties of that object that are in the heap are also in $\idom(\loc)$.
@@ -615,17 +614,15 @@ for~commands. The omitted rules coincide with the concrete case.
 \end{figure*}
 
 
-Observe that we use $\ival$ to range over $\setext{\vals}{\none}$. 
-Hence, the rule \textsc{Heap Update} may update the value of an object property to $\none$.  
-In contrast, in the concrete case, the corresponding rule would simply remove that property from the heap.  
- Because an instrumented heap can contain $\none$-cells, the rule \textsc{GetDomain} needs to filter out the properties that are mapped to $\none$ from the result. 
- Furthermore, in order to apply this rule, one has to have full information about the object: all the properties in $\idom(\loc)$ must be present in the heap. 
+As $\ival$ ranges over $\setext{\vals}{\none}$, the \textsc{Heap Update} rule may update the value of an object property to $\none$.  
+In the concrete case, the corresponding rule would simply remove that property from the heap.  
+ As an instrumented heap can contain $\none$-cells, the \textsc{GetDomain} rule has to filter out properties mapped to $\none$. 
+ Furthermore, in order to apply this rule, one has to have full information about the object: all properties from $\idom(\loc)$ must be present in the heap. 
  %note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table. 
 %
-Another difference between the concrete and the instrumented semantics is apparent in the rule \textsc{GetCell - Not Found}. 
-In particular, while the expression $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
+Another difference between the two semantics is apparent in the rule \textsc{GetCell - Not Found}: while $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 means that one is certain that the object denoted by $\jsilexpr_1$ does not have the property 
-denoted by $\jsilexpr_2$, the expression $\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
+denoted by $\jsilexpr_2$, $\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 only means that this property does not exist in the current heap. %(and might be later framed on). 
 %
 %We note that the instrumented semantics does not evaluate symbolic variables.
@@ -644,14 +641,14 @@ only means that this property does not exist in the current heap. %(and might be
  the instrumented execution will get stuck in the execution of line~$0$. 
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.5cm}
+\vspace*{-0.35cm}
 {\small
 \hspace*{-0.5cm} $\mathtt{1\quad o := \jsilnew ()}$ \\[-0.06cm]
 \hspace*{-0.5cm} $\mathtt{2\quad [o, "foo"] := 42}$ \\[-0.06cm]
 \hspace*{-0.5cm} $\mathtt{3\quad \jsildelete(o, "foo")}$ \\ [-0.06cm]
 \hspace*{-0.5cm} $\mathtt{4\quad [o, "foo"] := 37}$ 
 }
-\vspace*{-0.25cm}
+\vspace*{-0.4cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
 \end{wrapfigure}
 
@@ -907,7 +904,7 @@ The \textsc{Assume} rule strengthens the path condition with the symbolic expres
  
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.3cm}
+\vspace*{0.1cm}
 {\footnotesize
 \hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\[-0.06cm]
 \hspace*{-0.55cm} $\mathtt{2\quad o[\hat{s}] := 42};$ \\[-0.06cm]
@@ -1231,7 +1228,7 @@ Our three semantics for \jsil (\S\ref{subsec:concr}--\S\ref{subsec:symb:semantic
 However, implementing the entailment engine required by the symbolic semantics and practically handling the state explosion problem~\cite{clarke:lpar:2008} is a challenging task. For this reason, we develop the first, proof-of-concept version of \cosette leveraging on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine that enables the development of solver-aided languages. \rosette extends Racket~\cite{racket} with symbolic values and first-order assertions over these values, and languages implemented in \rosette can make use of its solver-aided facilities. 
 
-We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. We discuss its validation with respect to the symbolic semantics given in \S\ref{subsec:symb:semantics} in~\S\ref{sec:evaluation}.
+We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a lifted \jsil symbolic interpreter for free. We show that this symbolic interpreter is consistent with the symbolic semantics given in \S\ref{subsec:symb:semantics}, as described in \S\ref{sec:intro}.
 %To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
 
 We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution stops.
