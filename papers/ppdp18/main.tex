@@ -972,33 +972,32 @@ debugging of both specifications and code.
 \section{Related Work}
 \label{sec:rwc} 
 
-The existing literature covers a wide range of analysis techniques for JavaScript programs, including: 
+The existing literature covers a wide range of JavaScript analysis techniques, including: 
 type systems~\cite{thiemann:esop:2005,anderson:ecoop:2005,jensen:sas:2009,typescript:toot:2014,feldthaus:oopsla:2014,bierman:ecoop:2014,rastogi:popl:2015},
 control flow analysis~\cite{feldthaus2013efficient}, pointer analysis~\cite{jang2009points,sridharan:ecoop:12} and abstract
-interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. 
-Here, we focus on the existing work on symbolic execution and  
-logic-based analysis for JavaScript and further discuss techniques for specification-driven 
+interpretation~\cite{kashyap:fse:14,jensen:sas:2009,andreasen:oopsla:2014,park:ecoop:15}, among others. We focus on the existing work on symbolic execution and  
+logic-based analysis for JavaScript, and discuss techniques for specification-driven 
 test generation in general.  
 
 \myparagraph{Symbolic Execution for JS}
 The majority of the existing bug-finding symbolic execution tools for JavaScript target specific bug patterns, 
-such as: security vulnerabilities related to the misuse of strings~\cite{saxena:sp:2010} 
+such as security vulnerabilities related to the misuse of strings~\cite{saxena:sp:2010} 
 (e.g., absence of sanitisation before security critical operations), malformed Web API requests~\cite{wittern:icse:2018}, and
-DOM API specific bugs~\cite{li:fse:2014}. They are fully automatic and aim at code in 
+DOM API specific bugs~\cite{li:fse:2014}. These tools are fully automatic and aim at code in 
 the large, primarily focusing on scalability and coverage issues. \cosette has a different 
 purpose: it is not designed to be fully automatic, but to \emph{assist} developers in 
 testing their code. 
 %
-The work closest to ours is \emph{Jalangi}~\cite{koushik:fse:2015} - a general purpose 
+The work closest to ours is \emph{Jalangi}~\cite{koushik:fse:2015}, a general-purpose 
 symbolic execution tool for JavaScript that implements a sophisticated state merging 
 algorithm to deal with the problem of symbolic state explosion. 
 %
-However, Jalangi, as all existing symbolic execution tools for JavaScript, does not model 
+However, Jalangi, as all existing symbolic execution tools for JavaScript, does not follow 
 the semantics of the language precisely. 
 %
-In contrast, \cosette is \emph{trustworthy}: it models the semantics of 
-JavaScript precisely and its theoretical underpinnings are formalised and proven sound. 
-Because it is trustworthy, \cosette can be used both as a basis for building other more specific analyses 
+In contrast, \cosette is \emph{trustworthy}: it does follow the semantics of 
+JavaScript and its theoretical underpinnings are formalised and proven sound. 
+Therefore, it can be used both as a basis for building other more specific analyses 
 (e.g., combining symbolic execution with a type-based analysis to increase the precision of the latter) and 
 as a testing oracle for other symbolic execution tools for JavaScript that purposely 
 ignore some corner cases of the JavaScript semantics. 
@@ -1006,6 +1005,8 @@ Furthermore, \cosette is the first symbolic execution tool for JavaScript that p
 frame resilience guarantees, which are essential for generating tests from separation logic specifications. 
 %None of them can be used to test JS specs. 
 %None offer insights into implementation either.
+
+\pmax{Recover sth about compositionality; anything about specifications; we demonstrate on seplogic}
 
 %
 %\begin{itemize}
@@ -1030,7 +1031,7 @@ frame resilience guarantees, which are essential for generating tests from separ
 
 \myparagraph{Logic-based Analysis for JS} 
 There is little work on logic-based analyses for JavaScript.
-\citet{gardner:popl:2012} have developed JS Logic---a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
+\citet{gardner:popl:2012} have developed JS Logic, a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
 This logic has proven difficult to automate and is not extensible to the entire language. 
 
 \citet{swamy:pldi:2013} prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JavaScript programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3.
@@ -1052,7 +1053,7 @@ translate Haskell type declarations into comprehensive test-suites.
 Recently, Seidel et al.~\cite{seidel:esop:2015} proposed \emph{Target}, a test generation tool 
 that advances the agenda of \emph{Quickcheck} by supporting precise refinement types. 
 The key insight of \emph{Target} is to use %combine the approach of \emph{Quickcheck} with the use of
-an SMT solver for finding satisfying models for the supported type refinements. 
+an SMT solver for finding models for the supported type refinements. 
 Specification-driven test generation has also been successfully applied to Java.
 \emph{Korat}~\cite{boyapati:issta:2002,milicevic:icse:2007} generates test cases for Java classes annotated with
 JML specifications~\cite{jml}, but it requires the class code to include 
@@ -1060,50 +1061,41 @@ a special Java method for checking if the class invariants hold.
 More recently, Dolby et al. \cite{dolby:fse:2007} proposed a SAT-based approach
 for testing Java code annotated with relational logic specifications.
  %
- To the best of our knowledge, there is no tool for automatic test generation 
- based on separation logic specifications.
+To the best of our knowledge, there are no tools for specification-driven
+testing of JavaScript, as well as no tools for test generation 
+based on separation logic specifications.
  % 
- With \cosette, one could easily concretise the resulting symbolic tests, effectively 
- obtaining a concrete test generation tool for JaVerT specifications.
+ %With \cosette, one could easily concretise the resulting symbolic tests, effectively  obtaining a concrete test generation tool for JaVerT specifications.
  %
- However, the resulting tests would necessarily have a smaller coverage than the 
- original symbolic tests; hence, we opted not to do this. 
+% However, the resulting tests would necessarily have a smaller coverage than the original symbolic tests; hence, we opted not to do this. 
 
 
 \section{Conclusions}
 
 We have presented \cosette, a trustworthy, compositional symbolic execution
-framework for JavaScript, combining the JS-2-JSIL compiler~\cite{.}
-and our JSIL symbolic interpreter written in Rosette~\cite{.}. We
+framework for JavaScript, combining the JS-2-JSIL compiler
+and our JSIL symbolic interpreter written in Rosette. We
 have applied Cosette to whole-program symbolic testing of real-world
 JavaScript libraries and compositional debugging of separation logic
 specifications of JavaScript programs.
 
-We have developed the methodology for designing compositional program
+We have developed a methodology for designing compositional program
 analyses for dynamic languages in general, and symbolic execution for
 JSIL in particular. We achieved this by introducing a new, abstract
-semantics for JSIL, which we instantiate to obtain concrete,
-instrumented, and symbolic semantics. This abstract semantics is the
-bedrock for both the theoretical results and the implementation of the
-analysis. We prove that the symbolic execution underpinning Cosette is
-sound, frame resiliant and does not generate false positives. We
+semantics for JSIL, which we instantiated to obtain the concrete,
+instrumented, and symbolic semantics. 
+This abstract semantics is the bedrock for both the theoretical results 
+and the implementation of the analysis. We prove that the \jsil symbolic 
+execution of Cosette is
+sound, frame-resilient and does not generate false positives. We
 establish additional trust by using the theory to precisely guide the
-implementation and by thorough testing.
-
-Our JSIL symbolic interpreter was written in Rosette, a good first
-choice in the development of Cosette. We have applied Cosette to real-world code, but have now hit a
-bottleneck due to the performance of Rosette. This is because the
-Rosette code is interpreted rather than run natively. In future, we
-will implement our own symbolic execution tool from scratch, using the
-abstract semantics for JSIL presented here.
-
-
+implementation and by thorough~testing.
 
 \cosette brings ideas from current separation logic research to the well-established 
-setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. Hence, 
-we believe it is a stepping stone towards a fully automatic compositional symbolic execution 
-tool for JavaScript in the style of Infer~\cite{calcagno:nasa:2011}. 
-
+setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. We believe that 
+it is a stepping stone towards a {\em fully automatic} compositional symbolic execution 
+tool for JavaScript in the style of Infer~\cite{calcagno:nasa:2011}. In future, 
+our goal is to implement such a tool, using the \jsil abstract semantics presented here.
 
 
 %\myparagraph{Entailment in Separation Logic and Countermodels}
