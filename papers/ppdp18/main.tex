@@ -970,14 +970,22 @@ DOM API specific bugs~\cite{li:fse:2014}. They are fully automatic and aim at co
 the large, primarily focusing on scalability and coverage issues. \cosette has a different 
 purpose: it is not designed to be fully automatic, but to \emph{assist} developers in 
 testing their code. 
-Furthermore, unlike previous bug-finding tools, \cosette is trustworthy: it models the semantics of 
+%
+The work closest to ours is \emph{Jalangi}~\cite{koushik:fse:2015} - a general purpose 
+symbolic execution tool for JavaScript that implements a sophisticated state merging 
+algorithm to deal with the problem of symbolic state explosion. 
+%
+However, Jalangi, as all existing symbolic execution tools for JavaScript, does not model 
+the semantics of the language precisely. 
+%
+In contrast, \cosette is \emph{trustworthy}: it models the semantics of 
 JavaScript precisely and its theoretical underpinnings are formalised and proven sound. 
 Because it is trustworthy, \cosette can be used both as a basis for building other more specific analysis 
-(e.g. combining symbolic analysis with a type-based analysis to increase the precision of the latter) and 
+(e.g. combining symbolic execution with a type-based analysis to increase the precision of the latter) and 
 as a testing oracle for other symbolic execution tools for JavaScript that purposely 
 ignore some corner cases of the JavaScript semantics. 
 Furthermore, \cosette is the first symbolic execution tool for JavaScript that provides 
-\polish{frame resilience guarantees}, which are essential for generating tests from specifications. 
+frame resilience guarantees, which are essential for generating tests from separation logic specifications. 
 %None of them can be used to test JS specs. 
 %None offer insights into implementation either.
 
@@ -1012,7 +1020,7 @@ This logic has proven difficult to automate and is not extensible to the entire 
 \citet{stefanescu:oopsla:2016} have developed KJS, a symbolic verification tool for JavaScript (ES5 core + small part of the built-in libraries) by instantiating their general $\mathbb{K}$ framework with a $\mathbb{K}$-interpretation of JavaScript~\cite{Park:2015}. Using this tool, they verify functional correctness properties of toy data structure libraries. 
 Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals. Moreover, the KJS framework is not fully compositional.
 
-The work closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of small data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; our novel symbolic semantics for \jsil is syntax-directed and is specifically designed to guide  implementations.
+The verification tool closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of small data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; our novel symbolic semantics for \jsil is syntax-directed and is specifically designed to guide  implementations.
 
 The above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and abstractions for the recursive structures used. For instance, the Buckets.js library would be out of their reach, as none of the existing tools comes with abstractions to accurately describe: JavaScript arrays, for-in loop invariants, and higher-order functions.  As a bug-finding tool, Cosette does not require any such abstractions, and, therefore, can be used for analysing substantially larger, more complex codebases.
 % but the price paid is it can provide only bounded correctness guarantees when a bug has not been~found.
@@ -1021,28 +1029,44 @@ The above-mentioned verification tools provide strong correctness guarantees, bu
 
 \myparagraph{Specification-driven Testing}
 There is a long line of work on specification-driven test synthesis, dating back to 
-\emph{Quickcheck}~\cite{claessen:icfp:2000}. \emph{Quickcheck} and its followers~\polish{\cite{CITE}}
+\emph{Quickcheck}~\cite{claessen:icfp:2000}. \emph{Quickcheck} and its followers~\cite{runciman:haskell:2008,claessen:jfunc:2015}
 translate Haskell type declarations into comprehensive test-suites. 
-Recently, Seidel et al~\cite{seidel:esop:2015} proposed \emph{Target}, a test generation tool 
+Recently, Seidel et al.~\cite{seidel:esop:2015} proposed \emph{Target}, a test generation tool 
 that advances the agenda of \emph{Quickcheck} by supporting precise refinement types. 
 The key insight of \emph{Target} is to use %combine the approach of \emph{Quickcheck} with the use of
 an SMT solver for finding satisfying models for the supported type refinements. 
 Specification-driven test generation has also been successfully applied to Java.
 \emph{Korat}~\cite{boyapati:issta:2002,milicevic:icse:2007} generates test cases for Java classes annotated with
-JML specifications~\polish{\cite{CITE}}, but it requires the class code to include 
+JML specifications~\cite{jml}, but it requires the class code to include 
 a special Java method for checking if the class invariants hold. 
-More recently, Dolby et al. \cite{dolby:fse:2007} proposed a method for generating 
-tests for Java code annotated with relational logic specifications. 
+More recently, Dolby et al. \cite{dolby:fse:2007} proposed a SAT-based approach
+for testing Java code annotated with relational logic specifications.
  %
  To the best of our knowledge, there is no tool for automatic test generation 
  based on separation logic specifications.
  % 
  With \cosette, one could easily concretise the resulting symbolic tests, effectively 
- obtaining a concrete test generation tool.
+ obtaining a concrete test generation tool for JaVerT specifications.
  %
- However, the resulting tests would be less effective from the point of view of bug finding; therefore, we opted not to do this. 
+ However, the resulting tests would necessarily have a smaller coverage than the 
+ original symbolic tests; hence, we opted not to do this. 
+
 
 \section{Conclusions}
+
+We have presented \cosette, a new symbolic execution tool for JavaScript that advances the 
+state of the art by: 
+\dtag{1} precisely modelling the semantics of the language and 
+\dtag{2} providing formal frame resilience guarantees. 
+We have used \cosette for whole-program symbolic testing and for specification-driven test generation. 
+We have evaluated the first use case on real world JavaScript libraries and the second use case 
+on JavaScript code annotated with state-of-the-art separation logic specifications.  
+
+\cosette brings ideas from current separation logic research to the well-established 
+setting of classical symbolic execution~\cite{andreasen:acmsurv:2017}. Hence, 
+we believe it is a stepping stone towards a fully automatic compositional symbolic execution 
+tool for JavaScript in the style of Infer~\cite{calcagno:nasa:2011}. 
+
 
 
 %\myparagraph{Entailment in Separation Logic and Countermodels}
