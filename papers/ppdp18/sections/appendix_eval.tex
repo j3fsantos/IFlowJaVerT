@@ -210,13 +210,25 @@ We were able to fix the bug by adding a check for \jsinline{undefined} after lin
 
 \subsection{Bug: Priority Queue Insertion in queue-pri}
 
+The queue-pri library implements a priority queue that stores data with an optional priority value.
+This priority can either be a number (the lower the value, the higher the priority) or a default value of \jsinline{null} if no priority is provided, in which case the associated element is put at the end of the queue.
 
-\subsubsection{Symbolic test and countermodel}
+The relevant part of the code of the \jsinline{enqueue} function is as follows.
+It creates a \jsinline{payload} objects holding the data along with its priority, and inserts it at the right place (according to its priority) in an internal linked list.
 
-We wrote the following symbolic example to test the code of the library.
-We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent the priority values.
-Then, we enqueue first string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
-Finally, we dequeue the two strings into variables \jsinline{y1} and \jsinline{y2}, and we make sure that the ordering is consistent: either \jsinline{x1} $\leq$ \jsinline{x2}, in which case \jsinline{y1} $=$ \jsinline{s1} and \jsinline{y2} $=$ \jsinline{s2} (remember that lower priority number means higher priority), or \jsinline{x1} $>$ \jsinline{x2} and then \jsinline{y1} $=$ \jsinline{s2} and \jsinline{y2} $=$ \jsinline{s1}.
+\begin{lstjs}
+PriorityQueue.prototype = {
+    enqueue: function (data, pri) {
+        var payload = {
+            data: data,
+            priority: pri || null
+        };
+        ...
+    };
+};
+\end{lstjs}
+
+Again, we were able to expose the bug with the following symbolic example:
 
 \begin{lstjs}
 var x1 = symb_number(x1), x2 = symb_number(x2);
@@ -228,36 +240,24 @@ queue.enqueue(s2, x2);
 var y1 = queue.dequeue().data;
 var y2 = queue.dequeue().data;
 
-Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) 
-    or ((x1 = x2) and (y1 = s1) and (y2 = s2))
-    or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
+assert((x1 <  x2 && y1 == s1 && y2 == s2) 
+    || (x1 == x2 && y1 == s1 && y2 == s2)
+    || (x1 >  x2 && y1 == s2 && y2 == s1));
 \end{lstjs}
 
+We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent their priority values.
+Then, we first enqueue string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
+Finally, we dequeue the two strings into variables \jsinline{y1} and \jsinline{y2}, and we make sure that their ordering is consistent: either \jsinline{x1} $\leq$ \jsinline{x2}, in which case \jsinline{y1} $=$ \jsinline{s1} and \jsinline{y2} $=$ \jsinline{s2} (remember that lower priority number means higher priority), or \jsinline{x1} $>$ \jsinline{x2} and then \jsinline{y1} $=$ \jsinline{s2} and \jsinline{y2} $=$ \jsinline{s1}.
 
-However, when running this example with \cosette, we get the following countermodel, which invalidates the assertion: \jsinline{x1 = 1, x2 = 0, s1 = "!0!", s2 = "!1!"}.
-When running the test with these concrete values, we get \jsinline{y1 = "!0!" = s1}, and \jsinline{y2 = "!1!" = s2}, which contradicts the assertion.
 
-\subsubsection{Origin of the bug and fix}
+However, when running this example with \cosette, we get the following countermodel, which invalidates the assertion: \jsinline{x1 = 1}, \jsinline{x2 = 0}, \jsinline{s1 = "!0!"}, and \jsinline{s2 = "!1!"}.
+When running the test with these concrete values, we obtain \jsinline{y1 = "!0!" = s1}, and \jsinline{y2 = "!1!" = s2}, which contradicts the assertion.
 
-After inspecting the code, we found that the error comes from the \jsinline{queue.enqueue} function, specifically the following lines:
-
-\begin{lstjs}
-PriorityQueue.prototype = {
-    ...,
-    enqueue: function (data, pri) {
-        var payload = {
-            data: data,
-            priority: pri || null
-        };
-        ...
-    };
-    ...
-};
-\end{lstjs}
-
-When inserting an object with priority value \jsinline{pri = 0}, the \jsinline{pri || null} expression actually evaluates to \jsinline{null} instead of the expected \jsinline{0}, effectively disregarding the priority value.
-This bug was not detected by the test suite provided with the library, because all of the tests use either \jsinline{null} or strictly positive priority values, but never \jsinline{0}.
-We replaced the faulty line with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again; in this case, \cosette certified that the assertion always holds and that the fixed code is indeed correct, for all possible insertions of two objects with explicit priority values.
+The bug comes from the developer misunderstanding the semantics of the JavaScript operator \jsinline{||}.
+When inserting an object with priority value \jsinline{pri} of 0, the \jsinline{pri || null} expression evaluates to \jsinline{null} instead of the expected 0, effectively disregarding the priority value.
+This bug was not detected by the test suite provided with the library, even though it has a line coverage of 100\%, because all of the tests either use \jsinline{null} directly or strictly positive priority values, but never 0.
+We replaced the buggy line (line 5 in the \jsinline{enqueue} method above) with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again.
+With that correction, \cosette certifies that the final assertion always holds, and that the fixed code is indeed correct, for all possible insertions of two objects with explicit priority values.
 
 
 \subsection{Specification-Directed Bug-Finding: JaVerT Data-Structure Libraries}
