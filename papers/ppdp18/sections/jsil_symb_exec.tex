@@ -640,13 +640,13 @@ only means that this property does not exist in the current heap. %(and might be
  Also, if we remove $(\loc_o, \litstring{get}) \mapsto \none$ from the initial heap, 
  the instrumented execution will get stuck in the execution of line~$0$. 
 
-\begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.35cm}
-{\small
+\begin{wrapfigure}{R}{0.11\textwidth}
+\vspace*{-0.3cm}
+{\footnotesize
 \hspace*{-0.5cm} $\mathtt{1\quad o := \jsilnew ()}$ \\[-0.06cm]
-\hspace*{-0.5cm} $\mathtt{2\quad [o, "foo"] := 42}$ \\[-0.06cm]
-\hspace*{-0.5cm} $\mathtt{3\quad \jsildelete(o, "foo")}$ \\ [-0.06cm]
-\hspace*{-0.5cm} $\mathtt{4\quad [o, "foo"] := 37}$ 
+\hspace*{-0.5cm} $\mathtt{2\quad [o, \litstring{foo}] := 42}$ \\[-0.06cm]
+\hspace*{-0.5cm} $\mathtt{3\quad \jsildelete(o, \litstring{foo})}$ \\ [-0.06cm]
+\hspace*{-0.5cm} $\mathtt{4\quad [o, \litstring{foo}] := 37}$ 
 }
 \vspace*{-0.4cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
@@ -654,7 +654,7 @@ only means that this property does not exist in the current heap. %(and might be
 
 \myparagraph{Example: Instrumented GetCell}
 To better understand the interaction between GetCell, the heap, and the domain table, consider the 
- program on the right and its execution trace in Figure~\ref{fig:sexecexample} (left). When executing the first property assignment, following the abstract \textsc{Property Assignment} rule, we must call $\getcell(\mathtt{o, "foo"})$ to obtain the current value of the property. As the property is not in the heap, we are in the \textsc{Not Found} case of GetCell. The domain is extended with $\mathtt{"foo"}$, and the heap is extended with the none-cell $\mathtt{(\loc_o, "foo")} \mapsto \none$, whose value is then updated to 42 by the heap update. After the deletion, its value is reset to $\none$. The following property assignment will again call $\getcell(\mathtt{o, "foo"})$, but this time, we will be in the \textsc{Found} case of GetCell, as the property is in the heap.
+ program on the right and its execution trace in Figure~\ref{fig:sexecexample} (left). When executing the first property assignment, following the abstract \textsc{Property Assignment} rule, we must call $\getcell(\mathtt{o, \litstring{foo}})$ to obtain the current value of the property. As the property is not in the heap, we are in the \textsc{Not Found} case of GetCell. The domain is extended with $\litstring{foo}$, and the heap is extended with the none-cell $\mathtt{(\loc_o, \litstring{foo})} \mapsto \none$, whose value is then updated to 42 by the heap update. After the deletion, its value is reset to $\none$. The following property assignment will again call $\getcell(\mathtt{o, \litstring{foo}})$, but this time, we will be in the \textsc{Found} case of GetCell, as the property is in the heap.
 In a nutshell, GetCell ensures that all inspected properties, both present and absent, are represented in the heap.
 
 %\jfs{
@@ -669,7 +669,7 @@ In a nutshell, GetCell ensures that all inspected properties, both present and a
 Theorem~\ref{teo:frame:property} states that the \jsil instrumented semantics observes the 
 frame property. Lemma~\ref{lemma:instrumented:semantics} relates the instrumented 
 semantics with the concrete semantics via an erasure function  $\interpret{\instconc}{}$. Informally, $\interpret{\instconc}{}(\istate)$
-denotes the concrete state obtained by erasing negative information in $\istate$ (i.e.~  
+denotes the concrete state obtained by erasing negative information in $\istate$ (i.e.,~  
 $\none$-cells and domain information). 
 Lemma~\ref{lemma:instrumented:semantics} states that if a given execution 
 goes through in the instrumented semantics, then its concretisation (given by $\interpret{\instconc}{}$) 
@@ -898,7 +898,7 @@ $\sstate.\hpsel$ to denote $\sheap$, and $\sstate.\pcsel\!$ to denote $\pc$.
 
 \noindent Symbolic variables evaluate to themselves: $\evalexpr{s}(\svar) = \svar$. 
 As they have meaning only in the symbolic semantics, they cannot be evaluated in the concrete/instrumented semantics (cf. Appendix). 
-The GetCell of the symbolic semantics non-deterministically branches on the inspected property $\sexprp$ being equal to any of the properties of the object at location $\sexprl$ (\textsc{GetCell - Found}), and also on it \emph{not being} in the domain of the object, i.e.~being different from all of its properties (\textsc{GetCell - Not Found}). In all cases, the relevant information (highlighted in blue) is recorded in the path condition. This non-determinism contrasts with the concrete/instrumented semantics, where non-determinism occurs only in object~allocation. 
+The GetCell of the symbolic semantics non-deterministically branches on the inspected property $\sexprp$ being equal to any of the properties of the object at location $\sexprl$ \prooflab{GetCell - Found}, and also on it \emph{not being} in the domain of the object, i.e.~being different from all of its properties \prooflab{GetCell - Not Found}. In all cases, the relevant information (highlighted in blue) is recorded in the path condition. This non-determinism contrasts with the concrete/instrumented semantics, where non-determinism occurs only in object~allocation. 
 The \textsc{Assume} rule strengthens the path condition with the symbolic expression we are assuming to hold. The two SAT-check rules check satisfiability of a given expression under the current path condition. 
 
  
@@ -906,9 +906,9 @@ The \textsc{Assume} rule strengthens the path condition with the symbolic expres
 \begin{wrapfigure}{R}{0.12\textwidth}
 \vspace*{0.1cm}
 {\footnotesize
-\hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\[-0.06cm]
-\hspace*{-0.55cm} $\mathtt{2\quad o[\hat{s}] := 42};$ \\[-0.06cm]
-\hspace*{-0.55cm} $\mathtt{3\quad x := getProps(o);}$ \\[-0.06cm]
+\hspace*{-0.55cm} $\mathtt{1\quad o := \jsilnew()}$ \\[-0.06cm]
+\hspace*{-0.55cm} $\mathtt{2\quad o[\hat{s}] := 42}$ \\[-0.06cm]
+\hspace*{-0.55cm} $\mathtt{3\quad x := \getfields(o)}$ \\[-0.06cm]
 \hspace*{-0.55cm} $\mathtt{4\quad assert\ (card \ x = 2)}$
 }
 \vspace*{-0.35cm}
@@ -918,8 +918,8 @@ The \textsc{Assume} rule strengthens the path condition with the symbolic expres
 \myparagraph{Example: Symbolic Branching}
 To get a better intuition of the symbolic execution, observe the code snippet on the right and its symbolic execution in Fig.~\ref{fig:sexecexample} (right). 
 This code: 
-        \dtag{1}~creates a new object~\jsinline|o|;
-	\dtag{2}~assigns 42 to the symbolic property $\hat{\mathtt{s}}$ of~\jsinline|o|; 
+        \dtag{1}~creates a new object~$\mathtt{o}$;
+	\dtag{2}~assigns 42 to the symbolic property $\hat{\mathtt{s}}$ of~$\mathtt{o}$; 
 	\dtag{3}~collects all the properties of $\mathtt{o}$; and
 	\dtag{4}~asserts that $\mathtt{o}$ has two properties in the end. 
 	     The last assertion will produce a failing symbolic execution.
@@ -929,15 +929,14 @@ This code:
 The key insight is that the symbolic execution branches when executing the property assignment (line~2).
 % 
 More concretely, the symbolic execution can either use the rule \prooflab{GetCell - Found}, when 
-the inspected property coincides with one of the object's existing properties ({\small$\hat{s} = \mathtt{``@proto"}$}), 
+the inspected property coincides with one of the object's existing properties ({\small$\hat{s} = \litstring{@proto}$}), 
 or the rule \prooflab{GetCell - Not Found}, when the inspected property is different from all of the 
 object's existing properties ({\small $\hat{s} \neq \mathtt{``@proto"}$}). 
 %
-In the left branch, $\mathtt{o}$ has only a single property {\small$\mathtt{``@proto"}$} (that gets updated to 42), whereas
-in the right branch, it has two properties, {\small$\mathtt{``@proto"}$} and $\hat{s}$. 
+In the left branch, $\mathtt{o}$ has only a single property $\litstring{@proto}$ (that gets updated to 42), whereas
+in the right branch, it has two properties, $\litstring{@proto}$ and $\hat{s}$. 
 %
-Therefore, the assert command fails in the left branch and the symbolic execution  produces the concrete counter-model 
-{\small$\hat{s} = \mathtt{``@proto"}$}.
+Therefore, the assert command fails in the left branch and the symbolic execution  produces the concrete counter-model $\hat{s} = \litstring{@proto}$.
 
 %
 % is to branch on the targeted property of the object (in our case, the symbolic property $\hat{s}$ of object at location $\mathtt{l_o}$) being equal to any one or none of the already existing properties of the object (in our case, we have only $\mathtt{``@proto"}$), adding the appropriate equalities and/or inequalities to the path condition, and proceeding with the symbolic execution for all obtained branches. In this case, this means that the symbolic execution will branch on whether or not $\hat{s} = \mathtt{``@proto"}$. We obtain two symbolic states, shown in the second row of Figure \ref{fig:sexecexample}. The left branch corresponds to the (\textsc{Found}) case, when $\hat{s} = \mathtt{``@proto"}$: this equality is added to the path condition and the value of the property $\mathtt{``@proto"}$ is updated to 42. In the right branch, we have that $\hat{s} \neq \mathtt{``@proto"}$ (\textsc{Not Found}), hence object $\mathtt{o}$ has two properties: $ \mathtt{``@proto"}$, with value $\jnull$; and $\hat{s}$, with value 42.
@@ -1017,7 +1016,7 @@ Therefore, the assert command fails in the left branch and the symbolic executio
 We relate the symbolic semantics to the instrumented semantics using 
 \emph{symbolic environments}, $\senv : \svars \rightharpoonup \vals$, mapping 
 symbolic variables to concrete values. 
-A symbolic environment is \emph{well-formed} if it preserves types (e.g.~symbolic strings are mapped to strings). In the following, we  
+A symbolic environment is \emph{well-formed} if it preserves types (e.g,.~symbolic strings are mapped to strings). In the following, we  
 assume well-formed symbolic environments. 
 %
 Given a symbolic environment $\senv$, we use $\shorthand(\sexpr)$ to denote the
