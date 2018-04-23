@@ -766,7 +766,8 @@ We instantiate the abstract semantics for the symbolic case.
 We write $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ for the symbolic semantic 
 judgement for basic commands and $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ 
 for commands. Symbolic call stacks, $\scs$, differ from concrete stacks in that they contain symbolic stores.
-For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$ to denote $(\sheap, \sdom, \sstore, \pc \wedge \sexprb)$ and $\sstate.\pcsel\!$ to denote $\pc$.
+For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$ to denote $(\sheap, \sdom, \sstore, \pc \wedge \sexprb)$, 
+$\sstate.\hpsel$ to denote $\sheap$, and $\sstate.\pcsel\!$ to denote $\pc$.
 
 %Furthermore, we redefine \jsil expressions, $\pvsexpr \in \pvsexprs$ to take into account symbolic values
 % as follows: $\pvsexpr \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \pvsexpr \mid \pvsexpr \binoper \pvsexpr$.

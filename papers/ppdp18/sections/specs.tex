@@ -32,17 +32,16 @@ All definitions and proofs are given in full in the Appendix.
 \jsil Logic assertions~\cite{javert} provide a way of describing \emph{partial} symbolic states.
 They include boolean and comparison operations on \jsil expressions; the separating conjunction; 
 and assertions for describing heaps. The $\lemp$ assertion describes 
-an empty heap. The cell assertion, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexpr_3$,  states that an object 
+an empty heap. The \emph{cell assertion}, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexpr_3$,  states that the object 
 at the location denoted by $\jsilexpr_1$ has the property denoted by $\jsilexpr_2$ with value 
-denoted by $\jsilexpr_3$. The object domain assertion $\emptyfields{\jsilexpr_1}{\jsilexpr_2}$ states that the object at 
+denoted by $\jsilexpr_3$. The \emph{object domain} assertion $\emptyfields{\jsilexpr_1}{\jsilexpr_2}$ states that the object at 
 the location denoted by $\jsilexpr_1$ has \underline{at most} the properties included in the
 set denoted by $\jsilexpr_2$. For instance, the assertion $\emptyfields{\sloc}{\jsilset{p_1, p_2}}$ 
 states that the object at location $\sloc$ has \emph{at most} the properties $p_1$ and $p_2$; 
 it might only have one of them, or none at all, but it cannot have others.
 % \polish{(it may only have some of those properties but it certainly does not have any property that is not included in that set)}.  
 % no properties other than possibly those included in the set denoted by $\jsilexpr_2$. 
-We refer to assertions that do not contain $\lemp$ or 
-the separating conjunction as \emph{simple assertions}, and use $\spass$, $\sqass$ 
+We refer to assertions that are distinct from $\lemp$ and $- \sep -$ as \emph{simple assertions}, and use $\spass$, $\sqass$ 
 to range over them.
 
 %\pmaxinline{Mention sth about Es being the same.} %The syntax of assertions is given below. 
@@ -64,10 +63,10 @@ to range over them.
 \noindent Without loss of generality, we implicitly assume that different symbolic locations 
 denote different concrete locations.\footnote{To express aliasing, the user has to write multiple assertions.}
  Furthermore, given a cell assertion $(\jsilexpr,-) \pointsto -$, we always assume 
- $\jsilexpr$ to denote either a concrete location $\loc$ or a symbolic location $\sloc$. 
+ $\jsilexpr$ to be either a concrete location $\loc$ or a symbolic location $\sloc$. 
 %
 Note that 
-a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the assertion 
+a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the assertion:
 \begin{equation*}
 {\small \begin{array}{l}
 \big(\varoast_{(\sloc, \sexprp) \in \domain(\sheap)} (\sloc, \sexprp) \mapsto \sheap(\sloc, \sexprp)\big) 
@@ -81,15 +80,13 @@ a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the as
 
 %\pmax{Describe this and do better on the below}
 
-Analogously, an assertion can be normalised into a symbolic state: 
- cell assertions form the heap; 
-object domain assertions form the domain table;
- equalities involving program variables form the store; and 
- pure assertions form the path condition. 
-Finally,  all occurrences of program variables in the heap, domain table, and path condition 
-are replaced with their corresponding symbolic expressions from the store. 
-We refer to the normalised symbolic state corresponding 
-to $\pass$ by $\normaliser(\pass)$. 
+Analogously, an assertion can be normalised into a symbolic state. 
+The normalisation function:
+\dtag{1} maps all program variables in $\pass$ to freshly generated logical variables of the appropriate type obtaining a symbolic store $\sstore$;
+\dtag{2} replaces all program variables in $\pass$ with their bindings given by $\sstore$, obtaining an assertion $\pass'$ with no program variables; and
+\dtag{3} collects all the cell assertions in $\pass'$ to form the symbolic heap,
+             all object domain assertions to form the domain table, and all pure assertions to form the path condition.
+We refer to the normalised symbolic state corresponding to $\pass$ by $\normaliser(\pass)$. 
 %
 We also use $\interpret{}{}(\sstate)$ for denoting the set 
 $\{ (\jstate, \heap_f) \mid \exists \senv \, . \, (\jstate, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate) \}$ 
@@ -112,16 +109,16 @@ The corresponding symbolic semantics rules are given below.
 \begin{mathpar}
 \inferrule[\textsc{SL-Assert - True}]
   { 
-     \ccmd{i}  = \sepassert(\pass)  \\\\
+     \ccmd{\scs, i}  = \sepassert(\pass)  \\\\
      %
-     \unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}
+     \unificationfun(\sstate, \pass) = \success{\sstate_f}
   }{
     \abssemrule{\sstate, \scs, i}{\sstate, \scs, i{+}1}{\top}{\top}{\symbolic}
 }
 \qquad
 \inferrule[\textsc{SL-Assert - False}]
   { 
-     \ccmd{i}  = \sepassert(\pass)  \\\\
+     \ccmd{\scs, i}  = \sepassert(\pass)  \\\\
      %
     \unificationfun(\sstate, \pass) = \fail{\pc_f}  \quad
     %
@@ -133,16 +130,17 @@ The corresponding symbolic semantics rules are given below.
 
 \vspace*{-0.2cm}
 \noindent The rules use a partial decision procedure (PDP), $\unificationfun(\sstate, \pass)$, for 
-determining if a given symbolic state $\sstate$ satisfies an assertion $P$, 
-which is undecidable in general \cite{citemeplease}. 
+determining if a given symbolic state $\sstate$ satisfies an assertion $P$. 
+%which is undecidable in general \cite{citemeplease}. 
 There are two important criteria that $\unificationfun(\sstate, \pass)$ must satisfy:
 \begin{enumerate}[leftmargin=*]
 \setlength{\itemsep}{0.1cm}
 %
-\item {\bfseries Soundness}: If $\unificationfun(\sstate, \pass) = \success{\subst, \sstate_f}$, where $\subst$ is a substitution and $\sstate_f$ is a symbolic state frame, then it must hold that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\subst(\pass)))$;\footnote{We use $\statecompose$ for the composition of two symbolic states, defined component-wise as disjoint union for the  heaps/domains/stores, and conjunction for the path conditions.}
+\item {\bfseries Soundness}: If $\unificationfun(\sstate, \pass) = \success{\sstate_f}$, then it must hold that $\interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\pass))$;\footnote{We use $\statecompose$ for the composition of two symbolic states, defined component-wise as disjoint union for the  heaps/domains/stores, and conjunction for the path conditions.}
 %
 \item {\bfseries Bug-Finding}: If $\unificationfun(\sstate, \pass) = \fail{\pc_f}$, then it must hold that $\interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset$. Observe that every concrete state and heap frame in $\interpret{}{}(\sstate \, \wedge \, \pc_f)$ are counter-models for $P$. 
-Also note that, in the \textsc{SL-Assert - False} rule, by explicitly requiring that $(\sstate.\pcsel \wedge \, \pc_f)$ is satisfiable, the semantics triggers an assertion failure only when it finds a concrete witness for the failure.
+Also note that, in the \textsc{SL-Assert - False} rule, the semantics only triggers an assertion failure when it finds a concrete witness for the failure, 
+as it explicitly requires that $(\sstate.\pcsel \wedge \, \pc_f)$ be satisfiable.
 \end{enumerate}
 
 
@@ -169,7 +167,7 @@ The full version is given in the Appendix.
 
 Given a symbolic state $\sstate$ and an assertion $\pass$, $\unificationfun(\sstate, \pass)$ 
  replaces the program variables in $\pass$ with their bindings 
-from $\sstate.\stosel$ and then calls the Frame Inference Algorithm (Algorithm~\ref{fip:symb:states}) 
+from $\sstate.\stosel$ and then calls the Frame Inference Algorithm (Algorithm~1) 
  on the list of all simple assertions in $\pass$. This algorithm uses two~functions: 
 
 \begin{description}
@@ -180,7 +178,7 @@ from $\sstate.\stosel$ and then calls the Frame Inference Algorithm (Algorithm~\
           the state obtained by removing that cell from $\sstate.\hpsel$.
   
   \item[FIP GetDomain.] In case of success, $\GetDomainV{\sstate, \sloc}$ returns 
-          the symbolic expression $\sexprv_d$, denoting the potential domain 
+          the symbolic expression $\sexprv_d$, denoting the domain 
           of the object at location $\sloc$ in $\sstate$, \underline{and} 
           the state obtained by removing all the negative resource associated with 
           $\sloc$ from $\sstate$.  
@@ -190,8 +188,8 @@ from $\sstate.\stosel$ and then calls the Frame Inference Algorithm (Algorithm~\
 \end{description}
 
 \noindent We give selected rules for these functions, analogous to those in \S\ref{subsec:symb:semantics}, except that: \dtag{1} both functions return a new symbolic state 
-from which the matched resource is removed and \dtag{2} their corresponding constraints are lifted to the premise (highlighted in blue). 
-Also, in case of failure, both functions return a constraint $\pc_f$, under which the inspected resource is guaranteed not to exist (highlighted in~red). 
+from which the matched resource is removed and \dtag{2} their corresponding constraints are lifted to the premise (highlighted in {\color{blue}blue}). 
+Also, in case of failure, both functions return a constraint $\pc_f$, under which the inspected resource is guaranteed not to exist (highlighted in~{\color{red}red}). 
 
 \smallskip
 \begin{display}{Selected FIP Rules}
@@ -267,7 +265,7 @@ The Frame Inference Algorithm has four possible cases:
             return the current symbolic state, which constitutes the frame. 
    
    \item $\jvec{\spass} = (\sloc, \sexprp) \pointsto \sexprv \lstcons -$~:
-            using $\GetCellVFun$, we obtain the symbolic value~$\sexprv'$
+            using $\GetCellVFun$, we obtain the symbolic expression~$\sexprv'$
             associated with $(\sloc, \sexprp)$ in the current symbolic state and
             check that $\sexprv' = \sexprv$ under the current path condition. 
             If the entailment holds, we proceed. Otherwise, we generate
@@ -279,7 +277,7 @@ The Frame Inference Algorithm has four possible cases:
             check that $\sexprv' \subseteq \sexprv$ under the current path condition. 
             %\polish{For instance, the assertion $\emptyfields{\sloc}{\jsilset{p_1, p_2}}$ states that $\sloc$ has \emph{at most} the properties $p_1$ and $p_2$. It might only have one of them, or none at all. But it cannot have more.}
             If the entailment holds, we extend the current symbolic state with the negative 
-            resource in $\sloc$ not captured by $\emptyfields{\sloc}{\sexprv}$ and  proceed. 
+            resource associated with $\sloc$ not captured by $\emptyfields{\sloc}{\sexprv}$ and  proceed. 
             Otherwise, we generate the \emph{failing constraint} $\sexprv' \not\subseteq \sexprv$. 
             
    \item $\jvec{\spass} = \sass \lstcons -$~:  
@@ -325,8 +323,25 @@ The Frame Inference Algorithm has four possible cases:
 %\vspace*{-0.8cm}
 
 
-\myparagraph{Formal Guarantees} Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
+\myparagraph{Formal Guarantees} 
+%Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
+Theorem~\ref{teo:fip:soundness} states that $\unificationfun(\sstate, \pass)$ satisfies the two criteria 
+outlined in \S\ref{subsec:sep:assertions}.
 
+\begin{theorem}[Soundness of FIP]\label{teo:fip:soundness} 
+The following hold: 
+\begin{enumerate}%[leftmargin=*]
+\setlength{\itemsep}{0.1cm}
+\item $\unificationfun(\sstate, \pass) = \success{\sstate_f}
+        \implies 
+        \interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\pass))$
+ \item  $\unificationfun(\sstate, \pass) = \fail{\pc_f} 
+   \implies
+   \interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset$
+\end{enumerate}
+\end{theorem}
+
+%\begin{theorem}[Bug-finding for SL]\label{teo:fip:bugfinding}
 
 \subsection{From Specifications to Symbolic Tests}\label{specs:to:symbolic:tests}
 
@@ -350,15 +365,16 @@ $$
 \begin{array}{l}
    (\jstate, \heap_f) \in \interpret{}{}(P) 
    \ \wedge \ 
-    \abssemrule{\jstate \dunion \heap_f, \polish{\cs}, 0}{\jstate', \polish{\cs'}, i_{\flag'}}{\top}{\top}{\concrete} \\ \quad \
+    \transabssemrule{\jstate \dunion \heap_f, \cs, 0}{\jstate', \cs, i_{\flag'}}{\top}{\top}{\concrete} \\ \quad \
    \implies
       \flag' = \flag \ \wedge \ \exists \jstate'' \, . \, \jstate' = \jstate'' \dunion \heap_f
           \ \wedge \   (\jstate'', \heap_f) \in \interpret{}{}(Q) 
 \end{array}
 $$
+where $\cs = [ (\pid, \storeemp, \jsilout, 0, 0) ]$. 
 \end{definition}
 
-\pmax{Should that concrete transition have a star?}
+%\pmax{Should that concrete transition have a star?}
 
 \begin{figure}
 {\footnotesize
@@ -412,7 +428,7 @@ $$
          \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
 \end{array}
 $$
-\noindent where  $\csmain = [ \jsilmain, -, -, -, - ]$.
+%\noindent where  $\csmain = [ \jsilmain, -, -, -, - ]$.
 \end{theorem}
 
 
@@ -425,11 +441,12 @@ is valid for a JS program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssu
 \emph{iff} $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
 if it terminates, it does so in a state satisfying $Q_\jssubscript$, with return mode $\flag$''. 
 %The assertion language used by \javert is very similar to the assertion language of \jsil and is described in detail in~\cite{javert}.
-The \JSComp compiler is proven to correctly compile \javert to \jsil specifications~\cite{javert}.
+The \JSComp compiler is proven to correctly compile \javert specfications to \jsil specifications~\cite{javert}.
+
 
 \myparagraph{Testing \javert Specifications}
 We generate symbolic tests from a JS program and its \javert specifications by: converting them to a \jsil program with \jsil specifications, using \jstojsil; generating a set of symbolic tests from the obtained \jsil program and \jsil specifications, as described in \S\ref{specs:to:symbolic:tests}; and running the generated \jsil symbolic tests using the \jsil symbolic semantics described in \S\ref{subsec:symb:semantics}. 
-If \cosette finds a bug while running the tests, we will obtain a concrete counter-example triggering that bug.
+If \cosette finds a bug while running the tests, we will obtain a concrete counter-example triggering a specification violation.
 
 \myparagraph{Formal Guarantees}
 The correctness of \JSComp ensures that 
@@ -439,6 +456,8 @@ The correctness of \JSComp ensures that
 is valid for a given JS program $\jstmt$ \emph{iff} the translated specification 
 $\compile(\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag})$ is valid 
 for the compilation of $\jstmt$.
+Hence, we can lift Theorem~\ref{teo:bug:finding:sl} to the JavaScript level in a straightforward way, 
+as shown below. 
 
 \begin{corollary}[Bug-finding for \javert Specifications]\label{teo:bug:finding:sl:javert}
 $$
@@ -453,32 +472,32 @@ $$
 \end{corollary}
 
 
-
-%Put formally:  
-%\begin{equation}
-%   \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
-%      \iff
-%           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}).
-%\end{equation}
-
-
-
-%if and only if $\jstmt$ contains a function literal with identifier $\fid$ and ``whenever $\fid$ is executed in a state satisfying $P_\jssuffix$, then, 
-%if it terminates, it does so in a state satisfying $Q_\jssuffix$, with return mode $\flag$''. The assertion language used by \javert is very similar to the assertion language of \jsil Logic and is described in detail in~\cite{javert}.
-%There, the authors present 
-%a compiler from \javert specifications to \jsil Logic specifications, denoted by $\ltr$, and prove the soundness 
-%of that compiler, assuming a correct compiler $\compile$ from JavaScript to~\jsil.
-%This theoretical result ensures that the verification of \jsil programs can be lifted to   the verification of JavaScript programs. More concretely, a \javert  specification $\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}$
+%
+%
+%\javert specifications of JS functions are analogous to \jsil specifications of \jsil procedures.
+%%, and are of the form $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$. 
+%As for \jsil, a \javert~\cite{javert} specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
+%is valid for a JavaScript program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$, 
+%if and only if $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
+%if it terminates, it does so in a state satisfying $Q_\jssubscript$, with return mode $\flag$''. 
+%%The assertion language used by \javert is very similar to the assertion language of \jsil and is described in detail in~\cite{javert}.
+%\javert comes with a proven correct compiler from \javert specifications to \jsil specifications, denoted by $\jsspeccomp$. 
+%
+%\myparagraph{Testing \javert Specifications}
+%We generate symbolic tests from JavaScript programs and their \javert specifications in the following way. 
+%First, we convert the JavaScript program and its \javert specifications to a \jsil program with \jsil specifications, 
+%using \jstojsil and $\jsspeccomp$. Next, we generate a set of symbolic tests from the obtained 
+%\jsil program and \jsil specifications, as described in \S\ref{specs:to:symbolic:tests}. 
+%Finally, we run the generated \jsil symbolic tests using the \jsil symbolic semantics described on \S\ref{subsec:symb:semantics}. 
+%If \cosette finds a bug while running these tests, we will obtain a concrete counter-example triggering that bug.
+%
+%\myparagraph{Formal Guarantees}
+%The correctness proof ensures that the verification of \jsil programs can be lifted to the verification of JavaScript programs.
+%%
+%More concretely, a \javert  specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
 %is valid for a given JavaScript program $\jstmt$ if and only if the translated specification 
-%$\ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag})$ is valid for the compilation 
-%of $\jstmt$ by a correct compiler $\compile$. Put formally:  
-%\begin{equation}
-%   \jstmt \vDash  \specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag} 
-%      \iff
-%           \compile(\jstmt) \vDash \ltr(\specsig{P_{\jssuffix}}{\fid(\jvec{x})}{Q_{\jssuffix}}{\flag}).
-%\end{equation}
-%
-%
+%$\jsspeccomp(\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag})$ is valid 
+%for the compilation of $\jstmt$ by a correct compiler $\compile$. 
 %
 
 
