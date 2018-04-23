@@ -253,14 +253,14 @@
 We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
 %\cosette is the first symbolic analysis tool for JavaScript that
 %precisely models the semantics of the language.
-Its target  is to
+Its aim  is to
   provide \emph{general-purpose} symbolic analysis and {\em assist} 
   developers in the testing of their code: the developer writes symbolic tests for which \cosette provides concrete counter-models.
 We create \cosette following a new, general methodology for designing compositional program analyses for dynamic languages.
 We prove that the symbolic execution underpinning \cosette is sound
-and does not generate false positives.
-
-
+and does not generate false positives. We establish additional trust
+by  using the theory to precisely guide the implementation and
+by thorough testing.  
 We apply Cosette to whole-program symbolic testing of real-world JavaScript libraries and compositional debugging of separation logic specifications of JavaScript programs. 
 
 %Moreover, its compositionality allows us to use \cosette to find bugs in specifications of JS programs that are not detectable by standard symbolic execution techniques.
@@ -514,7 +514,7 @@ An essential goal for us was to establish trust in Cosette. In
 \S\ref{sex:formal:guarantees}, we give a {\em bounded soundness
   result} for the \jsil symbolic semantics and prove that \cosette
 never produces false positive bug reports. These theoretical results,
-combined with the assumed correctness of the \JSComp complier~\cite{.}
+combined with the correctness of the \JSComp complier~\cite{.}
 and the fact that the memory models of JavaScript and \jsil are the
 same by design, enable us to lift the results of analyses done on
 compiled \jsil code back to the original JavaScript code
