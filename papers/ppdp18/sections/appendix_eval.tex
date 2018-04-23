@@ -20,29 +20,29 @@ o.minusOne = function(x) { return x - 1 };
 var s1 = symb_string(), s2 = symb_string();
 var n1 = symb_number(), n2 = symb_number();
 
-Assume(not (n1 = n2));
+assume(not (n1 = n2));
 
 var total1 = o[s1](n1)
 var total2 = o[s2](n2);
 
-Assert(total1 = total2);
+assert(total1 = total2);
 \end{lstjshere}
 
 In this example, we create an object \jsinline{o} that contains two functions, \jsinline{o.plusOne} and \jsinline{o.minusOne}, which respectively add and subtract $1$ from their argument.
-We create two symbolic strings \jsinline{s1} and \jsinline{s2}, and two distinct symbolic numbers \jsinline{n1} and {n2}.
+We create two symbolic strings \jsinline{s1} and \jsinline{s2}, and two distinct symbolic numbers \jsinline{n1} and \jsinline{n2}.
 Then, we compute the result of applying function \jsinline{o[s1]} to \jsinline{n1}, and \jsinline{o[s2]} to \jsinline{n2}, stating with the \jsinline{Assert} statement that we want both these values to be equal.
 
 According to the different values that the strings \jsinline{s1} and \jsinline{s2} take,  different outcomes can happen.
-If \jsinline{s1} (or \jsinline{s2}) is not a valid property name of \jsinline{o}, the program will give a runtime error, because \jsinline{o[s1]} (or \jsinline{o[s2]}) evaluates to \jsinline{undefined}, which is not a function, and cannot be applied; when running the program with \cosette, we indeed get a concrete model for this failing case.
+If \jsinline{s1} (or \jsinline{s2}) is not a valid property name of \jsinline{o}, the program will give a runtime error, because \jsinline{o[s1]} (or \jsinline{o[s2]}) evaluates to \jsinline{undefined}, which is not a function, and cannot be applied.
+When running the program with \cosette, we do get a concrete counter-model for this failing case.
 
-If both \jsinline{s1} and \jsinline{s2} are valid property names for \jsinline{o}, the program is always executed until its end.
-In that case, \cosette is able to present us with a model for the final assertion to hold (for example, \jsinline{s1 = "minusOne", s2 = "plusOne", n1 = 0}, and \jsinline{n2 = -2}), as well as a model that invalidates the final assertion (e.g.~\jsinline{s1 = "minusOne"}, \jsinline{s2 = "minusOne", n1 = 0} and \jsinline{n2 = 1}).
+If both \jsinline{s1} and \jsinline{s2} are valid property names for \jsinline{o}, the program  always executes successfully.
+In that case, \cosette is able to present us with a model for the final assertion to hold (for example, \jsinline{s1 = "minusOne"}, \jsinline{s2 = "plusOne"}, \jsinline{n1 = 0}, and \jsinline{n2 = -2}), as well as a model that executes successfully but invalidates the final assertion (e.g.~\jsinline{s1 = "minusOne"}, \jsinline{s2 = "minusOne"}, \jsinline{n1 = 0}, and \jsinline{n2 = 1}).
 
-This example demonstrates that \cosette has a fine understanding of the mechanics that underly the dynamic dispatch system in JavaScript, and is able to not only infer possible dynamic function names for a property function call to work, but is also able to relate the dynamic name to the function output.
-
+This example shows that \cosette has a fine understanding of dynamic dispatch in JavaScript, and is able to not only infer the possible dynamic names for a property function call to work, but is also able to relate the dynamic name to the function output.
 
 \myparagraph{Property enumeration}
-The following example demonstrates that \cosette is able to reason about the interplay of static and dynamic properties of JavaScript objects.
+The following example shows that \cosette is able to reason about static and dynamic properties in JavaScript objects.
 
 \begin{lstjshere}
 function nbProp(o) {
@@ -52,22 +52,21 @@ function nbProp(o) {
 }
 
 var o = {a: 1, b: 2, c: 3};
-
 var s = symb_string();
 
 o[s] = 4;
 var res = nbProp(o);
 var expectedRes = 3;
 
-Assert(res = expectedRes);
+assert(res = expectedRes);
 \end{lstjshere}
 
 In this example, we create a JavaScript object \jsinline{o} that has three properties \jsinline{a, b}, and \jsinline{c}.
-Then, we create a symbolic string \jsinline{s} and assign a value to the property of \jsinline{o} corresponding to {s}.
+Then, we create a symbolic string \jsinline{s} and assign a value to the property of \jsinline{o} corresponding to \jsinline{s}.
 Finally, we count the actual number of properties in \jsinline{o}.
-There are two possible cases here: either \jsinline{s} is equal to one of the concrete property names of \jsinline{o}, and the assignment actually overwrites the value associated with that property, or \jsinline{s} is a fresh string and the assignment creates a new concrete property.
+There are two possible cases here: either \jsinline{s} is equal to one of the concrete property names of \jsinline{o}, and the assignment actually overwrites the value associated with that property, or \jsinline{s} is a fresh string and the assignment creates a new property.
 
-\cosette is able to reason about both cases, and finds a model for the assertion; either shadowing the property if \jsinline{expectedRes = 3}, giving a fresh string if \jsinline{expectedRes = 4}, or saying that the assertiong is unsatisfiable if \jsinline{expectedRes} is different from these two values.
+\cosette is able to reason about both cases, and finds a model for the assertion; either shadowing the property if \jsinline{expectedRes = 3}, giving a fresh string if \jsinline{expectedRes = 4}, or saying that the assertiong is unsatisfiable if \jsinline{expectedRes} is different than these two values.
 
 %This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
 
@@ -117,10 +116,10 @@ with
 
 
 \myparagraph{Delete}
-This example tests the symbolic behavior of the \jsil statement \prooflab{Delete} in \cosette, which in the case where the property to delete is present.
+This example tests the symbolic behavior of the \jsil statement \prooflab{Delete} in \cosette, in the case where the property to delete is present.
 As before, we begin by creating a new empty object \jsinline{o}, and assign values \jsinline{n1} and \jsinline{n2} to non-overlapping properties \jsinline{s1} and \jsinline{s2}.
 Then, we delete property \jsinline{s1} from \jsinline{o}.
-Finally, we call the \jsinline{hasField} primitive on both properties, and we assert that \jsinline{s1} is not present anymore while \jsinline{s2} still is.
+Finally, we call the \jsinline{hasField} primitive on both properties, and we assert that \jsinline{s1} is not present anymore but \jsinline{s2} still is.
 
 \begin{lstjshere}
 proc main () {
@@ -195,7 +194,8 @@ dict.set(s, x1);
 dict.set(s, x2);
 dict.remove(s, x1);
 var didRemove = dict.remove(s, x2);
-assert((x1 != x2 && didRemove) || (x1 == x2 && !didRemove));
+assert(((not (x1 = x2)) and didRemove)
+       or (x1 = x2 and (not didRemove)));
 \end{lstjshere}
 
 In this test, we create a new multi-dictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
@@ -203,15 +203,15 @@ Note that, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementati
 This means that the key in the second call to \jsinline{remove} on line 6 is not present in the multi-dictionary any more, and this triggers the bug.
 
 When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the concrete instantiation of the test in Node raises an error.
-We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
+We fixed the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette successfully discharged the assertion.
 
 \subsection{Bug: Priority Queue Insertion in queue-pri}
 
 The queue-pri library implements a priority queue that stores data with an optional priority value.
 This priority can either be a number (the lower the value, the higher the priority) or a default value of \jsinline{null} if no priority is provided, in which case the associated element is put at the end of the queue.
 
-The relevant part of the code of the \jsinline{enqueue} function is as follows.
-It creates a \jsinline{payload} objects holding the data along with its priority, and inserts it at the right place (according to its priority) in an internal linked list.
+The relevant part of the code of the \jsinline{enqueue} function follows.
+It creates a \jsinline{payload} object holding the data along with its priority, and inserts it at the right place (according to the priority) in an internal linked list.
 
 \begin{lstjshere}
 PriorityQueue.prototype = {
@@ -237,12 +237,12 @@ queue.enqueue(s2, x2);
 var y1 = queue.dequeue().data;
 var y2 = queue.dequeue().data;
 
-assert((x1 <  x2 && y1 == s1 && y2 == s2) 
-    || (x1 == x2 && y1 == s1 && y2 == s2)
-    || (x1 >  x2 && y1 == s2 && y2 == s1));
+assert((x1 < x2 and y1 = s1 and y2 = s2) 
+    or (x1 = x2 and y1 = s1 and y2 = s2)
+    or (x1 > x2 and y1 = s2 and y2 = s1));
 \end{lstjshere}
 
-We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent their priority values.
+We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent their priority values.
 Then, we first enqueue string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
 Finally, we dequeue the two strings into variables \jsinline{y1} and \jsinline{y2}, and we make sure that their ordering is consistent: either \jsinline{x1} $\leq$ \jsinline{x2}, in which case \jsinline{y1} $=$ \jsinline{s1} and \jsinline{y2} $=$ \jsinline{s2} (remember that lower priority number means higher priority), or \jsinline{x1} $>$ \jsinline{x2} and then \jsinline{y1} $=$ \jsinline{s2} and \jsinline{y2} $=$ \jsinline{s1}.
 
@@ -253,7 +253,8 @@ When running the test with these concrete values, we obtain \jsinline{y1 = "!0!"
 The bug comes from the developer misunderstanding the semantics of the JavaScript operator \jsinline{||}.
 When inserting an object with priority value \jsinline{pri} of 0, the \jsinline{pri || null} expression evaluates to \jsinline{null} instead of the expected 0, effectively disregarding the priority value.
 This bug was not detected by the test suite provided with the library, even though it has a line coverage of 100\%, because all of the tests either use \jsinline{null} directly or strictly positive priority values, but never 0.
-We replaced the buggy line (line 5 in the \jsinline{enqueue} method above) with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again.
+
+We replaced the wrong expression (line 5 in the \jsinline{enqueue} method above) with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again.
 With that correction, \cosette certifies that the final assertion always holds, and that the fixed code is indeed correct, for all possible insertions of two objects with explicit priority values.
 
 
