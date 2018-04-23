@@ -163,18 +163,20 @@ with
 \end{lstjs}
  
 \subsection{Bug: Multidictionary in Buckets.js}
-We found one bug in the implementation of the Buckets.js multi-dictionary (a key-value map in which a single key holds an array of distinct values). 
-%\myparagraph{\jsinline{multidictionary}}
-%The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
-The implementation of the Buckets.js multi-dictionary essentially consists of the \jsinline{get(key)}, \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
-Both \jsinline{set} and \jsinline{remove} either add or remove a single value from the array held by the key, and \jsinline{get} returns this array.
 
-More precisely, in the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key and associated array are completely removed from the dictionary, or it can be an actual value, in which case it is removed from the array if present.
-However, the library does not consider the case where the array is not found (for example, if all elements associated with the key have already been removed); in that case, the library tries to remove an element from \jsinline{undefined}, and this raises an error.
+The Buckets.js multidictionary is a dictionary that holds an array of distinct values for each key, instead of a single value.
+Its implementation essentially consists in the following methods: \jsinline{set(k, v)}, \jsinline{get(k)}, and \jsinline{remove(k, v)}.
+
+The \jsinline{set(k, v)} method adds a new value \jsinline{v} to the array held by key \jsinline{k}.
+The \jsinline{get(k)} method returns the array associated with key \jsinline{k} in the dictionary if present, and an empty array otherwise.
+The \jsinline{remove(k, v)} function removes \jsinline{v} from the array held by \jsinline{k}.
+More precisely, \jsinline{v} can either be \jsinline{undefined}, in which case the key and associated array are completely removed from the dictionary, or it can be an actual value, in which case it is removed from the array (if present).
+However, the library does not consider the case where there is no array associated with \jsinline{k} (for example, if all elements associated with \jsinline{k} have already been removed, or none have been inserted yet).
+In that case, the library tries to remove an element from \jsinline{undefined}, and this raises an error.
 
 A simplified version of the failing code is shown below.
-The \jsinline{parent} variable is an internal variable of the object, that holds a dictionary from keys to arrays of values.
-The \jsinline{arrays.remove} function is part of the Buckets.js arrays manipulation library.
+The \jsinline{parent} variable is an internal variable of the \jsinline{multidict} object that holds a Buckets.js dictionary from keys to arrays of values.
+The \jsinline{arrays.remove} function is part of the Buckets.js array manipulation library, and removes a given value from a JavaScript array.
 
 \begin{lstjs}
 multidict.remove = function (key, value) {
@@ -184,7 +186,7 @@ multidict.remove = function (key, value) {
     return false;
 }
 \end{lstjs}
-We were able to expose this bug with the following symbolic test:
+We were able to expose the bug with the following symbolic test:
 
 \begin{lstjs}
 var dict = new buckets.multidict();
@@ -200,15 +202,62 @@ assert((x1 != x2 && didRemove) || (x1 == x2 && !didRemove));
 \end{lstjs}
 
 In this test, we create a new multidictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
-However, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store this value twice.
-This means that the key in the second call to \jsinline{remove} on line 6 is not held in the multidictionary any more, and this triggers the bug.
+Note that, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store this value two times in the array.
+This means that the key in the second call to \jsinline{remove} on line 6 is not present in the multidictionary any more, and this triggers the bug.
 
-When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the instantiation of the test in Node raises an error.
+When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the concrete instantiation of the test in Node raises an error.
 We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
 
 \subsection{Bug: Priority Queue Insertion in queue-pri}
 
 
+\subsubsection{Symbolic test and countermodel}
+
+We wrote the following symbolic example to test the code of the library.
+We generate two symbolic strings \jsinline{s1} and \jsinline{s2}, which represent arbitrary data to be put in the queue, and two symbolic numbers \jsinline{x1} and \jsinline{x2} which represent the priority values.
+Then, we enqueue first string \jsinline{s1} with priority \jsinline{x1}, then string \jsinline{s2} with priority \jsinline{x2}.
+Finally, we dequeue the two strings into variables \jsinline{y1} and \jsinline{y2}, and we make sure that the ordering is consistent: either \jsinline{x1} $\leq$ \jsinline{x2}, in which case \jsinline{y1} $=$ \jsinline{s1} and \jsinline{y2} $=$ \jsinline{s2} (remember that lower priority number means higher priority), or \jsinline{x1} $>$ \jsinline{x2} and then \jsinline{y1} $=$ \jsinline{s2} and \jsinline{y2} $=$ \jsinline{s1}.
+
+\begin{lstjs}
+var x1 = symb_number(x1), x2 = symb_number(x2);
+var s1 = symb_string(s1), s2 = symb_string(s2);
+
+queue.enqueue(s1, x1);
+queue.enqueue(s2, x2);
+
+var y1 = queue.dequeue().data;
+var y2 = queue.dequeue().data;
+
+Assert(((x1 < x2) and (y1 = s1) and (y2 = s2)) 
+    or ((x1 = x2) and (y1 = s1) and (y2 = s2))
+    or ((x1 > x2) and (y1 = s2) and (y2 = s1)));
+\end{lstjs}
+
+
+However, when running this example with \cosette, we get the following countermodel, which invalidates the assertion: \jsinline{x1 = 1, x2 = 0, s1 = "!0!", s2 = "!1!"}.
+When running the test with these concrete values, we get \jsinline{y1 = "!0!" = s1}, and \jsinline{y2 = "!1!" = s2}, which contradicts the assertion.
+
+\subsubsection{Origin of the bug and fix}
+
+After inspecting the code, we found that the error comes from the \jsinline{queue.enqueue} function, specifically the following lines:
+
+\begin{lstjs}
+PriorityQueue.prototype = {
+    ...,
+    enqueue: function (data, pri) {
+        var payload = {
+            data: data,
+            priority: pri || null
+        };
+        ...
+    };
+    ...
+};
+\end{lstjs}
+
+When inserting an object with priority value \jsinline{pri = 0}, the \jsinline{pri || null} expression actually evaluates to \jsinline{null} instead of the expected \jsinline{0}, effectively disregarding the priority value.
+This bug was not detected by the test suite provided with the library, because all of the tests use either \jsinline{null} or strictly positive priority values, but never \jsinline{0}.
+We replaced the faulty line with an expression that correctly evaluates to 0 when \jsinline{pri} is equal to 0, and ran the symbolic test again; in this case, \cosette certified that the assertion always holds and that the fixed code is indeed correct, for all possible insertions of two objects with explicit priority values.
 
 
 \subsection{Specification-Directed Bug-Finding: JaVerT Data-Structure Libraries}
