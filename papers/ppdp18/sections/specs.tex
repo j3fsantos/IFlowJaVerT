@@ -322,7 +322,7 @@ The Frame Inference Algorithm has four possible cases:
 %\vspace*{-0.8cm}
 
 \myparagraph{Example: Unification against \jsinline|noProps|}
-Let $\sstate = (, \storeemp, , \pc)$, where $\pc$ describes that $\sexprp_1$, $\sexprp_2$, $\sexprp_3$, and $\sexprp_4$ are all different, and let the next assertion to be unified be $\emptyfields{\loc}{\{ \sexprp_1, \sexprp_2, \sexprp_3, \sexprp_4 \}}$.
+Consider Algorithm 1, with $\sstate$ with an empty store, with the heap $\sheap = [\hcell{\loc}{\sexprp_1}{\sexprv}; \hcell{\loc}{\sexprp_2}{\none}]$, the domain table $\sdom = [ \loc \mapsto \{ \{ \sexprp_1, \sexprp_2, \sexprp_3\}]$, and with $\pc$ describing that the symbolic properties $\sexprp_1$, $\sexprp_2$, $\sexprp_3$, and $\sexprp_4$ are all different. and let the next assertion to be unified be $\emptyfields{\loc}{\{ \sexprp_1, \sexprp_2, \sexprp_3, \sexprp_4 \}}$.
 
 \myparagraph{Formal Guarantees} 
 %Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
