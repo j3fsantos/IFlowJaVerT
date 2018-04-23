@@ -27,19 +27,19 @@ We created a number of symbolic tests to demonstrate that Cosette can reason abo
 
 \myparagraph{Whole-program Symbolic Testing: Real-World Libraries}
 We used \cosette to analyse the code of two JavaScript data structure libraries: Buckets.js~\cite{buckets}, and queue-pri~\cite{priq}.
-We chose these two libraries because they exercise many essential JavaScript features, because they come equipped with unit test suites, and because they do not have external dependencies. In addition, Buckets.js is widely used by developers, having over 65k downloads on npm.
+We chose these two libraries because they exercise many essential JavaScript features, because they come equipped with unit test suites, and because they do not have external dependencies. In addition, Buckets.js is widely used by developers, having over 65k downloads on npm~\cite{npm}.
 
 For both libraries, we wrote comprehensive symbolic unit tests for all functions and compared them with the concrete unit tests that ship with the libraries. The results are presented in Table~\ref{cosette:res}.
 For each file in the libraries, we report the number of JS executable lines in the code itself and including dependencies (slash-separated), the corresponding numbers of JSIL lines, the number of symbolic unit tests created by us and the number of concrete unit tests created by the library developers, the number of JS lines in the symbolic and concrete tests, their coverage measured as percentage of lines, and the average \cosette run time for the symbolic tests.
 %The files in Buckets.js are separated by a line from the unique file in queue-pri.
 
-The obtained results clearly demonstrate the benefits of symbolic testing using \cosette.
+The results we obtained clearly demonstrate the benefits of symbolic testing using \cosette.
 In both cases, we were able to \emph{obtain 100\% line coverage}, improving the coverage of the Buckets.js library by 12\%.
-We achieved this using a total of \emph{60\% fewer tests}, and each test had \emph{10\% fewer lines of code} on average.
+We achieved this using a total of \emph{60\% fewer tests}, and each test had on average \emph{10\% fewer lines of code}.
 We also discovered one bug in the Buckets.js library, as well as one in the queue-pri library. 
 
 
-For the testing, we used a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB. We measured the execution time of each symbolic test and averaged the times across tests for each library file. The times that we obtained reflect the fact that Rosette code is interpreted, rather than running natively. We aim at implementing our own symbolic execution tool from scratch in the future, which, given our experience with JaVerT, should reduce execution times by at least an order of magnitude.
+For the testing, we used a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB. We measured the execution time of each symbolic test and averaged the times across tests for each library file. The times we obtain reflect the fact that Rosette code is interpreted, rather than running natively. We aim at implementing our own symbolic execution tool from scratch in the future, which, given our experience with JaVerT, should reduce execution times by at least an order of magnitude.
 
 \begin{table}[!t]
 {
@@ -77,10 +77,10 @@ Name & \makecell{JS lines} & \makecell{JSIL lines} & \# Tests & \makecell{Test l
 
 \smallskip
 \noindent \emph{Bug: MultiDictionary in Buckets.js.}
-We have discovered a bug in the implementation of the Buckets.js multi-dictionary library.
+We discovered a bug in the implementation of the Buckets.js multi-dictionary library.
 A multi-dictionary is a key-value map in which a single key holds an array of distinct values. 
 Our symbolic tests for the \jsinline|remove(key, value)| function, which removes a given key-value pair from the multi-dictionary, have revealed that the library wrongly treats the case in which we try to remove a key-value pair for a key with no associated values.
-Concretely, a runtime error is thrown instead of \jsinline|remove| returning \jsinline|false|. 
+In practice, a runtime error is thrown instead of \jsinline|remove| returning \jsinline|false|. 
 This bug was not detected by the concrete unit tests associated with the library due to their incomplete coverage;
 we have fixed it and submitted an appropriate pull request.
 
@@ -90,12 +90,12 @@ we have fixed it and submitted an appropriate pull request.
 \smallskip
 \noindent \emph{Bug: queue-pri.} This library implements a priority queue that stores data with an optional priority value.
 This priority can either be a number (the lower the value, the higher the priority) or a default value of \jsinline{null} if no priority is provided, in which case the associated element is put at the end of the queue.
-Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library have shown that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library, even though their line coverage was 100\%, because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
+Our symbolic tests of the \jsinline{enqueue(data, pri)} method of the library show that that elements enqueued with priority \jsinline{0} were wrongly being always enqueued at the end of the queue. We traced the bug to the way in which priority was calculated inside \jsinline{enqueue}: \jsinline{priority = pri || null}, which evaluates to \jsinline|null| if the priority is not supplied, but also, due to the semantics of JavaScript, if it is equal to 0. This bug was not caught by the unit tests of the library, even though their line coverage was 100\%, because the developer had not considered inserting nodes with priority 0. This shows that \cosette is a useful tool for symbolic testing, because it fully follows the semantics of JavaScript and will expose corner cases that a developer may not be aware of.
 
-\myparagraph{Specification-driven Bug-finding} For this part of the evaluation, we required  JavaScript code that is specified. As \cosette does not infer specifications, we revisited the JaVerT full functional correctness specifications of simple data structure libraries: key-value maps (cf.~\S\ref{subsec:sdbf}); priority queues; binary search trees (BSTs), and sorted lists~\cite{javert}. Expectedly, these libraries are substantially smaller than real-world JS libraries; their code is given in the Appendix.
+\myparagraph{Specification-driven Bug-finding} For this part of the evaluation, we required  JavaScript code that was specified. As \cosette does not infer specifications, we revisited the JaVerT full functional correctness specifications of simple data structure libraries: key-value maps (cf.~\S\ref{subsec:sdbf}); priority queues; binary search trees (BSTs), and sorted lists~\cite{javert}. Expectedly, these libraries are substantially smaller than real-world JS libraries; their code is given in the Appendix.
 
 For these libraries, we first investigated the relationship between the unfolding depth for recursive predicates and the code coverage of the resulting symbolic tests. We have observed that very few unfoldings are sufficient for achieving full coverage. In particular, the tests generated for the key-value map, priority queue, and the sorted list have full coverage already for unfold depth set to 1, while those for the BST reach full coverage for unfold depth set to 2. 
 
 %\pmax{This unfolding bit is not worth a table. What it shows is that BST is somehow "more recursive" than the others---is there an official way of saying that?}
 
-To test the compositionality of \cosette, we crippled the specifications of the key-value map and the priority queue, exposing various frame-related bugs, such as the ones shown in~\S\ref{subsec:sdbf}. \cosette was able to detect all bugs already with the unfold depth set to 1, showing that it can successfully reason given partial state information, in contrast to standard symbolic execution tools for JavaScript.
+To test the compositionality of \cosette, we crippled the specifications of the key-value map and the priority queue, exposing various frame-related bugs, such as the ones shown in~\S\ref{subsec:sdbf}. \cosette was already able to detect all bugs with the unfold depth set to 1, which shows that it can successfully reason given partial state information, in contrast to standard symbolic execution tools for JavaScript.

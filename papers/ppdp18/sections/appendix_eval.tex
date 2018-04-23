@@ -159,9 +159,9 @@ with
 };
 \end{lstjshere}
  
-\subsection{Bug: Multidictionary in Buckets.js}
+\subsection{Bug: Multi-dictionary in Buckets.js}
 
-The Buckets.js multidictionary is a dictionary that holds an array of distinct values for each key, instead of a single value.
+The Buckets.js multi-dictionary is a dictionary that holds an array of distinct values for each key, instead of a single value.
 Its implementation essentially consists in the following methods: \jsinline{set(k, v)}, \jsinline{get(k)}, and \jsinline{remove(k, v)}.
 
 The \jsinline{set(k, v)} method adds a new value \jsinline{v} to the array held by key \jsinline{k}.
@@ -198,9 +198,9 @@ var didRemove = dict.remove(s, x2);
 assert((x1 != x2 && didRemove) || (x1 == x2 && !didRemove));
 \end{lstjshere}
 
-In this test, we create a new multidictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
+In this test, we create a new multi-dictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
 Note that, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store this value two times in the array.
-This means that the key in the second call to \jsinline{remove} on line 6 is not present in the multidictionary any more, and this triggers the bug.
+This means that the key in the second call to \jsinline{remove} on line 6 is not present in the multi-dictionary any more, and this triggers the bug.
 
 When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the concrete instantiation of the test in Node raises an error.
 We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
