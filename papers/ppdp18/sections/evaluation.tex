@@ -20,7 +20,7 @@ Several libraries orthogonal to the core, such as the Date, RegExp, and JSON lib
 Extending \JSComp to the non-strict mode of the language and implementing the remaining built-in libraries is straightforward and is a technical exercise.
 A more substantial engineering effort would be required for moving to the later extensions and revisions of the standard, such as ES6, but this effort would ultimately amount to extending \JSComp rather than re-designing it, as these versions all have ES5 as a common core.
     
-\myparagraph{Reasoning limitations} Due to the limitations of Rosette, \cosette does not support reasoning about the \jsinline|eval| statement. Also, we support the \jsinline|for-in| statement with a fixed property enumeration. This is not an issue, because if a bug is found for a particular enumeration order, that bug still holds for an arbitrary enumeration order.
+\myparagraph{Reasoning limitations} Due to the limitations of Rosette, \cosette does not support reasoning about the \jsinline|eval| statement. Also, we support the \jsinline|for-in| statement with a fixed property enumeration. This is not an issue, because if a bug is found for a particular enumeration order, that bug still exists for an arbitrary enumeration order.
 
 \myparagraph{Whole-program Symbolic Testing: JS-Specific Features}
 We created a number of symbolic tests to demonstrate that Cosette can reason about essential JavaScript features, such as prototype inheritance, function closures, arrays, strings, as well as the substantially more challenging for-in statement and dynamic dispatch. 

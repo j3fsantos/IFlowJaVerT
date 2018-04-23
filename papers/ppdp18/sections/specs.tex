@@ -326,8 +326,8 @@ Let $\sstate=(\storeemp, \sheap, \sdom, \jtrue)$, where $\sheap = [\hcell{\sloc}
 
 \myparagraph{Formal Guarantees} 
 %Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
-Theorem~\ref{teo:fip:soundness} states that $\unificationfun(\sstate, \pass)$ satisfies the two criteria 
-outlined in \S\ref{subsec:sep:assertions}.
+$\unificationfun(\sstate, \pass)$ meets the criteria 
+outlined in~\S\ref{subsec:sep:assertions}.
 
 \begin{theorem}[Soundness of FIP]\label{teo:fip:soundness} 
 The following hold: 
@@ -360,7 +360,7 @@ The formal definition is given below.
 
 
 \begin{definition}[Validity of \jsil Logic Specifications]
-A \jsil logic specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is valid w.r.t.~a program 
+A \jsil logic specification $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ is valid with respect to a program 
 $\prog$, written $\prog \satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$, if and only if it holds that: 
 $$
 \begin{array}{l}
@@ -415,8 +415,8 @@ The test program $\prog'$, denoted by $\prog[\jsilmain \mapsto \proc]$, is obtai
 $\jsilmain$ of $\prog$ with the new test procedure, $\proc$. 
 
 \myparagraph{Formal Guarantees}
-Theorem~\ref{teo:bug:finding:sl} states that if the symbolic execution of the 
-test generated for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ finds a bug, then the specification 
+If the symbolic execution of a 
+test generated for $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$ finds a bug, the specification 
 is not~valid.
 
 \begin{theorem}[Bug-finding for \jsil SL Specifications]\label{teo:bug:finding:sl}
