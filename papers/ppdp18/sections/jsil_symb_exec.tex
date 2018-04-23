@@ -1,21 +1,21 @@
 %!TEX root = ../main.tex
 
-We propose a new methodology for designing compositional program analyses for languages that do not exhibit the frame property and apply this methodology to obtain a compositional symbolic execution engine for \jsil, an intermediate representation for JavaScript analysis~\cite{javert}. 
+We apply our new methodology for designing compositional program analyses for dynamic languages to obtain a compositional symbolic execution engine for \jsil, an intermediate representation for JavaScript analysis~\cite{javert}.
 %
 %Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
 %
-The methodology has three steps: \dtag{1} designing an instrumented semantics of the language that exhibits the frame property, \dtag{2} designing the program  analysis on the instrumented semantics, and \dtag{3} linking the program analysis to the concrete semantics by describing the frames that can be safely added to the initial state.   
+%The methodology has three steps: \dtag{1} designing an instrumented semantics of the language that exhibits the frame property, \dtag{2} designing the program  analysis on the instrumented semantics, and \dtag{3} linking the program analysis to the concrete semantics by describing the frames that can be safely added to the initial state.   
 %
-The key innovation is to have the instrumented semantics as a proper interim stage in the design of the analysis, obtaining 
-more modular reasoning and substantially simpler proofs.
-
+%The key innovation is to have the instrumented semantics as a proper interim stage in the design of the analysis, obtaining 
+%more modular reasoning and substantially simpler proofs.
+%
 %For our symbolic analysis, 
 We define a new, abstract semantics for \jsil,\footnote{We refer to the semantics as \emph{abstract} since it 
 is parametric on a \jsil state signature. We are not doing abstract interpretation.} in the spirit %style % I think style is too strong because the citation is really abstract interpretation - it will be very confusing
  of~\cite{vanhorn:icfp:2010}, which we instantiate to obtain the concrete, instrumented, and symbolic semantics. 
 This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication.
 %
-All definitions and proofs are given in full in the~Appendix.
+Full definitions and proofs are given in the~Appendix.
 
 %In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
 %\jsil, which we then instantiate to obtain its concrete and symbolic semantics.
@@ -80,12 +80,11 @@ A \jsil procedure is of the form $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$,
 %\polish{When calling a procedure, any missing parameters are implicitly set to $\jundefined$.}
 Procedures return via two dedicated indexes, $\retlab$ and $\errlab$, using two dedicated variables, $\retvar$ and $\errvar$. If a procedure reaches the $\retlab$ index, it returns normally with the return value denoted by $\retvar$; if it reaches $\errlab$, it returns an error, with the error value denoted by $\errvar$.
 %
-A \jsil program $\prog \in \progs$ is a set of top-level procedures and its entry point is always the special procedure $\jsilmain$\hspace{-2pt}.
+A \jsil program $\prog \in \progs$ is a set of top-level procedures, and its entry point is always the special procedure $\jsilmain$\hspace{-2pt}.
 
 
 %
 %\pmax{more modular, factor out. three for symbolic analysis}
-\vspace{-2pt}
 \myparagraph{Abstract semantics} We design the abstract semantics to make the analysis, the proofs, and the implementations as modular as possible. At its core are the GetCell and GetDomain functions, which precisely pinpoint the way in which \jsil interacts with the heap, factoring out the common behaviour of \jsil basic commands. It also provides standard constructs for reasoning about symbolic values, whose concrete and instrumented semantics are trivial.
 
 The abstract semantics is parametric on abstract states $\absstate \in \absstates$ and abstract values $\absval, \absprop, \absloc \in \absvals$. 
@@ -216,17 +215,17 @@ To describe transitions of commands, we introduce \emph{execution modes}, $\mode
 $\top$, meaning the execution can proceed; and~$\bot$, meaning that the execution must stop due to an \emph{assert failure}. Call stacks are lists of tuples of the form $(\pid, \absstore, \jvar, i, j)$, where: 
 $\pid$~is the identifier of the executing procedure;
 $\absstore$~is the store of the procedure that called~$\pid$; 
-$\jvar$~is the variable that will hold the return value of $\pid$; %in~$\absstore$; 
-and $i$ and $j$ are the indexes to which the control jumps when $\pid$ returns normally, $i$, or with an error, $j$. 
+$\jvar$~is the variable that will hold the return value of~$\pid$; %in~$\absstore$; 
+and $i$ ($j$) is the index to which the control jumps when $\pid$ returns normally (with an error). 
 %$i$ is the command index to which the control jumps when $\pid$ returns normally; 
 %and $j$ is the command index to which the control jumps when $\pid$  returns an error. 
-The \emph{initial call stack}, $\csmain$, is defined to be {\small $[ (\jsilmain, \storeemp, \jsilout, 0, 0) ]$}, where $\jsilout$ is the variable that holds the output of the entire program.  
+The \emph{initial call stack}, $\csmain$, is defined as {\small $[ (\jsilmain, \storeemp, \jsilout, 0, 0) ]$}, where ${\small\jsilout}$ holds the output of the entire program.  
 Transitions for  commands have the form  {\small $\prog: \abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}, 
-meaning that, given a program~$\prog$, state~$\absstate$ and execution mode~$\mode$, the evaluation of the $i$-th command of the first procedure in the 
-call stack~$\abscs$ generates 
+meaning that, given a program~$\prog$, state~$\absstate$ and execution mode~$\mode$, the evaluation of the $i$-th command of the first procedure of %the call stack~
+$\abscs$ generates 
 the state~$\absstate'$, call stack $\abscs'$,  and the next command to be evaluated is the $j$-th command of the first procedure 
-of $\abscs'$, in execution mode~$\mode'$ (Fig.~4). 
-For clarity, we keep the program implicit and use the function {\small $\ccmd{\abscs, i}$} to return the $i$-th command of the first procedure of $\abscs$.
+of~$\abscs'$, in execution mode~$\mode'$ (Fig.~4). 
+For clarity, we keep the program implicit and write {\small $\ccmd{\abscs, i}$} to denote the $i$-th command of the first procedure of $\abscs$.
 
 % We write $\ccmd{i}$ when $\prog$ and $\abscs$ are implicit.
 %\vspace{-3pt}
@@ -361,7 +360,7 @@ and the union of two functions with disjoint compatible domains by $f_1 \dunion 
  \vspace*{-0.52cm}
  \captionsetup{format=nastyCaption}
 \caption*{{\small Figure 4. Abstract semantics, commands: $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}\label{abs:sem:cmds:fig}
-\vspace*{-0.65cm}
+\vspace*{-0.6cm}
 \end{figure}
 
 \vspace*{-0.2cm}
@@ -379,6 +378,13 @@ We write $\absbsemrule{\jstate, \bcmd}{\jstate'}{\concrete}$ for the concrete se
 judgement for \jsil basic commands and $\abssemrule{\jstate, \cs, i}{\jstate', \cs', j}{\mode}{\mode'}{\concrete}$ 
 for \jsil commands. 
 
+The instantiation of the \jsil abstract semantics to the concrete case is straightforward: if an object \jsinline|l| has property \jsinline|p|, GetCell returns the associated value, and $\none$ otherwise; GetDomain returns the set of properties of a given object;
+heap allocation returns a fresh object location without changing the state;
+the rules for store update and positive heap update are standard; and 
+the negative heap update removes the given property of a given object from the heap.
+Note that the positive and negative heap update rules are not applicable at the same time, as $\val$ cannot be equal to $\none$. 
+
+\smallskip
 \begin{display}{Selected Concrete Semantics Rules}
 \text{
 {\scriptsize
@@ -465,13 +471,6 @@ for \jsil commands.
   }}
  \end{display}
 
-The instantiation of the \jsil abstract semantics to the concrete case is straightforward: if an object \jsinline|l| has property \jsinline|p|, GetCell returns the associated value, and $\none$ otherwise; GetDomain returns the set of properties of a given object;
-heap allocation returns a fresh object location without changing the state;
-the rules for store update and positive heap update are standard; and 
-the negative heap update removes the given property of a given object from the heap.
-Note that the positive and negative heap update rules are not applicable at the same time, as we 
-use $\val$ cannot be $\none$. 
-
 %The remaining rules can be seen in the Appendix.
 
 %\jfs{
@@ -499,7 +498,7 @@ use $\val$ cannot be $\none$.
 
 
 
-
+\smallskip
 \myparagraph{Example: Frame}
 The \jsil concrete semantics does not satisfy the frame property. 
 We illustrate this with the program on the right, which 
@@ -530,12 +529,10 @@ a domain table, and a store.
 %
 An instrumented heap, $\iheap \in \iheaps : \locs \partialmap \strings \partialmap \setext{\vals}{\none}$, 
 differs from a concrete heap in that it can map object properties to $\none$, explicitly declaring their absence. 
-We refer to those cells as \emph{$\none$-cells}. 
+We refer to those cells as \emph{$\none$-cells} (read: none-cells). 
 %
-A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding objects may have, whereas all other properties are \emph{known to be} absent. 
-If $\idom(\loc)$ is defined and $p \not\in \idom(\loc)$, then we know that the object at $\loc$ \emph{does not have} the property~$p$, and that that property \emph{cannot} be framed on. 
-Moreover, if $\idom(\loc)$ is defined and $(\loc, p) \in \domain(\iheap)$, then $p \in \idom(\loc)$.
-\polish{If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on. Also, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on.}%, as nothing is stated about them.
+A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding objects may have, whereas all other properties are \emph{known to be} absent. If $\idom(\loc)$ is defined and if $p \not\in \idom(\loc)$, then we know that the object at $\loc$ \emph{does not have} the property~$p$, and that that property \emph{cannot} be framed on. In contrast, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on. Also, if we have that $(\loc, p) \in \domain(\iheap)$, then it holds that $p \in \idom(\loc)$.
+On the other hand, if $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on.
 
 %We also know that all of the 
 %properties of that object that are in the heap are also in $\idom(\loc)$.
@@ -546,7 +543,6 @@ We write $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ for the instrum
 judgement for basic commands, and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
 for~commands. The omitted rules coincide with the concrete case. 
 
-\vspace{-3pt}
 \begin{display}{Selected Instrumented Semantics Rules}
 \text{
 {\scriptsize
@@ -618,17 +614,15 @@ for~commands. The omitted rules coincide with the concrete case.
 \end{figure*}
 
 
-Observe that we use $\ival$ to range over $\setext{\vals}{\none}$. 
-Hence, the rule \textsc{Heap Update} may update the value of an object property to $\none$.  
-In contrast, in the concrete case, the corresponding rule would simply remove that property from the heap.  
- Because an instrumented heap can contain $\none$-cells, the rule \textsc{GetDomain} needs to filter out the properties that are mapped to $\none$ from the result. 
- Furthermore, in order to apply this rule, one has to have full information about the object: all the properties in $\idom(\loc)$ must be present in the heap. 
+As $\ival$ ranges over $\setext{\vals}{\none}$, the \textsc{Heap Update} rule may update the value of an object property to $\none$.  
+In the concrete case, the corresponding rule would simply remove that property from the heap.  
+ As an instrumented heap can contain $\none$-cells, the \textsc{GetDomain} rule has to filter out properties mapped to $\none$. 
+ Furthermore, in order to apply this rule, one has to have full information about the object: all properties from $\idom(\loc)$ must be present in the heap. 
  %note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table. 
 %
-Another difference between the concrete and the instrumented semantics is apparent in the rule \textsc{GetCell - Not Found}. 
-In particular, while the expression $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
+Another difference between the two semantics is apparent in the rule \textsc{GetCell - Not Found}: while $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 means that one is certain that the object denoted by $\jsilexpr_1$ does not have the property 
-denoted by $\jsilexpr_2$, the expression $\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
+denoted by $\jsilexpr_2$, $\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 only means that this property does not exist in the current heap. %(and might be later framed on). 
 %
 %We note that the instrumented semantics does not evaluate symbolic variables.
@@ -647,14 +641,14 @@ only means that this property does not exist in the current heap. %(and might be
  the instrumented execution will get stuck in the execution of line~$0$. 
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.5cm}
+\vspace*{-0.35cm}
 {\small
 \hspace*{-0.5cm} $\mathtt{1\quad o := \jsilnew ()}$ \\[-0.06cm]
 \hspace*{-0.5cm} $\mathtt{2\quad [o, "foo"] := 42}$ \\[-0.06cm]
 \hspace*{-0.5cm} $\mathtt{3\quad \jsildelete(o, "foo")}$ \\ [-0.06cm]
 \hspace*{-0.5cm} $\mathtt{4\quad [o, "foo"] := 37}$ 
 }
-\vspace*{-0.25cm}
+\vspace*{-0.4cm}
 %{\hspace*{-1cm}{\mbox{\caption{\jsil Example 1\label{jsil:example:frame}}}}}
 \end{wrapfigure}
 
@@ -769,7 +763,8 @@ We instantiate the abstract semantics for the symbolic case.
 We write $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ for the symbolic semantic 
 judgement for basic commands and $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ 
 for commands. Symbolic call stacks, $\scs$, differ from concrete stacks in that they contain symbolic stores.
-For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$ to denote $(\sheap, \sdom, \sstore, \pc \wedge \sexprb)$ and $\sstate.\pcsel\!$ to denote $\pc$.
+For $\sstate = (\sheap, \sdom, \sstore, \pc)$, we write $\sstate \wedge \sexprb$ to denote $(\sheap, \sdom, \sstore, \pc \wedge \sexprb)$, 
+$\sstate.\hpsel$ to denote $\sheap$, and $\sstate.\pcsel\!$ to denote $\pc$.
 
 %Furthermore, we redefine \jsil expressions, $\pvsexpr \in \pvsexprs$ to take into account symbolic values
 % as follows: $\pvsexpr \triangleq \val \mid \jvar \mid \svar \mid \unoper\ \pvsexpr \mid \pvsexpr \binoper \pvsexpr$.
@@ -909,7 +904,7 @@ The \textsc{Assume} rule strengthens the path condition with the symbolic expres
  
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{-0.3cm}
+\vspace*{0.1cm}
 {\footnotesize
 \hspace*{-0.55cm} $\mathtt{1\quad o := new\ ()}$ \\[-0.06cm]
 \hspace*{-0.55cm} $\mathtt{2\quad o[\hat{s}] := 42};$ \\[-0.06cm]
@@ -1233,13 +1228,14 @@ Our three semantics for \jsil (\S\ref{subsec:concr}--\S\ref{subsec:symb:semantic
 However, implementing the entailment engine required by the symbolic semantics and practically handling the state explosion problem~\cite{clarke:lpar:2008} is a challenging task. For this reason, we develop the first, proof-of-concept version of \cosette leveraging on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine that enables the development of solver-aided languages. \rosette extends Racket~\cite{racket} with symbolic values and first-order assertions over these values, and languages implemented in \rosette can make use of its solver-aided facilities. 
 
-We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. We discuss its validation with respect to the symbolic semantics given in \S\ref{subsec:symb:semantics} in~\S\ref{sec:evaluation}.
+We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a lifted \jsil symbolic interpreter for free. We show that this symbolic interpreter is consistent with the symbolic semantics given in \S\ref{subsec:symb:semantics}, as described in \S\ref{sec:intro}.
 %To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
 
 We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution stops.
 
 
 \subsection{Lifting the results to JavaScript}
+\label{subsec:liftmejs1}
 
 All the results presented in this section lift to JavaScript in a straightforward way.
 One simply has to: 
