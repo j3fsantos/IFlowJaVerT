@@ -28,11 +28,13 @@ For both libraries, we wrote comprehensive symbolic unit tests for all functions
 For each file in the libraries, we report the number of JS executable lines in the code itself and including dependencies (slash-separated), the corresponding numbers of JSIL lines, the number of symbolic unit tests created by us and the number of concrete unit tests created by the library developers, the number of JS lines in the symbolic and concrete tests, their coverage measured as percentage of lines, and the average \cosette run time for the symbolic tests.
 %The files in Buckets.js are separated by a line from the unique file in queue-pri.
 
-The obtained results clearly demonstrate the benefits of symbolic testing using \cosette. In both cases, we were able to \emph{obtain 100\% line coverage}, improving the coverage of the Buckets.js library by 12\%. This we achieved using \emph{60\% fewer tests} in total that had \emph{10\% fewer lines of code per test} on average.
+The obtained results clearly demonstrate the benefits of symbolic testing using \cosette.
+In both cases, we were able to \emph{obtain 100\% line coverage}, improving the coverage of the Buckets.js library by 12\%.
+We achieved this using a total of \emph{60\% fewer tests}, and each test had \emph{10\% fewer lines of code} on average.
 We also discovered one bug in the Buckets.js library, as well as one in the queue-pri library. 
 
 
-For the testing, we used a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB. We measured the execution time of each symbolic test and averaged the times across tests for each library file. The times that we obtained reflect the fact that Rosette code is interpreted, rather than being run natively. We aim at implementing our own symbolic execution tool from scratch in the future, which, given our experience with JaVerT, should reduce execution times by at least an order of magnitude.
+For the testing, we used a machine with an Intel Core i7-4980HQ CPU 2.80 GHz and DDR3 RAM 16GB. We measured the execution time of each symbolic test and averaged the times across tests for each library file. The times that we obtained reflect the fact that Rosette code is interpreted, rather than running natively. We aim at implementing our own symbolic execution tool from scratch in the future, which, given our experience with JaVerT, should reduce execution times by at least an order of magnitude.
 
 \begin{table}[!t]
 {
