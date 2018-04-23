@@ -1,29 +1,29 @@
 %!TEX root = ../main.tex
 
-\pmax{Pull up the messages, mention JS.}
 
-\noindent We show how to use \cosette for debugging \jsil code annotated with 
-separation logic (SL) specifications. Tools that support SL-reasoning about
-functional correctness properties of programs often require of the user to 
-analyse long, complex proof traces whenever
-verification fails. 
-\cosette substantially simplifies this process by providing
-concrete counter-models that invalidate the input specification. 
+%\noindent We show how to use \cosette for debugging \jsil code annotated with 
+%separation logic (SL) specifications. Tools that support SL-reasoning about
+%functional correctness properties of programs often require of the user to 
+%analyse long, complex proof traces whenever
+%verification fails. 
+%\cosette substantially simplifies this process by providing
+%concrete counter-models that invalidate the input specification. 
 
-
-We extend the 
+We show how to use \cosette for debugging \jsil code annotated with separation logic (SL) specifications.
+To achieve this, we extend the 
  \jsil symbolic interpreter with a mechanism for asserting
 SL-assertions (\S\ref{subsec:sep:assertions}) and show how to 
 implement this mechanism by giving a sound decision procedure 
-for solving the frame inference problem (FIP)~\cite{}
+for solving the frame inference problem (FIP)~\cite{berdine:aplas:2005}
 in the context of symbolic execution (\S\ref{subsec:fip}).
 %
 %Unlike verification tools, our emphasis is in the generation of counter-models for failing cases. 
 %
-We present an algorithm  
+Then, we present an algorithm  
 for generating symbolic tests from SL-specifications, which guarantees 
 that whenever a symbolic test fails, \cosette produces a concrete 
 counter-model that invalidates the corresponding specification (\S\ref{specs:to:symbolic:tests}). 
+We conclude the section with a discussion on how to lift the presented results to JavaScript (\S\ref{js:specs}).
 All definitions and proofs are given in full in the Appendix.
 
 \vspace{-5pt}
@@ -32,11 +32,16 @@ All definitions and proofs are given in full in the Appendix.
 \jsil Logic assertions~\cite{javert} provide a way of describing \emph{partial} symbolic states.
 They include boolean and comparison operations on \jsil expressions; the separating conjunction; 
 and assertions for describing heaps. The $\lemp$ assertion describes 
-an empty heap. The cell assertion, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexpr_3$,  describes that an object 
+an empty heap. The cell assertion, $(\jsilexpr_1,\jsilexpr_2) \pointsto \jsilexpr_3$,  states that an object 
 at the location denoted by $\jsilexpr_1$ has the property denoted by $\jsilexpr_2$ with value 
 denoted by $\jsilexpr_3$. The object domain assertion $\emptyfields{\jsilexpr_1}{\jsilexpr_2}$ states that the object at 
-the location denoted by $\jsilexpr_1$ has no properties other than possibly those included in the
-set denoted by $\jsilexpr_2$. Additionally, we refer to assertions that do not contain $\lemp$ or 
+the location denoted by $\jsilexpr_1$ has \underline{at most} the properties included in the
+set denoted by $\jsilexpr_2$. For instance, the assertion $\emptyfields{\sloc}{\jsilset{p_1, p_2}}$ 
+states that the object at location $\sloc$ has \emph{at most} the properties $p_1$ and $p_2$; 
+it might only have one of them, or none at all, but it cannot have others.
+% \polish{(it may only have some of those properties but it certainly does not have any property that is not included in that set)}.  
+% no properties other than possibly those included in the set denoted by $\jsilexpr_2$. 
+We refer to assertions that do not contain $\lemp$ or 
 the separating conjunction as \emph{simple assertions}, and use $\spass$, $\sqass$ 
 to range over them.
 
@@ -74,7 +79,7 @@ a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the as
 
 \noindent where $\varoast$ denotes the iterated separating conjunction~\cite{citeme}. 
 
-\pmax{Describe this and do better on the below}
+%\pmax{Describe this and do better on the below}
 
 Analogously, an assertion can be normalised into a symbolic state: 
  cell assertions form the heap; 
@@ -313,7 +318,7 @@ The Frame Inference Algorithm has four possible cases:
 %\end{algorithm}}
 
 \begin{figure}
-%\includegraphics[width=0.48\textwidth]{figures/algorithm.png}
+\includegraphics[width=0.48\textwidth]{figures/algorithm.png}
 \vspace*{-1cm}
 \end{figure}
 
@@ -411,7 +416,7 @@ $$
 \end{theorem}
 
 
-\subsection{Lifting the results to JavaScript}
+\subsection{Lifting the results to JavaScript}\label{js:specs}
 
 \javert specifications of JS functions are analogous to \jsil specifications of \jsil procedures.
 %, and are of the form $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$. 
