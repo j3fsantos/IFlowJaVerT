@@ -1,5 +1,7 @@
 %!TEX root = ../main.tex
 
+\lstnewenvironment{lstjshere}{\lstset{language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}}{}
+
 \section{Evaluation}
 
 \subsection{Challenging JavaScript tests}
@@ -71,6 +73,49 @@ There are two possible cases here: either \jsinline{s} is equal to one of the co
 
 \subsection{Challenging JSIL tests}
 
+\myparagraph{Property Access}
+
+\begin{lstjs}
+proc main () {
+    (* Setup properties *)
+    s1 := make-symbol-string(s1);
+    s2 := make-symbol-string(s2);
+    s3 := make-symbol-string(s3);
+
+    (* Setup values *)
+    n1 := make-symbol-number(n1);
+    n2 := make-symbol-number(n2);
+
+    (* Initial assumption *)
+    assume(not (s1 = s2));
+    assume((s3 = s1) or (s3 = s2));
+
+    (* Setup heap *)
+    o := new ();
+    [o, s1] := n1;
+    [o, s2] := n2;
+
+
+    (* RULE: Property Access *)
+    ret1 := [o, s3];
+
+    assert (
+        ((s3 = s1) and (ret1 = n1)) or 
+        ((s3 = s2) and (ret1 = n2))
+    );
+
+    success;
+    rlab:    xret := $$t
+}
+with
+{
+    ret:    xret, rlab;
+};
+\end{lstjs}
+
+
+\myparagraph{Assignment - Not Found}
+
 \begin{lstjs}
 proc main () {
     (* Setup properties *)
@@ -101,48 +146,6 @@ proc main () {
     );
 
     success;
-    rlab:   xret := $$t
-}
-with
-{
-    ret:    xret, rlab;
-};
-\end{lstjs}
-
-\begin{lstjs}
-proc main () {
-    (* Setup properties *)
-    s1 := make-symbol-string(s1);
-    s2 := make-symbol-string(s2);
-    s3 := make-symbol-string(s3);
-
-    (* Setup values *)
-    n1 := make-symbol-number(n1);
-    n2 := make-symbol-number(n2);
-    n3 := make-symbol-number(n3);
-
-    (* Initial assumptions *)
-    assume(not (s1 = s2));
-    assume((s3 = s1) or (s3 = s2));
-
-    (* Setup heap *)
-    o := new ();
-    [o, s1] := n1;
-    [o, s2] := n2;
-
-    (* RULE: Assignment *)
-    [o, s3] := n3;
-
-    (* Assert *)
-    ret1 := [o, s1];
-    ret2 := [o, s2];
-
-assert (
-    ((s3 = s1) and (ret1 = n3) and (ret2 = n2)) or
-    ((s3 = s2) and (ret1 = n1) and (ret2 = n3))
-);
-
-success;
     rlab:   xret := $$t
 }
 with
@@ -199,7 +202,6 @@ We were able to fix the bug by adding a check for \jsinline{undefined} after lin
 
 \subsection{Specification-Directed Bug-Finding: JaVerT Data-Structure Libraries}
 
-\lstnewenvironment{lstjshere}{\lstset{language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}}{}
 
 \noindent{\bfseries E.5.1. Priority Queue}
 
