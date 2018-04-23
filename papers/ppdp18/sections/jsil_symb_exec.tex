@@ -469,7 +469,8 @@ The instantiation of the \jsil abstract semantics to the concrete case is straig
 heap allocation returns a fresh object location without changing the state;
 the rules for store update and positive heap update are standard; and 
 the negative heap update removes the given property of a given object from the heap.
-Note that the positive and negative heap update rules are not applicable at the same time, since $\val$ cannot be $\none$. 
+Note that the positive and negative heap update rules are not applicable at the same time, as we 
+use $\val$ cannot be $\none$. 
 
 %The remaining rules can be seen in the Appendix.
 
@@ -516,12 +517,12 @@ call fails, as $42$ is not a procedure identifier.
 
 %Our instrumented semantics explicitly keeps track of properties that are not present in a given object, using ideas from~\cite{gardner:popl:2012,javert}.
 
-Compositional analyses reason about programs given partial state information,
-which is challenging for languages that do not observe the frame property.
+Compositional analyses must reason about programs given partial state information.
+This is particularly challenging for languages that do not observe the frame property.
 We approach this problem by first designing an instrumented version of the language semantics that \emph{does} 
 observe the frame property. 
 %
-To achieve this, the instrumented semantics keeps track of both the present \emph{and the absent} properties of a given object, 
+To achieve this, the \jsil instrumented semantics keeps track of both the present \emph{and the absent} properties of a given object, 
 using ideas from~\cite{gardner:popl:2012,javert}.
 
 An instrumented state $\istate$ is a triple $(\iheap, \idom, \store)$ consisting of an instrumented heap, 
@@ -529,11 +530,12 @@ a domain table, and a store.
 %
 An instrumented heap, $\iheap \in \iheaps : \locs \partialmap \strings \partialmap \setext{\vals}{\none}$, 
 differs from a concrete heap in that it can map object properties to $\none$, explicitly declaring their absence. 
+We refer to those cells as \emph{$\none$-cells}. 
 %
-A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding object may have, whereas all other properties are \emph{known to be} absent. 
+A domain table, $\idom : \locs \partialmap \vals$, maps object locations to sets of properties that the corresponding objects may have, whereas all other properties are \emph{known to be} absent. 
 If $\idom(\loc)$ is defined and $p \not\in \idom(\loc)$, then we know that the object at $\loc$ \emph{does not have} the property~$p$, and that that property \emph{cannot} be framed on. 
 Moreover, if $\idom(\loc)$ is defined and $(\loc, p) \in \domain(\iheap)$, then $p \in \idom(\loc)$.
-If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on. Also, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on, as there is nothing is stated about them.
+\polish{If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ that are not in the heap \emph{can be} safely framed~on. Also, any properties in $\idom(\loc)$ that are not in the heap can be safely framed on.}%, as nothing is stated about them.
 
 %We also know that all of the 
 %properties of that object that are in the heap are also in $\idom(\loc)$.
@@ -542,9 +544,9 @@ If $\idom(\loc)$ is not defined, then all properties of the object at $\loc$ tha
 We instantiate the abstract semantics to the instrumented case. 
 We write $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ for the instrumented semantic 
 judgement for basic commands, and $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ 
-for~commands. 
+for~commands. The omitted rules coincide with the concrete case. 
 
-\smallskip
+\vspace{-3pt}
 \begin{display}{Selected Instrumented Semantics Rules}
 \text{
 {\scriptsize
@@ -560,9 +562,9 @@ for~commands.
    { 
         \istate = (\iheap, -, \store) 
         \quad
-         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
+         \loc = \evalexpr{\concrete}(\store, \jsilexpr_1) 
       \\\\
-         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
+         p = \evalexpr{\concrete}(\store, \jsilexpr_2) 
          \quad 
        \iheap = - \, \uplus \, (\loc, p) \mapsto \ival
         }{  \absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{\istate, (\loc, p, \ival)}}
@@ -570,9 +572,9 @@ for~commands.
  % 
      \inferrule[\textsc{GetCell - Not Found}]
    { 
-         \evalexpr{\concrete}(\store, \jsilexpr_1) = \loc
+        \loc = \evalexpr{\concrete}(\store, \jsilexpr_1) 
         \quad 
-         \evalexpr{\concrete}(\store, \jsilexpr_2) = p
+         p = \evalexpr{\concrete}(\store, \jsilexpr_2) 
          \quad
          p \not\in \idom(\loc) 
          \quad
@@ -584,7 +586,7 @@ for~commands.
   \\
   \inferrule[\textsc{GetDomain}]
    { 
-        \evalexpr{\concrete}(\store, \jsilexpr) = \loc
+       \loc = \evalexpr{\concrete}(\store, \jsilexpr) 
       \and
        \iheap = \iheap' \, \uplus \, \big((\loc, p_i) \mapsto - \big)\mid_{i = 0}^m  
         \and
@@ -615,12 +617,21 @@ for~commands.
 \vspace*{-0.4cm}
 \end{figure*}
 
-\smallskip
- The main difference between the concrete and the instrumented semantics is apparent in the rule \textsc{GetCell - Not Found}. 
+
+Observe that we use $\ival$ to range over $\setext{\vals}{\none}$. 
+Hence, the rule \textsc{Heap Update} may update the value of an object property to $\none$.  
+In contrast, in the concrete case, the corresponding rule would simply remove that property from the heap.  
+ Because an instrumented heap can contain $\none$-cells, the rule \textsc{GetDomain} needs to filter out the properties that are mapped to $\none$ from the result. 
+ Furthermore, in order to apply this rule, one has to have full information about the object: all the properties in $\idom(\loc)$ must be present in the heap. 
+ %note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table. 
+%
+Another difference between the concrete and the instrumented semantics is apparent in the rule \textsc{GetCell - Not Found}. 
 In particular, while the expression $\absgetcellrule{\instrumented}{\istate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
 means that one is certain that the object denoted by $\jsilexpr_1$ does not have the property 
 denoted by $\jsilexpr_2$, the expression $\absgetcellrule{\concrete}{\jstate, \jsilexpr_1, \jsilexpr_2}{-, (-, -, \none)}$ 
-only means that this property does not exist in the current heap. Also, note how GetDomain collects all non-none properties of an object by inspecting both the heap and the domain table. %We note that the instrumented semantics does not evaluate symbolic variables.
+only means that this property does not exist in the current heap. %(and might be later framed on). 
+%
+%We note that the instrumented semantics does not evaluate symbolic variables.
 
  
  %As we inspect properties using GetCell, they .
@@ -636,7 +647,7 @@ only means that this property does not exist in the current heap. Also, note how
  the instrumented execution will get stuck in the execution of line~$0$. 
 
 \begin{wrapfigure}{R}{0.12\textwidth}
-\vspace*{+0.05cm}
+\vspace*{-0.5cm}
 {\small
 \hspace*{-0.5cm} $\mathtt{1\quad o := \jsilnew ()}$ \\[-0.06cm]
 \hspace*{-0.5cm} $\mathtt{2\quad [o, "foo"] := 42}$ \\[-0.06cm]
@@ -648,9 +659,8 @@ only means that this property does not exist in the current heap. Also, note how
 \end{wrapfigure}
 
 \myparagraph{Example: Instrumented GetCell}
-To better understand the interaction between GetCell, the heap, and the domain table,~consider~the 
-
-\noindent program on the right and its execution trace in Figure~\ref{fig:sexecexample} (left). When executing the first assignment, following the abstract \textsc{Property Assignment} rule, we must call $\getcell(\mathtt{o, "foo"})$ to obtain the current value of the property. As the property is not in the heap, we are in the \textsc{Not Found} case of GetCell. The domain is extended with $\mathtt{"foo"}$, and the heap is extended with the none-cell $\mathtt{(\loc_o, "foo")} \mapsto \none$, whose value is then updated to 42 by the heap update. After the deletion, its value is reset to $\none$. The following assignment will again call $\getcell(\mathtt{o, "foo"})$, but this time, we will be in the \textsc{Found} case of GetCell, as the property is in the heap.
+To better understand the interaction between GetCell, the heap, and the domain table, consider the 
+ program on the right and its execution trace in Figure~\ref{fig:sexecexample} (left). When executing the first property assignment, following the abstract \textsc{Property Assignment} rule, we must call $\getcell(\mathtt{o, "foo"})$ to obtain the current value of the property. As the property is not in the heap, we are in the \textsc{Not Found} case of GetCell. The domain is extended with $\mathtt{"foo"}$, and the heap is extended with the none-cell $\mathtt{(\loc_o, "foo")} \mapsto \none$, whose value is then updated to 42 by the heap update. After the deletion, its value is reset to $\none$. The following property assignment will again call $\getcell(\mathtt{o, "foo"})$, but this time, we will be in the \textsc{Found} case of GetCell, as the property is in the heap.
 In a nutshell, GetCell ensures that all inspected properties, both present and absent, are represented in the heap.
 
 %\jfs{
@@ -666,7 +676,7 @@ Theorem~\ref{teo:frame:property} states that the \jsil instrumented semantics ob
 frame property. Lemma~\ref{lemma:instrumented:semantics} relates the instrumented 
 semantics with the concrete semantics via an erasure function  $\interpret{\instconc}{}$. Informally, $\interpret{\instconc}{}(\istate)$
 denotes the concrete state obtained by erasing negative information in $\istate$ (i.e.~  
-heap cells mapped to $\none$ and domain information). 
+$\none$-cells and domain information). 
 Lemma~\ref{lemma:instrumented:semantics} states that if a given execution 
 goes through in the instrumented semantics, then its concretisation (given by $\interpret{\instconc}{}$) 
 goes through in the concrete semantics. %All proofs can be found in the Appendix.
@@ -726,7 +736,7 @@ $$
 \vspace*{-0.2cm}
 \subsection{\jsil Symbolic Semantics}\label{subsec:symb:semantics}
 
-We obtain the \jsil symbolic semantics by lifting the \jsil instrumented semantics to the symbolic level, following standard approaches~\cite{Rosette1,citemeplease,citememore}.
+We obtain the \jsil symbolic semantics by lifting the \jsil instrumented semantics to the symbolic level, following standard approaches~\cite{Rosette1}.
 This lifting, however, is easier for us to achieve because we only need to instantiate the abstract semantics, rather than re-examine every command of the language.
 
 We instantiate the abstract values to \emph{symbolic expressions}, $\sexpr \in \sexprs$, defined as follows: 
