@@ -46,8 +46,8 @@ Map.prototype.validKey = function (k) { ... }
  \centering 
  {\lstset{xleftmargin=.17\textwidth,language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}
 \begin{lstlisting}
-var k = make-symbolic-string();
-var v = make-symbolic();
+var k = symb_string();
+var v = symb_number();
 assume(validKey(k));
 var m = new Map(); m.put(k, v); 
 var result = m.get(k);
@@ -105,7 +105,7 @@ In Figure \ref{fig:2b}, we show a general heap of key-value maps. There is the \
 \subsection{Whole-program Symbolic Testing}
 \label{subsec:st}
 
-Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. Using \cosette, they can write unit tests with \emph{symbolic} inputs and outputs, systematically testing a broad range of behaviours with a single symbolic test. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as in Figure~\ref{fig:2c}. First, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an untyped symbolic value, using \cosette's constructs for creating symbolic variables. Next, we assume that \jsinline|k| is a valid key. Next, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key~\jsinline|k|. Finally, we assert that the retrieved value is equal to the one we had previously put.
+Developers are used to writing unit tests for their code---verifying that, given some concrete inputs, the code produces the expected outputs. Using \cosette, they can write unit tests with \emph{symbolic} inputs and outputs, systematically testing a broad range of behaviours with a single symbolic test. For example, one meaningful unit test for the \jsinline|put| function consists of inserting a valid key-value pair \jsinline|(k, v)| into a map and then verifying that the pair has been inserted correctly. In Cosette, this test can be written as in Figure~\ref{fig:2c}. First, we declare \jsinline|k| to be a symbolic string and \jsinline|v| to be an symbolic number, using \cosette's constructs for creating symbolic variables. Next, we assume that \jsinline|k| is a valid key. Next, we create a new map, put the (symbolic) key-value pair \jsinline|(k, v)| into the map and then retrieve the value corresponding to the key~\jsinline|k|. Finally, we assert that the retrieved value is equal to the one we had previously put.
 
 % 
 When running \cosette on this test, if the \jsinline|validKey(k)| function was implemented incorrectly,\footnote{For instance, $\mathtt{validKey(k)}$ may only require that $\mathtt{k}$ is a string, which is a reasonable implementation, in the sense that it disallows JavaScript's implicit coercions.}

@@ -77,7 +77,7 @@ If the procedure raises an error, control is transferred to the $j$-th command; 
 %
 
 A \jsil procedure is of the form $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$, where $\pid$ is its identifier, $\jvec{\jvar}$ are its formal parameters, and its body ${\jvec{\jcmd}}$  is a sequence of \jsil commands. 
-\polish{When calling a procedure with not all the required formal parameters, the missing parameters are implicitly set to $\jundefined$.}
+%\polish{When calling a procedure, any missing parameters are implicitly set to $\jundefined$.}
 Procedures return via two dedicated indexes, $\retlab$ and $\errlab$, using two dedicated variables, $\retvar$ and $\errvar$. If a procedure reaches the $\retlab$ index, it returns normally with the return value denoted by $\retvar$; if it reaches $\errlab$, it returns an error, with the error value denoted by $\errvar$.
 %
 A \jsil program $\prog \in \progs$ is a set of top-level procedures and its entry point is always the special procedure $\jsilmain$\hspace{-2pt}.
@@ -1241,7 +1241,7 @@ We note that, as Rosette does not finitise the symbolic execution of loops branc
 All the results presented in this section lift to JavaScript in a straightforward way.
 One simply has to: 
 \dtag{1} extend JavaScript with constructs for creating symbolic values and 
-asserting and assuming first order formulae; 
+asserting and assuming first-order formulae; 
 \dtag{2} compile JavaScript to \jsil using a correct compiler. 
 Here, we make use of \jstojsil~\cite{javert}, a thoroughly tested and formally validated compiler from 
 JavaScript to \jsil.
@@ -1256,6 +1256,7 @@ $$
 $$
 \end{corollary}
 
+\pmax{Zzzzzz, we may need more, possibly just in words.}
  
 %
 %To make use of the symbolic execution tool for \jsil, one needs to compile 
