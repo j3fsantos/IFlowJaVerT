@@ -2,7 +2,7 @@
 
 \section{Evaluation}
 
-\subsection{Challenging JavaScript examples}
+\subsection{Challenging JavaScript tests}
 
 \cosette is able to verify JavaScript programs that use nontrivial parts of the JavaScript semantics, such as dynamic dispatch and property enumeration (via \jsinline{for-in} loops), in the symbolic world.
 
@@ -68,6 +68,88 @@ There are two possible cases here: either \jsinline{s} is equal to one of the co
 \cosette is able to reason about both cases, and finds a model for the assertion; either shadowing the property if \jsinline{expectedRes = 3}, giving a fresh string if \jsinline{expectedRes = 4}, or saying that the assertiong is unsatisfiable if \jsinline{expectedRes} is different from these two values.
 
 %This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
+
+\subsection{Challenging JSIL tests}
+
+\begin{lstjs}
+proc main () {
+    (* Setup properties *)
+    s1 := make-symbol-string(s1);
+    s2 := make-symbol-string(s2);
+
+    (* Setup values *)
+    n1 := make-symbol-number(n1);
+    n2 := make-symbol-number(n2);
+
+    (* Initial assumption *)
+    assume(not (s1 = s2));
+
+    (* Setup heap *)
+    o := new ();
+    [o, s1] := n1;
+    [o, s2] := n2;
+
+    (* RULE: Assignment - Not Found *)
+    delete(o, s1);
+
+    (* Assert *)
+    ret1 := hasField(o, s1);
+    ret2 := hasField(o, s2);
+
+    assert (
+        (ret1 = $$f) and (ret2 = $$t)
+    );
+
+    success;
+    rlab:   xret := $$t
+}
+with
+{
+    ret:    xret, rlab;
+};
+\end{lstjs}
+
+\begin{lstjs}
+proc main () {
+    (* Setup properties *)
+    s1 := make-symbol-string(s1);
+    s2 := make-symbol-string(s2);
+    s3 := make-symbol-string(s3);
+
+    (* Setup values *)
+    n1 := make-symbol-number(n1);
+    n2 := make-symbol-number(n2);
+    n3 := make-symbol-number(n3);
+
+    (* Initial assumptions *)
+    assume(not (s1 = s2));
+    assume((s3 = s1) or (s3 = s2));
+
+    (* Setup heap *)
+    o := new ();
+    [o, s1] := n1;
+    [o, s2] := n2;
+
+    (* RULE: Assignment *)
+    [o, s3] := n3;
+
+    (* Assert *)
+    ret1 := [o, s1];
+    ret2 := [o, s2];
+
+assert (
+    ((s3 = s1) and (ret1 = n3) and (ret2 = n2)) or
+    ((s3 = s2) and (ret1 = n1) and (ret2 = n3))
+);
+
+success;
+    rlab:   xret := $$t
+}
+with
+{
+    ret:    xret, rlab;
+};
+\end{lstjs}
  
 \subsection{Bug: Multidictionary in Buckets.js}
 We found one bug in the implementation of the Buckets.js multi-dictionary (a key-value map in which a single key holds an array of distinct values). 
@@ -75,14 +157,17 @@ We found one bug in the implementation of the Buckets.js multi-dictionary (a key
 %The implementation of the Buckets.js \jsinline{multidictionary} essentially comprises the \jsinline{get(key)} (which returns an array of values), \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 The implementation of the Buckets.js multi-dictionary essentially consists of the \jsinline{get(key)}, \jsinline{set(key, value)}, and \jsinline{remove(key, value)} methods.
 Both \jsinline{set} and \jsinline{remove} either add or remove a single value from the array held by the key, and \jsinline{get} returns this array.
+
 More precisely, in the \jsinline{remove} function, the \jsinline{value} argument can either be \jsinline{undefined}, in which case the key and associated array are completely removed from the dictionary, or it can be an actual value, in which case it is removed from the array if present.
-However, the library does not consider the case where the array is not found (for example, if all elements associated with the key have already been removed); in that case, the library tries to remove an element from \jsinline{undefined}, which raises an error.
-A simplified version of the failing code is shown below:
+However, the library does not consider the case where the array is not found (for example, if all elements associated with the key have already been removed); in that case, the library tries to remove an element from \jsinline{undefined}, and this raises an error.
+
+A simplified version of the failing code is shown below.
+The \jsinline{parent} variable is an internal variable of the object, that holds a dictionary from keys to arrays of values.
+The \jsinline{arrays.remove} function is part of the Buckets.js arrays manipulation library.
 
 \begin{lstjs}
 multidict.remove = function (key, value) {
     if (value === undefined) { ... }
-    // parent is an internal dictionary that maps keys to arrays
     var array = parent.get(key);
     if (arrays.remove(array, value)) { ... }
     return false;
@@ -91,26 +176,32 @@ multidict.remove = function (key, value) {
 We were able to expose this bug with the following symbolic test:
 
 \begin{lstjs}
-var dict = new buckets.multidict()
-var s = symb_string(), x1 = symb_number(), x2 = symb_number();
-dict.set(s, x1); dict.set(s, x2);
+var dict = new buckets.multidict();
+var s = symb_string();
+var x1 = symb_number();
+var x2 = symb_number();
+
+dict.set(s, x1);
+dict.set(s, x2);
 dict.remove(s, x1);
 var didRemove = dict.remove(s, x2);
 assert((x1 != x2 && didRemove) || (x1 == x2 && !didRemove));
 \end{lstjs}
 
-In this test, we create a new dictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
-However, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store it twice.
-This means that the key in the second call to \jsinline{remove} on line 6 is not in the dictionary any more, which triggers the bug.
+In this test, we create a new multidictionary \jsinline{dict}, and insert two symbolic values \jsinline{x1} and \jsinline{x2} at key \jsinline{s}, then remove them in order.
+However, if \jsinline{x1} is actually equal to \jsinline{x2}, the implementation does not store this value twice.
+This means that the key in the second call to \jsinline{remove} on line 6 is not held in the multidictionary any more, and this triggers the bug.
 
 When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x2 = 0} (any value of \jsinline{s} works), and running the instantiation of the test in Node raises an error.
 We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
+
+\subsection{Bug: Priority Queue Insertion in queue-pri}
 
 \subsection{Specification-Directed Bug-Finding: JaVerT Data-Structure Libraries}
 
 \lstnewenvironment{lstjshere}{\lstset{language=JavaScript,basicstyle=\fontsize{7}{7}\ttfamily,escapeinside={~}{~}}}{}
 
-\noindent{\bfseries E.3.1. Priority Queue}
+\noindent{\bfseries E.5.1. Priority Queue}
 
 \begin{lstjshere}
 /**
@@ -310,7 +401,7 @@ var PriorityQueue = (function () {
 })();
 \end{lstjshere}
 
-\noindent{\bfseries E.3.2. Binary Search Tree}
+\noindent{\bfseries E.5.2. Binary Search Tree}
 
 \begin{lstjshere}
 /**
@@ -465,7 +556,7 @@ function remove(v, t)
 \end{lstjshere}
 
 
-\noindent{\bfseries E.3.3. Sorted List}
+\noindent{\bfseries E.5.3. Sorted List}
 
 \begin{lstjshere}
 /**
