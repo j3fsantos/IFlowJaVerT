@@ -1035,7 +1035,7 @@ that, given a symbolic trace, $\prog : \transabssemrule{\sstate, \scs, i}{\sstat
  path condition}, there is an instrumented trace that will produce a final instrumented state 
  in the interpretation of the final symbolic state. 
  We use the final path condition $\sstate'.\pcsel$ when picking the initial 
- instrumented state because we only {\color{red}care} about the initial instrumented states for which 
+ instrumented state because we only care about the initial instrumented states for which 
 the instrumented execution follows the same path as the symbolic execution. 
 
 %The soundness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}) states that if we have a symbolic trace captured by 
@@ -1228,12 +1228,11 @@ Our three semantics for \jsil (\S\ref{subsec:concr}--\S\ref{subsec:symb:semantic
 However, implementing the entailment engine required by the symbolic semantics and practically handling the state explosion problem~\cite{clarke:lpar:2008} is a challenging task. For this reason, we develop the first, proof-of-concept version of \cosette leveraging on 
 \rosette~\cite{Rosette1,Rosette2}, a symbolic virtual machine that enables the development of solver-aided languages. \rosette extends Racket~\cite{racket} with symbolic values and first-order assertions over these values, and languages implemented in \rosette can make use of its solver-aided facilities. 
 
-We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a lifted \jsil symbolic interpreter for free. We show that this symbolic interpreter is consistent with the symbolic semantics given in \S\ref{subsec:symb:semantics}, as described in \S\ref{sec:intro}.
+We implement the \emph{instrumented} \jsil interpreter of \S\ref{subsec:instrumented} in \rosette, obtaining a \jsil symbolic interpreter for free. We show that this symbolic interpreter is consistent with the symbolic semantics given in \S\ref{subsec:symb:semantics}, as described in \S\ref{sec:intro}.
 %To make certain that this symbolic interpreter is consistent with the symbolic semantics of \S\ref{subsec:symb:semantics}, we systematically construct symbolic unit tests for each \jsil command, assuming the premises and asserting the conclusion of the appropriate rule of the symbolic semantics. For lack of space, more information on these tests is available in the Appendix.
+We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution~stops.
 
-We note that, as Rosette does not finitise the symbolic execution of loops branching on symbolic values~\cite{abstract:symbolic:exec}, the user must specify the maximum allowed number of such branchings. Once that bound is reached, the symbolic execution stops.
-
-
+\vspace*{-0.2cm}
 \subsection{Lifting the results to JavaScript}
 \label{subsec:liftmejs1}
 
@@ -1245,12 +1244,12 @@ asserting and assuming first-order formulae; and
 Here, we make use of \jstojsil~\cite{javert}, a thoroughly tested and formally validated compiler from 
 JavaScript to \jsil.
 
-To illustrate how the lifting works, we restate Corollary~\ref{bug:finding} for JavaScript.
+To illustrate the lifting, we restate Corollary~\ref{bug:finding} for JavaScript.
 Given a JavaScript symbolic state, $\sstate_\jssubscript$, and program $\jstmt$, we translate 
 both the state and program to \jsil, obtaining a \jsil symbolic state and context, $(\sstate, \scs)$,
 and a \jsil program $\prog$.  
 We then run the obtained \jsil program in the symbolic semantics. 
-If there is an assertion failure at the \jsil level, then, by the correctness of the compiler, 
+If there is an assertion failure at the \jsil level, then, by the correctness of \JSComp, 
 that failure is guaranteed to exist at the JavaScript level as well. Formally: 
 $$
 \begin{array}{l}

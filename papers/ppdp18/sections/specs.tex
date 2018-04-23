@@ -19,11 +19,11 @@ in the context of symbolic execution (\S\ref{subsec:fip}).
 %
 %Unlike verification tools, our emphasis is in the generation of counter-models for failing cases. 
 %
-Then, we present an algorithm  
+In \S\ref{specs:to:symbolic:tests}, we present an algorithm  
 for generating symbolic tests from SL-specifications, which guarantees 
-that whenever a symbolic test fails, \cosette produces a concrete 
-counter-model that invalidates the corresponding specification (\S\ref{specs:to:symbolic:tests}). 
-We conclude the section with a discussion on how to lift the presented results to JavaScript (\S\ref{subsec:liftmejs2}).
+that when a symbolic test fails, \cosette produces a concrete 
+counter-model that invalidates the corresponding specification. 
+We conclude with a discussion on how to lift the presented results to JavaScript (\S\ref{subsec:liftmejs2}).
 All definitions and proofs are given in full in the Appendix.
 
 \vspace{-5pt}
@@ -76,21 +76,20 @@ a symbolic state $\sstate = (\sheap, \sdom, \sstore, \pc)$ corresponds to the as
 \end{array}}
 \end{equation*}
 
-\noindent where $\varoast$ denotes the iterated separating conjunction~\cite{citeme}. 
+\noindent where $\varoast$ denotes the iterated separating conjunction~\cite{reynolds:lics:2002}. 
 
 %\pmax{Describe this and do better on the below}
 
-Analogously, an assertion can be normalised into a symbolic state. 
-The normalisation function:
-\dtag{1} maps all program variables in $\pass$ to freshly generated logical variables of the appropriate type obtaining a symbolic store $\sstore$;
-\dtag{2} replaces all program variables in $\pass$ with their bindings given by $\sstore$, obtaining an assertion $\pass'$ with no program variables; and
-\dtag{3} collects all the cell assertions in $\pass'$ to form the symbolic heap,
+Analogously, an assertion can be normalised into a symbolic state, by:
+mapping all program variables in $\pass$ to freshly generated logical variables of the appropriate type, obtaining a symbolic store~$\sstore$;
+replacing all program variables in $\pass$ with their bindings given by $\sstore$, obtaining an assertion $\pass'$ with no program variables; and
+ collecting all cell assertions in $\pass'$ to form the symbolic heap,
              all object domain assertions to form the domain table, and all pure assertions to form the path condition.
 We refer to the normalised symbolic state corresponding to $\pass$ by $\normaliser(\pass)$. 
 %
 We also use $\interpret{}{}(\sstate)$ for denoting the set 
 $\{ (\jstate, \heap_f) \mid \exists \senv \, . \, (\jstate, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate) \}$ 
-and $\interpret{}{}(\pass)$ for denoting $\interpret{}{}(\normaliser(\pass))$. 
+and $\interpret{}{}(\pass)$ for $\interpret{}{}(\normaliser(\pass))$. 
 
 \myparagraph{Inductive Predicates}
 \cosette does not support symbolic execution over inductive predicates, which are commonplace 
@@ -317,7 +316,7 @@ The Frame Inference Algorithm has four possible cases:
 
 \begin{figure}
 \includegraphics[width=0.48\textwidth]{figures/algorithm.png}
-\vspace*{-1cm}
+\vspace*{-0.65cm}
 \end{figure}
 
 %\vspace*{-0.8cm}
@@ -395,7 +394,7 @@ $$
 $$}
 \vspace*{-0.4cm}
 \caption{\small Symbolic Test Generation Algorithm~\label{fig:test:generation}}
-\vspace*{-0.2cm}
+\vspace*{-0.4cm}
 \end{figure}
 
 Given a \jsil program $\prog$ containing a procedure $\pid$ with specification {\small $\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}$}, 
@@ -437,12 +436,10 @@ $$
 \javert specifications of JS functions are analogous to \jsil specifications of \jsil procedures.
 %, and are of the form $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$. 
 A \javert specification $\specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$
-is valid for a JS program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$, 
-\emph{iff} $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
+is valid for a JS program $\jstmt$, written $\jstmt \satisfies \specsig{P_{\jssubscript}}{\pid(\jvec{x})}{Q_{\jssubscript}}{\flag}$ if and only if $\jstmt$ contains a function literal with identifier $\pid$ and ``whenever $\pid$ is executed in a state satisfying $P_\jssubscript$, then, 
 if it terminates, it does so in a state satisfying $Q_\jssubscript$, with return mode $\flag$''. 
 %The assertion language used by \javert is very similar to the assertion language of \jsil and is described in detail in~\cite{javert}.
-The \JSComp compiler is proven to correctly compile \javert specfications to \jsil specifications~\cite{javert}.
-
+\JSComp is proven to correctly compile \javert specifications to \jsil specifications~\cite{javert}.
 
 \myparagraph{Testing \javert Specifications}
 We generate symbolic tests from a JS program and its \javert specifications by: converting them to a \jsil program with \jsil specifications, using \jstojsil; generating a set of symbolic tests from the obtained \jsil program and \jsil specifications, as described in \S\ref{specs:to:symbolic:tests}; and running the generated \jsil symbolic tests using the \jsil symbolic semantics described in \S\ref{subsec:symb:semantics}. 
