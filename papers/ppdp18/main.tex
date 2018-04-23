@@ -338,7 +338,7 @@ However, recent symbolic execution tools for JavaScript~\cite{saxena:sp:2010,wit
 %They focus on specific bug patterns for finding, for example, security vulnerabilities related to the misuse of strings~\cite{saxena:sp:2010}, malformed Web API requests~\cite{wittern:icse:2018}, and bugs arising from the DOM API~\cite{li:fse:2014}. 
 They are fully automatic, aim at code in the large, and primarily focus on scalability and coverage issues. On the other hand, they target only specific bug patterns and are underpinned by whole-program analysis. 
 
-Whole-program analysis is not a good fit for JavaScript applications, 
+Whole-program analysis is not sufficient for JavaScript applications, 
 which are commonly run in highly dynamic execution
 environments: for example, client-side programs dynamically load and
 execute third-party code as a matter of course. Instead, one
@@ -934,7 +934,6 @@ debugging of both specifications and code.
 \section{Symbolic Execution for \jsil}\label{sec:jsil:symb:exec}
 \input{sections/jsil_symb_exec}
 
-\newpage
 \section{Specification-Driven Bug-Finding}\label{sec:specs}
 \input{sections/specs}
 
@@ -942,12 +941,10 @@ debugging of both specifications and code.
 %\section{From \jsil to JavaScript}\label{sec:lifting}
 %\input{sections/lifting}
 
-\newpage
-\section{Validation and Evaluation}\label{sec:evaluation}
+\section{Evaluation}\label{sec:evaluation}
 \input{sections/evaluation}
 
-\newpage\ \newpage
-\section{Related Work and Conclusions}
+\section{Related Work}
 \label{sec:rwc} 
 
 The existing literature covers a wide range of analysis techniques for JavaScript programs, including: 
@@ -1038,6 +1035,7 @@ tests for Java code annotated with relational logic specifications.
  %
  However, the resulting tests would be less effective from the point of view of bug finding; therefore, we opted not to do this. 
 
+\section{Conclusions}
 
 
 %\myparagraph{Entailment in Separation Logic and Countermodels}
