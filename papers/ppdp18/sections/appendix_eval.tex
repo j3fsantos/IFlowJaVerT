@@ -71,9 +71,13 @@ There are two possible cases here: either \jsinline{s} is equal to one of the co
 
 %This shows that \cosette is able to reason about the interplay between static and dynamic properties of JavaScript objects.
 
-\subsection{Challenging JSIL tests}
+\subsection{JSIL Statement Tests}
 
 \myparagraph{Property Access}
+This example tests the symbolic behavior of the \jsil statement \mbox{\textsc{Property Access}} in \cosette, in the case where the property exists.
+First, we create a new empty object \jsinline{o}.
+Then, we assign symbolic values \jsinline{n1} and \jsinline{n2} to properties \jsinline{s1} and \jsinline{s2} respectively, which we assume to be different in order to avoid aliasing.
+Finally, we read property \jsinline{s3} of \jsinline{o}, which we assume to be either \jsinline{s1} or \jsinline{s2}, and we assert that, in each case, the corresponding value was read.
 
 \begin{lstjs}
 proc main () {
@@ -114,7 +118,11 @@ with
 \end{lstjs}
 
 
-\myparagraph{Assignment - Not Found}
+\myparagraph{Delete}
+This example tests the symbolic behavior of the \jsil statement \textsc{Delete} in \cosette, which in the case where the property to delete is present.
+As before, we begin by creating a new empty object \jsinline{o}, and assign values \jsinline{n1} and \jsinline{n2} to non-overlapping properties \jsinline{s1} and \jsinline{s2}.
+Then, we delete property \jsinline{s1} from \jsinline{o}.
+Finally, we call the \jsinline{hasField} primitive on both properties, and we assert that \jsinline{s1} is not present anymore while \jsinline{s2} still is.
 
 \begin{lstjs}
 proc main () {
@@ -199,6 +207,9 @@ When running \cosette on this test, we obtain the counter-model \jsinline{x1 = x
 We were able to fix the bug by adding a check for \jsinline{undefined} after line 3 in the code of \jsinline{remove}, after which \cosette was successfully able to discharge the assertion.
 
 \subsection{Bug: Priority Queue Insertion in queue-pri}
+
+
+
 
 \subsection{Specification-Directed Bug-Finding: JaVerT Data-Structure Libraries}
 
