@@ -401,8 +401,8 @@ for JavaScript.
   and apply it to the design of the symbolic execution of Cosette. 
   %
   In contrast to existing tools, the symbolic analysis of \cosette 
-  is fully formalised in a way that facilitates implementation and is
-  also {\em trusted}, in that it provably follows the JavaScript
+  is fully formalised in a way that guides the implementation and is
+  also {\em trusted}, in that it  follows the JavaScript
   semantics and does not produce false positive bug reports.
 %  We design Cosette so that it can be {\em trusted}, with proper integration
 %  between the semantics and tool development. This integration is not
@@ -424,7 +424,7 @@ for JavaScript.
 \end{wrapfigure}
 
 The architecture of \cosette is shown on the right. We extend JavaScript with constructs for creating and reasoning about symbolic values. Using \JSComp~\cite{javert}, a trusted compiler from JS to the \jsil intermediate language, we compile the extended JS program to an extended \jsil program. The core of \cosette is a new symbolic interpreter for
-\jsil, whose current, proof-of-concept implementation, is done using
+\jsil,  written in 
 Rosette~\cite{Rosette2,Rosette1}, a framework for the creation of
 symbolic interpreters. The 
 JSIL symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound for unfolding loops and recursive~predicates. %\pmaxinline{This is the first time we mention `bound'.}
