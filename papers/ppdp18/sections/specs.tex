@@ -321,6 +321,8 @@ The Frame Inference Algorithm has four possible cases:
 
 %\vspace*{-0.8cm}
 
+\myparagraph{Example: Unification against \jsinline|noProps|}
+Let $\sstate = (, \storeemp, , \pc)$, where $\pc$ describes that $\sexprp_1$, $\sexprp_2$, $\sexprp_3$, and $\sexprp_4$ are all different, and let the next assertion to be unified be $\emptyfields{\loc}{\{ \sexprp_1, \sexprp_2, \sexprp_3, \sexprp_4 \}}$.
 
 \myparagraph{Formal Guarantees} 
 %Both our simplified $\unificationfun(\sstate, \pass)$ PDP, presented here, and its full version, given in the Appendix, satisfy the criteria outlined in \S\ref{subsec:sep:assertions}. 
@@ -370,7 +372,7 @@ $$
           \ \wedge \   (\jstate'', \heap_f) \in \interpret{}{}(Q) 
 \end{array}
 $$
-where $\cs = [ (\pid, \storeemp, \jsilout, 0, 0) ]$. 
+for any call stack $\cs$ of the form $(\pid, -, -, -, -) :: -$. 
 \end{definition}
 
 %\pmax{Should that concrete transition have a star?}
