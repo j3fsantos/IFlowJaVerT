@@ -249,10 +249,7 @@
 \fi}
 
 \begin{abstract}
-%\pginline{Not touched.}
 We present \cosette, a framework for trustworthy, compositional symbolic execution of JavaScript programs.
-%\cosette is the first symbolic analysis tool for JavaScript that
-%precisely models the semantics of the language.
 Its aim  is to
   provide \emph{general-purpose} symbolic analysis and {\em assist} 
   developers in the testing of their code: the developer writes symbolic tests for which \cosette provides concrete counter-models.
@@ -402,7 +399,7 @@ for JavaScript.
   %\footnote{It is straightforward to extend this work to the 
   %non-strict mode of the language. Later extensions and 
   %revisions contain ECMAScript 5 as a common core.}).  
-  Its target  is to
+  Its aim  is to
   provide \emph{general-purpose} symbolic analysis and {\em assist} 
   developers in the testing of their code.
   We present a new, general methodology for developing {\em compositional} 
@@ -434,7 +431,7 @@ for JavaScript.
 
 The architecture of \cosette is shown on the right. We extend JavaScript with constructs for creating and reasoning about symbolic values. Using \JSComp~\cite{javert}, a trusted compiler from JS to the \jsil intermediate language, we compile the extended JS program to an extended \jsil program. The core of \cosette is a new symbolic interpreter for
 \jsil,  written in 
-Rosette~\cite{Rosette2,Rosette1}, a framework for the creation of
+Rosette~\cite{Rosette2,Rosette1}, a framework for creating
 symbolic interpreters. The 
 JSIL symbolic interpreter either outputs a concrete counter-model for the given assertions, or guarantees correctness up to a given bound for unfolding loops and recursive~predicates. %\pmaxinline{This is the first time we mention `bound'.}
 
@@ -514,7 +511,7 @@ An essential goal for us was to establish trust in Cosette. In
 \S\ref{sex:formal:guarantees}, we give a {\em bounded soundness
   result} for the \jsil symbolic semantics and prove that \cosette
 never produces false positive bug reports. These theoretical results,
-combined with the correctness of the \JSComp compiler
+combined with the correctness of the \JSComp compiler~\cite{javert}
 and the fact that the memory models of JavaScript and \jsil are the
 same by design, enable us to lift the results of analyses done on
 compiled \jsil code back to the original JavaScript code
