@@ -1941,7 +1941,7 @@ From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \scs, i{+
 $\ccmd[\prog][\scs]{i} = \bcmd$ (\ieq{2}), and $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\ieq{3}). 
 Applying Lemma~\ref{lemma:soundiness:basic:commands} to \ieq{3} and \hyp{2}, we conclude that 
 there is an instrumented state $\istate'$ such that: 
-$\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\ieq{4}), and $\istate' = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{5}). 
+$\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\ieq{4}), and $\istate' = \interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc)$ (\ieq{5}). 
 From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\istate, \cs, i}{\istate', \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{6}). 
  Combining \hyp{2}, \ieq{5}, and \ieq{6}, we obtain the result.  
  \vspace{5pt}
@@ -1951,10 +1951,12 @@ From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \scs, j}{
 $\ccmd[\prog][\scs]{i} =  \ifgoto{\jsilexpr}{j}{k}$ (\ieq{2}), and 
 $ \sstate' = \absassume{\symbolic}(\sstate, \jsilexpr)$ (\ieq{3}). 
 Applying Lemma~\ref{lemma:soundiness:assume} to 
-\hyp{2}, we conclude that 
-$ \absassume{\instrumented}(\istate, \jsilexpr) = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{4}). 
+\hyp{2}, we conclude that:
+$$ 
+\absassume{\instrumented}(\istate, \jsilexpr) = \interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc) \text{ (\ieq{4})}
+$$  
 From \ieq{2} and \ieq{4}, we conclude that 
-$$\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate'), \cs, i{+}1}{\top}{\top}{\instrumented} \text{ (\ieq{5})}$$
+$$\abssemrule{\istate, \cs, i}{\interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc), \cs, i{+}1}{\top}{\top}{\instrumented} \text{ (\ieq{5})}$$
 Combining \hyp{2} and \ieq{5}, we obtain the result.     
  \vspace{5pt}
 
@@ -1977,11 +1979,11 @@ From \ieq{2}, we conclude that $\cs = (-, \interpret{\symbconc}{\senv}(\sstore')
 From \ieq{3}, we conclude that $\istate.\stosel = \interpret{\symbconc}{\senv}(\sstore)$ (\ieq{6}). 
 Applying Lemma~\ref{lemma:soundiness:store:update} to \hyp{2}, \ieq{4} and \ieq{6}, we conclude that 
 $$
-\stupdt{\instrumented}(\istate[\stosel \mapsto \interpret{\symbconc}{\senv}(\sstore')], \jvar, \istate.\stosel(\retvar)) = \interpret{\symbinst}{\senv}(\sstate')
+\stupdt{\instrumented}(\istate[\stosel \mapsto \interpret{\symbconc}{\senv}(\sstore')], \jvar, \istate.\stosel(\retvar)) = \interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc)
  \text{ (\ieq{7})}
 $$ 
 From \ieq{5} and \ieq{7}, we conclude that 
-$$\abssemrule{\istate, \scs, \retlab}{\interpret{\symbinst}{\senv}(\sstate'), \interpret{\symbconc}{\senv}(\scs'), i}{\top}{\top}{\instrumented}$$ 
+$$\abssemrule{\istate, \scs, \retlab}{\interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc), \interpret{\symbconc}{\senv}(\scs'), i}{\top}{\top}{\instrumented}$$ 
 establishing the result. 
  \vspace{5pt}
 
@@ -2007,7 +2009,7 @@ $\evalexpr{\concrete}(\istate.\stosel, \jsilexpr_i) = \interpret{\symbolic}{\sen
 From \ieq{7}, it follows that $\interpret{\symbconc}{\senv}(\sstore') = [\jvar_i \mapsto \interpret{\symbconc}{\senv}(\sexprv_i) \mid_{i = 0}^{m}]$ (\ieq{11}). 
 From \hyp{2} and \ieq{8}, it follows that $\interpret{\symbconc}{\senv}(\scs') = (\pid', \istate.\stosel, \jvar, i{+}1, j) :: \cs$ (\ieq{12}).
 From \hyp{2}, \ieq{9}, and \ieq{11}, it follows that 
-$\interpret{\symbconc}{\senv}(\sstate') = \istate[\stosel \mapsto  [\jvar_i \mapsto \interpret{\symbconc}{\senv}(\sexprv_i) \mid_{i = 0}^{m}]]$ (\ieq{13}). 
+$\interpret{\symbconc}{\senv}(\sstate' \, \wedge \, \pc) = \istate[\stosel \mapsto  [\jvar_i \mapsto \interpret{\symbconc}{\senv}(\sexprv_i) \mid_{i = 0}^{m}]]$ (\ieq{13}). 
 Combining \ieq{4} and \ieq{9}-\ieq{12}, the result follows. 
 \vspace{5pt}
 
