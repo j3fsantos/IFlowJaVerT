@@ -674,7 +674,7 @@ $\none$-cells and domain information).
 Lemma~\ref{lemma:instrumented:semantics} states that if a given execution 
 goes through in the instrumented semantics, then its concretisation (given by $\interpret{\instconc}{}$) 
 goes through in the concrete semantics. %All proofs can be found in the Appendix.
-For $\istate = (\iheap, \idom, \store)$, we write $\istate \dunion \iheap'$ to denote $(\iheap \dunion \iheap', \idom, \store)$.
+For $\istate = (\iheap, \idom, \store)$, we write $\istate \dunion \iheap'$ to denote $(\iheap \dunion \iheap', \idom, \store)$ defined only when $\iheap'$ does not redefine the properties stated not to exist by the domain table $\idom$.
 
 \begin{theorem}[Frame Property - Instrumented Semantics]\label{teo:frame:property}
 \hspace*{-0.28cm}$$
@@ -743,7 +743,7 @@ A \emph{symbolic state}, $\sstate = (\sheap, \sdom, \sstore, \pc)$, consists of 
 symbolic heap~$\sheap$, a symbolic domain $\sdom$, a symbolic store $\sstore$, and a path condition~$\pc$. 
 The symbolic heap, symbolic domain, and symbolic store are obtained from their instrumented 
 counterparts of~\S\ref{subsec:instrumented}, by replacing concrete values with symbolic expressions: for example,~a symbolic heap, $\sheap \in \sheaps : \slocs \partialmap \sexprs \partialmap \setext{\sexprs}{\none}$,
- maps pairs of object locations and symbolic expressions to symbolic expressions
+ maps pairs of object locations (both symbolic an concrete) and symbolic expressions to symbolic expressions
 extended with $\none$. 
 %A symbolic store, $\sstore \in \sstores$, is a mapping from program variables 
 %$\jvar \in \jvars$ to symbolic expressions.
