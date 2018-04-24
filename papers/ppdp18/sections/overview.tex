@@ -67,9 +67,9 @@ Our running example is a \emph{key-value map} implementation, given in Figure~\r
 The map library implements a \emph{key-value map} as an object with property \jsinline|_contents|, denoting the object storing the map contents.  
 The named properties of \jsinline|_contents| and their value attributes correspond to the map keys and values, respectively.
 The functions \jsinline|get|, \jsinline|put|, and \jsinline|validKey| are shared between all map 
-objects and are, therefore, defined in \jsinline|Map.prototype|, which is the prototype\footnote{In JavaScript, inheritance is modelled through \emph{prototype chains}. On property lookup, $\mathtt{o.p}$, we first check if the property $\mathtt{p}$ is present in the object $\mathtt{o}$, in which case its value is returned. Otherwise, we  check if $\mathtt{p}$ is present in the prototype of $\mathtt{o}$, and so  forth.} of all objects created using \jsinline|Map| as a constructor (i.e.,~using~\jsinline|new Map()|). 
+objects, as they are defined in \jsinline|Map.prototype|, the prototype\footnote{In JavaScript, inheritance is modelled through \emph{prototype chains}. On property lookup, $\mathtt{o.p}$, we first check if the property $\mathtt{p}$ is present in the object $\mathtt{o}$, in which case its value is returned. Otherwise, we  check if $\mathtt{p}$ is present in the prototype of $\mathtt{o}$, and so  forth.} of objects created using \jsinline|Map| as a constructor (i.e.,~using~\jsinline|new Map()|). 
 The \jsinline|get| function returns the value associated with a given key in the map, or \jsinline|null| if the key is not in the map. 
-Note that, in order to check that the given key is in the map, \jsinline|get| uses the built-in function \jsinline|hasOwnProperty|, which lives in \jsinline|Object.prototype|, the prototype of all objects.
+Note that, in order to check that the given key is in the map, \jsinline|get| uses the built-in function \jsinline|hasOwnProperty|, which lives in \jsinline|Object.prototype|, the default prototype of all objects.
 The \jsinline|put| function updates the map if the supplied key is valid, and otherwise throws an error. 
 The \jsinline|validKey| function describes the conditions under which a given key is valid. 
 
@@ -178,7 +178,7 @@ The highlighted parts of \jsinline|Map| describe the compositionality requiremen
 %
 %The uniqueness of keys is guaranteed by the \jsinline|DataProp| predicate of \jsinline|KVPairs| and the separating conjunction.
 We also require a \jsinline|MapProto(mp)| predicate, describing that
-\jsinline|mp| is a valid map prototype:  that is, that   it defines the \jsinline|put|, \jsinline|get|, and \jsinline|validKey| methods. To avoid clutter, we keep its definition opaque.
+\jsinline|mp| is a valid map prototype:  i.e.,~that it defines the \jsinline|put|, \jsinline|get|, and \jsinline|validKey| methods. To avoid clutter, we keep its definition opaque.
 
 \begin{wrapfigure}{R}{0.23\textwidth}
 \vspace*{-0.3cm}
@@ -270,8 +270,6 @@ Analogous issues would arise for the \jsinline|"get"| and \jsinline|"validKey"| 
 Second, if we omitted the parts highlighted in blue, upon execution of
 the line \jsinline|this._contents[k] = v| (Fig.~\ref{fig:2a}, line
 12), \cosette would complain that it has no information about the property \jsinline|k| in the prototype chain of the contents object (Fig.~2). This is required as the semantics of JavaScript has to look up the value of the property \jsinline|k| of the contents object before performing the actual assignment, to check if the assignment is allowed (i.e.,~ that the property is non-writable). As \jsinline|k| is symbolic, what this means is that the library is not resilient to frames in which there are non-writable properties in \jsinline|Object.prototype|. A similar issue arises for the \jsinline|Map| constructor (Fig.~\ref{fig:2a}, line 1), which requires the property \jsinline|"_contents"| not to be non-writable in the prototype chains of map objects.
-
-****
 
 %Now, we can give the complete definition of the \jsinline|Map| predicate and the corrected, compositional specification of \jsinline|put(k, v)| when \jsinline|k| is a valid key that is not in the map, with the compositionality-related changes highlighted in red:
 %
