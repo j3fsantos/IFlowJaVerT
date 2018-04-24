@@ -951,7 +951,7 @@ $$
 $$
 \end{lemma}
 \begin{proof}
-By case analysis on the rule used to derive $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$. 
+By case analysis on the derivation of $\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$. 
 \end{proof}
 
 \begin{lemma}[Control Flow Commands - Frame]\label{frame:control:flow:cmds}
@@ -967,7 +967,7 @@ $$
 By case analysis on the rule used to derive $\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$. 
 \end{proof}
 
-\begin{temax}[Frame Proper of Instrumented Semantics- Theorem~\ref{teo:frame:property}]
+\begin{temax}[Frame Property of Instrumented Semantics-Theorem~\ref{teo:frame:property}]
 $$
 \begin{array}{l} 
 \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad 
@@ -1436,6 +1436,8 @@ Combining \ieq{6} and \ieq{7}, we obtain the result.
 %%%
 \subsection{Symbolic Semantics}
 
+In the following, we assume that \jsil programs do not contain symbolic variables. This assumption is safe because an execution of any \jsil program containing symbolic variables can be viewed as an execution in which these symbolic variables have been moved from the program to the symbolic store.
+
 \begin{lemma}[Expression Evaluation - Soundness for Symbolic Semantics]\label{symb:eval:expr}
 $$
 \interpret{\symbconc}{\senv}(\evalexpr{\symbolic}(\sstore, \jsilexpr)) = \evalexpr{\concrete}(\interpret{\symbconc}{\senv}(\sstore), \jsilexpr)
@@ -1746,22 +1748,22 @@ $\absgetdomainfun{\instrumented}(\istate, \jsilexpr) = \interpret{\symbconc}{\se
 establishing the result. 
 \end{proof}
 
+
 \begin{lemma}[Basic Commands - Bounded Soundness for Symbolic Semantics]\label{lemma:soundiness:basic:commands}
 $$
 \begin{array}{l}
 \absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic} 
     \, \wedge \, \istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc)
-    \, \wedge \, \pc \vdash \sstate''.\pcsel \\ \quad \quad
+    \, \wedge \, {\pc \vdash \sstate'.\pcsel} \\ \quad \quad
      \implies 
         \exists \, \istate' \, . \, \absbsemrule{\istate, \bcmd}{\istate'}{\instrumented} \, \wedge \, 
-            \istate' = \interpret{\symbinst}{\senv'}(\sstate' \, \wedge \, \pc)  \, \wedge \, 
-            \senv' \fextends  \senv
+            \istate' = \interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc)  
 \end{array}
 $$
 \end{lemma}
 \begin{proof}
-Suppose $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\hyp{1}) and 
-$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)$ (\hyp{2}).
+{Suppose $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\hyp{1}) and 
+$\istate = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel)$ (\hyp{2}).}
 We proceed by case analysis on the rule used to derive \hyp{1}. 
 \vspace{3pt}
 
@@ -1802,13 +1804,13 @@ Combining \ieq{5} and \ieq{6}, we conclude that $\absbsemrule{\istate,\jvar := \
 From \ieq{1}, we conclude that there is a symbolic location $\sloc$ such that $(\sloc, -) \not\in \domain(\sstate.\hpsel)$ (\ieq{2}) and 
 $\sstate' = \hpupdt{\symbolic}(\sstate, \sloc, \protop, \jnull)$ (\ieq{3}). From \hyp{2}, 
 we conclude that $\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\ieq{4}). 
-Let us now pick a location $\loc$ such that $(\loc, -) \not\in \domain(\istate.\hpsel)$ (\ieq{5}). 
+Let $\loc = \senv(\sloc)$; note that $(\loc, -) \not\in \domain(\istate.\hpsel)$ (\ieq{5}). 
 From \ieq{5}, it follows that $\absbsemrule{\istate, \jvar := \jsilnew()}{\istate'}{\instrumented}$ (\ieq{6}) for 
-$\istate' = \hpupdt{\instrumented}(\sstate, \sloc, \protop, \jnull)$ (\ieq{7}). 
-Letting $\senv' = \senv[\sloc \mapsto \loc]$ (\ieq{8}), we conclude that 
-$(\loc, \protop, \jnull) = \interpret{\symbinst}{\senv'}(\sloc, \protop, \jnull)$ (\ieq{9})
-and $\istate = \interpret{\symbinst}{\senv'}(\sstate)$ (\ieq{10}). 
-Applying Lemma \ref{lemma:soundiness:heap:update} to \ieq{3}, \ieq{7}, \ieq{9}, and \ieq{10}, 
+$\istate = \hpupdt{\instrumented}(\sstate, \sloc, \protop, \jnull)$ (\ieq{7}). 
+Then, we conclude that 
+$(\loc, \protop, \jnull) = \interpret{\symbinst}{\senv}(\sloc, \protop, \jnull)$ (\ieq{8})
+and $\istate = \interpret{\symbinst}{\senv}(\sstate)$ (\ieq{9}). 
+Applying Lemma \ref{lemma:soundiness:heap:update} to \ieq{3}, \ieq{7}, \ieq{8}, and \ieq{9}, 
 the result follows. 
 \vspace{5pt}
 
@@ -1917,33 +1919,31 @@ Combining \ieq{6}, \ieq{9}, and \ieq{10}, we obtain the result.
 \begin{lemma}[Control Flow Commands - Bounded Soundness for Symbolic Semantics]\label{soundiness:control:flow:cmds}
 $$
 \begin{array}{l} 
-\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
+\prog : \abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} 
      \, \wedge \, (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \\ \quad
-     \, \wedge \, \pc \vdash \sstate'.\pcsel  \\ \quad \quad
+     \, \wedge \, {\pc \vdash \sstate'.\pcsel} 
      \implies 
-        \exists \, \istate' \, . \, \abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\  \quad \quad \quad \quad \quad
+        \exists \, \istate' \, . \, \interpret{\symbinst}{\senv}(\prog) : \abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\  \qquad \qquad \qquad \qquad \qquad
          \, \wedge \, 
-            (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate' \, \wedge \, \pc, \cs')  \, \wedge \, 
-            \senv' \fextends  \senv
+            (\istate', \cs') = \interpret{\symbinst}{\senv}(\sstate' \, \wedge \, \pc, \cs')  
  \end{array}
 $$
 \end{lemma}
 
 \begin{proof}
-Suppose $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
-$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2}).
-We proceed by case analysis on the rule used to derive \hyp{1}. 
+{Suppose $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
+$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2})}.
+We proceed by case analysis on the derivation of \hyp{1}. Note that $\interpret{\symbinst}{\senv}(\prog) = \prog$, as we assume that symbolic variables have moved from the program to the symbolic store. Onward, we keep $\prog$ implicit.
 \vspace{3pt}
 
 \noindent \prooflab{Basic Command} 
 From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate', \scs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
 $\ccmd[\prog][\scs]{i} = \bcmd$ (\ieq{2}), and $\absbsemrule{\sstate, \bcmd}{\sstate'}{\symbolic}$ (\ieq{3}). 
 Applying Lemma~\ref{lemma:soundiness:basic:commands} to \ieq{3} and \hyp{2}, we conclude that 
-there is a symbolic environment $\senv'$ and an instrumented state $\istate'$ such that: 
-$\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\ieq{4}), $\istate' = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{5}), 
-and $\senv' \fextends \senv$ (\ieq{6}). 
-From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\istate, \cs, i}{\istate', \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{7}). 
- Combining \hyp{2} and \ieq{5}-\ieq{7}, we obtain the result.  
+there is an instrumented state $\istate'$ such that: 
+$\absbsemrule{\istate, \bcmd}{\istate'}{\instrumented}$ (\ieq{4}), and $\istate' = \interpret{\symbinst}{\senv}(\sstate')$ (\ieq{5}). 
+From \ieq{2} and \ieq{4}, we conclude that $\abssemrule{\istate, \cs, i}{\istate', \cs, i{+}1}{\top}{\top}{\instrumented}$ (\ieq{6}). 
+ Combining \hyp{2}, \ieq{5}, and \ieq{6}, we obtain the result.  
  \vspace{5pt}
 
 \noindent \prooflab{Cond. Goto - True} 
@@ -2024,7 +2024,7 @@ From \ieq{2} and \ieq{4}, we conclude that
 
 \noindent \prooflab{Assert - True}
 From \hyp{1}, it follows that $\abssemrule{\sstate, \scs, i}{\sstate, \scs, i{+}1}{\top}{\top}{\symbolic}$ (\ieq{1}), 
-$ \ccmd[\prog][\scs]{i}  = \jassert(\jsilexpr)$ (\ieq{2}), and $\abssat{\symbolic}(\sstate, \neg \jsilexpr) = \jfalse$ (\ieq{3}). 
+$ \ccmd[\prog][\scs]{i}  = \jassert(\jsilexpr)$ (\ieq{2}), and {$\abssat{\symbolic}(\sstate, \neg \jsilexpr) = \jfalse$} (\ieq{3}). 
 Applying Lemma~\ref{lemma:soundiness:sat} to \ieq{3}, we conclude that 
 $\abssat{\instrumented}(\istate, \neg \jsilexpr) = \jfalse$ (\ieq{4}). 
 Combining \ieq{2} and \ieq{4}, the result follows. 
@@ -2056,12 +2056,11 @@ $$
 \begin{array}{l} 
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic} \, \wedge \, 
      (\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs)  \\ \quad \, \wedge \, 
-     \pc \vdash \sstate'.\pcsel \\ \quad \quad
+     \pc \vdash \sstate'.\pcsel 
      \implies 
-        \exists \, \istate', \cs' \, . \, \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad \quad
+        \exists \, \istate', \cs' \, . \, \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \qquad \qquad \qquad \qquad \quad
          \, \wedge \, 
-            (\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')  \, \wedge \, 
-            \senv' \fextends  \senv
+            (\istate', \cs') = \interpret{\symbinst}{\senv}(\sstate', \scs')  
  \end{array}
 $$
 \end{lemma}
@@ -2077,7 +2076,7 @@ and
 $\pc \vdash \sstate'.\pcsel$ (\hyp{3}). 
 We have to prove that there is an instrumented state $\istate'$,
 such that $\transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$, 
-$(\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')$, and $\senv' \fextends  \senv$.
+$(\istate', \cs') = \interpret{\symbinst}{\senv'}(\sstate', \scs')$.
 We proceed by induction on the length of the symbolic trace 
  $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$. 
 Suppose the symbolic trace has length $n$. 
@@ -2105,17 +2104,16 @@ Applying Lemma~\ref{lemma:pc:monotonocity} to \ieq{2}, we conclude that $\sstate
 From \hyp{3} and \ieq{3}, it follows that $\pc \vdash \sstate''.\pcsel$ (\ieq{4}). 
 Applying the induction hypothesis to \hyp{2}, \ieq{1} and \ieq{4}, and, we conclude that 
 there is an instrumented state $\istate''$ and $\cs''$, such that
-$\transabssemrule{\istate, \cs, i}{\istate'', \cs'', k}{\mode}{\mode''}{\instrumented}$ (\ieq{5}), 
-$(\istate'', \cs'') = \interpret{\symbinst}{\senv'}(\sstate'' \, \wedge \, \pc, \scs'')$ (\ieq{6}), and 
-$\senv' \fextends  \senv$ (\ieq{7}). 
-Applying Lemma~\ref{soundiness:control:flow:cmds} to \hyp{2}, \ieq{2}, and \ieq{6},
+$\transabssemrule{\istate, \cs, i}{\istate'', \cs'', k}{\mode}{\mode''}{\instrumented}$ (\ieq{5}), and
+$(\istate'', \cs'') = \interpret{\symbinst}{\senv'}(\sstate'' \, \wedge \, \pc, \scs'')$ (\ieq{6}).
+Applying Lemma~\ref{soundiness:control:flow:cmds} to \hyp{2} and \ieq{2},
 it follows that  
-$\abssemrule{\istate'', \cs'', k}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{8}), 
-$(\istate', \cs') = \interpret{\symbinst}{\senv''}(\sstate' \, \wedge \, \pc, \cs')$ (\ieq{9}), and 
-$\senv'' \fextends  \senv$ (\ieq{10}). 
-Combining \ieq{5} and \ieq{8}, we conclude that 
-$\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{11}). 
-Combining \ieq{9}, \ieq{10}, and \ieq{11}, we obtain the result. 
+$\abssemrule{\istate'', \cs'', k}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{7}), 
+$(\istate', \cs') = \interpret{\symbinst}{\senv''}(\sstate' \, \wedge \, \pc, \cs')$ (\ieq{8}), and 
+$\senv'' \fextends  \senv$ (\ieq{9}). 
+Combining \ieq{5} and \ieq{7}, we conclude that 
+$\abssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented}$ (\ieq{10}). 
+Combining \ieq{8}, \ieq{9}, and \ieq{10}, we obtain the result. 
 \end{proof}
 
 \begin{lemma}[Bounded-Soundness of the \jsil symbolic execution: Symbolic-to-Instrumented (2)]
@@ -2123,9 +2121,9 @@ $$
 \begin{array}{l}
 \transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}  
     \ \wedge \ (\istate, \cs) \in \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs) \\ \quad \quad 
-    \ \implies \ \exists \, \senv', \istate', \cs' \, . \, 
+    \ \implies \ \exists \, \istate', \cs' \, . \, 
         \transabssemrule{\istate, \cs, i}{\istate', \cs', j}{\mode}{\mode'}{\instrumented} \\ \quad \quad  \quad \quad \quad \quad 
-               \ \wedge \ (\istate', \cs') \in \interpret{\symbinst}{\senv'}(\sstate', \scs')
+               \ \wedge \ (\istate', \cs') \in \interpret{\symbinst}{\senv}(\sstate', \scs')
 \end{array}
 $$
 \end{lemma}
@@ -2166,7 +2164,7 @@ $$
 \end{temax}
 \begin{proof}
 We show how the intermediate results can be used together to 
-obtain the soundiness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}). 
+obtain the bounded soundness theorem (Theorem~\ref{teo:soundness:jsil:symb:exe}). 
 Assume we have that 
 $\transabssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
  $(\jstate, \cs, \heap_f) \in \interpret{\symbconc}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2}).  
