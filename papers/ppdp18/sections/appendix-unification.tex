@@ -128,7 +128,8 @@ variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate
 \newcommand{\stateequivrel}[3]{#1 \sim_{#3} #2}
 
 
-
+In the following, we use $\stateequivrel{\sstate}{\sstate'}{\pc}$ to mean 
+that $\interpret{\symbconc}{}(\sstate \, \wedge \, \pc) = \interpret{\symbconc}{}(\sstate')$. 
 
 \begin{lemma}[GetCell - FIP Success]\label{lemma:getcell:fip}
 $$
@@ -328,6 +329,59 @@ The following hold:
  Follows from Lemmas~\ref{lemma:soundness:unification:success} and~\ref{lemma:soundness:unification:failure}. 
  \end{proof}
  
+ 
+ \begin{temax}[Bug-finding for \jsil SL Specifications - Theorem~\ref{teo:bug:finding:sl}]
+$$
+\begin{array}{l}
+\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sstate) \, \wedge \\
+\quad
+  \prog[\jsilmain \mapsto \proc] :  \transabssemrule{\sstate, \csmain, 0}{-, -, -}{\top}{\bot}{\symbolic} \\ \quad \qquad 
+    \implies  
+         \prog \not\satisfies \specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag}
+\end{array}
+$$
+\end{temax}
+ \begin{proof}
+ Suppose that $\testify{}(\specsig{\pass}{\pid(\jvec{x})}{\qass}{\flag})  = (\proc, \sstate)$ (\hyp{1}) 
+ and $\prog[\jsilmain \mapsto \proc] :  \transabssemrule{\sstate, \csmain, 0}{-, -, -}{\top}{\bot}{\symbolic}$ (\hyp{2}). 
+ We have to consider two separate cases: $\flag = \fnormal$ and $\flag = \ferror$. 
+We do the proof for $\flag = \fnormal$ (\hyp{3}). The other case is analogous. 
+Form \hyp{1} and \hyp{3}, we conclude that: 
+$$
+\begin{array}{l}
+\proc = \darkmath{\sf proc} \jsilmain () \{ \\ 
+\qquad 0_{\phantom{\sf nm}}: \jsilcall{\jvar}{\pid}{\svar_0, ..., \svar_n}{\errlab} \\ 
+ \qquad \retlab \, : \sepassert(\sstore(Q)[\jvar/\retvar])  \\
+ \qquad \errlab \, \, \, : \jassert(\jfalse)   \\
+\quad \}  
+\end{array} 
+\qquad \text{ (\ieq{4})}
+$$
+where: $\sstore =  [ \jvar_i \mapsto \svar_i|_{i=0}^n]$ (\ieq{5}) and $\sstate = \normaliser(\sstore(\pass))$ (\ieq{6}). 
+%
+We observe that $\stateequivrel{\sstate}{\normaliser(\pass)}{}$ (\ieq{7}). 
+%
+From \hyp{2}, and given that there are no asserts in the code of $\pid$, we conclude that the assertion failure must have been 
+cause either by $\retlab \, : \sepassert(\sstore(Q)[\jvar/\retvar])$ or by $\jassert(\jfalse)$. We treat the two cases separately. 
+\vspace{3pt}
+
+\noindent \prooflab{Assert False} If the command $\jassert(\jfalse)$ is executed, then it must be the case that 
+$\pid$ returned in error mode. From \ieq{7}, we conclude that all the concrete states in the interpretation of 
+$\sstate$ are also in the interpretation of $\pass$. As the specification mandates that $\pid$ must return in 
+$\fnormal$ mode, any concretisation of this symbolic execution invalidates the specification. 
+\vspace{5pt}
+
+\noindent \prooflab{SL-Assert} If the command $\retlab \, : \sepassert(\sstore(Q)[\jvar/\retvar])$ is executed, 
+it must be the case that there is a constraint $\pc_f$ such that 
+$\unificationfun(\sstate', \sstore(Q)[\jvar/\retvar]) = \fail{\pc_f}$ (\ieq{8}), where $\sstate'$ is the symbolic 
+state after the return of $\pid$. 
+Applying Theorem~\ref{teo:bug:finding:sl} to \ieq{8}, we conclude that 
+$\interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\sstore(Q)[\jvar/\retvar]) = \emptyset$, 
+which establishes the result.
+ \end{proof}
+ 
+ 
+
  
 %
 %  \State $\qquad \textbf{if} \,(\sstate.\pcsel \vdash \subst(\sass))$
