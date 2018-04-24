@@ -514,7 +514,7 @@ An essential goal for us was to establish trust in Cosette. In
 \S\ref{sex:formal:guarantees}, we give a {\em bounded soundness
   result} for the \jsil symbolic semantics and prove that \cosette
 never produces false positive bug reports. These theoretical results,
-combined with the correctness of the \JSComp compiler~\cite{.}
+combined with the correctness of the \JSComp compiler
 and the fact that the memory models of JavaScript and \jsil are the
 same by design, enable us to lift the results of analyses done on
 compiled \jsil code back to the original JavaScript code
@@ -586,8 +586,8 @@ a test fails, \cosette provides the concrete input that causes it to
 fail, exposing bugs in the tested code. In \S\ref{sec:evaluation}, 
 we evaluate \cosette on two real-world JavaScript data structure libraries,
 where, using fewer tests, we achieve better coverage (100\%) than
-the concrete unit test suites shipped with the libraries.
-We discovered a surprising bug in both these libraries.
+the concrete unit test suites shipped with the libraries, and
+discover unexpected bugs in both libraries.
 
 
 %: Buckets.js [? ] with 65k downloads on
@@ -982,7 +982,7 @@ test generation in general.
 \myparagraph{Symbolic Execution for JS}
 The majority of the existing bug-finding symbolic execution tools for JavaScript target specific bug patterns, 
 such as security vulnerabilities related to the misuse of strings~\cite{saxena:sp:2010} 
-(e.g., absence of sanitisation before security critical operations), malformed Web API requests~\cite{wittern:icse:2018}, and
+(for example, absence of sanitisation before security critical operations), malformed Web API requests~\cite{wittern:icse:2018}, and
 DOM API specific bugs~\cite{li:fse:2014}. These tools are fully automatic and aim at code in 
 the large, primarily focusing on scalability and coverage issues. \cosette has a different 
 purpose: it is not designed to be fully automatic, but to \emph{assist} developers in 
@@ -1002,11 +1002,9 @@ Therefore, it can be used both as a basis for building other more specific analy
 as a testing oracle for other symbolic execution tools for JavaScript that purposely 
 ignore some corner cases of the JavaScript semantics. 
 Furthermore, \cosette is the first symbolic execution tool for JavaScript that provides 
-frame resilience guarantees, which are essential for generating tests from separation logic specifications. 
+frame resilience guarantees, which are essential for any specification-related reasoning.
 %None of them can be used to test JS specs. 
 %None offer insights into implementation either.
-
-\pmax{Recover sth about compositionality; anything about specifications; we demonstrate on seplogic}
 
 %
 %\begin{itemize}
@@ -1027,24 +1025,6 @@ frame resilience guarantees, which are essential for generating tests from separ
 %   \item \cite{seidel:esop:2015} - Target
 %   \item \cite{claessen:icfp:2000} - QuickCheck. but also: FLOPS 2014 - Generating constrained random data with uniform distribution
 %\end{itemize}
-
-
-\myparagraph{Logic-based Analysis for JS} 
-There is little work on logic-based analyses for JavaScript.
-\citet{gardner:popl:2012} have developed JS Logic, a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
-This logic has proven difficult to automate and is not extensible to the entire language. 
-
-\citet{swamy:pldi:2013} prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JavaScript programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3.
-
-\citet{stefanescu:oopsla:2016} have developed KJS, a symbolic verification tool for JavaScript (ES 5 core plus a small part of the built-in libraries) by instantiating their general $\mathbb{K}$ framework with a $\mathbb{K}$-interpretation of JavaScript~\cite{Park:2015}. Using this tool, they verify functional correctness properties of toy data structure libraries. 
-Program specification using KJS is difficult and error-prone, as the developer has to provide loop invariants and explicitly address all language internals. Moreover, the KJS framework is not fully compositional.
-
-The verification tool closest to \cosette is \javert~\cite{javert}, a JavaScript verification toolchain based on separation logic. JaVerT provides abstractions for most JavaScript-specific constructs, making specification easier, but still requires loop invariants. Like KJS, JaVerT has mostly been used to verify correctness of small data structure libraries. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; our novel symbolic semantics for \jsil is syntax-directed and is specifically designed to guide  implementations.
-
-The above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and abstractions for the recursive structures used. For instance, the Buckets.js library would be out of their reach, as none of the existing tools comes with abstractions to accurately describe: JavaScript arrays, for-in loop invariants, and higher-order functions.  As a bug-finding tool, Cosette does not require any such abstractions, and, therefore, can be used for analysing substantially larger, more complex codebases.
-% but the price paid is it can provide only bounded correctness guarantees when a bug has not been~found.
-
-
 
 \myparagraph{Specification-driven Testing}
 There is a long line of work on specification-driven test synthesis, dating back to 
@@ -1068,6 +1048,22 @@ based on separation logic specifications.
  %With \cosette, one could easily concretise the resulting symbolic tests, effectively  obtaining a concrete test generation tool for JaVerT specifications.
  %
 % However, the resulting tests would necessarily have a smaller coverage than the original symbolic tests; hence, we opted not to do this. 
+
+\myparagraph{Logic-based Verification for JavaScript}
+\javert~\cite{javert} is a verification toolchain for JavaScript based on separation logic. 
+It comes with a trusted compiler, \JSComp, which we extend with constructs for creating and reasoning about symbolic values and reuse as part of \cosette. Like \cosette, \javert also performs its analysis on compiled \jsil code. However, the rules for the \jsil symbolic execution of \javert are not syntax-directed and offer little implementation insight; our novel symbolic semantics for \jsil is syntax-directed and is specifically designed to guide  implementations. JaVerT has been used to verify functional correctness properties of simple data structure libraries. We reuse the specifications of these libraries to evaluate our symbolic test generation mechanism. These specifications are readable and easy to write, as JaVerT provides abstractions for most JavaScript-specific constructs. 
+ 
+%There is little work on logic-based analyses for JavaScript.
+%\citet{gardner:popl:2012} have developed JS Logic, a separation logic for a tiny fragment of ES3, to reason about the variable store emulated in the JavaScript heap. 
+%This logic has proven difficult to automate and is not extensible to the entire language. 
+
+Alternatively, we could have considered using the matching logic specifications of KJS~\cite{stefanescu:oopsla:2016}, a symbolic verification tool for core ES5 obtained by instantiating the general $\mathbb{K}$ framework with the semantics of JavaScript~\cite{Park:2015}. Similarly to \javert, KJS has been used to verify functional correctness properties of small data structure libraries.
+However, KJS specifications are difficult to write and error-prone, as the developer has to  explicitly address all language internals. They are also not fully compositional, as they do not allow partial descriptions of JavaScript objects. 
+
+There is also the work of \citet{swamy:pldi:2013}, who prove absence of runtime errors for higher-order JavaScript (ES3) programs by: compiling JS programs annotated with assertions and loop invariants to the logic of F*; generating verification conditions for the absence of runtime errors; and automatically discharging these conditions using Z3. However, as this analysis does not consider specifications, it was not possible for us to reuse its results for \cosette. 
+
+All of the above-mentioned verification tools provide strong correctness guarantees, but have severe scalability limitations, as they require loop invariants and abstractions for the recursive structures that the programs use. For instance, the Buckets.js library would be out of their reach, as none of the existing tools comes with abstractions to accurately describe: JavaScript arrays, for-in loop invariants, and higher-order functions.  As a bug-finding tool, Cosette does not require any such abstractions, and can therefore be used for analysing substantially larger, more complex codebases.
+% but the price paid is it can provide only bounded correctness guarantees when a bug has not been~found.
 
 
 \section{Conclusions}
