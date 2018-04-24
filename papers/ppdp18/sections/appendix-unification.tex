@@ -87,10 +87,11 @@ variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate
       % EF ASS
      \State $\mid~\emptyfields{\sloc}{\sexprv} \lstcons \up' :$  
        \State $\qquad \textbf{match} \ \GetDomainV{\sstate, \subst(\sloc)}$ $\textbf{with}$
-       \State $\qquad \mid~\success{\sexprv', \sstate'}:$
-         \State $\qquad \qquad \textbf{match} \ \unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel)$ $\textbf{with}$
-       \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
-       \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
+       \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv \backslash \sexprv' = \{ \sexprp_1, ..., \sexprp_n \})$
+         \State $\qquad \quad \ ~  \textbf{then}$ \Return \Call{{\small Unification}}{{\scriptsize $\sstate'\!\dunion\!(\sloc, \sexprp_i)\!\pointsto\!\none\!\mid_{i = 1}^n$}, {\small $\up'$}, {\small $\subst$}}
+            \State $\qquad \quad \  ~  \textbf{else}$ \Return $\fail{\sexprv' \not\subseteq \sexprv }$
+%        \State $\qquad \qquad \mid~ \success{\subst'}:$ \Return \Call{Unification}{$\sstate'$, $\up'$, $\subst'$}
+ %      \State $\qquad \qquad \mid~ \fail{\pc_f} \ \, :$ \Return $\fail{\pc_f}$
        \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
      % Logical Equality  
      \State $\mid~(\sexprv = \sexprv') \lstcons \up' :$  
@@ -105,6 +106,13 @@ variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate
 \EndFunction
 \end{algorithmic}
 \end{algorithm}}
+
+
+
+      % \State $\qquad \mid~\success{\sexprv', \sstate'}:$ $\textbf{if} \,(\sstate.\pcsel \vdash \sexprv \backslash \sexprv' = \{ \sexprp_1, ..., \sexprp_n \})$
+%        \State $\qquad \qquad \qquad ~  \textbf{then}$ \Return \Call{Unification}{$\sstate' \dunion (\sloc, \sexprp_i) \pointsto \none \mid_{i = 1}^n$, $\jvec{\sqass}$}
+%       \State $\qquad \qquad \qquad ~  \textbf{else}$ \Return $\fail{\sexprv' \not\subseteq \sexprv }$
+%       \State $\qquad \mid~\fail{\pc_f}:$ \Return $\fail{\pc_f}$
 
 
 \newpage
@@ -122,156 +130,138 @@ variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate
 
 
 
+\begin{lemma}[GetCell - FIP]\label{lemma:getcell:fip}
+$$
+\begin{array}{l}
+\GetCellV{\sstate, \sloc, \sexprp} = \success{\sexprv', \sstate'} 
+    \implies 
+        \stateequivrel{\sstate}{\sstate' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv')}{}
+\end{array}
+$$
+\end{lemma}
+
+
+\begin{lemma}[GetDomain - FIP]\label{lemma:getdomain:fip}
+$$
+\begin{array}{l}
+\GetDomainV{\sstate, \sloc, \sexprp} = \success{\sexprv', \sstate'} 
+    \implies 
+        \stateequivrel{\sstate}{\sstate' \statecompose \normaliser(\emptyfields{\sloc}{\sexprv'})}{}
+\end{array}
+$$
+\end{lemma}
+
+
 \begin{lemma}[Soundness of Unification]
 $$
 \begin{array}{l}
-\unificationfunction(\sstate, \up, \subst) = \success{\subst', \sstate_f} \\ \quad \quad
+\unificationfun(\sstate, \jvec{\spass}) = \success{\sstate_f} \\ \quad \quad
   \implies 
    \exists \, \sstate_m \, . \, 
    \sstate = \sstate_m \statecompose \sstate_f 
    \, \wedge \, 
-    \stateequivrel{\sstate_m}{\normaliser(\subst'(\up))}{\sstate.\pcsel}
-     \, \wedge \, 
-     \subst' \fextends \subst
+    \stateequivrel{\sstate_m}{\normaliser(\jvec{\spass})}{\sstate.\pcsel}
 \end{array}
 $$
 \end{lemma}
 \begin{proof}
-We proceed by induction on the length of $\up$. The base case corresponds to the empty unification plan $\up = \lstemp$, 
-whereas the inductive case corresponds to the unification plan $\up = \sqass \lstcons \up'$, where $\sqass$ is a simple 
+We proceed by induction on the length of $\jvec{\spass}$. The base case corresponds to the empty unification plan $\jvec{\spass} = \lstemp$, 
+whereas the inductive case corresponds to $\jvec{\spass} = \sqass \lstcons \jvec{\spass}'$, where $\sqass$ is a simple 
 assertion. For clarity, we consider each possible inductive case separately. 
 \vspace{3pt}
 
-\noindent \prooflab{Empty Unification Plan} $\up = \lstemp$. It follows that
-$\sstate_f = \sstate$ and $\subst' = \subst$. Letting  $\sstate_m = \emptystate$, 
-and noting that $\emptystate \statecompose \sstate = \sstate$, $\emptystate \stateequiv \normaliser([])$, 
-and $\subst \fextends \subst$, the result follows. 
+\noindent \prooflab{Empty Unification Plan} $\jvec{\spass} = \lstemp$. It follows that
+$\sstate_f = \sstate$. Letting  $\sstate_m = \emptystate$, 
+and noting that $\emptystate \statecompose \sstate = \sstate$ and $\emptystate \stateequiv \normaliser([])$, the result follows. 
  \vspace{5pt}
 
-\noindent \prooflab{Non-Empty Unification Plan - Cell Assertion} The unification plan is as follows: 
-$\up = (\sloc, \sexprp) \pointsto \sexprv \lstcons \up'$ (\ieq{1}). 
-From \ieq{1}, we conclude that there exists a substitution $\subst''$, a symbolic state $\sstate'$, 
+\noindent \prooflab{Non-Empty Unification Plan - Cell Assertion} 
+$\jvec{\spass} = (\sloc, \sexprp) \pointsto \sexprv \lstcons \jvec{\spass}'$ (\ieq{1}). 
+From \ieq{1}, we conclude that there exists a symbolic state $\sstate'$, 
 and a symbolic value $\sexprv'$, such that: 
-$\GetCellV{\sstate, \subst(\sloc), \subst(\sexprp)} = \success{\sexprv', \sstate'}$ (\ieq{2}),
-$\unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel) = \success{\subst''}$ (\ieq{3}), and:
+$\GetCellV{\sstate, \sloc, \sexprp} = \success{\sexprv', \sstate'}$ (\ieq{2}),
+$\sstate.\pcsel \vdash \sexprv' = \sexprv$ (\ieq{3}), and:
 $$
-\unificationfunction(\sstate', \up', \subst'') = \success{\subst', \sstate_f} \text{ (\ieq{4})}
+\unificationfunction(\sstate', \jvec{\spass}') = \success{\sstate_f} \text{ (\ieq{4})}
 $$ 
 Applying the induction hypothesis to \ieq{4}, we conclude that there is a symbolic state 
-$\sstate_m'$ such that  $\sstate' = \sstate_m' \statecompose \sstate_f$ (\ieq{5}), 
-$\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up'))}{\sstate'.\pcsel}$ (\ieq{6}), and $\subst' \fextends \subst''$ (\ieq{7}). 
-Applying Lemma~\ref{lemma:verification:getcell} to \ieq{2}, we conclude that 
-$\sstate = \sstate' \statecompose \normaliser((\subst(\sloc), \subst(\sexprp)) \pointsto \sexprv')$ (\ieq{8}) . 
-Applying Lemma~\ref{lemma:expression:unification} to \ieq{3}, we conclude that 
-$\sstate.\pcsel \vdash \sexprv' = \subst''(\sexprv)$ (\ieq{9}) and $\subst'' \fextends \subst$ (\ieq{10}). 
-Combining \ieq{7} and \ieq{10}, it follows that $\subst' \fextends \subst$ (\ieq{11}). 
-Combining \ieq{5} and \ieq{8}, we conclude that: 
+$\sstate_m'$ such that  $\sstate' = \sstate_m' \statecompose \sstate_f$ (\ieq{5}) and 
+$\stateequivrel{\sstate_m'}{\normaliser(\jvec{\spass}')}{\sstate'.\pcsel}$ (\ieq{6}). 
+Applying Lemma~\ref{lemma:verification:getcell} to \ieq{2}, we conclude that:
+$$\sstate = \sstate' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv') \text{ (\ieq{7})}$$   
+Combining \ieq{5} and \ieq{7}, we conclude that: 
 $$
-\sstate = (\sstate_m' \statecompose \normaliser((\subst(\sloc), \subst(\sexprp)) \pointsto \sexprv')) \statecompose \sstate_f  \text{ (\ieq{12})}
+\sstate = (\sstate_m' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv')) \statecompose \sstate_f  \text{ (\ieq{8})}
 $$
-From \ieq{9}-\ieq{11}, it follows that: 
+From \ieq{3}, it follows that: 
 $$
-\stateequivrel{\normaliser((\subst(\sloc), \subst(\sexprp)) \pointsto \sexprv')}{\normaliser(\subst'((\sloc, \sexprp) \pointsto \sexprv))}{\sstate.\pcsel} \text{ (\ieq{13})}
+\stateequivrel{\normaliser((\sloc, \sexprp) \pointsto \sexprv')}{\normaliser((\sloc, \sexprp) \pointsto \sexprv)}{\sstate.\pcsel} \text{ (\ieq{9})}
 $$
-From \ieq{1}, \ieq{6}, and \ieq{13}, we conclude that: 
+From \ieq{1}, \ieq{6}, and \ieq{9}, we conclude that: 
 $$
-\stateequivrel{\sstate_m' \statecompose \normaliser((\subst(\sloc), \subst(\sexprp)) \pointsto \sexprv')}{\normaliser(\subst'(\up)}{\sstate.\pcsel} \text{ (\ieq{14})}
+\stateequivrel{\sstate_m' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv')}{\normaliser(\jvec{\spass})}{\sstate.\pcsel} \text{ (\ieq{10})}
 $$
-Letting $\sstate_m = \sstate_m' \statecompose \normaliser((\subst(\sloc), \subst(\sexprp)) \pointsto \sexprv')$, the result follows 
-from \ieq{11}, \ieq{12}, and \ieq{14}. 
+Letting $\sstate_m = \sstate_m' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv')$, the result follows 
+from \ieq{8} and \ieq{10}. 
 \vspace{5pt}
 
 \noindent \prooflab{Non-Empty Unification Plan - Domain Assertion} The unification plan is as follows: 
-$\up = \emptyfields{\sloc}{\sexprv} \lstcons \up'$ (\ieq{1}). 
-From \ieq{1}, it follows that there exists a substitution $\subst''$, a symbolic state $\sstate'$, 
-and a symbolic value $\sexprv'$, such that: 
-$\GetDomainV{\sstate, \subst(\sloc)} = \success{\sexprv', \sstate'}$ (\ieq{2}), 
-$\unifylexpr(\sexprv, \sexprv', \subst, \sstate.\pcsel) = \success{\subst''}$ (\ieq{3}), and: 
+$\jvec{\spass} = \emptyfields{\sloc}{\sexprv} \lstcons \jvec{\spass}'$ (\ieq{1}). 
+From \ieq{1}, it follows that there exists a symbolic state $\sstate'$,
+and symbolic value $\sexprv'$, $\sexprp_1$, ..., $\sexprp_n$, such that: 
+$\GetDomainV{\sstate, \sloc} = \success{\sexprv', \sstate'}$ (\ieq{2}), 
+$
+\sstate.\pcsel \vdash \sexprv \backslash \sexprv' = \{ \sexprp_1, ..., \sexprp_n \})
+$ (\ieq{3}) and: 
 $$
-\unificationfunction(\sstate', \up', \subst'') = \success{\subst', \sstate_f} \text{ (\ieq{4})}
+\unificationfunction(\sstate', \jvec{\spass}') = \success{\sstate_f} \text{ (\ieq{4})}
 $$
 Applying the induction hypothesis to \ieq{4}, we conclude that there is a symbolic state 
-$\sstate_m'$ such that  $\sstate' = \sstate_m' \statecompose \sstate_f$ (\ieq{5}), 
-$\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up'))}{\sstate'.\pcsel}$ (\ieq{6}), and $\subst' \fextends \subst''$ (\ieq{7}). 
+$\sstate_m'$ such that  $\sstate' = \sstate_m' \statecompose \sstate_f$ (\ieq{5}) and
+$\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up'))}{\sstate'.\pcsel}$ (\ieq{6}). 
 %
 Applying Lemma~\ref{lemma:verification:getdomain} to \ieq{2}, we conclude that 
-$\sstate = \sstate' \statecompose \normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})$ (\ieq{8}). 
+$\sstate = \sstate' \statecompose \normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})$ (\ieq{7}). 
 %
-Applying Lemma~\ref{lemma:expression:unification} to \ieq{3}, we conclude that 
-$\sstate.\pcsel \vdash \sexprv' = \subst''(\sexprv)$ (\ieq{9}) and $\subst'' \fextends \subst$ (\ieq{10}). 
-%
-Combining \ieq{7} and \ieq{10}, it follows that $\subst' \fextends \subst$ (\ieq{11}). 
-%
-Combining \ieq{5} and \ieq{8}, we conclude that: 
+Combining \ieq{5} and \ieq{7}, we conclude that: 
 $$
-\sstate = (\sstate_m' \statecompose \normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})) \statecompose \sstate_f  \text{ (\ieq{12})}
+\sstate = (\sstate_m' \statecompose \normaliser(\emptyfields{\sloc}{\sexprv'})) \statecompose \sstate_f  \text{ (\ieq{8})}
 $$
-From \ieq{9}-\ieq{11}, it follows that: 
+From  \ieq{3}, it follows that: 
 $$
-\stateequivrel{\normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})}{\normaliser(\subst'(\emptyfields{\sloc}{\sexprv}))}{\sstate.\pcsel} \text{ (\ieq{13})}
+\stateequivrel{\normaliser(\emptyfields{\sloc}{\sexprv'})}{\normaliser(\emptyfields{\sloc}{\sexprv})}{\sstate.\pcsel} \text{ (\ieq{9})}
 $$
-From \ieq{1}, \ieq{6}, and \ieq{13}, it follows that: 
+From \ieq{1}, \ieq{6}, and \ieq{9}, it follows that: 
 $$
-\stateequivrel{\sstate_m' \statecompose \normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})}{\normaliser(\subst'(\up)}{\sstate.\pcsel} \text{ (\ieq{14})}
+\stateequivrel{\sstate_m' \statecompose \normaliser(\emptyfields{\sloc}{\sexprv'})}{\normaliser(\jvec{\spass}}{\sstate.\pcsel} \text{ (\ieq{10})}
 $$
-Letting $\sstate_m = \sstate_m' \statecompose \normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})$, the result follows 
-from \ieq{11}, \ieq{12}, and \ieq{14}. 
+Letting $\sstate_m = \sstate_m' \statecompose \normaliser(\emptyfields{\sloc}{\sexprv'})$, the result follows 
+from \ieq{8} and \ieq{10}. 
 \vspace{5pt}
 
 
-\noindent \prooflab{Non-Empty Unification Plan - Equality} The unification plan is as follows: 
-$\up =(\sexprv = \sexprv') \lstcons \up'$ (\ieq{1}). 
-From \ieq{1}, it follows that there exists a substitution $\subst''$, such that: 
-$\unifylexpr(\sexprv', \sexprv, \subst, \sstate.\pcsel) = \success{\subst''}$ (\ieq{2}) 
+\noindent \prooflab{Non-Empty Unification Plan - Pure Assertion}
+$\jvec{\spass} = \sass \lstcons \jvec{\spass}'$ (\ieq{1}). 
+From \ieq{1}, it follows that: 
+$\sstate.\pcsel \vdash \sass$ (\ieq{2}) and 
 and:
 $$
-\unificationfunction(\sstate, \up', \subst'') = \success{\subst', \sstate_f} \text{ (\ieq{3})}
+\unificationfunction(\sstate, \jvec{\spass}') = \success{\sstate_f} \text{ (\ieq{3})}
 $$
 %
 Applying the induction hypothesis to \ieq{3}, we conclude that there is a symbolic state 
-$\sstate_m'$ such that  $\sstate = \sstate_m' \, \statecompose  \, \sstate_f$ (\ieq{4}), 
-$\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up'))}{\sstate'.\pcsel}$ (\ieq{5}), and $\subst' \fextends \subst''$ (\ieq{6}). 
-%
-Applying Lemma~\ref{lemma:expression:unification} to \ieq{2}, we conclude that 
-$\sstate.\pcsel \vdash \sexprv = \subst''(\sexprv')$ (\ieq{7}) and $\subst'' \fextends \subst$ (\ieq{8}). 
-%
-Combining \ieq{6} and \ieq{8}, it follows that $\subst' \fextends \subst$ (\ieq{9}). 
-%
-From \ieq{7}, it follows that: 
-$$
-\stateequivrel{\emptystate}{\normaliser(\subst'(\sexprv = \sexprv'))}{\sstate.\pcsel} \text{ (\ieq{10})}
-$$
-From \ieq{1}, \ieq{5}, and \ieq{10}, it follows that: 
-$$
-\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up))}{\sstate.\pcsel} \text{ (\ieq{11})}
-$$
-Letting $\sstate_m = \sstate_m'$, the result follows 
-from \ieq{4}, \ieq{9}, and \ieq{11}.
-\vspace{5pt}
-
-
-\noindent \prooflab{Non-Empty Unification Plan - Pure Assertion} The unification plan is as follows: 
-$\up = \sass \lstcons \up'$ (\ieq{1}). 
-From \ieq{1}, it follows that there exists a substitution $\subst''$, such that: 
-$\sstate.\pcsel \vdash \subst(\sass)$ (\ieq{2}) and 
-and:
-$$
-\unificationfunction(\sstate, \up', \subst) = \success{\subst', \sstate_f} \text{ (\ieq{3})}
-$$
-%
-Applying the induction hypothesis to \ieq{3}, we conclude that there is a symbolic state 
-$\sstate_m'$ such that  $\sstate = \sstate_m' \, \statecompose  \, \sstate_f$ (\ieq{4}), 
-$\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up'))}{\sstate'.\pcsel}$ (\ieq{5}), and $\subst' \fextends \subst$ (\ieq{6}). 
+$\sstate_m'$ such that  $\sstate = \sstate_m' \, \statecompose  \, \sstate_f$ (\ieq{4}) and
+$\stateequivrel{\sstate_m'}{\normaliser(\jvec{\spass}')}{\sstate'.\pcsel}$ (\ieq{5}). 
 From \ieq{2}, we conclude that: 
 $$
-\stateequivrel{\emptystate}{\sass}{\sstate.\pcsel} \text{ (\ieq{7})}
+\stateequivrel{\emptystate}{\sass}{\sstate.\pcsel} \text{ (\ieq{6})}
 $$
-From \ieq{1}, \ieq{5}, and \ieq{7}, it follows that: 
+From \ieq{1}, \ieq{5}, and \ieq{6}, it follows that: 
 $$
-\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up))}{\sstate.\pcsel} \text{ (\ieq{8})}
+\stateequivrel{\sstate_m'}{\normaliser(\jvec{\spass})}{\sstate.\pcsel} \text{ (\ieq{7})}
 $$
 Letting $\sstate_m = \sstate_m'$, the result follows 
-from \ieq{4}, \ieq{6}, and \ieq{8}.
+from \ieq{4} and \ieq{7}.
 \end{proof}
  
 %
