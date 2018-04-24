@@ -1,6 +1,11 @@
 %!TEX root = ../main.tex
 
-We present our new methodology for designing compositional program analyses for dynamic languages and apply it to obtain a compositional symbolic execution engine for \jsil, an intermediate representation for JavaScript analysis~\cite{javert}.
+We present a new methodology for designing compositional program analyses for dynamic languages, illustrating our approach 
+by defining compositional symbolic execution for \jsil, an intermediate representation for JS analysis~\cite{javert}. We develop a new, abstract semantics for \jsil,\footnote{We refer to the semantics as \emph{abstract} since it  is parametric on a \jsil state signature. We are not doing abstract interpretation.} in the spirit 
+ of~\cite{vanhorn:icfp:2010}, which we instantiate to obtain the concrete, instrumented, and symbolic semantics. 
+This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication. Full definitions and proofs are given~in~the~Appendix.
+
+%We present our new methodology for designing compositional program analyses for dynamic languages and apply it to obtain a compositional symbolic execution engine for \jsil, an intermediate representation for JavaScript analysis~\cite{javert}.
 %
 %Much like JavaScript, \jsil does not exhibit the frame property~\cite{reynolds:lics:2002}, raising the issue of how to guarantee that the results of the analysis still hold when extending the initial state of the analysed program with a given arbitrary frame.
 %
@@ -10,12 +15,12 @@ We present our new methodology for designing compositional program analyses for 
 %more modular reasoning and substantially simpler proofs.
 %
 %For our symbolic analysis, 
-We define a new, abstract semantics for \jsil,\footnote{We refer to the semantics as \emph{abstract} since it 
-is parametric on a \jsil state signature. We are not doing abstract interpretation.} in the spirit %style % I think style is too strong because the citation is really abstract interpretation - it will be very confusing
- of~\cite{vanhorn:icfp:2010}, which we instantiate to obtain the concrete, instrumented, and symbolic semantics. 
-This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication.
+%We define a new, abstract semantics for \jsil,\footnote{We refer to the semantics as \emph{abstract} since it 
+%is parametric on a \jsil state signature. We are not doing abstract interpretation.} in the spirit %style % I think style is too strong because the citation is really abstract interpretation - it will be very confusing
+% of~\cite{vanhorn:icfp:2010}, which we instantiate to obtain the concrete, instrumented, and symbolic semantics. 
+%This abstract semantics is the bedrock for both the formal development \emph{and} the implementation of the analysis. This approach has several benefits: it streamlines the formalism, avoiding redundancy; it makes the choices in the design of the instrumented and symbolic semantics explicit; and it leads to modular implementations, avoiding code duplication.
 %
-Full definitions and proofs are given in the~Appendix.
+%Full definitions and proofs are given in the~Appendix.
 
 %In \S\ref{subsec:jsil:analysis:formalism}, we define an abstract semantics for 
 %\jsil, which we then instantiate to obtain its concrete and symbolic semantics.
