@@ -16,22 +16,23 @@
 $\jnumber \in \numbers$ \jspc  $\jbool \in \bools$ \jspc $\jstring \in \strings$  \jspc 
 $\loc \in \locs$ \jspc $\jvar \in \jvars$ \jspc $\jtype \in \jtypes$ \\[0.1cm]
 %
-$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid$
+$\val \in \vals$ \defeq\ $\jnumber \! \mid \! \jbool \! \mid \! \jstring \! \mid \! {\small \jundefined} \! \mid \! {\small \jnull} \! \mid \! {\small \jempty} \! \mid \! \loc \! \mid \! \jtype \! \mid \!  \pid \! \mid \! \jsillist{\val_i\!\!\mid_{i=0}^n} \! \mid \! \jsilset{\val_i \!\!\mid_{i=0}^n}$
    \\[0.1cm]
  %
-  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
+  $\jsilexpr \in \exprs$ \defeq\ $\val \mid \jvar \mid \svar \mid \ominus\ \jsilexpr \mid \jsilexpr \binop{} \jsilexpr$
  \\[0.1cm]
 %
 $\bcmd \in \bcmds$ \defeq\ $\jsilskip \mid \jvar := \jsilexpr  \mid \jvar := \jsilnew() \mid \jvar := [\jsilexpr, \jsilexpr]$ \\
 %
-\hspace{0.02cm} $\mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr)$ \\
-\hspace{0.02cm} $\mid \jvar := \getfields(\jsilexpr) \mid \jvar := \makesymbolic(\jtype)$  \\[0.1cm]
+\hspace{0.02cm} $\mid [\jsilexpr, \jsilexpr] := \jsilexpr \mid \jsildelete(\jsilexpr, \jsilexpr) \mid \jvar := \hasfield(\jsilexpr, \jsilexpr) \mid \jvar := \getfields(\jsilexpr)$  \\[0.1cm]
 % Commands
-$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jvec{\jsilexpr}}{j}$ \\
+$\jcmd \in \cmds$ \defeq \ $ \bcmd \mid \goto \ i \mid  \ifgoto{\jsilexpr}{i}{j} \mid \jsilcall{\jvar}{\jsilexpr}{\jsilexpr_i\!\!\mid_{i=0}^n}{j}$ \\
 \hspace{0.02cm} $ \mid \assume(\jsilexpr) \mid \jassert(\jsilexpr)$ \\[0.1cm]
 %
-$\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
+$\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$ \\[0.1cm]
+$i, j \in \indexes$ \defeq \ $\mathbb{N} \cup \{ \retlab, \errlab \}$
  \end{tabular}
+ \vspace*{-0.2cm}
  \caption{Syntax of the \jsil Language}
  \end{figure}
  
@@ -61,9 +62,10 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 \textsc{Assumption:}                   & $\absassume{} : \absstates \rightarrow (\exprs \partialmap \absvals) \partialmap \absstates$ \\ 
                                                     & $\absstate' = \absassume{}(\absstate, \jsilexpr)$ \\[2pt]
 %
-\textsc{Satisfiability:}                   & $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$ \\ 
+\textsc{SAT Check:}                   & $\abssat{} : \absstates \rightarrow \exprs \partialmap \bools$ \\ 
                                                     & $\jbool = \abssat{}(\absstate, \jsilexpr)$ 
  \end{tabular}
+ \vspace*{-0.3cm}
  \caption{Abstract State Signature}
  \end{figure}
  
@@ -95,6 +97,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
 %
 \end{mathpar}
 %
+\vspace*{-0.45cm}
 \caption{Abstract semantics of basic commands: {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}
 %
 \end{figure}
@@ -140,6 +143,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
  %
 \end{mathpar}
 %
+\vspace*{-0.35cm}
 \caption{Abstract semantics of basic commands (cont.): {\small $\absbsemrule{\absstate, \bcmd}{\absstate'}{}$}}
 %
 \end{figure}
@@ -246,6 +250,7 @@ $\proc \in \procs$ \defeq \ $\procedure{\pid}{\jvec{\jvar}}{\jvec{\jcmd}}$
       \abssat{}(\absstate, \neg \jsilexpr) = \jtrue
   }{\abssemrule{\absstate, \abscs, i}{\absstate, \abscs, i}{\top}{\bot}{}} 
  \end{mathpar}
+ \vspace*{-0.3cm}
 \caption{Abstract semantics of commands: \\{\small $\abssemrule{\absstate, \abscs, i}{\absstate', \abscs', j}{\mode}{\mode'}{}$}}
 \end{figure}
 
@@ -329,9 +334,6 @@ $\phantom{xxx}$
        }{  \absgetdomainfun{\concrete}((\heap, \store), \jsilexpr) \semeq \jsilset{p_1, ..., p_m}}
   %
    \\
-      \inferrule[\textsc{Symbolic Value}]
-   {\val \in \vals \text{ is of type } \jtype}{\absmakesymbolicrule{\concrete}{\jstate, \jtype} \semeq \val}
-     \and 
   \inferrule[\textsc{Assume}]
    {
        \evalexpr{\concrete}(\jstate.\stosel, \jsilexpr) = \jtrue
@@ -458,14 +460,16 @@ $\phantom{xxx}$
         \qquad
        %
         \evalexpr{\symbolic}(\sstore, \jvar) \semeq \sstore(\jvar)  
+        \qquad
+        \evalexpr{\symbolic}(\sstore, \svar) \semeq \svar 
 	%
-	 \qquad
+	 \\[10pt]
 	 %
 	\frac{
 		\val =  \evalexpr{\symbolic}(\sstore, \jsilexpr) 
            }{
 	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) \semeq \semop{\ominus} (\val)
-	  } \\[10pt]
+	  } \quad
 	%
 	\frac{
 		\sexprv =  \evalexpr{\symbolic}(\sstore, \jsilexpr) 
@@ -475,7 +479,7 @@ $\phantom{xxx}$
 	    \evalexpr{\symbolic}(\sstore, \ominus \jsilexpr) \semeq \ominus \sexprv
 	  }  
 	  %
-	  \quad 
+	  \\[10pt] 
 	  % 
 	  \frac{
 	      \val_1 = \evalexpr{\symbolic}(\sstore, \jsilexpr_1)
@@ -563,26 +567,18 @@ $\phantom{xxx}$
            \forall_{n < i \leq m} \, \sexprv_i = \none 
    }{  \absgetdomainfun{\symbolic}((\sheap, \sdom, \sstore, \pc), \jsilexpr) \semeq \jsilset{\sexprp_1, ..., \sexprp_n}}
   \\
-   \inferrule[\textsc{Symbolic Value Creation}]
-   {\svar \in \svars \text{ is of type } \jtype
-     \quad 
-     \svar \not\in \fv(\sstate)
-    }{\absmakesymbolicrule{\symbolic}{\sstate, \jtype} = \svar}
-   \and 
-   \inferrule[\textsc{Assume}]
+     \inferrule[\textsc{Assume}]
    {  
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
-   }{  \absassume{\symbolic}(\sstate, \jsilexpr) =  \sstate \, \wedge \, \sexprb }
-   \\
-    
-   \qquad
+   }{  \absassume{\symbolic}(\sstate, \jsilexpr) =  \sstate \, \wedge \, \sexprb }   
+   \quad
     \inferrule[\textsc{Check Sat - True}]
    { 
    	\sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
          \\\\
          (\sstate.\pcsel \wedge \sexprb) \text{ SAT}
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jtrue}
- \qquad 
+ \quad 
     \inferrule[\textsc{Check Sat - False}]
    { 
          \sexprb = \evalexpr{\symbolic}(\sstate.\stosel, \jsilexpr)
@@ -590,6 +586,7 @@ $\phantom{xxx}$
          (\sstate.\pcsel \wedge \sexprb) \text{ UNSAT}
    }{  \abssat{\symbolic}(\sstate, \jsilexpr) = \jfalse} 
  \end{mathpar}
+ \vspace*{-0.5cm}
  \caption{Symbolic Semantics Rules - cont.}
  \end{figure}
 
@@ -682,6 +679,7 @@ $\phantom{xxx}$
 \interpret{\symbinst}{\senv}(\sheap, \sdom, \sstore, \pc) \semeq (\iheap, \idom, \store)
 }
 \end{mathpar}
+\vspace*{-0.3cm}
 \caption{Symbolic State Instrumented Interpretation}
 \end{figure}
 
@@ -760,6 +758,7 @@ $\phantom{xxxx}$
   \jsilexpr' = \proginterpret{\senv}(\jsilexpr)
 }{\proginterpret{\senv}(\jassert(\jsilexpr)) \semeq  \jassert(\jsilexpr') }
 \end{mathpar}
+\vspace*{-0.3cm}
 \caption{Symbolic Program Interpretation}
 \end{figure}
 
