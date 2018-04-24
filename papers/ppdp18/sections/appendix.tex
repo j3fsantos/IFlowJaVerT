@@ -1932,7 +1932,7 @@ $$
 
 \begin{proof}
 {Suppose $\abssemrule{\sstate, \scs, i}{\sstate', \scs', j}{\mode}{\mode'}{\symbolic}$ (\hyp{1}) and 
-$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \sstate'.\pcsel, \scs)$ (\hyp{2})}.
+$(\istate, \cs) = \interpret{\symbinst}{\senv}(\sstate \, \wedge \, \pc, \scs)$ (\hyp{2})}.
 We proceed by case analysis on the derivation of \hyp{1}. Note that $\interpret{\symbinst}{\senv}(\prog) = \prog$, as we assume that symbolic variables have moved from the program to the symbolic store. Onward, we keep $\prog$ implicit.
 \vspace{3pt}
 
