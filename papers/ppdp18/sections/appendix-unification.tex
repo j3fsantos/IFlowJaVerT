@@ -130,7 +130,7 @@ variables in $\pass$ to themselves (formally: $\subst_0 = \identity_{\fv(\sstate
 
 
 
-\begin{lemma}[GetCell - FIP]\label{lemma:getcell:fip}
+\begin{lemma}[GetCell - FIP Success]\label{lemma:getcell:fip}
 $$
 \begin{array}{l}
 \GetCellV{\sstate, \sloc, \sexprp} = \success{\sexprv', \sstate'} 
@@ -139,9 +139,11 @@ $$
 \end{array}
 $$
 \end{lemma}
+\begin{proof}
+Follows immediately from the definition of $\GetCellVFun$. 
+\end{proof}
 
-
-\begin{lemma}[GetDomain - FIP]\label{lemma:getdomain:fip}
+\begin{lemma}[GetDomain - FIP Success]\label{lemma:getdomain:fip}
 $$
 \begin{array}{l}
 \GetDomainV{\sstate, \sloc, \sexprp} = \success{\sexprv', \sstate'} 
@@ -150,9 +152,11 @@ $$
 \end{array}
 $$
 \end{lemma}
+\begin{proof}
+Follows immediately from the definition of $\GetDomainVFun$. 
+\end{proof}
 
-
-\begin{lemma}[Soundness of Unification]
+\begin{lemma}[Soundness of Unification - Success]\label{lemma:soundness:unification:success}
 $$
 \begin{array}{l}
 \unificationfun(\sstate, \jvec{\spass}) = \success{\sstate_f} \\ \quad \quad
@@ -170,12 +174,12 @@ whereas the inductive case corresponds to $\jvec{\spass} = \sqass \lstcons \jvec
 assertion. For clarity, we consider each possible inductive case separately. 
 \vspace{3pt}
 
-\noindent \prooflab{Empty Unification Plan} $\jvec{\spass} = \lstemp$. It follows that
+\noindent \prooflab{Empty Assertion List} $\jvec{\spass} = \lstemp$. It follows that
 $\sstate_f = \sstate$. Letting  $\sstate_m = \emptystate$, 
 and noting that $\emptystate \statecompose \sstate = \sstate$ and $\emptystate \stateequiv \normaliser([])$, the result follows. 
  \vspace{5pt}
 
-\noindent \prooflab{Non-Empty Unification Plan - Cell Assertion} 
+\noindent \prooflab{Cell Assertion} 
 $\jvec{\spass} = (\sloc, \sexprp) \pointsto \sexprv \lstcons \jvec{\spass}'$ (\ieq{1}). 
 From \ieq{1}, we conclude that there exists a symbolic state $\sstate'$, 
 and a symbolic value $\sexprv'$, such that: 
@@ -187,7 +191,7 @@ $$
 Applying the induction hypothesis to \ieq{4}, we conclude that there is a symbolic state 
 $\sstate_m'$ such that  $\sstate' = \sstate_m' \statecompose \sstate_f$ (\ieq{5}) and 
 $\stateequivrel{\sstate_m'}{\normaliser(\jvec{\spass}')}{\sstate'.\pcsel}$ (\ieq{6}). 
-Applying Lemma~\ref{lemma:verification:getcell} to \ieq{2}, we conclude that:
+Applying Lemma~\ref{lemma:getcell:fip} to \ieq{2}, we conclude that:
 $$\sstate = \sstate' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv') \text{ (\ieq{7})}$$   
 Combining \ieq{5} and \ieq{7}, we conclude that: 
 $$
@@ -205,7 +209,7 @@ Letting $\sstate_m = \sstate_m' \statecompose \normaliser((\sloc, \sexprp) \poin
 from \ieq{8} and \ieq{10}. 
 \vspace{5pt}
 
-\noindent \prooflab{Non-Empty Unification Plan - Domain Assertion} The unification plan is as follows: 
+\noindent \prooflab{Domain Assertion} The unification plan is as follows: 
 $\jvec{\spass} = \emptyfields{\sloc}{\sexprv} \lstcons \jvec{\spass}'$ (\ieq{1}). 
 From \ieq{1}, it follows that there exists a symbolic state $\sstate'$,
 and symbolic value $\sexprv'$, $\sexprp_1$, ..., $\sexprp_n$, such that: 
@@ -220,7 +224,7 @@ Applying the induction hypothesis to \ieq{4}, we conclude that there is a symbol
 $\sstate_m'$ such that  $\sstate' = \sstate_m' \statecompose \sstate_f$ (\ieq{5}) and
 $\stateequivrel{\sstate_m'}{\normaliser(\subst'(\up'))}{\sstate'.\pcsel}$ (\ieq{6}). 
 %
-Applying Lemma~\ref{lemma:verification:getdomain} to \ieq{2}, we conclude that 
+Applying Lemma~\ref{lemma:getdomain:fip} to \ieq{2}, we conclude that 
 $\sstate = \sstate' \statecompose \normaliser(\emptyfields{\subst(\sloc)}{\sexprv'})$ (\ieq{7}). 
 %
 Combining \ieq{5} and \ieq{7}, we conclude that: 
@@ -240,7 +244,7 @@ from \ieq{8} and \ieq{10}.
 \vspace{5pt}
 
 
-\noindent \prooflab{Non-Empty Unification Plan - Pure Assertion}
+\noindent \prooflab{Pure Assertion}
 $\jvec{\spass} = \sass \lstcons \jvec{\spass}'$ (\ieq{1}). 
 From \ieq{1}, it follows that: 
 $\sstate.\pcsel \vdash \sass$ (\ieq{2}) and 
@@ -263,6 +267,67 @@ $$
 Letting $\sstate_m = \sstate_m'$, the result follows 
 from \ieq{4} and \ieq{7}.
 \end{proof}
+ 
+ \begin{lemma}[GetCell - FIP Fail]\label{lemma:getcell:fip:fail}
+$$
+\begin{array}{l}
+\GetCellV{\sstate, \sloc, \sexprp} = \fail{\pc_f} \\ \quad \quad
+    \implies 
+        \neg \exists \sstate', \sexprv' \, . \, \stateequivrel{\sstate \, \wedge \, \pc_f}{\sstate' \statecompose \normaliser((\sloc, \sexprp) \pointsto \sexprv)}{}
+\end{array}
+$$
+\end{lemma}
+\begin{proof}
+Follows immediately from the definition of $\GetCellVFun$. 
+\end{proof}
+
+\begin{lemma}[GetDomain - FIP Fail]\label{lemma:getdomain:fip:fail}
+$$
+\begin{array}{l}
+\GetDomainV{\sstate, \sloc, \sexprp} = \fail{\pc_f} \\ \quad \quad 
+    \implies 
+         \neg \exists \sstate', \sexprv' \, . \, \stateequivrel{\sstate \, \wedge \, \pc_f}{\sstate' \statecompose \normaliser(\emptyfields{\sloc}{\sexprv'})}{}
+\end{array}
+$$
+\end{lemma}
+ \begin{proof}
+Follows immediately from the definition of $\GetDomainVFun$. 
+\end{proof}
+ 
+ 
+ \begin{lemma}[Soundness of Unification - Failure]\label{lemma:soundness:unification:failure}
+$$
+\begin{array}{l}
+\unificationfun(\sstate, \jvec{\spass}) = \fail{\pc_f} \\ \quad \quad
+  \implies 
+   \neg \exists \, \sstate_m \, . \, 
+   \sstate = \sstate_m \statecompose \sstate_f 
+   \, \wedge \, 
+    \stateequivrel{\sstate_m}{\normaliser(\jvec{\spass})}{\sstate.\pcsel}
+\end{array}
+$$
+\end{lemma}
+  \begin{proof}
+By induction on the length of $\jvec{\spass}$ as in~\ref{lemma:soundness:unification}, using 
+Lemmas~\ref{lemma:getcell:fip:fail} and~\ref{lemma:getdomain:fip:fail}. 
+\end{proof}
+ 
+ \begin{temax}[Soundness of FIP - Theorem~\ref{teo:fip:soundness}]
+The following hold: 
+\begin{enumerate}%[leftmargin=*]
+\setlength{\itemsep}{0.1cm}
+\item $\unificationfun(\sstate, \pass) = \success{\sstate_f}
+        \implies 
+        \interpret{}{}(\sstate) \subseteq \interpret{}{}(\sstate_f \statecompose \normaliser(\pass))$
+ \item  $\unificationfun(\sstate, \pass) = \fail{\pc_f} 
+   \implies
+   \interpret{}{}(\sstate \, \wedge \, \pc_f) \cap \interpret{}{}(\pass) = \emptyset$
+\end{enumerate}
+ \end{temax}
+ \begin{proof}
+ Follows from Lemmas~\ref{lemma:soundness:unification:success} and~\ref{lemma:soundness:unification:failure}. 
+ \end{proof}
+ 
  
 %
 %  \State $\qquad \textbf{if} \,(\sstate.\pcsel \vdash \subst(\sass))$
